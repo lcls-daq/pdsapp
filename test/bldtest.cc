@@ -1,4 +1,4 @@
-#include "pds/collection/Transition.hh"
+#include "pds/utility/Transition.hh"
 
 #include "pds/service/Client.hh"
 #include "pds/service/LinkedList.hh"
@@ -45,7 +45,7 @@ static const unsigned ConnectTimeOut = 500; // 1/2 second
 BldService::BldService(unsigned id) :
   _outlet(sizeof(_datagram),
 	  sizeof(_payload)),
-  _dst(PdsStreamPorts::bld(id)),
+  _dst(StreamPorts::bld(id)),
   _datagram(Sequence(),sizeof(_payload))
 {
   for(unsigned k=0; k<sizeof(_payload); k++)
@@ -94,7 +94,6 @@ void BldDriver::send(unsigned rate)
   printf("Starting time    %08x/%08x\n",tp.tv_sec,tp.tv_nsec);
   printf("Sending interval %08x/%08x\n",td.tv_sec,td.tv_nsec);
 
-  unsigned id=0;
   unsigned _pulseId=0;
 
   while(1) {
@@ -131,7 +130,6 @@ int main(int argc, char** argv)
 
   char* end;
   unsigned rate = strtoul(argv[1], &end, 0);
-  unsigned* id = new unsigned[nid];
   BldDriver* driver = new BldDriver;
   for(int k=0; k<nid; k++) {
     unsigned id = strtoul(argv[k+2], &end, 0);

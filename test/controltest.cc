@@ -1,5 +1,5 @@
 #include "pds/collection/CollectionManager.hh"
-#include "pds/collection/Transition.hh"
+#include "pds/utility/Transition.hh"
 
 #include "pds/service/Semaphore.hh"
 #include "pds/utility/StreamPorts.hh"
