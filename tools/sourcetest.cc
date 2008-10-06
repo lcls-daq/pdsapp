@@ -1,12 +1,12 @@
 #include "pds/collection/CollectionManager.hh"
 #include "pds/collection/CollectionServer.hh"
-#include "pds/collection/Transition.hh"
+#include "pds/utility/Transition.hh"
 #include "pds/collection/CollectionPorts.hh"
 #include "pds/collection/Route.hh"
 #include "pds/utility/StreamPorts.hh"
 #include "pds/service/Client.hh"
 #include "pds/xtc/EvrDatagram.hh"
-#include "pds/collection/Transition.hh"
+#include "pds/utility/Transition.hh"
 #include "pds/service/Task.hh"
 
 #include <time.h> // Required for timespec struct and nanosleep()
@@ -23,9 +23,7 @@ public:
 private:
   // Implements CollectionManager
   virtual void message(const Node& hdr, const Message& msg);
-  virtual void connected(const Node& hdr, const Message& msg);
-  virtual void timedout();
-  virtual void disconnected();
+
 private:
   Client   _outlet;
   unsigned _evr;
@@ -35,8 +33,8 @@ private:
 static const unsigned MaxPayload = sizeof(Transition);
 static const unsigned ConnectTimeOut = 500; // 1/2 second
 
-EvrService::EvrService(unsigned partition) :
-  CollectionManager(Level::Observer, partition, 
+EvrService::EvrService(unsigned platform) :
+  CollectionManager(Level::Observer, platform, 
                     MaxPayload, ConnectTimeOut, NULL),
   _outlet(sizeof(EvrDatagram),0),
   _evr   (0)
@@ -54,7 +52,7 @@ void EvrService::message(const Node& hdr, const Message& msg)
       if (tr.id() == Transition::L1Accept &&
 	  tr.phase() == Transition::Record) {
 	EvrDatagram datagram(tr.sequence(), _evr++);
-	Ins dst(PdsStreamPorts::event(hdr.partition(),
+	Ins dst(StreamPorts::event(hdr.platform(),
 				      Level::Segment));
 	_outlet.send((char*)&datagram,0,0,dst);
 	printf("EvrService::out %x:%08x/%08x to %x/%d\n",
@@ -69,23 +67,17 @@ void EvrService::message(const Node& hdr, const Message& msg)
   }
 }
 
-void EvrService::connected(const Node& hdr, const Message& msg) {}
-
-void EvrService::timedout() {}
-
-void EvrService::disconnected() {}
-
 int main(int argc, char** argv)
 {
   if (argc != 2) {
-    printf("usage: %s <partition>\n", argv[0]);
+    printf("usage: %s <platform>\n", argv[0]);
     return 0;
   }
 
   char* end;
-  unsigned partition = strtoul(argv[1], &end, 0);
-  partition &= 0xff;
-  EvrService evr(partition);
+  unsigned platform = strtoul(argv[1], &end, 0);
+  platform &= 0xff;
+  EvrService evr(platform);
 
   evr.connect();
 

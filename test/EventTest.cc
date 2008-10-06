@@ -76,7 +76,7 @@ void EventTest::attach(CollectionManager* event)
 
 void EventTest::attached(SetOfStreams& streams) 
 {
-  printf("EventTest connected to partition 0x%x\n", _event->header().partition());
+  printf("EventTest connected to partition 0x%x\n", _event->header().platform());
 
   Stream* frmk = streams.stream(StreamParams::FrameWork);
   if (_event->header().level()==Level::Recorder)
@@ -109,8 +109,8 @@ void EventTest::failed(Reason reason)
   static const char* reasonname[] = { "platform unavailable", 
 				      "crates unavailable", 
 				      "fcpm unavailable" };
-  printf("EventTest: unable to allocate crates on partition 0x%x : %s\n", 
-	 _event->header().partition(), reasonname[reason]);
+  printf("EventTest: unable to allocate crates on platform 0x%x : %s\n", 
+	 _event->header().platform(), reasonname[reason]);
   delete this;
 }
 
@@ -124,8 +124,8 @@ void EventTest::dissolved(const Node& who)
   char ipname[iplen];
   Node::ip_name(who.ip(),ipname, iplen);
   
-  printf("EventTest: partition 0x%x dissolved by user %s, pid %d, on node %s", 
-          who.partition(), username, who.pid(), ipname);
+  printf("EventTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
+          who.platform(), username, who.pid(), ipname);
 
   delete this;
 }

@@ -15,7 +15,7 @@
 #include "pds/service/VmonSourceId.hh"
 #include "pds/service/Task.hh"
 #include "pds/xtc/xtc.hh"
-#include "pds/collection/Transition.hh"
+#include "pds/utility/Transition.hh"
 #include "pds/client/InXtcIterator.hh"
 #include "pds/client/Browser.hh"
 #include "pds/xtc/InDatagramIterator.hh"
@@ -63,10 +63,10 @@ namespace Pds {
   enum { PayloadSize = 1024 };
 
   public:
-    MyDriver(unsigned partition, 
+    MyDriver(unsigned platform, 
 	     int      index,
 	     MySegWire& settings, EventCallback& cb, Arp* arp) : 
-      SegmentLevel(partition, index, settings, cb, arp),
+      SegmentLevel(platform, index, settings, cb, arp),
       _seg_wire(settings),
       _server(0),
       _evr(*(unsigned*)&_datagram.datagram()),
@@ -99,11 +99,13 @@ namespace Pds {
       }
       SegmentLevel::message(hdr,msg);
     }
+#if 0 // revisit
     void connected   (const Node& hdr, const Message& msg)
     {
       SegmentLevel::connected(hdr,msg);
       _server = _seg_wire.server();
     }
+#endif
 
   private:
     MySegWire& _seg_wire;
@@ -206,7 +208,7 @@ namespace Pds {
   class SegTest : public EventCallback {
   public:
     SegTest(Task*                 task,
-	    unsigned              partition,
+	    unsigned              platform,
 	    SegWireSettings&      settings,
 	    Arp*                  arp) :
       _task(task),
@@ -230,8 +232,8 @@ namespace Pds {
     // Implements EventCallback
     void attached(SetOfStreams& streams)
     {
-      printf("SegTest connected to partition 0x%x\n", 
-	     _segment->header().partition());
+      printf("SegTest connected to platform 0x%x\n", 
+	     _segment->header().platform());
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       (new MyFEX)->connect(frmk->inlet());
@@ -242,8 +244,8 @@ namespace Pds {
       static const char* reasonname[] = { "platform unavailable", 
 					  "crates unavailable", 
 					  "fcpm unavailable" };
-      printf("SegTest: unable to allocate crates on partition 0x%x : %s\n", 
-	     _segment->header().partition(), reasonname[reason]);
+      printf("SegTest: unable to allocate crates on platform 0x%x : %s\n", 
+	     _segment->header().platform(), reasonname[reason]);
       delete this;
     }
     void dissolved(const Node& who)
@@ -256,8 +258,8 @@ namespace Pds {
       char ipname[iplen];
       Node::ip_name(who.ip(),ipname, iplen);
       
-      printf("SegTest: partition 0x%x dissolved by user %s, pid %d, on node %s", 
-	     who.partition(), username, who.pid(), ipname);
+      printf("SegTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
+	     who.platform(), username, who.pid(), ipname);
       
       delete this;
     }
@@ -273,7 +275,7 @@ using namespace Pds;
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  unsigned partition = 0;
+  unsigned platform = 0;
   unsigned index     = 0;
   unsigned source = 0;
   Arp* arp = 0;
@@ -292,13 +294,13 @@ int main(int argc, char** argv) {
       source = strtoul(optarg, NULL, 0);
       break;
     case 'p':
-      partition = strtoul(optarg, NULL, 0);
+      platform = strtoul(optarg, NULL, 0);
       break;
     }
   }
 
-  if (!partition) {
-    printf("%s: partition mask required\n",argv[0]);
+  if (!platform) {
+    printf("%s: platform required\n",argv[0]);
     return 0;
   }
 
@@ -316,8 +318,8 @@ int main(int argc, char** argv) {
 
   Task* task = new Task(Task::MakeThisATask);
   MySegWire settings(Src(Level::Segment,-1UL,source));
-  SegTest* segtest = new SegTest(task, partition, settings, arp);
-  MyDriver* driver = new MyDriver(partition, index,
+  SegTest* segtest = new SegTest(task, platform, settings, arp);
+  MyDriver* driver = new MyDriver(platform, index,
 				  settings, *segtest, arp);
   segtest->attach(driver);
 
