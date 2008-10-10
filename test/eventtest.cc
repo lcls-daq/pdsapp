@@ -26,13 +26,14 @@ int main(int argc, char** argv) {
 
   Task* task = new Task(Task::MakeThisATask);
   EventTest* test = new EventTest(task, options, arp);
-  EventLevel* event = new EventLevel(options.partition,
-				     options.id,
+  EventLevel* event = new EventLevel(options.platform,
 				     *test,
 				     arp);
-  test->attach(event);
+  if (test->attach(event))
+    task->mainLoop();
 
-  task->mainLoop();
+  test->detach();
+
   if (arp) delete arp;
   return 0;
 }

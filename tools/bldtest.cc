@@ -3,7 +3,6 @@
 #include "pds/service/Client.hh"
 #include "pds/service/LinkedList.hh"
 #include "pds/utility/StreamPorts.hh"
-#include "pds/utility/StreamPortAssignment.hh"
 #include "pds/xtc/BldDatagram.hh"
 
 #include <time.h> // Required for timespec struct and nanosleep()
@@ -106,7 +105,7 @@ void BldDriver::send(unsigned rate)
     unsigned pulseId = (tp.tv_nsec >> 23) | (tp.tv_sec << 9);
     if (pulseId != _pulseId) {
       Sequence seq(Sequence::Event,
-		   Sequence::L1Accept,
+		   TransitionId::L1Accept,
 		   ClockTime(sec,nsec),
 		   0, pulseId);
       BldService* srv = _service.forward();

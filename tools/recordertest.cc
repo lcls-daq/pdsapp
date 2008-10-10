@@ -26,8 +26,7 @@ int main(int argc, char** argv) {
 
   Task* task = new Task(Task::MakeThisATask);
   EventTest* test = new EventTest(task, options, arp);
-  RecorderLevel* event = new RecorderLevel(options.partition,
-					   options.id,
+  RecorderLevel* event = new RecorderLevel(options.platform,
 					   *test,
 					   arp);
   test->attach(event);

@@ -9,9 +9,8 @@ public:
   int validate(const char*) const;
 
 public:  
-  unsigned partition;
+  unsigned platform;
   unsigned buffersize;
-  int id;
   const char* arpsuidprocess;
 
   enum Mode {Counter, Decoder, Display};

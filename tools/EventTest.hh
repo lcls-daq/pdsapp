@@ -7,7 +7,7 @@ namespace Pds {
 
 class Task;
 class EventOptions;
-class CollectionManager;
+class PartitionMember;
 class ErrLog;
 class Arp;
 
@@ -18,7 +18,8 @@ public:
 	    Arp* arp);
   virtual ~EventTest();
 
-  void attach(CollectionManager*);
+  bool attach(PartitionMember*);
+  void detach();
 
 private:
   // Implements EventCallback
@@ -29,7 +30,7 @@ private:
 private:
   Task* _task;
   EventOptions& _options;
-  CollectionManager* _event;
+  PartitionMember* _event;
 };
 
 }

@@ -2,56 +2,15 @@
 
 #include "EventTest.hh"
 #include "EventOptions.hh"
-#include "pds/collection/CollectionManager.hh"
+
+#include "pds/management/PartitionMember.hh"
 #include "pds/utility/SetOfStreams.hh"
-//#include "EventDisplay.hh"
 #include "pds/client/Decoder.hh"
-//#include "DebugAction.hh"
-//#include "CountAction.hh"
-//#include "NoAction.hh"
-//#include "Fsm.hh"
+#include "CountAction.hh"
+#include "StatsApp.hh"
 #include "pds/service/Task.hh"
 
 using namespace Pds;
-
-namespace Pds {
-
-class CountAction: public Appliance {
-public:
-  CountAction() : _counter(0), _transitions(0) {}
-  ~CountAction()
-  {
-    printf("CountAction: %.5d transitions\n"
-	   "             %.5d events\n",
-	   _transitions, _counter);
-  }
-  virtual Transition* transitions(Transition* in)
-  {
-    ++_transitions;
-    printf ("transition %d\n", _transitions);
-    return in;
-  }
-
-  virtual InDatagram* events(InDatagram* in) 
-  {
-    const Datagram& dg = in->datagram();
-    if (_seq >= dg) printf("%x/%x was out of order. Last was %x/%x. Size %i\n",
-			   dg.high(), dg.low(), _seq.high(),
-			   _seq.low(), dg.xtc.sizeofPayload());
-    _seq = dg;
-    if (!(++_counter%1000)){
-      printf ("nevents      = %d\n", _counter);
-      printf ("current size = %d\n\n", dg.xtc.sizeofPayload());
-    }
-    return in;
-  }
-  virtual InDatagram* occurrences(InDatagram* dg) { return dg; }
-private:
-  unsigned _counter;
-  unsigned _transitions;
-  Sequence _seq;
-};
-}
 
 EventTest::EventTest(Task* task,
 		     EventOptions& options,
@@ -67,24 +26,23 @@ EventTest::~EventTest()
   _task->destroy();
 }
 
-void EventTest::attach(CollectionManager* event)
+bool EventTest::attach(PartitionMember* event)
 {
   _event = event;
-  _event->dotimeout(250);
-  _event->connect();
+  return event->attach();
 }
 
-void EventTest::attached(SetOfStreams& streams) 
+void EventTest::attached(SetOfStreams& streams)
 {
-  printf("EventTest connected to partition 0x%x\n", _event->header().platform());
-
+  printf("EventTest connected to platform 0x%x\n", _event->header().platform());
+  
   Stream* frmk = streams.stream(StreamParams::FrameWork);
   if (_event->header().level()==Level::Recorder)
-    frmk->outlet()->sink(EventId::L1Accept);
-
+    frmk->outlet()->sink(TransitionId::L1Accept);
+  
   //  Stream* occr = streams.stream(StreamParams::Occurrence);
   //  occr->outlet()->sink(OccurrenceId::Vmon);
-
+  
   switch (_options.mode) {
   case EventOptions::Counter:
     {
@@ -99,9 +57,15 @@ void EventTest::attached(SetOfStreams& streams)
     }
   case EventOptions::Display:
     {
+      (new StatsApp)->connect(frmk->inlet());
       break;
     }
   }
+}
+
+void EventTest::detach()
+{
+  _event->detach();
 }
 
 void EventTest::failed(Reason reason) 

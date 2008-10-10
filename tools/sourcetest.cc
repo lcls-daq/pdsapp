@@ -30,7 +30,7 @@ private:
 };
 
 
-static const unsigned MaxPayload = sizeof(Transition);
+static const unsigned MaxPayload = sizeof(Allocate);
 static const unsigned ConnectTimeOut = 500; // 1/2 second
 
 EvrService::EvrService(unsigned platform) :
@@ -49,16 +49,17 @@ void EvrService::message(const Node& hdr, const Message& msg)
   if (hdr.level() == Level::Control) {
     if (msg.type() == Message::Transition) {
       const Transition& tr = reinterpret_cast<const Transition&>(msg);
-      if (tr.id() == Transition::L1Accept &&
+      if (tr.id() == TransitionId::L1Accept &&
 	  tr.phase() == Transition::Record) {
 	EvrDatagram datagram(tr.sequence(), _evr++);
 	Ins dst(StreamPorts::event(hdr.platform(),
 				      Level::Segment));
-	_outlet.send((char*)&datagram,0,0,dst);
-	printf("EvrService::out %x:%08x/%08x to %x/%d\n",
-	       datagram.evr,
-	       datagram.seq.highAll(),datagram.seq.low(),
-	       dst.address(),dst.portId());
+	_outlet.send((char*)&datagram,(char*)0,0,dst);
+	if (_evr%1000 == 0)
+	  printf("EvrService::out %x:%08x/%08x to %x/%d\n",
+		 datagram.evr,
+		 datagram.seq.highAll(),datagram.seq.low(),
+		 dst.address(),dst.portId());
       }
       else {
 	_evr = 0;  // reset the sequence on any transition
@@ -79,6 +80,7 @@ int main(int argc, char** argv)
   platform &= 0xff;
   EvrService evr(platform);
 
+  evr.start();
   evr.connect();
 
   Task* task = new Task(Task::MakeThisATask);
