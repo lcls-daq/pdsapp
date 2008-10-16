@@ -28,6 +28,7 @@
 #include <stdio.h>
 
 static bool verbose = false;
+static unsigned detid = 0;
 
 namespace Pds {
 
@@ -64,7 +65,7 @@ namespace Pds {
   //  a socket in response to L1Accepts issued by the ControlLevel.
   //
   class MyDriver : public SegmentLevel {
-  enum { PayloadSize = 64*1024 };
+  enum { PayloadSize = 4*1024*1024 };
 
   public:
     MyDriver(unsigned platform, int size,
@@ -73,7 +74,6 @@ namespace Pds {
       _size    (size),
       _seg_wire(settings),
       _server(0),
-      _source(header(),0xa5a5a5a5),
       _pool(sizeof(CDatagram)+PayloadSize,32)
     {
       for(unsigned k=0; k<PayloadSize; k++)
@@ -97,13 +97,18 @@ namespace Pds {
 	  if (tr.id() == TransitionId::L1Accept &&
 	      tr.phase() == Transition::Record) {
 	    if (_server) {
-	      CDatagram* dg = new(&_pool) CDatagram(TypeId(TypeNum::Any),
-						    _source);
+	      CDatagram* cdg = new(&_pool) CDatagram(TypeId(TypeNum::Any),
+						     _server->client());
+	      //  Because I use a ToEb as a simulated source of data, 
+	      //  I need to add the InXtc header within the payload.
+	      Datagram& dg = const_cast<Datagram&>(cdg->datagram());
+	      InXtc* xtc = new(&dg.xtc) InXtc(TypeNum::Any, _server->client());
 	      int sz = ((_size > 0) ? _size+3 : ((random()%(-_size))+4)) & ~3;
 	      char* p = &_payload[(_size > 0) ? 0 : random()%(PayloadSize-sz)];
-	      memcpy(const_cast<Datagram&>(dg->datagram()).xtc.alloc(sz),p,sz);
-	      *reinterpret_cast<unsigned*>(const_cast<Datagram*>(&dg->datagram())) = _evr;
-	      _server->send(dg);
+	      memcpy(dg.xtc.alloc(sz),p,sz);
+	      xtc->alloc(sz);
+	      *reinterpret_cast<unsigned*>(&dg) = _evr;
+	      _server->send(cdg);
 	      _evr++;
 	    }
 	  }
@@ -118,7 +123,6 @@ namespace Pds {
     MySegWire& _seg_wire;
     ToEb*  _server;
     unsigned   _evr;
-    Src        _source;
     char       _payload[PayloadSize];
     GenericPoolW _pool;
   };
@@ -134,9 +138,9 @@ namespace Pds {
     int process(const InXtc& xtc,
 		InDatagramIterator* iter)
     {
-      if (xtc.contains==TypeNum::Id_InXtcContainer)
+      if (xtc.contains==TypeNum::Id_InXtc)
 	return iterate(xtc,iter);
-      if (xtc.src.detector() == 0xa5a5) {
+      if (xtc.src.phy() == detid) {
 	memcpy(_dg.xtc.alloc(sizeof(InXtc)),&xtc,sizeof(InXtc));
 	int size = xtc.sizeofPayload();
 	iovec iov[1];
@@ -290,7 +294,6 @@ int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
   unsigned platform = 0;
-  unsigned index    = 0;
   int      size     = 1024;
   Arp* arp = 0;
 
@@ -302,7 +305,7 @@ int main(int argc, char** argv) {
       arp = new Arp(optarg);
       break;
     case 'i':
-      index  = strtoul(optarg, NULL, 0);
+      detid  = strtoul(optarg, NULL, 0);
       break;
     case 's':
       size   = atoi(optarg);
@@ -334,7 +337,7 @@ int main(int argc, char** argv) {
   }
 
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings(Src(Node(Level::Source,platform), index));
+  MySegWire settings(Src(Node(Level::Source,platform), detid));
   SegTest* segtest = new SegTest(task, platform, settings, arp);
   MyDriver* driver = new MyDriver(platform, size,
 				  settings, *segtest, arp);

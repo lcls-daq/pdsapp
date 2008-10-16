@@ -57,7 +57,7 @@ void EventTest::attached(SetOfStreams& streams)
     }
   case EventOptions::Display:
     {
-      (new StatsApp)->connect(frmk->inlet());
+      (new StatsApp(Src(_event->header())))->connect(frmk->inlet());
       break;
     }
   }

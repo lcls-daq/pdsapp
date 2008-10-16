@@ -42,7 +42,7 @@ public:
     int indent = _node.level()*2;
     printf("%*c%08x/%08x : dmg 0x%08x  events 0x%x  avg sz 0x%x\n",
 	   indent, ' ', _node.log(), _node.phy(),
-	   _damage, _events, _size);
+	   _damage, _events, _events ? _size/_events : 0);
     for(int i=0; i<32; i++)
       if (_dmgbins[i])
 	printf("%*c%8d : 0x%x\n",indent,' ',i,_dmgbins[i]);
@@ -57,7 +57,7 @@ private:
 
 class StatsApp : public Appliance, public InXtcIterator {
 public:
-  StatsApp() : _list(Src()), _pool(sizeof(ZcpDatagramIterator),1) {}
+  StatsApp(const Src& s) : _src(s), _pool(sizeof(ZcpDatagramIterator),1) {}
   ~StatsApp() {}
 
   Transition* transitions(Transition* in) {
@@ -68,6 +68,8 @@ public:
 	unsigned nnodes = alloc.nnodes();
 	for(unsigned i=0; i<nnodes; i++) {
 	  Src s(*alloc.node(i));
+	  if (s.level()==Level::Control) continue;
+	  if (s.level()>=_src.level() && !(s==_src)) continue;
 	  printf("StatsApp: inserting %08x/%08x\n",s.log(),s.phy());
 	  _list.insert(new NodeStats(s));
 	}
@@ -79,7 +81,6 @@ public:
       break;
     case TransitionId::Enable:
       {
-	_list.reset();
 	NodeStats* n = _list.forward();
 	while(n != _list.empty()) {
 	  n->reset();
@@ -104,9 +105,8 @@ public:
   InDatagram* events     (InDatagram* in) {
     const Datagram& dg = in->datagram();
     if (dg.seq.notEvent()) return in;
-    _list.accumulate(dg.xtc);
     InDatagramIterator* iter = in->iterator(&_pool);
-    iterate(dg.xtc, iter);
+    process(dg.xtc, iter);
     delete iter;
     return in;
   } 
@@ -120,11 +120,11 @@ public:
       }
       n = n->forward();
     }
-    printf("unrecognized node %08x/%08x\n",xtc.src.log(),xtc.src.phy());
-    return iterate(xtc,iter);;
+    return 0;
   }
 private:
-  NodeStats   _list;
+  Src _src;
+  LinkedList<NodeStats> _list;
   GenericPool _pool;
 };
 
