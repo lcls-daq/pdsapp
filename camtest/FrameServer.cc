@@ -95,8 +95,7 @@ int FrameServer::fetch(char* payload, int flags)
     Xtc* xtc = new (payload) Xtc(_xtc);
     memcpy(xtc->alloc(sizeof(Frame)),pFrame,sizeof(Frame));
     memcpy(xtc->alloc(newsize),pFrame->data,newsize);
-    length = sizeof(Frame)+newsize;
-    _xtc.extent = xtc->extent;
+    length = _xtc.extent = xtc->extent;
   }
   else
     printf("FrameServer::fetch error: %s\n",strerror(errno));
