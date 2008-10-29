@@ -1,13 +1,14 @@
 #ifndef Pds_StatsApp_hh
 #define Pds_StatsApp_hh
 
-#include "pds/client/InXtcIterator.hh"
+#include "pds/client/XtcIterator.hh"
 #include "pds/service/LinkedList.hh"
 #include "pds/utility/Appliance.hh"
 #include "pds/xtc/InDatagram.hh"
 #include "pds/xtc/InDatagramIterator.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/xtc/Src.hh"
+#include "pds/client/Browser.hh"
 
 #include <stdio.h>
 #include <string.h>
@@ -29,7 +30,7 @@ public:
     _damage = _events = _size = 0; 
     memset(_dmgbins,0,sizeof(_dmgbins));
   }
-  void accumulate(const InXtc& xtc) {
+  void accumulate(const Xtc& xtc) {
     _events++;
     _size   += xtc.sizeofPayload();
     unsigned dmg = xtc.damage.value();
@@ -39,7 +40,7 @@ public:
 	_dmgbins[i]++;
   }
   void dump() const {
-    int indent = _node.level()*2;
+    int indent = (Level::NumberOfLevels-_node.level())*2;
     printf("%*c%08x/%08x : dmg 0x%08x  events 0x%x  avg sz 0x%x\n",
 	   indent, ' ', _node.log(), _node.phy(),
 	   _damage, _events, _events ? _size/_events : 0);
@@ -55,12 +56,13 @@ private:
   unsigned  _dmgbins[32];
 };
 
-class StatsApp : public Appliance, public InXtcIterator {
+class StatsApp : public Appliance, public XtcIterator {
 public:
   StatsApp(const Src& s) : _src(s), _pool(sizeof(ZcpDatagramIterator),1) {}
   ~StatsApp() {}
 
   Transition* transitions(Transition* in) {
+    _seq = 0;
     switch( in->id() ) {
     case TransitionId::Map:
       {
@@ -70,8 +72,11 @@ public:
 	  Src s(*alloc.node(i));
 	  if (s.level()==Level::Control) continue;
 	  if (s.level()>=_src.level() && !(s==_src)) continue;
-	  printf("StatsApp: inserting %08x/%08x\n",s.log(),s.phy());
-	  _list.insert(new NodeStats(s));
+	  NodeStats* empty = _list.empty();
+	  NodeStats* curr  = _list.forward();
+	  while ( curr != empty && curr->node().level()>s.level() )
+	    curr = curr->forward();
+	  curr->insert(new NodeStats(s));
 	}
       }
       break;
@@ -105,13 +110,27 @@ public:
   InDatagram* events     (InDatagram* in) {
     const Datagram& dg = in->datagram();
     if (dg.seq.notEvent()) return in;
+//     if (_seq && dg.seq.high() != _seq) {
+//       printf("seq %08x\n",dg.seq.high());
+//     }
+//     _seq = dg.seq.high()+1;
     InDatagramIterator* iter = in->iterator(&_pool);
     process(dg.xtc, iter);
     delete iter;
+
+    if (dg.xtc.damage.value()) {
+      iter = in->iterator(&_pool);
+      int advance;
+      Browser browser(in->datagram(), iter, 0, advance);
+      if (in->datagram().xtc.contains == TypeNum::Id_Xtc)
+	if (browser.iterate() < 0)
+	  printf("..Terminated.\n");
+      delete iter;
+    }
     return in;
   } 
 
-  int process(const InXtc& xtc, InDatagramIterator* iter) {
+  int process(const Xtc& xtc, InDatagramIterator* iter) {
     NodeStats* n = _list.forward();
     while(n != _list.empty()) {
       if (n->node() == xtc.src) {
@@ -126,6 +145,7 @@ private:
   Src _src;
   LinkedList<NodeStats> _list;
   GenericPool _pool;
+  unsigned _seq;
 };
 
 #endif

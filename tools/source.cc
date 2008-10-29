@@ -70,9 +70,9 @@ int main(int argc, char** argv)
   }
 
   SourceLevel source;
-  source.start();
   bool connected = source.connect(interface);
   if (connected) {
+    source.start();
     SourcePing sp(1);
     source.mcast(sp);
     fprintf(stdout, "Commands: EOF=quit\n");
@@ -85,10 +85,10 @@ int main(int argc, char** argv)
         break;
       }  
     }
+    source.cancel();
   } else {
     printf("*** Unable to connect: no interface 0x%x found\n", interface);
   }
-  source.cancel();
 
   return 0;
 }

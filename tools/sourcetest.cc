@@ -62,6 +62,7 @@ void EvrService::message(const Node& hdr, const Message& msg)
 		 dst.address(),dst.portId());
       }
       else {
+	printf("Resetting evr count @ 0x%x (%d)\n",_evr,_evr);
 	_evr = 0;  // reset the sequence on any transition
       }
     }

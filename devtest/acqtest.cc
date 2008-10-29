@@ -4,22 +4,8 @@
 
 #include "pds/management/SegStreams.hh"
 #include "pds/utility/SegWireSettings.hh"
-#include "pds/utility/InletWireServer.hh"
-#include "pds/service/ZcpFragment.hh"
-#include "pds/utility/EbServer.hh"
-#include "pds/utility/EbTimeouts.hh"
-#include "pds/utility/EvrServer.hh"
-#include "pds/utility/ToEb.hh"
-#include "pds/utility/ToEbWire.hh"
-#include "pds/utility/EbC.hh"
+#include "pds/utility/InletWire.hh"
 #include "pds/service/VmonSourceId.hh"
-#include "pds/service/Task.hh"
-#include "pds/xtc/xtc.hh"
-#include "pds/utility/Transition.hh"
-#include "pds/client/InXtcIterator.hh"
-#include "pds/client/Browser.hh"
-#include "pds/xtc/InDatagramIterator.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/service/Task.hh"
 #include "pds/client/Fsm.hh"
 #include "pds/client/Action.hh"
@@ -27,13 +13,11 @@
 #include "pds/evgr/EvrManager.hh"
 #include "pds/acqiris/AcqManager.hh"
 #include "pds/acqiris/AcqFinder.hh"
-#include "pds/utility/AcqServer.hh"
+#include "pds/acqiris/AcqServer.hh"
 
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-
-static unsigned detid = 0;
 
 namespace Pds {
 
@@ -132,22 +116,19 @@ using namespace Pds;
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
+  unsigned detid = -1UL;
   unsigned platform = 0;
-  int      size     = 1024;
   Arp* arp = 0;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:s:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
       break;
     case 'i':
       detid  = strtoul(optarg, NULL, 0);
-      break;
-    case 's':
-      size   = atoi(optarg);
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);

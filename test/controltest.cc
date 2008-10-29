@@ -17,85 +17,82 @@
 #include <unistd.h>
 #include <errno.h>
 
+static int l1rate=0;
+
 namespace Pds {
 
-//   class MyState {
-//   public:
-//     enum Id { Standby, Mapped, Configured, Running, Enabled, Paused, Unknown };
-//     MyState( Id id ) : _id(id) {}
-//     TransitionId::Value next(Id tgt) {
-//       TransitionId::Value v;
-//       if      (tgt==Paused) v=TransitionId::Pause;
-//       else if (_id==Paused) v=TransitionId::Resume;
-//       else if (tgt > _id) {
-// 	switch(_id) {
-// 	case Standby: v=TransitionId::Map; break; 
-// 	case Mapped : v=TransitionId::Configure; break; 
-// 	case Configured: v=TransitionId::BeginRun; break; 
-// 	case Running: v=TransitionId::Enable; break; 
-// 	default: v=TransitionId::Unknown; break;
-// 	}
-//       }
-//       else {
-// 	switch(_id) {
-// 	case Mapped : v=TransitionId::Unmap; break; 
-// 	case Configured: v=TransitionId::Unconfigure; break; 
-// 	case Running: v=TransitionId::EndRun; break; 
-// 	case Enabled: v=TransitionId::Disable; break; 
-// 	default: v=TransitionId::Unknown; break;
-// 	}
-//       }
-//       return v;
-//     }
-//   private:
-//     Id _id;
-//   };
+  class NodeL : public LinkedList<NodeL> {
+  public:
+    NodeL(const Node& n) : node(n) {}
+    Node node;
+    PoolDeclare;
+  };
 
+  void clearNodeList(LinkedList<NodeL>& list) {
+    NodeL* n;
+    while( (n=list.forward()) != list.empty() )
+      delete n->disconnect();    
+  }
+  
   //  Add partition management to control level
   class MyControl : public ControlLevel {
   public:
     MyControl(unsigned platform, ControlCallback& cb, Arp* arp) :
       ControlLevel(platform, cb, arp),
-      _reporters ("Reporters",-1UL),
-      _members   ("Members",-1UL),
-      _partition ("Partition",-1UL),
-      _transition("Transition",-1UL)
+      _nodePool  (sizeof(NodeL), 128),
+      _trnsPool  (sizeof(Allocate),1),
+      _pending   (0)
     {
     }
     ~MyControl() {}
 
     void add_reporter(const Node& n)
     {
-      _reporters.add(n);
+      _reporters.insert(new(&_nodePool) NodeL(n));
     }
 
-    void send(Message& msg) {
+    void execute(Transition& tr) {
+      clearNodeList(_transition);
+
+      NodeL* n=_partition.forward();
+      while( n != _partition.empty() ) {
+	_transition.insert(new(&_nodePool) NodeL(n->node));
+	n = n->forward();
+      }
+
+      mcast(tr);
     }
 
     void map(const Sequence& seq)
     {
       //  Equate the partition id with the platform id until we have a master
-      _partition = Allocate("partition",header().platform(),seq);
-      unsigned nnodes = _reporters.nnodes();
-      while(nnodes--)
-	_partition.add( *_reporters.node(nnodes) );
-      nnodes = _members.nnodes();
-      while(nnodes--)
-	_partition.add( *_members.node(nnodes) );
-      mcast(_partition);
+      Allocate partition("partition",header().platform(),seq);
+      clearNodeList(_partition);
+
+      NodeL* n = _reporters.forward();
+      while( n != _reporters.empty()) {
+	partition.add( n->node );
+	n = n->forward();
+      }
+      n = _members.forward();
+      while( n != _members.empty() ) {
+	_partition.insert( new(&_nodePool) NodeL( n->node ) );
+	partition.add( n->node );
+	n = n->forward();
+      }
+      execute(partition);
     }
 
     void unmap()
     {
-      //  Equate the partition id with the platform id until we have a master
-      _partition = Allocate("partition",header().platform());
       Kill kill(header());
-      mcast(kill);
+      execute(kill);
+      clearNodeList(_partition);
     }
 
     void ping()
     {
-      _members = Allocate("Members",header().platform());
+      clearNodeList(_members);
       Message ping(Message::Ping);
       mcast(ping);
     }
@@ -106,18 +103,30 @@ namespace Pds {
       case Message::Ping:
       case Message::Join:
 	if (!_isallocated) {
-	  unsigned k;
-	  for(k=0; k<_members.nnodes(); k++)
-	    if (*_members.node(k)==hdr) break;
-	  if (k==_members.nnodes()) {
-	    printf("Found node %x/%d/%d\n",hdr.ip(),hdr.level(),hdr.pid());
-	    _members.add(hdr);
-	  }
+	  printf("Found node %x/%d/%d\n",hdr.ip(),hdr.level(),hdr.pid());
+	  _members.insert(new(&_nodePool)NodeL(hdr));
 	}
 	break;
       case Message::Transition:
-	//	printf("Transition adds %x/%d/%d\n",hdr.ip(),hdr.level(),hdr.pid());
-	//	_transition.add(hdr);
+	{
+	  const Transition& tr = reinterpret_cast<const Transition&>(msg);
+	  if (tr.phase() == Transition::Execute) {
+	    if (hdr == header()) {
+	      _pending = new(&_trnsPool)Transition(tr);
+	    }
+	    NodeL* n = _transition.forward();
+	    while( n != _transition.empty() ) {
+	      if ( n->node == hdr )
+		delete n->disconnect();
+	      n = n->forward();
+	    }
+	    if ( _transition.forward() == _transition.empty() ) {
+	      PartitionMember::message(header(),*_pending);
+	      delete _pending;
+	    }
+	    return;
+	  }
+	}
 	break;
       default:
 	break;
@@ -125,10 +134,13 @@ namespace Pds {
       PartitionMember::message(hdr,msg);
     }
   private:
-    Allocate _reporters;
-    Allocate _members;
-    Allocate _partition;
-    Allocate _transition;
+    GenericPool       _nodePool;
+    GenericPool       _trnsPool;
+    LinkedList<NodeL> _reporters;
+    LinkedList<NodeL> _members;
+    LinkedList<NodeL> _partition;
+    LinkedList<NodeL> _transition;
+    Transition*       _pending;
   };
 
   class MyEnable : public Routine {
@@ -140,7 +152,7 @@ namespace Pds {
 			   _pulseId(0) 
     {
       _td.tv_sec = 0;
-      _td.tv_nsec = (1<<30)/200;
+      _td.tv_nsec = (1<<30)/l1rate;
     }
 
     void enable() { if (!_enabled) { _enabled = true; _task->call(this); } }
@@ -193,12 +205,39 @@ namespace Pds {
     Transition* transitions(Transition* i) { 
       if      (i->id() == TransitionId::Enable)  _action->enable();
       else if (i->id() == TransitionId::Disable) _action->disable();
-      return 0; 
+      return i; 
     }
     InDatagram* occurrences(InDatagram* i) { return i; } 
     InDatagram* events     (InDatagram* i) { return i; }
   private:
     MyEnable* _action;
+  };
+
+  class ControlAction : public Appliance {
+  public:
+    ControlAction(CollectionManager& control) :
+      _control(control)
+    {}
+    ~ControlAction() {}
+  public:
+    Transition* transitions(Transition* i) { 
+      if (i->phase() == Transition::Execute) {
+	Transition tr(i->id(),
+		      Transition::Record,
+		      Sequence(Sequence::Event,
+			       (Service)i->id(),
+			       i->sequence().clock(), 
+			       i->sequence().low(),
+			       i->sequence().high()),
+		      0 );
+	_control.mcast(tr);
+      }
+      return 0;
+    }
+    InDatagram* occurrences(InDatagram* i) { return 0; } 
+    InDatagram* events     (InDatagram* i) { return 0; }
+  private:
+    CollectionManager& _control;
   };
 
   class MyCallback : public ControlCallback {
@@ -207,9 +246,11 @@ namespace Pds {
     void allocated(SetOfStreams& streams) {
       //  By default, there are no external clients for this stream
       Stream& frmk = *streams.stream(StreamParams::FrameWork);
-      frmk.outlet()->sink(Sequence::Event, (1<<Sequence::NumberOfServices)-1);
-      (new Decoder(Level::Control))->connect(frmk.inlet());
-      (new TransitionAction(*_outlet))->connect(frmk.inlet());
+      //      frmk.outlet()->sink(Sequence::Event, (1<<Sequence::NumberOfServices)-1);
+      (new ControlAction(*_outlet))   ->connect(frmk.inlet());
+      if (l1rate) 
+	(new TransitionAction(*_outlet))->connect(frmk.inlet());
+      (new Decoder(Level::Control))   ->connect(frmk.inlet());
       printf("Partition allocated\n");
     }
     void failed(Reason reason) {
@@ -235,7 +276,7 @@ int main(int argc, char** argv)
   unsigned nbld = 0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:b:")) != -1) {
+  while ((c = getopt(argc, argv, "p:b:r:")) != -1) {
     char* endPtr;
     switch (c) {
     case 'b':
@@ -245,10 +286,14 @@ int main(int argc, char** argv)
       platform = strtoul(optarg, &endPtr, 0);
       if (errno != 0 || endPtr == optarg) platform = 0;
       break;
+    case 'r':
+      l1rate = strtoul(optarg, &endPtr, 0);
+      if (l1rate == 0) l1rate = 200;
+      break;
     }
   }
   if (!platform) {
-    printf("usage: %s -p <platform> [-b <bld>]\n", argv[0]);
+    printf("usage: %s -p <platform> [-b <bld> -r <l1rate>]\n", argv[0]);
     return 0;
   }
 
@@ -279,6 +324,8 @@ int main(int argc, char** argv)
 
     fprintf(stdout, "Commands: EOF=quit\n");
     while (true) {
+      printf("Commands (P)ing, (m)ap, (c)onfigure, begin(r)un, (e)nable,\n"
+	     "         (d)isable, end(R)un, un(C)onfigure, un(M)ap: \n");
       const int maxlen=128;
       char line[maxlen];
       char* result = fgets(line, maxlen, stdin);
@@ -296,98 +343,43 @@ int main(int argc, char** argv)
         if (len <= 0) continue;
         while (*result && *result != '\n') {
           char cmd = *result++;
-// 	  MyState::Id target;
-// 	  switch(cmd) {
-// 	  case 's': target = MyState::Standby; break;
-// 	  case 'm': target = MyState::Mapped; break;
-// 	  case 'c': target = MyState::Configured; break;
-// 	  case 'r': target = MyState::Running; break;
-// 	  case 'e': target = MyState::Enabled; break;
-// 	  case 'p': target = MyState::Paused; break;
-// 	  default:  target = MyState::Unknown; break;
-// 	  }
-// 	  control.target(target);
-// 	}
-	  switch(cmd) {
-	  case 'P':
-	    control.ping();
-	    break;
-	  case 'm':
-	    control.map(Sequence(Sequence::Event,
-				 (Service)TransitionId::Map,
-				 clockTime, 0, pulseId));
-	    break;
-	  case 'M':
-            {
-              Transition tr(TransitionId::Map,
-			    Transition::Record,
-			    Sequence(Sequence::Event,
-				     (Service)TransitionId::Map,
-				     clockTime, 0, pulseId),
-			    0 );
-              control.mcast(tr);
-            }
-            break;
-	  case 'u':
-	    control.unmap();
-	    break;
-          case 'c':
-            {
-              Transition tr(TransitionId::Configure,
-			    Transition::Execute,
-			    Sequence(Sequence::Event,
-				     (Service)TransitionId::Configure,
-				     clockTime, 0, pulseId),
-			    0 );
-              control.mcast(tr);
-            }
-            break;
-          case 'C':
-            {
-              Transition tr(TransitionId::Configure,
-			    Transition::Record,
-			    Sequence(Sequence::Event,
-				     (Service)TransitionId::Configure,
-				     clockTime, 0, pulseId),
-			    0 );
-              control.mcast(tr);
-            }
-            break;
-	  case 'e':
-            {
-              Transition tr(TransitionId::Enable,
-			    Transition::Execute,
-			    Sequence(Sequence::Event,
-				     (Service)TransitionId::Configure,
-				     clockTime, 0, pulseId),
-			    0 );
-              control.mcast(tr);
-            }
-	    break;
-	  case 'd':
-            {
-              Transition tr(TransitionId::Disable,
-			    Transition::Execute,
-			    Sequence(Sequence::Event,
-				     (Service)TransitionId::Configure,
-				     clockTime, 0, pulseId),
-			    0 );
-              control.mcast(tr);
-            }
-	    break;
-	  case 's':
-	    {
-	      //  Set the L1 time with granularity of ~8.39ms (2**23 ns) / 119Hz
-	      Transition tr(TransitionId::L1Accept,
-			    Transition::Record,
-			    Sequence(Sequence::Event,
-				     (Service)TransitionId::L1Accept,
-				     clockTime, 0, pulseId),
-			    0 );
-	      control.mcast(tr);
-	      //	      printf("softl1 %x/%x\n",l1key.high(),l1key.low());
+	  if      (cmd=='P') control.ping();
+	  else if (cmd=='m') control.map(Sequence(Sequence::Event,
+						  (Service)TransitionId::Map,
+						  clockTime, 0, pulseId));
+	  else if (cmd=='M') control.unmap();
+	  else {
+	    TransitionId::Value id;
+	    switch(cmd) {
+	    case 'c': id = TransitionId::Configure; break;
+	    case 'C': id = TransitionId::Unconfigure; break;
+	    case 'r': id = TransitionId::BeginRun; break;
+	    case 'R': id = TransitionId::EndRun; break;
+	    case 'e': id = TransitionId::Enable; break;
+	    case 'd': id = TransitionId::Disable; break;
+	    case 's':
+	      {
+		id = TransitionId::L1Accept;
+		Transition tr(id,
+			      Transition::Record,
+			      Sequence(Sequence::Event,
+				       (Service)id,
+				       clockTime, 0, pulseId),
+			      0 );
+		control.mcast(tr);
+		continue;
+	      }
+	    default:
+	      continue;
 	    }
-          }
+	    Transition tr(id,
+			  Transition::Execute,
+			  Sequence(Sequence::Event,
+				   (Service)id,
+				   clockTime, 0, pulseId),
+			  0 );
+	    control.execute(tr);
+	  }
         }
       }  
     } 

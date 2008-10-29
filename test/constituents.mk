@@ -29,6 +29,5 @@ tgtlibs_sourcetest := pds/service pds/collection pds/xtc pds/utility pds/managem
 tgtslib_sourcetest := /usr/lib/rt
 
 tgtsrcs_bldtest := bldtest.cc
-tgtlibs_bldtest := pds/service pds/collection pds/xtc pds/utility pds/management pds/client pdsapp/test
+tgtlibs_bldtest := pds/service pds/collection pds/xtc pds/utility pds/management pds/client 
 tgtslib_bldtest := /usr/lib/rt
-

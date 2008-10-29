@@ -5,22 +5,19 @@
 #include "pds/management/SegStreams.hh"   // SegmentOptions
 #include "pds/utility/SegWireSettings.hh"
 #include "pds/utility/InletWireServer.hh"
-#include "pds/service/ZcpFragment.hh"
-#include "pds/utility/EbServer.hh"
-#include "pds/utility/EbTimeouts.hh"
 #include "pds/utility/EvrServer.hh"
+#include "pds/utility/EbCountSrv.hh"
 #include "pds/utility/ToEb.hh"
-#include "pds/utility/ToEbWire.hh"
-#include "pds/utility/EbC.hh"
 #include "pds/service/VmonSourceId.hh"
 #include "pds/service/Task.hh"
-#include "pds/xtc/xtc.hh"
+#include "pds/xtc/Xtc.hh"
 #include "pds/utility/Transition.hh"
-#include "pds/client/InXtcIterator.hh"
+#include "pds/client/XtcIterator.hh"
 #include "pds/client/Browser.hh"
 #include "pds/client/Decoder.hh"
 #include "pds/xtc/InDatagramIterator.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
+#include "pds/xtc/CDatagram.hh"
 #include "pds/service/GenericPoolW.hh"
 
 #include <unistd.h>
@@ -31,6 +28,15 @@ static bool verbose = false;
 static unsigned detid = 0;
 
 namespace Pds {
+
+  class MyL1Server : public ToEb, public EbCountSrv {
+  public:
+    MyL1Server(const Src& s) : ToEb(s) {}
+    unsigned count() const {return *reinterpret_cast<const unsigned*>(&sequence()); }
+    virtual bool succeeds (EbEventKey& key) const { return key.precedes ((const EbCountSrv&)*this); }
+    virtual bool coincides(EbEventKey& key) const { return key.coincides((const EbCountSrv&)*this); }
+    virtual void assign   (EbEventKey& key) const { key.assign   ((const EbCountSrv&)*this); }
+  };
 
   //
   //  This class creates the server when the streams are connected.
@@ -46,17 +52,11 @@ namespace Pds {
     }
     void connect (InletWire& wire,
 		  StreamParams::StreamType s,
-		  int interface)
-    {
-      //  Build the L1 Data server
-      _srvC = new ToEb(_src);
-      wire.add_input(_srvC);
-      printf("Assign l1d %d (%p)\n",_srvC->id(),_srvC);
-    }
-    ToEb* server() { return _srvC; }
+		  int interface);
+    MyL1Server* server() { return _srvC; }
   private:
-    Src        _src;
-    ToEb*      _srvC;
+    Src         _src;
+    MyL1Server* _srvC;
   };
 
   //
@@ -68,13 +68,14 @@ namespace Pds {
   enum { PayloadSize = 4*1024*1024 };
 
   public:
-    MyDriver(unsigned platform, int size,
+    MyDriver(unsigned platform, int size1, int size2,
 	     MySegWire& settings, EventCallback& cb, Arp* arp) : 
       SegmentLevel(platform, settings, cb, arp),
-      _size    (size),
+      _size0   (size1),
+      _dsize   (size2-size1),
       _seg_wire(settings),
       _server(0),
-      _pool(sizeof(CDatagram)+PayloadSize,32)
+      _pool(sizeof(CDatagram)+PayloadSize,4)
     {
       for(unsigned k=0; k<PayloadSize; k++)
 	_payload[k] = k&0xff;
@@ -100,11 +101,13 @@ namespace Pds {
 	      CDatagram* cdg = new(&_pool) CDatagram(TypeId(TypeNum::Any),
 						     _server->client());
 	      //  Because I use a ToEb as a simulated source of data, 
-	      //  I need to add the InXtc header within the payload.
+	      //  I need to add the Xtc header within the payload.
 	      Datagram& dg = const_cast<Datagram&>(cdg->datagram());
-	      InXtc* xtc = new(&dg.xtc) InXtc(TypeNum::Any, _server->client());
-	      int sz = ((_size > 0) ? _size+3 : ((random()%(-_size))+4)) & ~3;
-	      char* p = &_payload[(_size > 0) ? 0 : random()%(PayloadSize-sz)];
+	      Xtc* xtc = new(&dg.xtc) Xtc(TypeNum::Any, _server->client());
+	      int sz = (_dsize==0) ? 
+		_size0 :
+		_size0 + ((random()%_dsize) & ~3);
+	      char* p = &_payload[(random()%(PayloadSize-sz)) & ~3];
 	      memcpy(dg.xtc.alloc(sz),p,sz);
 	      xtc->alloc(sz);
 	      *reinterpret_cast<unsigned*>(&dg) = _evr;
@@ -119,9 +122,10 @@ namespace Pds {
       SegmentLevel::message(hdr,msg);
     }
   private:
-    int        _size;
+    int        _size0;
+    int        _dsize;
     MySegWire& _seg_wire;
-    ToEb*  _server;
+    MyL1Server* _server;
     unsigned   _evr;
     char       _payload[PayloadSize];
     GenericPoolW _pool;
@@ -132,16 +136,17 @@ namespace Pds {
   //  Iterate through the input datagram to strip out the BLD
   //  and copy the remaining data.
   //
-  class MyIterator : public InXtcIterator {
+  class MyIterator : public XtcIterator {
   public:
     MyIterator(Datagram& dg) : _dg(dg) {}
-    int process(const InXtc& xtc,
+    int process(const Xtc& xtc,
 		InDatagramIterator* iter)
     {
-      if (xtc.contains==TypeNum::Id_InXtc)
+      if (xtc.contains==TypeNum::Id_Xtc)
 	return iterate(xtc,iter);
       if (xtc.src.phy() == detid) {
-	memcpy(_dg.xtc.alloc(sizeof(InXtc)),&xtc,sizeof(InXtc));
+	_dg.xtc.damage.increase(xtc.damage.value());
+	memcpy(_dg.xtc.alloc(sizeof(Xtc)),&xtc,sizeof(Xtc));
 	int size = xtc.sizeofPayload();
 	iovec iov[1];
 	int remaining = size;
@@ -175,7 +180,14 @@ namespace Pds {
     InDatagram* occurrences(InDatagram* input) { return input; }
     InDatagram* events     (InDatagram* input) 
     {
-      //      return input;
+      if (verbose) {
+	InDatagramIterator* in_iter = input->iterator(&_iter);
+	int advance;
+	Browser browser(input->datagram(), in_iter, 0, advance);
+	browser.iterate();
+	delete in_iter;
+      }
+      return input;
 
       if (input->datagram().seq.type()   !=Sequence::Event ||
 	  input->datagram().seq.service()!=TransitionId::L1Accept) {
@@ -290,11 +302,24 @@ namespace Pds {
 
 using namespace Pds;
 
+void MySegWire::connect (InletWire& wire,
+			 StreamParams::StreamType s,
+			 int interface)
+{
+  //  Build the L1 Data server
+  _srvC = new MyL1Server(_src);
+  wire.add_input(_srvC);
+  printf("Assign l1d %d (%p)\n",_srvC->id(),_srvC);
+
+  //  (new MyFEX)->connect(&dynamic_cast<InletWireServer*>(&wire)->_inlet);
+}
+
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
   unsigned platform = 0;
-  int      size     = 1024;
+  int      size1    = 1024;
+  int      size2    = 1024;
   Arp* arp = 0;
 
   extern char* optarg;
@@ -308,7 +333,8 @@ int main(int argc, char** argv) {
       detid  = strtoul(optarg, NULL, 0);
       break;
     case 's':
-      size   = atoi(optarg);
+      if (sscanf(optarg,"%d,%d",&size1,&size2)==1)
+	size2 = size1;
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
@@ -339,7 +365,7 @@ int main(int argc, char** argv) {
   Task* task = new Task(Task::MakeThisATask);
   MySegWire settings(Src(Node(Level::Source,platform), detid));
   SegTest* segtest = new SegTest(task, platform, settings, arp);
-  MyDriver* driver = new MyDriver(platform, size,
+  MyDriver* driver = new MyDriver(platform, size1, size2,
 				  settings, *segtest, arp);
   if (driver->attach())
     task->mainLoop();

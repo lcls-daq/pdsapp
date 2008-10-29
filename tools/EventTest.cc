@@ -37,8 +37,10 @@ void EventTest::attached(SetOfStreams& streams)
   printf("EventTest connected to platform 0x%x\n", _event->header().platform());
   
   Stream* frmk = streams.stream(StreamParams::FrameWork);
-  if (_event->header().level()==Level::Recorder)
+  if (_event->header().level()==Level::Recorder) {
     frmk->outlet()->sink(TransitionId::L1Accept);
+    frmk->outlet()->sink(TransitionId::Unknown);
+  }
   
   //  Stream* occr = streams.stream(StreamParams::Occurrence);
   //  occr->outlet()->sink(OccurrenceId::Vmon);
