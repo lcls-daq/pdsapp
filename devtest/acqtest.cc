@@ -27,7 +27,7 @@ namespace Pds {
   //
   class MySegWire : public SegWireSettings {
   public:
-    MySegWire(const Src& src, AcqServer& acqServer) : _acqServer(acqServer) {}
+    MySegWire(AcqServer& acqServer) : _acqServer(acqServer) {}
     virtual ~MySegWire() {}
     void connect (InletWire& wire,
 		  StreamParams::StreamType s,
@@ -153,9 +153,10 @@ int main(int argc, char** argv) {
     }
   }
 
-  AcqServer& acqServer = *new AcqServer(Src());
+  Src src(Node(Level::Source,platform), detid);
+  AcqServer& acqServer = *new AcqServer(src);
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings(Src(Node(Level::Source,platform), detid),acqServer);
+  MySegWire settings(acqServer);
   SegTest* segtest = new SegTest(task, platform, settings, arp, acqServer);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *segtest, arp);
   seglevel->attach();
