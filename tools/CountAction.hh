@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #include "pds/utility/Appliance.hh"
-#include "pds/xtc/Sequence.hh"
+#include "pdsdata/xtc/Sequence.hh"
 #include "pds/xtc/Datagram.hh"
 #include "pds/xtc/InDatagram.hh"
 

@@ -8,6 +8,7 @@
 #include "pds/client/Decoder.hh"
 #include "CountAction.hh"
 #include "StatsApp.hh"
+#include "Recorder.hh"
 #include "pds/service/Task.hh"
 
 using namespace Pds;
@@ -44,6 +45,8 @@ void EventTest::attached(SetOfStreams& streams)
   
   //  Stream* occr = streams.stream(StreamParams::Occurrence);
   //  occr->outlet()->sink(OccurrenceId::Vmon);
+
+  if (_options.outfile) (new Recorder(_options.outfile))->connect(frmk->inlet());
   
   switch (_options.mode) {
   case EventOptions::Counter:
@@ -59,7 +62,8 @@ void EventTest::attached(SetOfStreams& streams)
     }
   case EventOptions::Display:
     {
-      (new StatsApp(Src(_event->header())))->connect(frmk->inlet());
+      const Node& node = _event->header();
+      (new StatsApp(node.procInfo()))->connect(frmk->inlet());
       break;
     }
   }

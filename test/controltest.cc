@@ -176,7 +176,7 @@ namespace Pds {
 	Transition tr(TransitionId::L1Accept,
 		      Transition::Record,
 		      Sequence(Sequence::Event,
-			       (Service)TransitionId::L1Accept,
+			       TransitionId::L1Accept,
 			       clockTime, 0, pulseId),
 		      0 );
 	_control.mcast(tr);
@@ -225,7 +225,7 @@ namespace Pds {
 	Transition tr(i->id(),
 		      Transition::Record,
 		      Sequence(Sequence::Event,
-			       (Service)i->id(),
+			       i->id(),
 			       i->sequence().clock(), 
 			       i->sequence().low(),
 			       i->sequence().high()),
@@ -345,7 +345,7 @@ int main(int argc, char** argv)
           char cmd = *result++;
 	  if      (cmd=='P') control.ping();
 	  else if (cmd=='m') control.map(Sequence(Sequence::Event,
-						  (Service)TransitionId::Map,
+						  TransitionId::Map,
 						  clockTime, 0, pulseId));
 	  else if (cmd=='M') control.unmap();
 	  else {
@@ -363,7 +363,7 @@ int main(int argc, char** argv)
 		Transition tr(id,
 			      Transition::Record,
 			      Sequence(Sequence::Event,
-				       (Service)id,
+				       id,
 				       clockTime, 0, pulseId),
 			      0 );
 		control.mcast(tr);
@@ -375,7 +375,7 @@ int main(int argc, char** argv)
 	    Transition tr(id,
 			  Transition::Execute,
 			  Sequence(Sequence::Event,
-				   (Service)id,
+				   id,
 				   clockTime, 0, pulseId),
 			  0 );
 	    control.execute(tr);

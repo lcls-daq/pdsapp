@@ -13,10 +13,11 @@ EventOptions::EventOptions(int argc, char** argv) :
   platform(0),
   buffersize(DefaultBufferSize),
   arpsuidprocess(0),
+  outfile(0),
   mode(Counter)
 {
   int c;
-  while ((c = getopt(argc, argv, "p:i:b:a:ed")) != -1) {
+  while ((c = getopt(argc, argv, "f:p:i:b:a:ed")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -30,6 +31,9 @@ EventOptions::EventOptions(int argc, char** argv) :
       break;
     case 'a':
       arpsuidprocess = optarg;
+      break;
+    case 'f':
+      outfile = optarg;
       break;
     case 'e':
       mode = Decoder;
@@ -48,7 +52,8 @@ int EventOptions::validate(const char* arg0) const
 	   "options: -e decodes each transition (no FSM is connected)\n"
 	   "         -d displays transition summaries and eb statistics\n"
 	   "         -b <buffer_size>\n"
-           "         -a <arp_suid_executable>\n",
+           "         -a <arp_suid_executable>\n"
+           "         -f <outputfilename>\n",
 	   arg0);
     return 0;
   }

@@ -12,6 +12,7 @@ public:
   unsigned platform;
   unsigned buffersize;
   const char* arpsuidprocess;
+  const char* outfile;
 
   enum Mode {Counter, Decoder, Display};
   Mode mode;

@@ -19,6 +19,9 @@
 #include "pds/service/RingPoolW.hh"
 #include "pds/service/Task.hh"
 
+#include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/TypeId.hh"
+
 #include "pds/camera/Opal1000.hh"
 #include "FrameServer.hh"
 
@@ -60,7 +63,7 @@ namespace Pds {
     int process(const Xtc& xtc,
 		InDatagramIterator* iter)
     {
-      if (xtc.contains==TypeNum::Id_Xtc)
+      if (xtc.contains.id()==TypeId::Id_Xtc)
 	return iterate(xtc,iter);
       if (xtc.src.phy() == detid) {
 	_dg.xtc.damage.increase(xtc.damage.value());
@@ -390,9 +393,10 @@ int main(int argc, char** argv) {
   pthread_sigmask(SIG_BLOCK, &sigset_full, 0);
 
   Task* task = new Task(Task::MakeThisATask);
+  Node node(Level::Source,platform);
   SegTest* segtest = new SegTest(task, 
 				 platform, 
-				 Src(Node(Level::Source,platform), detid));
+				 DetInfo(node.pid(), DetInfo::AmoXes, detid, DetInfo::Opal1000, 0));
   SegmentLevel* segment = new SegmentLevel(platform, 
 					   *segtest,
 					   *segtest, 

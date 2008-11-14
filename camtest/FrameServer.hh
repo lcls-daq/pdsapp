@@ -10,7 +10,7 @@
 #include "pds/utility/EbServer.hh"
 #include "pds/utility/EbCountSrv.hh"
 #include "pds/utility/EbEventKey.hh"
-#include "pds/xtc/Xtc.hh"
+#include "pdsdata/xtc/Xtc.hh"
 
 namespace Pds {
 

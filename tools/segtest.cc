@@ -1,3 +1,6 @@
+#include "pdsdata/xtc/Xtc.hh"
+#include "pdsdata/xtc/DetInfo.hh"
+
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -10,11 +13,11 @@
 #include "pds/utility/ToEb.hh"
 #include "pds/service/VmonSourceId.hh"
 #include "pds/service/Task.hh"
-#include "pds/xtc/Xtc.hh"
 #include "pds/utility/Transition.hh"
 #include "pds/client/XtcIterator.hh"
 #include "pds/client/Browser.hh"
 #include "pds/client/Decoder.hh"
+
 #include "pds/xtc/InDatagramIterator.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/xtc/CDatagram.hh"
@@ -98,12 +101,12 @@ namespace Pds {
 	  if (tr.id() == TransitionId::L1Accept &&
 	      tr.phase() == Transition::Record) {
 	    if (_server) {
-	      CDatagram* cdg = new(&_pool) CDatagram(TypeId(TypeNum::Any),
+	      CDatagram* cdg = new(&_pool) CDatagram(TypeId(TypeId::Any),
 						     _server->client());
 	      //  Because I use a ToEb as a simulated source of data, 
 	      //  I need to add the Xtc header within the payload.
 	      Datagram& dg = const_cast<Datagram&>(cdg->datagram());
-	      Xtc* xtc = new(&dg.xtc) Xtc(TypeNum::Any, _server->client());
+	      Xtc* xtc = new(&dg.xtc) Xtc(TypeId::Any, _server->client());
 	      int sz = (_dsize==0) ? 
 		_size0 :
 		_size0 + ((random()%_dsize) & ~3);
@@ -142,7 +145,7 @@ namespace Pds {
     int process(const Xtc& xtc,
 		InDatagramIterator* iter)
     {
-      if (xtc.contains==TypeNum::Id_Xtc)
+      if (xtc.contains.id()==TypeId::Id_Xtc)
 	return iterate(xtc,iter);
       if (xtc.src.phy() == detid) {
 	_dg.xtc.damage.increase(xtc.damage.value());
@@ -363,7 +366,9 @@ int main(int argc, char** argv) {
   }
 
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings(Src(Node(Level::Source,platform), detid));
+  Node node(Level::Source,platform);
+  MySegWire settings(DetInfo(node.pid(),DetInfo::NoDetector,
+                             detid,DetInfo::NoDevice,0));
   SegTest* segtest = new SegTest(task, platform, settings, arp);
   MyDriver* driver = new MyDriver(platform, size1, size2,
 				  settings, *segtest, arp);

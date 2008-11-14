@@ -1,13 +1,14 @@
 #ifndef Pds_StatsApp_hh
 #define Pds_StatsApp_hh
 
+#include "pdsdata/xtc/Src.hh"
+
 #include "pds/client/XtcIterator.hh"
 #include "pds/service/LinkedList.hh"
 #include "pds/utility/Appliance.hh"
 #include "pds/xtc/InDatagram.hh"
 #include "pds/xtc/InDatagramIterator.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
-#include "pds/xtc/Src.hh"
 #include "pds/client/Browser.hh"
 
 #include <stdio.h>
@@ -69,7 +70,8 @@ public:
 	const Allocate& alloc = reinterpret_cast<const Allocate&>(*in);
 	unsigned nnodes = alloc.nnodes();
 	for(unsigned i=0; i<nnodes; i++) {
-	  Src s(*alloc.node(i));
+          const Node& node = *alloc.node(i);
+	  const Src& s = node.procInfo();
 	  if (s.level()==Level::Control) continue;
 	  if (s.level()>=_src.level() && !(s==_src)) continue;
 	  NodeStats* empty = _list.empty();
@@ -122,7 +124,7 @@ public:
       iter = in->iterator(&_pool);
       int advance;
       Browser browser(in->datagram(), iter, 0, advance);
-      if (in->datagram().xtc.contains == TypeNum::Id_Xtc)
+      if (in->datagram().xtc.contains.id() == TypeId::Id_Xtc)
 	if (browser.iterate() < 0)
 	  printf("..Terminated.\n");
       delete iter;

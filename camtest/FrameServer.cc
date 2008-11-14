@@ -20,7 +20,7 @@ FrameServer::FrameServer(const Src& src,
 			 Opal1000&  camera) :
   _camera(camera),
   _more(false),
-  _xtc (TypeNum::Id_Frame, src)
+  _xtc (TypeId::Id_Frame, src)
 {
   int err = ::pipe(_fd);
   if (err)

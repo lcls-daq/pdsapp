@@ -1,3 +1,5 @@
+#include "pdsdata/xtc/DetInfo.hh"
+
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -153,7 +155,8 @@ int main(int argc, char** argv) {
     }
   }
 
-  Src src(Node(Level::Source,platform), detid);
+  Node node(Level::Source,platform);
+  DetInfo src(node.pid(), DetInfo::AmoIms, 0, DetInfo::Acqiris, 0);
   AcqServer& acqServer = *new AcqServer(src);
   Task* task = new Task(Task::MakeThisATask);
   MySegWire settings(acqServer);
