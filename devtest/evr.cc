@@ -129,8 +129,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  printf("using opcode %d\n",opcode);
-
   if (!platform) {
     printf("%s: platform required\n",argv[0]);
     return 0;
