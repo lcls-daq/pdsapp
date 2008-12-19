@@ -1,13 +1,18 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames          := evgrtest acqtest
+tgtnames    := evr evgr acq
 
-tgtsrcs_acqtest := acqtest.cc
-tgtincs_acqtest := acqiris evgr
-tgtlibs_acqtest := pdsdata/xtcdata pdsdata/acqdata acqiris/AqDrv4 evgr/evr evgr/evg pds/service pds/collection pds/xtc pds/utility pds/acqiris pds/management pds/client pds/evgr
-tgtslib_acqtest := /usr/lib/rt
+tgtsrcs_acq := acq.cc
+tgtincs_acq := acqiris
+tgtlibs_acq := pdsdata/xtcdata pdsdata/acqdata acqiris/AqDrv4 pds/service pds/collection pds/xtc pds/utility pds/acqiris pds/management pds/client
+tgtslib_acq := /usr/lib/rt
 
-tgtsrcs_evgrtest := evgrtest.cc
-tgtincs_evgrtest := evgr
-tgtlibs_evgrtest := pdsdata/xtcdata evgr/evg evgr/evr pds/service pds/collection pds/xtc pds/utility pds/management pds/client pds/evgr
-tgtslib_evgrtest := /usr/lib/rt
+tgtsrcs_evr := evr.cc
+tgtincs_evr := evgr
+tgtlibs_evr := pdsdata/xtcdata evgr/evr evgr/evg pds/service pds/collection pds/xtc pds/utility pds/management pds/client pds/evgr
+tgtslib_evr := /usr/lib/rt
+
+tgtsrcs_evgr := evgr.cc
+tgtincs_evgr := evgr
+tgtlibs_evgr := pdsdata/xtcdata evgr/evg evgr/evr pds/service pds/collection pds/xtc pds/utility pds/management pds/client pds/evgr
+tgtslib_evgr := /usr/lib/rt
