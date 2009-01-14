@@ -10,6 +10,7 @@
 #include "pds/client/Decoder.hh"
 
 #include "pds/service/Task.hh"
+#include "pds/service/Semaphore.hh"
 
 #include <time.h> // Required for timespec struct and nanosleep()
 #include <stdlib.h> // Required for timespec struct and nanosleep()
@@ -37,11 +38,20 @@ namespace Pds {
   //  Add partition management to control level
   class MyControl : public ControlLevel {
   public:
-    MyControl(unsigned platform, ControlCallback& cb, Arp* arp) :
+    MyControl(const char* partition,
+	      const char* dbname,
+	      unsigned platform, 
+	      ControlCallback& cb, 
+	      Arp* arp) :
       ControlLevel(platform, cb, arp),
-      _nodePool  (sizeof(NodeL), 128),
-      _trnsPool  (sizeof(Allocate),1),
-      _pending   (0)
+      _description(partition),
+      _dbname     (dbname),
+      _nodePool   (sizeof(NodeL), 128),
+      _trnsPool   (sizeof(Allocate),1),
+      _trnsSem    (Semaphore::EMPTY),
+      _pending    (0),
+      _nnodes     (0),
+      _partitionid(platform)    // fake this for now
     {
     }
     ~MyControl() {}
@@ -61,12 +71,17 @@ namespace Pds {
       }
 
       mcast(tr);
+
+      _trnsSem.take();  // block until transition is complete
     }
 
-    void map(const Sequence& seq)
+    void map(const Sequence& seq, unsigned mask)
     {
+      if (!mask) mask=-1UL;
+      printf("Mapping nodes 0x%x\n",mask);
+
       //  Equate the partition id with the platform id until we have a master
-      Allocate partition("partition",header().platform(),seq);
+      Allocate partition(_description,_dbname,_partitionid,seq);
       clearNodeList(_partition);
 
       NodeL* n = _reporters.forward();
@@ -74,17 +89,26 @@ namespace Pds {
 	partition.add( n->node );
 	n = n->forward();
       }
-      n = _members.forward();
-      while( n != _members.empty() ) {
-	_partition.insert( new(&_nodePool) NodeL( n->node ) );
-	partition.add( n->node );
+      n = _platform.forward();
+      unsigned inode=0;
+      unsigned imask=0;
+      while( n != _platform.empty() ) {
+	if ((1<<inode)&mask) {
+	  imask |= (1<<inode);
+	  _partition.insert( new(&_nodePool) NodeL( n->node ) );
+	  partition.add( n->node );
+	}
 	n = n->forward();
+	inode++;
       }
       execute(partition);
+      
+      printf("Successfully mapped nodes 0x%x\n",imask);
     }
 
     void unmap()
     {
+      _trnsSem.give();  // this transition never completes
       Kill kill(header());
       execute(kill);
       clearNodeList(_partition);
@@ -92,7 +116,8 @@ namespace Pds {
 
     void ping()
     {
-      clearNodeList(_members);
+      clearNodeList(_platform);
+      _nnodes=0;
       Message ping(Message::Ping);
       mcast(ping);
     }
@@ -103,8 +128,9 @@ namespace Pds {
       case Message::Ping:
       case Message::Join:
 	if (!_isallocated) {
-	  printf("Found node %x/%d/%d\n",hdr.ip(),hdr.level(),hdr.pid());
-	  _members.insert(new(&_nodePool)NodeL(hdr));
+	  printf("Node [0x%08x] %x/%d/%d\n",(1<<_nnodes),hdr.ip(),hdr.level(),hdr.pid());
+	  _platform.insert(new(&_nodePool)NodeL(hdr));
+	  _nnodes++;
 	}
 	break;
       case Message::Transition:
@@ -116,13 +142,15 @@ namespace Pds {
 	    }
 	    NodeL* n = _transition.forward();
 	    while( n != _transition.empty() ) {
+	      NodeL* f = n->forward();
 	      if ( n->node == hdr )
 		delete n->disconnect();
-	      n = n->forward();
+	      n = f;
 	    }
 	    if ( _transition.forward() == _transition.empty() ) {
 	      PartitionMember::message(header(),*_pending);
 	      delete _pending;
+	      _trnsSem.give();
 	    }
 	    return;
 	  }
@@ -134,13 +162,18 @@ namespace Pds {
       PartitionMember::message(hdr,msg);
     }
   private:
+    const char*       _description;
+    const char*       _dbname;
     GenericPool       _nodePool;
     GenericPool       _trnsPool;
+    Semaphore         _trnsSem;
     LinkedList<NodeL> _reporters;
-    LinkedList<NodeL> _members;
+    LinkedList<NodeL> _platform;
     LinkedList<NodeL> _partition;
     LinkedList<NodeL> _transition;
     Transition*       _pending;
+    unsigned          _nnodes;
+    unsigned          _partitionid;
   };
 
   class MyEnable : public Routine {
@@ -229,7 +262,7 @@ namespace Pds {
 			       i->sequence().clock(), 
 			       i->sequence().low(),
 			       i->sequence().high()),
-		      0 );
+		      i->env() );
 	_control.mcast(tr);
       }
       return 0;
@@ -274,9 +307,11 @@ int main(int argc, char** argv)
   unsigned platform = 0;
   unsigned bldList[32];
   unsigned nbld = 0;
+  const char* partition = "partition";
+  const char* dbname    = "none";
 
   int c;
-  while ((c = getopt(argc, argv, "p:b:r:")) != -1) {
+  while ((c = getopt(argc, argv, "p:b:r:P:D:")) != -1) {
     char* endPtr;
     switch (c) {
     case 'b':
@@ -290,15 +325,23 @@ int main(int argc, char** argv)
       l1rate = strtoul(optarg, &endPtr, 0);
       if (l1rate == 0) l1rate = 200;
       break;
+    case 'P':
+      partition = optarg;
+      break;
+    case 'D':
+      dbname = optarg;
+      break;
     }
   }
   if (!platform) {
-    printf("usage: %s -p <platform> [-b <bld> -r <l1rate>]\n", argv[0]);
+    printf("usage: %s -p <platform> [-b <bld> -r <l1rate> -P <partition_description> -D <db name>]\n", argv[0]);
     return 0;
   }
 
   MyCallback callback;
-  MyControl control(platform,
+  MyControl control(partition,
+		    dbname,
+		    platform,
 		    callback,
 		    0);
   callback.outlet(control);
@@ -343,10 +386,12 @@ int main(int argc, char** argv)
         if (len <= 0) continue;
         while (*result && *result != '\n') {
           char cmd = *result++;
+	  unsigned env = strtoul(result,&result,16);
 	  if      (cmd=='P') control.ping();
 	  else if (cmd=='m') control.map(Sequence(Sequence::Event,
 						  TransitionId::Map,
-						  clockTime, 0, pulseId));
+						  clockTime, 0, pulseId),
+					 env);
 	  else if (cmd=='M') control.unmap();
 	  else {
 	    TransitionId::Value id;
@@ -365,7 +410,7 @@ int main(int argc, char** argv)
 			      Sequence(Sequence::Event,
 				       id,
 				       clockTime, 0, pulseId),
-			      0 );
+			      env);
 		control.mcast(tr);
 		continue;
 	      }
@@ -377,7 +422,7 @@ int main(int argc, char** argv)
 			  Sequence(Sequence::Event,
 				   id,
 				   clockTime, 0, pulseId),
-			  0 );
+			  env );
 	    control.execute(tr);
 	  }
         }
