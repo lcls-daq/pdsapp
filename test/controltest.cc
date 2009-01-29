@@ -108,7 +108,6 @@ namespace Pds {
 
     void unmap()
     {
-      _trnsSem.give();  // this transition never completes
       Kill kill(header());
       execute(kill);
       clearNodeList(_partition);

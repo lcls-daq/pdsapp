@@ -1,2 +1,4 @@
+29-Jan-2009	weaver  Added /camtest for Opal1000 segment level and feature extraction.
+			Added /config for configuration database setup
 14-Nov-2008     cpo     Modifications for offline iteration.
 26-Sep-2008	weaver	Initial import.

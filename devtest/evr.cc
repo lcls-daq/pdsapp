@@ -44,9 +44,11 @@ namespace Pds {
         unsigned              platform,
         SegWireSettings&      settings,
         Arp*                  arp,
+	char*                 evrdev,
         EvgrOpcode::Opcode    opcode) :
       _task(task),
       _platform(platform),
+      _evrdev(evrdev),
       _opcode(opcode)
     {
     }
@@ -64,7 +66,7 @@ namespace Pds {
 	     _platform);
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
-      EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>("/dev/era3");
+      EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(_evrdev);
       EvrManager& evrmgr = *new EvrManager(erInfo,_platform,_opcode);
       evrmgr.appliance().connect(frmk->inlet());
     }
@@ -96,6 +98,7 @@ namespace Pds {
   private:
     Task*              _task;
     unsigned           _platform;
+    const char*        _evrdev;
     EvgrOpcode::Opcode _opcode;
   };
 }
@@ -108,11 +111,12 @@ int main(int argc, char** argv) {
   unsigned detid = -1UL;
   unsigned platform = 0;
   Arp* arp = 0;
+  char* evrid=0;
 
   extern char* optarg;
   int c;
   EvgrOpcode::Opcode opcode = EvgrOpcode::L1Accept;
-  while ( (c=getopt( argc, argv, "a:i:p:r:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:o:p:r:")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -123,8 +127,11 @@ int main(int argc, char** argv) {
     case 'p':
       platform = strtoul(optarg, NULL, 0);
       break;
-    case 'r':
+    case 'o':
       opcode = EvgrOpcode::Opcode(strtoul(optarg, NULL, 0));
+      break;
+    case 'r':
+      evrid = optarg;
       break;
     }
   }
@@ -133,6 +140,9 @@ int main(int argc, char** argv) {
     printf("%s: platform required\n",argv[0]);
     return 0;
   }
+
+  char defaultdev='a';
+  if (!evrid) evrid = &defaultdev;
 
   // launch the SegmentLevel
   if (arp) {
@@ -146,10 +156,16 @@ int main(int argc, char** argv) {
     }
   }
 
+  char evrdev[16];
+  sprintf(evrdev,"/dev/er%c3",*evrid);
+  printf("Using evr %s\n",evrdev);
+
+  printf("evr using opcode %d\n",opcode);
+
   Node node(Level::Source,platform);
   Task* task = new Task(Task::MakeThisATask);
   MySegWire settings;
-  Seg* seg = new Seg(task, platform, settings, arp, opcode);
+  Seg* seg = new Seg(task, platform, settings, arp, evrdev, opcode);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 

@@ -90,8 +90,10 @@ void BldDriver::send(unsigned rate)
   timespec tp;
   clock_gettime(CLOCK_REALTIME, &tp);
 
-  printf("Starting time    %08x/%08x\n",tp.tv_sec,tp.tv_nsec);
-  printf("Sending interval %08x/%08x\n",td.tv_sec,td.tv_nsec);
+  printf("Starting time    %08x/%08x\n",
+	 (unsigned)tp.tv_sec,(unsigned)tp.tv_nsec);
+  printf("Sending interval %08x/%08x\n",
+	 (unsigned)td.tv_sec,(unsigned)td.tv_nsec);
 
   unsigned _pulseId=0;
 

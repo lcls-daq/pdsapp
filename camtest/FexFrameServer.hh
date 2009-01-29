@@ -22,7 +22,6 @@ namespace Pds {
   class DmaSplice;
   class Frame;
   class CameraFexConfig;
-  class Profile;
   class TwoDMoments;
 
   class FexFrameServer : public EbServer, public EbCountSrv {
@@ -75,7 +74,6 @@ namespace Pds {
     unsigned   _count;
     LinkedList<FrameServerMsg> _msg_queue;
     const CameraFexConfig* _config;
-    Profile*   _profilers[4];
   };
 }
 

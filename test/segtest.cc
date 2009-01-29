@@ -10,128 +10,206 @@
 #include "pds/utility/InletWireServer.hh"
 #include "pds/utility/EvrServer.hh"
 #include "pds/utility/EbCountSrv.hh"
-#include "pds/utility/ToEb.hh"
-#include "pds/service/VmonSourceId.hh"
 #include "pds/service/Task.hh"
 #include "pds/utility/Transition.hh"
-#include "pds/client/XtcIterator.hh"
-#include "pds/client/Browser.hh"
-#include "pds/client/Decoder.hh"
 
 #include "pds/xtc/InDatagramIterator.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/xtc/CDatagram.hh"
 #include "pds/service/GenericPoolW.hh"
 
+#include "pds/client/Fsm.hh"
+#include "pds/client/Action.hh"
+#include "pds/client/XtcIterator.hh"
+#include "pds/client/Browser.hh"
+
+#include "pds/diagnostic/Profile.hh"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 static bool verbose = false;
-static unsigned detid = 0;
 
 namespace Pds {
 
-  class MyL1Server : public ToEb, public EbCountSrv {
+  class ServerMsg {
   public:
-    MyL1Server(const Src& s) : ToEb(s) {}
-    unsigned count() const {return *reinterpret_cast<const unsigned*>(&sequence()); }
-    virtual bool succeeds (EbEventKey& key) const { return key.precedes ((const EbCountSrv&)*this); }
-    virtual bool coincides(EbEventKey& key) const { return key.coincides((const EbCountSrv&)*this); }
-    virtual void assign   (EbEventKey& key) const { key.assign   ((const EbCountSrv&)*this); }
-  };
-
-  //
-  //  This class creates the server when the streams are connected.
-  //  Real implementations will have something like this.
-  //
-  class MySegWire : public SegWireSettings {
-  public:
-    MySegWire(const Src& src) :
-      _src(src)
+    ServerMsg() {}
+    ServerMsg(const ServerMsg& m) :
+      evr    (m.evr.seq,m.evr.evr),
+      ptr    (m.ptr),
+      offset (m.offset),
+      length (m.length)
     {}
-    virtual ~MySegWire() 
-    {
-    }
-    void connect (InletWire& wire,
-		  StreamParams::StreamType s,
-		  int interface);
-    MyL1Server* server() { return _srvC; }
-  private:
-    Src         _src;
-    MyL1Server* _srvC;
+    EvrDatagram evr;
+    unsigned    ptr;
+    int         offset;
+    int         length;
   };
 
-  //
-  //  This class derives from SegmentLevel in order to
-  //  simulate a device driver by creating a datagram on 
-  //  a socket in response to L1Accepts issued by the ControlLevel.
-  //
-  class MyDriver : public SegmentLevel {
-  enum { PayloadSize = 4*1024*1024 };
-
+  class MySeqServer : public EvrServer, private Routine {
   public:
-    MyDriver(unsigned platform, int size1, int size2,
-	     MySegWire& settings, EventCallback& cb, Arp* arp) : 
-      SegmentLevel(platform, settings, cb, arp),
+    MySeqServer(unsigned platform, 
+		int      fd) :
+      EvrServer(StreamPorts::event(platform,Level::Segment),
+		DetInfo(-1UL,DetInfo::NoDetector,0,DetInfo::Evr,0),
+		4),
+      _task(new Task(TaskObject("segtest_evr",127))),
+      _pipe(fd)
+    { _task->call(this); }
+
+    ~MySeqServer() { _task->destroy(); }
+
+    void routine() 
+    {
+      ServerMsg dg;
+      while(1) {
+	if (fetch(reinterpret_cast<char*>(&dg),0) < 0) continue;
+	dg.evr.seq = sequence();
+	dg.evr.evr = count();
+	dg.offset = 0;
+	dg.ptr    = 0;
+	::write(_pipe,&dg,sizeof(dg));
+      }
+    }
+  private:
+    Task* _task;
+    int   _pipe;
+  };
+
+  class MyL1Server : public EbServer, EbCountSrv {
+    enum { PayloadSize = 4*1024*1024 };
+  public:
+    MyL1Server(unsigned platform,
+	       int size1, int size2,
+	       const Src& s) : 
+      _xtc(TypeId::Any, s), 
       _size0   (size1),
-      _dsize   (size2-size1),
-      _seg_wire(settings),
-      _server(0),
-      _pool(sizeof(CDatagram)+PayloadSize,4)
+      _dsize   (size2-size1)
     {
       for(unsigned k=0; k<PayloadSize; k++)
 	_payload[k] = k&0xff;
-    }
-    ~MyDriver() {}
-
-    bool attach()
-    {
-      bool result = SegmentLevel::attach();
-      _server = _seg_wire.server();
-      return result;
-    }
-
-  private:
-    void message(const Node& hdr, const Message& msg)
-    {
-      if (hdr.level() == Level::Control) {
-	if (msg.type() == Message::Transition) {
-	  const Transition& tr = reinterpret_cast<const Transition&>(msg);
-	  if (tr.id() == TransitionId::L1Accept &&
-	      tr.phase() == Transition::Record) {
-	    if (_server) {
-	      CDatagram* cdg = new(&_pool) CDatagram(TypeId(TypeId::Any),
-						     _server->client());
-	      //  Because I use a ToEb as a simulated source of data, 
-	      //  I need to add the Xtc header within the payload.
-	      Datagram& dg = const_cast<Datagram&>(cdg->datagram());
-	      Xtc* xtc = new(&dg.xtc) Xtc(TypeId::Any, _server->client());
-	      int sz = (_dsize==0) ? 
-		_size0 :
-		_size0 + ((random()%_dsize) & ~3);
-	      char* p = &_payload[(random()%(PayloadSize-sz)) & ~3];
-	      memcpy(dg.xtc.alloc(sz),p,sz);
-	      xtc->alloc(sz);
-	      *reinterpret_cast<unsigned*>(&dg) = _evr;
-	      _server->send(cdg);
-	      _evr++;
-	    }
-	  }
-	  else
-	    _evr = 0;
-	}
+#if ( __GNUC__ > 3 )
+      int remaining = PayloadSize;
+      char* p = _payload;
+      while(remaining) {
+	int sz = _zfragment.uinsert(p,remaining);
+	_zpayload.insert(_zfragment,sz);
+	remaining -= sz;
       }
-      SegmentLevel::message(hdr,msg);
+#endif
+      ::pipe(_pipefd);
+      fd(_pipefd[0]);
+
+      _server  = new MySeqServer(platform, _pipefd[1]);
+
+      _profilers[0] = new Profile("MyL1_0");
+      _profilers[1] = new Profile("MyL1_1");
+      _profilers[2] = new Profile("MyL1_2");
+    }
+    ~MyL1Server() { delete _server; }
+  public:
+    //  Eb interface
+    void        dump    (int detail)   const {}
+    bool        isValued()             const {return true;}
+    const Src&  client  ()             const {return _xtc.src;}
+    //  EbSegment interface
+    const Xtc&  xtc   () const {return _xtc;}
+    bool        more  () const {return _more;}
+    unsigned    length() const {return _hdr.length;}
+    unsigned    offset() const {return _hdr.offset;}
+  public:
+    //  Eb-key interface
+    EbServerDeclare;
+  public:
+    //  Server interface
+    int      pend        (int flag = 0) {return 0;}
+    int      fetch       (char* payload, int flags)
+    {
+      _more=false;
+      ::read(_pipefd[0],&_hdr,sizeof(_hdr));
+      char* p;
+      int sz = _fetch(&p);
+      Xtc* xtc = new (payload) Xtc(_xtc);
+      memcpy(xtc->alloc(sz),p,sz);
+      _hdr.length = xtc->extent;
+      return _hdr.length;
+    }
+    int      fetch       (ZcpFragment& zf, int flags)
+    {
+      ::read(_pipefd[0],&_hdr,sizeof(_hdr));
+      _more=true;
+
+      if (_hdr.offset == 0) {
+	char* p;
+	int sz = _fetch(&p);
+	Xtc xtc(_xtc);
+	xtc.extent += sz;
+	zf.uinsert(&xtc,sizeof(Xtc));
+	_hdr.length = xtc.extent;
+	ServerMsg hdr(_hdr);
+	hdr.ptr    = 0;
+	hdr.offset = sizeof(Xtc);
+	::write(_pipefd[1],&hdr,sizeof(hdr));
+	return sizeof(Xtc);
+      }
+      else {
+	_profilers[0]->start();
+	int sz  = _hdr.length - _hdr.offset;
+	int len = _zpayload.remove(zf,sz);
+	_profilers[1]->start();
+	_zfragment.copy (zf,len);
+	_profilers[2]->start();
+	_zpayload.insert(_zfragment,len);
+	_profilers[2]->stop();
+	_profilers[1]->stop();
+	_profilers[0]->stop();
+	if (len != sz) {
+	  ServerMsg hdr(_hdr);
+	  hdr.ptr    += len;
+	  hdr.offset += len;
+	  ::write(_pipefd[1],&hdr,sizeof(hdr));
+	}
+	return len;
+      }
+    }
+    /***
+    int      fetch       (ZcpStream& zf, int flags)
+    {
+      _more=false;
+      ::read(_pipefd[0],&_hdr,sizeof(_hdr));
+      char* p;
+      int sz = _fetch(&p);
+      Xtc* xtc = new (payload) Xtc(_xtc);
+      memcpy(xtc->alloc(sz),p,sz);
+      _hdr.length = xtc->extent;
+      return _hdr.length;
+    }
+    ***/
+  public:
+    unsigned        count() const { return _hdr.evr.evr; }
+  private:
+    int     _fetch       (char** payload) 
+    {
+      int sz = (_dsize==0) ? _size0 : _size0 + ((random()%_dsize) & ~3);
+      *payload = &_payload[(random()%(PayloadSize-sz)) & ~3];
+      return sz;
     }
   private:
-    int        _size0;
-    int        _dsize;
-    MySegWire& _seg_wire;
-    MyL1Server* _server;
-    unsigned   _evr;
-    char       _payload[PayloadSize];
-    GenericPoolW _pool;
+    MySeqServer* _server;
+    ServerMsg    _hdr;
+    int       _pipefd[2];
+    Xtc       _xtc;
+    bool      _more;
+    int       _size0;
+    int       _dsize;
+    char      _payload[PayloadSize];
+    char      _evrPayload[sizeof(EvrDatagram)];
+    ZcpFragment _zfragment;
+    ZcpStream   _zpayload;
+    Profile*    _profilers[4];
   };
 
   //
@@ -142,89 +220,63 @@ namespace Pds {
   class MyIterator : public XtcIterator {
   public:
     MyIterator(Datagram& dg) : _dg(dg) {}
-    int process(const Xtc& xtc,
-		InDatagramIterator* iter)
-    {
-      if (xtc.contains.id()==TypeId::Id_Xtc)
-	return iterate(xtc,iter);
-      if (xtc.src.phy() == detid) {
-	_dg.xtc.damage.increase(xtc.damage.value());
-	memcpy(_dg.xtc.alloc(sizeof(Xtc)),&xtc,sizeof(Xtc));
-	int size = xtc.sizeofPayload();
-	iovec iov[1];
-	int remaining = size;
-	while( remaining ) {
-	  int sz = iter->read(iov,1,size);
-	  if (!sz) break;
-	  memcpy(_dg.xtc.alloc(sz),iov[0].iov_base,sz);
-	  remaining -= sz;
-	} 
-	return size-remaining;
-      }
-      return 0;
-    }
   private:
     Datagram& _dg;
   };
 
-  class MyFEX : public Appliance {
+  class MyFEX : public XtcIterator {
   public:
     enum { PoolSize = 32*1024*1024 };
     enum { EventSize = 2*1024*1024 };
+    enum Algorithm { Input, Full, TenPercent, None, Sink, NumberOf };
   public:
-    MyFEX() : _pool(PoolSize,EventSize), 
-	      _iter(sizeof(ZcpDatagramIterator),32) {}
+    MyFEX(const Src& s) : _src(s),
+			  _pool(PoolSize,EventSize), 
+			  _iter(sizeof(ZcpDatagramIterator),32),
+			  _outdg(0) {}
     ~MyFEX() {}
 
-    Transition* transitions(Transition* tr) 
+    Transition* configure(Transition* in) 
     {
-      return tr;
+      _algorithm = Algorithm(in->env()  % NumberOf);
+      _verbose   = in->env() >= NumberOf;
+      printf("MyFex::algorithm %d  verbose %c\n",
+	     _algorithm,_verbose ? 't':'f');
+      return in;
     }
-    InDatagram* occurrences(InDatagram* input) { return input; }
-    InDatagram* events     (InDatagram* input) 
+    InDatagram* configure(InDatagram* in) {return in;}
+    Transition* l1accept (Transition* in) {return in;}
+
+    InDatagram* l1accept (InDatagram* input) 
     {
-      if (verbose) {
+      if (_verbose) {
 	InDatagramIterator* in_iter = input->iterator(&_iter);
 	int advance;
 	Browser browser(input->datagram(), in_iter, 0, advance);
 	browser.iterate();
 	delete in_iter;
       }
-      return input;
 
       if (input->datagram().seq.type()   !=Sequence::Event ||
-	  input->datagram().seq.service()!=TransitionId::L1Accept) {
-	if (verbose) {
-	  printf("events %p  type %d service %d\n",
-		 input,
-		 input->datagram().seq.type(),
-		 input->datagram().seq.service());
-	  InDatagramIterator* in_iter = input->iterator(&_iter);
-	  int advance;
-	  Browser browser(input->datagram(), in_iter, 0, advance);
-	  browser.iterate();
-	  delete in_iter;
-	}
+	  input->datagram().seq.service()!=TransitionId::L1Accept)
 	return input;
-      }
+
+      if (_algorithm == Input)
+	return input;
+
+      if (_algorithm == Sink)
+	return 0;
 
       CDatagram* ndg = new (&_pool)CDatagram(input->datagram());
 
-      if (verbose) {
-	printf("new cdatagram %p\n",ndg);
+      {
 	InDatagramIterator* in_iter = input->iterator(&_iter);
-	int advance;
-	Browser browser(input->datagram(), in_iter, 0, advance);
-	browser.iterate();
+	_outdg = const_cast<Datagram*>(&ndg->datagram());
+	iterate(input->datagram().xtc,in_iter);
 	delete in_iter;
       }
-      {
-      InDatagramIterator* in_iter = input->iterator(&_iter);
-      MyIterator iter(const_cast<Datagram&>(ndg->datagram()));
-      iter.iterate(input->datagram().xtc,in_iter);
-      delete in_iter;
-      }
-      if (verbose) {
+
+      if (_verbose) {
 	InDatagramIterator* in_iter = ndg->iterator(&_iter);
 	int advance;
 	Browser browser(ndg->datagram(), in_iter, 0, advance);
@@ -235,23 +287,84 @@ namespace Pds {
       _pool.shrink(ndg, ndg->datagram().xtc.sizeofPayload()+sizeof(Datagram));
       return ndg;
     }
+
+    int process(const Xtc& xtc,
+		InDatagramIterator* iter)
+    {
+      if (xtc.contains.id()==TypeId::Id_Xtc)
+	return iterate(xtc,iter);
+      if (xtc.src == _src) {
+	_outdg->xtc.damage.increase(xtc.damage.value());
+	memcpy(_outdg->xtc.alloc(sizeof(Xtc)),&xtc,sizeof(Xtc));
+	int size = xtc.sizeofPayload();
+	if      (_algorithm == None)       size  = 0;
+	else if (_algorithm == TenPercent) size /= 10;
+	iovec iov[1];
+	int remaining = size;
+	while( remaining ) {
+	  int sz = iter->read(iov,1,size);
+	  if (!sz) break;
+	  memcpy(_outdg->xtc.alloc(sz),iov[0].iov_base,sz);
+	  remaining -= sz;
+	} 
+	return size-remaining;
+      }
+      return 0;
+    }
   private:
-    RingPool _pool;
+    Src         _src;
+    Algorithm   _algorithm;
+    bool        _verbose;
+    RingPool    _pool;
     GenericPool _iter;
+    Datagram*   _outdg;
+  };
+
+  class L1Action : public Action {
+  public:
+    L1Action(MyFEX& fex) : _fex(fex) {}
+    Transition* fire(Transition* tr) { return tr; }
+    InDatagram* fire(InDatagram* dg) { return _fex.l1accept(dg); }
+  private:
+    MyFEX& _fex;
+  };
+
+  class ConfigAction : public Action {
+  public:
+    ConfigAction(MyFEX& fex) : _fex(fex) {}
+    Transition* fire(Transition* tr) { return _fex.configure(tr); }
+    InDatagram* fire(InDatagram* dg) { return _fex.configure(dg); }
+  private:
+    MyFEX& _fex;
+  };
+
+  class BeginRunAction : public Action {
+  public:
+    Transition* fire(Transition* tr) { Profile::initialize(); return tr; }
+    InDatagram* fire(InDatagram* tr) { return tr; }
+  };
+
+  class EndRunAction : public Action {
+  public:
+    Transition* fire(Transition* tr) { Profile::finalize(); return tr; }
+    InDatagram* fire(InDatagram* tr) { return tr; }
   };
 
   //
   //  Implements the callbacks for attaching/dissolving.
   //  Appliances can be added to the stream here.
   //
-  class SegTest : public EventCallback {
+  class SegTest : public EventCallback, public SegWireSettings {
   public:
-    SegTest(Task*                 task,
-	    unsigned              platform,
-	    SegWireSettings&      settings,
-	    Arp*                  arp) :
+    SegTest(Task*      task,
+	    unsigned   platform,
+	    int        s1,
+	    int        s2,
+	    const Src& src) :
       _task    (task),
-      _platform(platform)
+      _platform(platform),
+      _server  (new MyL1Server(platform,s1,s2,src)),
+      _fex     (new MyFEX(src))
     {
     }
 
@@ -260,6 +373,13 @@ namespace Pds {
       _task->destroy();
     }
     
+    // Implements SegWireSettings
+    void connect (InletWire& wire,
+		  StreamParams::StreamType s,
+		  int interface)
+    {
+      wire.add_input(_server);
+    }
 
   private:
     // Implements EventCallback
@@ -269,8 +389,12 @@ namespace Pds {
 	     _platform);
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
-      (new MyFEX)->connect(frmk->inlet());
-      //      (new Decoder)->connect(frmk->inlet());
+      Fsm* fsm = new Fsm;
+      fsm->callback(TransitionId::L1Accept   , new L1Action    (*_fex));
+      fsm->callback(TransitionId::Configure  , new ConfigAction(*_fex));
+      fsm->callback(TransitionId::BeginRun   , new BeginRunAction);
+      fsm->callback(TransitionId::EndRun     , new EndRunAction);
+      fsm->connect(frmk->inlet());
     }
     void failed(Reason reason)
     {
@@ -298,23 +422,19 @@ namespace Pds {
     }
     
   private:
-    Task*         _task;
-    unsigned      _platform;
+    Task*       _task;
+    unsigned    _platform;
+    MyL1Server* _server;
+    MyFEX*      _fex;
   };
 }
 
 using namespace Pds;
 
-void MySegWire::connect (InletWire& wire,
-			 StreamParams::StreamType s,
-			 int interface)
+void _print_help(const char* p0)
 {
-  //  Build the L1 Data server
-  _srvC = new MyL1Server(_src);
-  wire.add_input(_srvC);
-  printf("Assign l1d %d (%p)\n",_srvC->id(),_srvC);
-
-  //  (new MyFEX)->connect(&dynamic_cast<InletWireServer*>(&wire)->_inlet);
+  printf("Usage : %s -p <platform> [-i <det_id> -a <arp_pid> -s <size_lo size_hi> -v]\n",
+	 p0);
 }
 
 int main(int argc, char** argv) {
@@ -323,11 +443,12 @@ int main(int argc, char** argv) {
   unsigned platform = 0;
   int      size1    = 1024;
   int      size2    = 1024;
+  unsigned detid = 0;
   Arp* arp = 0;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:s:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:s:vh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -345,6 +466,11 @@ int main(int argc, char** argv) {
     case 'v':
       verbose = true;
       break;
+    case '?':
+      printf("Unrecognized option %c\n",c);
+    case 'h':
+      _print_help(argv[0]);
+      exit(1);
     }
   }
 
@@ -367,15 +493,20 @@ int main(int argc, char** argv) {
 
   Task* task = new Task(Task::MakeThisATask);
   Node node(Level::Source,platform);
-  MySegWire settings(DetInfo(node.pid(),DetInfo::NoDetector,
-                             detid,DetInfo::NoDevice,0));
-  SegTest* segtest = new SegTest(task, platform, settings, arp);
-  MyDriver* driver = new MyDriver(platform, size1, size2,
-				  settings, *segtest, arp);
-  if (driver->attach())
+  SegTest* segtest = new SegTest(task, platform, 
+				 size1, size2, 
+				 DetInfo(node.pid(),DetInfo::AmoXes,
+					 detid,DetInfo::Opal1000,0));
+  SegmentLevel* segment = new SegmentLevel(platform, 
+					   *segtest,
+					   *segtest, 
+					   arp);
+  
+  if (segment->attach())
     task->mainLoop();
 
-  driver->detach();
+  segment->detach();
   if (arp) delete arp;
+
   return 0;
 }
