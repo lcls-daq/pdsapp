@@ -16,14 +16,12 @@
 #include "pds/camera/Frame.hh"
 #include "pds/camera/Opal1000.hh"
 #include "pds/camera/TwoDMoments.hh"
+#include "pds/camera/TwoDGaussian.hh"
 
 #include "pds/config/CfgClientNfs.hh"
 
-#include "pds/diagnostic/Profile.hh"
-
 #include "CameraFexConfig.hh"
 #include "Opal1kConfig.hh"
-#include "TwoDGaussian.hh"
 
 #include <signal.h>
 #include <unistd.h>
@@ -45,9 +43,6 @@ class Fex {
 public:
   Fex() 
   {
-    _profilers[0] = new Pds::Profile("Fex_0"); 
-    _profilers[1] = new Pds::Profile("Fex_1"); 
-    _profilers[2] = new Pds::Profile("Fex_2"); 
     _frame_buffer = new char[2*1024*1024];
   }
 
@@ -63,33 +58,27 @@ void post()
   //  pixel_type* input = reinterpret_cast<unsigned short*>(_frame_buffer);
   
   {
-    _profilers[2]->start();
     unsigned long wsum = 0;
     const pixel_type* data = reinterpret_cast<unsigned short*>(input);
     for(unsigned k=0; k<frame.height; k++) {
       for(unsigned j=0; j<frame.width; j+=16,data+=16)
 	wsum += *data;
     }
-    _profilers[2]->stop();
     _sum = wsum;
   }
 
   {
-    _profilers[1]->start();
     const pixel_type* data = reinterpret_cast<unsigned short*>(input);
     unsigned long wsum = 0;
     for(unsigned k=0; k<frame.height; k++) {
       for(unsigned j=0; j<frame.width; j+=8,data+=8)
 	wsum += *data;
     }
-    _profilers[1]->stop();
     _sum = wsum;
   }
 
-  _profilers[0]->start();
   const unsigned short* data = reinterpret_cast<unsigned short*>(input);
   Pds::TwoDMoments moments(frame.width, frame.height, data);
-  _profilers[0]->stop();
   
   _gss = Pds::TwoDGaussian(moments);
 }
@@ -97,7 +86,6 @@ private:
   unsigned long _sum;
   Pds::TwoDGaussian _gss;
   PdsLeutron::Opal1000* _camera;
-  Pds::Profile* _profilers[4];
   char* _frame_buffer;
 };
 
@@ -244,10 +232,8 @@ namespace Pds {
 	}
 	break;
       case TransitionId::BeginRun:
-	Profile::initialize();
 	break;
       case TransitionId::EndRun:
-	Profile::finalize();
 	break;
       default:
 	break;

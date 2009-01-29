@@ -12,7 +12,7 @@
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pds/camera/Frame.hh"
-#include "TwoDGaussian.hh"
+#include "pds/camera/TwoDGaussian.hh"
 #include "FrameDisplay.hh"
 
 #include <time.h>

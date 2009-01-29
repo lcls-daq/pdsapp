@@ -1,15 +1,14 @@
 #include "FexFrameServer.hh"
 #include "CameraFexConfig.hh"
-#include "TwoDGaussian.hh"
 
 #include "pds/camera/DmaSplice.hh"
 #include "pds/camera/Frame.hh"
 #include "pds/camera/TwoDMoments.hh"
+#include "pds/camera/TwoDGaussian.hh"
 
 #include "pds/camera/Camera.hh"
 #include "pds/camera/Opal1000.hh"
 #include "pds/service/ZcpFragment.hh"
-#include "pds/diagnostic/Profile.hh"
 
 #include <errno.h>
 #include <stdio.h>
@@ -35,9 +34,6 @@ FexFrameServer::FexFrameServer(const Src& src,
   if (err)
     printf("Error opening FexFrameServer pipe: %s\n",strerror(errno));
   fd(_fd[0]);
-
-  _profilers[0] = new Profile("L1A_0");
-  _profilers[1] = new Profile("L1A_1");
 }
 
 FexFrameServer::~FexFrameServer()
@@ -154,23 +150,19 @@ int FexFrameServer::fetch(char* payload, int flags)
       return xtc->extent;
     }
     else if (_config->algorithm == CameraFexConfig::TwoDGaussianFull) {
-      _profilers[0]->start();
       TwoDMoments moments(frame.width, frame.height, frame_data);
-      _profilers[0]->stop();
 
       Xtc* xtc = new(payload) Xtc(TypeId::Id_TwoDGaussian, _xtc.src);
       new(xtc->alloc(sizeof(TwoDGaussian))) TwoDGaussian(moments);
       return xtc->extent;
     }
     else if (_config->algorithm == CameraFexConfig::TwoDGaussianROI) {
-      _profilers[0]->start();
       TwoDMoments moments(frame.width,
 			  _config->regionOfInterestStart.column,
 			  _config->regionOfInterestEnd.column,
 			  _config->regionOfInterestStart.row,
 			  _config->regionOfInterestEnd.row,
 			  frame_data);
-      _profilers[0]->stop();
 
       Xtc* xtc = new(payload) Xtc(TypeId::Id_TwoDGaussian, _xtc.src);
       new(xtc->alloc(sizeof(TwoDGaussian))) TwoDGaussian(moments);
@@ -266,33 +258,27 @@ int FexFrameServer::fetch(ZcpFragment& zfo, int flags)
     }
     
     else if (_config->algorithm == CameraFexConfig::TwoDGaussianFull) {
-      _profilers[0]->start();
       TwoDMoments moments(frame.width, frame.height, frame_data);
-      _profilers[0]->stop();
       length = _queue_fex( moments, fmsg, zfo );
     }
 
     else if (_config->algorithm == CameraFexConfig::TwoDGaussianROI) {
-      _profilers[0]->start();
       TwoDMoments moments(frame.width,
 			  _config->regionOfInterestStart.column,
 			  _config->regionOfInterestEnd.column,
 			  _config->regionOfInterestStart.row,
 			  _config->regionOfInterestEnd.row,
 			  frame_data);
-      _profilers[0]->stop();
       length = _queue_fex( moments, fmsg, zfo );
     }      
 
     else if (_config->algorithm == CameraFexConfig::TwoDGaussianAndFrame) {
-      _profilers[0]->start();
       TwoDMoments moments(frame.width,
 			  _config->regionOfInterestStart.column,
 			  _config->regionOfInterestEnd.column,
 			  _config->regionOfInterestStart.row,
 			  _config->regionOfInterestEnd.row,
 			  frame_data);
-      _profilers[0]->stop();
       Frame roiFrame(_config->regionOfInterestStart.column,
 		     _config->regionOfInterestEnd.column,
 		     _config->regionOfInterestStart.row,

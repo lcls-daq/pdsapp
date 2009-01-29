@@ -27,8 +27,6 @@
 
 #include "pds/config/CfgClientNfs.hh"
 
-#include "pds/diagnostic/Profile.hh"
-
 #include "FexFrameServer.hh"
 #include "CameraFexConfig.hh"
 #include "Opal1kConfig.hh"
@@ -241,13 +239,13 @@ namespace Pds {
 
   class BeginRunAction : public Action {
   public:
-    Transition* fire(Transition* tr) { Profile::initialize(); return tr; }
+    Transition* fire(Transition* tr) { return tr; }
     InDatagram* fire(InDatagram* tr) { return tr; }
   };
 
   class EndRunAction : public Action {
   public:
-    Transition* fire(Transition* tr) { Profile::finalize(); return tr; }
+    Transition* fire(Transition* tr) { return tr; }
     InDatagram* fire(InDatagram* tr) { return tr; }
   };
 

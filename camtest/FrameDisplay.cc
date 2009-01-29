@@ -12,7 +12,7 @@
 #include <QtGui/QPainter>
 #include <QtGui/QApplication>
 #include "pds/camera/Frame.hh"
-#include "TwoDGaussian.hh"
+#include "pds/camera/TwoDGaussian.hh"
 #include "FrameDisplay.hh"
 
 static pthread_mutex_t display_lock;
