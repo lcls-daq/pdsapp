@@ -23,8 +23,6 @@
 #include "pds/client/XtcIterator.hh"
 #include "pds/client/Browser.hh"
 
-#include "pds/diagnostic/Profile.hh"
-
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -104,10 +102,6 @@ namespace Pds {
       fd(_pipefd[0]);
 
       _server  = new MySeqServer(platform, _pipefd[1]);
-
-      _profilers[0] = new Profile("MyL1_0");
-      _profilers[1] = new Profile("MyL1_1");
-      _profilers[2] = new Profile("MyL1_2");
     }
     ~MyL1Server() { delete _server; }
   public:
@@ -156,16 +150,10 @@ namespace Pds {
 	return sizeof(Xtc);
       }
       else {
-	_profilers[0]->start();
 	int sz  = _hdr.length - _hdr.offset;
 	int len = _zpayload.remove(zf,sz);
-	_profilers[1]->start();
 	_zfragment.copy (zf,len);
-	_profilers[2]->start();
 	_zpayload.insert(_zfragment,len);
-	_profilers[2]->stop();
-	_profilers[1]->stop();
-	_profilers[0]->stop();
 	if (len != sz) {
 	  ServerMsg hdr(_hdr);
 	  hdr.ptr    += len;
@@ -209,7 +197,6 @@ namespace Pds {
     char      _evrPayload[sizeof(EvrDatagram)];
     ZcpFragment _zfragment;
     ZcpStream   _zpayload;
-    Profile*    _profilers[4];
   };
 
   //
@@ -340,13 +327,13 @@ namespace Pds {
 
   class BeginRunAction : public Action {
   public:
-    Transition* fire(Transition* tr) { Profile::initialize(); return tr; }
+    Transition* fire(Transition* tr) { return tr; }
     InDatagram* fire(InDatagram* tr) { return tr; }
   };
 
   class EndRunAction : public Action {
   public:
-    Transition* fire(Transition* tr) { Profile::finalize(); return tr; }
+    Transition* fire(Transition* tr) { return tr; }
     InDatagram* fire(InDatagram* tr) { return tr; }
   };
 
