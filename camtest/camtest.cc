@@ -9,7 +9,6 @@
 
 #include "pds/client/Fsm.hh"
 #include "pds/client/Action.hh"
-#include "pds/client/XtcIterator.hh"
 #include "pds/client/Browser.hh"
 #include "pds/xtc/InDatagram.hh"
 #include "pds/xtc/InDatagramIterator.hh"
@@ -22,8 +21,17 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/TypeId.hh"
 
+#include "pds/camera/Camera.hh"
+#include "pds/camera/DmaSplice.hh"
 #include "pds/camera/Opal1000.hh"
-#include "FrameServer.hh"
+
+#include "pds/config/CfgClientNfs.hh"
+
+#include "pds/diagnostic/Profile.hh"
+
+#include "FexFrameServer.hh"
+#include "CameraFexConfig.hh"
+#include "Opal1kConfig.hh"
 
 #include <signal.h>
 #include <unistd.h>
@@ -36,14 +44,16 @@ static unsigned detid = 1;
 static void *thread_signals(void*)
 {
   while(1) sleep(100);
+  return 0;
 }
 
 //
 //  The signal handler requires these static variables
 //
 static int _nsignals=0;
-static Pds::FrameServer* _frameServer;
-static void cameraSignalHandler(int arg)
+static Pds::FexFrameServer* _frameServer;
+
+static void cameraSignalHandler(int arg)  // arg is the signal number
 {
   _nsignals++;
   _frameServer->post();
@@ -52,161 +62,125 @@ static void cameraSignalHandler(int arg)
 
 namespace Pds {
 
-  //
-  //  Sample feature extraction.
-  //  Iterate through the input datagram to strip out the BLD
-  //  and copy/splice the remaining data.
-  //
-  class MyIterator : public XtcIterator {
-  public:
-    MyIterator(Datagram& dg) : _dg(dg) {}
-    int process(const Xtc& xtc,
-		InDatagramIterator* iter)
-    {
-      if (xtc.contains.id()==TypeId::Id_Xtc)
-	return iterate(xtc,iter);
-      if (xtc.src.phy() == detid) {
-	_dg.xtc.damage.increase(xtc.damage.value());
-	memcpy(_dg.xtc.alloc(sizeof(Xtc)),&xtc,sizeof(Xtc));
-	int size = xtc.sizeofPayload();
-	iovec iov[1];
-	int remaining = size;
-	while( remaining ) {
-	  int sz = iter->read(iov,1,size);
-	  if (!sz) break;
-	  memcpy(_dg.xtc.alloc(sz),iov[0].iov_base,sz);
-	  remaining -= sz;
-	} 
-	return size-remaining;
-      }
-      return 0;
-    }
-  private:
-    Datagram& _dg;
-  };
-
-  class L1Action : public Action {
-  private:
-    enum { PoolSize = 32*1024*1024 };
-    enum { EventSize = 4*1024*1024 };
-  public:
-    L1Action() : _pool(PoolSize,EventSize), 
-		 _iter(sizeof(ZcpDatagramIterator),32) {}
-    ~L1Action() {}
-
-    Transition* fire(Transition* tr) { return tr; }
-    InDatagram* fire(InDatagram* input)
-    {
-      if (verbose) {
-	InDatagramIterator* in_iter = input->iterator(&_iter);
-	int advance;
-	Browser browser(input->datagram(), in_iter, 0, advance);
-	browser.iterate();
-	delete in_iter;
-      }
-      return input;
-
-      if (input->datagram().seq.type()   !=Sequence::Event ||
-	  input->datagram().seq.service()!=TransitionId::L1Accept) {
-	if (verbose) {
-	  printf("events %p  type %d service %d\n",
-		 input,
-		 input->datagram().seq.type(),
-		 input->datagram().seq.service());
-	  InDatagramIterator* in_iter = input->iterator(&_iter);
-	  int advance;
-	  Browser browser(input->datagram(), in_iter, 0, advance);
-	  browser.iterate();
-	  delete in_iter;
-	}
-	return input;
-      }
-
-      CDatagram* ndg = new (&_pool)CDatagram(input->datagram());
-
-      if (verbose) {
-	printf("new cdatagram %p\n",ndg);
-	InDatagramIterator* in_iter = input->iterator(&_iter);
-	int advance;
-	Browser browser(input->datagram(), in_iter, 0, advance);
-	browser.iterate();
-	delete in_iter;
-      }
-      {
-      InDatagramIterator* in_iter = input->iterator(&_iter);
-      MyIterator iter(const_cast<Datagram&>(ndg->datagram()));
-      iter.iterate(input->datagram().xtc,in_iter);
-      delete in_iter;
-      }
-      if (verbose) {
-	InDatagramIterator* in_iter = ndg->iterator(&_iter);
-	int advance;
-	Browser browser(ndg->datagram(), in_iter, 0, advance);
-	browser.iterate();
-	delete in_iter;
-      }
-
-      _pool.shrink(ndg, ndg->datagram().xtc.sizeofPayload()+sizeof(Datagram));
-      return ndg;
-    }
-  private:
-    RingPoolW   _pool;
-    GenericPool _iter;
-  };
-
   class Config {
+    enum { MaxMaskedPixels=100 };
   public:
-    Config(Opal1000& camera) :
+    Config(const Src& src,
+	   PdsLeutron::Opal1000&  camera,
+	   DmaSplice& splice,
+	   FexFrameServer& action) :
       _camera(camera),
-      _sig(-1)
+      _splice(splice),
+      _l1action(action),
+      _sig(-1),
+      _configBuffer(new char[sizeof(Opal1kConfig) + 
+			     sizeof(CameraFexConfig)+100*sizeof(CameraPixelCoord)]),
+      _configService(src)
     {
-      const int fps = 4;
-      _Config.Mode = Camera::MODE_EXTTRIGGER_SHUTTER;
-      //      _Config.Mode = Camera::MODE_CONTINUOUS;
-      _Config.Format = Pds::Frame::FORMAT_GRAYSCALE_8;
-      _Config.GainPercent = 20;
-      _Config.BlackLevelPercent = 5;
-      _Config.ShutterMicroSec = 1000000/fps - 50;
-      _Config.FramesPerSec = fps;
     }
     ~Config() 
     {
+      delete[] _configBuffer;
+    }
+
+    Transition* allocate (Transition* tr)
+    {
+      const Allocate& alloc = reinterpret_cast<const Allocate&>(*tr);
+      _configService.initialize(alloc);
+      return tr;
     }
 
     Transition* configure(Transition* tr)
     {
       printf("Configuring ...\n");
       _damage = (1<<Damage::UserDefined);
+      //
+      //  retrieve the configuration
+      //
+#if 1
+      char* cfgBuff = _configBuffer;
+      int len;
+      if ((len=_configService.fetch(*tr,TypeId::Id_Opal1kConfig, cfgBuff)) <= 0) {
+	printf("Config::configure failed to retrieve Opal1000 configuration\n");
+	return tr;
+      }
+      const Opal1kConfig&   opalConfig = *new(cfgBuff) Opal1kConfig;
+      cfgBuff += len;
+
+      if ((len=_configService.fetch(*tr,TypeId::Id_CameraFexConfig, cfgBuff)) <= 0) {
+	printf("Config::configure failed to retrieve Opal1000 configuration\n");
+	return tr;
+      }
+      const CameraFexConfig& fexConfig = *new(cfgBuff) CameraFexConfig;
+#else
+      //
+      //  (static for now)
+      //
+      Opal1kConfig opalConfig;
+      opalConfig.Depth_bits         = 12;
+      opalConfig.Gain_percent       = 20;
+      opalConfig.BlackLevel_percent = 0;
+      opalConfig.ShutterWidth_us    = 540;
+
+      CameraFexConfig& fexConfig = *new (_configBuffer)CameraFexConfig;
+      //      fexConfig.algorithm     = CameraFexConfig::RawImage;
+      //      fexConfig.algorithm     = CameraFexConfig::RegionOfInterest;
+      fexConfig.algorithm     = CameraFexConfig::TwoDGaussian;
+      //      fexConfig.algorithm     = CameraFexConfig::TwoDGaussianAndFrame;
+      fexConfig.regionOfInterestStart.column = 300;
+      fexConfig.regionOfInterestStart.row    =  50;
+      fexConfig.regionOfInterestEnd  .column = 700;
+      fexConfig.regionOfInterestEnd  .row    = 450;
+      fexConfig.nMaskedPixels = 0;
+#endif
+      _l1action.Config(fexConfig);
+
+      PdsLeutron::Camera::Config Config;
+      Config.Mode              = PdsLeutron::Camera::MODE_EXTTRIGGER_SHUTTER;
+      switch(opalConfig.Depth_bits) {
+      case  8: Config.Format            = PdsLeutron::FrameHandle::FORMAT_GRAYSCALE_8 ; break;
+      case 10: Config.Format            = PdsLeutron::FrameHandle::FORMAT_GRAYSCALE_10; break;
+      case 12:
+      default: Config.Format            = PdsLeutron::FrameHandle::FORMAT_GRAYSCALE_12; break;
+      }
+      Config.GainPercent       = opalConfig.Gain_percent;
+      Config.BlackLevelPercent = opalConfig.BlackLevel_percent;
+      Config.ShutterMicroSec   = opalConfig.ShutterWidth_us;
+      Config.FramesPerSec      = 5;
+
       int ret;
-      if ((ret = _camera.SetConfig(_Config)) >= 0)
-	if ((_sig = _camera.SetNotification(Camera::NOTIFYTYPE_SIGNAL)) >= 0) {
-
-	  printf("Registering handler for signal %d ...\n", _sig);
-
-	  struct sigaction action;
-	  action.sa_handler = cameraSignalHandler;
-	  sigemptyset(&action.sa_mask);
-	  action.sa_flags   = SA_RESTART;
-	  sigaction(_sig,&action,NULL);
-
-	  printf("Initializing ...\n");
-
-	  if ((ret = _camera.Init()) >= 0) {
-
-	    printf("Starting ...\n");
-
-	    if ((ret = _camera.Start()) >= 0)
-	      _damage = 0;
-	    else
-	      printf("Camera::Start: %s.\n", strerror(-ret));
-	  }
-	  else
-	    printf("Camera::Init: %s.\n", strerror(-ret));
-	}
-	else
-	  printf("Camera::SetNotification: %s.\n", strerror(-_sig));
-      else
+      if ((ret = _camera.SetConfig(Config)) < 0)
 	printf("Camera::SetConfig: %s.\n", strerror(-ret));
+
+      else if ((_sig = _camera.SetNotification(PdsLeutron::Camera::NOTIFYTYPE_SIGNAL)) < 0) 
+	printf("Camera::SetNotification: %s.\n", strerror(-_sig));
+
+      else {
+	printf("Registering handler for signal %d ...\n", _sig);
+	struct sigaction action;
+	action.sa_handler = cameraSignalHandler;
+	sigemptyset(&action.sa_mask);
+	action.sa_flags   = SA_RESTART;
+	sigaction(_sig,&action,NULL);
+	
+	printf("Initializing ...\n");
+	if ((ret = _camera.Init()) < 0)
+	  printf("Camera::Init: %s.\n", strerror(-ret));
+	
+	else {
+	  printf("DmaSplice::initialize %p 0x%x\n", 
+		 _camera.FrameBufferBaseAddress,
+		 _camera.FrameBufferEndAddress - _camera.FrameBufferBaseAddress);
+	  _splice.initialize( _camera.FrameBufferBaseAddress,
+			      _camera.FrameBufferEndAddress - _camera.FrameBufferBaseAddress);
+	  
+	  printf("Starting ...\n");
+	  if ((ret = _camera.Start()) < 0)
+	    printf("Camera::Start: %s.\n", strerror(-ret));
+	  else
+	    _damage = 0;
+	}
+      }
 
       printf("Done\n");
       return tr;
@@ -229,15 +203,27 @@ namespace Pds {
     InDatagram* unconfigure(InDatagram* in) { return in; }
 
   private:
-    Camera::Config _Config;
-    Opal1000&      _camera;
-    int            _sig;
-    unsigned       _damage;
+    PdsLeutron::Opal1000& _camera;
+    DmaSplice&            _splice;
+    FexFrameServer&       _l1action;
+    int                   _sig;
+    char*                 _configBuffer;
+    CfgClientNfs          _configService;
+    unsigned              _damage;
+  };
+
+  class MapAction : public Action {
+  public:
+    MapAction(Config&   config) : _config(config) {}
+    Transition* fire(Transition* tr) { return _config.allocate(tr); }
+    InDatagram* fire(InDatagram* dg) { return dg; }
+  private:
+    Config& _config;
   };
 
   class ConfigAction : public Action {
   public:
-    ConfigAction(Config& config) : _config(config) {}
+    ConfigAction(Config&   config) : _config(config) {}
     Transition* fire(Transition* tr) { return _config.configure(tr); }
     InDatagram* fire(InDatagram* dg) { return _config.configure(dg); }
   private:
@@ -250,7 +236,19 @@ namespace Pds {
     Transition* fire(Transition* tr) { return _config.unconfigure(tr); }
     InDatagram* fire(InDatagram* dg) { return _config.unconfigure(dg); }
   private:
-    Config& _config;
+    Config&   _config;
+  };
+
+  class BeginRunAction : public Action {
+  public:
+    Transition* fire(Transition* tr) { Profile::initialize(); return tr; }
+    InDatagram* fire(InDatagram* tr) { return tr; }
+  };
+
+  class EndRunAction : public Action {
+  public:
+    Transition* fire(Transition* tr) { Profile::finalize(); return tr; }
+    InDatagram* fire(InDatagram* tr) { return tr; }
   };
 
   //
@@ -264,9 +262,10 @@ namespace Pds {
 	    const Src&            src) :
       _task    (task),
       _platform(platform),
-      _camera(new Opal1000),
-      _config(new Config(*_camera)),
-      _server(new FrameServer(src,*_camera))
+      _splice(new DmaSplice),
+      _camera(new PdsLeutron::Opal1000),
+      _server(new FexFrameServer(src,*_camera,*_splice)),
+      _config(new Config(src,*_camera,*_splice,*_server))
     {
       _frameServer = _server; // static for signal handler
     }
@@ -275,6 +274,7 @@ namespace Pds {
     {
       delete _server;
       delete _config;
+      delete _splice;
       delete _camera;
       _task->destroy();
     }
@@ -297,9 +297,11 @@ namespace Pds {
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       Fsm* fsm = new Fsm;
+      fsm->callback(TransitionId::Map        , new MapAction     (*_config));
       fsm->callback(TransitionId::Configure  , new ConfigAction  (*_config));
+      fsm->callback(TransitionId::BeginRun   , new BeginRunAction);
+      fsm->callback(TransitionId::EndRun     , new EndRunAction);
       fsm->callback(TransitionId::Unconfigure, new UnconfigAction(*_config));
-      fsm->callback(TransitionId::L1Accept , new L1Action);
       fsm->connect(frmk->inlet());
       //      (new Decoder)->connect(frmk->inlet());
     }
@@ -331,9 +333,10 @@ namespace Pds {
   private:
     Task*         _task;
     unsigned      _platform;
-    Opal1000*     _camera;
+    DmaSplice*    _splice;
+    PdsLeutron::Opal1000* _camera;
+    FexFrameServer* _server;
     Config*       _config;
-    FrameServer*  _server;
   };
 }
 
