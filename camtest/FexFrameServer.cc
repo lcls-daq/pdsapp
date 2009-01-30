@@ -223,7 +223,6 @@ int FexFrameServer::fetch(ZcpFragment& zfo, int flags)
 
   fmsg = _msg_queue.remove();
   _count = fmsg->count;
-  unsigned offset = fmsg->offset;
 
   FrameServerMsg* msg;
   length = ::read(_fd[0],&msg,sizeof(msg));
@@ -298,19 +297,26 @@ int FexFrameServer::fetch(ZcpFragment& zfo, int flags)
     }
   }
   else { // Post_Fragment
-    _more = true;
-    int framesize = msg->handle->width*msg->handle->height*msg->handle->elsize;
-    int remaining = framesize - offset;
-    if ((length = zfo.kinsert( _splice.fd(), remaining)) < 0) throw length;
-    
-    _offset = offset + sizeof(Frame) + sizeof(Xtc);
-    if (length != remaining) {
-      fmsg->offset += length;
-      fmsg->connect(reinterpret_cast<FrameServerMsg*>(&_msg_queue));
-      ::write(_fd[1],&fmsg,sizeof(fmsg));
+    _more       = true;
+    _xtc.extent = fmsg->extent;
+    _offset     = fmsg->offset;
+    int remaining = fmsg->extent - fmsg->offset;
+
+    try {
+      if ((length = zfo.kinsert( _splice.fd(), remaining)) < 0) throw length;
+      if (length != remaining) {
+	fmsg->offset += length;
+	fmsg->connect(reinterpret_cast<FrameServerMsg*>(&_msg_queue));
+	::write(_fd[1],&fmsg,sizeof(fmsg));
+      }
+      else
+	delete fmsg;
     }
-    else
+    catch (int err) {
+      printf("FexFrameServer::fetchz error: %s : %d\n",strerror(errno),length);
       delete fmsg;
+      return -1;
+    }
   }
   return length;
 }
@@ -342,7 +348,8 @@ int FexFrameServer::_queue_frame( const Frame& frame,
       _more   = true;
       _offset = 0;
       fmsg->type   = FrameServerMsg::Fragment;
-      fmsg->offset = length;
+      fmsg->offset = length + sizeof(Frame) + sizeof(Xtc);
+      fmsg->extent = _xtc.extent;
       fmsg->connect(reinterpret_cast<FrameServerMsg*>(&_msg_queue));
       ::write(_fd[1],&fmsg,sizeof(fmsg));
     }
@@ -394,6 +401,7 @@ int FexFrameServer::_queue_fex_and_frame( const TwoDMoments& moments,
 
   Xtc frmxtc(TypeId::Id_Frame, _xtc.src);
   frmxtc.extent += sizeof(Frame);
+  frmxtc.extent += frame.extent;
 
   _xtc.contains = TypeId::Id_Xtc;
   _xtc.extent   = sizeof(Xtc) + fexxtc.extent + frmxtc.extent;
@@ -402,20 +410,23 @@ int FexFrameServer::_queue_fex_and_frame( const TwoDMoments& moments,
 
   try {
     int err;
-    if ((err=zfo.uinsert( &_xtc  , sizeof(Xtc))) < 0) throw err;
+    if ((err=zfo.uinsert( &_xtc  , sizeof(Xtc  ))) < 0) throw err;
 
-    if ((err=zfo.uinsert( &fexxtc, sizeof(Xtc))) < 0) throw err;
-    if ((err=zfo.uinsert( &fex   , sizeof(fex))) < 0) throw err;
+    if ((err=zfo.uinsert( &fexxtc, sizeof(Xtc  ))) < 0) throw err;
+    if ((err=zfo.uinsert( &fex   , sizeof(fex  ))) < 0) throw err;
     
-    if ((err=zfo.uinsert( &frmxtc, sizeof(Xtc))) < 0) throw err;
+    if ((err=zfo.uinsert( &frmxtc, sizeof(Xtc  ))) < 0) throw err;
+    if ((err=zfo.uinsert( &frame , sizeof(Frame))) < 0) throw err;
 
     int length;
     if ((length = zfo.kinsert( _splice.fd(), frame.extent)) < 0) throw length;
+
     if (length != frame.extent) { // fragmentation
       _more   = true;
       _offset = 0;
       fmsg->type   = FrameServerMsg::Fragment;
-      fmsg->offset = length;
+      fmsg->offset = _xtc.extent - frame.extent + length;
+      fmsg->extent = _xtc.extent;
       fmsg->connect(reinterpret_cast<FrameServerMsg*>(&_msg_queue));
       ::write(_fd[1],&fmsg,sizeof(fmsg));
     }

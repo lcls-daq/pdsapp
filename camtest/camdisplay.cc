@@ -1,7 +1,7 @@
 #include "pds/service/Task.hh"
 #include "pds/collection/Arp.hh"
 #include "pds/management/EventCallback.hh"
-#include "pds/management/EventLevel.hh"
+#include "pds/management/ObserverLevel.hh"
 
 #include "pds/utility/Appliance.hh"
 #include "pds/client/XtcIterator.hh"
@@ -35,6 +35,9 @@ public:
     _iter(sizeof(ZcpDatagramIterator),1),
     _display(new FrameDisplay)
   {	
+    Frame& frame = *new(_frame_buffer) Frame(1024,1024,8);
+    memset(const_cast<unsigned char*>(frame.data()), 0, frame.extent);
+
     clock_gettime(CLOCK_REALTIME, &_tp);
     _next(_tp);
   }
@@ -82,6 +85,14 @@ public:
 	else {
 	  _display->show_frame(frame);
 	}
+      }
+      else if (xtc.contains.id() == TypeId::Id_TwoDGaussian) {
+	TwoDGaussian fex;
+	advance += iter->copy(&fex, sizeof(fex));
+	Frame& frame  = *(Frame*)_frame_buffer;
+	_display->show_frame(frame,fex);
+	printf("fex: %g %g  %g %g %g\n",
+	       fex._xmean, fex._ymean, fex._major_axis_width, fex._minor_axis_width, fex._major_axis_tilt);
       }
     }
     return advance;
@@ -191,9 +202,9 @@ int main(int argc, char** argv) {
   unsigned detector_src = DetInfo(0, DetInfo::AmoXes, detector_id, DetInfo::Opal1000, 0).phy();
   Task* task = new Task(Task::MakeThisATask);
   MyCallback* display = new MyCallback(task, detector_src, display_rate);
-  EventLevel* event = new EventLevel(platform,
-				     *display,
-				     arp);
+  ObserverLevel* event = new ObserverLevel(platform,
+					   *display,
+					   arp);
   if (event->attach())
     task->mainLoop();
 

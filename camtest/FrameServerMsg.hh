@@ -26,6 +26,7 @@ namespace Pds {
     PdsLeutron::FrameHandle* handle;
     unsigned count;
     unsigned offset;
+    unsigned extent;
   };
   
 };
