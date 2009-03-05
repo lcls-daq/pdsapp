@@ -103,6 +103,14 @@ static float randomnumber(float low, float hig)
   return res;
 }
 
+static void randomgss(float& x, float& y)
+{
+  float r = sqrt(-2*log(randomnumber(0.,1.)));
+  float f = randomnumber(0.,2*M_PI);
+  x = r*cos(f);
+  y = r*sin(f);
+}
+
 class MonServerTimerTest : public Timer {
 public:
   MonServerTimerTest(MonCds& cds) :
@@ -135,8 +143,13 @@ private:
 	case MonDescEntry::TH2F:
 	  {
 	    MonEntryTH2F* e = dynamic_cast<MonEntryTH2F*>(entry);
-  	    e->addcontent(1, (unsigned)floorf(randomnumber(0, 5)),
-  			  (unsigned)floorf(randomnumber(0, 5)));
+	    float x,y;
+	    randomgss(x,y);
+	    int xb = int(5+2*x);
+	    int yb = int(5+2*y);
+	    if (xb>=0 && xb<10 &&
+		yb>=0 && yb<10)
+	      e->addcontent(1, xb, yb);
 	  }
 	  break;
 	case MonDescEntry::Image:

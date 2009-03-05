@@ -2,7 +2,7 @@ libnames := test
  
 libsrcs_test := EventTest.cc EventOptions.cc Recorder.cc
 
-tgtnames := recordertest eventtest segtest controltest sourcetest bldtest source 
+tgtnames := recordertest eventtest segtest controltest sourcetest bldtest source montest
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/utility pds/management pds/client pdsapp/test
 
@@ -33,3 +33,7 @@ tgtslib_sourcetest := /usr/lib/rt
 tgtsrcs_bldtest := bldtest.cc
 tgtlibs_bldtest := $(commonlibs)
 tgtslib_bldtest := /usr/lib/rt
+
+tgtsrcs_montest := montest.cc
+tgtlibs_montest := $(commonlibs) pds/mon
+tgtslib_montest := /usr/lib/rt

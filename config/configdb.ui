@@ -1,0 +1,378 @@
+<ui version="4.0" >
+ <class>configdb</class>
+ <widget class="QWidget" name="configdb" >
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>968</width>
+    <height>842</height>
+   </rect>
+  </property>
+  <property name="windowTitle" >
+   <string>Form</string>
+  </property>
+  <widget class="QGroupBox" name="detectorConfigBox" >
+   <property name="geometry" >
+    <rect>
+     <x>10</x>
+     <y>450</y>
+     <width>808</width>
+     <height>327</height>
+    </rect>
+   </property>
+   <property name="title" >
+    <string>Devices Configuration</string>
+   </property>
+   <layout class="QHBoxLayout" >
+    <item>
+     <layout class="QVBoxLayout" >
+      <item>
+       <widget class="QLabel" name="detectorLabel_2" >
+        <property name="text" >
+         <string>Device</string>
+        </property>
+        <property name="alignment" >
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QListWidget" name="detectorList_2" />
+      </item>
+      <item>
+       <layout class="QHBoxLayout" >
+        <item>
+         <widget class="QLineEdit" name="newDetectorEdit" />
+        </item>
+        <item>
+         <widget class="QPushButton" name="newDetectorButton" >
+          <property name="text" >
+           <string>New</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" >
+      <item>
+       <widget class="QLabel" name="configLabel" >
+        <property name="text" >
+         <string>Config Name</string>
+        </property>
+        <property name="alignment" >
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QListWidget" name="configList_2" />
+      </item>
+      <item>
+       <layout class="QHBoxLayout" >
+        <item>
+         <widget class="QLineEdit" name="newConfigEdit_2" />
+        </item>
+        <item>
+         <widget class="QPushButton" name="newConfigButton_2" >
+          <property name="text" >
+           <string>New</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" >
+        <item>
+         <widget class="QLineEdit" name="copyConfigEdit_2" />
+        </item>
+        <item>
+         <widget class="QPushButton" name="copyConfigButton_2" >
+          <property name="text" >
+           <string>Copy To</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" >
+      <item>
+       <widget class="QLabel" name="componentLabel" >
+        <property name="text" >
+         <string>Component</string>
+        </property>
+        <property name="alignment" >
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QListWidget" name="componentList" />
+      </item>
+      <item>
+       <layout class="QHBoxLayout" >
+        <item>
+         <widget class="QLabel" name="addComponentLabel" >
+          <property name="text" >
+           <string>Add</string>
+          </property>
+          <property name="alignment" >
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="addComponentBox" />
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QGroupBox" name="expConfigBox" >
+   <property name="geometry" >
+    <rect>
+     <x>10</x>
+     <y>110</y>
+     <width>590</width>
+     <height>327</height>
+    </rect>
+   </property>
+   <property name="title" >
+    <string>Experiment Configuration</string>
+   </property>
+   <layout class="QHBoxLayout" >
+    <item>
+     <layout class="QVBoxLayout" >
+      <item>
+       <widget class="QLabel" name="configNameLabel" >
+        <property name="text" >
+         <string>Config Name</string>
+        </property>
+        <property name="alignment" >
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QListWidget" name="configList" />
+      </item>
+      <item>
+       <layout class="QHBoxLayout" >
+        <item>
+         <widget class="QLineEdit" name="newConfigEdit" />
+        </item>
+        <item>
+         <widget class="QPushButton" name="newConfigButton" >
+          <property name="text" >
+           <string>New</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" >
+        <item>
+         <widget class="QLineEdit" name="copyConfigEdit" />
+        </item>
+        <item>
+         <widget class="QPushButton" name="copyConfigButton" >
+          <property name="text" >
+           <string>Copy To</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" >
+      <item>
+       <widget class="QLabel" name="detectorListLabel" >
+        <property name="text" >
+         <string>Device Configuration</string>
+        </property>
+        <property name="alignment" >
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QListWidget" name="detectorList" />
+      </item>
+      <item>
+       <layout class="QHBoxLayout" >
+        <item>
+         <widget class="QLabel" name="label" >
+          <property name="text" >
+           <string>Add</string>
+          </property>
+          <property name="alignment" >
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="addDetectorBox" />
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <spacer>
+      <property name="orientation" >
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" >
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QGroupBox" name="transactionBox" >
+   <property name="geometry" >
+    <rect>
+     <x>10</x>
+     <y>5</y>
+     <width>276</width>
+     <height>92</height>
+    </rect>
+   </property>
+   <property name="title" >
+    <string>Database Transaction</string>
+   </property>
+   <layout class="QVBoxLayout" >
+    <item>
+     <layout class="QHBoxLayout" >
+      <item>
+       <widget class="QPushButton" name="clearButton" >
+        <property name="text" >
+         <string>Clear</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="commitButton" >
+        <property name="text" >
+         <string>Commit</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="updateKeysButton" >
+        <property name="text" >
+         <string>Update Keys</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QLabel" name="transactionHelp" >
+      <property name="text" >
+       <string>Pending transactions are indicated with *</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>newConfigEdit</sender>
+   <signal>returnPressed()</signal>
+   <receiver>newConfigButton</receiver>
+   <slot>animateClick()</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>140</x>
+     <y>376</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>236</x>
+     <y>376</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>copyConfigEdit</sender>
+   <signal>returnPressed()</signal>
+   <receiver>copyConfigButton</receiver>
+   <slot>animateClick()</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>114</x>
+     <y>411</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>223</x>
+     <y>411</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>newDetectorEdit</sender>
+   <signal>returnPressed()</signal>
+   <receiver>newDetectorButton</receiver>
+   <slot>animateClick()</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>101</x>
+     <y>751</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>150</x>
+     <y>752</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>newConfigEdit_2</sender>
+   <signal>returnPressed()</signal>
+   <receiver>newConfigButton_2</receiver>
+   <slot>animateClick()</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>293</x>
+     <y>717</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>332</x>
+     <y>716</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>copyConfigEdit_2</sender>
+   <signal>returnPressed()</signal>
+   <receiver>copyConfigButton_2</receiver>
+   <slot>animateClick()</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>287</x>
+     <y>749</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>331</x>
+     <y>751</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

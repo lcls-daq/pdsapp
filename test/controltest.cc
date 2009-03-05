@@ -39,13 +39,13 @@ namespace Pds {
   class MyControl : public ControlLevel {
   public:
     MyControl(const char* partition,
-	      const char* dbname,
+	      const char* dbpath,
 	      unsigned platform, 
 	      ControlCallback& cb, 
 	      Arp* arp) :
       ControlLevel(platform, cb, arp),
       _description(partition),
-      _dbname     (dbname),
+      _dbpath     (dbpath),
       _nodePool   (sizeof(NodeL), 128),
       _trnsPool   (sizeof(Allocate),1),
       _trnsSem    (Semaphore::EMPTY),
@@ -81,7 +81,7 @@ namespace Pds {
       printf("Mapping nodes 0x%x\n",mask);
 
       //  Equate the partition id with the platform id until we have a master
-      Allocate partition(_description,_dbname,_partitionid,seq);
+      Allocate partition(_description,_dbpath,_partitionid,seq);
       clearNodeList(_partition);
 
       NodeL* n = _reporters.forward();
@@ -162,7 +162,7 @@ namespace Pds {
     }
   private:
     const char*       _description;
-    const char*       _dbname;
+    const char*       _dbpath;
     GenericPool       _nodePool;
     GenericPool       _trnsPool;
     Semaphore         _trnsSem;
@@ -307,7 +307,7 @@ int main(int argc, char** argv)
   unsigned bldList[32];
   unsigned nbld = 0;
   const char* partition = "partition";
-  const char* dbname    = "none";
+  const char* dbpath    = "none";
 
   int c;
   while ((c = getopt(argc, argv, "p:b:r:P:D:")) != -1) {
@@ -328,7 +328,7 @@ int main(int argc, char** argv)
       partition = optarg;
       break;
     case 'D':
-      dbname = optarg;
+      dbpath = optarg;
       break;
     }
   }
@@ -339,7 +339,7 @@ int main(int argc, char** argv)
 
   MyCallback callback;
   MyControl control(partition,
-		    dbname,
+		    dbpath,
 		    platform,
 		    callback,
 		    0);

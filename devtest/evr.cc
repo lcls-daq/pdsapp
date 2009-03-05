@@ -11,6 +11,7 @@
 #include "pds/service/Task.hh"
 #include "pds/client/Fsm.hh"
 #include "pds/client/Action.hh"
+#include "pds/config/CfgClientNfs.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
 #include "pds/evgr/EvgrOpcode.hh"
 #include "pds/evgr/EvrManager.hh"
@@ -42,12 +43,14 @@ namespace Pds {
   public:
     Seg(Task*                 task,
         unsigned              platform,
+	CfgClientNfs&         cfgService,
         SegWireSettings&      settings,
         Arp*                  arp,
 	char*                 evrdev,
         EvgrOpcode::Opcode    opcode) :
       _task(task),
       _platform(platform),
+      _cfg   (cfgService),
       _evrdev(evrdev),
       _opcode(opcode)
     {
@@ -67,7 +70,8 @@ namespace Pds {
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(_evrdev);
-      EvrManager& evrmgr = *new EvrManager(erInfo,_platform,_opcode);
+      EvrManager& evrmgr = *new EvrManager(erInfo,_platform,
+					   _cfg,_opcode);
       evrmgr.appliance().connect(frmk->inlet());
     }
     void failed(Reason reason)
@@ -98,6 +102,7 @@ namespace Pds {
   private:
     Task*              _task;
     unsigned           _platform;
+    CfgClientNfs&      _cfg;
     const char*        _evrdev;
     EvgrOpcode::Opcode _opcode;
   };
@@ -108,12 +113,15 @@ using namespace Pds;
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  unsigned detid = -1UL;
   unsigned platform = 0;
   Arp* arp = 0;
   char* evrid=0;
 
+  DetInfo::Detector det(DetInfo::NoDetector);
+  unsigned detid(0), devid(0);
+
   extern char* optarg;
+  char* endPtr;
   int c;
   EvgrOpcode::Opcode opcode = EvgrOpcode::L1Accept;
   while ( (c=getopt( argc, argv, "a:i:o:p:r:")) != EOF ) {
@@ -122,7 +130,9 @@ int main(int argc, char** argv) {
       arp = new Arp(optarg);
       break;
     case 'i':
-      detid  = strtoul(optarg, NULL, 0);
+      det    = (DetInfo::Detector)strtoul(optarg, &endPtr, 0);
+      detid  = strtoul(endPtr, &endPtr, 0);
+      devid  = strtoul(endPtr, &endPtr, 0);
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
@@ -162,10 +172,15 @@ int main(int argc, char** argv) {
 
   printf("evr using opcode %d\n",opcode);
 
-  Node node(Level::Source,platform);
+  Node node(Level::Source, platform);
+  printf("Using src %x/%x/%x/%x\n",det,detid,DetInfo::Evr,devid);
+  DetInfo detInfo(node.pid(),det,detid,DetInfo::Evr,devid);
+
+  CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
   Task* task = new Task(Task::MakeThisATask);
   MySegWire settings;
-  Seg* seg = new Seg(task, platform, settings, arp, evrdev, opcode);
+  Seg* seg = new Seg(task, platform, *cfgService,
+		     settings, arp, evrdev, opcode);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 

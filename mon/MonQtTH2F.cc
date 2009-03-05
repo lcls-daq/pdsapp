@@ -11,6 +11,40 @@
 #include "qwt_plot.h"
 #include "qwt_scale_engine.h"
 
+namespace Pds {
+  class LogColorMap : public QwtColorMap {
+  public:
+    LogColorMap() :
+      _map(Qt::red,Qt::blue)
+    {
+      _map.addColorStop(0.5,Qt::green);
+    }
+    LogColorMap(const LogColorMap& m) :
+      _map(m._map)
+    {
+    }
+  public:
+    virtual QwtColorMap* copy() const { return new LogColorMap(*this); }
+    virtual QRgb rgb(const QwtDoubleInterval &ival, 
+		     double value) const
+    {
+      QwtDoubleInterval interval(log(ival.minValue()),
+				 log(ival.maxValue()));
+      return _map.rgb(interval,log(value));
+    }
+    virtual unsigned char colorIndex(const QwtDoubleInterval &ival, 
+				     double value) const
+    {
+      QwtDoubleInterval interval(log(ival.minValue()),
+				 log(ival.maxValue()));
+      return _map.colorIndex(interval,log(value));
+    }
+
+  private:
+    QwtLinearColorMap _map;
+  };
+};
+
 using namespace Pds;
 
 MonQtTH2F::MonQtTH2F(const char* name, 
@@ -158,14 +192,9 @@ void MonQtTH2F::attach(QwtPlot* plot)
 
   if (plot) {
 
-    QwtScaleWidget *zAxis = plot->axisWidget(QwtPlot::xTop);
-    zAxis->setColorBarEnabled(true);
-    zAxis->setColorMap(data().range(),colorMap());
 //     plot->setAxisScale(QwtPlot::xTop,
 // 		       data().range().minValue(),
 // 		       data().range().maxValue() );
-    plot->enableAxis(QwtPlot::xTop);
-
     if (isautorng(MonQtBase::X))
       plot->setAxisAutoScale(QwtPlot::xBottom);
     else
@@ -183,10 +212,21 @@ void MonQtTH2F::attach(QwtPlot* plot)
       plot->setAxisAutoScale(QwtPlot::xTop);
     else
       plot->setAxisScale(QwtPlot::xTop, _zmin, _zmax);
-    if (islog(MonQtBase::Z))
+    if (islog(MonQtBase::Z)) {
       plot->setAxisScaleEngine(QwtPlot::xTop, new QwtLog10ScaleEngine);
-    else
+      LogColorMap map;
+      setColorMap(map);
+    }
+    else {
       plot->setAxisScaleEngine(QwtPlot::xTop, new QwtLinearScaleEngine);
+      QwtLinearColorMap colorMap(Qt::red, Qt::blue);
+      colorMap.addColorStop(0.5,Qt::green);
+      setColorMap(colorMap);
+    }
+    QwtScaleWidget *zAxis = plot->axisWidget(QwtPlot::xTop);
+    zAxis->setColorBarEnabled(true);
+    zAxis->setColorMap(data().range(),colorMap());
+    plot->enableAxis(QwtPlot::xTop);
   }
 }
 

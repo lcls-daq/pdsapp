@@ -1,0 +1,129 @@
+#include "ConfigTC_Parameters.hh"
+
+#include "ConfigTC_Validators.hh"
+
+#include <QtGui/QHBoxLayout>
+#include <QtGui/QLabel>
+#include <QtGui/QLineEdit>
+#include <QtGui/QIntValidator>
+#include <QtGui/QDoubleValidator>
+#include <QtGui/QComboBox>
+
+using namespace ConfigGui;
+
+template <class T>
+NumericInt<T>::NumericInt(const char* label, T val, T vlo, T vhi) :
+  Parameter(label),
+  value(val) 
+{
+  range[0]=vlo;
+  range[1]=vhi;
+}
+
+template <class T>
+NumericInt<T>::~NumericInt() 
+{
+}
+
+template <class T>
+QLayout* NumericInt<T>::initialize(QWidget* parent)  
+{
+  QHBoxLayout* layout = new QHBoxLayout;
+  layout->addWidget(new QLabel(_label));             
+  layout->addWidget(_input = new QLineEdit(parent));  
+  flush();
+  _input->setValidator( new IntValidator( *this, *_input,
+					  range[0], range[1]) );
+  layout->setContentsMargins(0,0,0,0);               
+  return layout;                                     
+}
+
+template <class T>
+void NumericInt<T>::update()
+{
+  value = _input->text().toInt();
+}
+
+template <class T>
+void NumericInt<T>::flush()
+{
+  _input->setText(QString::number(value));            
+}
+
+template <class T>
+NumericFloat<T>::NumericFloat(const char* label, T val, T vlo, T vhi) :
+  Parameter(label),
+  value(val) 
+{
+  range[0] = vlo;
+  range[1] = vhi;
+}
+
+template <class T>
+NumericFloat<T>::~NumericFloat() 
+{
+}
+
+template <class T>
+QLayout* NumericFloat<T>::initialize(QWidget* parent)  
+{
+  QHBoxLayout* layout = new QHBoxLayout;
+  layout->addWidget(new QLabel(_label));             
+  layout->addWidget(_input = new QLineEdit(parent));  
+  flush();
+  _input->setValidator( new DoubleValidator( *this, *_input,
+					     range[0], range[1]) );
+  layout->setContentsMargins(0,0,0,0);               
+  return layout;                                     
+}
+
+template <class T>
+void NumericFloat<T>::update()
+{
+  value = _input->text().toDouble();
+}
+
+template <class T>
+void NumericFloat<T>::flush()
+{
+  _input->setText(QString::number(value,"%g"));
+}
+
+template <class T>
+Enumerated<T>::Enumerated(const char* label, T val, const char** strlist) :
+  Parameter(label),
+  value (val),
+  labels(strlist)
+{
+}
+
+template <class T>
+Enumerated<T>::~Enumerated() 
+{
+}
+
+template <class T>
+QLayout* Enumerated<T>::initialize(QWidget* parent)
+{
+  QHBoxLayout* layout = new QHBoxLayout;
+  layout->addWidget(new QLabel(_label));
+  layout->addWidget(_input = new QComboBox(parent));
+  int k=0;
+  while( labels[k] )
+    _input->addItem(labels[k++]);
+  flush();
+  layout->setContentsMargins(0,0,0,0);
+  return layout;
+}
+
+template <class T>
+void Enumerated<T>::update()
+{
+  value = (T)_input->currentIndex();
+}
+
+template <class T>
+void Enumerated<T>::flush()
+{
+  _input->setCurrentIndex(value);
+}
