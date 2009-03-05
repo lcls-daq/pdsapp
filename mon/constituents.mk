@@ -33,7 +33,8 @@ tgtlibs_mondisplay += qt/QtGui qt/QtCore
 tgtlibs_mondisplay += qwt/qwt
 
 tgtsinc_mondisplay := /pcds/package/qt-4.3.4/include
-tgtsinc_mondisplay += /usr/local/qwt-5.1.1/include
+#tgtsinc_mondisplay += /usr/local/qwt-5.1.1/include
+tgtsinc_mondisplay += /pcds/package/external/qwt-5.1.1/include
 
 # qwt includes qt headers without package prefix!
 tgtsinc_mondisplay += /pcds/package/qt-4.3.4/include/Qt

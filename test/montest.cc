@@ -34,15 +34,16 @@ class CamDisplay : public Appliance, XtcIterator {
   enum { Rows=1024 };
   enum { BinShift=1 };
 public:
-  CamDisplay(unsigned detectorId) :
+  CamDisplay(unsigned detectorId,
+	     MonServerManager& monsrv) :
     _detectorId(detectorId),
     _iter      (sizeof(ZcpDatagramIterator),1),
-    _monsrv    (MonPort::Mon)
+    _monsrv    (monsrv)
   {	
     MonGroup* group = new MonGroup("Image Group");
-    _monsrv.cds().add(group);
+    monsrv.cds().add(group);
     MonDescImage desc("Image",Columns>>BinShift,Rows>>BinShift,1<<BinShift,1<<BinShift);
-    group->add(new MonEntryImage(desc));
+    group->add(_entry = new MonEntryImage(desc));
   }
   ~CamDisplay()
   {
@@ -56,12 +57,8 @@ public:
 
     int advance = 0;
     if (xtc.src.phy() == _detectorId && xtc.contains.id() == TypeId::Id_Frame) {
-      MonCds& cds = _monsrv.cds();
-      MonGroup* group = const_cast<MonGroup*>(cds.group(0));
-      unsigned short i=0;
-      MonEntryImage* entry = dynamic_cast<MonEntryImage*>(group->entry(i));
-
-      cds.payload_sem().take();  // make image update atomic
+      Pds::Semaphore& sem = _monsrv.cds().payload_sem();
+      sem.take();  // make image update atomic
 
       //  copy the frame header
       Frame frame;
@@ -77,13 +74,13 @@ public:
 	const unsigned short* w = (const unsigned short*)iov.iov_base;
 	const unsigned short* end = w + (len>>1);
 	while(w < end) {
-	  entry->addcontent(*w++,(ix++)>>BinShift,iy>>BinShift);
+	  _entry->addcontent(*w++,(ix++)>>BinShift,iy>>BinShift);
 	  if (ix==frame.width()) { ix=0; iy++; }
 	}
       }
-      entry->time(_now);
+      _entry->time(_now);
 
-      cds.payload_sem().give();  // make image update atomic
+      sem.give();  // make image update atomic
     }
     return advance;
   }
@@ -105,12 +102,15 @@ private:
   GenericPool      _iter;
   MonServerManager _monsrv;
   ClockTime        _now;
+  MonEntryImage*   _entry;
 };
 
 class MyCallback : public EventCallback {
 public:
-  MyCallback(Task* task, unsigned detid) : 
-    _task(task), _display(new CamDisplay(detid)) {}
+  MyCallback(Task* task, const DetInfo& detInfo, MonServerManager& monsrv) : 
+    _task(task), 
+    _display(new CamDisplay(detInfo.phy(),monsrv)) 
+  {}
   ~MyCallback() {}
 
   void attached (SetOfStreams& streams) 
@@ -128,10 +128,14 @@ private:
 int main(int argc, char** argv) {
 
   unsigned platform=-1UL;
-  unsigned detector_id=0;
+  DetInfo::Detector det(DetInfo::NoDetector);
+  unsigned detid(0), devid(0);
+
   const char* arpsuidprocess = 0;
+  const char* partition = 0;
+  unsigned node = 0;
   int c;
-  while ((c = getopt(argc, argv, "d:p:a:i:")) != -1) {
+  while ((c = getopt(argc, argv, "d:p:a:i:P:")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -143,10 +147,16 @@ int main(int argc, char** argv) {
       arpsuidprocess = optarg;
       break;
     case 'd':
-      detector_id = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) detector_id = 0;
+      det    = (DetInfo::Detector)strtoul(optarg, &endPtr, 0);
+      detid  = strtoul(endPtr, &endPtr, 0);
+      devid  = strtoul(endPtr, &endPtr, 0);
       break;
     case 'i':
+      node = strtoul(optarg, &endPtr, 0);
+      break;
+    case 'P':
+      partition = optarg;
+      break;
     default:
       break;
     }
@@ -154,7 +164,7 @@ int main(int argc, char** argv) {
 
   if (platform == -1UL) {
     printf("Platform required\n");
-    printf("Usage: %s -p <platform> -d <detector_id> -i <monitor node> [-a <arp process id>]\n",
+    printf("Usage: %s -p <platform> -P <partition> -d <detector_id> -i <monitor node> [-a <arp process id>]\n",
 	   argv[0]);
     return 1;
   }
@@ -172,15 +182,27 @@ int main(int argc, char** argv) {
     }
   }
 
+  MonServerManager* manager = new MonServerManager(MonPort::Mon);
   Task* task = new Task(Task::MakeThisATask);
-  MyCallback* display = new MyCallback(task, detector_id);
+  MyCallback* display = new MyCallback(task, 
+				       DetInfo(0,
+					       det, detid,
+					       DetInfo::Opal1000, devid),
+				       *manager);
+  manager->serve();
+
   ObserverLevel* event = new ObserverLevel(platform,
-					   *display,
-					   arp);
+					   partition,
+					   node,
+					   *display);
+
   if (event->attach())
     task->mainLoop();
 
   event->detach();
+
+  manager->dontserve();
+  delete manager;
   delete display;
   delete event;
   if (arp) delete arp;
