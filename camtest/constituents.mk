@@ -11,20 +11,19 @@ tgtnames += camfextest
 
 endif
 
-commonlibs := pds/service pds/collection pds/xtc pds/utility pds/management pds/client pds/camera pds/config pdsdata/xtcdata
+tgtnames := camtest
+
+commonlibs := pds/service pds/collection pds/xtc pds/utility pds/management pds/client pds/camera pds/config pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata
 
 tgtsrcs_camtest := camtest.cc 
-tgtsrcs_camtest += FexFrameServer.cc 
-tgtsrcs_camtest += CameraFexConfig.cc
-tgtsrcs_camtest += Opal1kConfig.cc
 tgtlibs_camtest := $(commonlibs)
 tgtlibs_camtest += leutron/lvsds
+tgtlibs_camtest += leutron/LvSerialCommunication.34.32
 tgtlibs_camtest += leutron/LvSerialCommunication
 tgtlibs_camtest += leutron/LvCamDat.34.32
 tgtincs_camtest := leutron/include
 
 tgtsrcs_camfextest := camfextest.cc 
-tgtsrcs_camfextest += Opal1kConfig.cc
 tgtlibs_camfextest := $(commonlibs)
 tgtlibs_camfextest += leutron/lvsds
 tgtlibs_camfextest += leutron/LvSerialCommunication
@@ -49,3 +48,12 @@ tgtsinc_camdisplay := /pcds/package/qt-4.3.4/include
 tgtsrcs_camconfig := camconfig.cc CameraFexConfig.cc
 
 tgtsrcs_fexnone := fexnone.cc
+
+tgtsrcs_qttest := ImageDisplayControls_moc.cc ImageDisplayFrame_moc.cc
+tgtsrcs_qttest += qttest.cc ImageDisplay.cc ImageDisplayQt.cc ImageDisplayControls.cc ImageDisplayFrame.cc
+tgtlibs_qttest := $(commonlibs)
+tgtlibs_qttest += leutron/lvsds
+tgtlibs_qttest += leutron/LvSerialCommunication
+tgtlibs_qttest += leutron/LvCamDat.34.32
+tgtslib_qttest := /pcds/package/qt-4.3.4/lib/QtGui /pcds/package/qt-4.3.4/lib/QtCore
+tgtsinc_qttest := /pcds/package/qt-4.3.4/include

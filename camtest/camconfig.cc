@@ -1,6 +1,6 @@
 #include "pdsdata/xtc/TypeId.hh"
-#include "Opal1kConfig.hh"
-#include "CameraFexConfig.hh"
+#include "pdsdata/opal1k/ConfigV1.hh"
+#include "pdsdata/camera/FrameFexConfigV1.hh"
 
 #include <iostream>
 
