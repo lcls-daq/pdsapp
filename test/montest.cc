@@ -98,11 +98,11 @@ public:
     return in; 
   }
 private:
-  unsigned         _detectorId;
-  GenericPool      _iter;
-  MonServerManager _monsrv;
-  ClockTime        _now;
-  MonEntryImage*   _entry;
+  unsigned          _detectorId;
+  GenericPool       _iter;
+  MonServerManager& _monsrv;
+  ClockTime         _now;
+  MonEntryImage*    _entry;
 };
 
 class MyCallback : public EventCallback {

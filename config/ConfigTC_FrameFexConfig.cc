@@ -11,16 +11,10 @@ using namespace ConfigGui;
 
 namespace ConfigGui {
 
-  enum Forwarding_exp { None, FullFrame, RegionOfInterest, 
-			Reserved,
-			Summary, Summary_Full, Summary_ROI };
+  enum Forwarding_exp { None, FullFrame, RegionOfInterest };
   static const char* Forwarding_range[] = { "None",
 					    "FullFrame",
 					    "RegionOfInterest",
-					    "--reserved--",
-					    "Summary",
-					    "Summary+FullFrame",
-					    "Summary+RegionOfInterest",
 					    NULL };
   static const char* Processing_range[] = { "None",
 					    "GssFullFrame",
@@ -34,8 +28,9 @@ namespace ConfigGui {
   class FrameFexConfig::Private_Data {
   public:
     Private_Data() :
-      _forwarding       ("Forwarding", FullFrame, Forwarding_range),
-      _processing       ("Processing", FexTC::None, Processing_range),
+      _forwarding       ("Frame Forwarding", FexTC::FullFrame, Forwarding_range),
+      _fwd_prescale     ("Frame Fwd Prescale", 1, 1, 0x7fffffff),
+      _processing       ("Processing", FexTC::NoProcessing, Processing_range),
       _roi_begin_col    ("ROI Begin Column", 0, 0, 0x3ff),
       _roi_begin_row    ("ROI Begin Row"   , 0, 0, 0x3ff),
       _roi_end_col      ("ROI   End Column", 0, 0, 0x3ff),
@@ -46,6 +41,7 @@ namespace ConfigGui {
 
     void insert(Pds::LinkedList<Parameter>& pList) {
       pList.insert(&_forwarding);
+      pList.insert(&_fwd_prescale);
       pList.insert(&_processing);
       pList.insert(&_roi_begin_col);
       pList.insert(&_roi_begin_row);
@@ -57,10 +53,8 @@ namespace ConfigGui {
 
     bool pull(void* from) {
       FexTC& tc = *new(from) FexTC;
-      _forwarding.value = (Forwarding_exp)
-	((tc.forwarding(FexTC::FullFrame) ? 1<<FexTC::FullFrame : 0) |
-	 (tc.forwarding(FexTC::RegionOfInterest) ? 1<<FexTC::RegionOfInterest : 0) |
-	 (tc.forwarding(FexTC::Summary) ? 1<<FexTC::Summary : 0));
+      _forwarding.value = tc.forwarding();
+      _fwd_prescale.value = tc.forward_prescale();
       _processing.value    = tc.processing();
       _roi_begin_col.value = tc.roiBegin().column;
       _roi_begin_row.value = tc.roiBegin().row;
@@ -72,7 +66,8 @@ namespace ConfigGui {
     }
 
     int push(void* to) {
-      FexTC& tc = *new(to) FexTC((unsigned)_forwarding.value,
+      FexTC& tc = *new(to) FexTC(_forwarding.value,
+				 _fwd_prescale.value,
 				 _processing.value,
 				 Camera::FrameCoord(_roi_begin_col.value,
 						    _roi_begin_row.value),
@@ -83,7 +78,8 @@ namespace ConfigGui {
       return tc.size();
     }
   public:
-    Enumerated<Forwarding_exp>    _forwarding;
+    Enumerated<FexTC::Forwarding> _forwarding;
+    NumericInt<unsigned>          _fwd_prescale;
     Enumerated<FexTC::Processing> _processing;
     NumericInt<unsigned short>    _roi_begin_col;
     NumericInt<unsigned short>    _roi_begin_row;

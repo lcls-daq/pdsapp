@@ -36,7 +36,7 @@ class CfgDevice:
                     os.readlink(typepath)==self.typelink(item)):
                         invalid-=1
         if invalid:
-            entry.key="%08x" % len(glob.glob(path+"/[0-9]*"))
+            entry.key="%08x" % len(glob.glob(self.keypath(path,"[0-9]*")))
             keypath=self.keypath(path,entry.key)
             os.mkdir(keypath)
             for item in entry.entries:

@@ -1,10 +1,6 @@
-tgtnames       := server configtc
+tgtnames       := configtc
 
 # executable python modules: configdb_gui.py
-
-tgtsrcs_server := server.cc
-tgtlibs_server := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/utility pds/config
-tgtslib_server := /usr/lib/rt
 
 tgtsrcs_configtc := configtc.cc 
 tgtsrcs_configtc += ConfigTC_Gui.cc ConfigTC_Gui_moc.cc 

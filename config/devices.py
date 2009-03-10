@@ -1,5 +1,6 @@
 #!/pcds/package/python-2.5.2/bin/python
 
+import os
 from PyQt4 import QtGui,QtCore
 from configdb_ui import Ui_configdb
 from detinfodialog_ui_impl import Ui_detInfoDialog_impl
@@ -129,7 +130,7 @@ class Ui_devices:
 
     def add_component(self,type):
         choices=QtCore.QStringList()
-        stype=str(type)
+        stype=str(type[0])
         for item in self.db.xtc_files(self.det,stype):
             choices << item
         choices << "-IMPORT-"

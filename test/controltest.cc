@@ -398,7 +398,7 @@ int main(int argc, char** argv)
         while (*result && *result != '\n') {
           char cmd = *result++;
 	  unsigned env = strtoul(result,&result,16);
-	  else if (cmd=='P') control.ping();
+	  if      (cmd=='P') control.ping();
 	  else if (cmd=='m') control.map(Sequence(Sequence::Event,
 						  TransitionId::Map,
 						  clockTime, 0, pulseId),
