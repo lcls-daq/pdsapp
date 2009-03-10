@@ -24,6 +24,7 @@ namespace Pds {
     void axis   (const QVector<QRgb>& table, 
 		 int   imin, int   imax,
 		 float vmin, float vmax);
+    const QImage* image() const;
   public slots:
     void display();
   private:

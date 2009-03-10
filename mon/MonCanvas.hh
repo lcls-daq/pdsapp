@@ -6,6 +6,7 @@
 class QMenu;
 class QAction;
 class QActionGroup;
+class QImage;
 
 namespace Pds {
 
@@ -24,12 +25,12 @@ namespace Pds {
     int writeconfig(FILE* file);
     int readconfig(FILE* file, int color);
 
+    virtual const QImage* image() const;
+    virtual void info();
     virtual void dialog() = 0;
     virtual int update() = 0;
     virtual int reset(const MonGroup& group) = 0;
     virtual unsigned getplots(MonQtBase**, const char** names) = 0;
-
-    enum Action {Close, SaveAs, EPS, GIF};
 
   signals:
     void redraw();
@@ -38,6 +39,7 @@ namespace Pds {
     void settings();
     void close();
     void save_image();
+    void show_info();
 
   public:
     const MonEntry* _entry;

@@ -83,3 +83,8 @@ void MonQtImageDisplay::axis(const QVector<QRgb>& table,
   }
   _image_axis->_axis_image->setColorTable(table);
 }
+
+const QImage* MonQtImageDisplay::image() const
+{
+  return _image;
+}

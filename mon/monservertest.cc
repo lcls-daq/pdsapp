@@ -137,7 +137,7 @@ private:
 	case MonDescEntry::TH1F:
 	  {
 	    MonEntryTH1F* e = dynamic_cast<MonEntryTH1F*>(entry);
- 	    e->addcontent(1, (int)floorf(randomnumber(0, 10)));
+ 	    e->addcontent(1, (unsigned)floorf(randomnumber(0, 10)));
 	  }
 	  break;
 	case MonDescEntry::TH2F:

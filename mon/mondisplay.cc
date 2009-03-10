@@ -19,7 +19,7 @@ int main(int argc, char **argv)
   memset(hosts, 0, MonPort::NTypes*sizeof(const char*));
   {
     int c;
-    while ((c = getopt(argc, argv, "m:v:d:x:f:")) != -1) {
+    while ((c = getopt(argc, argv, "m:v:d:x:f:t:")) != -1) {
       switch (c) {
       case 'm':
 	hosts[MonPort::Mon] = optarg;
@@ -32,6 +32,9 @@ int main(int argc, char **argv)
 	break;
       case 'x':
 	hosts[MonPort::Vtx] = optarg;
+	break;
+      case 't':
+	hosts[MonPort::Test] = optarg;
 	break;
       case 'f':
 	config = optarg;

@@ -22,6 +22,7 @@ namespace Pds {
     virtual ~MonConsumerTH1F();
 
     // Implements MonConsumer from MonCanvas
+    virtual void info();
     virtual void dialog();
     virtual int update();
     virtual int reset(const MonGroup& group);

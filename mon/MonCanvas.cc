@@ -1,12 +1,15 @@
 #include <QtGui/QMenuBar>
 #include <QtGui/QActionGroup>
 #include <QtGui/QVBoxLayout>
+#include <QtGui/QFileDialog>
 
 #include "MonCanvas.hh"
 #include "MonQtBase.hh"
 
 #include "pds/mon/MonEntry.hh"
 #include "pds/mon/MonDescEntry.hh"
+
+#include "pdsdata/xtc/ClockTime.hh"
 
 using namespace Pds;
 
@@ -33,6 +36,8 @@ MonCanvas::MonCanvas(QWidget&        parent,
     _select->addSeparator();
     _select_group = new QActionGroup(_select);
     menu_bar->addMenu(_select);
+
+    menu_bar->addAction("Info", this, SLOT(show_info()));
   }
   layout->addWidget(menu_bar);
   setLayout(layout);
@@ -53,7 +58,33 @@ void MonCanvas::menu_service(Select s, const char* label, const char* slot,
 }
 
 void MonCanvas::close() {}
-void MonCanvas::save_image() {}
+
+const QImage* MonCanvas::image() const { return 0; }
+
+void MonCanvas::save_image()  
+{
+  const QImage* img = image();
+  if (!img)
+    return;
+
+  char time_buffer[32];
+  time_t seq_tm = _entry->time().seconds();
+  strftime(time_buffer,32,"%Y%m%d_%H%M%S",localtime(&seq_tm));
+
+  QString def =_entry->desc().name();
+  def += "_";
+  def += time_buffer;
+  def += ".bmp";
+  QString fname = 
+    QFileDialog::getSaveFileName(this,"Save File As (.bmp,.jpg,.png)",
+				 def,".bmp;.png;.jpg");
+  if (!fname.isNull())
+    img->save(fname);
+}
+
+void MonCanvas::info() {}
+void MonCanvas::show_info() { info(); }
+
 void MonCanvas::setIntegrated () { select(Integrated); }
 void MonCanvas::setSince      () { select(Since); }
 void MonCanvas::setDifference () { select(Difference); }
@@ -74,10 +105,10 @@ void MonCanvas::select(Select selection)
 void MonCanvas::saveas(const char* type, const char* groupname) 
 {
   if (!strlen(type)) {
-    const char* filetypes[] = {"Postscript", "*.ps",
-			       "EPS",        "*.eps",
-			       "GIF",        "*.gif",
-			       0,               0};
+    const char* filetypes[] = {"Bitmap", "*.bmp",
+			       "JPEG",   "*.jpg",
+			       "PNG",    "*.png",
+			       0,        0};
     TGFileInfo info;
     info.fFileTypes = filetypes;
     info.fFilename = _entryname;

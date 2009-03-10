@@ -259,3 +259,8 @@ void MonConsumerImage::select(Select selection)
 
   _stack->setCurrentIndex(Plots);
 }
+
+const QImage* MonConsumerImage::image() const
+{
+  return _frame->image();
+}

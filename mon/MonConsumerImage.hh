@@ -26,6 +26,7 @@ namespace Pds {
     virtual ~MonConsumerImage();
 
     // Implements MonConsumer from MonCanvas
+    virtual const QImage* image() const;
     virtual void dialog();
     virtual int update();
     virtual int reset(const MonGroup& group);

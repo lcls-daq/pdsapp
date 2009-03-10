@@ -255,6 +255,7 @@ void MonQtChart::attach(QwtPlot* plot)
   for(unsigned k=0; k<_nlines; k++)
     _curves[k]->attach(plot);
   if (plot) {
+    plot->setAxisAutoScale(QwtPlot::xBottom);
     if (isautorng(MonQtBase::Y))
       plot->setAxisAutoScale(QwtPlot::yLeft);
     else

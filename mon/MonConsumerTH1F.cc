@@ -14,6 +14,7 @@
 
 #include <QtGui/QApplication>
 #include <QtGui/QMenu>
+#include <QtGui/QMessageBox>
 #include <QtGui/QLayout>
 #include <QtCore/QTime>
 #include "qwt_plot.h"
@@ -183,4 +184,27 @@ void MonConsumerTH1F::select(Select selection)
 
   _plot->setAxisTitle(QwtPlot::xBottom,xtitle);
   _plot->setAxisTitle(QwtPlot::yLeft  ,ytitle);
+}
+
+void MonConsumerTH1F::info()
+{
+  double uflow, oflow, norm;
+  switch(_selected) {
+  case MonCanvas::Integrated: 
+    uflow=_last->info(MonEntryTH1F::Underflow);
+    oflow=_last->info(MonEntryTH1F::Overflow);
+    norm =_last->info(MonEntryTH1F::Normalization);
+    break;
+  case MonCanvas::Difference: 
+    uflow=_last->info(MonEntryTH1F::Underflow)    -_prev->info(MonEntryTH1F::Underflow);
+    oflow=_last->info(MonEntryTH1F::Overflow)     -_prev->info(MonEntryTH1F::Overflow);
+    norm =_last->info(MonEntryTH1F::Normalization)-_prev->info(MonEntryTH1F::Normalization);
+    break;
+  default: 
+    return;
+  }
+  char msg_buffer[128];
+  sprintf(msg_buffer,"Underflow %g\nOverflow %g\nNormalization %g",
+	  uflow, oflow, norm);
+  QMessageBox::information(this,"TH1F Info",msg_buffer);
 }
