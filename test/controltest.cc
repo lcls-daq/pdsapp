@@ -19,6 +19,7 @@
 #include <errno.h>
 
 static int l1rate=0;
+static bool verbose;
 
 namespace Pds {
 
@@ -34,7 +35,7 @@ namespace Pds {
     while( (n=list.forward()) != list.empty() )
       delete n->disconnect();    
   }
-  
+
   //  Add partition management to control level
   class MyControl : public ControlLevel {
   public:
@@ -47,7 +48,7 @@ namespace Pds {
       _description(partition),
       _dbpath     (dbpath),
       _nodePool   (sizeof(NodeL), 128),
-      _trnsPool   (sizeof(Allocate),1),
+      _trnsPool   (sizeof(Allocate),2),
       _trnsSem    (Semaphore::EMPTY),
       _pending    (0),
       _nnodes     (0),
@@ -139,17 +140,23 @@ namespace Pds {
 	    if (hdr == header()) {
 	      _pending = new(&_trnsPool)Transition(tr);
 	    }
+
 	    NodeL* n = _transition.forward();
 	    while( n != _transition.empty() ) {
-	      NodeL* f = n->forward();
-	      if ( n->node == hdr )
+	      if ( n->node == hdr ) {
 		delete n->disconnect();
-	      n = f;
-	    }
-	    if ( _transition.forward() == _transition.empty() ) {
-	      PartitionMember::message(header(),*_pending);
-	      delete _pending;
-	      _trnsSem.give();
+		if (_transition.forward() == _transition.empty()) {
+		  PartitionMember::message(header(),*_pending);
+		  if (_pending) {
+		    delete _pending;
+		    _pending = 0;
+		    _trnsSem.give();
+		  }
+		  else
+		    printf("--- No pending transition! ---\n");
+		}
+	      }
+	      n = n->forward();
 	    }
 	    return;
 	  }
@@ -160,6 +167,7 @@ namespace Pds {
       }
       PartitionMember::message(hdr,msg);
     }
+
   private:
     const char*       _description;
     const char*       _dbpath;
@@ -308,9 +316,10 @@ int main(int argc, char** argv)
   unsigned nbld = 0;
   const char* partition = "partition";
   const char* dbpath    = "none";
+  verbose = false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:b:r:P:D:")) != -1) {
+  while ((c = getopt(argc, argv, "p:b:r:P:D:v")) != -1) {
     char* endPtr;
     switch (c) {
     case 'b':
@@ -329,6 +338,9 @@ int main(int argc, char** argv)
       break;
     case 'D':
       dbpath = optarg;
+      break;
+    case 'v':
+      verbose = true;
       break;
     }
   }
@@ -386,7 +398,7 @@ int main(int argc, char** argv)
         while (*result && *result != '\n') {
           char cmd = *result++;
 	  unsigned env = strtoul(result,&result,16);
-	  if      (cmd=='P') control.ping();
+	  else if (cmd=='P') control.ping();
 	  else if (cmd=='m') control.map(Sequence(Sequence::Event,
 						  TransitionId::Map,
 						  clockTime, 0, pulseId),

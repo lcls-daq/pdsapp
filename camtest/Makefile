@@ -18,4 +18,5 @@ else
 include constituents.mk
 include $(RELEASE_DIR)/make/sw/package.mk
 include $(RELEASE_DIR)/make/sw/python.mk
+include $(RELEASE_DIR)/make/sw/qt.mk
 endif
