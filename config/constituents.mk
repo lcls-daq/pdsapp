@@ -1,21 +1,41 @@
-tgtnames       := configtc
+tgtnames       := configdb
+tgtnames       += configdb_gui
 
 # executable python modules: configdb_gui.py
 
-tgtsrcs_configtc := configtc.cc 
-tgtsrcs_configtc += ConfigTC_Gui.cc ConfigTC_Gui_moc.cc 
-tgtsrcs_configtc += ConfigTC_Dialog.cc ConfigTC_Dialog_moc.cc 
-tgtsrcs_configtc += ConfigTC_SubDialog.cc ConfigTC_SubDialog_moc.cc 
-tgtsrcs_configtc += ConfigTC_Validators.cc ConfigTC_Validators_moc.cc 
-tgtsrcs_configtc += ConfigTC_ParameterSet.cc ConfigTC_ParameterSet_moc.cc
-tgtsrcs_configtc += ConfigTC_Opal1kConfig.cc
-tgtsrcs_configtc += ConfigTC_FrameFexConfig.cc
-tgtsrcs_configtc += ConfigTC_EvrConfig.cc
-tgtsrcs_configtc += ConfigTC_Parameters.cc
-tgtsrcs_configtc += ConfigTC_templates.cc
-tgtsinc_configtc := /pcds/package/qt-4.3.4/include
-tgtlibs_configtc := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata pdsdata/evrdata
-tgtlibs_configtc += pds/service pds/collection pds/xtc pds/utility pds/config
-tgtlibs_configtc += qt/QtGui qt/QtCore
-tgtslib_configtc := /usr/lib/rt
+tgtsrcs_configdb := configdb.cc
+tgtsrcs_configdb += Table.cc
+tgtsrcs_configdb += Device.cc
+tgtsrcs_configdb += Experiment.cc
+tgtsrcs_configdb += PdsDefs.cc
+tgtsinc_configdb := /pcds/package/qt-4.3.4/include
+tgtlibs_configdb := pdsdata/xtcdata
+tgtlibs_configdb += qt/QtGui qt/QtCore
+tgtslib_configdb := /usr/lib/rt
+
+tgtsrcs_configdb_gui := configdb_gui.cc
+tgtsrcs_configdb_gui += Ui.cc
+tgtsrcs_configdb_gui += Devices_Ui.cc Devices_Ui_moc.cc
+tgtsrcs_configdb_gui += Experiment_Ui.cc Experiment_Ui_moc.cc
+tgtsrcs_configdb_gui += Transaction_Ui.cc Transaction_Ui_moc.cc
+tgtsrcs_configdb_gui += DetInfoDialog_Ui.cc DetInfoDialog_Ui_moc.cc
+tgtsrcs_configdb_gui += Table.cc
+tgtsrcs_configdb_gui += Device.cc
+tgtsrcs_configdb_gui += Experiment.cc
+tgtsrcs_configdb_gui += PdsDefs.cc
+tgtsrcs_configdb_gui += Dialog.cc Dialog_moc.cc 
+tgtsrcs_configdb_gui += SubDialog.cc SubDialog_moc.cc 
+tgtsrcs_configdb_gui += Validators.cc Validators_moc.cc 
+tgtsrcs_configdb_gui += ParameterSet.cc ParameterSet_moc.cc
+tgtsrcs_configdb_gui += SerializerDictionary.cc
+tgtsrcs_configdb_gui += Opal1kConfig.cc
+tgtsrcs_configdb_gui += FrameFexConfig.cc
+tgtsrcs_configdb_gui += EvrConfig.cc
+tgtsrcs_configdb_gui += Parameters.cc
+tgtsrcs_configdb_gui += templates.cc
+tgtsinc_configdb_gui := /pcds/package/qt-4.3.4/include
+tgtlibs_configdb_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata pdsdata/evrdata
+tgtlibs_configdb_gui += pds/service pds/collection pds/xtc pds/utility pds/config
+tgtlibs_configdb_gui += qt/QtGui qt/QtCore
+tgtslib_configdb_gui := /usr/lib/rt
 

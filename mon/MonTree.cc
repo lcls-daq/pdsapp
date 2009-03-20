@@ -33,6 +33,11 @@ MonTree::MonTree(MonTabMenu& tabs,
 
 MonTree::~MonTree() {}
 
+bool MonTree::is_connected() const 
+{
+  return _status != Disconnected;
+}
+
 void MonTree::connect()
 {
   _needretry = true;

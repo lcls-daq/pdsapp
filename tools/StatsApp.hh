@@ -67,7 +67,8 @@ public:
     switch( in->id() ) {
     case TransitionId::Map:
       {
-	const Allocate& alloc = reinterpret_cast<const Allocate&>(*in);
+	const Allocation& alloc = 
+	  reinterpret_cast<const Allocate&>(*in).allocation();
 	unsigned nnodes = alloc.nnodes();
 	for(unsigned i=0; i<nnodes; i++) {
           const Node& node = *alloc.node(i);

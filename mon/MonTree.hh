@@ -19,11 +19,13 @@ namespace Pds {
 	    MonClient& client);
     virtual ~MonTree();
 
+    bool is_connected() const;
+
     void connect();
     void disconnect();
     void expired();
     void event(MonConsumerClient::Type type, int result);
-
+    
   private:
     void title(const char* name);
 

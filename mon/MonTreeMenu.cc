@@ -8,11 +8,11 @@
 #include "pds/mon/MonClient.hh"
 
 #include <QtGui/QVBoxLayout>
+#include <QtGui/QHBoxLayout>
 #include <QtGui/QPushButton>
-#include <QtGui/QTextEdit>
-#include <QtGui/QLabel>
 #include <QtGui/QButtonGroup>
 #include <QtGui/QRadioButton>
+#include <QtGui/QFileDialog>
 
 using namespace Pds;
 
@@ -51,7 +51,8 @@ MonTreeMenu::MonTreeMenu(QWidget& p,
   QGroupBox(&p),
   _task(task),
   _tabs(tabs),
-  _clientmanager(new MonClientManager(*this, hosts))
+  _clientmanager(new MonClientManager(*this, hosts)),
+  _selected(0)
 {
   _trees = new MonTree*[_clientmanager->nclients()];
   for(unsigned c = 0; c<_clientmanager->nclients(); c++) {
@@ -63,26 +64,18 @@ MonTreeMenu::MonTreeMenu(QWidget& p,
   QVBoxLayout* layout = new QVBoxLayout(this);
 
   QPushButton* start = new QPushButton("Start", this);
-  connect(start, SIGNAL(clicked()), this, SLOT(start()));
+  connect(start, SIGNAL(clicked()), this, SLOT(start_stop()));
   layout->addWidget(start);
 
   QGroupBox* cfg = new QGroupBox("Configuration", this);
-  QWidget* rw_line = new QWidget(cfg);
-  { QPushButton* readb  = new QPushButton("Read" , rw_line);
-    QPushButton* writeb = new QPushButton("Write", rw_line);
-    QHBoxLayout* rw_layout = new QHBoxLayout(rw_line);
-    rw_layout->addWidget(readb);
-    rw_layout->addWidget(writeb);
-    rw_line->setLayout(rw_layout);
-    connect(readb , SIGNAL(clicked()), this, SLOT(read_config()));
-    connect(writeb, SIGNAL(clicked()), this, SLOT(write_config()));
-  }
-
-  QVBoxLayout* cfg_layout = new QVBoxLayout(cfg);
-  cfg_layout->addWidget(rw_line);
-  cfg_layout->addWidget(new QLabel("Config name: ",cfg));
-  cfg_layout->addWidget(_fn_edit = new QTextEdit(config,cfg));
-  cfg->setLayout(cfg_layout);
+  QHBoxLayout* rw_layout = new QHBoxLayout(cfg);
+  QPushButton* readb  = new QPushButton("Read" , cfg);
+  QPushButton* writeb = new QPushButton("Write", cfg);
+  rw_layout->addWidget(readb);
+  rw_layout->addWidget(writeb);
+  connect(readb , SIGNAL(clicked()), this, SLOT(read_config()));
+  connect(writeb, SIGNAL(clicked()), this, SLOT(write_config()));
+  cfg->setLayout(rw_layout);
   layout->addWidget(cfg);
 
   unsigned nclients = _clientmanager->nclients();
@@ -92,11 +85,14 @@ MonTreeMenu::MonTreeMenu(QWidget& p,
     QRadioButton* button = 
       new QRadioButton(client->cds().desc().name(),this);
     client_bg->addButton(button,c);
+    button->setChecked( c==_selected ? true : false);
     layout->addWidget(button);
   }
   connect(client_bg, SIGNAL(buttonClicked(int)), this, SLOT(set_tree(int)));
 
   setLayout(layout);
+
+  _start_stop = start;
 }
 
 MonTreeMenu::~MonTreeMenu() {}
@@ -111,7 +107,7 @@ void MonTreeMenu::expired()
 
 void MonTreeMenu::set_tree(int c)
 {
-  _tabs.reset(*_clientmanager->client(c));
+  _tabs.reset(*_clientmanager->client(_selected=c));
 }
 
 void MonTreeMenu::event(MonClient& client, Type type, int result)
@@ -119,37 +115,40 @@ void MonTreeMenu::event(MonClient& client, Type type, int result)
   _trees[client.id()]->event(type, result);
 }
 
-void MonTreeMenu::start()
+void MonTreeMenu::start_stop()
 {
-  //  _start.SetState(kButtonEngaged);
-  //  _start.SetText("Stop");
-  for (unsigned c=0; c<_clientmanager->nclients(); c++) {
-    _trees[c]->connect();
+  if (_trees[_selected]->is_connected()) {
+    _start_stop->setText("Start");
+    _trees[_selected]->disconnect();
   }
-}
-
-void MonTreeMenu::stop()
-{
-  //  _start.SetState(kButtonUp);
-  //  _start.SetText("Start");
-  for (unsigned c=0; c<_clientmanager->nclients(); c++) {
-    _trees[c]->disconnect();
+  else {
+    _start_stop->setText("Stop");
+    _trees[_selected]->connect();
   }
 }
 
 void MonTreeMenu::read_config()
 {
-  const char* name = qPrintable(_fn_edit->toPlainText());
-  for (unsigned c=0; c<_clientmanager->nclients(); c++) {
-    MonClient* client = _clientmanager->client(c);
-    _tabs.readconfig(*client,name);
+  QString fname = 
+    QFileDialog::getOpenFileName(this,
+				 "Read Configuration From File",
+				 "", "*.cnf");
+  if (!fname.isNull()) {
+    for (unsigned c=0; c<_clientmanager->nclients(); c++) {
+      MonClient* client = _clientmanager->client(c);
+      _tabs.readconfig(*client,qPrintable(fname));
+    }
   }
 }
 
 void MonTreeMenu::write_config()
 {
-  const char* name = qPrintable(_fn_edit->toPlainText());
-  _tabs.writeconfig(name);
+  QString fname = 
+    QFileDialog::getSaveFileName(this,
+				 "Write Configuration To File",
+				 "", "*.cnf");
+  if (!fname.isNull())
+    _tabs.writeconfig(qPrintable(fname));
 }
 
 void MonTreeMenu::process(MonClient& client, Type type, int result)

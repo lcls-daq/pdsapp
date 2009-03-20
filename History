@@ -1,3 +1,7 @@
+20-Mar-2009	weaver	Tag V00-07-00. More changes to config.  Alias/key management and xtc 
+			generation are handled in the same gui (both C++ now).  Added 
+			show/killPartition to test package.  controltest now gets a 
+			partition id from source level. Compatible with pds V00-07-02.
 10-Mar-2009	weaver  Many changes to /config.  Minor fixes to /mon.
 19-Feb-2009	weaver  Added /mon for monitoring test server and Qt/Qwt display client.
 29-Jan-2009	weaver  Added /camtest for Opal1000 segment level and feature extraction.

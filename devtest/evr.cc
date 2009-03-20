@@ -70,7 +70,7 @@ namespace Pds {
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(_evrdev);
-      EvrManager& evrmgr = *new EvrManager(erInfo,_platform,
+      EvrManager& evrmgr = *new EvrManager(erInfo,
 					   _cfg,_opcode);
       evrmgr.appliance().connect(frmk->inlet());
     }

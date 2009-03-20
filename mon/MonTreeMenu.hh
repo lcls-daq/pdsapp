@@ -6,6 +6,7 @@
 #include "pds/mon/MonConsumerClient.hh"
 
 class QTextEdit;
+class QPushButton;
 
 namespace Pds {
 
@@ -29,8 +30,7 @@ namespace Pds {
     void event(MonClient& client, MonConsumerClient::Type type, int result);
 
   public slots:
-    void start();
-    void stop();
+    void start_stop();
     void read_config();
     void write_config();
     //    void change_config_file();
@@ -48,6 +48,8 @@ namespace Pds {
     MonTabMenu& _tabs;
     MonClientManager* _clientmanager;
     MonTree** _trees; 
+    int       _selected;
+    QPushButton* _start_stop;
   };
 };
 

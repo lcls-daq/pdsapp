@@ -1,5 +1,7 @@
 #include "pds/collection/CollectionManager.hh"
 #include "pds/utility/Transition.hh"
+#include "pds/collection/Route.hh"
+#include "pds/collection/CollectionPorts.hh"
 
 #include "pds/service/Semaphore.hh"
 #include "pds/utility/StreamPorts.hh"
@@ -51,8 +53,7 @@ namespace Pds {
       _trnsPool   (sizeof(Allocate),2),
       _trnsSem    (Semaphore::EMPTY),
       _pending    (0),
-      _nnodes     (0),
-      _partitionid(platform)    // fake this for now
+      _nnodes     (0)
     {
     }
     ~MyControl() {}
@@ -82,7 +83,7 @@ namespace Pds {
       printf("Mapping nodes 0x%x\n",mask);
 
       //  Equate the partition id with the platform id until we have a master
-      Allocate partition(_description,_dbpath,_partitionid,seq);
+      Allocation partition(_description,_dbpath,partitionid());
       clearNodeList(_partition);
 
       NodeL* n = _reporters.forward();
@@ -102,7 +103,8 @@ namespace Pds {
 	n = n->forward();
 	inode++;
       }
-      execute(partition);
+      Allocate alloc(partition);
+      execute(alloc);
       
       printf("Successfully mapped nodes 0x%x\n",imask);
     }
@@ -165,7 +167,7 @@ namespace Pds {
       default:
 	break;
       }
-      PartitionMember::message(hdr,msg);
+      ControlLevel::message(hdr,msg);
     }
 
   private:
@@ -180,7 +182,6 @@ namespace Pds {
     LinkedList<NodeL> _transition;
     Transition*       _pending;
     unsigned          _nnodes;
-    unsigned          _partitionid;
   };
 
   class MyEnable : public Routine {
@@ -262,6 +263,16 @@ namespace Pds {
   public:
     Transition* transitions(Transition* i) { 
       if (i->phase() == Transition::Execute) {
+	if (i->id()==TransitionId::Disable) {
+	  //
+	  //  The disable transition often splits the last L1Accept.
+	  //  There is no way to know when the last L1A has passed through
+	  //  all levels, so wait some reasonable time.
+	  //
+	  timespec tv;
+	  tv.tv_sec = 0; tv.tv_nsec = 50000000;
+	  nanosleep(&tv, 0);
+	}
 	Transition tr(i->id(),
 		      Transition::Record,
 		      Sequence(Sequence::Event,

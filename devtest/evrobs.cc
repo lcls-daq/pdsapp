@@ -42,7 +42,7 @@ namespace Pds {
     EvrObserver(const char* dev, unsigned platform) : 
       Observer(platform), 
       _info   (dev),
-      _mgr    (_info, platform, EvgrOpcode::L1Accept) {}
+      _mgr    (_info, EvgrOpcode::L1Accept) {}
     void post(const Transition& tr) {
       Transition* ptr = const_cast<Transition*>(&tr);
       printf("EvrObserver::post tr id %d\n",tr.id());
