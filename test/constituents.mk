@@ -3,6 +3,7 @@ libnames := test
 libsrcs_test := EventTest.cc EventOptions.cc Recorder.cc
 
 tgtnames := recordertest eventtest segtest controltest sourcetest bldtest source montest monxtcreader showPartitions killPartition
+tgtnames += xtcreader
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/utility pds/management pds/client pdsapp/test
 
@@ -41,6 +42,10 @@ tgtslib_montest := /usr/lib/rt
 tgtsrcs_monxtcreader := monxtcreader.cc
 tgtlibs_monxtcreader := $(commonlibs) pds/mon
 tgtslib_monxtcreader := /usr/lib/rt
+
+tgtsrcs_xtcreader := monxtcreader.cc
+tgtlibs_xtcreader := $(commonlibs) pds/mon
+tgtslib_xtcreader := /usr/lib/rt
 
 tgtsrcs_showPartitions := showPartitions.cc
 tgtlibs_showPartitions := $(commonlibs)

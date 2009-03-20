@@ -1,6 +1,6 @@
 #include "pdsapp/config/Opal1kConfig.hh"
 
-#include "pdsapp/config/ConfigTC_Parameters.hh"
+#include "pdsapp/config/Parameters.hh"
 #include "pdsdata/opal1k/ConfigV1.hh"
 
 #include <new>

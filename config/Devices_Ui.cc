@@ -4,7 +4,6 @@
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Device.hh"
 #include "pdsapp/config/PdsDefs.hh"
-#include "pdsapp/config/ConfigTC_Dialog.hh"
 
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/EvrConfig.hh"
