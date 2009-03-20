@@ -79,6 +79,7 @@ static int updateImage(MonEntryImage& image,
   int advance = iter->copy(&frame, sizeof(Frame));
 	
   unsigned remaining = frame.data_size();
+  unsigned short offset = frame.offset();
   iovec iov;
   unsigned ix=0,iy=0;
 
@@ -89,8 +90,9 @@ static int updateImage(MonEntryImage& image,
     const unsigned short* w = (const unsigned short*)iov.iov_base;
     const unsigned short* end = w + (len>>1);
     while(w < end) {
-      image.addcontent(*w++,(ix++)>>BinShift,iy>>BinShift);
-      if (ix==frame.width()) { ix=0; iy++; }
+      if (*w > offset)
+	image.addcontent(*w++ - offset,ix>>BinShift,iy>>BinShift);
+      if (++ix==frame.width()) { ix=0; iy++; }
     }
   }
   image.time(now);

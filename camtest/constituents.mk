@@ -1,6 +1,10 @@
 libnames := 
 
+ifneq ($(findstring -opt,$(tgt_arch)),)
 tgtnames := camtest cammonitor camanalysis
+else
+tgtnames :=
+endif
 
 commonlibs := pds/service pds/collection pds/xtc pds/utility pds/management pds/client pds/camera pds/config pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata
 

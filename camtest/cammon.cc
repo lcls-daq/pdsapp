@@ -108,6 +108,8 @@ int main(int argc, char** argv) {
 
   if (event->attach())
     task->mainLoop();
+  else
+    printf("Observer failed to attach to platform\n");
 
   event->detach();
 
