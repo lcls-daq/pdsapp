@@ -16,7 +16,7 @@ void PdsDefs::initialize()
   TYPE_ID(Any);
   TYPE_ID(Id_Xtc);
   TYPE_ID(Id_Frame);
-  TYPE_ID(Id_Waveform);
+  TYPE_ID(Id_AcqWaveform);
   TYPE_ID(Id_AcqConfig);
   TYPE_ID(Id_TwoDGaussian);
   TYPE_ID(Id_Opal1kConfig);

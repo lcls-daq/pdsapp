@@ -10,10 +10,11 @@
 #include "pdsdata/acqiris/ConfigV1.hh"
 #include "pdsdata/camera/FrameV1.hh"
 #include "pdsdata/camera/FrameFexConfigV1.hh"
-#include "pdsdata/opal/ConfigV1.hh"
+#include "pdsdata/opal1k/ConfigV1.hh"
 #include "pdsdata/evr/ConfigV1.hh"
-#include "pdsdata/opal/ConfigV1.hh"
+#include "pdsdata/opal1k/ConfigV1.hh"
 #include "pdsdata/types/WaveformV1.hh"
+#include "pdsdata/acqiris/DataDescV1.hh"
 
 class myLevelIter : public XtcIterator {
 public:
@@ -21,15 +22,15 @@ public:
   myLevelIter(Xtc* xtc, unsigned depth) : XtcIterator(xtc), _depth(depth) {}
   void process(const Acqiris::ConfigV1& config) {
     printf("*** Processing Acqiris configuration object, number of samples %u\n",
-           config.nbrSamples());
+           config.horiz().nbrSamples());
   }
-  void process(const DetInfo&, const FrameV1&) {
+  void process(const DetInfo& d, const Camera::FrameV1& f) {
     printf("*** Processing frame object\n");
   }
-  void process(const DetInfo&, const WaveformV1&) {
+  void process(const DetInfo&, const Acqiris::DataDescV1&) {
     printf("*** Processing waveform object\n");
   }
-  void process(const DetInfo&, const AcqConfig&) {
+  void process(const DetInfo&, const Acqiris::ConfigV1&) {
     printf("*** Processing Acqiris config object\n");
   }
   void process(const DetInfo&, const Opal1k::ConfigV1&) {
@@ -38,7 +39,7 @@ public:
   void process(const DetInfo&, const Camera::FrameFexConfigV1&) {
     printf("*** Processing frame feature extraction config object\n");
   }
-  void process(const DetInfo&, const Evr::ConfigV1&) {
+  void process(const DetInfo&, const EvrData::ConfigV1&) {
     printf("*** Processing EVR config object\n");
   }
   int process(Xtc* xtc) {
@@ -63,8 +64,8 @@ public:
     case (TypeId::Id_Frame) :
       process(info, *(const Camera::FrameV1*)(xtc->payload()));
       break;
-    case (TypeId::Id_Waveform) :
-      process(info, *(const WaveformV1*)(xtc->payload()));
+    case (TypeId::Id_AcqWaveform) :
+      process(info, *(const Acqiris::DataDescV1*)(xtc->payload()));
       break;
     case (TypeId::Id_AcqConfig) :
       unsigned version = xtc->contains.version();
@@ -86,7 +87,7 @@ public:
       process(info, *(const Camera::FrameFexConfigV1*)(xtc->payload()));
       break;
     case (TypeId::Id_EvrConfig) :
-      process(info, *(const Evr::ConfigV1*)(xtc->payload()));
+      process(info, *(const EvrData::ConfigV1*)(xtc->payload()));
       break;
     default :
       break;

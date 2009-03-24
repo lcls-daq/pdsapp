@@ -1,3 +1,7 @@
+24-Mar-2009     cpo     Tag V00-07-01. Add monitoring support for acqiris
+                        waveforms.  Fix xtcreader compile bugs.  Move
+                        monitoring stuff for both opal1k and acqiris
+                        to new package monobs (mon observer).
 20-Mar-2009	weaver	Tag V00-07-00. More changes to config.  Alias/key management and xtc 
 			generation are handled in the same gui (both C++ now).  Added 
 			show/killPartition to test package.  controltest now gets a 

@@ -1,12 +1,16 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr evgr acq
-#tgtnames    := evr evgr acq evrobs
+tgtnames    := evr evgr acq acqevr
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
 tgtlibs_acq := pdsdata/xtcdata pdsdata/acqdata acqiris/AqDrv4 pds/service pds/collection pds/xtc pds/utility pds/acqiris pds/management pds/client 
 tgtslib_acq := /usr/lib/rt
+
+tgtsrcs_acqevr := acqevr.cc
+tgtincs_acqevr := acqiris
+tgtlibs_acqevr := pdsdata/xtcdata pdsdata/evrdata evgr/evr evgr/evg pdsdata/acqdata acqiris/AqDrv4 pds/service pds/collection pds/config pds/xtc pds/utility pds/acqiris pds/evgr pds/management pds/client
+tgtslib_acqevr := /usr/lib/rt
 
 tgtsrcs_evr := evr.cc
 tgtincs_evr := evgr

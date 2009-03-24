@@ -1,7 +1,7 @@
 libnames := 
 
 ifneq ($(findstring -opt,$(tgt_arch)),)
-tgtnames := camtest cammonitor camanalysis
+tgtnames := camtest camanalysis
 else
 tgtnames :=
 endif
@@ -15,14 +15,6 @@ tgtlibs_camtest += leutron/LvSerialCommunication.34.32
 tgtlibs_camtest += leutron/LvSerialCommunication
 tgtlibs_camtest += leutron/LvCamDat.34.32
 tgtincs_camtest := leutron/include
-
-tgtsrcs_cammonitor := cammon.cc CamDisplay.cc
-tgtlibs_cammonitor := $(commonlibs) pds/mon
-tgtlibs_cammonitor += leutron/lvsds
-tgtlibs_cammonitor += leutron/LvSerialCommunication.34.32
-tgtlibs_cammonitor += leutron/LvSerialCommunication
-tgtlibs_cammonitor += leutron/LvCamDat.34.32
-tgtslib_cammonitor := /usr/lib/rt
 
 tgtsrcs_camanalysis := camanalysis.cc
 tgtlibs_camanalysis := $(commonlibs) pds/mon
