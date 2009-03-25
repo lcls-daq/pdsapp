@@ -13,7 +13,6 @@
 #include "pdsdata/opal1k/ConfigV1.hh"
 #include "pdsdata/evr/ConfigV1.hh"
 #include "pdsdata/opal1k/ConfigV1.hh"
-#include "pdsdata/types/WaveformV1.hh"
 #include "pdsdata/acqiris/DataDescV1.hh"
 
 class myLevelIter : public XtcIterator {
@@ -28,7 +27,7 @@ public:
     printf("*** Processing frame object\n");
   }
   void process(const DetInfo&, const Acqiris::DataDescV1&) {
-    printf("*** Processing waveform object\n");
+    printf("*** Processing acqiris data object\n");
   }
   void process(const DetInfo&, const Acqiris::ConfigV1&) {
     printf("*** Processing Acqiris config object\n");
