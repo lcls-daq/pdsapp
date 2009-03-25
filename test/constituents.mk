@@ -3,7 +3,6 @@ libnames := test
 libsrcs_test := EventTest.cc EventOptions.cc Recorder.cc
 
 tgtnames := recordertest eventtest segtest controltest sourcetest bldtest source montest showPartitions killPartition
-tgtnames += xtcreader
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/utility pds/management pds/client pdsapp/test
 
@@ -46,8 +45,3 @@ tgtslib_showPartitions := /usr/lib/rt
 tgtsrcs_killPartition := killPartition.cc
 tgtlibs_killPartition := $(commonlibs)
 tgtslib_killPartition := /usr/lib/rt
-
-#it's very important that xtcreader only depend on pdsdata - cpo
-tgtsrcs_xtcreader := xtcreader.cc
-tgtlibs_xtcreader := pdsdata/xtcdata pdsdata/acqdata
-tgtslib_xtcreader := /usr/lib/rt
