@@ -1,6 +1,7 @@
 libnames := monapp
 
 libsrcs_monapp := $(filter-out MonMain.cc MonTreeMenu.cc MonTreeMenu_moc.cc, $(wildcard Mon*.cc))
+libsrcs_monapp += MonDialog_moc.cc MonQtImageDisplay_moc.cc MonTab_moc.cc MonCanvas_moc.cc MonTree_moc.cc
 libsinc_monapp := /pcds/package/qt-4.3.4/include
 libsinc_monapp += /pcds/package/external/qwt-5.1.1/include
 # qwt includes qt headers without package prefix!
