@@ -1,5 +1,4 @@
 #include "pdsapp/config/DetInfoDialog_Ui.hh"
-#include "pdsapp/config/PdsDefs.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
 
@@ -65,11 +64,11 @@ DetInfoDialog_Ui::DetInfoDialog_Ui(QWidget* parent,
   buttons->setStandardButtons(QDialogButtonBox::Cancel|QDialogButtonBox::NoButton|QDialogButtonBox::Ok);
   layout->addWidget(buttons);
 
-  for(unsigned i=0; !PdsDefs::detector(i).empty(); i++)
-    _detlist->addItem(PdsDefs::detector(i).c_str());
+  for(unsigned i=0; i<Pds::DetInfo::NumDetector; i++)
+    _detlist->addItem(Pds::DetInfo::name(Pds::DetInfo::Detector(i)));
 
-  for(unsigned i=0; !PdsDefs::device(i).empty(); i++)
-    _devlist->addItem(PdsDefs::device(i).c_str());
+  for(unsigned i=0; i<Pds::DetInfo::NumDevice; i++)
+    _devlist->addItem(Pds::DetInfo::name(Pds::DetInfo::Device(i)));
 
   _detedit->setValidator(new QIntValidator(0,0xff,_detedit));
   _devedit->setValidator(new QIntValidator(0,0xff,_devedit));
@@ -79,9 +78,9 @@ DetInfoDialog_Ui::DetInfoDialog_Ui(QWidget* parent,
   for(list<Pds::DetInfo>::iterator iter = _list.begin(); iter != _list.end(); iter++) {
     Pds::DetInfo& info = *iter;
     QString item;
-    item += PdsDefs::detector(info.detector()).c_str();
+    item += Pds::DetInfo::name(info.detector());
     item += sep + QString::number(info.detId()) + sep;
-    item += PdsDefs::device  (info.device()).c_str();
+    item += Pds::DetInfo::name(info.device());
     item += sep + QString::number(info.devId());
     _srclist->addItem(item);
   }
@@ -113,9 +112,9 @@ void DetInfoDialog_Ui::add()
   for(list<Pds::DetInfo>::iterator iter = _list.begin(); iter != _list.end(); iter++) {
     Pds::DetInfo& info = *iter;
     QString item;
-    item += PdsDefs::detector(info.detector()).c_str();
+    item += Pds::DetInfo::name(info.detector());
     item += sep + QString::number(info.detId()) + sep;
-    item += PdsDefs::device  (info.device()).c_str();
+    item += Pds::DetInfo::name(info.device());
     item += sep + QString::number(info.devId());
     _srclist->addItem(item);
   }

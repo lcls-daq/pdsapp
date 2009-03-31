@@ -11,6 +11,8 @@ using std::list;
 
 namespace Pds_ConfigDb {
 
+  class UTypeName;
+
   class Experiment {
   public:
     Experiment(const string&);
@@ -27,19 +29,19 @@ namespace Pds_ConfigDb {
     Device* device(const string&);
   public:
     void add_device(const string&, const list<DeviceEntry>&);
-    string data_path(const string& device, const string& type) const;
-    string desc_path(const string& device, const string& type) const;
-    list<string> xtc_files(const string& device, const string& type) const;
+    string data_path(const string& device, const UTypeName& type) const;
+    string desc_path(const string& device, const UTypeName& type) const;
+    list<string> xtc_files(const string& device, const UTypeName& type) const;
     string key_path (const string& device, const string& key ) const;
     void import_data(const string& device,
-		     const string& type,
+		     const UTypeName& type,
 		     const string& file,
 		     const string& desc);
     void update_keys();
 
     void dump() const;
   private:
-    bool validate_key(const TableEntry&);
+    bool update_key(const TableEntry&);
   private:
     string _path;
     Table  _table;

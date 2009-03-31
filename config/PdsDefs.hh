@@ -8,15 +8,32 @@
 using std::string;
 
 namespace Pds_ConfigDb {
+
+  //  Unqualified type name; e.g. "Opal1kConfig"
+  class UTypeName : public string {  
+  public:
+    UTypeName() {}
+    explicit UTypeName(const string& s) : string(s) {}
+  };
+
+  //  Qualified type name; e.g. "Opal1kConfig_v5"
+  class QTypeName : public string {
+  public:
+    QTypeName() {}
+    explicit QTypeName(const string& s) : string(s) {}
+  };
+
   class PdsDefs {
   public:
-    static void initialize();
+    enum ConfigType { FrameFex, Opal1k, Evr, NumberOf };
 
-    static const string& type_id(unsigned);
-    static unsigned type_index(const string&);
-
-    static const string& detector(unsigned);
-    static const string& device  (unsigned);
+    static const Pds::TypeId* typeId   (ConfigType);         
+    static const Pds::TypeId* typeId   (const UTypeName&);
+    static const Pds::TypeId* typeId   (const QTypeName&);
+    static UTypeName          utypeName(ConfigType);
+    static UTypeName          utypeName(const Pds::TypeId&); 
+    static QTypeName          qtypeName(const Pds::TypeId&); 
+    static QTypeName          qtypeName(const UTypeName&);
   };
 };
 

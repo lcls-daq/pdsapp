@@ -1,20 +1,11 @@
 libnames := 
 
-ifneq ($(findstring -opt,$(tgt_arch)),)
-tgtnames := camtest camanalysis
-else
-tgtnames :=
-endif
+tgtnames := camanalysis
 
-commonlibs := pds/service pds/collection pds/xtc pds/utility pds/management pds/client pds/camera pds/config pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata
-
-tgtsrcs_camtest := camtest.cc 
-tgtlibs_camtest := $(commonlibs)
-tgtlibs_camtest += leutron/lvsds
-tgtlibs_camtest += leutron/LvSerialCommunication.34.32
-tgtlibs_camtest += leutron/LvSerialCommunication
-tgtlibs_camtest += leutron/LvCamDat.34.32
-tgtincs_camtest := leutron/include
+commonlibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata
+commonlibs += pds/service pds/collection pds/xtc 
+commonlibs += pds/mon pds/vmon
+commonlibs += pds/utility pds/management pds/client pds/camera pds/config 
 
 tgtsrcs_camanalysis := camanalysis.cc
 tgtlibs_camanalysis := $(commonlibs) pds/mon

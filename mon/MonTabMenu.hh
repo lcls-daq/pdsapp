@@ -3,6 +3,8 @@
 
 #include <QtGui/QTabWidget>
 
+#include "pdsdata/xtc/Level.hh"
+
 namespace Pds {
 
   class MonTab;

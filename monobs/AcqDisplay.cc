@@ -153,7 +153,7 @@ int AcqDisplayL1Action::process(const Xtc& xtc,
     //    presumably to take advantage of improved performance
     //    using signed arithmetic.
     const unsigned normalize=
-      (2<<Acqiris::DataDescV1::NumberOfBits)*(1<<NumberOfBits);
+      (2<<Acqiris::DataDescV1::NumberOfBits)*(1<<Acqiris::DataDescV1::BitShift);
     for (unsigned i=0;i<_config.nbrChannels();i++) {
       uint16_t* data = ddesc->waveform(hcfg);
       float slope = _config.vert(i).fullScale()/(float)(normalize);

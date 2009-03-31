@@ -13,7 +13,9 @@ using std::string;
 
 namespace Pds_ConfigDb {
 
-  class DeviceEntry : Pds::Src {
+  class UTypeName;
+
+  class DeviceEntry : public Pds::Src {
   public:
     DeviceEntry(unsigned id);
     DeviceEntry(const string& id);
@@ -34,9 +36,10 @@ namespace Pds_ConfigDb {
     list<DeviceEntry>& src_list() { return _src_list; }
   public:
     string keypath (const string& path, const string& key);
-    string typepath(const string& path, const string& key, const string& entry);
-    string typelink(const string& name, const string& entry);
+    string typepath(const string& path, const string& key, const UTypeName& entry);
+    string typelink(const UTypeName& name, const string& entry);
     bool   validate_key(const string& config, const string& path);
+    bool   update_key  (const string& config, const string& path);
   private:
     string _name;
     Table  _table;

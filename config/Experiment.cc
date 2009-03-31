@@ -1,9 +1,15 @@
 #include "pdsapp/config/Experiment.hh"
+#include "pdsapp/config/PdsDefs.hh"
+#include "pds/config/CfgPath.hh"
 
 #include <sys/stat.h>
 #include <fstream>
 using std::ifstream;
 using std::ofstream;
+#include <iostream>
+using std::cout;
+using std::cerr;
+using std::endl;
 
 using namespace Pds_ConfigDb;
 
@@ -43,7 +49,7 @@ void Experiment::read()
   string path;
   path = _path + "/db/expt";
 
-  printf("Reading table from path %s\n",path.c_str());
+  cout << "Reading table from path " << path << endl;
 
   _table = Table(path);
   _devices.clear();
@@ -71,8 +77,9 @@ void Experiment::write() const
   for(list<Device>::const_iterator iter=_devices.begin(); iter!=_devices.end(); iter++) {
     f << iter->name();
     const list<DeviceEntry>& slist = iter->src_list();
-    for(list<DeviceEntry>::const_iterator siter=slist.begin(); siter!=slist.end(); siter++)
+    for(list<DeviceEntry>::const_iterator siter=slist.begin(); siter!=slist.end(); siter++) {
       f << "\t" << siter->id();
+    }
     f << std::endl;
   }
 
@@ -91,16 +98,16 @@ Device* Experiment::device(const string& name)
 void Experiment::add_device(const string& name,
 			    const list<DeviceEntry>& slist) 
 {
-  printf("Adding device %s :",name.c_str());
+  cout << "Adding device " << name << endl;
   for(list<DeviceEntry>::const_iterator iter = slist.begin(); iter!=slist.end(); iter++)
-    printf(" %s",iter->id().c_str());
-  printf("\n");
+    cout << ' ' << iter->id();
+  cout << endl;
 
   Device device("",name,slist);
   _devices.push_back(device);
   mode_t mode = S_IRWXU | S_IRWXG;
   mkdir(device.keypath(_path,"").c_str(),mode);
-  printf("Added dir %s\n",device.keypath(_path,"").c_str());
+  cout << "Added dir " << device.keypath(_path,"") << endl;
 }
 
 string Experiment::key_path(const string& device, const string& key) const
@@ -109,22 +116,34 @@ string Experiment::key_path(const string& device, const string& key) const
 }
 
 string Experiment::data_path(const string& device,
-			     const string& type) const
+			     const UTypeName& type) const
 {
-  return _path + "/xtc/"+type;
+  string path = _path + "/xtc/" + PdsDefs::qtypeName(type);
+  struct stat s;
+  if (stat(path.c_str(),&s)) {
+    mode_t mode = S_IRWXU | S_IRWXG;
+    mkdir(path.c_str(),mode);
+  }
+  return path;
 }
 
 string Experiment::desc_path(const string& device,
-			     const string& type) const
+			     const UTypeName& type) const
 {
-  return _path + "/desc/" + type;
+  string path = _path + "/desc/" + PdsDefs::qtypeName(type);
+  struct stat s;
+  if (stat(path.c_str(),&s)) {
+    mode_t mode = S_IRWXU | S_IRWXG;
+    mkdir(path.c_str(),mode);
+  }
+  return path;
 }
 
 #include <glob.h>
 #include <libgen.h>
 
 list<string> Experiment::xtc_files(const string& device,
-				   const string& type) const
+				   const UTypeName& type) const
 {
   list<string> l;
   glob_t g;
@@ -137,16 +156,22 @@ list<string> Experiment::xtc_files(const string& device,
 }
 
 void Experiment::import_data(const string& device,
-			     const string& type,
+			     const UTypeName& type,
 			     const string& file,
 			     const string& desc)
 {
+  if (PdsDefs::typeId(type)==0) {
+    cerr << type << " not registered as valid configuration data type" << endl;
+    return;
+  }
+
   mode_t mode = S_IRWXU | S_IRWXG;
   const char* base = basename(const_cast<char*>(file.c_str()));
   string dst = data_path(device,type)+"/"+base;
   struct stat s;
   if (!stat(dst.c_str(),&s)) {
-    printf("%s already exists.\nRename the source file and try again.\n",dst.c_str());
+    cerr << dst << " already exists." << endl 
+	 << "Rename the source file and try again." << endl;
     return;
   }
   const char* dir = dirname(const_cast<char*>(dst.c_str()));
@@ -167,13 +192,24 @@ void Experiment::import_data(const string& device,
   f << desc << std::endl;
 }
 
-bool Experiment::validate_key(const TableEntry& entry)
+bool Experiment::update_key(const TableEntry& entry)
 {
-  mode_t mode = S_IRWXU | S_IRWXG;
+  unsigned valid=0;
+  for(list<FileEntry>::const_iterator iter=entry.entries().begin();
+      iter != entry.entries().end(); iter++)
+    if (device(iter->name())->validate_key(iter->entry(),_path))
+      valid++;
+  if (valid != entry.entries().size()) {
+    cerr << "Cannot update " << entry.name() << '[' << entry.key() << ']' << endl;
+    return false;
+  }
+
   int changed=0;
   for(list<FileEntry>::const_iterator iter=entry.entries().begin();
       iter != entry.entries().end(); iter++)
-    changed += device(iter->name())->validate_key(iter->entry(),_path);
+    changed += device(iter->name())->update_key(iter->entry(),_path);
+
+  mode_t mode = S_IRWXU | S_IRWXG;
 
   const int line_size=128;
   char buff[line_size];
@@ -217,12 +253,12 @@ bool Experiment::validate_key(const TableEntry& entry)
       string dpath = "../" + iter->name() + "/" + d->table().get_top_entry(iter->entry())->key();
       for(list<DeviceEntry>::const_iterator diter=d->src_list().begin();
 	  diter!=d->src_list().end(); diter++) {
-	string spath = p + "/" + diter->id();
+	string spath = p + "/" + Pds::CfgPath::src_key(*diter);
 	symlink(dpath.c_str(),spath.c_str());
       }
     }
     _table.set_top_entry(te);
-    printf("Assigned new key %s to %s\n",te.key().c_str(),te.name().c_str());
+    cout << "Assigned new key " << te.key() << " to " << te.name() << endl;
   }
 
   return invalid;
@@ -232,20 +268,20 @@ void Experiment::update_keys()
 {
   for(list<TableEntry>::iterator iter=_table.entries().begin();
       iter!=_table.entries().end(); iter++)
-    validate_key(*iter);
+    update_key(*iter);
 }
 
 void Experiment::dump() const
 {  
-  printf("Experiment %s\n",_path.c_str());
+  cout << "Experiment " << _path << endl;
   _table.dump(_path+"/db/expt");
-  printf("\n%s/db/devices\n",_path.c_str());
+  cout << endl << _path << "/db/devices" << endl;
   for(list<Device>::const_iterator iter=_devices.begin(); iter!=_devices.end(); iter++) {
-    printf("%s",iter->name().c_str());
+    cout << iter->name();
     for(list<DeviceEntry>::const_iterator diter=iter->src_list().begin();
 	diter!=iter->src_list().end(); diter++)
-      printf("\t%s",diter->id().c_str());
-    printf("\n");
+      cout << '\t' << diter->id();
+    cout << endl;
   }
   for(list<Device>::const_iterator iter=_devices.begin(); iter!=_devices.end(); iter++) {
     iter->table().dump(_path+"/db/devices."+iter->name());

@@ -1,66 +1,71 @@
 #include "pdsapp/config/PdsDefs.hh"
 
+#include "pds/config/FrameFexConfigType.hh"
+#include "pds/config/Opal1kConfigType.hh"
+#include "pds/config/EvrConfigType.hh"
+
+#include <sstream>
+using std::istringstream;
+using std::ostringstream;
+
 using namespace Pds_ConfigDb;
 
-static string _type_ids[Pds::TypeId::NumberOf+1];
-static string _detector[Pds::DetInfo::NumDetector+1];
-static string _device  [Pds::DetInfo::NumDevice+1];
-static string _eolist;
 
-#define TYPE_ID(id)  { _type_ids[Pds::TypeId::id] = string(#id); }
-#define DETECTOR(id) { _detector[Pds::DetInfo::id] = string(#id); }
-#define DEVICE(id)   { _device  [Pds::DetInfo::id] = string(#id); }
-
-void PdsDefs::initialize()
+const Pds::TypeId* PdsDefs::typeId(ConfigType id)
 {
-  TYPE_ID(Any);
-  TYPE_ID(Id_Xtc);
-  TYPE_ID(Id_Frame);
-  TYPE_ID(Id_AcqWaveform);
-  TYPE_ID(Id_AcqConfig);
-  TYPE_ID(Id_TwoDGaussian);
-  TYPE_ID(Id_Opal1kConfig);
-  TYPE_ID(Id_FrameFexConfig);
-  TYPE_ID(Id_EvrConfig);
-  _type_ids[Pds::TypeId::NumberOf] = _eolist;
-  
-  DETECTOR(NoDetector);
-  DETECTOR(AmoIms);
-  DETECTOR(AmoPem);
-  DETECTOR(AmoETof);
-  DETECTOR(AmoITof);
-  DETECTOR(AmoMbs);
-  DETECTOR(AmoIis);
-  DETECTOR(AmoXes);
-  _detector[Pds::DetInfo::NumDetector] = _eolist;
-
-  DEVICE(NoDevice);
-  DEVICE(Evr);
-  DEVICE(Acqiris);
-  DEVICE(Opal1000);
-  DEVICE(NumDevice);
-  _device[Pds::DetInfo::NumDevice] = _eolist;
+  Pds::TypeId* type(0);
+  switch(id) {
+  case Evr     : type = &_evrConfigType; break;
+    //  case Acq     : type = &_acqConfigType; break;
+  case Opal1k  : type = &_opal1kConfigType; break;
+  case FrameFex: type = &_frameFexConfigType; break;
+  default: break;
+  }
+  return type;
 }
 
-const string& PdsDefs::type_id(unsigned i)
+const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
 {
-  return _type_ids[i];
+#define test(type) { if (name==Pds::TypeId::name(type.id())) return &type; }
+  test(_evrConfigType);
+  test(_opal1kConfigType);
+  test(_frameFexConfigType);
+#undef test
+  return 0;
 }
 
-unsigned PdsDefs::type_index(const string& t)
+const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
 {
-  for(unsigned i=0; i<Pds::TypeId::NumberOf; i++)
-    if (t == _type_ids[i])
-      return i;
-  return Pds::TypeId::NumberOf;
+#define test(type) { if (name==PdsDefs::qtypeName(type)) return &type; }
+  test(_evrConfigType);
+  test(_opal1kConfigType);
+  test(_frameFexConfigType);
+#undef test
+  return 0;
 }
 
-const string& PdsDefs::detector(unsigned i)
+UTypeName PdsDefs::utypeName(ConfigType type)
 {
-  return _detector[i];
+  return PdsDefs::utypeName(*PdsDefs::typeId(type));
 }
 
-const string& PdsDefs::device  (unsigned i)
+UTypeName PdsDefs::utypeName(const Pds::TypeId& type)
 {
-  return _device[i];
+  ostringstream o;
+  o << Pds::TypeId::name(type.id());
+  return UTypeName(o.str());
 }
+
+QTypeName PdsDefs::qtypeName(const Pds::TypeId& type)
+{
+  ostringstream o;
+  o << Pds::TypeId::name(type.id()) << "_v" << type.version();
+  return QTypeName(o.str());
+}
+
+QTypeName PdsDefs::qtypeName(const UTypeName& utype)
+{
+  return PdsDefs::qtypeName(*PdsDefs::typeId(utype));
+}
+
+

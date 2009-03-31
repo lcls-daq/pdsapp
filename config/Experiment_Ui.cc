@@ -44,7 +44,7 @@ Experiment_Ui::Experiment_Ui(QWidget* parent,
   layout2->addWidget(_devlist = new QListWidget(this));
   { QHBoxLayout* layout2a = new QHBoxLayout;
   QLabel* label = new QLabel("Add", this);
-  label->setAlignment(Qt::AlignRight | Qt::AlignTrailing);
+  label->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
   layout2a->addWidget(label);
   layout2a->addWidget(_devcfglist = new QComboBox(this)); 
   layout2->addLayout(layout2a); }
@@ -83,14 +83,29 @@ void Experiment_Ui::update_device_list()
 {
   string name(qPrintable(_cfglist->currentItem()->text()));
   disconnect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
+  disconnect(_devcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
   _devlist->clear();
+  _devcfglist->clear();
+
+  list<string> unassigned;
+  for(list<Device>::iterator iter = _expt.devices().begin(); iter != _expt.devices().end();
+      iter++)
+    unassigned.push_back(iter->name());
+
   const TableEntry* entry = _expt.table().get_top_entry(name);
   for(list<FileEntry>::const_iterator iter=entry->entries().begin();
       iter!=entry->entries().end(); iter++) {
     string entry = iter->name() + " [" + iter->entry() + "]";
     *new QListWidgetItem(entry.c_str(),_devlist);
+    unassigned.remove(iter->name());
   }
+
+  for(list<string>::iterator iter = unassigned.begin(); iter != unassigned.end();
+      iter++)
+    _devcfglist->addItem(iter->c_str());
+
   connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
+  connect(_devcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
 }
 
 void Experiment_Ui::new_config()

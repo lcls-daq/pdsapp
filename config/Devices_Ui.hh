@@ -18,6 +18,7 @@ namespace Pds_ConfigDb {
   class Device;
   class Experiment;
   class Serializer;
+  class UTypeName;
 
   class Devices_Ui : public QGroupBox {
     Q_OBJECT
@@ -38,7 +39,7 @@ namespace Pds_ConfigDb {
     bool validate_config_name(const string& name);
   private:
     Device* _device() const;
-    Serializer& lookup(const string&);
+    Serializer& lookup(const UTypeName&);
   private:
     Experiment&  _expt;
     SerializerDictionary _dict;

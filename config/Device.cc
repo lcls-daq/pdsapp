@@ -8,6 +8,13 @@
 #include <sstream>
 using std::istringstream;
 using std::ostringstream;
+#include <iostream>
+using std::cout;
+using std::cerr;
+using std::endl;
+#include <iomanip>
+using std::setw;
+using std::setfill;
 
 using namespace Pds_ConfigDb;
 
@@ -17,18 +24,17 @@ DeviceEntry::DeviceEntry(unsigned id) :
   _phy = id; 
 }
 
-DeviceEntry::DeviceEntry(const string& id) :
-  Pds::Src(Pds::Level::Source)
+DeviceEntry::DeviceEntry(const string& id) 
 {
+  char sep;
   istringstream i(id);
-  i >> std::hex >> _phy;
+  i >> std::hex >> _log >> sep >> _phy;
 }
 
 string DeviceEntry::id() const
 {
   ostringstream o;
-  o.width(8);
-  o << std::hex << _phy;
+  o << std::hex << setfill('0') << setw(8) << _log << '.' << setw(8) << _phy;
   return o.str();
 }
 
@@ -49,43 +55,73 @@ Device::Device(const string& path,
 
 string Device::keypath(const string& path, const string& key)
 {
-  return path + "/keys/" + _name + "/" + key;
+  ostringstream o;
+  o << path << "/keys/" << _name << "/" << key;
+  return o.str();
 }
 
-string Device::typepath(const string& path, const string& key, const string& entry)
+string Device::typepath(const string& path, 
+			const string& key, 
+			const UTypeName& entry)
 {
-  char buff[16];
-  sprintf(buff,"%08x",PdsDefs::type_index(entry));
-  return path + "/keys" + _name + "/" + key + "/" + string(buff);
+  const Pds::TypeId* typeId = PdsDefs::typeId(entry);
+  ostringstream o;
+  o << path << "/keys/" << _name << "/" << std::hex << setfill('0') << setw(8) << key << "/" << setw(8) << typeId->value();
+  return o.str();
 }
 
-string Device::typelink(const string& name, const string& entry)
+string Device::typelink(const UTypeName& uname, const string& entry)
 {
-  return string("../../../xtc/") + name + "/" + entry;
+  ostringstream o;
+  o << "../../../xtc/" << PdsDefs::qtypeName(uname) << "/" << entry;
+  return o.str();
+}
+
+// Checks that the key components are valid
+bool Device::validate_key(const string& config, const string& path)
+{    
+  bool invalid  = false;
+  struct stat s;
+  const TableEntry* entry = _table.get_top_entry(config);
+  if (!entry) return false;
+  for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
+    UTypeName utype(iter->name());
+    string tlink = typelink(utype,iter->entry());
+    if (!stat(tlink.c_str(),&s)) {
+      cerr << "Found archaic type entry " << _name << "/" << utype << "/" << iter->entry() << endl
+	   << "The " << _name << " version may have changed." << endl;
+      invalid = true;
+    }
+  }
+  return !invalid;
 }
 
 // Checks that the key link exists and is up to date
-bool Device::validate_key(const string& config, const string& path)
+bool Device::update_key(const string& config, const string& path)
 {    
   const int line_size=128;
   char buff[line_size];
-  bool invalid=false;
+  bool outofdate=false;
   const TableEntry* entry = _table.get_top_entry(config);
   if (!entry) return false;
   string kpath = keypath(path,entry->key());
   struct stat s;
-  if (stat(kpath.c_str(),&s)) invalid=true;
+  if (stat(kpath.c_str(),&s)) outofdate=true;
   for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
-    string tpath = typepath(path,entry->key(),iter->name());
+    UTypeName utype(iter->name());
+    string tpath = typepath(path,entry->key(),utype);
+    string tlink = typelink(utype,iter->entry());
     if (!stat(tpath.c_str(),&s)) {
       unsigned sz=line_size;
       if (!(readlink(tpath.c_str(),buff,sz) && 
-	    string(buff)==typelink(iter->name(),iter->entry())))
-	invalid=true;
+	    string(buff)==tlink))
+	outofdate=true;
     }
+    else
+      outofdate=true;
   }
 
-  if (invalid) {
+  if (outofdate) {
     glob_t g;
     glob(keypath(path,"[0-9]*").c_str(),0,0,&g);
     sprintf(buff,"%08x",g.gl_pathc);
@@ -94,11 +130,14 @@ bool Device::validate_key(const string& config, const string& path)
     string kpath = keypath(path,key);
     mode_t mode = S_IRWXU | S_IRWXG;
     mkdir(kpath.c_str(),mode);
-    for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++)
-      symlink(typelink(iter->name(),iter->entry()).c_str(),
-	      typepath(path,key,iter->name()).c_str());
+    for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
+      UTypeName utype(iter->name());
+      string tpath = typepath(path,key,utype);
+      string tlink = typelink(utype,iter->entry());
+      symlink(tlink.c_str(), tpath.c_str());
+    }
     TableEntry t(entry->name(), key, entry->entries());
-    _table.set_top_entry(*entry);
+    _table.set_top_entry(t);
   }
-  return invalid;
+  return outofdate;
 }

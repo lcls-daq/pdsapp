@@ -4,6 +4,7 @@
 #include <math.h>
 #include <assert.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pds/service/Timer.hh"
@@ -12,11 +13,16 @@
 #include "pds/mon/MonCds.hh"
 #include "pds/mon/MonGroup.hh"
 #include "pds/mon/MonPort.hh"
-#include "pds/mon/MonServerManager.hh"
 #include "pds/mon/MonEntryTH1F.hh"
 #include "pds/mon/MonEntryTH2F.hh"
 #include "pds/mon/MonEntryImage.hh"
 #include "pds/mon/MonEntryProf.hh"
+#include "pds/vmon/VmonServerManager.hh"
+#include "pds/management/VmonServerAppliance.hh"
+#include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/ProcInfo.hh"
+#include "pds/collection/Route.hh"
+#include "pds/collection/RouteTable.hh"
 
 using namespace Pds;
 
@@ -85,16 +91,6 @@ static void build(MonCds& cds)
     entry->desc().xwarnings(1.25, 1.75);
     entry->desc().ywarnings(4.25, 6.75);
   }
-
-  {
-    MonGroup* group = new MonGroup("Image test");
-    cds.add(group);
-    MonDescImage desc("Image", 512, 512, 2, 2);
-    MonEntry* entry = new MonEntryImage(desc);
-    group->add(entry);
-    entry->desc().xwarnings(1.25, 1.75);
-    entry->desc().ywarnings(4.25, 6.75);
-  }
 }
 
 static float randomnumber(float low, float hig)
@@ -152,26 +148,6 @@ private:
 	      e->addcontent(1, xb, yb);
 	  }
 	  break;
-	case MonDescEntry::Image:
-	  {
-	    //
-	    //  Make an atomic change to the image
-	    //
-	    _cds.payload_sem().take();
-	    MonEntryImage* e = dynamic_cast<MonEntryImage*>(entry);
-	    if (randomnumber(0,1)<0.5) {
-	      for(unsigned iy=0; iy<512; iy++)
-		for(unsigned ix=0; ix<512; ix++)
-		  e->addcontent(ix, ix, iy);
-	    }
-	    else {
-	      for(unsigned iy=0; iy<512; iy++)
-		for(unsigned ix=0; ix<512; ix++)
-		  e->addcontent(iy, ix, iy);
-	    }
-	    _cds.payload_sem().give();
-	  }
-	  break;
 	case MonDescEntry::Prof:
 	  {
 	    MonEntryProf* e = dynamic_cast<MonEntryProf*>(entry);
@@ -199,16 +175,28 @@ private:
 
 int main(int argc, char **argv) 
 {
-  MonServerManager manager(MonPort::Test);
-  MonCds& cds = manager.cds();
+  unsigned interface = 0;
+  in_addr inp;
+  if (inet_aton(argv[1], &inp))
+    interface = ntohl(inp.s_addr);
+
+  RouteTable table;
+  Route::set(table,interface);
+  
+  MonCds& cds = VmonServerManager::instance()->cds();
   build(cds);
   
-  int error = manager.serve();
-  if (error) {
-    printf("*** MonServerManager cannot serve: %s\n", strerror(error));
-    manager.dontserve();
-    return 0;
-  } else {
+  //  DetInfo info(0,DetInfo::AmoIms,0,DetInfo::Evr,0);
+  ProcInfo info(Level::Segment,getpid(),interface);
+  VmonServerAppliance appliance(info);
+
+  Allocation alloc("TEST","/test",0);
+  alloc.add(Node(info.level(),0));
+  Allocate map(alloc);
+  Transition unmap(TransitionId::Unmap,0);
+
+  appliance.transitions(&map);
+  {
     printf("Serving %d entries:\n", cds.totalentries());
     for (unsigned g=0; g<cds.ngroups(); g++) {
       const MonGroup* group = cds.group(g);
@@ -220,9 +208,14 @@ int main(int argc, char **argv)
     }
   }
 
-  MonServerTimerTest timertest(cds);
-  timertest.start();
-  
+  timespec tv;
+  tv.tv_sec = 1;
+  tv.tv_nsec = 0;
+  nanosleep(&tv,0);
+
+  MonServerTimerTest timer(cds);
+  timer.start();
+
   do {
     fprintf(stdout, "Command [Enable, Disable, EOF=quit] :");
     fflush(stdout);
@@ -232,22 +225,11 @@ int main(int argc, char **argv)
     if (!result) {
       fprintf(stdout, "\nExiting\n");
       break;
-    } else if (strlen(result) == 2) {
-      switch (result[0]) {
-      case 'e':
-      case 'E':
-	manager.enable();
-	break;
-      case 'd':
-      case 'D':
-	manager.disable();
-	break;
-      }
     }
-  } while (1);
+  } while(1);
   
-  timertest.cancel();
-  manager.dontserve();
+  nanosleep(&tv,0);
+  appliance.transitions(&unmap);
 
   return 0;
 }

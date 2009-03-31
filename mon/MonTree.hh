@@ -4,6 +4,7 @@
 #include <QtCore/QObject>
 
 #include "pds/mon/MonConsumerClient.hh"
+#include "pdsdata/xtc/Level.hh"
 
 namespace Pds {
 
@@ -15,13 +16,13 @@ namespace Pds {
     Q_OBJECT
   public:
     MonTree(MonTabMenu& tabs, 
-	    MonClientManager& clientmanager,
-	    MonClient& client);
+	    MonClient& client,
+	    MonClientManager* clientmanager=0);
     virtual ~MonTree();
 
     bool is_connected() const;
 
-    void connect();
+    void connect   ();
     void disconnect();
     void expired();
     void event(MonConsumerClient::Type type, int result);
@@ -37,13 +38,13 @@ namespace Pds {
 
   private:
     enum Status {Disconnected, Connected, Enabled, Disabled, Ready, Waiting};
-    Status _status;
-    unsigned _update;
-    unsigned _retry;
-    bool _needretry;
+    Status      _status;
+    unsigned    _update;
+    unsigned    _retry;
+    bool        _needretry;
     MonTabMenu& _tabs;
-    MonClientManager& _clientmanager;
-    MonClient& _client;
+    MonClient&  _client;
+    MonClientManager* _clientmanager;
   };
 };
 

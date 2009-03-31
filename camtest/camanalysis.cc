@@ -25,7 +25,7 @@ public:
     _file(file), 
     _maxDgramSize(maxDgramSize), 
     _pool(maxDgramSize+sizeof(CDatagram),1),
-    _cdg (new(&_pool) CDatagram)
+    _cdg (new(&_pool) CDatagram(TypeId(TypeId::Id_Xtc,0),Src(Level::Source)))
   {}
   ~CDatagramFileIterator() 
   { delete _cdg; }

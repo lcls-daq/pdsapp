@@ -40,6 +40,7 @@ namespace Pds_ConfigDb {
     const list<FileEntry>& entries() const { return _entries; }
   public:
     void set_entry(const FileEntry& entry);
+    void remove   (const FileEntry& entry);
   private:
     string _name;
     string _key;

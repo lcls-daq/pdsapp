@@ -1,5 +1,5 @@
 #include "Experiment.hh"
-
+#include "PdsDefs.hh"
 using namespace Pds_ConfigDb;
 
 // Commands
@@ -85,11 +85,14 @@ int main(int argc, char** argv)
       else if (cmd==copy_device_alias_cmd)
 	db.device(dev)->table().copy_top_entry(string(argv[4]),
 					       string(argv[5]));
-      else if (cmd==import_device_data_cmd)
+      else if (cmd==import_device_data_cmd) {
+	string type(argv[4]);
+	UTypeName utype(type);
 	db.import_data(dev,
-		       string(argv[4]),
+		       utype,
 		       string(argv[5]),
 		       string(argv[6]));
+      }
       else if (cmd==assign_device_alias_cmd)
 	db.device(dev)->table().set_entry(string(argv[4]),
 					  FileEntry(string(argv[5]),

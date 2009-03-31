@@ -1,13 +1,12 @@
 #include "pdsapp/config/Opal1kConfig.hh"
 
 #include "pdsapp/config/Parameters.hh"
-#include "pdsdata/opal1k/ConfigV1.hh"
+#include "pds/config/Opal1kConfigType.hh"
 
 #include <new>
 
 namespace Pds_ConfigDb {
 
-#define OpalTC Opal1k::ConfigV1
   enum OpalLUT { None };
 
   static const char* OpalLUTNames[] = { "None",
@@ -21,9 +20,9 @@ namespace Pds_ConfigDb {
     Private_Data() :
       _black_level      ("Black Level",   0, 0, 0xfff),
       _gain             ("Gain"       , 100, 100, 3200),
-      _depth            ("Depth"      , OpalTC::Twelve_bit, depth_range),
-      _binning          ("Binning", OpalTC::x1, binning_range),
-      _mirroring        ("Mirroring", OpalTC::None, mirroring_range),
+      _depth            ("Depth"      , Opal1kConfigType::Twelve_bit, depth_range),
+      _binning          ("Binning", Opal1kConfigType::x1, binning_range),
+      _mirroring        ("Mirroring", Opal1kConfigType::None, mirroring_range),
       _vertical_remap   ("Vertical Remap", Enums::True, Enums::Bool_Names),
       _defect_pixel_corr("Defect Pixel Correction", Enums::True, Enums::Bool_Names),
       _output_lut       ("Output Lookup Table", None, OpalLUTNames)
@@ -41,7 +40,7 @@ namespace Pds_ConfigDb {
     }
 
     bool pull(void* from) {
-      OpalTC& tc = *new(from) OpalTC;
+      Opal1kConfigType& tc = *new(from) Opal1kConfigType;
       _black_level.value = tc.black_level();
       _gain       .value = tc.gain_percent();
       _depth      .value = tc.output_resolution();
@@ -54,7 +53,7 @@ namespace Pds_ConfigDb {
     }
 
     int push(void* to) {
-      OpalTC& tc = *new(to) OpalTC(_black_level.value,
+      Opal1kConfigType& tc = *new(to) Opal1kConfigType(_black_level.value,
 				   _gain.value,
 				   _depth.value,
 				   _binning.value,
@@ -66,9 +65,9 @@ namespace Pds_ConfigDb {
   public:
     NumericInt<unsigned short>    _black_level;
     NumericInt<unsigned short>    _gain;
-    Enumerated<OpalTC::Depth>     _depth;
-    Enumerated<OpalTC::Binning>   _binning;
-    Enumerated<OpalTC::Mirroring> _mirroring;
+    Enumerated<Opal1kConfigType::Depth>     _depth;
+    Enumerated<Opal1kConfigType::Binning>   _binning;
+    Enumerated<Opal1kConfigType::Mirroring> _mirroring;
     Enumerated<Enums::Bool>            _vertical_remap;
     Enumerated<Enums::Bool>            _defect_pixel_corr;
     Enumerated<OpalLUT>           _output_lut;
@@ -95,7 +94,7 @@ int  Opal1kConfig::writeParameters(void* to) {
 
 #include "Parameters.icc"
 
-template class Enumerated<OpalTC::Depth>;
-template class Enumerated<OpalTC::Binning>;
-template class Enumerated<OpalTC::Mirroring>;
+template class Enumerated<Opal1kConfigType::Depth>;
+template class Enumerated<Opal1kConfigType::Binning>;
+template class Enumerated<Opal1kConfigType::Mirroring>;
 template class Enumerated<OpalLUT>;

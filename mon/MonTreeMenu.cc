@@ -57,8 +57,8 @@ MonTreeMenu::MonTreeMenu(QWidget& p,
   _trees = new MonTree*[_clientmanager->nclients()];
   for(unsigned c = 0; c<_clientmanager->nclients(); c++) {
     _trees[c] = new MonTree(_tabs,
-			    *_clientmanager,
-			    *_clientmanager->client(c));
+			    *_clientmanager->client(c),
+			    _clientmanager);
   }
 
   QVBoxLayout* layout = new QVBoxLayout(this);
@@ -85,7 +85,7 @@ MonTreeMenu::MonTreeMenu(QWidget& p,
     QRadioButton* button = 
       new QRadioButton(client->cds().desc().name(),this);
     client_bg->addButton(button,c);
-    button->setChecked( c==_selected ? true : false);
+    button->setChecked( c==(unsigned)_selected ? true : false);
     layout->addWidget(button);
   }
   connect(client_bg, SIGNAL(buttonClicked(int)), this, SLOT(set_tree(int)));
@@ -112,7 +112,7 @@ void MonTreeMenu::set_tree(int c)
 
 void MonTreeMenu::event(MonClient& client, Type type, int result)
 {
-  _trees[client.id()]->event(type, result);
+  _trees[client.src().phy()]->event(type, result);
 }
 
 void MonTreeMenu::start_stop()

@@ -3,9 +3,12 @@
 
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QFileDialog>
+#include <QtGui/QInputDialog>
+#include <QtGui/QMessageBox>
 #include <QtGui/QPushButton>
 
 #include <sys/stat.h>
+#include <libgen.h>
 
 using namespace Pds_ConfigDb;
 
@@ -50,7 +53,6 @@ void Dialog::read()
     return;
   struct stat file_stat;
   if (stat(qPrintable(file),&file_stat)) return;
-  _file = file;
   char* buff = new char[file_stat.st_size];
   FILE* input = fopen(qPrintable(file),"r");
   fread(buff, file_stat.st_size, 1, input);
@@ -74,28 +76,34 @@ void Dialog::write()
     p->update();
     p = p->forward();
   }
-//   QString file = QFileDialog::getSaveFileName(this,"File to write to:",
-// 					      _write_dir,"*.xtc");
-  QFileDialog  d(this,"File name:");
-  d.setFilter("*.xtc");
-  QDir directory(_write_dir);
-  directory.setFilter( QDir::Files );
-  d.setDirectory(directory);
-  d.setAcceptMode(QFileDialog::AcceptSave);
-  if (d.exec()) {
-    QString file = d.selectedFiles().at(0);
-    if (file.isNull())
+  bool ok;
+  QString file = QInputDialog::getText(this,"File to write to:","Filename:",
+				       QLineEdit::Normal,"example.xtc",&ok);
+  if (!ok)
+    return;
+  if (file.isEmpty())
+    return;
+
+  const int bufsize = 0x1000;
+  char* buff = new char[bufsize];
+
+  { QString fullname = _write_dir + "/" + file;
+    strcpy(buff,qPrintable(fullname));
+    struct stat s;
+    if (!stat(buff,&s)) {
+      QMessageBox::warning(this, "Save error", "Chosen filename already exists");
+      delete[] buff;
       return;
-    const int bufsize = 0x1000;
-    char* buff = new char[bufsize];
-    strcpy(buff,qPrintable(file));
-    _file=QString(basename(buff));
-    int siz = _s.writeParameters(buff);
-    FILE* output = fopen(qPrintable(file),"w");
-    fwrite(buff, siz, 1, output);
-    fclose(output);
-    delete[] buff;
-    accept();
+    }
   }
+
+  strcpy(buff,qPrintable(file));
+  _file=QString(basename(buff));
+  int siz = _s.writeParameters(buff);
+  FILE* output = fopen(qPrintable(file),"w");
+  fwrite(buff, siz, 1, output);
+  fclose(output);
+  delete[] buff;
+  accept();
 }
 

@@ -4,7 +4,7 @@ libsrcs_test := EventTest.cc EventOptions.cc Recorder.cc
 
 tgtnames := recordertest eventtest segtest controltest sourcetest bldtest source montest showPartitions killPartition
 
-commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/utility pds/management pds/client pdsapp/test
+commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pdsapp/test
 
 tgtsrcs_recordertest := recordertest.cc
 tgtlibs_recordertest := $(commonlibs)

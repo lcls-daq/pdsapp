@@ -34,13 +34,14 @@ void MonTabMenu::reset(MonClient& client)
   //  if (_needread) readconfig(client);
   for (unsigned tabid=0; tabid<_maxtabs; tabid++) {
     if (_tabs[tabid]) { 
-      removeTab(tabid);
+      removeTab(0);
       delete _tabs[tabid];
       _tabs[tabid]=0;
     }
   }
   for(unsigned tabid=0; tabid<client.cds().ngroups(); tabid++) {
-    add(client, *client.cds().group(tabid));
+    MonGroup* gr = client.cds().group(tabid);
+    add(client, *gr);
   }
   //  layout();
 }

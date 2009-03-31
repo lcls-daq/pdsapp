@@ -9,8 +9,8 @@
 
 #include "pds/service/Semaphore.hh"
 
-#include "pds/camera/Frame.hh"
-#include "pds/camera/TwoDGaussian.hh"
+#include "pds/camera/FrameType.hh"
+#include "pds/camera/TwoDGaussianType.hh"
 
 #include "pds/xtc/InDatagramIterator.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
@@ -75,8 +75,8 @@ static int updateImage(MonEntryImage& image,
 		       const ClockTime& now)
 {
   //  copy the frame header
-  Frame frame;
-  int advance = iter->copy(&frame, sizeof(Frame));
+  FrameType frame;
+  int advance = iter->copy(&frame, sizeof(FrameType));
 	
   unsigned remaining = frame.data_size();
   unsigned short offset = frame.offset();
@@ -91,8 +91,9 @@ static int updateImage(MonEntryImage& image,
     const unsigned short* end = w + (len>>1);
     while(w < end) {
       if (*w > offset)
-	image.addcontent(*w++ - offset,ix>>BinShift,iy>>BinShift);
+	image.addcontent(*w - offset,ix>>BinShift,iy>>BinShift);
       if (++ix==frame.width()) { ix=0; iy++; }
+      w++;
     }
   }
   image.time(now);
@@ -170,15 +171,15 @@ MonFex::MonFex(MonGroup& group)
 int MonFex::update(InDatagramIterator& iter,
 		   const ClockTime& now)
 {
-  TwoDGaussian gss;
-  int advance = iter.copy(&gss, sizeof(TwoDGaussian));
-  integral->addcontent(1.,double(gss._integral));
-  logintegral->addcontent(1.,log10(double(gss._integral)));
-  meanx   ->addcontent(1.,unsigned(gss._xmean)>>FexBinShift);
-  meany   ->addcontent(1.,unsigned(gss._ymean)>>FexBinShift);
-  major   ->addcontent(1.,unsigned(gss._major_axis_width)>>FexBinShift);
-  minor   ->addcontent(1.,unsigned(gss._minor_axis_width)>>FexBinShift);
-  tilt    ->addcontent(1.,gss._major_axis_tilt);
+  TwoDGaussianType gss;
+  int advance = iter.copy(&gss, sizeof(TwoDGaussianType));
+  integral->addcontent(1.,double(gss.integral()));
+  logintegral->addcontent(1.,log10(double(gss.integral())));
+  meanx   ->addcontent(1.,unsigned(gss.xmean())>>FexBinShift);
+  meany   ->addcontent(1.,unsigned(gss.ymean())>>FexBinShift);
+  major   ->addcontent(1.,unsigned(gss.major_axis_width())>>FexBinShift);
+  minor   ->addcontent(1.,unsigned(gss.minor_axis_width())>>FexBinShift);
+  tilt    ->addcontent(1.,gss.major_axis_tilt());
   integral->time(now);
   logintegral->time(now);
   meanx   ->time(now);

@@ -2,7 +2,7 @@
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
-#include "pdsdata/evr/ConfigV1.hh"
+#include "pds/config/EvrConfigType.hh"
 
 #include <new>
 
@@ -41,7 +41,7 @@ namespace Pds_ConfigDb {
     }
 
     bool pull(void* from) {
-      EvrData::PulseConfig& tc = *new(from) EvrData::PulseConfig;
+      Pds::EvrData::PulseConfig& tc = *new(from) Pds::EvrData::PulseConfig;
       _pulse.value = tc.pulse();
       _trigger.value = tc.trigger();
       _set.value = tc.set();
@@ -57,7 +57,7 @@ namespace Pds_ConfigDb {
     }
 
     int push(void* to) {
-      EvrData::PulseConfig& tc = *new(to) EvrData::PulseConfig(_pulse.value,
+      Pds::EvrData::PulseConfig& tc = *new(to) Pds::EvrData::PulseConfig(_pulse.value,
 						       _trigger.value,
 						       _set.value,
 						       _clear.value,
@@ -97,9 +97,9 @@ namespace Pds_ConfigDb {
   class EvrOutputMap {
   public:
     EvrOutputMap() :
-    _source    ("Source"   , EvrData::OutputMap::Pulse, source_range),
+    _source    ("Source"   , Pds::EvrData::OutputMap::Pulse, source_range),
     _source_id ("Source id", 0, 0, 9),
-    _conn      ("Conn"     , EvrData::OutputMap::FrontPanel, conn_range),
+    _conn      ("Conn"     , Pds::EvrData::OutputMap::FrontPanel, conn_range),
     _conn_id   ("Conn id"  , 0, 0, 9)
     {}
    
@@ -111,7 +111,7 @@ namespace Pds_ConfigDb {
     }
 
     bool pull(void* from) {
-      EvrData::OutputMap& tc = *new(from) EvrData::OutputMap;
+      Pds::EvrData::OutputMap& tc = *new(from) Pds::EvrData::OutputMap;
       _source   .value = tc.source();
       _source_id.value = tc.source_id();
       _conn     .value = tc.conn();
@@ -120,16 +120,16 @@ namespace Pds_ConfigDb {
     }
 
     int push(void* to) {
-      EvrData::OutputMap& tc = *new(to) EvrData::OutputMap(_source.value,
+      Pds::EvrData::OutputMap& tc = *new(to) Pds::EvrData::OutputMap(_source.value,
 						   _source_id.value,
 						   _conn.value,
 						   _conn_id.value);
       return sizeof(tc);
     }
   private:
-    Enumerated<EvrData::OutputMap::Source> _source;
+    Enumerated<Pds::EvrData::OutputMap::Source> _source;
     NumericInt<unsigned>               _source_id;
-    Enumerated<EvrData::OutputMap::Conn> _conn;
+    Enumerated<Pds::EvrData::OutputMap::Conn> _conn;
     NumericInt<unsigned>             _conn_id;
   };
     
@@ -157,24 +157,24 @@ namespace Pds_ConfigDb {
     }
 
     bool pull(void* from) {
-      const EvrData::ConfigV1& tc = *new(from) EvrData::ConfigV1;
+      const EvrConfigType& tc = *new(from) EvrConfigType;
       _npulses.value  = tc.npulses();
       _noutputs.value = tc.noutputs();
       for(unsigned k=0; k<tc.npulses(); k++)
-	_pulses[k].pull(const_cast<EvrData::PulseConfig*>(&tc.pulse(k)));
+	_pulses[k].pull(const_cast<Pds::EvrData::PulseConfig*>(&tc.pulse(k)));
       for(unsigned k=0; k<tc.noutputs(); k++)
-	_outputs[k].pull(const_cast<EvrData::OutputMap*>(&tc.output_map(k)));
+	_outputs[k].pull(const_cast<Pds::EvrData::OutputMap*>(&tc.output_map(k)));
       return true;
     }
 
     int push(void* to) {
-      EvrData::PulseConfig* pc = new EvrData::PulseConfig[_npulses.value];
+      Pds::EvrData::PulseConfig* pc = new Pds::EvrData::PulseConfig[_npulses.value];
       for(unsigned k=0; k<_npulses.value; k++)
 	_pulses[k].push(&pc[k]);
-      EvrData::OutputMap* mo = new EvrData::OutputMap[_noutputs.value];
+      Pds::EvrData::OutputMap* mo = new Pds::EvrData::OutputMap[_noutputs.value];
       for(unsigned k=0; k<_noutputs.value; k++)
 	_outputs[k].push(&mo[k]);
-      EvrData::ConfigV1& tc = *new(to) EvrData::ConfigV1(_npulses.value,
+      EvrConfigType& tc = *new(to) EvrConfigType(_npulses.value,
 						 pc,
 						 _noutputs.value,
 						 mo);
@@ -213,5 +213,5 @@ int  EvrConfig::writeParameters(void* to) {
 
 #include "Parameters.icc"
 
-template class Enumerated<EvrData::OutputMap::Source>;
-template class Enumerated<EvrData::OutputMap::Conn>;
+template class Enumerated<Pds::EvrData::OutputMap::Source>;
+template class Enumerated<Pds::EvrData::OutputMap::Conn>;

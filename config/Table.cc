@@ -79,6 +79,11 @@ void TableEntry::set_entry(const FileEntry& e)
   _entries.push_back(e);
 }
 
+void TableEntry::remove(const FileEntry& e)
+{
+  _entries.remove(e);
+}
+
 //===============
 //  Table 
 //===============

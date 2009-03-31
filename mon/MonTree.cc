@@ -18,15 +18,15 @@ static const unsigned RetryRate=10;
 using namespace Pds;
 
 MonTree::MonTree(MonTabMenu& tabs, 
-		 MonClientManager& clientmanager,
-		 MonClient& client) :
-  _status(Disconnected),
-  _update(0),
-  _retry(0),
+		 MonClient&  client,
+		 MonClientManager* clientmanager) :
+  _status   (Disconnected),
+  _update   (0),
+  _retry    (0),
   _needretry(false),
-  _tabs(tabs),
-  _clientmanager(clientmanager),
-  _client(client)
+  _tabs     (tabs),
+  _client   (client),
+  _clientmanager(clientmanager)
 {
   QObject::connect(this, SIGNAL(ready()), this, SLOT(reset()));
 }
@@ -41,13 +41,13 @@ bool MonTree::is_connected() const
 void MonTree::connect()
 {
   _needretry = true;
-  _clientmanager.connect(_client);
+  _clientmanager->connect(_client);
 }
 
 void MonTree::disconnect()
 {
   _needretry = false;
-  _clientmanager.disconnect(_client);
+  _clientmanager->disconnect(_client);
 }
 
 void MonTree::expired() 
@@ -57,13 +57,13 @@ void MonTree::expired()
       if (_client.needspayload()) {
 	if (_client.askload() < 0) {
 	  printf("*** MonTree::expired client [%d] askload error: %s\n", 
-		 _client.socket(), strerror(errno));
+		 _client.socket().socket(), strerror(errno));
 	} else {
 	  _status = Waiting;
 	}
       }
     } else if (_status == Disconnected) {
-      if (_needretry && ++_retry == RetryRate) {
+      if (_needretry && ++_retry == RetryRate && _clientmanager) {
 	connect();
 	_retry = 0;
       }
@@ -125,6 +125,7 @@ void MonTree::title(const char* name)
   char tmp[MaxLen];
   snprintf(tmp, MaxLen, "%s: %s: %d", _client.cds().desc().name(), name, _status);
   //  setTitle(tmp);
+  //  printf("%s\n",tmp);
 }
 
 void MonTree::reset()

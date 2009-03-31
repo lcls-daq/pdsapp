@@ -180,9 +180,9 @@ void Devices_Ui::update_component_list()
   _cmplist->clear();
   _cmpcfglist->clear();
   
-  list<string> unassigned;
-  for(unsigned i=0; !PdsDefs::type_id(i).empty(); i++)
-    unassigned.push_back(PdsDefs::type_id(i));
+  list<UTypeName> unassigned;
+  for(unsigned i=0; i<PdsDefs::NumberOf; i++)
+    unassigned.push_back(PdsDefs::utypeName(PdsDefs::ConfigType(i)));
 
   Device* device(_device());
   if (device) {
@@ -195,12 +195,12 @@ void Devices_Ui::update_component_list()
 	  iter!=entry->entries().end(); iter++) {
 	string label = iter->name() + " [" + iter->entry() + "]";
 	*new QListWidgetItem(label.c_str(),_cmplist);
-	unassigned.remove(iter->name());
+	unassigned.remove(UTypeName(iter->name()));
       }
     }
   }
 
-  for(list<string>::const_iterator iter=unassigned.begin(); 
+  for(list<UTypeName>::const_iterator iter=unassigned.begin(); 
       iter!= unassigned.end(); iter++)
     _cmpcfglist->addItem(iter->c_str());
 
@@ -263,7 +263,8 @@ void Devices_Ui::change_component()
 
 void Devices_Ui::add_component(const QString& type)
 {
-  string stype(qPrintable(type));
+  string strtype(qPrintable(type));
+  UTypeName stype(strtype);
 
   QListWidgetItem* item;
   item = _devlist->currentItem();
@@ -303,6 +304,7 @@ void Devices_Ui::add_component(const QString& type)
     else if (schoice==create_str) {
       string path(_expt.data_path("",stype));
       QString qpath(path.c_str());
+
       Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath, qpath);
       d->exec();
       QString file(d->file());
@@ -321,7 +323,7 @@ void Devices_Ui::add_component(const QString& type)
   update_component_list();
 }
         
-Serializer& Devices_Ui::lookup(const string& stype)
+Serializer& Devices_Ui::lookup(const UTypeName& stype)
 { 
-  return *_dict.lookup((Pds::TypeId::Type)PdsDefs::type_index(stype));
+  return *_dict.lookup(PdsDefs::typeId(stype)->id());
 }    

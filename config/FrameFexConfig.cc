@@ -1,13 +1,11 @@
 #include "FrameFexConfig.hh"
 
 #include "pdsapp/config/Parameters.hh"
-#include "pdsdata/camera/FrameFexConfigV1.hh"
+#include "pds/config/FrameFexConfigType.hh"
 
 #include <new>
 
 using namespace Pds_ConfigDb;
-
-#define FexTC Camera::FrameFexConfigV1
 
 namespace Pds_ConfigDb {
 
@@ -28,9 +26,9 @@ namespace Pds_ConfigDb {
   class FrameFexConfig::Private_Data {
   public:
     Private_Data() :
-      _forwarding       ("Frame Forwarding", FexTC::FullFrame, Forwarding_range),
+      _forwarding       ("Frame Forwarding", FrameFexConfigType::FullFrame, Forwarding_range),
       _fwd_prescale     ("Frame Fwd Prescale", 1, 1, 0x7fffffff),
-      _processing       ("Processing", FexTC::NoProcessing, Processing_range),
+      _processing       ("Processing", FrameFexConfigType::NoProcessing, Processing_range),
       _roi_begin_col    ("ROI Begin Column", 0, 0, 0x3ff),
       _roi_begin_row    ("ROI Begin Row"   , 0, 0, 0x3ff),
       _roi_end_col      ("ROI   End Column", 0, 0, 0x3ff),
@@ -52,7 +50,7 @@ namespace Pds_ConfigDb {
     }
 
     bool pull(void* from) {
-      FexTC& tc = *new(from) FexTC;
+      FrameFexConfigType& tc = *new(from) FrameFexConfigType;
       _forwarding.value = tc.forwarding();
       _fwd_prescale.value = tc.forward_prescale();
       _processing.value    = tc.processing();
@@ -66,21 +64,22 @@ namespace Pds_ConfigDb {
     }
 
     int push(void* to) {
-      FexTC& tc = *new(to) FexTC(_forwarding.value,
-				 _fwd_prescale.value,
-				 _processing.value,
-				 Camera::FrameCoord(_roi_begin_col.value,
-						    _roi_begin_row.value),
-				 Camera::FrameCoord(_roi_end_col.value,
-						    _roi_end_row.value),
-				 _threshold.value,
-				 0, 0);
+      FrameFexConfigType& tc = 
+	*new(to) FrameFexConfigType(_forwarding.value,
+				    _fwd_prescale.value,
+				    _processing.value,
+				    Pds::Camera::FrameCoord(_roi_begin_col.value,
+							    _roi_begin_row.value),
+				    Pds::Camera::FrameCoord(_roi_end_col.value,
+							    _roi_end_row.value),
+				    _threshold.value,
+				    0, 0);
       return tc.size();
     }
   public:
-    Enumerated<FexTC::Forwarding> _forwarding;
+    Enumerated<FrameFexConfigType::Forwarding> _forwarding;
     NumericInt<unsigned>          _fwd_prescale;
-    Enumerated<FexTC::Processing> _processing;
+    Enumerated<FrameFexConfigType::Processing> _processing;
     NumericInt<unsigned short>    _roi_begin_col;
     NumericInt<unsigned short>    _roi_begin_row;
     NumericInt<unsigned short>    _roi_end_col;
@@ -109,5 +108,5 @@ int  FrameFexConfig::writeParameters(void* to) {
 #include "Parameters.icc"
 
 template class Enumerated<Forwarding_exp>;
-template class Enumerated<FexTC::Processing>;
+template class Enumerated<FrameFexConfigType::Processing>;
 template class Enumerated<MaskedPixels>;

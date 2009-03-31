@@ -83,7 +83,7 @@ namespace Pds {
     MyL1Server(unsigned platform,
 	       int size1, int size2,
 	       const Src& s) : 
-      _xtc(TypeId::Any, s), 
+      _xtc(TypeId(TypeId::Any,0), s), 
       _size0   (size1),
       _dsize   (size2-size1)
     {
