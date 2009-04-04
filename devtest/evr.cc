@@ -143,9 +143,9 @@ int main(int argc, char** argv) {
     case 'r':
       evrid = optarg;
       break;
-    case 'd':
-      EvrManager::drop_pulse(strtoul(optarg, NULL, 0));
-      break;
+//     case 'd':
+//       EvrManager::drop_pulses(strtoul(optarg, NULL, 0));
+//       break;
     }
   }
 
