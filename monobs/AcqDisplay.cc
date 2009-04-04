@@ -147,21 +147,25 @@ int AcqDisplayL1Action::process(const Xtc& xtc,
     cds.payload_sem().take();  // make image update atomic
 
     // this constants reflects two things:
-    // 1) the fact that 512 is the full-scale acqiris value,
-    //    since the value read out is a signed 10-bit number
+    // 1) the fact that 511 ADC counts = +0.5*fullscale-1bit
+    //    and -512 ADC counts = -0.5*fullscale
+    //    since the value read out is a signed 10-bit number,
+    //    and since the fullscale voltage covers -512 to +511.
     // 2) the 10-bit acqiris data is shifted left by 6 bits,
-    //    presumably to take advantage of improved performance
-    //    using signed arithmetic.
+    //    presumably to take advantage of improved CPU performance
+    //    using signed arithmetic to compute voltages.
     const unsigned normalize=
-      (2<<Acqiris::DataDescV1::NumberOfBits)*(1<<Acqiris::DataDescV1::BitShift);
+      (1<<Acqiris::DataDescV1::NumberOfBits)*(1<<Acqiris::DataDescV1::BitShift);
     for (unsigned i=0;i<_config.nbrChannels();i++) {
-      uint16_t* data = ddesc->waveform(hcfg);
+      const int16_t* data = ddesc->waveform(hcfg);
+      data += ddesc->indexFirstPoint();
       float slope = _config.vert(i).fullScale()/(float)(normalize);
       float offset = _config.vert(i).offset();
       MonEntryTH1F* entry = (MonEntryTH1F*)(_disp.config().entry(xtc.src,i));
       unsigned nbrSamples = hcfg.nbrSamples();
       for (unsigned j=0;j<nbrSamples;j++) {
-        double val = data[j]*slope-offset;
+        int16_t swap = (data[j]&0xff<<8) | (data[j]&0xff00>>8);
+        double val = swap*slope-offset;
         entry->content(val,j);
       }
       entry->time(_now);

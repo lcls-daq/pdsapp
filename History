@@ -1,3 +1,4 @@
+ 3-Apr-2009     cpo     Fix some acqiris voltage calculation bugs.
 31-Mar-2009	weaver	Tag V00-08-00. Tracks pds V00-08-00.  Moved camtest.cc to
 			devtest/opal1k.cc.  Added vmondisplay.
 24-Mar-2009     cpo     Tag V00-07-03. Remove xtcreader from pdsapp.
