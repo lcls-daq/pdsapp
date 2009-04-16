@@ -21,7 +21,7 @@ libsinc_monapp += /pcds/package/qt-4.3.4/include/QtUiTools
 libsinc_monapp += /pcds/package/qt-4.3.4/include/QtXml
 
 
-tgtnames := vmondisplay mondisplay monservertest vmonservertest
+tgtnames := vmondisplay mondisplay monservertest vmonservertest 
 
 
 tgtsrcs_vmondisplay += VmonTreeMenu.cc VmonTreeMenu_moc.cc

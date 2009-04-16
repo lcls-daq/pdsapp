@@ -5,6 +5,7 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
+#include <QtGui/QMessageBox>
 
 using namespace Pds_ConfigDb;
 
@@ -13,16 +14,19 @@ Transaction_Ui::Transaction_Ui(QWidget* parent,
   QGroupBox("Database Transaction", parent),
   _expt(expt)
 {
-  QHBoxLayout* layout = new QHBoxLayout(this);
-  QPushButton* clear  = new QPushButton("Clear" , this);
-  QPushButton* commit = new QPushButton("Commit", this);
-  QPushButton* update = new QPushButton("Update Keys", this);
+  QHBoxLayout* layout  = new QHBoxLayout(this);
+  QPushButton* clear   = new QPushButton("Clear" , this);
+  QPushButton* commit  = new QPushButton("Commit", this);
+  QPushButton* update  = new QPushButton("Update Keys", this);
+  QPushButton* current = new QPushButton("Current Keys", this);
   layout->addWidget(clear);
   layout->addWidget(commit);
   layout->addWidget(update);
-  connect(clear , SIGNAL(clicked()), this, SLOT(db_clear() ));
-  connect(commit, SIGNAL(clicked()), this, SLOT(db_commit()));
-  connect(update, SIGNAL(clicked()), this, SLOT(db_update()));
+  layout->addWidget(current);
+  connect(clear  , SIGNAL(clicked()), this, SLOT(db_clear() ));
+  connect(commit , SIGNAL(clicked()), this, SLOT(db_commit()));
+  connect(update , SIGNAL(clicked()), this, SLOT(db_update()));
+  connect(current, SIGNAL(clicked()), this, SLOT(db_current()));
   setLayout(layout);
 
   _expt.read();
@@ -46,5 +50,19 @@ void Transaction_Ui::db_commit()
 void Transaction_Ui::db_update()
 {
   _expt.update_keys();
+  _expt.write();
   emit db_changed();
+}
+
+void Transaction_Ui::db_current()
+{
+  QString message;
+  list<TableEntry>& l = _expt.table().entries();
+  for(list<TableEntry>::const_iterator iter = l.begin(); iter != l.end(); ++iter) {
+    message += iter->name().c_str();
+    message += "\t" ;
+    message += iter->key().c_str();
+    message += "\n";
+  }
+  QMessageBox::information(this, "Current Keys", message);
 }

@@ -18,29 +18,23 @@ using namespace Pds;
 
 class MyCallback : public EventCallback {
 public:
-  MyCallback(Task* task, const DetInfo& detInfo, MonServerManager& monsrv) : 
+  MyCallback(Task* task, Appliance* app) :
     _task(task), 
-    _camdisp(new CamDisplay("Cam",detInfo.phy(),monsrv)) 
+    _appliances(app)
   {
-    DisplayConfig& dc = *new DisplayConfig("Acqiris Group");
-    DetInfo det(0, DetInfo::AmoIms, 0, DetInfo::Acqiris, 0);
-    dc.request(det);
-    _acqdisp = new AcqDisplay(dc);
   }
   ~MyCallback() {}
 
   void attached (SetOfStreams& streams) 
   {
     Stream* frmk = streams.stream(StreamParams::FrameWork);
-    _camdisp->connect(frmk->inlet());
-    _acqdisp->connect(frmk->inlet());
+    _appliances->connect(frmk->inlet());
   }
-  void failed   (Reason reason) { _task->destroy(); delete this; }
+  void failed   (Reason reason)   { _task->destroy(); delete this; }
   void dissolved(const Node& who) { _task->destroy(); delete this; }
 private:
   Task*       _task;
-  CamDisplay* _camdisp;
-  AcqDisplay* _acqdisp;
+  Appliance*  _appliances;
 };
 
 int main(int argc, char** argv) {
@@ -101,13 +95,24 @@ int main(int argc, char** argv) {
   }
 
   MonServerManager* manager = new MonServerManager(MonPort::Test);
+  CamDisplay* camdisp = new CamDisplay("Cam",
+// 				       DetInfo(0, det, detid, DetInfo::Opal1000).phy(),
+// 				       1024, 1024, 12,
+				       DetInfo(0, det, detid, DetInfo::TM6740, devid).phy(),
+				       640, 480, 10,
+				       *manager);
+
+  DisplayConfig& dc = *new DisplayConfig("Acqiris Group");
+  DetInfo acqinfo(0, DetInfo::AmoIms, 0, DetInfo::Acqiris, 0);
+  dc.request(acqinfo);
+  AcqDisplay* acqdisp = new AcqDisplay(dc);
+  manager->serve();
+
+  camdisp->connect(acqdisp);
+
   Task* task = new Task(Task::MakeThisATask);
   MyCallback* display = new MyCallback(task, 
-				       DetInfo(0,
-					       det, detid,
-					       DetInfo::Opal1000, devid),
-				       *manager);
-  manager->serve();
+				       camdisp);
 
   ObserverLevel* event = new ObserverLevel(platform,
 					   partition,
@@ -122,6 +127,8 @@ int main(int argc, char** argv) {
   event->detach();
 
   manager->dontserve();
+  delete camdisp;
+  delete acqdisp;
   delete manager;
   delete display;
   delete event;

@@ -87,20 +87,18 @@ void Dialog::write()
   const int bufsize = 0x1000;
   char* buff = new char[bufsize];
 
-  { QString fullname = _write_dir + "/" + file;
-    strcpy(buff,qPrintable(fullname));
-    struct stat s;
-    if (!stat(buff,&s)) {
-      QMessageBox::warning(this, "Save error", "Chosen filename already exists");
-      delete[] buff;
-      return;
-    }
+  QString fullname = _write_dir + "/" + file;
+  strcpy(buff,qPrintable(fullname));
+  struct stat s;
+  if (!stat(buff,&s)) {
+    QMessageBox::warning(this, "Save error", "Chosen filename already exists");
+    delete[] buff;
+    return;
   }
 
-  strcpy(buff,qPrintable(file));
-  _file=QString(basename(buff));
+  _file=file;
+  FILE* output = fopen(buff,"w");
   int siz = _s.writeParameters(buff);
-  FILE* output = fopen(qPrintable(file),"w");
   fwrite(buff, siz, 1, output);
   fclose(output);
   delete[] buff;

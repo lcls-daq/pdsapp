@@ -112,24 +112,30 @@ public:
   InDatagram* occurrences(InDatagram* in) { return in; }
   InDatagram* events     (InDatagram* in) {
     const Datagram& dg = in->datagram();
-    if (dg.seq.notEvent()) return in;
-//     if (_seq && dg.seq.high() != _seq) {
-//       printf("seq %08x\n",dg.seq.high());
-//     }
-//     _seq = dg.seq.high()+1;
+    if (dg.seq.notEvent()) {
+      printf("Transition %08x/%08x\n",dg.seq.highAll(),dg.seq.low());
+      return in;
+    }
+
+    static const unsigned rollover = 2;
+    if ((_seq > dg.seq.high()) && (dg.seq.high()>rollover)) {
+      printf("seq %08x followed %08x\n",dg.seq.high(), _seq);
+    }
+    _seq = dg.seq.high();
+
     InDatagramIterator* iter = in->iterator(&_pool);
     process(dg.xtc, iter);
     delete iter;
 
-    if (dg.xtc.damage.value()) {
-      iter = in->iterator(&_pool);
-      int advance;
-      Browser browser(in->datagram(), iter, 0, advance);
-      if (in->datagram().xtc.contains.id() == TypeId::Id_Xtc)
-	if (browser.iterate() < 0)
-	  printf("..Terminated.\n");
-      delete iter;
-    }
+//     if (dg.xtc.damage.value()) {
+//       iter = in->iterator(&_pool);
+//       int advance;
+//       Browser browser(in->datagram(), iter, 0, advance);
+//       if (in->datagram().xtc.contains.id() == TypeId::Id_Xtc)
+// 	if (browser.iterate() < 0)
+// 	  printf("..Terminated.\n");
+//       delete iter;
+//     }
     return in;
   } 
 

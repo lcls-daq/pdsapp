@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
   char* endPtr;
   int c;
   EvgrOpcode::Opcode opcode = EvgrOpcode::L1Accept;
-  while ( (c=getopt( argc, argv, "a:i:o:p:r:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:o:p:r:d:")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -143,9 +143,9 @@ int main(int argc, char** argv) {
     case 'r':
       evrid = optarg;
       break;
-//     case 'd':
-//       EvrManager::drop_pulses(strtoul(optarg, NULL, 0));
-//       break;
+    case 'd':
+      EvrManager::drop_pulses(strtoul(optarg, NULL, 0));
+      break;
     }
   }
 

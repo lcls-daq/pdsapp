@@ -194,6 +194,10 @@ void Experiment::import_data(const string& device,
 
 bool Experiment::update_key(const TableEntry& entry)
 {
+  //
+  //  First, check if each device's configuration is valid in the db.
+  //  This means that the device's configuration is up-to-date (current datatype versions)
+  //
   unsigned valid=0;
   for(list<FileEntry>::const_iterator iter=entry.entries().begin();
       iter != entry.entries().end(); iter++)
@@ -204,56 +208,73 @@ bool Experiment::update_key(const TableEntry& entry)
     return false;
   }
 
+  //
+  //  Next, check if the devices' file representation are consistent with the db.
+  //  If not, create them and indicate that a new top key is needed.
+  //
   int changed=0;
   for(list<FileEntry>::const_iterator iter=entry.entries().begin();
       iter != entry.entries().end(); iter++)
-    changed += device(iter->name())->update_key(iter->entry(),_path);
+    if (device(iter->name())->update_key(iter->entry(),_path)) 
+      changed++;
 
   mode_t mode = S_IRWXU | S_IRWXG;
 
+  //
+  //  Check that the top key file representation is valid.
+  //
   const int line_size=128;
   char buff[line_size];
   string kpath = _path + "/keys/" + entry.key();
   int invalid = entry.entries().size();
   struct stat s;
-  if (!stat(kpath.c_str(),&s)) {
+  if (!stat(kpath.c_str(),&s)) {   // the key exists
+    //  check each device
     for(list<FileEntry>::const_iterator iter=entry.entries().begin();
 	iter !=entry.entries().end(); iter++) {
       const Device* d = device(iter->name());
-      string dpath = string("../") + iter->name() + "/" + d->table().get_top_entry(iter->entry())->key();
+      string dpath = "../" + iter->name() + "/" + d->table().get_top_entry(iter->entry())->key();
       const list<DeviceEntry>& slist = d->src_list();
       int invalid_device = slist.size();
+      //  Check each <src> entry for the device
       for(list<DeviceEntry>::const_iterator siter = slist.begin();
 	  siter != slist.end(); siter++) {
-	string spath = kpath + "/" + siter->id();
-	unsigned sz=line_size;
-	if (!stat(spath.c_str(),&s) &&
-	    readlink(spath.c_str(),buff,sz) &&
-	    string(buff)==dpath)
-	  --invalid_device;
+	string spath = kpath + "/" + Pds::CfgPath::src_key(*siter);
+	if (!stat(spath.c_str(),&s)) {
+	  int sz=readlink(spath.c_str(),buff,line_size);
+	  if (sz>0) {
+	    buff[sz] = 0;
+	    if (!strcmp(buff,dpath.c_str()))
+	      --invalid_device;
+	  }
+	}
       }
-      if (invalid_device==0)
+      if (invalid_device==0)  // this device is valid
 	--invalid;
     }
   }
+  else {
+    printf("The top key file (%s) doesn't yet exist\n", kpath.c_str());
+  }
   
   if (invalid) {
-    string p = _path + "/keys/[0-9]*";
+    kpath = _path + "/keys/[0-9]*";
     glob_t g;
-    glob(p.c_str(),0,0,&g);
+    glob(kpath.c_str(),0,0,&g);
     sprintf(buff,"%08x",g.gl_pathc);
     globfree(&g);
     string key(buff);
     TableEntry te = TableEntry(entry.name(),key,entry.entries());
-    p = _path + "/keys/" + key;
-    mkdir(p.c_str(),mode);
+    kpath = _path + "/keys/" + key;
+    mkdir(kpath.c_str(),mode);
     for(list<FileEntry>::const_iterator iter=te.entries().begin();
 	iter!=te.entries().end(); iter++) {
       Device* d = device(iter->name());
       string dpath = "../" + iter->name() + "/" + d->table().get_top_entry(iter->entry())->key();
-      for(list<DeviceEntry>::const_iterator diter=d->src_list().begin();
-	  diter!=d->src_list().end(); diter++) {
-	string spath = p + "/" + Pds::CfgPath::src_key(*diter);
+      const list<DeviceEntry>& slist = d->src_list();
+      for(list<DeviceEntry>::const_iterator siter=slist.begin();
+	  siter != slist.end(); siter++) {
+	string spath = kpath + "/" + Pds::CfgPath::src_key(*siter);
 	symlink(dpath.c_str(),spath.c_str());
       }
     }

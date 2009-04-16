@@ -1,7 +1,6 @@
 #include "pds/collection/CollectionManager.hh"
 #include "pds/utility/Transition.hh"
-#include "pds/collection/Route.hh"
-#include "pds/collection/CollectionPorts.hh"
+#include "pds/utility/Occurrence.hh"
 
 #include "pds/service/Semaphore.hh"
 #include "pds/utility/StreamPorts.hh"
@@ -20,9 +19,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-static int l1rate=0;
-static bool verbose;
-
 namespace Pds {
 
   class NodeL : public LinkedList<NodeL> {
@@ -37,6 +33,20 @@ namespace Pds {
     while( (n=list.forward()) != list.empty() )
       delete n->disconnect();    
   }
+
+  class MyControl;
+  class SequenceJob : public Routine {
+  public:
+    SequenceJob(MyControl& control,
+		const Transition& tr) :
+      _control(control) 
+    { memcpy(_buffer, &tr, tr.size()); }
+  public:
+    void routine();
+  private:
+    MyControl& _control;
+    char       _buffer[sizeof(Allocate)];
+  };
 
   //  Add partition management to control level
   class MyControl : public ControlLevel {
@@ -53,31 +63,18 @@ namespace Pds {
       _trnsPool   (sizeof(Allocate),2),
       _trnsSem    (Semaphore::EMPTY),
       _pending    (0),
-      _nnodes     (0)
+      _nnodes     (0),
+      _sequenceTask(new Task(TaskObject("controlSeq")))
     {
     }
-    ~MyControl() {}
+    ~MyControl() { _sequenceTask->destroy(); }
 
     void add_reporter(const Node& n)
     {
       _reporters.insert(new(&_nodePool) NodeL(n));
     }
 
-    void execute(Transition& tr) {
-      clearNodeList(_transition);
-
-      NodeL* n=_partition.forward();
-      while( n != _partition.empty() ) {
-	_transition.insert(new(&_nodePool) NodeL(n->node));
-	n = n->forward();
-      }
-
-      mcast(tr);
-
-      _trnsSem.take();  // block until transition is complete
-    }
-
-    void map(const Sequence& seq, unsigned mask)
+    void map(unsigned mask)
     {
       if (!mask) mask=-1UL;
       printf("Mapping nodes 0x%x\n",mask);
@@ -164,10 +161,60 @@ namespace Pds {
 	  }
 	}
 	break;
+      case Message::Occurrence:
+	{
+	  const Occurrence& occ = reinterpret_cast<const Occurrence&>(msg);
+	  switch(occ.id()) {
+	  case OccurrenceId::ClearReadout:
+	    execute(TransitionId::Disable,0);
+	    break;
+	  default:
+	    break;
+	  }
+	}
       default:
 	break;
       }
       ControlLevel::message(hdr,msg);
+    }
+
+    void execute(TransitionId::Value id, unsigned env) 
+    {
+      //  timestamp and pulseId should come from master EVR
+      //  fake it for now
+      timespec tp;
+      clock_gettime(CLOCK_REALTIME, &tp);
+      unsigned  sec  = tp.tv_sec;
+      unsigned  nsec = tp.tv_nsec&~0x7FFFFF;
+      unsigned  pulseId = (tp.tv_nsec >> 23) | (tp.tv_sec << 9);
+      ClockTime clockTime(sec,nsec);
+	
+      Transition tr(id,
+		    Transition::Execute,
+		    Sequence(Sequence::Event,
+			     id,
+			     clockTime, 0, pulseId),
+		    env );
+      execute(tr);
+    }
+
+    void execute(const Transition& tr) {
+      _sequenceTask->call( new SequenceJob(*this,tr) );
+    }
+
+  private:
+    void _execute(Transition& tr) {
+      clearNodeList(_transition);
+
+      NodeL* n=_partition.forward();
+      while( n != _partition.empty() ) {
+	_transition.insert(new(&_nodePool) NodeL(n->node));
+	n = n->forward();
+      }
+
+      mcast(tr);
+
+      _trnsSem.take();  // block until transition is complete
     }
 
   private:
@@ -182,77 +229,16 @@ namespace Pds {
     LinkedList<NodeL> _transition;
     Transition*       _pending;
     unsigned          _nnodes;
+    Task*             _sequenceTask;
+
+    friend class SequenceJob;
   };
 
-  class MyEnable : public Routine {
-  public:
-    MyEnable(CollectionManager& control,
-	     Task* task) : _control(control), 
-			   _task(task), 
-			   _enabled(false), 
-			   _pulseId(0) 
-    {
-      _td.tv_sec = 0;
-      _td.tv_nsec = (1<<30)/l1rate;
-    }
-
-    void enable() { if (!_enabled) { _enabled = true; _task->call(this); } }
-    void disable() { _enabled = false; }
-    void routine() {
-
-      nanosleep( &_td, 0 );
-
-      timespec tp;
-      clock_gettime(CLOCK_REALTIME, &tp);
-      unsigned  sec  = tp.tv_sec;
-      unsigned  nsec = tp.tv_nsec&~0x7FFFFF;
-      unsigned  pulseId = (tp.tv_nsec >> 23) | (tp.tv_sec << 9);
-      if (pulseId != _pulseId) {
-
-	_pulseId = pulseId;
-
-	ClockTime clockTime(sec,nsec);
-	
-	//  Set the L1 time with granularity of ~8.39ms (2**23 ns) / 119Hz
-	Transition tr(TransitionId::L1Accept,
-		      Transition::Record,
-		      Sequence(Sequence::Event,
-			       TransitionId::L1Accept,
-			       clockTime, 0, pulseId),
-		      0 );
-	_control.mcast(tr);
-      }
-
-      if (_enabled)
-	_task->call(this);
-    }
-    ~MyEnable() {
-      _task->destroy();
-    }
-  private:
-    CollectionManager& _control;
-    Task* _task;
-    volatile bool  _enabled;
-    unsigned _pulseId;
-    timespec _td;
-  };
-    
-  class TransitionAction : public Appliance {
-  public:
-    TransitionAction(CollectionManager& control) :
-      _action(new MyEnable(control,new Task(TaskObject("l1loop")))) 
-    {}
-    ~TransitionAction() { delete _action; }
-    Transition* transitions(Transition* i) { 
-      if      (i->id() == TransitionId::Enable)  _action->enable();
-      else if (i->id() == TransitionId::Disable) _action->disable();
-      return i; 
-    }
-    InDatagram* occurrences(InDatagram* i) { return i; } 
-    InDatagram* events     (InDatagram* i) { return i; }
-  private:
-    MyEnable* _action;
-  };
+  void SequenceJob::routine() 
+  { 
+    _control._execute(*reinterpret_cast<Transition*>(_buffer)); 
+    delete this; 
+  }
 
   class ControlAction : public Appliance {
   public:
@@ -297,10 +283,7 @@ namespace Pds {
     void allocated(SetOfStreams& streams) {
       //  By default, there are no external clients for this stream
       Stream& frmk = *streams.stream(StreamParams::FrameWork);
-      //      frmk.outlet()->sink(Sequence::Event, (1<<Sequence::NumberOfServices)-1);
       (new ControlAction(*_outlet))   ->connect(frmk.inlet());
-      if (l1rate) 
-	(new TransitionAction(*_outlet))->connect(frmk.inlet());
       (new Decoder(Level::Control))   ->connect(frmk.inlet());
       printf("Partition allocated\n");
     }
@@ -327,10 +310,9 @@ int main(int argc, char** argv)
   unsigned nbld = 0;
   const char* partition = "partition";
   const char* dbpath    = "none";
-  verbose = false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:b:r:P:D:v")) != -1) {
+  while ((c = getopt(argc, argv, "p:b:P:D:")) != -1) {
     char* endPtr;
     switch (c) {
     case 'b':
@@ -340,23 +322,16 @@ int main(int argc, char** argv)
       platform = strtoul(optarg, &endPtr, 0);
       if (errno != 0 || endPtr == optarg) platform = 0;
       break;
-    case 'r':
-      l1rate = strtoul(optarg, &endPtr, 0);
-      if (l1rate == 0) l1rate = 200;
-      break;
     case 'P':
       partition = optarg;
       break;
     case 'D':
       dbpath = optarg;
       break;
-    case 'v':
-      verbose = true;
-      break;
     }
   }
   if (!platform) {
-    printf("usage: %s -p <platform> [-b <bld> -r <l1rate> -P <partition_description> -D <db name>]\n", argv[0]);
+    printf("usage: %s -p <platform> [-b <bld> -P <partition_description> -D <db name>]\n", argv[0]);
     return 0;
   }
 
@@ -397,23 +372,15 @@ int main(int argc, char** argv)
       if (!result) {
         fprintf(stdout, "\nExiting\n");
         break;
-      } else {
-	clock_gettime(CLOCK_REALTIME, &tp);
-	unsigned  sec  = tp.tv_sec;
-	unsigned  nsec = tp.tv_nsec&~0x7FFFFF;
-	unsigned  pulseId = (tp.tv_nsec >> 23) | (tp.tv_sec << 9);
-	ClockTime clockTime(sec,nsec);
-	
+      } 
+      else {
         int len = strlen(result)-1;
         if (len <= 0) continue;
         while (*result && *result != '\n') {
           char cmd = *result++;
 	  unsigned env = strtoul(result,&result,16);
 	  if      (cmd=='P') control.ping();
-	  else if (cmd=='m') control.map(Sequence(Sequence::Event,
-						  TransitionId::Map,
-						  clockTime, 0, pulseId),
-					 env);
+	  else if (cmd=='m') control.map(env);
 	  else if (cmd=='M') control.unmap();
 	  else {
 	    TransitionId::Value id;
@@ -424,28 +391,9 @@ int main(int argc, char** argv)
 	    case 'R': id = TransitionId::EndRun; break;
 	    case 'e': id = TransitionId::Enable; break;
 	    case 'd': id = TransitionId::Disable; break;
-	    case 's':
-	      {
-		id = TransitionId::L1Accept;
-		Transition tr(id,
-			      Transition::Record,
-			      Sequence(Sequence::Event,
-				       id,
-				       clockTime, 0, pulseId),
-			      env);
-		control.mcast(tr);
-		continue;
-	      }
-	    default:
-	      continue;
+	    default:  continue;
 	    }
-	    Transition tr(id,
-			  Transition::Execute,
-			  Sequence(Sequence::Event,
-				   id,
-				   clockTime, 0, pulseId),
-			  env );
-	    control.execute(tr);
+	    control.execute(id, env);
 	  }
         }
       }  

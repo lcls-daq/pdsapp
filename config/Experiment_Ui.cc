@@ -172,15 +172,10 @@ void Experiment_Ui::update_config_list()
   disconnect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_device_list()));
   _cfglist->clear();
   list<TableEntry>& l = _expt.table().entries();
-  for(list<TableEntry>::const_iterator iter = l.begin(); iter != l.end(); ++iter)
+  for(list<TableEntry>::const_iterator iter = l.begin(); iter != l.end(); ++iter) {
     *new QListWidgetItem(iter->name().c_str(), _cfglist);
+  }
   connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_device_list()));
 }
-
-
-
-
-
-
 
 

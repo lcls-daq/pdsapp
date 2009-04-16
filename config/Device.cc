@@ -112,13 +112,17 @@ bool Device::update_key(const string& config, const string& path)
     string tpath = typepath(path,entry->key(),utype);
     string tlink = typelink(utype,iter->entry());
     if (!stat(tpath.c_str(),&s)) {
-      unsigned sz=line_size;
-      if (!(readlink(tpath.c_str(),buff,sz) && 
-	    string(buff)==tlink))
-	outofdate=true;
+      int sz=readlink(tpath.c_str(),buff,line_size);
+      if (sz<0) outofdate=true;
+      else {
+	buff[sz] = 0;
+	if (strcmp(buff,tlink.c_str())) 
+	  outofdate=true;
+      }
     }
-    else
+    else {
       outofdate=true;
+    }
   }
 
   if (outofdate) {

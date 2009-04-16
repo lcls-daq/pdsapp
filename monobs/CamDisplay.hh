@@ -18,6 +18,9 @@ namespace Pds {
   public:
     CamDisplay(const char* name,
 	       unsigned detectorId,
+	       unsigned width,
+	       unsigned height,
+	       unsigned depth,
 	       MonServerManager& monsrv);
     ~CamDisplay();
 

@@ -4,6 +4,7 @@
 
 #include "pds/service/Task.hh"
 
+#include "pds/vmon/VmonRecorder.hh"
 #include "pds/mon/MonClient.hh"
 #include "pds/utility/Transition.hh"
 
@@ -57,7 +58,8 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
   _tabs     (tabs),
   _selected (0),
   _partition_id(0),
-  _last_transition(TransitionId::Unknown)
+  _last_transition(TransitionId::Unknown),
+  _recorder (new VmonRecorder)
 {
   QVBoxLayout* layout = new QVBoxLayout(this);
 
@@ -88,14 +90,34 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
   }
   layout->addWidget(control);
 
+  QGroupBox* record = new QGroupBox("Record", this);
+  { QVBoxLayout* rlayout = new QVBoxLayout;
+    _filename_label = new QLabel("", record);
+    _filesize_label = new QLabel("", record);
+    rlayout->addWidget(_filename_label);
+    rlayout->addWidget(_filesize_label);
+    { QHBoxLayout* hlayout = new QHBoxLayout;
+      QPushButton* startButton = new QPushButton("Start", record);
+      QPushButton* stopButton  = new QPushButton("Stop", record);
+      hlayout->addWidget(startButton);
+      hlayout->addWidget(stopButton);
+      rlayout->addLayout(hlayout); 
+      QObject::connect(startButton, SIGNAL(clicked()), this, SLOT(record_start()));
+      QObject::connect(stopButton , SIGNAL(clicked()), this, SLOT(record_stop()));
+    }
+    record->setLayout(rlayout);
+  }
+  layout->addWidget(record);
+
   _client_bg     = new QButtonGroup(this);
-  _client_bg_box = new QGroupBox("Components", this);
+  _client_bg_box = new QGroupBox("Display", this);
   _client_bg_box->setLayout(new QVBoxLayout(_client_bg_box));
   layout->addWidget(_client_bg_box);
 
   QObject::connect(_client_bg, SIGNAL(buttonClicked(int)), this, SLOT(set_tree(int)));
 
-  QObject::connect(this, SIGNAL(updated()), this, SLOT(update_control()));
+  QObject::connect(this, SIGNAL(control_updated()), this, SLOT(control_update()));
+  QObject::connect(this, SIGNAL(record_updated()), this, SLOT(record_update()));
   QObject::connect(this, SIGNAL(client_added(void*)), 
 		   this, SLOT(add_client(void*)));
 
@@ -112,31 +134,17 @@ VmonTreeMenu::~VmonTreeMenu()
 {
 }
 
-void VmonTreeMenu::update_control()
-{
-  _partition_id_edit->setText(QString::number(_partition_id));
-
-  QString last_transition("LastTr: ");
-  last_transition += TransitionId::name(_last_transition);
-  _transition_label->setText(last_transition);
-}
-
 void VmonTreeMenu::expired() 
 {
+  _recorder->flush();
   request_payload();
+  emit record_updated();
 }
 
 void VmonTreeMenu::set_tree(int c)
 {
   MonClient* client = reinterpret_cast<MonClient*>(c);
   _tabs.reset(*client);
-}
-
-void VmonTreeMenu::event(MonTree& tree,
-			 MonConsumerClient::Type type, 
-			 int result)
-{
-  tree.event(type, result);
 }
 
 void VmonTreeMenu::control_start()
@@ -148,6 +156,32 @@ void VmonTreeMenu::control_start()
 void VmonTreeMenu::control_stop()
 {
   VmonClientManager::disconnect();
+}
+
+void VmonTreeMenu::control_update()
+{
+  _partition_id_edit->setText(QString::number(_partition_id));
+
+  QString last_transition("LastTr: ");
+  last_transition += TransitionId::name(_last_transition);
+  _transition_label->setText(last_transition);
+}
+
+
+void VmonTreeMenu::record_start()
+{
+  _recorder->enable();
+}
+
+void VmonTreeMenu::record_stop()
+{
+  _recorder->disable();
+}
+
+void VmonTreeMenu::record_update()
+{
+  _filename_label->setText(QString(_recorder->filename()));
+  _filesize_label->setText(QString::number(_recorder->filesize())+" bytes");
 }
 
 
@@ -172,6 +206,13 @@ void VmonTreeMenu::write_config()
     _tabs.writeconfig(qPrintable(fname));
 }
 
+void VmonTreeMenu::event(MonTree& tree,
+			 MonConsumerClient::Type type, 
+			 int result)
+{
+  tree.event(type, result);
+}
+
 void VmonTreeMenu::process(MonClient& client, 
 			   MonConsumerClient::Type type, 
 			   int result)
@@ -180,6 +221,8 @@ void VmonTreeMenu::process(MonClient& client,
   if (it != _map.end())
     _task.call(new VmonTreeEvent(*this,*(it->second), 
 				 type, result));
+  if (type==MonConsumerClient::Description)  _recorder->description(client);
+  if (type==MonConsumerClient::Payload    )  _recorder->payload    (client);
 }
 
 void VmonTreeMenu::allocated(const Allocation& alloc,
@@ -191,9 +234,8 @@ void VmonTreeMenu::allocated(const Allocation& alloc,
 void VmonTreeMenu::post(const Transition& tr)
 {
   _last_transition = tr.id();
-  printf("posted transition %s\n",TransitionId::name(tr.id()));
   VmonClientManager::post(tr);
-  emit updated();
+  emit control_updated();
 }
 
 void VmonTreeMenu::add(MonClient& client)

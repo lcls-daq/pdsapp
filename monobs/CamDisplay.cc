@@ -23,7 +23,7 @@
 namespace Pds {
   class MonFex {
   public:
-    MonFex(MonGroup&);
+    MonFex(MonGroup&, unsigned width, unsigned height, unsigned depth);
     
     int update(InDatagramIterator& iter,
 	       const ClockTime& now);
@@ -41,12 +41,13 @@ namespace Pds {
 
 using namespace Pds;
 
-enum { Columns=1024 };
-enum { Rows=1024 };
 enum { BinShift=1 };
 
 CamDisplay::CamDisplay(const char* name,
 		       unsigned detectorId,
+		       unsigned width,
+		       unsigned height,
+		       unsigned depth,
 		       MonServerManager& monsrv) :
   _detectorId(detectorId),
   _iter      (sizeof(ZcpDatagramIterator),1),
@@ -56,13 +57,13 @@ CamDisplay::CamDisplay(const char* name,
   sprintf(name_buffer,"%s Image",name);
   { MonGroup* group = new MonGroup(name_buffer);
     monsrv.cds().add(group);
-    MonDescImage desc("Image",Columns>>BinShift,Rows>>BinShift,1<<BinShift,1<<BinShift);
+    MonDescImage desc("Image",width>>BinShift,height>>BinShift,1<<BinShift,1<<BinShift);
     group->add(_image = new MonEntryImage(desc));
   }
   sprintf(name_buffer,"%s Fex",name);
   { MonGroup* group = new MonGroup(name_buffer);
     monsrv.cds().add(group);
-    _fex = new MonFex(*group);
+    _fex = new MonFex(*group,width,height,depth);
   }
 }
 
@@ -133,34 +134,40 @@ InDatagram* CamDisplay::events     (InDatagram* in)
 }
 
 
-enum { FexBinShift=3 };
+enum { FexMeanShift =3 };
+enum { FexWidthShift=2 };
 
-MonFex::MonFex(MonGroup& group)
+MonFex::MonFex(MonGroup& group, unsigned width, unsigned height, unsigned depth)
 {
+  int nb = 128;
+  float maxi = (1<<depth)*width*height;
   group.add(integral = 
 	    new MonEntryTH1F(MonDescTH1F("Integral",
 					 "Counts","Events",
-					 128,0.,4096*1024*1024.)));
+					 nb,0.,maxi)));
   group.add(logintegral = 
 	    new MonEntryTH1F(MonDescTH1F("Log10Integral",
 					 "Log10(Counts)","Events",
-					 128,0.,log10(4096*1024*1024.))));
+					 nb,0.,log10(maxi))));
+  nb = width>>FexMeanShift;
   group.add(meanx = 
 	    new MonEntryTH1F(MonDescTH1F("MeanX",
 					 "Pixel","Events",
-					 128,0.,1024.)));
+					 nb,0.,float(nb<<FexMeanShift))));
+  nb = height>>FexMeanShift;
   group.add(meany = 
 	    new MonEntryTH1F(MonDescTH1F("MeanY",
 					 "Pixel","Events",
-					 128,0.,1024.)));
+					 nb,0.,float(nb<<FexMeanShift))));
+  nb = (width > height ? width : height)>>(FexWidthShift+1);
   group.add(major = 
 	    new MonEntryTH1F(MonDescTH1F("Major",
 					 "Pixels","Events",
-					 128,0.,1024.)));
+					 nb,0.,float(nb<<FexWidthShift))));
   group.add(minor = 
 	    new MonEntryTH1F(MonDescTH1F("Minor",
 					 "Pixels","Events",
-					 128,0.,1024.)));
+					 nb,0.,float(nb<<FexWidthShift))));
   group.add(tilt = 
 	    new MonEntryTH1F(MonDescTH1F("Tilt",
 					 "Radians","Events",
@@ -175,10 +182,10 @@ int MonFex::update(InDatagramIterator& iter,
   int advance = iter.copy(&gss, sizeof(TwoDGaussianType));
   integral->addcontent(1.,double(gss.integral()));
   logintegral->addcontent(1.,log10(double(gss.integral())));
-  meanx   ->addcontent(1.,unsigned(gss.xmean())>>FexBinShift);
-  meany   ->addcontent(1.,unsigned(gss.ymean())>>FexBinShift);
-  major   ->addcontent(1.,unsigned(gss.major_axis_width())>>FexBinShift);
-  minor   ->addcontent(1.,unsigned(gss.minor_axis_width())>>FexBinShift);
+  meanx   ->addcontent(1.,unsigned(gss.xmean())>>FexMeanShift);
+  meany   ->addcontent(1.,unsigned(gss.ymean())>>FexMeanShift);
+  major   ->addcontent(1.,unsigned(gss.major_axis_width())>>FexWidthShift);
+  minor   ->addcontent(1.,unsigned(gss.minor_axis_width())>>FexWidthShift);
   tilt    ->addcontent(1.,gss.major_axis_tilt());
   integral->time(now);
   logintegral->time(now);

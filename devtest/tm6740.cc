@@ -10,7 +10,7 @@
 #include "pds/service/Task.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pds/camera/Opal1kManager.hh"
+#include "pds/camera/TM6740Manager.hh"
 #include "pds/camera/FexFrameServer.hh"
 
 #include <signal.h>
@@ -39,13 +39,13 @@ namespace Pds {
 	    const Src&            src) :
       _task    (task),
       _platform(platform),
-      _opal1k  (new Opal1kManager(src))
+      _camman  (new TM6740Manager(src))
     {
     }
 
     virtual ~SegTest()
     {
-      delete _opal1k;
+      delete _camman;
       _task->destroy();
     }
 
@@ -55,7 +55,7 @@ namespace Pds {
 		  StreamParams::StreamType s,
 		  int interface)
     {
-      wire.add_input(&_opal1k->server());
+      wire.add_input(&_camman->server());
     }
 
   private:
@@ -66,7 +66,7 @@ namespace Pds {
 	     _platform);
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
-      _opal1k->appliance().connect(frmk->inlet());
+      _camman->appliance().connect(frmk->inlet());
       //      (new Decoder)->connect(frmk->inlet());
     }
     void failed(Reason reason)
@@ -97,7 +97,7 @@ namespace Pds {
   private:
     Task*          _task;
     unsigned       _platform;
-    Opal1kManager* _opal1k;
+    TM6740Manager* _camman;
   };
 }
 
@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
 				 platform, 
 				 DetInfo(node.pid(), 
 					 det, detid, 
-					 DetInfo::Opal1000, devid));
+					 DetInfo::TM6740, devid));
   SegmentLevel* segment = new SegmentLevel(platform, 
 					   *segtest,
 					   *segtest, 

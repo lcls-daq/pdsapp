@@ -21,6 +21,7 @@ namespace Pds {
   class MonClient;
   class MonTabMenu;
   class MonTree;
+  class VmonRecorder;
 
   class VmonTreeMenu : public QGroupBox,
 		       public MonConsumerClient,
@@ -38,12 +39,17 @@ namespace Pds {
     void event(MonTree&, MonConsumerClient::Type type, int result);
 
   signals:
-    void updated();
+    void control_updated();
+    void record_updated();
     void client_added(void*);
   public slots:
     void control_start();
     void control_stop();
-    void update_control();
+    void control_update();
+
+    void record_start ();
+    void record_stop  ();
+    void record_update();
 
     void read_config();
     void write_config();
@@ -75,6 +81,9 @@ namespace Pds {
     TransitionId::Value _last_transition;
     QGroupBox*    _client_bg_box;
     QButtonGroup* _client_bg;
+    VmonRecorder* _recorder;
+    QLabel*       _filename_label;
+    QLabel*       _filesize_label;
   };
 };
 

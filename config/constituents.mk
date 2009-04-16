@@ -9,7 +9,7 @@ tgtsrcs_configdb += Device.cc
 tgtsrcs_configdb += Experiment.cc
 tgtsrcs_configdb += PdsDefs.cc
 tgtsinc_configdb := /pcds/package/qt-4.3.4/include
-tgtlibs_configdb := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata pdsdata/evrdata
+tgtlibs_configdb := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata
 tgtlibs_configdb += qt/QtGui qt/QtCore
 tgtslib_configdb := /usr/lib/rt
 
@@ -29,12 +29,13 @@ tgtsrcs_configdb_gui += Validators.cc Validators_moc.cc
 tgtsrcs_configdb_gui += ParameterSet.cc ParameterSet_moc.cc
 tgtsrcs_configdb_gui += SerializerDictionary.cc
 tgtsrcs_configdb_gui += Opal1kConfig.cc
+tgtsrcs_configdb_gui += TM6740Config.cc
 tgtsrcs_configdb_gui += FrameFexConfig.cc
 tgtsrcs_configdb_gui += EvrConfig.cc
 tgtsrcs_configdb_gui += Parameters.cc
 tgtsrcs_configdb_gui += templates.cc
 tgtsinc_configdb_gui := /pcds/package/qt-4.3.4/include
-tgtlibs_configdb_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata pdsdata/evrdata
+tgtlibs_configdb_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata
 tgtlibs_configdb_gui += qt/QtGui qt/QtCore
 tgtslib_configdb_gui := /usr/lib/rt
 

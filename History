@@ -1,3 +1,10 @@
+16-Apr-2009	weaver	Fixed some bugs in configdb_gui (always generated new keys).
+			Added Pulnix TM6740CL to configdb_gui and devtest/tm6740.
+			Added -d option to devtest/evr to simulate dropped evr multicasts.
+			Added vmon archiving.  Added error message from test/StatsApp to
+			note out-or-order pulse ids (except on rollover).
+			Added ClearReadout occurrence handling in test/controltest to
+			automatically 'disable'.
  3-Apr-2009     cpo     Fix some acqiris voltage calculation bugs.
 31-Mar-2009	weaver	Tag V00-08-00. Tracks pds V00-08-00.  Moved camtest.cc to
 			devtest/opal1k.cc.  Added vmondisplay.
