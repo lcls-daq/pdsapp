@@ -112,16 +112,16 @@ public:
   InDatagram* occurrences(InDatagram* in) { return in; }
   InDatagram* events     (InDatagram* in) {
     const Datagram& dg = in->datagram();
-    if (dg.seq.notEvent()) {
-      printf("Transition %08x/%08x\n",dg.seq.highAll(),dg.seq.low());
+    if (!dg.seq.isEvent()) {
+      printf("Transition %08x/%08x\n",dg.seq.stamp().fiducials(),dg.seq.stamp().ticks());
       return in;
     }
 
     static const unsigned rollover = 2;
-    if ((_seq > dg.seq.high()) && (dg.seq.high()>rollover)) {
-      printf("seq %08x followed %08x\n",dg.seq.high(), _seq);
+    if ((_seq > dg.seq.stamp().fiducials()) && (dg.seq.stamp().fiducials()>rollover)) {
+      printf("seq %08x followed %08x\n",dg.seq.stamp().fiducials(), _seq);
     }
-    _seq = dg.seq.high();
+    _seq = dg.seq.stamp().fiducials();
 
     InDatagramIterator* iter = in->iterator(&_pool);
     process(dg.xtc, iter);

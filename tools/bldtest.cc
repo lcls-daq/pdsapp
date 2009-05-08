@@ -109,7 +109,7 @@ void BldDriver::send(unsigned rate)
       Sequence seq(Sequence::Event,
 		   TransitionId::L1Accept,
 		   ClockTime(sec,nsec),
-		   0, pulseId);
+		   TimeStamp(0, pulseId));
       BldService* srv = _service.forward();
       while( srv != _service.empty() ) {
 	srv->send(seq);

@@ -193,7 +193,7 @@ namespace Pds {
 		    Transition::Execute,
 		    Sequence(Sequence::Event,
 			     id,
-			     clockTime, 0, pulseId),
+			     clockTime, TimeStamp(0, pulseId)),
 		    env );
       execute(tr);
     }
@@ -264,8 +264,7 @@ namespace Pds {
 		      Sequence(Sequence::Event,
 			       i->id(),
 			       i->sequence().clock(), 
-			       i->sequence().low(),
-			       i->sequence().high()),
+			       i->sequence().stamp()),
 		      i->env() );
 	_control.mcast(tr);
       }

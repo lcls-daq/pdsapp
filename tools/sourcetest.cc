@@ -58,7 +58,7 @@ void EvrService::message(const Node& hdr, const Message& msg)
 	if (_evr%1000 == 0)
 	  printf("EvrService::out %x:%08x/%08x to %x/%d\n",
 		 datagram.evr,
-		 datagram.seq.highAll(),datagram.seq.low(),
+		 datagram.seq.stamp().fiducials(),datagram.seq.stamp().ticks(),
 		 dst.address(),dst.portId());
       }
       else {
