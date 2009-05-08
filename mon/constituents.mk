@@ -2,23 +2,23 @@ libnames := monapp
 
 libsrcs_monapp := $(filter-out MonMain.cc MonTreeMenu.cc MonTreeMenu_moc.cc, $(wildcard Mon*.cc))
 libsrcs_monapp += MonDialog_moc.cc MonQtImageDisplay_moc.cc MonTab_moc.cc MonCanvas_moc.cc MonTree_moc.cc
-libsinc_monapp := /pcds/package/qt-4.3.4/include
-libsinc_monapp += /pcds/package/external/qwt-5.1.1/include
+libincs_monapp := qt/include
+libincs_monapp += qwt/include
 # qwt includes qt headers without package prefix!
-libsinc_monapp += /pcds/package/qt-4.3.4/include/Qt
-libsinc_monapp += /pcds/package/qt-4.3.4/include/Qt3Support
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtAssistant
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtCore
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtDesigner
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtGui
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtNetwork
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtOpenGL
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtScript
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtSql
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtSvg
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtTest
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtUiTools
-libsinc_monapp += /pcds/package/qt-4.3.4/include/QtXml
+libincs_monapp += qt/include/Qt
+libincs_monapp += qt/include/Qt3Support
+libincs_monapp += qt/include/QtAssistant
+libincs_monapp += qt/include/QtCore
+libincs_monapp += qt/include/QtDesigner
+libincs_monapp += qt/include/QtGui
+libincs_monapp += qt/include/QtNetwork
+libincs_monapp += qt/include/QtOpenGL
+libincs_monapp += qt/include/QtScript
+libincs_monapp += qt/include/QtSql
+libincs_monapp += qt/include/QtSvg
+libincs_monapp += qt/include/QtTest
+libincs_monapp += qt/include/QtUiTools
+libincs_monapp += qt/include/QtXml
 
 
 tgtnames := vmondisplay mondisplay monservertest vmonservertest 
@@ -30,8 +30,8 @@ tgtsrcs_vmondisplay += vmondisplay.cc
 tgtlibs_vmondisplay := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pdsapp/monapp
 tgtlibs_vmondisplay += qt/QtGui qt/QtCore
 tgtlibs_vmondisplay += qwt/qwt
-tgtsinc_vmondisplay := /pcds/package/qt-4.3.4/include
-tgtsinc_vmondisplay += /pcds/package/external/qwt-5.1.1/include
+tgtincs_vmondisplay := qt/include
+tgtincs_vmondisplay += qwt/include
 
 tgtsrcs_mondisplay += MonTreeMenu.cc MonTreeMenu_moc.cc
 tgtsrcs_mondisplay += MonMain.cc
@@ -39,8 +39,8 @@ tgtsrcs_mondisplay += mondisplay.cc
 tgtlibs_mondisplay := pdsdata/xtcdata pds/service pds/mon pdsapp/monapp
 tgtlibs_mondisplay += qt/QtGui qt/QtCore
 tgtlibs_mondisplay += qwt/qwt
-tgtsinc_mondisplay := /pcds/package/qt-4.3.4/include
-tgtsinc_mondisplay += /pcds/package/external/qwt-5.1.1/include
+tgtincs_mondisplay := qt/include
+tgtincs_mondisplay += qwt/include
 
 tgtsrcs_monservertest += monservertest.cc
 tgtlibs_monservertest := pdsdata/xtcdata pds/service pds/mon
