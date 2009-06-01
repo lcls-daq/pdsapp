@@ -59,13 +59,11 @@ void MonCanvas::menu_service(Select s, const char* label, const char* slot,
 
 void MonCanvas::close() {}
 
-const QImage* MonCanvas::image() const { return 0; }
-
 void MonCanvas::save_image()  
 {
-  const QImage* img = image();
-  if (!img)
-    return;
+  QPixmap pixmap(QWidget::size());
+  QWidget::render(&pixmap);
+  QImage img = pixmap.toImage();
 
   char time_buffer[32];
   time_t seq_tm = _entry->time().seconds();
@@ -79,7 +77,7 @@ void MonCanvas::save_image()
     QFileDialog::getSaveFileName(this,"Save File As (.bmp,.jpg,.png)",
 				 def,".bmp;.png;.jpg");
   if (!fname.isNull())
-    img->save(fname);
+    img.save(fname);
 }
 
 void MonCanvas::info() {}

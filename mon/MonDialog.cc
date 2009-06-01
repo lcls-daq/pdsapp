@@ -216,6 +216,7 @@ MonDialog::MonDialog(MonCanvas* canvas,
 
 MonDialog::MonDialog(MonCanvas* canvas, 
 		     MonQtImage* hist,
+		     MonQtImage* since,
 		     MonQtImage* diff,
 		     MonQtTH1F* histx,
 		     MonQtTH1F* histy,
@@ -228,6 +229,7 @@ MonDialog::MonDialog(MonCanvas* canvas,
   _nentries(0)
 {
   _entries[_nentries++] = new MonDialogEntry(this, "Integrated", hist);
+  _entries[_nentries++] = new MonDialogEntry(this, "Since"     , since);
   _entries[_nentries++] = new MonDialogEntry(this, "Difference", diff);
   _entries[_nentries++] = new MonDialogEntry(this, "Integrated X", histx);
   _entries[_nentries++] = new MonDialogEntry(this, "Integrated Y", histy);
@@ -236,6 +238,7 @@ MonDialog::MonDialog(MonCanvas* canvas,
   _entries[_nentries++] = new MonDialogEntry(this, "Chart X", chartx);
   _entries[_nentries++] = new MonDialogEntry(this, "Chart Y", charty);
 
+  setAttribute(Qt::WA_DeleteOnClose);
   addbuttons(canvas);
 }
 
@@ -276,5 +279,5 @@ void MonDialog::apply()
 void MonDialog::close()
 {
   apply();
-  delete this;
+  QWidget::close();
 }

@@ -75,6 +75,7 @@ namespace Pds {
 	      MonQtChart* charty);
     MonDialog(MonCanvas* canvas, 
 	      MonQtImage* hist,
+	      MonQtImage* since,
 	      MonQtImage* diff,
 	      MonQtTH1F* histx,
 	      MonQtTH1F* histy,
@@ -94,7 +95,7 @@ namespace Pds {
   private:
     MonCanvas* _canvas;
     unsigned _nentries;
-    enum {MaxEntries=8};
+    enum {MaxEntries=10};
     MonDialogEntry* _entries[MaxEntries];
   };
 };

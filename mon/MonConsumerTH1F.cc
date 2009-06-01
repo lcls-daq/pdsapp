@@ -16,12 +16,16 @@
 #include <QtGui/QMenu>
 #include <QtGui/QMessageBox>
 #include <QtGui/QLayout>
+#include <QtGui/QPixmap>
 #include <QtCore/QTime>
 #include "qwt_plot.h"
+#include "qwt_plot_canvas.h"
 #include "qwt_scale_draw.h"
 #include "qwt_scale_widget.h"
 
 using namespace Pds;
+
+static QImage _qimage;
 
 MonConsumerTH1F::MonConsumerTH1F(QWidget& parent,
 				 const MonDesc& clientdesc,
@@ -208,3 +212,4 @@ void MonConsumerTH1F::info()
 	  uflow, oflow, norm);
   QMessageBox::information(this,"TH1F Info",msg_buffer);
 }
+

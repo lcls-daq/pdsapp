@@ -26,7 +26,6 @@ namespace Pds {
     virtual ~MonConsumerImage();
 
     // Implements MonConsumer from MonCanvas
-    virtual const QImage* image() const;
     virtual void dialog();
     virtual int update();
     virtual int reset(const MonGroup& group);
@@ -36,9 +35,11 @@ namespace Pds {
 
   private:
     MonEntryImage* _last;
+    MonEntryImage* _prev;
 
   private:
     MonQtImage* _hist;
+    MonQtImage* _since;
     MonQtImage* _diff;
 
     MonQtTH1F* _hist_x;

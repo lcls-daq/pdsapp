@@ -16,6 +16,27 @@
 
 using namespace Pds;
 
+class Prescaler : public Appliance {
+public:
+  Prescaler(unsigned prescale) : _prescale(prescale), _count(0) {}
+public:
+  Transition* transitions(Transition* tr) { return tr; }
+  InDatagram* occurrences(InDatagram* dg) { return dg; }
+  InDatagram* events     (InDatagram* dg) 
+  { if (dg->datagram().seq.isEvent())
+      if (++_count == _prescale) {
+	_count = 0;
+	return dg;
+      }
+      else 
+	return 0;
+    return dg;
+  }
+private:
+  unsigned _prescale;
+  unsigned _count;
+};
+
 class MyCallback : public EventCallback {
 public:
   MyCallback(Task* task, Appliance* app) :
@@ -42,12 +63,13 @@ int main(int argc, char** argv) {
   unsigned platform=-1UL;
   DetInfo::Detector det(DetInfo::NoDetector);
   unsigned detid(0), devid(0);
+  unsigned prescale=0;
 
   const char* arpsuidprocess = 0;
   const char* partition = 0;
   unsigned node = 0;
   int c;
-  while ((c = getopt(argc, argv, "d:p:a:i:P:")) != -1) {
+  while ((c = getopt(argc, argv, "d:p:a:i:P:s:")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -68,6 +90,9 @@ int main(int argc, char** argv) {
       break;
     case 'P':
       partition = optarg;
+      break;
+    case 's':
+      prescale = strtoul(optarg, &endPtr, 0);
       break;
     default:
       break;
@@ -96,10 +121,10 @@ int main(int argc, char** argv) {
 
   MonServerManager* manager = new MonServerManager(MonPort::Test);
   CamDisplay* camdisp = new CamDisplay("Cam",
-// 				       DetInfo(0, det, detid, DetInfo::Opal1000).phy(),
-// 				       1024, 1024, 12,
-				       DetInfo(0, det, detid, DetInfo::TM6740, devid).phy(),
-				       640, 480, 10,
+ 				       DetInfo(0, det, detid, DetInfo::Opal1000, devid).phy(),
+ 				       1024, 1024, 12,
+// 				       DetInfo(0, det, detid, DetInfo::TM6740, devid).phy(),
+// 				       640, 480, 10,
 				       *manager);
 
   DisplayConfig& dc = *new DisplayConfig("Acqiris Group");
@@ -108,11 +133,19 @@ int main(int argc, char** argv) {
   AcqDisplay* acqdisp = new AcqDisplay(dc);
   manager->serve();
 
-  camdisp->connect(acqdisp);
+  Appliance* apps;
+  if (prescale) {
+    apps = new Prescaler(prescale);
+    camdisp->connect(apps);
+  }
+  else {
+    apps = camdisp;
+  }
+  acqdisp->connect(apps);
 
   Task* task = new Task(Task::MakeThisATask);
   MyCallback* display = new MyCallback(task, 
-				       camdisp);
+				       apps);
 
   ObserverLevel* event = new ObserverLevel(platform,
 					   partition,
@@ -127,11 +160,11 @@ int main(int argc, char** argv) {
   event->detach();
 
   manager->dontserve();
+  delete event;
+  delete display;
   delete camdisp;
   delete acqdisp;
   delete manager;
-  delete display;
-  delete event;
   if (arp) delete arp;
   return 0;
 }

@@ -2,7 +2,7 @@ libnames := test
  
 libsrcs_test := EventTest.cc EventOptions.cc Recorder.cc
 
-tgtnames := recordertest eventtest segtest controltest sourcetest bldtest source montest showPartitions killPartition
+tgtnames := recordertest eventtest segtest controltest sourcetest bldtest source montest showPartitions killPartition control
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pdsapp/test
 
@@ -21,6 +21,10 @@ tgtslib_segtest := /usr/lib/rt
 tgtsrcs_controltest := controltest.cc
 tgtlibs_controltest := $(commonlibs)
 tgtslib_controltest := /usr/lib/rt
+
+tgtsrcs_control := control.cc
+tgtlibs_control := $(commonlibs)
+tgtslib_control := /usr/lib/rt
 
 tgtsrcs_source := source.cc
 tgtlibs_source := $(commonlibs)

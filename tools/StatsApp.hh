@@ -113,7 +113,7 @@ public:
   InDatagram* events     (InDatagram* in) {
     const Datagram& dg = in->datagram();
     if (!dg.seq.isEvent()) {
-      printf("Transition %08x/%08x\n",dg.seq.stamp().fiducials(),dg.seq.stamp().ticks());
+      printf("Transition %02x/%08x\n",dg.seq.service(),dg.seq.stamp().fiducials());
       return in;
     }
 

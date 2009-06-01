@@ -1,3 +1,4 @@
+01-Jun-2009	weaver	Added test/control as a model for run control sequencer.
 16-Apr-2009	weaver	Fixed some bugs in configdb_gui (always generated new keys).
 			Added Pulnix TM6740CL to configdb_gui and devtest/tm6740.
 			Added -d option to devtest/evr to simulate dropped evr multicasts.

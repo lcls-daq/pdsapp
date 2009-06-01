@@ -97,6 +97,11 @@ static int updateImage(MonEntryImage& image,
       w++;
     }
   }
+
+  //  zero out the information overlay
+  for(unsigned ip=0; ip<4; ip++)
+    image.content(0,ip,0);
+
   image.time(now);
   return advance;
 }
@@ -104,6 +109,14 @@ static int updateImage(MonEntryImage& image,
 int CamDisplay::process(const Xtc& xtc,
 			InDatagramIterator* iter)
 {
+//   printf("xtc dmg %x  src %x/%x  ctns %x\n",
+// 	 xtc.damage.value(),
+// 	 xtc.src.phy(), xtc.src.log(),
+// 	 xtc.contains.id());
+
+  if (xtc.damage.value()!=0)
+    return 0;
+
   if (xtc.contains.id()==TypeId::Id_Xtc)
     return iterate(xtc,iter);
 

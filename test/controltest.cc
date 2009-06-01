@@ -249,7 +249,8 @@ namespace Pds {
   public:
     Transition* transitions(Transition* i) { 
       if (i->phase() == Transition::Execute) {
-	if (i->id()==TransitionId::Disable) {
+	if (i->id()==TransitionId::Disable ||
+	    i->id()==TransitionId::Map) {
 	  //
 	  //  The disable transition often splits the last L1Accept.
 	  //  There is no way to know when the last L1A has passed through
@@ -279,15 +280,15 @@ namespace Pds {
   class MyCallback : public ControlCallback {
   public:
     void outlet(CollectionManager& o) { _outlet=&o; }
-    void allocated(SetOfStreams& streams) {
+    void attached(SetOfStreams& streams) {
       //  By default, there are no external clients for this stream
       Stream& frmk = *streams.stream(StreamParams::FrameWork);
       (new ControlAction(*_outlet))   ->connect(frmk.inlet());
       (new Decoder(Level::Control))   ->connect(frmk.inlet());
-      printf("Partition allocated\n");
+      printf("Platform attached\n");
     }
     void failed(Reason reason) {
-      printf("Partition failed to allocate: reason %d\n", reason);
+      printf("Platform failed to attach: reason %d\n", reason);
     }
     void dissolved(const Node& node) {
       printf("Partition dissolved by uid %d pid %d ip %x\n",

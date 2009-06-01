@@ -25,7 +25,6 @@ namespace Pds {
     int writeconfig(FILE* file);
     int readconfig(FILE* file, int color);
 
-    virtual const QImage* image() const;
     virtual void info();
     virtual void dialog() = 0;
     virtual int update() = 0;
@@ -46,12 +45,11 @@ namespace Pds {
 
   protected:
     enum Select {Undefined, 
-		 Integrated, Difference, 
+		 Integrated, Since, Difference, 
 		 IntegratedX, DifferenceX, 
 		 IntegratedY, DifferenceY,
 		 Chart, ChartX, ChartY, 
-		 SuperimposeCharts, SeparateCharts,
-		 Since };
+		 SuperimposeCharts, SeparateCharts };
     Select        _selected;
     QMenu*        _select;
     QActionGroup* _select_group;

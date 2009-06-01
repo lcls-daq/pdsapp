@@ -29,7 +29,9 @@ MonConsumerImage::MonConsumerImage(QWidget& parent,
 				 const MonEntryImage& entry) :
   MonCanvas(parent, entry),
   _last(new MonEntryImage(entry.desc())),
+  _prev(new MonEntryImage(entry.desc())),
   _hist(0),
+  _since(0),
   _diff(0),
   _hist_x(0),
   _hist_y(0),
@@ -40,7 +42,7 @@ MonConsumerImage::MonConsumerImage(QWidget& parent,
 {
   // Prepares menus
   _menu_service(Integrated, false);
-  //  _menu_service(Since     , false);
+  _menu_service(Since     , false);
   _menu_service(Difference, true);
   _menu_service(IntegratedX, false);
   _menu_service(IntegratedY, false);
@@ -58,6 +60,9 @@ MonConsumerImage::MonConsumerImage(QWidget& parent,
   char tmp[128];
   snprintf(tmp, 128, "%s:%s:%s:HIST", clientname, dirname, entryname);
   _hist = new MonQtImage(tmp, desc);
+
+  snprintf(tmp, 128, "%s:%s:%s:SINCE", clientname, dirname, entryname);
+  _since = new MonQtImage(tmp, desc);
 
   snprintf(tmp,  128, "%s:%s:%s:DIFF", clientname, dirname, entryname);
   _diff = new MonQtImage(tmp, desc);
@@ -97,7 +102,9 @@ MonConsumerImage::MonConsumerImage(QWidget& parent,
 MonConsumerImage::~MonConsumerImage() 
 {
   delete _last;
+  delete _prev;
   delete _hist;
+  delete _since;
   delete _diff;
   delete _hist_x;
   delete _hist_y;
@@ -109,15 +116,19 @@ MonConsumerImage::~MonConsumerImage()
 
 void MonConsumerImage::dialog()
 {
-  new MonDialog(this, _hist, _diff, _hist_x, _hist_y,
-		_diff_x, _diff_y, _chartx, _charty);
+  new MonDialog(this,
+		_hist, _since, _diff, 
+		_hist_x, _hist_y,
+		_diff_x, _diff_y,
+		_chartx, _charty);
 }
 
 int MonConsumerImage::update() 
 {
   const MonEntryImage* entry = dynamic_cast<const MonEntryImage*>(_entry);
   if (entry->time() > _last->time()) {
-    _diff->setto(*entry, *_last);
+    _since->setto(*entry, *_prev);
+    _diff ->setto(*entry, *_last);
     _hist->setto(*entry);
     _hist->projectx(_hist_x);
     _hist->projecty(_hist_y);
@@ -143,6 +154,7 @@ int MonConsumerImage::reset(const MonGroup& group)
     const MonEntryImage* entry = dynamic_cast<const MonEntryImage*>(_entry);
     const MonDescImage& desc = entry->desc();
     _last->params(desc);
+    _prev->params(desc);
     _hist->params(desc);
     _diff->params(desc);
     _hist_x->params(desc);
@@ -157,9 +169,10 @@ int MonConsumerImage::reset(const MonGroup& group)
   return 0;
 }
 
-static const unsigned Nplots = 8;
+static const unsigned Nplots = 9;
 static const char* Names[Nplots] = {
   "Integrated",
+  "Since",
   "Difference",
   "IntegratedX",
   "IntegratedY",
@@ -173,6 +186,7 @@ unsigned MonConsumerImage::getplots(MonQtBase** plots,
 				   const char** names)
 {
   *plots++ = _hist;
+  *plots++ = _since;
   *plots++ = _diff;
   *plots++ = _hist_x;
   *plots++ = _hist_y;
@@ -186,9 +200,9 @@ unsigned MonConsumerImage::getplots(MonQtBase** plots,
 
 void MonConsumerImage::select(Select selection)
 {
-  //   if (selection==Since) {
-  //     _prev->setto(*_last);
-  //   }
+  if (selection==Since) {
+    _prev->setto(*_last);
+  }
 
   //
   //  Disable the old plot
@@ -197,6 +211,7 @@ void MonConsumerImage::select(Select selection)
   QwtPlot*           NoPlot(NULL);
   switch(_selected) {
   case MonCanvas::Integrated : _hist   ->attach(NoDisp); break;
+  case MonCanvas::Since      : _since  ->attach(NoDisp); break;
   case MonCanvas::Difference : _diff   ->attach(NoDisp); break;
   case MonCanvas::DifferenceX: _diff_x ->attach(NoPlot); break;
   case MonCanvas::DifferenceY: _diff_y ->attach(NoPlot); break;
@@ -206,7 +221,6 @@ void MonConsumerImage::select(Select selection)
     _plot->setAxisScaleDraw(QwtPlot::xBottom, new QwtScaleDraw); break;
   case MonCanvas::ChartY     : _charty ->attach(NoPlot);
     _plot->setAxisScaleDraw(QwtPlot::xBottom, new QwtScaleDraw); break;
-    //   case MonCanvas::Since      : _since ->attach(NULL); break;
   default: break;
   }
 
@@ -217,6 +231,7 @@ void MonConsumerImage::select(Select selection)
   //
   switch(selection) {
   case MonCanvas::Integrated : _hist   ->attach(_frame); break;
+  case MonCanvas::Since      : _since  ->attach(_frame); break;
   case MonCanvas::Difference : _diff   ->attach(_frame); break;
   case MonCanvas::DifferenceX: _diff_x ->attach(_plot); break;
   case MonCanvas::DifferenceY: _diff_y ->attach(_plot); break;
@@ -224,7 +239,6 @@ void MonConsumerImage::select(Select selection)
   case MonCanvas::IntegratedY: _hist_y ->attach(_plot); break;
   case MonCanvas::ChartX     : _chartx ->attach(_plot); break;
   case MonCanvas::ChartY     : _charty ->attach(_plot); break;
-    //   case MonCanvas::Since      : _since ->attach(_plot); break;
   default: break;
   }
 
@@ -260,7 +274,3 @@ void MonConsumerImage::select(Select selection)
   _stack->setCurrentIndex(Plots);
 }
 
-const QImage* MonConsumerImage::image() const
-{
-  return _frame->image();
-}
