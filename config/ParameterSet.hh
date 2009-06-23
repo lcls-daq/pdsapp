@@ -3,13 +3,13 @@
 
 #include "pdsapp/config/Parameters.hh"
 
-#include <QtGui/QComboBox>
+#include <QtCore/QObject>
+
+class QComboBox;
 
 namespace Pds_ConfigDb {
 
-  class SubDialog;
-
-  class ParameterSet : public QComboBox, public Parameter  {
+  class ParameterSet : public QObject, public Parameter  {
     Q_OBJECT
   public:
     ParameterSet(const char* label, 
@@ -19,13 +19,14 @@ namespace Pds_ConfigDb {
 
     QLayout* initialize(QWidget*);
     void     update();
-    void     flush();
+    void     flush ();
   public slots:
     void launch(int);
     void membersChanged();
   public:
     Pds::LinkedList<Parameter>* _array;
     NumericInt<unsigned>&       _nmembers;
+    QComboBox*                  _box;
   };
 
 };

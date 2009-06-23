@@ -4,6 +4,7 @@
 #include "pds/service/LinkedList.hh"
 
 #include <string.h>
+#include <stdio.h>
 
 class QWidget;
 class QLayout;
@@ -28,8 +29,17 @@ namespace Pds_ConfigDb {
     Parameter(const char* label) : _label(label) {}
     virtual ~Parameter() {}
 
+    //
+    //  Create the QWidgets used for input/output
+    //
     virtual QLayout* initialize(QWidget*) = 0;
+    //
+    //  Update the internal value from the widgets
+    //
     virtual void     update() = 0;
+    //
+    //  Update the widgets from the internal value
+    //
     virtual void     flush () = 0;
   protected:
     const char* _label;
