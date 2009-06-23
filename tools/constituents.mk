@@ -1,4 +1,6 @@
 libnames := test
+
+CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
 libsrcs_test := EventTest.cc EventOptions.cc Recorder.cc
 
