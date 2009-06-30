@@ -158,16 +158,18 @@ int MonCanvas::readconfig(FILE* fp,int color)
   const char* names[MaxPlots];
   unsigned nplots = getplots(plots, names);
 
-  MonDescEntry::Type type;
+  int itype;
   unsigned inplots;
-  Select sel;
+  int isel;
 
   if (!fgets(line, MaxLine, fp)) return -1;
   sscanf(line, "%s %d %s %d %s %d", 
-	 eat, reinterpret_cast<int*>(&type), 
+	 eat, &itype,
 	 eat, &inplots, 
-	 eat, reinterpret_cast<int*>(&sel));
+	 eat, &isel);
   if (inplots != nplots) return -1;
+
+  Select sel = (Select)isel;
 
   for (unsigned i=0; i<nplots; i++) {
     for (unsigned a=0; a<Naxis; a++) {
