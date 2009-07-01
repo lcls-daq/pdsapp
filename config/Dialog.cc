@@ -12,6 +12,54 @@
 
 using namespace Pds_ConfigDb;
 
+static const QString nopath(".");
+
+Dialog::Dialog(QWidget* parent,
+	       Serializer& s,
+	       const QString& file) :
+  QDialog(parent),
+  _s(s),
+  _read_dir(nopath),
+  _write_dir(nopath)
+{
+  QVBoxLayout* layout = new QVBoxLayout(this);
+  Pds::LinkedList<Parameter>& pList(s.pList);
+  Parameter* p = pList.forward();
+  while( p != pList.empty() ) {
+    layout->addLayout(p->initialize(this));
+    p = p->forward();
+  }
+  QHBoxLayout* blayout = new QHBoxLayout;
+  QPushButton* bRead  = new QPushButton("Copy",this);
+  QPushButton* bWrite = new QPushButton("Save",this);
+  QPushButton* bReturn = new QPushButton("Cancel",this);
+  blayout->addWidget(bRead);
+  blayout->addWidget(bWrite);
+  blayout->addWidget(bReturn);
+  bRead ->setEnabled(false);
+  bWrite->setEnabled(false);
+  connect(bReturn, SIGNAL(clicked()), this, SLOT(reject()));
+
+  layout->addLayout(blayout);
+  setLayout(layout);
+
+  // perform the read
+  struct stat file_stat;
+  if (stat(qPrintable(file),&file_stat)) return;
+  char* buff = new char[file_stat.st_size];
+  FILE* input = fopen(qPrintable(file),"r");
+  fread(buff, file_stat.st_size, 1, input);
+  fclose(input);
+  _s.readParameters(buff);
+  delete[] buff;
+
+  p = pList.forward();
+  while( p != pList.empty() ) {
+    p->flush();
+    p = p->forward();
+  }
+}
+
 Dialog::Dialog(QWidget* parent,
 	       Serializer& s,
 	       const QString& read_dir,

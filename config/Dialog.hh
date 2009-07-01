@@ -12,8 +12,11 @@ namespace Pds_ConfigDb {
   public:
     Dialog(QWidget* parent,
 	   Serializer& s,
-	   const QString& read_dir =".",
-	   const QString& write_dir="*.xtc");
+	   const QString& read_dir);
+    Dialog(QWidget* parent,
+	   Serializer& s,
+	   const QString& read_dir,
+	   const QString& write_dir);
     ~Dialog();
   public:
     const QString& file() const { return _file; }

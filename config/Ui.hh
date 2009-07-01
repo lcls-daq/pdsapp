@@ -12,7 +12,7 @@ namespace Pds_ConfigDb {
 
   class Ui : public QWidget {
   public:
-    Ui(Experiment&);
+    Ui(Experiment&,bool edit);
     ~Ui();
   private:
     Transaction_Ui* _transaction;

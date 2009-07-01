@@ -23,7 +23,7 @@ namespace Pds_ConfigDb {
   class Devices_Ui : public QGroupBox {
     Q_OBJECT
   public:
-    Devices_Ui(QWidget*, Experiment&);
+    Devices_Ui(QWidget*, Experiment&, bool edit);
   public slots:
     void update_device_list();
     void new_device();
@@ -33,6 +33,7 @@ namespace Pds_ConfigDb {
     void new_config();
     void copy_config();
     void change_component();
+    void view_component();
     void add_component(const QString& type);
     void db_update();
   private:

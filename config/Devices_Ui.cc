@@ -37,7 +37,8 @@ using std::endl;
 using namespace Pds_ConfigDb;
 
 Devices_Ui::Devices_Ui(QWidget* parent,
-		       Experiment& expt) :
+		       Experiment& expt,
+		       bool edit) :
   QGroupBox("Devices Configuration", parent),
   _expt    (expt)
 {
@@ -80,15 +81,25 @@ Devices_Ui::Devices_Ui(QWidget* parent,
     layout->addLayout(layout1); }
   setLayout(layout);
 
-  connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_config_list()));
-  connect(_deveditbutton, SIGNAL(clicked()), this, SLOT(edit_device()));
-  connect(_devnewbutton, SIGNAL(clicked()), this, SLOT(new_device()));
-  connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
-  connect(_cfgnewbutton, SIGNAL(clicked()), this, SLOT(new_config()));
-  connect(_cfgcpybutton, SIGNAL(clicked()), this, SLOT(copy_config()));
-  connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
-  connect(_cmpcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_component(const QString&)));
-
+  if (edit) {
+    connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_config_list()));
+    connect(_deveditbutton, SIGNAL(clicked()), this, SLOT(edit_device()));
+    connect(_devnewbutton, SIGNAL(clicked()), this, SLOT(new_device()));
+    connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
+    connect(_cfgnewbutton, SIGNAL(clicked()), this, SLOT(new_config()));
+    connect(_cfgcpybutton, SIGNAL(clicked()), this, SLOT(copy_config()));
+    connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
+    connect(_cmpcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_component(const QString&)));
+  }
+  else {
+    connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_config_list()));
+    _deveditbutton->setEnabled(false);
+    _devnewbutton ->setEnabled(false);
+    connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
+    _cfgnewbutton ->setEnabled(false);
+    _cfgcpybutton ->setEnabled(false);
+    connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(view_component()));
+  }
   update_device_list();
 }
 
@@ -105,12 +116,12 @@ void Devices_Ui::db_update()
 
 void Devices_Ui::update_device_list()
 {
-  disconnect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_config_list()));
+  bool ok = disconnect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_config_list()));
   _devlist->clear();
   for(list<Device>::const_iterator iter=_expt.devices().begin();
       iter!=_expt.devices().end(); iter++)
     *new QListWidgetItem(iter->name().c_str(), _devlist);
-  connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_config_list()));
+  if (ok) connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_config_list()));
   update_config_list();
 }
 
@@ -163,7 +174,7 @@ void Devices_Ui::new_device()
 
 void Devices_Ui::update_config_list()
 {
-  disconnect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
+  bool ok = disconnect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
   _cfglist->clear();
   Device* device(_device());
   if (device) {
@@ -172,13 +183,14 @@ void Devices_Ui::update_config_list()
 	iter!=entries.end(); iter++)
       *new QListWidgetItem(iter->name().c_str(),_cfglist);
   }
-  connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
+  if (ok) connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
   update_component_list();
 }
 
 void Devices_Ui::update_component_list()
 {
-  disconnect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
+  bool ok_change = disconnect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
+  bool ok_view   = disconnect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(view_component()));
   _cmplist->clear();
   _cmpcfglist->clear();
   
@@ -206,7 +218,8 @@ void Devices_Ui::update_component_list()
       iter!= unassigned.end(); iter++)
     _cmpcfglist->addItem(iter->c_str());
 
-  connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
+  if (ok_change) connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
+  if (ok_view  ) connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(view_component()));
 }
 
 bool Devices_Ui::validate_config_name(const string& name)
@@ -261,6 +274,28 @@ void Devices_Ui::change_component()
 {
   string type(qPrintable(_cmplist->currentItem()->text()));
   add_component(QString(type.substr(0,type.find(' ')).c_str()));
+}
+
+void Devices_Ui::view_component()
+{
+  string type(qPrintable(_cmplist->currentItem()->text()));
+  QString qtype(type.substr(0,type.find(' ')).c_str());
+  string strtype(qPrintable(qtype));
+  UTypeName stype(strtype);
+  size_t fs  = type.find('[') + 1;
+  size_t len = type.find(']') - fs; 
+  QString qname(type.substr(fs,len).c_str());
+
+  string path(_expt.data_path("",stype));
+  QString qpath(path.c_str());
+  qpath += "/" + qname;
+
+  printf("Reading component from file %s\n",qPrintable(qpath));
+
+
+  Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath);
+  d->exec();
+  delete d;
 }
 
 void Devices_Ui::add_component(const QString& type)

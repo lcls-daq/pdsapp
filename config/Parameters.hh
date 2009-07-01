@@ -3,9 +3,6 @@
 
 #include "pds/service/LinkedList.hh"
 
-#include <string.h>
-#include <stdio.h>
-
 class QWidget;
 class QLayout;
 class QLineEdit;
@@ -41,6 +38,9 @@ namespace Pds_ConfigDb {
     //  Update the widgets from the internal value
     //
     virtual void     flush () = 0;
+
+    static void allowEdit(bool);
+    static bool allowEdit();
   protected:
     const char* _label;
   };

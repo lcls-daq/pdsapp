@@ -20,7 +20,8 @@ using std::list;
 using namespace Pds_ConfigDb;
 
 Experiment_Ui::Experiment_Ui(QWidget* parent,
-			     Experiment& expt) :
+			     Experiment& expt,
+			     bool edit) :
   QGroupBox("Experiment Configuration", parent),
   _expt    (expt)
 {
@@ -53,11 +54,18 @@ Experiment_Ui::Experiment_Ui(QWidget* parent,
   setLayout(layout);
 
   connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_device_list()));
-  connect(_cfgnewbutton, SIGNAL(clicked()), this, SLOT(new_config()));
-  connect(_cfgcopybutton, SIGNAL(clicked()), this, SLOT(copy_config()));
-  connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
-  connect(_devcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
-  
+  if (edit) {
+    connect(_cfgnewbutton, SIGNAL(clicked()), this, SLOT(new_config()));
+    connect(_cfgcopybutton, SIGNAL(clicked()), this, SLOT(copy_config()));
+    connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
+    connect(_devcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
+  }
+  else {
+    _cfgnewbutton ->setEnabled(false);
+    _cfgcopybutton->setEnabled(false);
+    _devlist      ->setEnabled(false);
+    _devcfglist   ->setEnabled(false);
+  }
   update_config_list();
 }
 
@@ -82,8 +90,8 @@ bool Experiment_Ui::validate_config_name(const string& name)
 void Experiment_Ui::update_device_list()
 {
   string name(qPrintable(_cfglist->currentItem()->text()));
-  disconnect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
-  disconnect(_devcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
+  bool ok1 = disconnect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
+  bool ok2 = disconnect(_devcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
   _devlist->clear();
   _devcfglist->clear();
 
@@ -104,8 +112,8 @@ void Experiment_Ui::update_device_list()
       iter++)
     _devcfglist->addItem(iter->c_str());
 
-  connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
-  connect(_devcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
+  if (ok1) connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
+  if (ok2) connect(_devcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
 }
 
 void Experiment_Ui::new_config()
@@ -169,13 +177,13 @@ void Experiment_Ui::change_device(const string& device)
 
 void Experiment_Ui::update_config_list()
 {
-  disconnect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_device_list()));
+  bool ok = disconnect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_device_list()));
   _cfglist->clear();
   list<TableEntry>& l = _expt.table().entries();
   for(list<TableEntry>::const_iterator iter = l.begin(); iter != l.end(); ++iter) {
     *new QListWidgetItem(iter->name().c_str(), _cfglist);
   }
-  connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_device_list()));
+  if (ok) connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_device_list()));
 }
 
 

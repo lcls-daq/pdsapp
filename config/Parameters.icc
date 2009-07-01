@@ -31,6 +31,7 @@ QLayout* NumericInt<T>::initialize(QWidget* parent)
   QHBoxLayout* layout = new QHBoxLayout;
   layout->addWidget(new QLabel(_label));             
   layout->addWidget(_input = new QLineEdit(parent));  
+  _input->setReadOnly(!allowEdit());
   flush();
   _input->setValidator( new IntValidator( *this, *_input,
 					  range[0], range[1]) );
@@ -70,6 +71,7 @@ QLayout* NumericFloat<T>::initialize(QWidget* parent)
   QHBoxLayout* layout = new QHBoxLayout;
   layout->addWidget(new QLabel(_label));             
   layout->addWidget(_input = new QLineEdit(parent));  
+  _input->setReadOnly(!allowEdit());
   flush();
   _input->setValidator( new DoubleValidator( *this, *_input,
 					     range[0], range[1]) );
@@ -107,11 +109,15 @@ QLayout* Enumerated<T>::initialize(QWidget* parent)
 {
   QHBoxLayout* layout = new QHBoxLayout;
   layout->addWidget(new QLabel(_label));
-  layout->addWidget(_input = new QComboBox(parent));
-  int k=0;
-  while( labels[k] )
-    _input->addItem(labels[k++]);
-  flush();
+  if (allowEdit()) {
+    layout->addWidget(_input = new QComboBox(parent));
+    int k=0;
+    while( labels[k] )
+      _input->addItem(labels[k++]);
+    flush();
+  }
+  else
+    layout->addWidget(new QLabel(labels[value]));
   layout->setContentsMargins(0,0,0,0);
   return layout;
 }
@@ -119,11 +125,13 @@ QLayout* Enumerated<T>::initialize(QWidget* parent)
 template <class T>
 void Enumerated<T>::update()
 {
-  value = (T)_input->currentIndex();
+  if (allowEdit())
+    value = (T)_input->currentIndex();
 }
 
 template <class T>
 void Enumerated<T>::flush()
 {
-  _input->setCurrentIndex(value);
+  if (allowEdit())
+    _input->setCurrentIndex(value);
 }

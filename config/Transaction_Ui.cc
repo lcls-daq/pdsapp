@@ -10,7 +10,8 @@
 using namespace Pds_ConfigDb;
 
 Transaction_Ui::Transaction_Ui(QWidget* parent,
-			       Experiment& expt) :
+			       Experiment& expt,
+			       bool edit) :
   QGroupBox("Database Transaction", parent),
   _expt(expt)
 {
@@ -23,9 +24,17 @@ Transaction_Ui::Transaction_Ui(QWidget* parent,
   layout->addWidget(commit);
   layout->addWidget(update);
   layout->addWidget(current);
-  connect(clear  , SIGNAL(clicked()), this, SLOT(db_clear() ));
-  connect(commit , SIGNAL(clicked()), this, SLOT(db_commit()));
-  connect(update , SIGNAL(clicked()), this, SLOT(db_update()));
+
+  if (edit) {
+    connect(clear  , SIGNAL(clicked()), this, SLOT(db_clear() ));
+    connect(commit , SIGNAL(clicked()), this, SLOT(db_commit()));
+    connect(update , SIGNAL(clicked()), this, SLOT(db_update()));
+  }
+  else {
+    clear ->setEnabled(false);
+    commit->setEnabled(false);
+    update->setEnabled(false);
+  }
   connect(current, SIGNAL(clicked()), this, SLOT(db_current()));
   setLayout(layout);
 

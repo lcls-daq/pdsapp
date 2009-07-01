@@ -19,7 +19,8 @@ namespace Pds_ConfigDb {
     Q_OBJECT
   public:
     Experiment_Ui(QWidget* parent,
-		  Experiment& expt);
+		  Experiment& expt,
+		  bool edit);
     ~Experiment_Ui();
   public slots:
     void update_device_list();

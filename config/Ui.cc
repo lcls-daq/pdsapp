@@ -8,13 +8,13 @@
 
 using namespace Pds_ConfigDb;
 
-Ui::Ui(Experiment& expt) :
+Ui::Ui(Experiment& expt, bool edit) :
   QWidget(0)
 {
   QVBoxLayout* layout = new QVBoxLayout(this);
-  layout->addWidget(_transaction = new Transaction_Ui(this, expt));
-  layout->addWidget(_experiment  = new Experiment_Ui (this, expt));
-  layout->addWidget(_devices     = new Devices_Ui    (this, expt));
+  layout->addWidget(_transaction = new Transaction_Ui(this, expt, edit));
+  layout->addWidget(_experiment  = new Experiment_Ui (this, expt, edit));
+  layout->addWidget(_devices     = new Devices_Ui    (this, expt, edit));
   setLayout(layout);
 
   connect(_transaction, SIGNAL(db_changed()), _experiment, SLOT(db_update()));

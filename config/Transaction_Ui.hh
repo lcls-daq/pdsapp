@@ -11,7 +11,8 @@ namespace Pds_ConfigDb {
     Q_OBJECT
   public:
     Transaction_Ui(QWidget*    parent,
-		   Experiment& expt);
+		   Experiment& expt,
+		   bool        edit);
     ~Transaction_Ui();
   public slots:
     void db_clear();
