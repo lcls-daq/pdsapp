@@ -53,7 +53,7 @@ private:
   Src       _node;
   unsigned  _damage;
   unsigned  _events;
-  unsigned  _size;
+  unsigned long long  _size;
   unsigned  _dmgbins[32];
 };
 
