@@ -90,6 +90,20 @@ namespace Pds_ConfigDb {
     QComboBox*   _input;
   };
 
+  class TextParameter : public Parameter {
+  public:
+    TextParameter(const char* label, const char* val, unsigned size);
+    ~TextParameter();
+
+    QLayout* initialize(QWidget*);
+    void     update();
+    void     flush ();
+  public:
+    enum { MaxSize=128 };
+    char value[MaxSize];
+    QLineEdit* _input;
+    unsigned   _size;
+  };
 };
 
 #endif

@@ -33,6 +33,7 @@ DoubleValidator::DoubleValidator(Parameter& p, QLineEdit& l,
   _p              (p)
 {
   setRange(rlo,rhi);
+  setDecimals(10);
   connect(&l, SIGNAL(editingFinished()), this, SLOT(validChange()));
 }
 

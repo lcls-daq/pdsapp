@@ -88,7 +88,7 @@ void NumericFloat<T>::update()
 template <class T>
 void NumericFloat<T>::flush()
 {
-  _input->setText(QString::number(value,"%g"));
+  _input->setText(QString::number(value));
 }
 
 template <class T>
