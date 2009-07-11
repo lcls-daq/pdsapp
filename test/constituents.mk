@@ -4,7 +4,7 @@ CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
 libsrcs_test := EventTest.cc EventOptions.cc Recorder.cc
 
-tgtnames := recordertest eventtest segtest controltest sourcetest bldtest source montest showPartitions killPartition control nettest
+tgtnames := recordertest eventtest segtest controltest sourcetest bldtest source montest showPartitions killPartition control
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pdsapp/test
 

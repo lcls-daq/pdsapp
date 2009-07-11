@@ -7,6 +7,7 @@
 
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/EvrConfig.hh"
+#include "pdsapp/config/AcqConfig.hh"
 #include "pdsapp/config/Opal1kConfig.hh"
 #include "pdsapp/config/TM6740Config.hh"
 #include "pdsapp/config/FrameFexConfig.hh"
@@ -42,6 +43,7 @@ Devices_Ui::Devices_Ui(QWidget* parent,
   QGroupBox("Devices Configuration", parent),
   _expt    (expt)
 {
+  _dict.enroll(Pds::TypeId::Id_AcqConfig,new AcqConfig);
   _dict.enroll(Pds::TypeId::Id_EvrConfig,new EvrConfig);
   _dict.enroll(Pds::TypeId::Id_Opal1kConfig,new Opal1kConfig);
   _dict.enroll(Pds::TypeId::Id_TM6740Config,new TM6740Config);

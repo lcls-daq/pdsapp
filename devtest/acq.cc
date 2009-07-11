@@ -14,6 +14,7 @@
 #include "pds/acqiris/AcqManager.hh"
 #include "pds/acqiris/AcqFinder.hh"
 #include "pds/acqiris/AcqServer.hh"
+#include "pds/config/CfgClientNfs.hh"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -46,11 +47,13 @@ namespace Pds {
   public:
     Seg(Task*                 task,
         unsigned              platform,
+	CfgClientNfs&         cfgService,
         SegWireSettings&      settings,
         Arp*                  arp,
         AcqServer&            acqServer) :
       _task(task),
       _platform(platform),
+      _cfg   (cfgService),
       _acqServer(acqServer)
     {
     }
@@ -69,9 +72,14 @@ namespace Pds {
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       AcqFinder acqFinder;
-      if (acqFinder.numInstruments()>0) {
-        AcqManager& acqmgr = *new AcqManager(acqFinder.id(0),_acqServer);
-        acqmgr.appliance().connect(frmk->inlet());
+      unsigned numinstruments=0;
+      if ((numinstruments = acqFinder.numInstruments())>0) {
+        printf("Found %d acqiris instruments\n",numinstruments);
+        AcqManager* acqmgr[10];
+        for (unsigned i=0;i<numinstruments;i++) {
+          acqmgr[i] = new AcqManager(acqFinder.id(i),_acqServer,_cfg);
+          acqmgr[i]->appliance().connect(frmk->inlet());
+        }
       } else {
         printf("Error: found %d acqiris instruments\n",(int)acqFinder.numInstruments());
       }
@@ -104,6 +112,7 @@ namespace Pds {
   private:
     Task*         _task;
     unsigned      _platform;
+    CfgClientNfs& _cfg;
     AcqServer&    _acqServer;
   };
 }
@@ -151,11 +160,13 @@ int main(int argc, char** argv) {
   }
 
   Node node(Level::Source,platform);
-  DetInfo src(node.pid(), DetInfo::AmoIms, 0, DetInfo::Acqiris, 0);
-  AcqServer& acqServer = *new AcqServer(src);
+  DetInfo detInfo(node.pid(), DetInfo::AmoETof, 0, DetInfo::Acqiris, 0);
+
+  CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
+  AcqServer& acqServer = *new AcqServer(detInfo);
   Task* task = new Task(Task::MakeThisATask);
   MySegWire settings(acqServer);
-  Seg* seg = new Seg(task, platform, settings, arp, acqServer);
+  Seg* seg = new Seg(task, platform, *cfgService, settings, arp, acqServer);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 

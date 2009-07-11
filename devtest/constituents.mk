@@ -1,16 +1,11 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr evgr acq acqevr opal1k tm6740
+tgtnames    := evr evgr acq acqevr opal1k xtcwriter
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
-tgtlibs_acq := pdsdata/xtcdata pdsdata/acqdata acqiris/AqDrv4 pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/acqiris pds/management pds/client 
+tgtlibs_acq := pdsdata/xtcdata pdsdata/acqdata acqiris/AqDrv4 pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/acqiris pds/management pds/client pds/config 
 tgtslib_acq := /usr/lib/rt
-
-tgtsrcs_acqevr := acqevr.cc
-tgtincs_acqevr := acqiris
-tgtlibs_acqevr := pdsdata/xtcdata pdsdata/evrdata evgr/evr evgr/evg pdsdata/acqdata acqiris/AqDrv4 pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/acqiris pds/evgr pds/management pds/client
-tgtslib_acqevr := /usr/lib/rt
 
 tgtsrcs_evr := evr.cc
 tgtincs_evr := evgr
@@ -56,3 +51,7 @@ tgtlibs_tm6740 := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/
 tgtlibs_tm6740 += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/camera pds/config
 tgtlibs_tm6740 += $(leutron_libs)
 tgtincs_tm6740 := leutron/include
+
+tgtsrcs_xtcwriter := xtcwriter.cc
+tgtlibs_xtcwriter := pdsdata/xtcdata pds/service
+tgtslib_xtcwriter := /usr/lib/rt

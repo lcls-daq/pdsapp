@@ -9,7 +9,7 @@ tgtsrcs_configdb += Device.cc
 tgtsrcs_configdb += Experiment.cc
 tgtsrcs_configdb += PdsDefs.cc
 tgtincs_configdb := qt/include
-tgtlibs_configdb := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata
+tgtlibs_configdb := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata pdsdata/acqdata
 tgtlibs_configdb += qt/QtGui qt/QtCore
 tgtslib_configdb := /usr/lib/rt
 
@@ -32,10 +32,11 @@ tgtsrcs_configdb_gui += Opal1kConfig.cc
 tgtsrcs_configdb_gui += TM6740Config.cc
 tgtsrcs_configdb_gui += FrameFexConfig.cc
 tgtsrcs_configdb_gui += EvrConfig.cc
+tgtsrcs_configdb_gui += AcqConfig.cc
 tgtsrcs_configdb_gui += Parameters.cc
 tgtsrcs_configdb_gui += templates.cc
 tgtincs_configdb_gui := qt/include
-tgtlibs_configdb_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata
+tgtlibs_configdb_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata pdsdata/acqdata
 tgtlibs_configdb_gui += qt/QtGui qt/QtCore
 tgtslib_configdb_gui := /usr/lib/rt
 
