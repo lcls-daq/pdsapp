@@ -1,3 +1,4 @@
+2009-Jul-10     cpo     Support for configuration of acqiris from database
 01-Jul-2009	weaver  config - added view only option to configdb_gui
 22-Jun-2009	weaver  config - fixed early delete of ParameterSet objects.
 01-Jun-2009	weaver	Added test/control as a model for run control sequencer.
