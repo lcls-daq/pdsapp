@@ -49,7 +49,7 @@ namespace Pds_ConfigDb {
       pList.insert(&_masked_pixels);
     }
 
-    bool pull(void* from) {
+    int pull(void* from) {
       FrameFexConfigType& tc = *new(from) FrameFexConfigType;
       _forwarding.value = tc.forwarding();
       _fwd_prescale.value = tc.forward_prescale();
@@ -60,7 +60,7 @@ namespace Pds_ConfigDb {
       _roi_end_row.value = tc.roiEnd().row;
       _threshold.value   = tc.threshold();
       _masked_pixels.value = NoPixels;
-      return true;
+      return tc.size();
     }
 
     int push(void* to) {
@@ -76,6 +76,11 @@ namespace Pds_ConfigDb {
 				    0, 0);
       return tc.size();
     }
+
+    int dataSize() const {
+      return sizeof(FrameFexConfigType);
+    }
+
   public:
     Enumerated<FrameFexConfigType::Forwarding> _forwarding;
     NumericInt<unsigned>          _fwd_prescale;
@@ -97,12 +102,16 @@ FrameFexConfig::FrameFexConfig() :
   _private_data->insert(pList);
 }
 
-bool FrameFexConfig::readParameters (void* from) {
+int  FrameFexConfig::readParameters (void* from) {
   return _private_data->pull(from);
 }
 
 int  FrameFexConfig::writeParameters(void* to) {
   return _private_data->push(to);
+}
+
+int  FrameFexConfig::dataSize() const {
+  return _private_data->dataSize();
 }
 
 #include "Parameters.icc"

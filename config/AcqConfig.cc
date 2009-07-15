@@ -155,7 +155,7 @@ namespace Pds_ConfigDb {
       pList.insert(&_vertSet);
     }
 
-    bool pull(void* from) { // pull "from xtc"
+    int pull(void* from) { // pull "from xtc"
       AcqConfigType& acqconf = *new(from) AcqConfigType;
       _nbrConvertersPerChannel.value = acqconf.nbrConvertersPerChannel();
       _channelMask.value = acqconf.channelMask();
@@ -165,7 +165,7 @@ namespace Pds_ConfigDb {
       for(unsigned k=0; k<_nbrChannels(); k++)
         _vert[k].pull(&(acqconf.vert(k)));
 
-      return true;
+      return sizeof(AcqConfigType);
     }
 
     int push(void* to) { // push "to xtc"
@@ -185,6 +185,8 @@ namespace Pds_ConfigDb {
       delete[] v;
       return sizeof(AcqConfigType);
     }
+
+    int dataSize() const { return sizeof(AcqConfigType); }
   public:
     NumericInt<uint32_t> _nbrConvertersPerChannel;
     NumericInt<uint32_t> _channelMask;
@@ -212,12 +214,16 @@ AcqConfig::AcqConfig() :
   _private_data->insert(pList);
 }
 
-bool AcqConfig::readParameters (void* from) {
+int AcqConfig::readParameters (void* from) {
   return _private_data->pull(from);
 }
 
 int  AcqConfig::writeParameters(void* to) {
   return _private_data->push(to);
+}
+
+int  AcqConfig::dataSize() const {
+  return _private_data->dataSize();
 }
 
 #include "Parameters.icc"

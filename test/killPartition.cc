@@ -19,10 +19,12 @@ class Observer : public CollectionManager {
 public:
   Observer() :
     CollectionManager(Level::Observer, 0, MaxPayload, ConnectTimeOut, NULL),
-    _sem(Semaphore::EMPTY) {}
+    _sem(Semaphore::EMPTY),
+    _allocations(new Allocation[SourceLevel::MaxPartitions()]) {}
+  ~Observer() { delete[] _allocations; }
 public:
   void get_partitions() {
-    for(unsigned k=0; k<SourceLevel::MaxPartitions; k++) {
+    for(unsigned k=0; k<SourceLevel::MaxPartitions(); k++) {
       Allocation alloc("","",k);
       PartitionAllocation pa(alloc);
       Ins dst = CollectionPorts::platform();
@@ -32,7 +34,7 @@ public:
   }
 
   void kill_partition(unsigned partitionid) {
-    for(unsigned k=0; k<SourceLevel::MaxPartitions; k++) {
+    for(unsigned k=0; k<SourceLevel::MaxPartitions(); k++) {
       const Allocation& a = _allocations[k];
       if (a.partitionid() == partitionid) {
 	for(unsigned m=0; m<a.nnodes(); m++)
@@ -45,7 +47,7 @@ public:
   }
 
   void kill_partition(const char* partition) {
-    for(unsigned k=0; k<SourceLevel::MaxPartitions; k++) {
+    for(unsigned k=0; k<SourceLevel::MaxPartitions(); k++) {
       const Allocation& a = _allocations[k];
       if (!strcmp(a.partition(), partition)) {
 	for(unsigned m=0; m<a.nnodes(); m++)
@@ -71,7 +73,7 @@ private:
   }
 private:
   Semaphore  _sem;
-  Allocation _allocations[SourceLevel::MaxPartitions];
+  Allocation* _allocations;
 };
 
 #include <time.h>

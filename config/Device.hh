@@ -18,10 +18,10 @@ namespace Pds_ConfigDb {
   class DeviceEntry : public Pds::Src {
   public:
     DeviceEntry(unsigned id);
+    DeviceEntry(const Pds::Src& id);
     DeviceEntry(const string& id);
   public:
     string   id () const;
-    const Pds::DetInfo& info() const;
   };
 
   class Device {

@@ -28,11 +28,14 @@ namespace Pds {
   //
   class MySegWire : public SegWireSettings {
   public:
-    MySegWire() {}
+    MySegWire(const Src& src) { _sources.push_back(src); }
     virtual ~MySegWire() {}
     void connect (InletWire& wire,
 		  StreamParams::StreamType s,
 		  int interface) {}
+    const std::list<Src>& sources() const { return _sources; }
+  private:
+    std::list<Src> _sources;
   };
 
   //
@@ -181,7 +184,7 @@ int main(int argc, char** argv) {
 
   CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings;
+  MySegWire settings(detInfo);
   Seg* seg = new Seg(task, platform, *cfgService,
 		     settings, arp, evrdev, opcode);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);

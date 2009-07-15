@@ -28,6 +28,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+//#define USE_ZCP
+
 static bool verbose = false;
 
 namespace Pds {
@@ -89,7 +91,7 @@ namespace Pds {
     {
       for(unsigned k=0; k<PayloadSize; k++)
 	_payload[k] = k&0xff;
-#if ( __GNUC__ > 3 )
+#ifdef USE_ZCP
       int remaining = PayloadSize;
       char* p = _payload;
       while(remaining) {
@@ -97,6 +99,7 @@ namespace Pds {
 	_zpayload.insert(_zfragment,sz);
 	remaining -= sz;
       }
+#else
 #endif
       ::pipe(_pipefd);
       fd(_pipefd[0]);
@@ -225,8 +228,8 @@ namespace Pds {
 
     Transition* configure(Transition* in) 
     {
-      _algorithm = Algorithm(in->env()  % NumberOf);
-      _verbose   = in->env() >= NumberOf;
+      _algorithm = Algorithm(in->env().value()  % NumberOf);
+      _verbose   = in->env().value() >= NumberOf;
       printf("MyFex::algorithm %d  verbose %c\n",
 	     _algorithm,_verbose ? 't':'f');
       return in;
@@ -353,6 +356,7 @@ namespace Pds {
       _server  (new MyL1Server(platform,s1,s2,src)),
       _fex     (new MyFEX(src))
     {
+      _sources.push_back(_server->client());
     }
 
     virtual ~SegTest()
@@ -367,6 +371,8 @@ namespace Pds {
     {
       wire.add_input(_server);
     }
+
+    const std::list<Src>& sources() const { return _sources; }
 
   private:
     // Implements EventCallback
@@ -413,6 +419,7 @@ namespace Pds {
     unsigned    _platform;
     MyL1Server* _server;
     MyFEX*      _fex;
+    std::list<Src> _sources;
   };
 }
 
@@ -431,15 +438,11 @@ int main(int argc, char** argv) {
   int      size1    = 1024;
   int      size2    = 1024;
   unsigned detid = 0;
-  Arp* arp = 0;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:s:vh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:s:vh")) != EOF ) {
     switch(c) {
-    case 'a':
-      arp = new Arp(optarg);
-      break;
     case 'i':
       detid  = strtoul(optarg, NULL, 0);
       break;
@@ -466,18 +469,6 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  // launch the SegmentLevel
-  if (arp) {
-    if (arp->error()) {
-      char message[128];
-      sprintf(message, "failed to create odfArp : %s", 
-	      strerror(arp->error()));
-      printf("%s %s\n",argv[0], message);
-      delete arp;
-      return 0;
-    }
-  }
-
   Task* task = new Task(Task::MakeThisATask);
   Node node(Level::Source,platform);
   SegTest* segtest = new SegTest(task, platform, 
@@ -486,14 +477,13 @@ int main(int argc, char** argv) {
 					 detid,DetInfo::Opal1000,0));
   SegmentLevel* segment = new SegmentLevel(platform, 
 					   *segtest,
-					   *segtest, 
-					   arp);
+					   *segtest,
+					   (Arp*)0); 
   
   if (segment->attach())
     task->mainLoop();
 
   segment->detach();
-  if (arp) delete arp;
 
   return 0;
 }

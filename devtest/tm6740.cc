@@ -41,6 +41,7 @@ namespace Pds {
       _platform(platform),
       _camman  (new TM6740Manager(src))
     {
+      _sources.push_back(src);
     }
 
     virtual ~SegTest()
@@ -57,7 +58,7 @@ namespace Pds {
     {
       wire.add_input(&_camman->server());
     }
-
+    const std::list<Src>& sources() const { return _sources; }
   private:
     // Implements EventCallback
     void attached(SetOfStreams& streams)
@@ -98,6 +99,7 @@ namespace Pds {
     Task*          _task;
     unsigned       _platform;
     TM6740Manager* _camman;
+    std::list<Src> _sources;
   };
 }
 

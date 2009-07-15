@@ -6,9 +6,27 @@
 #include <QtGui/QInputDialog>
 #include <QtGui/QMessageBox>
 #include <QtGui/QPushButton>
+#include <QtGui/QComboBox>
+#include <QtGui/QGroupBox>
 
 #include <sys/stat.h>
 #include <libgen.h>
+
+namespace Pds_ConfigDb {
+
+  class Cycle {
+  public:
+    Cycle(int sz) : 
+      buffer(new char[sz]),
+      size  (sz)
+    {}
+    ~Cycle()
+    { delete[] buffer; }
+  public:
+    char* buffer;
+    int   size;
+  };
+};
 
 using namespace Pds_ConfigDb;
 
@@ -22,42 +40,9 @@ Dialog::Dialog(QWidget* parent,
   _read_dir(nopath),
   _write_dir(nopath)
 {
-  QVBoxLayout* layout = new QVBoxLayout(this);
-  Pds::LinkedList<Parameter>& pList(s.pList);
-  Parameter* p = pList.forward();
-  while( p != pList.empty() ) {
-    layout->addLayout(p->initialize(this));
-    p = p->forward();
-  }
-  QHBoxLayout* blayout = new QHBoxLayout;
-  QPushButton* bRead  = new QPushButton("Copy",this);
-  QPushButton* bWrite = new QPushButton("Save",this);
-  QPushButton* bReturn = new QPushButton("Cancel",this);
-  blayout->addWidget(bRead);
-  blayout->addWidget(bWrite);
-  blayout->addWidget(bReturn);
-  bRead ->setEnabled(false);
-  bWrite->setEnabled(false);
-  connect(bReturn, SIGNAL(clicked()), this, SLOT(reject()));
+  layout();
 
-  layout->addLayout(blayout);
-  setLayout(layout);
-
-  // perform the read
-  struct stat file_stat;
-  if (stat(qPrintable(file),&file_stat)) return;
-  char* buff = new char[file_stat.st_size];
-  FILE* input = fopen(qPrintable(file),"r");
-  fread(buff, file_stat.st_size, 1, input);
-  fclose(input);
-  _s.readParameters(buff);
-  delete[] buff;
-
-  p = pList.forward();
-  while( p != pList.empty() ) {
-    p->flush();
-    p = p->forward();
-  }
+  read(file);
 }
 
 Dialog::Dialog(QWidget* parent,
@@ -69,13 +54,46 @@ Dialog::Dialog(QWidget* parent,
   _read_dir(read_dir),
   _write_dir(write_dir)
 {
+  layout();
+
+  // Create the new cycle
+  Cycle* cycle = new Cycle(_s.dataSize());
+  _s.writeParameters(cycle->buffer);
+  _cycles.insert(_cycles.begin(),cycle);
+
+  _cycleBox->addItem(QString("%1").arg(_cycles.size()-1));
+  _cycleBox->setCurrentIndex(_current = 0);
+}
+
+Dialog::~Dialog() {}
+
+void Dialog::layout()
+{
   QVBoxLayout* layout = new QVBoxLayout(this);
-  Pds::LinkedList<Parameter>& pList(s.pList);
-  Parameter* p = pList.forward();
-  while( p != pList.empty() ) {
-    layout->addLayout(p->initialize(this));
-    p = p->forward();
+  QPushButton* bInsertCycle = new QPushButton("Insert",this);
+  QPushButton* bRemoveCycle = new QPushButton("Remove",this);
+  _cycleBox                 = new QComboBox  (this);
+
+  { QGroupBox* calibGroup = new QGroupBox("Calibration Cycle",this);
+    QHBoxLayout* layout1 = new QHBoxLayout;
+    layout1->addWidget(bInsertCycle);
+    layout1->addWidget(bRemoveCycle);
+    layout1->addWidget(_cycleBox);
+    calibGroup->setLayout(layout1);
+    layout->addWidget(calibGroup); }
+
+  if (Parameter::allowEdit()) {
+    connect(bInsertCycle, SIGNAL(clicked()), this, SLOT(insert_cycle()));
+    connect(bRemoveCycle, SIGNAL(clicked()), this, SLOT(remove_cycle()));
   }
+  else {
+    bInsertCycle->setEnabled(false);
+    bRemoveCycle->setEnabled(false);
+  }
+  connect(_cycleBox, SIGNAL(activated(int)), this, SLOT(set_cycle(int)));
+
+  _s.initialize(this, layout);
+
   QHBoxLayout* blayout = new QHBoxLayout;
   QPushButton* bRead  = new QPushButton("Copy",this);
   QPushButton* bWrite = new QPushButton("Save",this);
@@ -83,15 +101,21 @@ Dialog::Dialog(QWidget* parent,
   blayout->addWidget(bRead);
   blayout->addWidget(bWrite);
   blayout->addWidget(bReturn);
-  connect(bRead  , SIGNAL(clicked()), this, SLOT(read()));
-  connect(bWrite , SIGNAL(clicked()), this, SLOT(write()));
+  if (Parameter::allowEdit()) {
+    bRead ->setEnabled(true);
+    bWrite->setEnabled(true);
+    connect(bRead , SIGNAL(clicked()), this, SLOT(read ()));
+    connect(bWrite, SIGNAL(clicked()), this, SLOT(write()));
+  }
+  else {
+    bRead ->setEnabled(false);
+    bWrite->setEnabled(false);
+  }
   connect(bReturn, SIGNAL(clicked()), this, SLOT(reject()));
 
   layout->addLayout(blayout);
   setLayout(layout);
 }
-
-Dialog::~Dialog() {}
 
 void Dialog::read()
 {
@@ -99,31 +123,20 @@ void Dialog::read()
 					      _read_dir, "*.xtc");
   if (file.isNull())
     return;
-  struct stat file_stat;
-  if (stat(qPrintable(file),&file_stat)) return;
-  char* buff = new char[file_stat.st_size];
-  FILE* input = fopen(qPrintable(file),"r");
-  fread(buff, file_stat.st_size, 1, input);
-  fclose(input);
-  _s.readParameters(buff);
-  delete[] buff;
 
-  Pds::LinkedList<Parameter>& pList(_s.pList);
-  Parameter* p = pList.forward();
-  while( p != pList.empty() ) {
-    p->flush();
-    p = p->forward();
-  }
+  read(file);
 }
 
 void Dialog::write()
 {
-  Pds::LinkedList<Parameter>& pList(_s.pList);
-  Parameter* p = pList.forward();
-  while( p != pList.empty() ) {
-    p->update();
-    p = p->forward();
-  }
+  // Save the current cycle
+  _s.update();
+  int i = _cycleBox->currentIndex();
+  delete _cycles[i];
+  Cycle* cycle = new Cycle(_s.dataSize());
+  _s.writeParameters(cycle->buffer);
+  _cycles[i] = cycle;
+
   bool ok;
   QString file = QInputDialog::getText(this,"File to write to:","Filename:",
 				       QLineEdit::Normal,"example.xtc",&ok);
@@ -132,7 +145,7 @@ void Dialog::write()
   if (file.isEmpty())
     return;
 
-  const int bufsize = 0x1000;
+  const int bufsize = 128;
   char* buff = new char[bufsize];
 
   QString fullname = _write_dir + "/" + file;
@@ -146,10 +159,84 @@ void Dialog::write()
 
   _file=file;
   FILE* output = fopen(buff,"w");
-  int siz = _s.writeParameters(buff);
-  fwrite(buff, siz, 1, output);
+  for(unsigned k=0; k<_cycles.size(); k++)
+    fwrite(_cycles[k]->buffer, _cycles[k]->size, 1, output);
   fclose(output);
   delete[] buff;
   accept();
 }
 
+void Dialog::insert_cycle()
+{
+  // Save the current cycle
+  _s.update();
+  int i = _cycleBox->currentIndex();
+  delete _cycles[i];
+  Cycle* cycle = new Cycle(_s.dataSize());
+  _s.writeParameters(cycle->buffer);
+  _cycles[i] = cycle;
+
+  // Create the new cycle
+  cycle = new Cycle(_s.dataSize());
+  _s.writeParameters(cycle->buffer);
+  _cycles.insert(_cycles.begin()+i+1,cycle);
+
+  _cycleBox->addItem(QString("%1").arg(_cycles.size()-1));
+  _cycleBox->setCurrentIndex(_current = i+1);
+}
+
+void Dialog::remove_cycle()
+{
+  int i = _cycleBox->currentIndex();
+  delete _cycles[i];
+  _cycles.erase(_cycles.begin()+i);
+
+  _cycleBox->removeItem(_cycles.size());
+
+  _cycleBox->setCurrentIndex(_current = i<_cycles.size() ? i : _cycles.size()-1);
+  _s.readParameters(_cycles[_current]->buffer);
+  _s.flush();
+}
+
+void Dialog::set_cycle(int index)
+{
+  if (Parameter::allowEdit()) {
+    // Save the current cycle
+    _s.update();
+    int i = _current;
+    delete _cycles[i];
+    Cycle* cycle = new Cycle(_s.dataSize());
+    _s.writeParameters(cycle->buffer);
+    _cycles[i] = cycle;
+  }
+
+  _s.readParameters(_cycles[_current=index]->buffer);
+  _s.flush();
+}
+
+
+void Dialog::read(const QString& file)
+{
+  // perform the read
+  struct stat file_stat;
+  if (stat(qPrintable(file),&file_stat)) return;
+  char* buff = new char[file_stat.st_size];
+  FILE* input = fopen(qPrintable(file),"r");
+  fread(buff, file_stat.st_size, 1, input);
+  fclose(input);
+
+  char* b = buff;
+  char* e = buff + file_stat.st_size;
+  while(b < e) {
+    Cycle* cycle = new Cycle(_s.readParameters(b));
+    b += cycle->size;
+    _s.writeParameters(cycle->buffer);
+    _cycles.push_back(cycle);
+    _cycleBox->addItem(QString("%1").arg(_cycles.size()-1));
+  }
+  _cycleBox->setCurrentIndex(_current = 0);
+  _s.readParameters(_cycles[_current]->buffer);
+  _s.flush();
+
+  delete[] buff;
+}

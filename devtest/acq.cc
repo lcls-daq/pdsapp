@@ -28,15 +28,17 @@ namespace Pds {
   //
   class MySegWire : public SegWireSettings {
   public:
-    MySegWire(AcqServer& acqServer) : _acqServer(acqServer) {}
+    MySegWire(AcqServer& acqServer) : _acqServer(acqServer) { _sources.push_back(acqServer.client()); }
     virtual ~MySegWire() {}
     void connect (InletWire& wire,
 		  StreamParams::StreamType s,
 		  int interface) {
       wire.add_input(&_acqServer);
     }
+    const std::list<Src>& sources() const { return _sources; }
   private:
     AcqServer& _acqServer;
+    std::list<Src> _sources;
   };
 
   //

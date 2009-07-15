@@ -21,7 +21,7 @@ libincs_monapp += qt/include/QtUiTools
 libincs_monapp += qt/include/QtXml
 
 
-tgtnames := vmondisplay mondisplay monservertest vmonservertest 
+tgtnames := vmondisplay mondisplay monservertest vmonservertest vmonreader
 
 
 tgtsrcs_vmondisplay += VmonTreeMenu.cc VmonTreeMenu_moc.cc
@@ -49,5 +49,9 @@ tgtslib_monservertest := /usr/lib/rt
 tgtsrcs_vmonservertest += vmonservertest.cc
 tgtlibs_vmonservertest := pdsdata/xtcdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
 tgtslib_vmonservertest := /usr/lib/rt
+
+tgtsrcs_vmonreader += VmonReaderDump.cc
+tgtlibs_vmonreader := pdsdata/xtcdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
+tgtslib_vmonreader := /usr/lib/rt
 
 

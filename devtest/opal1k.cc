@@ -41,6 +41,7 @@ namespace Pds {
       _platform(platform),
       _opal1k  (new Opal1kManager(src))
     {
+      _sources.push_back(_opal1k->server().client());
     }
 
     virtual ~SegTest()
@@ -56,6 +57,11 @@ namespace Pds {
 		  int interface)
     {
       wire.add_input(&_opal1k->server());
+    }
+
+    const std::list<Src>& sources() const
+    {
+      return _sources;
     }
 
   private:
@@ -98,6 +104,7 @@ namespace Pds {
     Task*          _task;
     unsigned       _platform;
     Opal1kManager* _opal1k;
+    std::list<Src> _sources;
   };
 }
 

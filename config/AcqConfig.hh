@@ -10,8 +10,9 @@ namespace Pds_ConfigDb {
     AcqConfig();
     ~AcqConfig() {}
   public:
-    bool readParameters (void* from);
+    int  readParameters (void* from);
     int  writeParameters(void* to);
+    int  dataSize       () const;
   private:
     class Private_Data;
     Private_Data* _private_data;

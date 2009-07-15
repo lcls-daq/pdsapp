@@ -11,6 +11,7 @@
 #include "pdsapp/config/Opal1kConfig.hh"
 #include "pdsapp/config/TM6740Config.hh"
 #include "pdsapp/config/FrameFexConfig.hh"
+#include "pdsapp/config/ControlConfig.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -48,6 +49,7 @@ Devices_Ui::Devices_Ui(QWidget* parent,
   _dict.enroll(Pds::TypeId::Id_Opal1kConfig,new Opal1kConfig);
   _dict.enroll(Pds::TypeId::Id_TM6740Config,new TM6740Config);
   _dict.enroll(Pds::TypeId::Id_FrameFexConfig,new FrameFexConfig);
+  _dict.enroll(Pds::TypeId::Id_ControlConfig ,new ControlConfig);
 
   QHBoxLayout* layout = new QHBoxLayout(this);
   { QVBoxLayout* layout1 = new QVBoxLayout;
@@ -131,17 +133,17 @@ void Devices_Ui::edit_device()
 {
   Device* device(_device());
   if (device) {
-    list<Pds::DetInfo> dlist;
+    list<Pds::Src> dlist;
     for(list<DeviceEntry>::const_iterator iter = device->src_list().begin();
 	iter!=device->src_list().end(); iter++) {
-      dlist.push_back(iter->info());
+      dlist.push_back(*iter);
     }
     DetInfoDialog_Ui* dialog=new DetInfoDialog_Ui(this, dlist);
     if (dialog->exec()) {
       device->src_list().clear();
-      for(list<Pds::DetInfo>::const_iterator iter=dialog->src_list().begin();
+      for(list<Pds::Src>::const_iterator iter=dialog->src_list().begin();
 	  iter!=dialog->src_list().end(); iter++)
-	device->src_list().push_back(DeviceEntry(iter->phy()));
+	device->src_list().push_back(DeviceEntry(*iter));
     }
     delete dialog;
   }
@@ -160,13 +162,13 @@ void Devices_Ui::new_device()
 	cout << "New device name \"" << device << "\" rejected" << endl;
 	return;
       }
-    list<Pds::DetInfo> dlist;
+    list<Pds::Src> dlist;
     DetInfoDialog_Ui* dialog=new DetInfoDialog_Ui(this, dlist);
     if (dialog->exec()) {
       list<DeviceEntry> entries;
-      for(list<Pds::DetInfo>::const_iterator iter=dialog->src_list().begin();
+      for(list<Pds::Src>::const_iterator iter=dialog->src_list().begin();
 	  iter!=dialog->src_list().end(); iter++)
-	entries.push_back(DeviceEntry(iter->phy()));
+	entries.push_back(DeviceEntry(*iter));
       _expt.add_device(device, entries);
       update_device_list();
     }
@@ -355,6 +357,16 @@ void Devices_Ui::add_component(const QString& type)
       }
     }
     else {
+      string path(_expt.data_path("",stype));
+      QString qpath(path.c_str());
+      qpath += "/" + choice;
+
+      Parameter::allowEdit(false);
+      Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath);
+      d->exec();
+      delete d;
+      Parameter::allowEdit(true);
+
       FileEntry entry(stype,schoice);
       _expt.device(det)->table().set_entry(cfg,entry);
     }

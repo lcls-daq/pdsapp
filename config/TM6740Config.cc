@@ -37,7 +37,7 @@ namespace Pds_ConfigDb {
       pList.insert(&_output_lut);
     }
 
-    bool pull(void* from) {
+    int pull(void* from) {
       TM6740ConfigType& tc = *new(from) TM6740ConfigType;
       _vref         .value = tc.vref  ();
       _gain_a       .value = tc.gain_a();
@@ -48,7 +48,7 @@ namespace Pds_ConfigDb {
       _hbinning     .value = tc.horizontal_binning();
       _vbinning     .value = tc.vertical_binning();
       _output_lut   .value = tc.lookuptable_mode();
-      return true;
+      return sizeof(TM6740ConfigType);
     }
 
     int push(void* to) {
@@ -63,6 +63,11 @@ namespace Pds_ConfigDb {
 						       _output_lut.value);
       return sizeof(tc);
     }
+
+    int dataSize() const {
+      return sizeof(TM6740ConfigType);
+    }
+
   public:
     NumericInt<unsigned>    _vref  ;
     NumericInt<unsigned>    _gain_a;
@@ -86,12 +91,16 @@ TM6740Config::TM6740Config() :
   _private_data->insert(pList);
 }
 
-bool TM6740Config::readParameters (void* from) {
+int  TM6740Config::readParameters (void* from) {
   return _private_data->pull(from);
 }
 
 int  TM6740Config::writeParameters(void* to) {
   return _private_data->push(to);
+}
+
+int  TM6740Config::dataSize() const {
+  return _private_data->dataSize();
 }
 
 #include "Parameters.icc"

@@ -27,7 +27,8 @@ namespace Pds_ConfigDb {
     void new_config();
     void copy_config();
     void device_changed();
-    void add_device(const QString& name);
+    void add_device   (const QString& name);
+    void remove_device(const QString& name);
     void db_update();
   private:
     void change_device(const string&);
@@ -41,7 +42,8 @@ namespace Pds_ConfigDb {
     QLineEdit*   _cfgcopyedit;
     QPushButton* _cfgcopybutton;
     QListWidget* _devlist;
-    QComboBox*   _devcfglist;
+    QComboBox*   _adddevlist;
+    QComboBox*   _remdevlist;
   };
 };
 

@@ -17,10 +17,13 @@ class Observer : public CollectionManager {
 public:
   Observer() :
     CollectionManager(Level::Observer, 0, MaxPayload, ConnectTimeOut, NULL),
-    _sem(Semaphore::EMPTY) {}
+    _sem(Semaphore::EMPTY),
+    _allocations(new Allocation[SourceLevel::MaxPartitions()])
+  {}
+  ~Observer() { delete[] _allocations; }
 public:
   void get_partitions() {
-    for(unsigned k=0; k<SourceLevel::MaxPartitions; k++) {
+    for(unsigned k=0; k<SourceLevel::MaxPartitions(); k++) {
       Allocation alloc("","",k);
       PartitionAllocation pa(alloc);
       Ins dst = CollectionPorts::platform();
@@ -33,28 +36,32 @@ public:
     printf("            Control   | Platform | Partition  |   Node\n"
 	   "        ip     / pid  |          | id/name    | level/ pid /   ip\n"
 	   "----------------------+----------+------------+-------------\n");
-    for(unsigned k=0; k<SourceLevel::MaxPartitions; k++) {
+    for(unsigned k=0; k<SourceLevel::MaxPartitions(); k++) {
       const Allocation& a = _allocations[k];
-      if (a.nnodes()==0) continue;
-
-      for(unsigned i=0; i<a.nnodes(); i++)
-	if (a.node(i)->level() == Level::Control) {
-	  const Node& n = *a.node(i);
-	  unsigned ip = n.ip();
-	  char ipbuff[32];
-	  sprintf(ipbuff,"%d.%d.%d.%d/%05d",
-		  (ip>>24), (ip>>16)&0xff, (ip>>8)&0xff, ip&0xff, n.pid());
-	  printf("%*s%s     %03d      %02d/%7s", 
-		 21-strlen(ipbuff)," ",ipbuff, n.platform(), a.partitionid(), a.partition());
-	  for(unsigned m=0; m<a.nnodes(); m++) {
-	    const Node& p=*a.node(m);
-	    ip = p.ip();
-	    printf("%s       %1d/%05d/%d.%d.%d.%d\n", 
-		   m==0 ? "":"                                             ",
-		   p.level(), p.pid(),
-		   (ip>>24),(ip>>16)&0xff,(ip>>8)&0xff,ip&0xff);
+      if (a.nnodes()==0) {
+	printf("%*s     ---      %02d/%7s\n", 
+	       21," ", a.partitionid(), a.partition());
+      }
+      else {
+	for(unsigned i=0; i<a.nnodes(); i++)
+	  if (a.node(i)->level() == Level::Control) {
+	    const Node& n = *a.node(i);
+	    unsigned ip = n.ip();
+	    char ipbuff[32];
+	    sprintf(ipbuff,"%d.%d.%d.%d/%05d",
+		    (ip>>24), (ip>>16)&0xff, (ip>>8)&0xff, ip&0xff, n.pid());
+	    printf("%*s%s     %03d      %02d/%7s", 
+		   21-strlen(ipbuff)," ",ipbuff, n.platform(), a.partitionid(), a.partition());
+	    for(unsigned m=0; m<a.nnodes(); m++) {
+	      const Node& p=*a.node(m);
+	      ip = p.ip();
+	      printf("%s       %1d/%05d/%d.%d.%d.%d\n", 
+		     m==0 ? "":"                                             ",
+		     p.level(), p.pid(),
+		     (ip>>24),(ip>>16)&0xff,(ip>>8)&0xff,ip&0xff);
+	    }
 	  }
-	}
+      }
     }
   }
 
@@ -72,7 +79,7 @@ private:
   }
 private:
   Semaphore  _sem;
-  Allocation _allocations[SourceLevel::MaxPartitions];
+  Allocation* _allocations;
 };
 
 #include <time.h>

@@ -24,6 +24,11 @@ DeviceEntry::DeviceEntry(unsigned id) :
   _phy = id; 
 }
 
+DeviceEntry::DeviceEntry(const Pds::Src& id) :
+  Pds::Src(id)
+{
+}
+
 DeviceEntry::DeviceEntry(const string& id) 
 {
   char sep;
@@ -36,11 +41,6 @@ string DeviceEntry::id() const
   ostringstream o;
   o << std::hex << setfill('0') << setw(8) << _log << '.' << setw(8) << _phy;
   return o.str();
-}
-
-const Pds::DetInfo& DeviceEntry::info() const
-{
-  return reinterpret_cast<const Pds::DetInfo&>(*this);
 }
 
 

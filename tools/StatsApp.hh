@@ -42,7 +42,7 @@ public:
   }
   void dump() const {
     int indent = (Level::NumberOfLevels-_node.level())*2;
-    printf("%*c%08x/%08x : dmg 0x%08x  events 0x%x  avg sz 0x%x\n",
+    printf("%*c%08x/%08x : dmg 0x%08x  events 0x%x  avg sz 0x%llx\n",
 	   indent, ' ', _node.log(), _node.phy(),
 	   _damage, _events, _events ? _size/_events : 0);
     for(int i=0; i<32; i++)
@@ -96,14 +96,6 @@ public:
 	}
       }
       break;
-    case TransitionId::Disable:
-      {
-	NodeStats* n = _list.forward();
-	while(n != _list.empty()) {
-	  n->dump();
-	  n = n->forward();
-	}
-      }
     default:
       break;
     }
@@ -114,6 +106,13 @@ public:
     const Datagram& dg = in->datagram();
     if (!dg.seq.isEvent()) {
       printf("Transition %02x/%08x\n",dg.seq.service(),dg.seq.stamp().fiducials());
+      if (dg.seq.service()==TransitionId::Disable) {
+	NodeStats* n = _list.forward();
+	while(n != _list.empty()) {
+	  n->dump();
+	  n = n->forward();
+	}
+      }
       return in;
     }
 

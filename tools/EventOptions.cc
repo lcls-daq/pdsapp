@@ -17,7 +17,7 @@ EventOptions::EventOptions(int argc, char** argv) :
   mode(Counter)
 {
   int c;
-  while ((c = getopt(argc, argv, "f:p:i:b:a:ed")) != -1) {
+  while ((c = getopt(argc, argv, "f:p:b:a:ed")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {

@@ -3,7 +3,7 @@
 
 #include "pdsapp/config/Device.hh"
 
-#include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/Src.hh"
 
 #include <QtCore/QObject>
 #include <QtGui/QDialog>
@@ -20,19 +20,23 @@ namespace Pds_ConfigDb {
   class DetInfoDialog_Ui : public QDialog {
     Q_OBJECT
   public:
-    DetInfoDialog_Ui(QWidget*, const list<Pds::DetInfo>&);
+    DetInfoDialog_Ui(QWidget*, const list<Pds::Src>&);
     ~DetInfoDialog_Ui();
   public:
-    const list<Pds::DetInfo>& src_list() const { return _list; }
+    const list<Pds::Src>& src_list() const { return _list; }
   public slots:
-    void add   (); 
-    void remove();
+    void add    (); 
+    void addproc(); 
+    void remove ();
   private:
-    list<Pds::DetInfo> _list;
+    void reconstitute_srclist();
+  private:
+    list<Pds::Src> _list;
     QComboBox*     _detlist;
     QLineEdit*     _detedit;
     QComboBox*     _devlist;
     QLineEdit*     _devedit;
+    QComboBox*     _proclist;
     QListWidget*   _srclist;
   };
 };

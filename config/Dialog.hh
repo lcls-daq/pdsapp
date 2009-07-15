@@ -3,9 +3,14 @@
 
 #include <QtGui/QDialog>
 
+#include <vector>
+
+class QComboBox;
+
 namespace Pds_ConfigDb {
-  
+
   class Serializer;
+  class Cycle;
 
   class Dialog : public QDialog {
     Q_OBJECT
@@ -21,13 +26,22 @@ namespace Pds_ConfigDb {
   public:
     const QString& file() const { return _file; }
   public slots:
-    void read();
-    void write();
+    void read     ();
+    void write    ();
+    void set_cycle   (int);
+    void insert_cycle();
+    void remove_cycle();
   private:
-    Serializer& _s;
-    const QString& _read_dir;
-    const QString& _write_dir;
-    QString     _file;
+    void layout();
+    void read  (const QString&);
+  private:
+    Serializer&         _s;
+    const QString&      _read_dir;
+    const QString&      _write_dir;
+    QString             _file;
+    QComboBox*          _cycleBox;
+    std::vector<Cycle*> _cycles;
+    unsigned            _current;
   };
 
 };

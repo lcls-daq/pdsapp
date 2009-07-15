@@ -39,7 +39,7 @@ namespace Pds_ConfigDb {
       pList.insert(&_output_lut);
     }
 
-    bool pull(void* from) {
+    int pull(void* from) {
       Opal1kConfigType& tc = *new(from) Opal1kConfigType;
       _black_level.value = tc.black_level();
       _gain       .value = tc.gain_percent();
@@ -49,7 +49,7 @@ namespace Pds_ConfigDb {
       _vertical_remap.value = tc.vertical_remapping() ? Enums::True : Enums::False;
       _defect_pixel_corr.value = tc.defect_pixel_correction_enabled() ? Enums::True : Enums::False;
       _output_lut.value = None;
-      return true;
+      return tc.size();
     }
 
     int push(void* to) {
@@ -62,6 +62,11 @@ namespace Pds_ConfigDb {
 				   _defect_pixel_corr.value==Enums::True);
       return tc.size();
     }
+
+    int dataSize() const {
+      return sizeof(Opal1kConfigType);
+    }
+
   public:
     NumericInt<unsigned short>    _black_level;
     NumericInt<unsigned short>    _gain;
@@ -84,12 +89,16 @@ Opal1kConfig::Opal1kConfig() :
   _private_data->insert(pList);
 }
 
-bool Opal1kConfig::readParameters (void* from) {
+int  Opal1kConfig::readParameters (void* from) {
   return _private_data->pull(from);
 }
 
 int  Opal1kConfig::writeParameters(void* to) {
   return _private_data->push(to);
+}
+
+int  Opal1kConfig::dataSize() const {
+  return _private_data->dataSize();
 }
 
 #include "Parameters.icc"

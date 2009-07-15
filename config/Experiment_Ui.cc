@@ -28,28 +28,34 @@ Experiment_Ui::Experiment_Ui(QWidget* parent,
   QHBoxLayout* layout = new QHBoxLayout(this);
 
   { QVBoxLayout* layout1 = new QVBoxLayout;
-  layout1->addWidget(new QLabel("Config Name", this));
-  layout1->addWidget(_cfglist = new QListWidget(this));
-  { QHBoxLayout* layout1a = new QHBoxLayout;
-  layout1a->addWidget(_cfgnewedit   = new QLineEdit(this));
-  layout1a->addWidget(_cfgnewbutton = new QPushButton("New", this));
-  layout1->addLayout(layout1a); }
-  { QHBoxLayout* layout1b = new QHBoxLayout;
-  layout1b->addWidget(_cfgcopyedit   = new QLineEdit(this));
-  layout1b->addWidget(_cfgcopybutton = new QPushButton("Copy To", this));
-  layout1->addLayout(layout1b); }
-  layout->addLayout(layout1); }
+    layout1->addWidget(new QLabel("Config Name", this));
+    layout1->addWidget(_cfglist = new QListWidget(this));
+    { QHBoxLayout* layout1a = new QHBoxLayout;
+      layout1a->addWidget(_cfgnewedit   = new QLineEdit(this));
+      layout1a->addWidget(_cfgnewbutton = new QPushButton("New", this));
+      layout1->addLayout(layout1a); }
+    { QHBoxLayout* layout1b = new QHBoxLayout;
+      layout1b->addWidget(_cfgcopyedit   = new QLineEdit(this));
+      layout1b->addWidget(_cfgcopybutton = new QPushButton("Copy To", this));
+      layout1->addLayout(layout1b); }
+    layout->addLayout(layout1); }
 
   { QVBoxLayout* layout2 = new QVBoxLayout;
-  layout2->addWidget(new QLabel("Device Configuration", this));
-  layout2->addWidget(_devlist = new QListWidget(this));
-  { QHBoxLayout* layout2a = new QHBoxLayout;
-  QLabel* label = new QLabel("Add", this);
-  label->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
-  layout2a->addWidget(label);
-  layout2a->addWidget(_devcfglist = new QComboBox(this)); 
-  layout2->addLayout(layout2a); }
-  layout->addLayout(layout2);
+    layout2->addWidget(new QLabel("Device Configuration", this));
+    layout2->addWidget(_devlist = new QListWidget(this));
+    { QHBoxLayout* layout2a = new QHBoxLayout;
+      QLabel* label = new QLabel("Add", this);
+      label->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
+      layout2a->addWidget(label);
+      layout2a->addWidget(_adddevlist = new QComboBox(this)); 
+      layout2->addLayout(layout2a); }
+   { QHBoxLayout* layout2a = new QHBoxLayout;
+      QLabel* label = new QLabel("Remove", this);
+      label->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
+      layout2a->addWidget(label);
+      layout2a->addWidget(_remdevlist = new QComboBox(this)); 
+      layout2->addLayout(layout2a); }
+    layout->addLayout(layout2);
   }
   setLayout(layout);
 
@@ -58,13 +64,15 @@ Experiment_Ui::Experiment_Ui(QWidget* parent,
     connect(_cfgnewbutton, SIGNAL(clicked()), this, SLOT(new_config()));
     connect(_cfgcopybutton, SIGNAL(clicked()), this, SLOT(copy_config()));
     connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
-    connect(_devcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
+    connect(_adddevlist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
+    connect(_remdevlist, SIGNAL(activated(const QString&)), this, SLOT(remove_device(const QString&)));
   }
   else {
     _cfgnewbutton ->setEnabled(false);
     _cfgcopybutton->setEnabled(false);
     _devlist      ->setEnabled(false);
-    _devcfglist   ->setEnabled(false);
+    _adddevlist   ->setEnabled(false);
+    _remdevlist   ->setEnabled(false);
   }
   update_config_list();
 }
@@ -91,9 +99,11 @@ void Experiment_Ui::update_device_list()
 {
   string name(qPrintable(_cfglist->currentItem()->text()));
   bool ok1 = disconnect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
-  bool ok2 = disconnect(_devcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
+  bool ok2 = disconnect(_adddevlist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
+  bool ok3 = disconnect(_remdevlist, SIGNAL(activated(const QString&)), this, SLOT(remove_device(const QString&)));
   _devlist->clear();
-  _devcfglist->clear();
+  _adddevlist->clear();
+  _remdevlist->clear();
 
   list<string> unassigned;
   for(list<Device>::iterator iter = _expt.devices().begin(); iter != _expt.devices().end();
@@ -106,14 +116,16 @@ void Experiment_Ui::update_device_list()
     string entry = iter->name() + " [" + iter->entry() + "]";
     *new QListWidgetItem(entry.c_str(),_devlist);
     unassigned.remove(iter->name());
+    _remdevlist->addItem(iter->name().c_str());
   }
 
   for(list<string>::iterator iter = unassigned.begin(); iter != unassigned.end();
       iter++)
-    _devcfglist->addItem(iter->c_str());
+    _adddevlist->addItem(iter->c_str());
 
   if (ok1) connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
-  if (ok2) connect(_devcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
+  if (ok2) connect(_adddevlist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
+  if (ok3) connect(_remdevlist, SIGNAL(activated(const QString&)), this, SLOT(remove_device(const QString&)));
 }
 
 void Experiment_Ui::new_config()
@@ -154,6 +166,23 @@ void Experiment_Ui::add_device(const QString& name)
 {
   string device(qPrintable(name));
   change_device(device);
+}
+
+void Experiment_Ui::remove_device(const QString& name)
+{
+  string cfg(qPrintable(_cfglist->currentItem()->text()));
+  string dev(qPrintable(name));
+  TableEntry* entry = const_cast<TableEntry*>(_expt.table().get_top_entry(cfg));
+  if (entry) {
+    const list<FileEntry>& entries = entry->entries();
+    for(list<FileEntry>::const_iterator iter = entries.begin();
+	iter != entries.end(); iter++)
+      if (iter->name() == dev) {
+	entry->remove(*iter);
+	update_device_list();
+	break;
+      }
+  }
 }
 
 void Experiment_Ui::change_device(const string& device)

@@ -3,6 +3,8 @@
 #include "pds/management/PlatformCallback.hh"
 #include "pds/utility/SetOfStreams.hh"
 #include "pds/client/Decoder.hh"
+#include "pds/collection/PingReply.hh"
+#include "pdsdata/xtc/DetInfo.hh"
 
 #include <time.h> // Required for timespec struct and nanosleep()
 #include <stdlib.h> // Required for timespec struct and nanosleep()
@@ -13,6 +15,8 @@
 namespace Pds {
 
   class CCallback : public ControlCallback {
+  public:
+    CCallback() {}
   public:
     void attached(SetOfStreams& streams) {
       Stream& frmk = *streams.stream(StreamParams::FrameWork);
@@ -27,9 +31,18 @@ namespace Pds {
     PCallback() {}
   public:
     void clear() { _nnodes = 0; }
-    void available(const Node& hdr) {
+    void available(const Node& hdr, const PingReply& msg) {
       printf("Node [0x%08x] %x/%d/%d\n",(1<<_nnodes),hdr.ip(),hdr.level(),hdr.pid());
-      _nodes[_nnodes++] = hdr; 
+      if (msg.nsources()) {
+	for(unsigned k=0; k<msg.nsources(); k++) {
+	  const DetInfo& src = static_cast<const DetInfo&>(msg.source(k));
+	  printf("  %s/%d/%s/%d",
+		 src.name(src.detector()), src.detId(),
+		 src.name(src.device()),   src.devId());
+	}
+	printf("\n");
+      }
+     _nodes[_nnodes++] = hdr; 
     }
   public:
     void        select(unsigned m) {  // Note that this overwrites the platform list
@@ -110,8 +123,7 @@ int main(int argc, char** argv)
     fprintf(stdout, "Commands: EOF=quit\n");
     while (true) {
       printf("Commands (p)ing, (a)llocate [nodes],\n"
-	     "(u)nmapped, (m)apped, (c)onfigured, (r)unning, (e)nabled,\n"
-	     "(P)ause, (R)esume\n");
+	     "(u)nmapped, (m)apped, (c)onfigured, (r)unning, (e)nabled,\n");
       const int maxlen=128;
       char line[maxlen];
       char* result = fgets(line, maxlen, stdin);
@@ -128,7 +140,7 @@ int main(int argc, char** argv)
 	  switch(cmd) {
 	  case 'p': 
 	    platformcb.clear();
-	    control.platform_rollcall(platformcb); 
+	    control.platform_rollcall(&platformcb); 
 	    break;
 	  case 'a':
 	    if (control.current_state()==PartitionControl::Unmapped) {
@@ -146,8 +158,6 @@ int main(int argc, char** argv)
 	  case 'r': control.set_target_state(PartitionControl::Running); break;
 	  case 'e': control.set_target_state(PartitionControl::Enabled); break;
 	  case 'u': control.set_target_state(PartitionControl::Unmapped); break;
-	  case 'P': control.pause(); break;
-	  case 'R': control.resume(); break;
 	  default:  printf("Error parsing command %c\n",cmd); break;
 	  }
         }

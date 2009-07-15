@@ -156,7 +156,7 @@ namespace Pds_ConfigDb {
       pList.insert(&_outputSet);
     }
 
-    bool pull(void* from) {
+    int pull(void* from) {
       const EvrConfigType& tc = *new(from) EvrConfigType;
       _npulses.value  = tc.npulses();
       _noutputs.value = tc.noutputs();
@@ -164,7 +164,7 @@ namespace Pds_ConfigDb {
 	_pulses[k].pull(const_cast<Pds::EvrData::PulseConfig*>(&tc.pulse(k)));
       for(unsigned k=0; k<tc.noutputs(); k++)
 	_outputs[k].pull(const_cast<Pds::EvrData::OutputMap*>(&tc.output_map(k)));
-      return true;
+      return tc.size();
     }
 
     int push(void* to) {
@@ -182,6 +182,12 @@ namespace Pds_ConfigDb {
       delete[] pc;
       delete[] mo;
       return tc.size();
+    }
+
+    int dataSize() const {
+      return sizeof(EvrConfigType) + 
+	_npulses .value*sizeof(Pds::EvrData::PulseConfig) + 
+	_noutputs.value*sizeof(Pds::EvrData::OutputMap);
     }
   public:
     NumericInt<unsigned>    _npulses;
@@ -203,12 +209,16 @@ EvrConfig::EvrConfig() :
   _private_data->insert(pList);
 }
 
-bool EvrConfig::readParameters (void* from) {
+int  EvrConfig::readParameters (void* from) {
   return _private_data->pull(from);
 }
 
 int  EvrConfig::writeParameters(void* to) {
   return _private_data->push(to);
+}
+
+int  EvrConfig::dataSize() const {
+  return _private_data->dataSize();
 }
 
 #include "Parameters.icc"

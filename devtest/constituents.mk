@@ -1,6 +1,6 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr evgr acq acqevr opal1k xtcwriter
+tgtnames    := evr evgr acq opal1k xtcwriter
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
