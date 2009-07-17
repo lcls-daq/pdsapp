@@ -1,6 +1,7 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr evgr acq opal1k xtcwriter
+#tgtnames    := evr evgr acq acqevr opal1k xtcwriter pnccd
+tgtnames    := xtcwriter pnccd
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
@@ -55,3 +56,7 @@ tgtincs_tm6740 := leutron/include
 tgtsrcs_xtcwriter := xtcwriter.cc
 tgtlibs_xtcwriter := pdsdata/xtcdata pds/service
 tgtslib_xtcwriter := /usr/lib/rt
+
+tgtsrcs_pnccd := pnccd.cc
+tgtlibs_pnccd := pdsdata/xtcdata pds/service
+tgtslib_pnccd := /usr/lib/rt
