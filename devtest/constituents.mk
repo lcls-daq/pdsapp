@@ -1,7 +1,7 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-#tgtnames    := evr evgr acq acqevr opal1k xtcwriter pnccd
-tgtnames    := xtcwriter pnccd
+#tgtnames    := evr evgr acq acqevr opal1k xtcwriter pnccd xtctruncate
+tgtnames    := xtcwriter pnccd xtctruncate
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
@@ -60,3 +60,7 @@ tgtslib_xtcwriter := /usr/lib/rt
 tgtsrcs_pnccd := pnccd.cc
 tgtlibs_pnccd := pdsdata/xtcdata pds/service
 tgtslib_pnccd := /usr/lib/rt
+
+tgtsrcs_xtctruncate := xtctruncate.cc
+tgtlibs_xtctruncate := pdsdata/xtcdata pds/service
+tgtslib_xtctruncate := /usr/lib/rt
