@@ -63,10 +63,12 @@ public:
     _myMsg.sizeOfBuffers(s);
   }
   ~XtcMonServer() 
-  { printf("Unlinking ... \n");
-    if (mq_unlink(_toMonQname) == (mqd_t)-1) perror("mq_unlink To Monitor");
-    if (mq_unlink(_fromMonQname) == (mqd_t)-1) perror("mq_unlink From Monitor");
-    printf("Finished.\n");
+  { if (_linked) 
+    { printf("Unlinking ... \n");
+      if (mq_unlink(_toMonQname) == (mqd_t)-1) perror("mq_unlink To Monitor");
+      if (mq_unlink(_fromMonQname) == (mqd_t)-1) perror("mq_unlink From Monitor");
+      printf("Finished.\n");
+    }
   }
 public:
   Transition* transitions(Transition* tr) { return tr; }
@@ -79,6 +81,7 @@ public:
     { Datagram& dgrm = dg->datagram();
       if (mq_receive(_myInputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority) < 0) perror("mq_receive");
       _bufferP = _myShm + (_sizeOfBuffers * _myMsg.bufferIndex());
+      //  write the datagram
       memcpy((char*)_bufferP, &dgrm, sizeof(Datagram));
       unsigned offset = sizeof(Datagram);
       //  write the payload
@@ -201,7 +204,10 @@ void usage(char* progname) {
   printf("Usage: %s -p <platform> -P <partition> -i <monitor node> -n <numb shm buffers> -s <shm buffer size>\n", progname);
 }
 
+Appliance* apps;
+
 void sigfunc(int sig_no) {
+   delete apps;
    exit(EXIT_SUCCESS);
 }
 
@@ -254,7 +260,7 @@ int main(int argc, char** argv) {
   printf("\nPartition Tag:%s\n", partitionTag);
 
 
-  Appliance* apps = new XtcMonServer(sizeOfBuffers, numberOfBuffers);
+  apps = new XtcMonServer(sizeOfBuffers, numberOfBuffers);
   if (((XtcMonServer*)apps)->init(partitionTag))
   { fprintf(stderr, "Initializing XTC monitor server encountered an error!\n");
     return 1;
