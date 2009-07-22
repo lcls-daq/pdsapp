@@ -118,6 +118,7 @@ int main(int argc, char** argv)
   }
   */
   control.attach();
+  control.set_transition_env(TransitionId::Configure,key);
 
   {
     fprintf(stdout, "Commands: EOF=quit\n");
