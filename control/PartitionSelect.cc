@@ -49,17 +49,11 @@ PartitionSelect::~PartitionSelect()
 
 void PartitionSelect::select_dialog()
 {
-  bool show = false;
-  if (_display) {
-    show = !_display->isHidden();
-    _display->close();
-    _display = 0;
-  }
-
   if (_pcontrol.current_state()!=PartitionControl::Unmapped) {
     if (QMessageBox::question(this,
 			      "Select Partition",
-			      "Partition currently allocated. Deallocate partition?\n [This will stop the current run]" )
+			      "Partition currently allocated. Deallocate partition?\n [This will stop the current run]",
+			      QMessageBox::Ok | QMessageBox::Cancel)
 	== QMessageBox::Ok) {
       _pcontrol.set_target_state(PartitionControl::Unmapped);
       // wait for completion
@@ -67,6 +61,13 @@ void PartitionSelect::select_dialog()
     }
     else
       return;
+  }
+
+  bool show = false;
+  if (_display) {
+    show = !_display->isHidden();
+    _display->close();
+    _display = 0;
   }
 
   SelectDialog* dialog = new SelectDialog(this, _pcontrol);

@@ -78,6 +78,7 @@ void StateSelect::populate()
 				       _select->addItem(_End_Running);
 				       _select->addItem(_Shutdown);
 				       break;
+  case PartitionControl::NumberOfStates: break;
   }
   _select->addItem(_NoChange);
   QObject::connect(_select, SIGNAL(activated(const QString&)), 

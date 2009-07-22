@@ -4,9 +4,10 @@
 #include "pdsapp/control/PartitionSelect.hh"
 #include "pdsapp/control/StateSelect.hh"
 #include "pdsapp/control/SeqAppliance.hh"
-//#include "pdsapp/control/Runnable.hh"
+#include "pdsapp/control/PVDisplay.hh"
+#include "pdsapp/control/PVManager.hh"
 
-#include "pds/management/PartitionControl.hh"
+#include "pds/management/QualifiedControl.hh"
 #include "pds/management/ControlCallback.hh"
 #include "pds/utility/SetOfStreams.hh"
 #include "pds/config/CfgClientNfs.hh"
@@ -42,23 +43,27 @@ MainWindow::MainWindow(unsigned          platform,
 		       const char*       db_path) :
   QWidget(0),
   _controlcb(new CCallback),
-  _control  (new PartitionControl(platform, *_controlcb)),
+  _control  (new QualifiedControl(platform, *_controlcb)),
   _config   (new CfgClientNfs(Node(Level::Control,platform).procInfo()))
 {
   setAttribute(Qt::WA_DeleteOnClose, true);
 
   ConfigSelect*     config;
   StateSelect*      state ;
+  PVDisplay*        pvs;
 
   QVBoxLayout* layout = new QVBoxLayout(this);
   layout->addWidget(config    = new ConfigSelect   (this, *_control, db_path));
   layout->addWidget(            new PartitionSelect(this, *_control, partition, db_path));
   layout->addWidget(state     = new StateSelect    (this, *_control));
-  //  layout->addWidget(            new Runnable       (this, *_control));
+  layout->addWidget(pvs       = new PVDisplay      (this, *_control));
+
+  _pvmanager = new PVManager(*pvs);
 
   //  the order matters
   _controlcb->add_appliance(state);
-  _controlcb->add_appliance(new SeqAppliance(*_control,*_config));
+  _controlcb->add_appliance(new SeqAppliance(*_control,*_config,
+					     *_pvmanager));
   _control->attach();
 
   QObject::connect(state, SIGNAL(allocated())  , config, SLOT(allocated()));
@@ -71,4 +76,5 @@ MainWindow::~MainWindow()
   delete _config;
   delete _control; 
   delete _controlcb; 
+  delete _pvmanager;
 }

@@ -45,18 +45,21 @@ namespace Pds_ConfigDb {
     const char* _label;
   };
 
+  enum IntMode { Decimal, Hex };
+
   template <class T>
   class NumericInt : public Parameter {
   public:
-    NumericInt(const char* label, T val, T vlo, T vhi);
+    NumericInt(const char* label, T val, T vlo, T vhi, IntMode mo=Decimal);
     ~NumericInt();
 
     QLayout* initialize(QWidget*);
     void     update();
     void     flush ();
   public:
-    T value;
-    T range[2];
+    T       value;
+    T       range[2];
+    IntMode mode;
     QLineEdit* _input;
   };
 

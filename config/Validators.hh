@@ -17,11 +17,27 @@ namespace Pds_ConfigDb {
 		 int vlo, int vhi);
     ~IntValidator();
   public:
-    void fixup(QString&) const;
+    virtual void fixup(QString&) const;
   public slots:
     void validChange();  
   private:
     Parameter& _p;
+  };
+
+  class HexValidator : public QValidator {
+    Q_OBJECT
+  public:
+    HexValidator(Parameter& p, QLineEdit& l,
+		 unsigned vlo, unsigned vhi);
+    ~HexValidator();
+  public:
+    void fixup(QString&) const;
+    QValidator::State validate(QString&,int&) const;
+  public slots:
+    void validChange();
+  private:
+    Parameter& _p;
+    unsigned   _rlo, _rhi;
   };
 
   class DoubleValidator : public QDoubleValidator {

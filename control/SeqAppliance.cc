@@ -1,9 +1,12 @@
 #include "SeqAppliance.hh"
+#include "pdsapp/control/PVManager.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/config/CfgClientNfs.hh"
 #include "pds/utility/Transition.hh"
 #include "pds/xtc/EnableEnv.hh"
 #include "pdsdata/xtc/TransitionId.hh"
+
+#include "cadef.h"
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -16,13 +19,15 @@ static const int MaxConfigSize = 0x100000;
 using namespace Pds;
 
 SeqAppliance::SeqAppliance(PartitionControl& control,
-			   CfgClientNfs&     config) :
+			   CfgClientNfs&     config,
+			   PVManager&        pvmanager ) :
   _control      (control),
   _config       (config),
   _configtc     (_controlConfigType, config.src()),
   _config_buffer(new char[MaxConfigSize]),
   _cur_config   (0),
-  _end_config   (0)
+  _end_config   (0),
+  _pvmanager    (pvmanager)
 {
 }
 
@@ -35,10 +40,14 @@ Transition* SeqAppliance::transitions(Transition* tr)
 { 
   switch(tr->id()) {
   case TransitionId::Map:
-    {
-      const Allocate& alloc = reinterpret_cast<const Allocate&>(*tr);
-      _config.initialize(alloc.allocation());
-    }
+    //  EPICS thread initialization
+    SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), 
+	     "PVDisplay calling ca_context_create" );
+    _config.initialize(reinterpret_cast<const Allocate&>(*tr).allocation());
+    break;
+  case TransitionId::Unmap:
+    //  EPICS thread cleanup
+    ca_context_destroy();
     break;
   case TransitionId::Configure:
     {
@@ -60,7 +69,11 @@ Transition* SeqAppliance::transitions(Transition* tr)
 				_cur_config->uses_duration() ?
 				EnableEnv(_cur_config->duration()).value() :
 				EnableEnv(_cur_config->events()).value());
+    _pvmanager.configure(*_cur_config);
     break;
+  case TransitionId::EndCalibCycle:
+  case TransitionId::Unconfigure:
+    _pvmanager.unconfigure();
   default:
     break;
   }

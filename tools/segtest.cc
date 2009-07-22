@@ -473,7 +473,7 @@ int main(int argc, char** argv) {
   Node node(Level::Source,platform);
   SegTest* segtest = new SegTest(task, platform, 
 				 size1, size2, 
-				 DetInfo(node.pid(),DetInfo::AmoGasdet,
+				 DetInfo(node.pid(),DetInfo::AmoETof,
 					 detid,DetInfo::Opal1000,0));
   SegmentLevel* segment = new SegmentLevel(platform, 
 					   *segtest,

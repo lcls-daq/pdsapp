@@ -8,24 +8,21 @@
 namespace Pds {
 
   class MonitorCA;
+  class PVRunnable;
 
   class PVMonitor {
   public:
-    enum State { OK, NotOK };
-  public:
-    PVMonitor ();
+    PVMonitor (PVRunnable&);
     virtual ~PVMonitor();
   public:
-    State state() const;
+    bool runnable() const;
   public:
-    void configure(const ControlConfigType&);
+    void configure      (const ControlConfigType&);
+    void unconfigure    ();
     void channel_changed();
-  public:
-    const std::list<MonitorCA*> channels() const { return _channels; }
   private:
-    virtual void state_changed(State) = 0;
-  private:
-    State                 _state;
+    PVRunnable&           _report;
+    bool                  _runnable;
     std::list<MonitorCA*> _channels;
   };
 };

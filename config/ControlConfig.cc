@@ -26,13 +26,28 @@ namespace Pds_ConfigDb {
 
     bool pull(void* from) {
       Pds::ControlData::PVControl& tc = *new(from) Pds::ControlData::PVControl;
-      strncpy(_name.value, tc.name(), Pds::ControlData::PVControl::NameSize);
+      // construct the full name from the array base and index
+      if (tc.index())
+	snprintf(_name.value, Pds::ControlData::PVControl::NameSize,
+		 "%s[%d]", tc.name(), tc.index());
+      else
+	strncpy(_name.value, tc.name(), Pds::ControlData::PVControl::NameSize);
       _value.value = tc.value();
       return true;
     }
 
     int push(void* to) {
-      Pds::ControlData::PVControl& tc = *new(to) Pds::ControlData::PVControl(_name.value,
+      // extract the array base and index
+      char name[Pds::ControlData::PVControl::NameSize];
+      int  index=0;
+      strcpy(name, _name.value);
+      strtok(name,"[");
+      char* sindex = strtok(NULL,"]");
+      if (sindex)
+	sscanf(sindex,"%d",&index);
+
+      Pds::ControlData::PVControl& tc = *new(to) Pds::ControlData::PVControl(name,
+									     index,
 									     _value.value);
       return sizeof(tc);
     }
@@ -45,48 +60,50 @@ namespace Pds_ConfigDb {
   public:
     PVMonitor() :
       _name        ("PV Name", "", Pds::ControlData::PVControl::NameSize),
-      _lolo        ("LoLo Restricted", Enums::True, Enums::Bool_Names),
-      _low         ("Low  Restricted", Enums::True, Enums::Bool_Names),
-      _high        ("High Restricted", Enums::True, Enums::Bool_Names),
-      _hihi        ("HiHi Restricted", Enums::True, Enums::Bool_Names)
+      _loValue     ("LoRange", 0, -DBL_MAX, DBL_MAX),
+      _hiValue     ("HiRange", 0, -DBL_MAX, DBL_MAX)
     {
     }
     
     void insert(Pds::LinkedList<Parameter>& pList) {
       pList.insert(&_name);
-      pList.insert(&_lolo);
-      pList.insert(&_low );
-      pList.insert(&_high);
-      pList.insert(&_hihi);
+      pList.insert(&_loValue);
+      pList.insert(&_hiValue);
     }
 
     bool pull(void* from) {
       Pds::ControlData::PVMonitor& tc = *new(from) Pds::ControlData::PVMonitor;
-      strncpy(_name.value, tc.name(), Pds::ControlData::PVMonitor::NameSize);
-      unsigned alarms = tc.restrictedAlarms();
-      _lolo.value = (alarms & Pds::ControlData::PVMonitor::LoLo) ? Enums::True : Enums::False;
-      _low .value = (alarms & Pds::ControlData::PVMonitor::Low ) ? Enums::True : Enums::False;
-      _high.value = (alarms & Pds::ControlData::PVMonitor::High) ? Enums::True : Enums::False;
-      _hihi.value = (alarms & Pds::ControlData::PVMonitor::HiHi) ? Enums::True : Enums::False;
+      // construct the full name from the array base and index
+      if (tc.index())
+	snprintf(_name.value, Pds::ControlData::PVMonitor::NameSize,
+		 "%s[%d]", tc.name(), tc.index());
+      else
+	strncpy(_name.value, tc.name(), Pds::ControlData::PVMonitor::NameSize);
+      _loValue.value = tc.loValue();
+      _hiValue.value = tc.hiValue();
       return true;
     }
 
     int push(void* to) {
-      unsigned alarms = 0;
-      if (_lolo.value==Enums::True) alarms |= Pds::ControlData::PVMonitor::LoLo;
-      if (_low .value==Enums::True) alarms |= Pds::ControlData::PVMonitor::Low ;
-      if (_high.value==Enums::True) alarms |= Pds::ControlData::PVMonitor::High;
-      if (_hihi.value==Enums::True) alarms |= Pds::ControlData::PVMonitor::HiHi;
-      Pds::ControlData::PVMonitor& tc = *new(to) Pds::ControlData::PVMonitor(_name.value,
-									     alarms);
+      // extract the array base and index
+      char name[Pds::ControlData::PVMonitor::NameSize];
+      int  index=0;
+      strcpy(name, _name.value);
+      strtok(name,"[");
+      char* sindex = strtok(NULL,"]");
+      if (sindex)
+	sscanf(sindex,"%d",&index);
+
+      Pds::ControlData::PVMonitor& tc = *new(to) Pds::ControlData::PVMonitor(name,
+									     index,
+									     _loValue.value,
+									     _hiValue.value);
       return sizeof(tc);
     }
   private:
     TextParameter        _name;
-    Enumerated<Enums::Bool> _lolo;
-    Enumerated<Enums::Bool> _low ;
-    Enumerated<Enums::Bool> _high;
-    Enumerated<Enums::Bool> _hihi;
+    NumericFloat<double> _loValue;
+    NumericFloat<double> _hiValue;
   };
 
   enum StepControl { System, Duration, Events };

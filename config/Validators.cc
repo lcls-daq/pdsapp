@@ -27,6 +27,39 @@ void IntValidator::validChange()
 }
 
 
+HexValidator::HexValidator(Parameter& p, QLineEdit& l,
+			   unsigned rlo, unsigned rhi) :
+  QValidator(&l),
+  _p        (p),
+  _rlo      (rlo),
+  _rhi      (rhi)
+{
+}
+
+HexValidator::~HexValidator() {}
+
+void HexValidator::fixup(QString& str) const
+{
+  _p.flush();
+}
+
+void HexValidator::validChange()
+{
+  _p.update();
+}
+
+QValidator::State HexValidator::validate(QString& input,
+					 int& pos) const
+{
+  if (input.size()==0) return Intermediate;
+  bool ok;
+  unsigned v = input.toInt(&ok, 16);
+  if (!ok) return Invalid;
+  if (v < _rlo || v > _rhi) return Invalid;
+  return Acceptable;
+}
+
+
 DoubleValidator::DoubleValidator(Parameter& p, QLineEdit& l,
 				 double rlo, double rhi) :
   QDoubleValidator(&l),

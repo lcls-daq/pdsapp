@@ -6,7 +6,8 @@
 namespace Pds {
   class CCallback;
   class CfgClientNfs;
-  class PartitionControl;
+  class QualifiedControl;
+  class PVManager;
 
   class MainWindow : public QWidget {
     Q_OBJECT
@@ -17,8 +18,9 @@ namespace Pds {
     ~MainWindow();
   private:
     CCallback*        _controlcb;
-    PartitionControl* _control;
+    QualifiedControl* _control;
     CfgClientNfs*     _config;
+    PVManager*        _pvmanager;
   };
 };
 

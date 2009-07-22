@@ -8,14 +8,21 @@
 namespace Pds {
 
   class ControlCA;
+  class PVRunnable;
 
   class PVControl {
   public:
-    PVControl ();
+    PVControl (PVRunnable&);
     virtual ~PVControl();
   public:
-    void configure(const ControlConfigType&);
+    bool runnable() const;
+  public:
+    void configure  (const ControlConfigType&);
+    void unconfigure();
+    void channel_changed();
   private:
+    PVRunnable&           _report;
+    bool                  _runnable;
     std::list<ControlCA*> _channels;
   };
 };

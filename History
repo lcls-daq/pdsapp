@@ -1,5 +1,10 @@
+2009-Jul-22	weaver	Tag V01-00-01. Synchronized with pds V01-00-01.  
+			Configdb fixes to file permissions, hexadecimal integer support,
+			viewing.
+			RunControl fixes to EPICS interface, configuration.
 2009-Jul-21	jackp	Added monshmserver
 2009-Jul-17	jackp	Changed DetInfo reference in segtest.cc to pnCCDframe and added devtest/xtctruncate
+>>>>>>> 1.19
 2009-Jul-14	weaver	Tag V01-00-00. Consistent with pds V01-00-00.  Added pdsapp/control
 2009-Jul-10     cpo     Support for configuration of acqiris from database
 01-Jul-2009	weaver  config - added view only option to configdb_gui

@@ -1,78 +1,129 @@
 #include "PVMonitor.hh"
 
+#include "pdsapp/control/PVRunnable.hh"
 #include "pdsapp/control/EpicsCA.hh"
 
 #include "pdsdata/control/PVMonitor.hh"
 
-#include "alarm.h"
+#include "db_access.h"
+
+#define handle_type(ctype, stype, dtype) case ctype: \
+  { struct stype* pval = (struct stype*)dbr; \
+    dtype* data = &pval->value; \
+    for(int k=0; k<nelem; k++) value[k] = *data++; }
+
+typedef Pds::ControlData::PVMonitor PvType;
 
 namespace Pds {
 
   class MonitorCA : public EpicsCA {
   public:
     MonitorCA(PVMonitor& monitor,
-	      const Pds::ControlData::PVMonitor& channel) :
-      //      EpicsCA(channel.name(), DBR_FLOAT),
-      EpicsCA(channel.name()),
-      _monitor(monitor), _channel(channel), _okay(false) {}
+	      const std::list<PvType>& channels) :
+      EpicsCA(channels.front().name(),true),
+      _monitor(monitor), _channels(channels), 
+      _connected(false), _runnable(false) 
+    {
+    }
     virtual ~MonitorCA() {}
   public:
-    void dataCallback(const void* dbr) 
+    void connected   (bool c)
     {
-      struct dbr_time_string* cdData = (struct dbr_time_string*)dbr;
-      bool okay = true;
-      switch(cdData->status) {
-      case HIHI_ALARM: okay &= ~(_channel.restrictedAlarms()&Pds::ControlData::PVMonitor::HiHi); break;
-      case HIGH_ALARM: okay &= ~(_channel.restrictedAlarms()&Pds::ControlData::PVMonitor::High); break;
-      case LOLO_ALARM: okay &= ~(_channel.restrictedAlarms()&Pds::ControlData::PVMonitor::LoLo); break;
-      case LOW_ALARM : okay &= ~(_channel.restrictedAlarms()&Pds::ControlData::PVMonitor::Low ); break;
-      default: break;
-      }
-      if (_okay != okay) {
-	_okay=okay;
+      _connected = c;
+      if (_runnable) {
+	_runnable=false;
 	_monitor.channel_changed();
       }
     }
+    void getData (const void* dbr) 
+    {
+      int nelem = _channel.nelements();
+      double* value = new double[nelem];
+      switch(_channel.type()) {
+	handle_type(DBR_TIME_SHORT , dbr_time_short , dbr_short_t ) break;
+	handle_type(DBR_TIME_FLOAT , dbr_time_float , dbr_float_t ) break;
+	handle_type(DBR_TIME_ENUM  , dbr_time_enum  , dbr_enum_t  ) break;
+	handle_type(DBR_TIME_LONG  , dbr_time_long  , dbr_long_t  ) break;
+	handle_type(DBR_TIME_DOUBLE, dbr_time_double, dbr_double_t) break;
+      default: printf("Unknown type %d\n", int(_channel.type())); break;
+      }
+      bool runnable = true;
+      for(std::list<PvType>::const_iterator iter = _channels.begin();
+	  iter != _channels.end(); iter++) {
+	runnable &= (value[iter->index()] >= iter->loValue() &&
+		     value[iter->index()] <= iter->hiValue());
+      }
+      if (_runnable != runnable) {
+	_runnable=runnable;
+	_monitor.channel_changed();
+      }
+      delete[] value;
+    }
+    void* putData() { return 0; }
+    void putStatus(bool) {}
   public:
-    const Pds::ControlData::PVMonitor& channel () const { return _channel; }
-    bool                               okay    () const { return _okay; }
+    bool runnable() const { return _runnable; }
   private:
     PVMonitor& _monitor;
-    Pds::ControlData::PVMonitor _channel;
-    bool _okay;
+    std::list<PvType> _channels;
+    bool _connected;
+    bool _runnable;
   };
 
 };
 
 using namespace Pds;
 
-PVMonitor::PVMonitor () :
-  _state(NotOK)
+PVMonitor::PVMonitor (PVRunnable& report) :
+  _report  (report),
+  _runnable(false)
 {
 }
 
 PVMonitor::~PVMonitor()
 {
-  for(std::list<MonitorCA*>::iterator iter = _channels.begin();
-      iter != _channels.end(); iter++)
-    delete *iter;
 }
 
-PVMonitor::State PVMonitor::state() const { return _state; }
+bool PVMonitor::runnable() const { return _runnable; }
 
 void PVMonitor::configure(const ControlConfigType& tc)
 {
-  for(unsigned k=0; k<tc.npvMonitors(); k++)
-    _channels.push_back(new MonitorCA(*this,tc.pvMonitor(k)));
+  if (tc.npvMonitors()==0) {
+    if (!_runnable) 
+      _report.runnable_change(_runnable=true);
+  }
+  else {
+    if (_runnable)
+      _report.runnable_change(_runnable=false);
+
+    std::list<PvType> array;
+    array.push_back(tc.pvMonitor(0));
+    for(unsigned k=1; k<tc.npvMonitors(); k++) {
+      const PvType& pv = tc.pvMonitor(k);
+      if (strcmp(pv.name(),array.front().name())) {
+	_channels.push_back(new MonitorCA(*this,array));
+	array.clear();
+      }
+      array.push_back(pv);
+    }
+    _channels.push_back(new MonitorCA(*this,array));
+  }
+}
+
+void PVMonitor::unconfigure()
+{
+  for(std::list<MonitorCA*>::iterator iter = _channels.begin();
+      iter != _channels.end(); iter++)
+    delete *iter;
+  _channels.clear();
 }
 
 void PVMonitor::channel_changed()
 {
-  bool okay = true;
+  bool runnable = true;
   for(std::list<MonitorCA*>::iterator iter = _channels.begin();
       iter != _channels.end(); iter++)
-    okay &= (*iter)->okay();
-  State state = okay ? OK : NotOK;
-  if (state != _state) 
-    state_changed(_state = state);
+    runnable &= (*iter)->runnable();
+  if (runnable != _runnable) 
+    _report.runnable_change(_runnable = runnable);
 }

@@ -9,11 +9,13 @@
 namespace Pds {
   class PartitionControl;
   class CfgClientNfs;
+  class PVManager;
   
   class SeqAppliance : public Appliance {
   public:
     SeqAppliance(PartitionControl& control,
-		 CfgClientNfs&     config);
+		 CfgClientNfs&     config,
+		 PVManager&        pvmanager);
     ~SeqAppliance();
   public:
     virtual Transition* transitions(Transition*);
@@ -27,6 +29,7 @@ namespace Pds {
     ControlConfigType* _cur_config;
     char*              _end_config;
     bool               _done;
+    PVManager&         _pvmanager;
   };
 };
 

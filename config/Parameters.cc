@@ -33,20 +33,28 @@ QLayout* TextParameter::initialize(QWidget* parent)
 {
   QHBoxLayout* layout = new QHBoxLayout;
   layout->addWidget(new QLabel(_label));
-  layout->addWidget(_input = new QLineEdit(parent));
-  _input->setReadOnly(!allowEdit());
-  _input->setMaxLength(_size);
-  flush();
+  if (allowEdit()) {
+    layout->addWidget(_input = new QLineEdit(parent));
+    _input->setMaxLength(_size);
+    flush();
+  }
+  else {
+    QLabel* l = new QLabel(value);
+    l->setFrameShape(QFrame::Box);
+    layout->addWidget(l);
+  }
   layout->setContentsMargins(0,0,0,0);
   return layout;
 }
 
 void     TextParameter::update()
 {
-  strncpy(value, qPrintable(_input->text()), _size);
+  if (allowEdit())
+    strncpy(value, qPrintable(_input->text()), _size);
 }
 
 void     TextParameter::flush ()
 {
-  _input->setText(value);
+  if (allowEdit())
+    _input->setText(value);
 }

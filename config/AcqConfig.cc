@@ -136,7 +136,7 @@ namespace Pds_ConfigDb {
   public:
     Private_Data() :
       _nbrConvertersPerChannel("Number of Converters Per Channel",1,1,4),
-      _channelMask("Channel Mask",1,1,0xfffff),
+      _channelMask("Channel Mask",1,1,0xfffff,Hex),
       _nbrBanks("Number of Banks",1,1,1),
       _numChan("Number of Channels",_nbrChannels(),_nbrChannels(),Pds::Acqiris::ConfigV1::MaxChan),
       _vertSet("Vert Config", _vertArgs, _numChan)

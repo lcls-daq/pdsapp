@@ -165,7 +165,7 @@ void Experiment::import_data(const string& device,
     return;
   }
 
-  mode_t mode = S_IRWXU | S_IRWXG;
+  mode_t mode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
   const char* base = basename(const_cast<char*>(file.c_str()));
   string dst = data_path(device,type)+"/"+base;
   struct stat s;
@@ -218,7 +218,8 @@ bool Experiment::update_key(const TableEntry& entry)
     if (device(iter->name())->update_key(iter->entry(),_path)) 
       changed++;
 
-  mode_t mode = S_IRWXU | S_IRWXG;
+  mode_t mode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
+  //  mode_t mode = S_IRWXU | S_IRWXG;
 
   //
   //  Check that the top key file representation is valid.
@@ -226,7 +227,14 @@ bool Experiment::update_key(const TableEntry& entry)
   const int line_size=128;
   char buff[line_size];
   string kpath = _path + "/keys/" + entry.key();
-  int invalid = entry.entries().size();
+  unsigned invalid = entry.entries().size();   // number of expected devices 
+
+  glob_t g;
+  string gpath = kpath + "/*";
+  glob(gpath.c_str(),0,0,&g);
+  if (invalid < g.gl_pathc) invalid = g.gl_pathc; // number of devices included
+  globfree(&g);
+
   struct stat s;
   if (!stat(kpath.c_str(),&s)) {   // the key exists
     //  check each device

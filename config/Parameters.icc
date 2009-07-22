@@ -5,16 +5,15 @@
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QLabel>
 #include <QtGui/QLineEdit>
-#include <QtGui/QIntValidator>
-#include <QtGui/QDoubleValidator>
 #include <QtGui/QComboBox>
 
 using namespace Pds_ConfigDb;
 
 template <class T>
-NumericInt<T>::NumericInt(const char* label, T val, T vlo, T vhi) :
+NumericInt<T>::NumericInt(const char* label, T val, T vlo, T vhi, IntMode mo) :
   Parameter(label),
-  value(val) 
+  value(val),
+  mode (mo)
 {
   range[0]=vlo;
   range[1]=vhi;
@@ -30,11 +29,20 @@ QLayout* NumericInt<T>::initialize(QWidget* parent)
 {
   QHBoxLayout* layout = new QHBoxLayout;
   layout->addWidget(new QLabel(_label));             
-  layout->addWidget(_input = new QLineEdit(parent));  
-  _input->setReadOnly(!allowEdit());
-  flush();
-  _input->setValidator( new IntValidator( *this, *_input,
-					  range[0], range[1]) );
+  if (allowEdit()) {
+    layout->addWidget(_input = new QLineEdit(parent));  
+    _input->setReadOnly(!allowEdit());
+    flush();
+    if (mode==Decimal)
+      _input->setValidator(new IntValidator( *this, *_input, range[0], range[1]));
+    else
+      _input->setValidator(new HexValidator( *this, *_input, range[0], range[1]));
+  }
+  else {
+    QLabel* l = new QLabel(QString::number(value,mode==Decimal ? 10:16));
+    l->setFrameShape(QFrame::Box);
+    layout->addWidget(l);
+  }
   layout->setContentsMargins(0,0,0,0);               
   return layout;                                     
 }
@@ -42,13 +50,17 @@ QLayout* NumericInt<T>::initialize(QWidget* parent)
 template <class T>
 void NumericInt<T>::update()
 {
-  value = _input->text().toInt();
+  if (allowEdit()) {
+    bool ok;
+    value = (mode==Decimal) ? _input->text().toInt() : _input->text().toInt(&ok,16);
+  }
 }
 
 template <class T>
 void NumericInt<T>::flush()
 {
-  _input->setText(QString::number(value));            
+  if (allowEdit())
+    _input->setText(QString::number(value,mode==Decimal ? 10:16));            
 }
 
 template <class T>
@@ -70,11 +82,18 @@ QLayout* NumericFloat<T>::initialize(QWidget* parent)
 {
   QHBoxLayout* layout = new QHBoxLayout;
   layout->addWidget(new QLabel(_label));             
-  layout->addWidget(_input = new QLineEdit(parent));  
-  _input->setReadOnly(!allowEdit());
-  flush();
-  _input->setValidator( new DoubleValidator( *this, *_input,
-					     range[0], range[1]) );
+  if (allowEdit()) {
+    layout->addWidget(_input = new QLineEdit(parent));  
+    _input->setReadOnly(!allowEdit());
+    flush();
+    _input->setValidator( new DoubleValidator( *this, *_input,
+	  				       range[0], range[1]) );
+  }
+  else {
+    QLabel* l = new QLabel(QString::number(value));
+    l->setFrameShape(QFrame::Box);
+    layout->addWidget(l);
+  }
   layout->setContentsMargins(0,0,0,0);               
   return layout;                                     
 }
@@ -82,13 +101,15 @@ QLayout* NumericFloat<T>::initialize(QWidget* parent)
 template <class T>
 void NumericFloat<T>::update()
 {
-  value = _input->text().toDouble();
+  if (allowEdit())
+    value = _input->text().toDouble();
 }
 
 template <class T>
 void NumericFloat<T>::flush()
 {
-  _input->setText(QString::number(value));
+  if (allowEdit())
+    _input->setText(QString::number(value));
 }
 
 template <class T>
@@ -116,8 +137,11 @@ QLayout* Enumerated<T>::initialize(QWidget* parent)
       _input->addItem(labels[k++]);
     flush();
   }
-  else
-    layout->addWidget(new QLabel(labels[value]));
+  else {
+    QLabel* l = new QLabel(labels[value]);
+    l->setFrameShape(QFrame::Box);
+    layout->addWidget(l);
+  }
   layout->setContentsMargins(0,0,0,0);
   return layout;
 }

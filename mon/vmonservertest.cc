@@ -193,7 +193,6 @@ int main(int argc, char **argv)
   Allocation alloc("TEST","/test",0);
   alloc.add(Node(info.level(),0));
   Allocate map(alloc);
-  Transition unmap(TransitionId::Unmap,0);
 
   appliance.transitions(&map);
   {
@@ -229,6 +228,8 @@ int main(int argc, char **argv)
   } while(1);
   
   nanosleep(&tv,0);
+
+  Transition unmap(TransitionId::Unmap, 0);
   appliance.transitions(&unmap);
 
   return 0;
