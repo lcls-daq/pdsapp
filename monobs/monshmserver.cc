@@ -76,8 +76,7 @@ public:
   InDatagram* occurrences(InDatagram* dg) { return dg; }
   
   InDatagram* events     (InDatagram* dg) 
-  { //if (dg->datagram().seq.isEvent())
-    mq_getattr(_myInputQueue, &_mymq_attr);
+  { mq_getattr(_myInputQueue, &_mymq_attr);
     if (_mymq_attr.mq_curmsgs) 
     { Datagram& dgrm = dg->datagram();
       if (mq_receive(_myInputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority) < 0) perror("mq_receive");
@@ -149,6 +148,8 @@ public:
     _myShm = (char*)mmap(NULL, _sizeOfShm, PROT_READ|PROT_WRITE, MAP_SHARED, shm, 0);
     if (_myShm == MAP_FAILED) {ret++; perror("mmap");}
 
+    if (mq_unlink(_toMonQname) != (mqd_t)-1) perror("mq_unlink To Monitor found a remnant of previous lives");
+    if (mq_unlink(_fromMonQname) != (mqd_t)-1) perror("mq_unlink From Monitor found a remnant of previous lives");
     _myOutputQueue = mq_open(_toMonQname, O_CREAT|O_RDWR, PERMS, &_mymq_attr);
     if (_myOutputQueue == (mqd_t)-1) {ret++; perror("mq_open output");}
     _myInputQueue = mq_open(_fromMonQname, O_CREAT|O_RDWR, PERMS, &_mymq_attr);
