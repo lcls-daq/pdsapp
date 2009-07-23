@@ -67,6 +67,7 @@ public:
     { printf("Unlinking ... \n");
       if (mq_unlink(_toMonQname) == (mqd_t)-1) perror("mq_unlink To Monitor");
       if (mq_unlink(_fromMonQname) == (mqd_t)-1) perror("mq_unlink From Monitor");
+      shm_unlink(_shmName);
       printf("Finished.\n");
     }
   }
@@ -109,6 +110,7 @@ public:
       printf("Unlinking ... \n");
       if (mq_unlink(_toMonQname) == (mqd_t)-1) perror("mq_unlink To Monitor");
       if (mq_unlink(_fromMonQname) == (mqd_t)-1) perror("mq_unlink From Monitor");
+      shm_unlink(_shmName);
       printf("Finished.\n");
     }
     return dg;
@@ -135,6 +137,7 @@ public:
     _mymq_attr.mq_msgsize = (long int)sizeof(Msg);
     _mymq_attr.mq_flags = 0L;
 
+    shm_unlink(_shmName);
     int shm = shm_open(_shmName, OFLAGS, PERMS);
     if (shm < 0) {ret++; perror("shm_open");}
 
@@ -211,6 +214,11 @@ void sigfunc(int sig_no) {
    exit(EXIT_SUCCESS);
 }
 
+void exit_failure() {
+  delete apps;
+  exit(EXIT_FAILURE);
+}
+
 int main(int argc, char** argv) {
 
   unsigned platform=-1UL;
@@ -263,7 +271,7 @@ int main(int argc, char** argv) {
   apps = new XtcMonServer(sizeOfBuffers, numberOfBuffers);
   if (((XtcMonServer*)apps)->init(partitionTag))
   { fprintf(stderr, "Initializing XTC monitor server encountered an error!\n");
-    return 1;
+    exit_failure();
   };
   
   Task* task = new Task(Task::MakeThisATask);
@@ -282,6 +290,7 @@ int main(int argc, char** argv) {
 
   event->detach();
 
+  delete apps;
   delete event;
   delete display;
   return 0;
