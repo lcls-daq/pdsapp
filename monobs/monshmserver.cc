@@ -104,6 +104,8 @@ public:
       if (mq_send(_myOutputQueue, (const char*)&_myMsg, sizeof(_myMsg), 0)) perror("mq_send");
       _bufferCount += 1;
     }
+    /*
+    // early unlinking for safety prevents later client connections
     if (_linked && (_bufferCount > (_numberOfBuffers * 2)))
     {
       _linked = false;
@@ -113,6 +115,7 @@ public:
       shm_unlink(_shmName);
       printf("Finished.\n");
     }
+    */
     return dg;
   }
 
@@ -137,7 +140,7 @@ public:
     _mymq_attr.mq_msgsize = (long int)sizeof(Msg);
     _mymq_attr.mq_flags = 0L;
 
-    shm_unlink(_shmName);
+    if (!shm_unlink(_shmName)) perror("shm_unlink found a remnant of previous lives");
     int shm = shm_open(_shmName, OFLAGS, PERMS);
     if (shm < 0) {ret++; perror("shm_open");}
 
