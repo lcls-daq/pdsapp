@@ -427,7 +427,7 @@ using namespace Pds;
 
 void _print_help(const char* p0)
 {
-  printf("Usage : %s -p <platform> [-i <det_id> -a <arp_pid> -s <size_lo size_hi> -v]\n",
+  printf("Usage : %s -p <platform> [-i <det_id> -s <size_lo size_hi> -v]\n",
 	 p0);
 }
 
