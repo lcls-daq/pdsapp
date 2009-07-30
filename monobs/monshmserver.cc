@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/mman.h>
+#include <sys/prctl.h>
 #ifdef _POSIX_MESSAGE_PASSING
 #include <mqueue.h>
 #endif
@@ -232,6 +233,8 @@ int main(int argc, char** argv) {
   unsigned node =  0xffff0;
   char partitionTag[80] = "";
   (void) signal(SIGINT, sigfunc);
+  if (prctl(PR_SET_PDEATHSIG, SIGINT) < 0) printf("Changing death signal failed!\n");
+  else printf("Death signal changed\n");
   int c;
   while ((c = getopt(argc, argv, "p:i:n:P:s:")) != -1) {
     errno = 0;
