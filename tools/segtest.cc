@@ -98,7 +98,7 @@ namespace Pds {
 	::write(_pipe,&dg,sizeof(dg));
 	_outlet.send((char*)&dg,0,0,_dst);
 	_f += 360; // one second kludge, change later !!!!
-	_f &= (1<<17)-1;  // mask it to 17 bits
+	_f &= (1<<TimeStamp::NumFiducialBits)-1;  // mask it to correct number of bits
 	_t = (random() & 0x3) + 12;
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &_done);
 	_busyTime = timeDiff(&_done, &_now);
