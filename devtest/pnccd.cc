@@ -33,7 +33,7 @@ class pnCcdRceConf : public Xtc {
 public:
   pnCcdRceConf() : Xtc(TypeId(TypeId::Id_Xtc,Version),ProcInfo(Level::Segment, 0xbead, 0x7f000001)) { 
     alloc(sizeof(*this)-sizeof(Xtc));
-    printf(" .%d. ", p.extent);
+    //printf(" .%d. ", p.extent);
   }
 public:
   pnCCDconf p;
@@ -49,7 +49,7 @@ public:
     alloc(sizeof(*this)-sizeof(Xtc));
   }
 private:
-  enum {Size=((256*128*sizeof(short)) + sizeof(frameHeaderType))};
+  enum {Size=((256*132*sizeof(short)) + sizeof(frameHeaderType))};
   enum {Version=6};
   unsigned char _data[Size];
 };
@@ -58,7 +58,7 @@ class pnCcdRce : public Xtc {
 public:
   pnCcdRce() : Xtc(TypeId(TypeId::Id_Xtc,Version),ProcInfo(Level::Segment, 0xbead, 0x7f000001)) { 
     alloc(sizeof(*this)-sizeof(Xtc));
-    printf(" .%d. ", p.extent);
+    //printf(" .%d. ", p.extent);
   }
 public:
   pnCCDdata p;
@@ -72,10 +72,10 @@ public:
   myLevelIter(Xtc* xtc, unsigned depth) : XtcIterator(xtc), _depth(depth), _higherXtc(xtc) {}
 
   int process(Xtc* xtc) {
-    printf(" ^%d ", xtc->extent);
+    //printf(" ^%d ", xtc->extent);
     unsigned i=_depth; while (i--) printf("--");
     Level::Type level = xtc->src.level();
-    printf(" %d %s level: %d ",_depth, Level::name(level), level);
+    //printf(" %d %s level: %d ",_depth, Level::name(level), level);
     if (level==Level::Event) {
       // copy over the "Event" xtc header
       Xtc* eventXtc = new((char*)&(outdg->xtc)) Xtc(xtc->contains,xtc->src,xtc->damage);
@@ -85,11 +85,12 @@ public:
       // add the new segment xtc at the end
       if (outdg->seq.service() == TransitionId::L1Accept) {
 	pnCcdRce* r = new(eventXtc) pnCcdRce();
-	printf(" ~%d\n", r->extent);
+        printf(".");
+//	printf(" ~%d\n", r->extent);
       }
       else if (outdg->seq.service() == TransitionId::Configure) {
 	pnCcdRceConf* c = new(eventXtc) pnCcdRceConf();
-	printf(" ~%d\n", c->extent);
+//	printf(" ~%d\n", c->extent);
       }
     }
     return Continue;
@@ -171,11 +172,11 @@ int main(int argc, char* argv[]) {
   XtcFileIterator iter(file,0x400000);
   Dgram* indg;
   while ((indg = iter.next())) {
-    printf("%s transition: time 0x%x/0x%x, payloadSize %d\n",TransitionId::name(indg->seq.service()),
-           indg->seq.stamp().fiducials(),indg->seq.stamp().ticks(),indg->xtc.sizeofPayload());
+    //printf("%s transition: time 0x%x/0x%x, payloadSize %d\n",TransitionId::name(indg->seq.service()),
+     //      indg->seq.stamp().fiducials(),indg->seq.stamp().ticks(),indg->xtc.sizeofPayload());
 
     if ((indg->seq.service()!=TransitionId::L1Accept) && (indg->seq.service()!=TransitionId::Configure)) {
-      printf("*** non-l1\n");
+      printf("\n*** non-l1");
       //  fwrite indg and indg->payload;
       fwrite((char*)indg,sizeof(Dgram)+indg->xtc.sizeofPayload(),1,outFile);
     } else {
@@ -184,10 +185,11 @@ int main(int argc, char* argv[]) {
       iter.iterate();
       //  fwrite outdg and outdg->payload;
       fwrite((char*)outdg,sizeof(Dgram)+outdg->xtc.sizeofPayload(),1,outFile);
-      printf("*** l1 v%d ^%d\n", indg->xtc.extent,  outdg->xtc.extent);
+      //printf("*** l1 v%d ^%d\n", indg->xtc.extent,  outdg->xtc.extent);
       delete outdg;
     }
   }
+  printf("\n");
   fclose(file);
   fclose(outFile);
   close(Filedes);
