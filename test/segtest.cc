@@ -22,17 +22,24 @@
 #include "pds/client/Action.hh"
 #include "pds/client/XtcIterator.hh"
 #include "pds/client/Browser.hh"
+#include "pds/collection/Route.hh"
 
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <time.h>
 
 //#define USE_ZCP
 
 static bool verbose = false;
 
 namespace Pds {
+
+  class MySeqServer;
+  MySeqServer* mySeqServerGlobal = NULL;
+  int       pipefd[2];
+  unsigned rateInCPS = 1;
 
   class ServerMsg {
   public:
@@ -49,6 +56,14 @@ namespace Pds {
     int         length;
   };
 
+  long long int timeDiff(timespec* end, timespec* start) {
+    long long int diff;
+    diff =  (end->tv_sec - start->tv_sec) * 1000000000;
+    diff += end->tv_nsec;
+    diff -= start->tv_nsec;
+    return diff;
+  }
+
   class MySeqServer : public EvrServer, private Routine {
   public:
     MySeqServer(unsigned platform, 
@@ -57,26 +72,58 @@ namespace Pds {
 		DetInfo(-1UL,DetInfo::NoDetector,0,DetInfo::Evr,0),
 		4),
       _task(new Task(TaskObject("segtest_evr",127))),
-      _pipe(fd)
+      _outlet(sizeof(EvrDatagram),0, Ins(Route::interface())),
+      _go(false),
+      _pipe(fd),
+      _evr(0),
+      period(1000000000LL / rateInCPS),
+      _f(0), _f_increment(360/rateInCPS), _t(0)
     { _task->call(this); }
 
     ~MySeqServer() { _task->destroy(); }
 
     void routine() 
     {
+      _sleepTime.tv_sec = 0;
       ServerMsg dg;
       while(1) {
-	if (fetch(reinterpret_cast<char*>(&dg),0) < 0) continue;
-	dg.evr.seq = sequence();
-	dg.evr.evr = count();
+        while (!_go) {};
+	// generate these at specified interval
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &_now);
+	dg.evr.seq = Sequence(Sequence::Event, TransitionId::L1Accept, ClockTime(_now.tv_sec, _now.tv_nsec), TimeStamp(_t, _f));
+	dg.evr.evr = _evr++;
 	dg.offset = 0;
 	dg.ptr    = 0;
+	dg.length = 0;
 	::write(_pipe,&dg,sizeof(dg));
+	_outlet.send((char*)&dg,0,0,_dst);
+	_f += 360; // one second kludge, change later !!!!
+	_f &= (1<<17)-1;  // mask it to 17 bits
+	_t = (random() & 0x3) + 12;
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &_done);
+	_busyTime = timeDiff(&_done, &_now);
+	if (period > _busyTime) {
+	  _sleepTime.tv_nsec = period - _busyTime;
+	  if (nanosleep(&_sleepTime, &_now)<0) perror("nanosleep");
+	}
+        //printf ("busy time %llu,   sleep time %ld\n", _busyTime, _sleepTime.tv_nsec);
       }
     }
+    void dst(const Ins& ins) { _dst=ins; }
+    void enable() { _go = true; }
+    void disable() { _go = false; }
+
   private:
     Task* _task;
+    Client _outlet;
+    bool _go;
     int   _pipe;
+    unsigned _evr;
+    timespec _now, _done, _sleepTime;
+    long long unsigned period, _busyTime;
+    unsigned _f, _f_increment;
+    unsigned _t;
+    Ins _dst;
   };
 
   class MyL1Server : public EbServer, EbCountSrv {
@@ -87,7 +134,8 @@ namespace Pds {
 	       const Src& s) : 
       _xtc(TypeId(TypeId::Any,0), s), 
       _size0   (size1),
-      _dsize   (size2-size1)
+      _dsize   (size2-size1),
+      _count(0)
     {
       for(unsigned k=0; k<PayloadSize; k++)
 	_payload[k] = k&0xff;
@@ -101,12 +149,11 @@ namespace Pds {
       }
 #else
 #endif
-      ::pipe(_pipefd);
-      fd(_pipefd[0]);
+      ::pipe(pipefd);
+      fd(pipefd[0]);
 
-      _server  = new MySeqServer(platform, _pipefd[1]);
     }
-    ~MyL1Server() { delete _server; }
+    ~MyL1Server() { }
   public:
     //  Eb interface
     void        dump    (int detail)   const {}
@@ -126,7 +173,7 @@ namespace Pds {
     int      fetch       (char* payload, int flags)
     {
       _more=false;
-      ::read(_pipefd[0],&_hdr,sizeof(_hdr));
+      ::read(pipefd[0],&_hdr,sizeof(_hdr));
       char* p;
       int sz = _fetch(&p);
       Xtc* xtc = new (payload) Xtc(_xtc);
@@ -136,7 +183,7 @@ namespace Pds {
     }
     int      fetch       (ZcpFragment& zf, int flags)
     {
-      ::read(_pipefd[0],&_hdr,sizeof(_hdr));
+      ::read(pipefd[0],&_hdr,sizeof(_hdr));
       _more=true;
 
       if (_hdr.offset == 0) {
@@ -149,7 +196,7 @@ namespace Pds {
 	ServerMsg hdr(_hdr);
 	hdr.ptr    = 0;
 	hdr.offset = sizeof(Xtc);
-	::write(_pipefd[1],&hdr,sizeof(hdr));
+	::write(pipefd[1],&hdr,sizeof(hdr));
 	return sizeof(Xtc);
       }
       else {
@@ -161,24 +208,11 @@ namespace Pds {
 	  ServerMsg hdr(_hdr);
 	  hdr.ptr    += len;
 	  hdr.offset += len;
-	  ::write(_pipefd[1],&hdr,sizeof(hdr));
+	  ::write(pipefd[1],&hdr,sizeof(hdr));
 	}
 	return len;
       }
     }
-    /***
-    int      fetch       (ZcpStream& zf, int flags)
-    {
-      _more=false;
-      ::read(_pipefd[0],&_hdr,sizeof(_hdr));
-      char* p;
-      int sz = _fetch(&p);
-      Xtc* xtc = new (payload) Xtc(_xtc);
-      memcpy(xtc->alloc(sz),p,sz);
-      _hdr.length = xtc->extent;
-      return _hdr.length;
-    }
-    ***/
   public:
     unsigned        count() const { return _hdr.evr.evr; }
   private:
@@ -189,9 +223,7 @@ namespace Pds {
       return sz;
     }
   private:
-    MySeqServer* _server;
     ServerMsg    _hdr;
-    int       _pipefd[2];
     Xtc       _xtc;
     bool      _more;
     int       _size0;
@@ -200,6 +232,7 @@ namespace Pds {
     char      _evrPayload[sizeof(EvrDatagram)];
     ZcpFragment _zfragment;
     ZcpStream   _zpayload;
+    unsigned _count;
   };
 
   //
@@ -340,6 +373,32 @@ namespace Pds {
     InDatagram* fire(InDatagram* tr) { return tr; }
   };
 
+  class AllocAction : public Action {
+  public:
+    Transition* fire(Transition* tr) {
+      const Allocate& alloc = reinterpret_cast<const Allocate&>(*tr);
+      mySeqServerGlobal->dst(StreamPorts::event(alloc.allocation().partitionid(),
+					 Level::Segment));
+      return tr;
+    }
+  };
+
+  class EnableAction : public Action {
+  public:
+    Transition* fire(Transition* tr) {
+      mySeqServerGlobal->enable();
+      return tr;
+    }
+  };
+
+  class DisableAction : public Action {
+  public:
+    Transition* fire(Transition* tr) {
+      mySeqServerGlobal->disable();
+      return tr;
+    }
+  };
+
   //
   //  Implements the callbacks for attaching/dissolving.
   //  Appliances can be added to the stream here.
@@ -383,11 +442,15 @@ namespace Pds {
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       Fsm* fsm = new Fsm;
-      fsm->callback(TransitionId::L1Accept   , new L1Action    (*_fex));
+      fsm->callback(TransitionId::Map        , new AllocAction);
       fsm->callback(TransitionId::Configure  , new ConfigAction(*_fex));
+      fsm->callback(TransitionId::Enable     , new EnableAction);
       fsm->callback(TransitionId::BeginRun   , new BeginRunAction);
+      fsm->callback(TransitionId::L1Accept   , new L1Action    (*_fex));
       fsm->callback(TransitionId::EndRun     , new EndRunAction);
+      fsm->callback(TransitionId::Disable    , new DisableAction);
       fsm->connect(frmk->inlet());
+      mySeqServerGlobal  = new MySeqServer(_platform, pipefd[1]);
     }
     void failed(Reason reason)
     {
@@ -427,21 +490,21 @@ using namespace Pds;
 
 void _print_help(const char* p0)
 {
-  printf("Usage : %s -p <platform> [-i <det_id> -s <size_lo size_hi> -v]\n",
+  printf("Usage : %s -p <platform> [-i <det_id> -r <rateInCPS> -s <size_lo size_hi> -v]\n",
 	 p0);
 }
 
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  unsigned platform = 0;
   int      size1    = 1024;
   int      size2    = 1024;
   unsigned detid = 0;
+  unsigned platform = 0;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:s:vh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:s:r:vh")) != EOF ) {
     switch(c) {
     case 'i':
       detid  = strtoul(optarg, NULL, 0);
@@ -452,6 +515,9 @@ int main(int argc, char** argv) {
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
+      break;
+    case 'r':
+      rateInCPS = strtoul(optarg, NULL, 0);
       break;
     case 'v':
       verbose = true;
@@ -468,6 +534,8 @@ int main(int argc, char** argv) {
     printf("%s: platform required\n",argv[0]);
     return 0;
   }
+
+  printf("rateInCPS %d\n", rateInCPS);
 
   Task* task = new Task(Task::MakeThisATask);
   Node node(Level::Source,platform);
