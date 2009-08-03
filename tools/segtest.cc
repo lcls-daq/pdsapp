@@ -90,7 +90,7 @@ namespace Pds {
         while (!_go) {};
 	// generate these at specified interval
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &_now);
-	dg.evr.seq = Sequence(Sequence::Event, TransitionId::L1Accept, ClockTime(_now.tv_sec, _now.tv_nsec), TimeStamp(_t, _f));
+	dg.evr.seq = Sequence(Sequence::Event, TransitionId::L1Accept, ClockTime(_now.tv_sec, _now.tv_nsec), TimeStamp(_t, _f, _evr));
 	dg.evr.evr = _evr++;
 	dg.offset = 0;
 	dg.ptr    = 0;
