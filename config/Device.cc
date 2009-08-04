@@ -18,6 +18,8 @@ using std::setfill;
 
 using namespace Pds_ConfigDb;
 
+const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
+
 DeviceEntry::DeviceEntry(unsigned id) :
   Pds::Src(Pds::Level::Source)
 {
@@ -132,7 +134,8 @@ bool Device::update_key(const string& config, const string& path)
     globfree(&g);
     string key = string(buff);
     string kpath = keypath(path,key);
-    mode_t mode = S_IRWXU | S_IRWXG;
+    //    mode_t mode = S_IRWXU | S_IRWXG;
+    mode_t mode = _fmode;
     mkdir(kpath.c_str(),mode);
     for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
       UTypeName utype(iter->name());
