@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
 				       *manager);
 
   DisplayConfig& dc = *new DisplayConfig("Acqiris Group");
-  DetInfo acqinfo(0, DetInfo::AmoIms, 0, DetInfo::Acqiris, 0);
+  DetInfo acqinfo(0, (Pds::DetInfo::Detector)det, 0, DetInfo::Acqiris, 0);
   dc.request(acqinfo);
   AcqDisplay* acqdisp = new AcqDisplay(dc);
   manager->serve();
