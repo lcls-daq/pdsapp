@@ -36,6 +36,9 @@ static bool verbose = false;
 
 namespace Pds {
 
+  enum {v_fiduc =  0, k_fiduc = TimeStamp::NumFiducialBits};
+  enum {m_fiduc = ((1 << k_fiduc)-1), s_fiduc = (m_fiduc <<v_fiduc)};
+
   class MySeqServer;
   MySeqServer* mySeqServerGlobal = NULL;
   int       pipefd[2];
@@ -97,8 +100,8 @@ namespace Pds {
 	dg.length = 0;
 	::write(_pipe,&dg,sizeof(dg));
 	_outlet.send((char*)&dg,0,0,_dst);
-	_f += 360; // one second kludge, change later !!!!
-	_f &= (1<<TimeStamp::NumFiducialBits)-1;  // mask it to correct number of bits
+	_f += period; 
+	_f &= Pds::s_fiduc;  // mask it to correct number of bits
 	_t = (random() & 0x3) + 12;
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &_done);
 	_busyTime = timeDiff(&_done, &_now);
