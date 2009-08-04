@@ -144,8 +144,9 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (!platform) {
-    printf("%s: platform required\n",argv[0]);
+  if ((!platform) || (detid == -1UL)) {
+    printf("Platform and detid required\n");
+    printf("Usage: %s -i <detid> -p <platform> [-a <arp process id>]\n", argv[0]);
     return 0;
   }
 
@@ -162,7 +163,7 @@ int main(int argc, char** argv) {
   }
 
   Node node(Level::Source,platform);
-  DetInfo detInfo(node.pid(), DetInfo::AmoETof, 0, DetInfo::Acqiris, 0);
+  DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::Acqiris, 0);
 
   CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
   AcqServer& acqServer = *new AcqServer(detInfo);
