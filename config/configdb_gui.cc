@@ -30,6 +30,20 @@ int main(int argc, char** argv)
   QApplication app(argc, argv);
 
   Experiment db(dbname);
+  if (!db.is_valid()) {
+    printf("Database root %s is not valid\n",dbname.data());
+    if (!edit) return -1;
+
+    printf("Create? [y/n]: ");
+    const int maxlen=128;
+    char line[maxlen];
+    char* result = fgets(line, maxlen, stdin);
+    if (*result!='y' && *result!='Y')
+      return -1;
+
+    db.create();
+  }
+
   Parameter::allowEdit(edit);
 
   Ui* ui = new Ui(db,edit);

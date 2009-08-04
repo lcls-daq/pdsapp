@@ -13,6 +13,8 @@ using std::endl;
 
 using namespace Pds_ConfigDb;
 
+const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
+
 Experiment::Experiment(const string& path) :
   _path(path)
 {
@@ -33,7 +35,8 @@ bool Experiment::is_valid() const
 
 void Experiment::create()
 {
-  mode_t mode = S_IRWXU | S_IRWXG;
+  //  mode_t mode = S_IRWXU | S_IRWXG;
+  mode_t mode = _fmode;
   mkdir(_path.c_str(),mode);
   char buff[128];
   sprintf(buff,"%s/db"  ,_path.c_str());  mkdir(buff,mode);
@@ -105,7 +108,8 @@ void Experiment::add_device(const string& name,
 
   Device device("",name,slist);
   _devices.push_back(device);
-  mode_t mode = S_IRWXU | S_IRWXG;
+  //  mode_t mode = S_IRWXU | S_IRWXG;
+  mode_t mode = _fmode;
   mkdir(device.keypath(_path,"").c_str(),mode);
   cout << "Added dir " << device.keypath(_path,"") << endl;
 }
@@ -121,7 +125,8 @@ string Experiment::data_path(const string& device,
   string path = _path + "/xtc/" + PdsDefs::qtypeName(type);
   struct stat s;
   if (stat(path.c_str(),&s)) {
-    mode_t mode = S_IRWXU | S_IRWXG;
+    //    mode_t mode = S_IRWXU | S_IRWXG;
+    mode_t mode = _fmode;
     mkdir(path.c_str(),mode);
   }
   return path;
@@ -133,7 +138,8 @@ string Experiment::desc_path(const string& device,
   string path = _path + "/desc/" + PdsDefs::qtypeName(type);
   struct stat s;
   if (stat(path.c_str(),&s)) {
-    mode_t mode = S_IRWXU | S_IRWXG;
+    //    mode_t mode = S_IRWXU | S_IRWXG;
+    mode_t mode = _fmode;
     mkdir(path.c_str(),mode);
   }
   return path;
@@ -165,7 +171,7 @@ void Experiment::import_data(const string& device,
     return;
   }
 
-  mode_t mode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
+  mode_t mode = _fmode;
   const char* base = basename(const_cast<char*>(file.c_str()));
   string dst = data_path(device,type)+"/"+base;
   struct stat s;
@@ -218,7 +224,7 @@ bool Experiment::update_key(const TableEntry& entry)
     if (device(iter->name())->update_key(iter->entry(),_path)) 
       changed++;
 
-  mode_t mode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
+  mode_t mode = _fmode;
   //  mode_t mode = S_IRWXU | S_IRWXG;
 
   //
