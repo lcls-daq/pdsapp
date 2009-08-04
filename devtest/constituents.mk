@@ -1,6 +1,7 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr evgr acq opal1k xtcwriter pnccd xtctruncate
+#tgtnames    := evr evgr acq opal1k xtcwriter pnccd xtctruncate
+tgtnames    := evr evgr xtcwriter pnccd xtctruncate xtcEpicsTest
 #tgtnames    := evr evgr acq acqevr opal1k xtcwriter pnccd xtctruncate
 #tgtnames    := xtcwriter pnccd xtctruncate
 
@@ -65,3 +66,8 @@ tgtslib_pnccd := /usr/lib/rt
 tgtsrcs_xtctruncate := xtctruncate.cc
 tgtlibs_xtctruncate := pdsdata/xtcdata pds/service
 tgtslib_xtctruncate := /usr/lib/rt
+
+tgtsrcs_xtcEpicsTest := xtcEpicsTest.cc XtcEpicsFileReader.cc XtcEpicsFileReader.hh XtcEpicsIterator.cc XtcEpicsIterator.hh EpicsDbrTools.cc EpicsDbrTools.hh EpicsMonitorPv.cc EpicsMonitorPv.hh XtcEpicsMonitor.cc XtcEpicsMonitor.hh XtcEpicsPv.cc XtcEpicsPv.hh EpicsPvData.cc EpicsPvData.hh console_io.cc console_io.hh
+tgtincs_xtcEpicsTest := epics/include epics/include/os/Linux
+tgtlibs_xtcEpicsTest := pdsdata/xtcdata pds/service epics/ca epics/Com
+tgtslib_xtcEpicsTest := /usr/lib/rt
