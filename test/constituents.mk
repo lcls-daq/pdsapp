@@ -4,7 +4,7 @@ CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
 libsrcs_test := EventTest.cc EventOptions.cc Recorder.cc
 
-tgtnames := recordertest eventtest segtest sourcetest bldtest source montest showPartitions killPartition control
+tgtnames := recordertest eventtest segtest sourcetest bldtest source montest showPartitions killPartition control epicsBldClientTest bldServerTest
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pdsapp/test
 
@@ -51,3 +51,11 @@ tgtslib_showPartitions := /usr/lib/rt
 tgtsrcs_killPartition := killPartition.cc
 tgtlibs_killPartition := $(commonlibs)
 tgtslib_killPartition := /usr/lib/rt
+
+tgtsrcs_epicsBldClientTest := epicsBldClientTest.cc epicsBldClientTest.hh
+tgtlibs_epicsBldClientTest := pds/service
+tgtslib_epicsBldClientTest := /usr/lib/rt
+
+tgtsrcs_bldServerTest := bldServerTest.cpp bldServerTest.h
+tgtlibs_bldServerTest := pds/service
+tgtslib_bldServerTest := /usr/lib/rt
