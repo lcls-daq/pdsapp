@@ -35,6 +35,7 @@ tgtsrcs_configdb_gui += EvrConfig.cc
 tgtsrcs_configdb_gui += ControlConfig.cc
 tgtsrcs_configdb_gui += AcqConfig.cc
 tgtsrcs_configdb_gui += Parameters.cc
+tgtsrcs_configdb_gui += BitCount.cc
 tgtsrcs_configdb_gui += templates.cc
 tgtincs_configdb_gui := qt/include
 tgtlibs_configdb_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata

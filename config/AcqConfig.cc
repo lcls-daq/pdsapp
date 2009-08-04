@@ -2,6 +2,7 @@
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
+#include "pdsapp/config/BitCount.hh"
 #include "pds/config/AcqConfigType.hh"
 
 #include <new>
@@ -138,7 +139,7 @@ namespace Pds_ConfigDb {
       _nbrConvertersPerChannel("Number of Converters Per Channel",1,1,4),
       _channelMask("Channel Mask",1,1,0xfffff,Hex),
       _nbrBanks("Number of Banks",1,1,1),
-      _numChan("Number of Channels",_nbrChannels(),_nbrChannels(),Pds::Acqiris::ConfigV1::MaxChan),
+      _numChan(_channelMask),
       _vertSet("Vert Config", _vertArgs, _numChan)
     {
       for(unsigned k=0; k<Pds::Acqiris::ConfigV1::MaxChan; k++)
@@ -147,7 +148,6 @@ namespace Pds_ConfigDb {
 
     void insert(Pds::LinkedList<Parameter>& pList) {
       pList.insert(&_nbrConvertersPerChannel);
-      pList.insert(&_numChan);
       pList.insert(&_channelMask);
       pList.insert(&_nbrBanks);
       _trig.insert(pList);
@@ -162,7 +162,7 @@ namespace Pds_ConfigDb {
       _nbrBanks.value = acqconf.nbrBanks();
       _trig.pull(&acqconf.trig());
       _horiz.pull(&(acqconf.horiz()));
-      for(unsigned k=0; k<_nbrChannels(); k++)
+      for(unsigned k=0; k<_numChan.count(); k++)
         _vert[k].pull(&(acqconf.vert(k)));
 
       return sizeof(AcqConfigType);
@@ -171,10 +171,10 @@ namespace Pds_ConfigDb {
     int push(void* to) { // push "to xtc"
       Pds::Acqiris::TrigV1* t = new Pds::Acqiris::TrigV1;
       Pds::Acqiris::HorizV1* h = new Pds::Acqiris::HorizV1;
-      Pds::Acqiris::VertV1* v = new Pds::Acqiris::VertV1[_nbrChannels()];
+      Pds::Acqiris::VertV1* v = new Pds::Acqiris::VertV1[_numChan.count()];
       _trig.push(t);
       _horiz.push(h);
-      for(unsigned k=0; k<_nbrChannels(); k++)
+      for(unsigned k=0; k<_numChan.count(); k++)
 	_vert[k].push(&v[k]);
       *new(to) AcqConfigType(_nbrConvertersPerChannel.value,
                              _channelMask.value,
@@ -191,19 +191,12 @@ namespace Pds_ConfigDb {
     NumericInt<uint32_t> _nbrConvertersPerChannel;
     NumericInt<uint32_t> _channelMask;
     NumericInt<uint32_t> _nbrBanks;
-    NumericInt<uint32_t> _numChan;
+    BitCount _numChan;
     AcqTrig  _trig;
     AcqHoriz _horiz;
     AcqVert  _vert[Pds::Acqiris::ConfigV1::MaxChan];
     Pds::LinkedList<Parameter> _vertArgs[Pds::Acqiris::ConfigV1::MaxChan];
     ParameterSet _vertSet;
-  private:
-    unsigned _nbrChannels() const {
-//       unsigned numchan=0;
-//       for (unsigned i=0;i<32;i++) if (_channelMask.value&(1<<i)) numchan++;
-//       return numchan;
-      return _numChan.value;
-    }
   };
 };
 

@@ -1,5 +1,6 @@
 #include "pdsapp/config/ParameterSet.hh"
 
+#include "pdsapp/config/ParameterCount.hh"
 #include "pdsapp/config/SubDialog.hh"
 
 #include <QtGui/QHBoxLayout>
@@ -11,11 +12,11 @@ using namespace Pds_ConfigDb;
 
 ParameterSet::ParameterSet(const char* label,
 			   Pds::LinkedList<Parameter>* array,
-			   NumericInt<unsigned>&       nmembers) :
+			   ParameterCount& count) :
   QObject(0),
   Parameter(label),
   _array   (array),
-  _nmembers(nmembers)
+  _count   (count)
 {}
 
 ParameterSet::~ParameterSet()
@@ -29,8 +30,8 @@ QLayout* ParameterSet::initialize(QWidget* parent)
   layout->addWidget(_box);
   flush();
   layout->setContentsMargins(0,0,0,0);               
-  QObject::connect(_nmembers._input, SIGNAL(editingFinished()),
-		   this, SLOT(membersChanged()));
+  if (Parameter::allowEdit())
+    _count.connect(*this);
   QObject::connect(_box, SIGNAL(activated(int)), 
 		   this, SLOT(launch(int)));
   return layout;                                     
@@ -56,9 +57,10 @@ void ParameterSet::update()
 void ParameterSet::flush ()
 {
   unsigned n = _box->count();
-  while(_nmembers.value < n)
+  unsigned cnt = _count.count();
+  while(cnt < n)
     _box->removeItem(--n);
-  while(_nmembers.value > n)
+  while(cnt > n)
     _box->addItem(QString::number(n++));
   _box->update();
 }

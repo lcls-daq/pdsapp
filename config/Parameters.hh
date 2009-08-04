@@ -3,10 +3,13 @@
 
 #include "pds/service/LinkedList.hh"
 
+#include "pdsapp/config/ParameterCount.hh"
+
 class QWidget;
 class QLayout;
 class QLineEdit;
 class QComboBox;
+class QLabel;
 
 namespace Pds_ConfigDb {
 
@@ -47,8 +50,11 @@ namespace Pds_ConfigDb {
 
   enum IntMode { Decimal, Hex };
 
+  class ParameterSet;
+
   template <class T>
-  class NumericInt : public Parameter {
+  class NumericInt : public Parameter,
+		     public ParameterCount {
   public:
     NumericInt(const char* label, T val, T vlo, T vhi, IntMode mo=Decimal);
     ~NumericInt();
@@ -57,10 +63,14 @@ namespace Pds_ConfigDb {
     void     update();
     void     flush ();
   public:
+    bool     connect(ParameterSet&);
+    unsigned count  ();
+  public:
     T       value;
     T       range[2];
     IntMode mode;
     QLineEdit* _input;
+    QLabel*    _display;
   };
 
   template <class T>
@@ -76,6 +86,7 @@ namespace Pds_ConfigDb {
     T value;
     T range[2];
     QLineEdit* _input;
+    QLabel*    _display;
   };
 
   template <class T>
@@ -91,6 +102,7 @@ namespace Pds_ConfigDb {
     T value;
     const char** labels;
     QComboBox*   _input;
+    QLabel*      _display;
   };
 
   class TextParameter : public Parameter {
@@ -106,6 +118,7 @@ namespace Pds_ConfigDb {
     char value[MaxSize];
     QLineEdit* _input;
     unsigned   _size;
+    QLabel*    _display;
   };
 };
 

@@ -8,13 +8,13 @@
 class QComboBox;
 
 namespace Pds_ConfigDb {
-
+  class ParameterCount;
   class ParameterSet : public QObject, public Parameter  {
     Q_OBJECT
   public:
     ParameterSet(const char* label, 
 		 Pds::LinkedList<Parameter>* array,
-		 NumericInt<unsigned>& nmembers);
+		 ParameterCount& count);
     ~ParameterSet();
 
     QLayout* initialize(QWidget*);
@@ -25,7 +25,7 @@ namespace Pds_ConfigDb {
     void membersChanged();
   public:
     Pds::LinkedList<Parameter>* _array;
-    NumericInt<unsigned>&       _nmembers;
+    ParameterCount&             _count;
     QComboBox*                  _box;
   };
 

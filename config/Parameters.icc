@@ -1,5 +1,6 @@
 #include "pdsapp/config/Parameters.hh"
 
+#include "pdsapp/config/ParameterSet.hh"
 #include "pdsapp/config/Validators.hh"
 
 #include <QtGui/QHBoxLayout>
@@ -39,9 +40,9 @@ QLayout* NumericInt<T>::initialize(QWidget* parent)
       _input->setValidator(new HexValidator( *this, *_input, range[0], range[1]));
   }
   else {
-    QLabel* l = new QLabel(QString::number(value,mode==Decimal ? 10:16));
-    l->setFrameShape(QFrame::Box);
-    layout->addWidget(l);
+    _display = new QLabel(QString::number(value,mode==Decimal ? 10:16));
+    _display->setFrameShape(QFrame::Box);
+    layout->addWidget(_display);
   }
   layout->setContentsMargins(0,0,0,0);               
   return layout;                                     
@@ -61,6 +62,21 @@ void NumericInt<T>::flush()
 {
   if (allowEdit())
     _input->setText(QString::number(value,mode==Decimal ? 10:16));            
+  else
+    _display->setText(QString::number(value,mode==Decimal ? 10:16));            
+}
+
+template <class T>
+bool NumericInt<T>::connect(ParameterSet& set)
+{
+  return QObject::connect(_input, SIGNAL(editingFinished()),
+	 	          &set, SLOT(membersChanged()));
+}
+
+template <class T>
+unsigned NumericInt<T>::count()
+{
+  return value;
 }
 
 template <class T>
@@ -90,9 +106,9 @@ QLayout* NumericFloat<T>::initialize(QWidget* parent)
 	  				       range[0], range[1]) );
   }
   else {
-    QLabel* l = new QLabel(QString::number(value));
-    l->setFrameShape(QFrame::Box);
-    layout->addWidget(l);
+    _display = new QLabel(QString::number(value));
+    _display->setFrameShape(QFrame::Box);
+    layout->addWidget(_display);
   }
   layout->setContentsMargins(0,0,0,0);               
   return layout;                                     
@@ -110,6 +126,8 @@ void NumericFloat<T>::flush()
 {
   if (allowEdit())
     _input->setText(QString::number(value));
+  else
+    _display->setText(QString::number(value));
 }
 
 template <class T>
@@ -138,9 +156,9 @@ QLayout* Enumerated<T>::initialize(QWidget* parent)
     flush();
   }
   else {
-    QLabel* l = new QLabel(labels[value]);
-    l->setFrameShape(QFrame::Box);
-    layout->addWidget(l);
+    _display = new QLabel(labels[value]);
+    _display->setFrameShape(QFrame::Box);
+    layout->addWidget(_display);
   }
   layout->setContentsMargins(0,0,0,0);
   return layout;
@@ -158,4 +176,6 @@ void Enumerated<T>::flush()
 {
   if (allowEdit())
     _input->setCurrentIndex(value);
+  else
+    _display->setText(labels[value]);
 }

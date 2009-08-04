@@ -26,14 +26,15 @@ namespace Pds_ConfigDb {
   public:
     const QString& file() const { return _file; }
   public slots:
-    void read     ();
+    void replace  ();
+    void append   ();
     void write    ();
     void set_cycle   (int);
     void insert_cycle();
     void remove_cycle();
   private:
     void layout();
-    void read  (const QString&);
+    void append(const QString&);
   private:
     Serializer&         _s;
     const QString&      _read_dir;

@@ -42,7 +42,7 @@ Dialog::Dialog(QWidget* parent,
 {
   layout();
 
-  read(file);
+  append(file);
 }
 
 Dialog::Dialog(QWidget* parent,
@@ -65,7 +65,11 @@ Dialog::Dialog(QWidget* parent,
   _cycleBox->setCurrentIndex(_current = 0);
 }
 
-Dialog::~Dialog() {}
+Dialog::~Dialog() 
+{
+  for(unsigned i=0; i<_cycles.size(); i++)
+    delete _cycles[i];
+}
 
 void Dialog::layout()
 {
@@ -95,21 +99,26 @@ void Dialog::layout()
   _s.initialize(this, layout);
 
   QHBoxLayout* blayout = new QHBoxLayout;
-  QPushButton* bRead  = new QPushButton("Copy",this);
+  QPushButton* bReplace = new QPushButton("Read\nReplace",this);
+  QPushButton* bAppend  = new QPushButton("Read\nAppend",this);
   QPushButton* bWrite = new QPushButton("Save",this);
   QPushButton* bReturn = new QPushButton("Cancel",this);
-  blayout->addWidget(bRead);
+  blayout->addWidget(bReplace);
+  blayout->addWidget(bAppend);
   blayout->addWidget(bWrite);
   blayout->addWidget(bReturn);
   if (Parameter::allowEdit()) {
-    bRead ->setEnabled(true);
-    bWrite->setEnabled(true);
-    connect(bRead , SIGNAL(clicked()), this, SLOT(read ()));
-    connect(bWrite, SIGNAL(clicked()), this, SLOT(write()));
+    bReplace->setEnabled(true);
+    bAppend ->setEnabled(true);
+    bWrite  ->setEnabled(true);
+    connect(bReplace, SIGNAL(clicked()), this, SLOT(replace ()));
+    connect(bAppend , SIGNAL(clicked()), this, SLOT(append  ()));
+    connect(bWrite  , SIGNAL(clicked()), this, SLOT(write   ()));
   }
   else {
-    bRead ->setEnabled(false);
-    bWrite->setEnabled(false);
+    bReplace->setEnabled(false);
+    bAppend ->setEnabled(false);
+    bWrite  ->setEnabled(false);
   }
   connect(bReturn, SIGNAL(clicked()), this, SLOT(reject()));
 
@@ -117,14 +126,29 @@ void Dialog::layout()
   setLayout(layout);
 }
 
-void Dialog::read()
+void Dialog::replace()
 {
   QString file = QFileDialog::getOpenFileName(this,"File to read from:",
 					      _read_dir, "*.xtc");
   if (file.isNull())
     return;
 
-  read(file);
+  for(unsigned i=0; i<_cycles.size(); i++)
+    delete _cycles[i];
+  _cycles.clear();
+  _cycleBox->clear();
+
+  append(file);
+}
+
+void Dialog::append()
+{
+  QString file = QFileDialog::getOpenFileName(this,"File to read from:",
+					      _read_dir, "*.xtc");
+  if (file.isNull())
+    return;
+
+  append(file);
 }
 
 void Dialog::write()
@@ -187,7 +211,7 @@ void Dialog::insert_cycle()
 
 void Dialog::remove_cycle()
 {
-  int i = _cycleBox->currentIndex();
+  unsigned i = _cycleBox->currentIndex();
   delete _cycles[i];
   _cycles.erase(_cycles.begin()+i);
 
@@ -215,7 +239,7 @@ void Dialog::set_cycle(int index)
 }
 
 
-void Dialog::read(const QString& file)
+void Dialog::append(const QString& file)
 {
   // perform the read
   struct stat file_stat;
