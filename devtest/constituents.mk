@@ -1,7 +1,7 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
 #tgtnames    := evr evgr acq opal1k xtcwriter pnccd xtctruncate
-tgtnames    := evr evgr xtcwriter pnccd xtctruncate xtcEpicsTest
+tgtnames    := evr evgr acq opal1k xtcwriter pnccd xtctruncate xtcEpicsTest
 #tgtnames    := evr evgr acq acqevr opal1k xtcwriter pnccd xtctruncate
 #tgtnames    := xtcwriter pnccd xtctruncate
 
