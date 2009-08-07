@@ -98,6 +98,8 @@ static int updateImage(MonEntryImage& image,
     }
   }
 
+  advance += frame.data_size();
+
   //  zero out the information overlay
   for(unsigned ip=0; ip<4; ip++)
     image.content(0,ip,0);
