@@ -17,8 +17,8 @@
 #include <signal.h>
 #include <string.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/prctl.h>
 #ifdef _POSIX_MESSAGE_PASSING
@@ -139,6 +139,8 @@ public:
     _mymq_attr.mq_maxmsg = _numberOfBuffers+4;
     _mymq_attr.mq_msgsize = (long int)sizeof(Msg);
     _mymq_attr.mq_flags = 0L;
+
+    umask(1);  // try to enable others to open these devices.
 
     if (!shm_unlink(_shmName)) perror("shm_unlink found a remnant of previous lives");
     int shm = shm_open(_shmName, OFLAGS, PERMS);
