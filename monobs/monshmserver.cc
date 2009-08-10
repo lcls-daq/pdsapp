@@ -29,8 +29,7 @@
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/Dgram.hh"
 
-#define PERMS (S_IRUSR|S_IRUSR|S_IRUSR|S_IROTH|S_IROTH|S_IROTH|S_IRGRP|S_IRGRP|S_IRGRP| \
-               S_IWUSR|S_IWUSR|S_IWUSR|S_IWOTH|S_IWOTH|S_IWOTH|S_IWGRP|S_IWGRP|S_IWGRP)
+#define PERMS (S_IRUSR||S_IRGRP|S_IROTH|S_IWUSR|S_IWGRP|S_IWOTH)
 #define OFLAGS (O_CREAT|O_RDWR)
 
 using namespace Pds;
