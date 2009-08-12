@@ -32,7 +32,7 @@
 
 //#define USE_ZCP
 
-static bool verbose = false;
+bool verbose = false;
 
 namespace Pds {
 
@@ -100,7 +100,7 @@ namespace Pds {
 	dg.length = 0;
 	::write(_pipe,&dg,sizeof(dg));
 	_outlet.send((char*)&dg,0,0,_dst);
-	_f += period; 
+	_f += _f_increment; 
 	_f &= Pds::s_fiduc;  // mask it to correct number of bits
 	_t = (random() & 0x3) + 12;
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &_done);
@@ -265,9 +265,9 @@ namespace Pds {
     Transition* configure(Transition* in) 
     {
       _algorithm = Algorithm(in->env().value()  % NumberOf);
-      _verbose   = in->env().value() >= NumberOf;
+      //verbose   = in->env().value() >= NumberOf;
       printf("MyFex::algorithm %d  verbose %c\n",
-	     _algorithm,_verbose ? 't':'f');
+	     _algorithm,verbose ? 't':'f');
       return in;
     }
     InDatagram* configure(InDatagram* in) {return in;}
@@ -275,7 +275,7 @@ namespace Pds {
 
     InDatagram* l1accept (InDatagram* input) 
     {
-      if (_verbose) {
+      if (verbose) {
 	InDatagramIterator* in_iter = input->iterator(&_iter);
 	int advance;
 	Browser browser(input->datagram(), in_iter, 0, advance);
@@ -302,7 +302,7 @@ namespace Pds {
 	delete in_iter;
       }
 
-      if (_verbose) {
+      if (verbose) {
 	InDatagramIterator* in_iter = ndg->iterator(&_iter);
 	int advance;
 	Browser browser(ndg->datagram(), in_iter, 0, advance);
@@ -340,7 +340,6 @@ namespace Pds {
   private:
     Src         _src;
     Algorithm   _algorithm;
-    bool        _verbose;
     RingPool    _pool;
     GenericPool _iter;
     Datagram*   _outdg;
