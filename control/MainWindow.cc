@@ -2,6 +2,7 @@
 
 #include "pdsapp/control/ConfigSelect.hh"
 #include "pdsapp/control/PartitionSelect.hh"
+#include "pdsapp/control/NodeSelect.hh"
 #include "pdsapp/control/StateSelect.hh"
 #include "pdsapp/control/SeqAppliance.hh"
 #include "pdsapp/control/PVDisplay.hh"
@@ -17,6 +18,7 @@
 #include <QtGui/QMenu>
 #include <QtGui/QMenuBar>
 #include <QtGui/QVBoxLayout>
+#include <QtGui/QMessageBox>
 
 namespace Pds {
   class CCallback : public ControlCallback {
@@ -32,6 +34,25 @@ namespace Pds {
     void add_appliance(Appliance* app) { app->connect(_apps); }
   private:
     Appliance* _apps;
+  };
+  class ControlTimeout : public Routine {
+  public:
+    ControlTimeout(MainWindow* w) : _w(w) {}
+    ~ControlTimeout() {}
+  public:
+    void routine() { 
+      QString msg = QString("Timeout waiting for\n%1 -> %2 to complete")
+	.arg(_w->_control->current_state())
+	.arg(_w->_control->target_state());
+      Allocation alloc = _w->_control->eb().remaining();
+      for(unsigned k=0; k<alloc.nnodes(); k++) {
+	NodeSelect s(*alloc.node(k));
+	msg += "\n" + s.label();
+      }
+      QMessageBox::warning(_w, "Transition Error", msg);
+    }
+  private:
+    MainWindow* _w;
   };
 };
 

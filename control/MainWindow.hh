@@ -17,6 +17,7 @@ namespace Pds {
 	       const char*       dbpath);
     ~MainWindow();
   private:
+    friend class ControlTimeout;
     CCallback*        _controlcb;
     QualifiedControl* _control;
     CfgClientNfs*     _config;
