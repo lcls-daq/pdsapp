@@ -23,7 +23,7 @@ namespace Pds {
   public:
     DisplayConfig(char* groupName);
     ~DisplayConfig();
-    void request(Src& src);
+    void request(const Src& src);
     unsigned requested(const Src& src);
     MonEntry* entry(const Src& src,unsigned channel);
     void add(const Src& src, unsigned channel, MonEntry* entry);
@@ -44,12 +44,13 @@ namespace Pds {
 
   class AcqDisplay : public Fsm {
   public:
-    AcqDisplay(DisplayConfig& dispConfig);
+    AcqDisplay(DisplayConfig& dispConfig,
+	       MonServerManager& monsrv);
     DisplayConfig& config() {return _dispConfig;}
     MonServerManager& monsrv() {return _monsrv;}
     ~AcqDisplay();
   private:
-    MonServerManager _monsrv;
+    MonServerManager& _monsrv;
     DisplayConfig& _dispConfig;
     AcqDisplayConfigAction* _config;
     AcqDisplayL1Action* _l1;

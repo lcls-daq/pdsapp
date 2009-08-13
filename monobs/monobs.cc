@@ -119,18 +119,11 @@ int main(int argc, char** argv) {
     }
   }
 
-  MonServerManager* manager = new MonServerManager(MonPort::Test);
-  CamDisplay* camdisp = new CamDisplay("Cam",
- 				       DetInfo(0, det, detid, DetInfo::Opal1000, devid).phy(),
- 				       1024, 1024, 12,
-// 				       DetInfo(0, det, detid, DetInfo::TM6740, devid).phy(),
-// 				       640, 480, 10,
-				       *manager);
+  MonServerManager* manager = new MonServerManager(MonPort::Mon);
+  CamDisplay* camdisp = new CamDisplay(*manager);
 
   DisplayConfig& dc = *new DisplayConfig("Acqiris Group");
-  DetInfo acqinfo(0, (Pds::DetInfo::Detector)det, 0, DetInfo::Acqiris, 0);
-  dc.request(acqinfo);
-  AcqDisplay* acqdisp = new AcqDisplay(dc);
+  AcqDisplay* acqdisp = new AcqDisplay(dc,*manager);
   manager->serve();
 
   Appliance* apps;

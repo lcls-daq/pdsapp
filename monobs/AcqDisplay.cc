@@ -32,7 +32,7 @@ MonEntry* DisplayConfig::entry(const Src& src, unsigned channel) {
   throw("DisplayConfig::entry: Source/channel not found");
 }
 
-void DisplayConfig::request(Src& src) {
+void DisplayConfig::request(const Src& src) {
   if (_numsource>=MaxSrc) throw("DisplayConfig::request: Too many sources\n");
   _src[_numsource]=src;
   _numsource++;
@@ -52,11 +52,11 @@ DisplayConfig::DisplayConfig (char* groupName) :
     _groupName(groupName),_group(*new MonGroup(groupName)),_numentry(0),_numsource(0)
 {}
 
-AcqDisplay::AcqDisplay(DisplayConfig& dispConfig) :
-  _monsrv(MonPort::Mon),_dispConfig(dispConfig)
+AcqDisplay::AcqDisplay(DisplayConfig& dispConfig,
+		       MonServerManager& monsrv) :
+  _monsrv(monsrv),_dispConfig(dispConfig)
 {	
   _monsrv.cds().add(&_dispConfig.group());
-  _monsrv.serve();
   _config = new AcqDisplayConfigAction(*this);
   callback(TransitionId::Configure, _config);
   _l1 = new AcqDisplayL1Action(*this,_config->acqcfg());
@@ -92,7 +92,8 @@ int AcqDisplayConfigAction::process(const Xtc& xtc,
   if (xtc.contains.id()==TypeId::Id_Xtc)
     return iterate(xtc,iter);
 
-  if (_disp.config().requested(xtc.src) && (xtc.contains.id() == TypeId::Id_AcqConfig)) {
+  if (!_disp.config().requested(xtc.src) && (xtc.contains.id() == TypeId::Id_AcqConfig)) {
+    _disp.config().request(xtc.src);
     Acqiris::ConfigV1& config = (*(Acqiris::ConfigV1*)(xtc.payload()));
     memcpy(&_config,&config,sizeof(Acqiris::ConfigV1));
     Acqiris::HorizV1& horiz = config.horiz();
