@@ -41,15 +41,10 @@ namespace Pds {
     ~ControlTimeout() {}
   public:
     void routine() { 
-      QString msg = QString("Timeout waiting for\n%1 -> %2 to complete")
-	.arg(_w->_control->current_state())
-	.arg(_w->_control->target_state());
-      Allocation alloc = _w->_control->eb().remaining();
-      for(unsigned k=0; k<alloc.nnodes(); k++) {
-	NodeSelect s(*alloc.node(k));
-	msg += "\n" + s.label();
-      }
-      QMessageBox::warning(_w, "Transition Error", msg);
+      printf("Timeout waiting for %d -> %d to complete\n",
+	     (_w->_control->current_state()),
+	     (_w->_control->target_state()));
+      _w->controleb_tmo();
     }
   private:
     MainWindow* _w;
@@ -64,7 +59,7 @@ MainWindow::MainWindow(unsigned          platform,
 		       const char*       db_path) :
   QWidget(0),
   _controlcb(new CCallback),
-  _control  (new QualifiedControl(platform, *_controlcb)),
+  _control  (new QualifiedControl(platform, *_controlcb, new ControlTimeout(this))),
   _config   (new CfgClientNfs(Node(Level::Control,platform).procInfo()))
 {
   setAttribute(Qt::WA_DeleteOnClose, true);
@@ -89,6 +84,7 @@ MainWindow::MainWindow(unsigned          platform,
 
   QObject::connect(state, SIGNAL(allocated())  , config, SLOT(allocated()));
   QObject::connect(state, SIGNAL(deallocated()), config, SLOT(deallocated()));
+  QObject::connect(this , SIGNAL(timedout())   , this  , SLOT(handle_timeout()));
 }
   
 MainWindow::~MainWindow()
@@ -98,4 +94,22 @@ MainWindow::~MainWindow()
   delete _control; 
   delete _controlcb; 
   delete _pvmanager;
+}
+
+void MainWindow::controleb_tmo()
+{
+  emit timedout();
+}
+
+void MainWindow::handle_timeout()
+{
+  QString msg = QString("Timeout waiting for\ntransition %1 -> %2 to complete")
+    .arg(_control->current_state())
+    .arg(_control->target_state());
+  Allocation alloc = _control->eb().remaining();
+  for(unsigned k=0; k<alloc.nnodes(); k++) {
+    NodeSelect s(*alloc.node(k));
+    msg += "\n" + s.label();
+  }
+  QMessageBox::warning(this, "Transition Error", msg);
 }

@@ -16,6 +16,12 @@ namespace Pds {
 	       const char*       partition,
 	       const char*       dbpath);
     ~MainWindow();
+  signals:
+    void timedout();
+  public slots:
+    void handle_timeout();
+  public:
+    void controleb_tmo();
   private:
     friend class ControlTimeout;
     CCallback*        _controlcb;
