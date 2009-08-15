@@ -122,8 +122,7 @@ int main(int argc, char** argv) {
   MonServerManager* manager = new MonServerManager(MonPort::Mon);
   CamDisplay* camdisp = new CamDisplay(*manager);
 
-  DisplayConfig& dc = *new DisplayConfig("Acqiris Group");
-  AcqDisplay* acqdisp = new AcqDisplay(dc,*manager);
+  AcqDisplay* acqdisp = new AcqDisplay(manager->cds());
   manager->serve();
 
   Appliance* apps;

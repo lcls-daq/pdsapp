@@ -21,22 +21,26 @@ namespace Pds {
 
   class DisplayConfig {
   public:
-    DisplayConfig(char* groupName);
+    DisplayConfig(MonCds& cds);
     ~DisplayConfig();
-    void request(const Src& src);
+    void reset();
+    void request(const Src& src,const Acqiris::ConfigV1&);
     unsigned requested(const Src& src);
     MonEntry* entry(const Src& src,unsigned channel);
     void add(const Src& src, unsigned channel, MonEntry* entry);
-    MonGroup& group() {return _group;}
+    MonCds&   cds  () { return _cds; }
+    MonGroup& group(unsigned i) {return *_group[i];}
+    Acqiris::ConfigV1* acqcfg(const Src&);
   private:
     enum {MaxSrc=6};
-    enum {MaxChan=8};
-    char*     _groupName;
-    MonGroup& _group;
+    enum {MaxChan=6};
+    MonCds&   _cds;
     unsigned  _numentry;
     unsigned  _numsource;
+    MonGroup* _group[MaxSrc];
     MonEntry* _entry[MaxSrc][MaxChan];
     Src       _src[MaxSrc];
+    Acqiris::ConfigV1 _config[MaxSrc];
   };
 
   class AcqDisplayConfigAction;
@@ -44,44 +48,38 @@ namespace Pds {
 
   class AcqDisplay : public Fsm {
   public:
-    AcqDisplay(DisplayConfig& dispConfig,
-	       MonServerManager& monsrv);
+    AcqDisplay(MonCds& cds);
     DisplayConfig& config() {return _dispConfig;}
-    MonServerManager& monsrv() {return _monsrv;}
     ~AcqDisplay();
   private:
-    MonServerManager& _monsrv;
-    DisplayConfig& _dispConfig;
+    DisplayConfig     _dispConfig;
     AcqDisplayConfigAction* _config;
     AcqDisplayL1Action* _l1;
   };
 
   class AcqDisplayConfigAction : public Action, public XtcIterator {
   public:
-    AcqDisplayConfigAction(AcqDisplay& disp);
+    AcqDisplayConfigAction(DisplayConfig& disp);
     ~AcqDisplayConfigAction();
     Transition* fire(Transition* tr);
     InDatagram* fire(InDatagram* dg);
-    Acqiris::ConfigV1& acqcfg() {return _config;}
     int process(const Xtc& xtc,InDatagramIterator* iter);
   private:
-    AcqDisplay& _disp;
-    GenericPool _iter;
-    Acqiris::ConfigV1 _config;
+    DisplayConfig& _disp;
+    GenericPool    _iter;
   };
 
   class AcqDisplayL1Action : public Action, public XtcIterator {
   public:
-    AcqDisplayL1Action(AcqDisplay& disp, Acqiris::ConfigV1& config);
+    AcqDisplayL1Action(DisplayConfig& disp);
     ~AcqDisplayL1Action();
     Transition* fire(Transition* tr);
     InDatagram* fire(InDatagram* dg);
     int process(const Xtc& xtc,InDatagramIterator* iter);
   private:
-    AcqDisplay& _disp;
-    GenericPool _iter;
-    ClockTime   _now;
-    Acqiris::ConfigV1& _config;
+    DisplayConfig& _disp;
+    GenericPool    _iter;
+    ClockTime      _now;
   };
 
 }

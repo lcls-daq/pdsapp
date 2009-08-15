@@ -1,3 +1,6 @@
+2009-Aug-15	weaver	Tag V01-00-03.  Changed monobs/CamDisplay and AcqDisplay to
+			serve all channels found on Configure.  Rearranged production
+			code into dev and devtest packages.
 2009-Aug-12	weaver	Tag V01-00-02 for production release.
 2009-Aug-11	jackp	Moved production code out of devtest into new package called dev.
 2009-Aug-4	weaver	Fixed xtc file viewing in configdb_gui.  Added read-replace and

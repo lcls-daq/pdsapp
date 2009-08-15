@@ -18,7 +18,28 @@
 #include <stdio.h>
 #include <string.h>
 
+namespace Pds {
+
+  class AcqDisplayUnconfig : public Action {
+  public:
+    AcqDisplayUnconfig(DisplayConfig& dc) : _dc(dc) {}
+    ~AcqDisplayUnconfig() {}
+  public:
+    Transition* fire(Transition* tr) { _dc.reset(); return tr; }
+    InDatagram* fire(InDatagram* dg) { return dg; }
+  private:
+    DisplayConfig& _dc;
+  };
+};
+
 using namespace Pds;
+
+
+DisplayConfig::DisplayConfig (MonCds& cds) :
+  _cds(cds),_numsource(0)
+{}
+
+DisplayConfig::~DisplayConfig() {}
 
 unsigned DisplayConfig::requested(const Src& src) {
   for (unsigned i=0;i<_numsource;i++) if (src.phy()==_src[i].phy()) return 1;
@@ -32,9 +53,17 @@ MonEntry* DisplayConfig::entry(const Src& src, unsigned channel) {
   throw("DisplayConfig::entry: Source/channel not found");
 }
 
-void DisplayConfig::request(const Src& src) {
+void DisplayConfig::reset() {
+  _cds.reset();
+  _numsource=0;
+}
+
+void DisplayConfig::request(const Src& src, const Acqiris::ConfigV1& config) {
   if (_numsource>=MaxSrc) throw("DisplayConfig::request: Too many sources\n");
+  _group[_numsource]=new MonGroup(DetInfo::name(reinterpret_cast<const DetInfo&>(src)));
+  _cds.add(_group[_numsource]);
   _src[_numsource]=src;
+  memcpy(&_config[_numsource],&config,sizeof(Acqiris::ConfigV1));
   _numsource++;
 }
 
@@ -43,23 +72,26 @@ void DisplayConfig::add(const Src& src, unsigned channel, MonEntry* entry) {
     if (src.phy()==_src[i].phy()) {
       if (channel>=MaxChan) throw("DisplayConfig::add: Too many channels");
       _entry[i][channel]=entry;
-      _group.add(entry);
+      _group[i]->add(entry);
     }
   }
 }
 
-DisplayConfig::DisplayConfig (char* groupName) :
-    _groupName(groupName),_group(*new MonGroup(groupName)),_numentry(0),_numsource(0)
-{}
+Acqiris::ConfigV1* DisplayConfig::acqcfg(const Src& src)
+{
+  for (unsigned i=0;i<_numsource;i++)
+    if (src.phy()==_src[i].phy())
+      return &_config[i];
+  return 0;
+}
 
-AcqDisplay::AcqDisplay(DisplayConfig& dispConfig,
-		       MonServerManager& monsrv) :
-  _monsrv(monsrv),_dispConfig(dispConfig)
+AcqDisplay::AcqDisplay(MonCds& cds) :
+  _dispConfig(cds)
 {	
-  _monsrv.cds().add(&_dispConfig.group());
-  _config = new AcqDisplayConfigAction(*this);
+  _config = new AcqDisplayConfigAction(_dispConfig);
   callback(TransitionId::Configure, _config);
-  _l1 = new AcqDisplayL1Action(*this,_config->acqcfg());
+  callback(TransitionId::Unconfigure, new AcqDisplayUnconfig(_dispConfig));
+  _l1 = new AcqDisplayL1Action(_dispConfig);
   callback(TransitionId::L1Accept, _l1);
 }
 
@@ -72,7 +104,7 @@ AcqDisplay::~AcqDisplay() {
 
 AcqDisplayConfigAction::~AcqDisplayConfigAction() {}
 
-AcqDisplayConfigAction::AcqDisplayConfigAction(AcqDisplay& disp) :
+AcqDisplayConfigAction::AcqDisplayConfigAction(DisplayConfig& disp) :
   _disp(disp), _iter(sizeof(ZcpDatagramIterator),1) {}
 
 Transition* AcqDisplayConfigAction::fire(Transition* tr) {
@@ -92,18 +124,19 @@ int AcqDisplayConfigAction::process(const Xtc& xtc,
   if (xtc.contains.id()==TypeId::Id_Xtc)
     return iterate(xtc,iter);
 
-  if (!_disp.config().requested(xtc.src) && (xtc.contains.id() == TypeId::Id_AcqConfig)) {
-    _disp.config().request(xtc.src);
+  if (!_disp.requested(xtc.src) && (xtc.contains.id() == TypeId::Id_AcqConfig)) {
     Acqiris::ConfigV1& config = (*(Acqiris::ConfigV1*)(xtc.payload()));
-    memcpy(&_config,&config,sizeof(Acqiris::ConfigV1));
+    _disp.request(xtc.src,config);
     Acqiris::HorizV1& horiz = config.horiz();
     
     unsigned channelMask = config.channelMask();
     unsigned chnum=0;
+    char buff[64];
     while (channelMask) {
-      MonDescTH1F desc("Acqiris","Time [s]","Voltage [V]",horiz.nbrSamples(),
+      sprintf(buff,"Channel %d",chnum);
+      MonDescTH1F desc(buff,"Time [s]","Voltage [V]",horiz.nbrSamples(),
                        0.0,horiz.sampInterval()*horiz.nbrSamples());
-      _disp.config().add(xtc.src,chnum,new MonEntryTH1F(desc));
+      _disp.add(xtc.src,chnum,new MonEntryTH1F(desc));
       chnum++;
       channelMask&=(channelMask-1);
     }
@@ -116,10 +149,9 @@ int AcqDisplayConfigAction::process(const Xtc& xtc,
 
 AcqDisplayL1Action::~AcqDisplayL1Action() {}
 
-AcqDisplayL1Action::AcqDisplayL1Action(AcqDisplay& disp, Acqiris::ConfigV1& config) :
+AcqDisplayL1Action::AcqDisplayL1Action(DisplayConfig& disp) :
   _disp(disp),
-  _iter(sizeof(ZcpDatagramIterator),1),
-  _config(config)
+  _iter(sizeof(ZcpDatagramIterator),1)
 {}
 
 Transition* AcqDisplayL1Action::fire(Transition* tr) {
@@ -135,24 +167,25 @@ InDatagram* AcqDisplayL1Action::fire(InDatagram* in) {
 }
 
 int AcqDisplayL1Action::process(const Xtc& xtc,
-                                     InDatagramIterator* iter)
+				InDatagramIterator* iter)
 {
   if (xtc.contains.id()==TypeId::Id_Xtc)
     return iterate(xtc,iter);
 
-  if (_disp.config().requested(xtc.src) && (xtc.contains.id() == TypeId::Id_AcqWaveform)) {
+  if (_disp.requested(xtc.src) && (xtc.contains.id() == TypeId::Id_AcqWaveform)) {
     Acqiris::DataDescV1* ddesc = (Acqiris::DataDescV1*)(xtc.payload());
-    Acqiris::HorizV1& hcfg = _config.horiz();
-    MonCds& cds = _disp.monsrv().cds();
+    const Acqiris::ConfigV1& config = *_disp.acqcfg(xtc.src);
+    const Acqiris::HorizV1& hcfg = config.horiz();
+    MonCds& cds = _disp.cds();
 
     cds.payload_sem().take();  // make image update atomic
 
-    for (unsigned i=0;i<_config.nbrChannels();i++) {
+    for (unsigned i=0;i<config.nbrChannels();i++) {
       const int16_t* data = ddesc->waveform(hcfg);
       data += ddesc->indexFirstPoint();
-      float slope = _config.vert(i).slope();
-      float offset = _config.vert(i).offset();
-      MonEntryTH1F* entry = (MonEntryTH1F*)(_disp.config().entry(xtc.src,i));
+      float slope = config.vert(i).slope();
+      float offset = config.vert(i).offset();
+      MonEntryTH1F* entry = (MonEntryTH1F*)(_disp.entry(xtc.src,i));
       unsigned nbrSamples = hcfg.nbrSamples();
       for (unsigned j=0;j<nbrSamples;j++) {
         int16_t swap = (data[j]&0xff<<8) | (data[j]&0xff00>>8);

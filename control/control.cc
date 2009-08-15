@@ -13,7 +13,7 @@ using Pds_ConfigDb::Experiment;
 
 int main(int argc, char** argv)
 {
-  unsigned platform = 0;
+  unsigned platform = -1UL;
   unsigned bldList[32];
   unsigned nbld = 0;
   const char* partition = "partition";
@@ -42,7 +42,7 @@ int main(int argc, char** argv)
       break;
     }
   }
-  if (!platform || !partition || !dbpath) {
+  if (platform==-1UL || !partition || !dbpath) {
     printf("usage: %s -p <platform> -P <partition_description> -D <db name> [-b <bld>]\n", argv[0]);
     return 0;
   }
