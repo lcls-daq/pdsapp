@@ -3,6 +3,7 @@
 #include "MonConsumerTH2F.hh"
 #include "MonConsumerProf.hh"
 #include "MonConsumerImage.hh"
+#include "MonConsumerWaveform.hh"
 
 #include "pds/mon/MonDescEntry.hh"
 #include "pds/mon/MonEntry.hh"
@@ -38,6 +39,12 @@ MonCanvas* MonConsumerFactory::create(QWidget& parent,
      {
        const MonEntryImage& e = (const MonEntryImage&)entry;
        canvas = new MonConsumerImage(parent, clientdesc, groupdesc, e);
+     }
+    break;
+   case MonDescEntry::Waveform:
+     {
+       const MonEntryWaveform& e = (const MonEntryWaveform&)entry;
+       canvas = new MonConsumerWaveform(parent, clientdesc, groupdesc, e);
      }
     break;
   }

@@ -14,6 +14,7 @@ namespace Pds {
   class MonQtTH1F;
   class MonQtTH2F;
   class MonQtImage;
+  class MonQtWaveform;
   class MonQtProf;
   class MonQtChart;
   class MonDialogEntry;
@@ -55,6 +56,8 @@ namespace Pds {
     Q_OBJECT
   public:
     MonDialog(MonCanvas* canvas, 
+	      MonQtWaveform* hist);
+    MonDialog(MonCanvas* canvas, 
 	      MonQtTH1F* hist,
 	      MonQtTH1F* since,
 	      MonQtTH1F* diff,
@@ -75,12 +78,8 @@ namespace Pds {
 	      MonQtChart* charty);
     MonDialog(MonCanvas* canvas, 
 	      MonQtImage* hist,
-	      MonQtImage* since,
-	      MonQtImage* diff,
 	      MonQtTH1F* histx,
 	      MonQtTH1F* histy,
-	      MonQtTH1F* diffx,
-	      MonQtTH1F* diffy,
 	      MonQtChart* chartx,
 	      MonQtChart* charty);
     ~MonDialog();

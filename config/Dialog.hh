@@ -17,11 +17,13 @@ namespace Pds_ConfigDb {
   public:
     Dialog(QWidget* parent,
 	   Serializer& s,
-	   const QString& read_dir);
+	   const QString& read_dir,
+	   const QString& write_dir);
     Dialog(QWidget* parent,
 	   Serializer& s,
 	   const QString& read_dir,
-	   const QString& write_dir);
+	   const QString& write_dir,
+	   const QString& file);
     ~Dialog();
   public:
     const QString& file() const { return _file; }

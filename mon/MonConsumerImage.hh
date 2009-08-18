@@ -3,6 +3,8 @@
 
 #include "MonCanvas.hh"
 
+#include "pdsdata/xtc/ClockTime.hh"
+
 class QWidget;
 class QwtPlot;
 class QStackedWidget;
@@ -11,6 +13,7 @@ namespace Pds {
 
   class MonDesc;
   class MonGroup;
+  class MonDescImage;
   class MonEntryImage;
   class MonQtTH1F;
   class MonQtImage;
@@ -34,21 +37,17 @@ namespace Pds {
     void select(MonCanvas::Select);
 
   private:
-    MonEntryImage* _last;
-    MonEntryImage* _prev;
+    MonDescImage* _desc;
 
-  private:
     MonQtImage* _hist;
-    MonQtImage* _since;
-    MonQtImage* _diff;
 
     MonQtTH1F* _hist_x;
     MonQtTH1F* _hist_y;
-    MonQtTH1F* _diff_x;
-    MonQtTH1F* _diff_y;
 
     MonQtChart* _chartx;
     MonQtChart* _charty;
+
+    ClockTime   _time;
 
     QStackedWidget* _stack;
     MonQtImageDisplay* _frame;

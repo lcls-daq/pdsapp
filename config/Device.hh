@@ -36,6 +36,7 @@ namespace Pds_ConfigDb {
     list<DeviceEntry>& src_list() { return _src_list; }
   public:
     string keypath (const string& path, const string& key);
+    string xtcpath (const string& path, const UTypeName& uname, const string& entry);
     string typepath(const string& path, const string& key, const UTypeName& entry);
     string typelink(const UTypeName& name, const string& entry);
     bool   validate_key(const string& config, const string& path);

@@ -2,6 +2,7 @@
 
 #include "EventTest.hh"
 #include "EventOptions.hh"
+#include "DgSummary.hh"
 
 #include "pds/management/PartitionMember.hh"
 #include "pds/utility/SetOfStreams.hh"
@@ -12,6 +13,7 @@
 #include "pds/service/Task.hh"
 
 using namespace Pds;
+
 
 EventTest::EventTest(Task* task,
 		     EventOptions& options,
@@ -39,8 +41,10 @@ void EventTest::attached(SetOfStreams& streams)
   
   Stream* frmk = streams.stream(StreamParams::FrameWork);
   if (_event->header().level()==Level::Recorder) {
-    frmk->outlet()->sink(TransitionId::L1Accept);
+    //    frmk->outlet()->sink(TransitionId::L1Accept);
     frmk->outlet()->sink(TransitionId::Unknown);
+
+    (new DgSummary)->connect(frmk->inlet());
   }
   
   //  Stream* occr = streams.stream(StreamParams::Occurrence);
@@ -67,6 +71,7 @@ void EventTest::attached(SetOfStreams& streams)
       break;
     }
   }
+
 }
 
 void EventTest::detach()

@@ -7,8 +7,8 @@
 
 #include "pds/mon/MonServerManager.hh"
 #include "pds/mon/MonGroup.hh"
-#include "pds/mon/MonDescTH1F.hh"
-#include "pds/mon/MonEntryTH1F.hh"
+#include "pds/mon/MonDescWaveform.hh"
+#include "pds/mon/MonEntryWaveform.hh"
 
 #include "pds/service/Semaphore.hh"
 
@@ -134,9 +134,9 @@ int AcqDisplayConfigAction::process(const Xtc& xtc,
     char buff[64];
     while (channelMask) {
       sprintf(buff,"Channel %d",chnum);
-      MonDescTH1F desc(buff,"Time [s]","Voltage [V]",horiz.nbrSamples(),
+      MonDescWaveform desc(buff,"Time [s]","Voltage [V]",horiz.nbrSamples(),
                        0.0,horiz.sampInterval()*horiz.nbrSamples());
-      _disp.add(xtc.src,chnum,new MonEntryTH1F(desc));
+      _disp.add(xtc.src,chnum,new MonEntryWaveform(desc));
       chnum++;
       channelMask&=(channelMask-1);
     }
@@ -185,7 +185,7 @@ int AcqDisplayL1Action::process(const Xtc& xtc,
       data += ddesc->indexFirstPoint();
       float slope = config.vert(i).slope();
       float offset = config.vert(i).offset();
-      MonEntryTH1F* entry = (MonEntryTH1F*)(_disp.entry(xtc.src,i));
+      MonEntryWaveform* entry = (MonEntryWaveform*)(_disp.entry(xtc.src,i));
       unsigned nbrSamples = hcfg.nbrSamples();
       for (unsigned j=0;j<nbrSamples;j++) {
         int16_t swap = (data[j]&0xff<<8) | (data[j]&0xff00>>8);

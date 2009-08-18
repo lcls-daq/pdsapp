@@ -292,12 +292,12 @@ void Devices_Ui::view_component()
 
   string path(_expt.data_path("",stype));
   QString qpath(path.c_str());
-  qpath += "/" + qname;
+  QString qfile = qpath + "/" + qname;
 
   printf("Reading component from file %s\n",qPrintable(qpath));
 
 
-  Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath);
+  Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath, qpath, qfile);
   d->exec();
   delete d;
 }
@@ -359,13 +359,13 @@ void Devices_Ui::add_component(const QString& type)
     else {
       string path(_expt.data_path("",stype));
       QString qpath(path.c_str());
-      qpath += "/" + choice;
+      QString qchoice = qpath + "/" + choice;
 
-      Parameter::allowEdit(false);
-      Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath);
+      //      Parameter::allowEdit(false);
+      Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath, qpath, qchoice);
       d->exec();
       delete d;
-      Parameter::allowEdit(true);
+      //      Parameter::allowEdit(true);
 
       FileEntry entry(stype,schoice);
       _expt.device(det)->table().set_entry(cfg,entry);

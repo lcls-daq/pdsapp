@@ -45,7 +45,9 @@ namespace Pds {
 
   protected:
     enum Select {Undefined, 
+		 Normal,
 		 Integrated, Since, Difference, 
+		 ProjectionX, ProjectionY,
 		 IntegratedX, DifferenceX, 
 		 IntegratedY, DifferenceY,
 		 Chart, ChartX, ChartY, 
@@ -62,6 +64,9 @@ namespace Pds {
     virtual void select(Select selection);
 
   protected slots:
+    void setNormal     ();
+    void setProjectionX();
+    void setProjectionY();
     void setIntegrated ();
     void setSince      ();
     void setDifference ();

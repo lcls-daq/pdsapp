@@ -83,7 +83,7 @@ NodeSelect::NodeSelect(const Node& node, const PingReply& msg) :
   if (msg.nsources()) {
     const DetInfo& src = static_cast<const DetInfo&>(msg.source(0));
     _label  = QString("%1/%2").arg(DetInfo::name(src.detector())).arg(src.detId());
-    _label += QString("%1/%2").arg(DetInfo::name(src.device  ())).arg(src.devId());
+    _label += QString("/%1/%2").arg(DetInfo::name(src.device  ())).arg(src.devId());
   }
   else 
     _label  = "Segment";

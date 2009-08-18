@@ -88,7 +88,9 @@ MonTreeMenu::MonTreeMenu(QWidget& p,
     button->setChecked( c==(unsigned)_selected ? true : false);
     layout->addWidget(button);
   }
-  connect(client_bg, SIGNAL(buttonClicked(int)), this, SLOT(set_tree(int)));
+  //  connect(client_bg, SIGNAL(buttonClicked(int)), this, SLOT(set_tree(int)));
+
+  layout->addStretch();
 
   setLayout(layout);
 

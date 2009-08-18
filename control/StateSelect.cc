@@ -8,6 +8,7 @@
 #include <QtGui/QLabel>
 #include <QtGui/QComboBox>
 #include <QtGui/QHBoxLayout>
+#include <QtGui/QPalette>
 
 using namespace Pds;
 
@@ -24,10 +25,13 @@ static const char* _NoChange      = "NO CHANGE";
 StateSelect::StateSelect(QWidget* parent,
 			 PartitionControl& control) :
   QGroupBox("Control",parent),
-  _control (control)
+  _control (control),
+  _green   (new QPalette(Qt::green)),
+  _yellow  (new QPalette(Qt::yellow))
 {
   _display = new QLabel("-",this);
   _display->setAlignment(Qt::AlignHCenter);
+  _display->setPalette  (*_green);
 
   QGridLayout* layout = new QGridLayout(this);
   layout->addWidget(new QLabel("Target State",this),0,0,1,1,Qt::AlignHCenter);
@@ -44,6 +48,8 @@ StateSelect::StateSelect(QWidget* parent,
 
 StateSelect::~StateSelect()
 {
+  delete _green;
+  delete _yellow;
 }
 
 void StateSelect::populate()
@@ -83,6 +89,8 @@ void StateSelect::populate()
   _select->addItem(_NoChange);
   QObject::connect(_select, SIGNAL(activated(const QString&)), 
 		   this, SLOT(selected(const QString&)));
+
+  _display->setPalette( _control.current_state()==_control.target_state() ? *_green : *_yellow );
 }
 
 void StateSelect::selected(const QString& state)

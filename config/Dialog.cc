@@ -34,11 +34,14 @@ static const QString nopath(".");
 
 Dialog::Dialog(QWidget* parent,
 	       Serializer& s,
+	       const QString& read_dir,
+	       const QString& write_dir,
 	       const QString& file) :
   QDialog(parent),
   _s(s),
-  _read_dir(nopath),
-  _write_dir(nopath)
+  _read_dir (read_dir),
+  _write_dir(write_dir),
+  _file     (file)
 {
   layout();
 
@@ -51,8 +54,9 @@ Dialog::Dialog(QWidget* parent,
 	       const QString& write_dir) :
   QDialog(parent),
   _s(s),
-  _read_dir(read_dir),
-  _write_dir(write_dir)
+  _read_dir (read_dir),
+  _write_dir(write_dir),
+  _file     ("example.xtc")
 {
   layout();
 
@@ -129,7 +133,7 @@ void Dialog::layout()
 void Dialog::replace()
 {
   QString file = QFileDialog::getOpenFileName(this,"File to read from:",
-					      _read_dir, "*.xtc");
+					      _read_dir, "(current) *.xtc;; (all) *");
   if (file.isNull())
     return;
 
@@ -161,9 +165,11 @@ void Dialog::write()
   _s.writeParameters(cycle->buffer);
   _cycles[i] = cycle;
 
+  QString filet = _file.mid(_file.lastIndexOf("/")+1);
+
   bool ok;
   QString file = QInputDialog::getText(this,"File to write to:","Filename:",
-				       QLineEdit::Normal,"example.xtc",&ok);
+				       QLineEdit::Normal,filet,&ok);
   if (!ok)
     return;
   if (file.isEmpty())
@@ -174,12 +180,14 @@ void Dialog::write()
 
   QString fullname = _write_dir + "/" + file;
   strcpy(buff,qPrintable(fullname));
+  /*
   struct stat s;
   if (!stat(buff,&s)) {
     QMessageBox::warning(this, "Save error", "Chosen filename already exists");
     delete[] buff;
     return;
   }
+  */
 
   _file=file;
   FILE* output = fopen(buff,"w");

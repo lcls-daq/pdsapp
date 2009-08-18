@@ -5,6 +5,7 @@
 
 namespace Pds {
   class CCallback;
+  class ControlLog;
   class CfgClientNfs;
   class QualifiedControl;
   class PVManager;
@@ -18,16 +19,21 @@ namespace Pds {
     ~MainWindow();
   signals:
     void timedout();
+    //    void platform_failed();
   public slots:
     void handle_timeout();
+    //    void handle_platform_error();
   public:
+    ControlLog& log();
     void controleb_tmo();
+    void platform_error();
   private:
     friend class ControlTimeout;
     CCallback*        _controlcb;
     QualifiedControl* _control;
     CfgClientNfs*     _config;
     PVManager*        _pvmanager;
+    ControlLog*       _log;
   };
 };
 

@@ -17,7 +17,7 @@ namespace Pds {
     // Main timer stuff
     Task* _task;
     virtual Task*      task()             {return _task;}
-    virtual unsigned   duration()   const {return 200;}
+    virtual unsigned   duration()   const {return 220;}
     virtual void       expired();
     virtual unsigned   repetitive() const {return 1;}
 

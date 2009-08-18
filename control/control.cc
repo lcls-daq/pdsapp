@@ -47,7 +47,9 @@ int main(int argc, char** argv)
     return 0;
   }
 
-  QApplication app(argc, argv);
+  int _argc=1;
+  char* _argv[] = { "DAQ Control", NULL };
+  QApplication app(_argc, _argv);
 
   MainWindow* window = new MainWindow(platform,
 				      partition,

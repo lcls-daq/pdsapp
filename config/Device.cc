@@ -79,6 +79,13 @@ string Device::typelink(const UTypeName& uname, const string& entry)
   return o.str();
 }
 
+string Device::xtcpath(const string& path, const UTypeName& uname, const string& entry)
+{
+  ostringstream o;
+  o << path << "/xtc/" << PdsDefs::qtypeName(uname) << "/" << entry;
+  return o.str();
+}
+
 // Checks that the key components are valid
 bool Device::validate_key(const string& config, const string& path)
 {    
@@ -117,9 +124,35 @@ bool Device::update_key(const string& config, const string& path)
       int sz=readlink(tpath.c_str(),buff,line_size);
       if (sz<0) outofdate=true;
       else {
+#if 0
+	//
+	//  Test that the symbolic link points to the xtc file of the same name
+	//
 	buff[sz] = 0;
 	if (strcmp(buff,tlink.c_str())) 
 	  outofdate=true;
+#else
+	//
+	//  Test that the symbolic link points to an equivalent file as the xtc file
+	//
+	string tlinkpath = tpath+"/"+tlink;
+	struct stat ls;
+	if (!stat(tlinkpath.c_str(),&ls) && s.st_size==ls.st_size) {
+	  FILE* f_link = fopen(tlinkpath.c_str(),"r");
+	  FILE* f_path = fopen(tpath.c_str(),"r");
+	  char* bufflink = new char[s.st_size];
+	  char* buffpath = new char[s.st_size];
+	  if (fread(bufflink, s.st_size, 1, f_link)!=fread(buffpath, s.st_size, 1, f_path) ||
+	      memcmp(bufflink,buffpath,s.st_size)!=0) {
+	    printf("%s link is old\n",tlinkpath.c_str());
+	    outofdate=true;
+	  }
+	}
+	else {
+	  printf("No %s link\n",tlinkpath.c_str());
+	  outofdate=true;
+	}
+#endif
       }
     }
     else {
@@ -140,8 +173,49 @@ bool Device::update_key(const string& config, const string& path)
     for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
       UTypeName utype(iter->name());
       string tpath = typepath(path,key,utype);
+#if 0
       string tlink = typelink(utype,iter->entry());
       symlink(tlink.c_str(), tpath.c_str());
+#else
+      //
+      //  If the latest versioned xtc file is up-to-date, point to it; else make another version.
+      //
+      string tbase = xtcpath(path,utype,iter->entry());
+
+      int nv=0;
+      glob_t gv;
+      string tvsns = tbase + ".[0-9]*";
+      glob(tvsns.c_str(),0,0,&gv);
+      nv = gv.gl_pathc;
+      globfree(&gv);
+
+      if (nv>0) {
+	ostringstream o;
+	o << tbase << "." << nv-1;
+	string tlink = o.str();
+	struct stat ls;
+	stat(tpath.c_str(),&s);
+	stat(tlink.c_str(),&ls);
+	if (s.st_size==ls.st_size) {
+	  FILE* f_base = fopen(tbase.c_str(),"r");
+	  FILE* f_link = fopen(tlink.c_str(),"r");
+	  char* buffbase = new char[s.st_size];
+	  char* bufflink = new char[s.st_size];
+	  if (fread(buffbase, s.st_size, 1, f_base)==fread(bufflink, s.st_size, 1, f_link) &&
+	      memcmp(buffbase,bufflink,s.st_size)==0) {
+	    printf("%s is up-to-date\n",tlink.c_str());
+	    symlink(tlink.c_str(), tpath.c_str());
+	    continue;
+	  }
+	}
+      }
+      { ostringstream o;
+	o << "cp " << tbase << " " << tbase << "." << nv;
+	system(o.str().c_str()); }
+      { ostringstream o;
+	o << tbase << "." << nv;
+	symlink(o.str().c_str(), tpath.c_str()); }
+#endif
     }
     TableEntry t(entry->name(), key, entry->entries());
     _table.set_top_entry(t);

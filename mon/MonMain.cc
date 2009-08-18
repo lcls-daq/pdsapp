@@ -17,7 +17,7 @@ MonMain::MonMain(Task* workTask,
   _task(workTask)
 {
   int argc=1;
-  char* argv[] = { "app", NULL };
+  char* argv[] = { "DAQ Monitor", NULL };
   QApplication app(argc, argv);
 
   QWidget* top = new QWidget(0);

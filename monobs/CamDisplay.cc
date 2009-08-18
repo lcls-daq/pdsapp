@@ -127,7 +127,10 @@ namespace Pds {
 	monsrv.cds().add(group);
 	_fex = new CamFex(*group,width,height,depth); }
     }
-    ~DisplayGroup() { delete _image; delete _fex; }
+    ~DisplayGroup() { 
+      //      delete _image; 
+      delete _fex; 
+    }
   public:
     int  update_frame(InDatagramIterator& iter,
 		      const ClockTime& now) {
@@ -143,6 +146,8 @@ namespace Pds {
       unsigned ix=0,iy=0;
       MonEntryImage& image = *_image;
 
+      const int mask = (1<<BinShift)-1;
+
       //  Ignoring the possibility of fragmenting on an odd-byte
       while(remaining) {
 	int len = iter.read(&iov,1,remaining);
@@ -150,8 +155,10 @@ namespace Pds {
 	const unsigned short* w = (const unsigned short*)iov.iov_base;
 	const unsigned short* end = w + (len>>1);
 	while(w < end) {
+	  if ((ix&mask)==0 && (iy&mask)==0)
+	    image.content(0,ix>>BinShift,iy>>BinShift);
 	  if (*w > offset)
-	    image.addcontent(*w - offset,ix>>BinShift,iy>>BinShift);
+	    image.addcontent(*w-offset,ix>>BinShift,iy>>BinShift);
 	  if (++ix==frame.width()) { ix=0; iy++; }
 	  w++;
 	}
@@ -230,6 +237,9 @@ namespace Pds {
       return advance;
     }
     void reset() {
+      for(MapType::iterator it=_groups.begin(); it!=_groups.end(); it++)
+	delete it->second;
+      _groups.clear();
       _monsrv.dontserve();
       _monsrv.cds().reset();
     }

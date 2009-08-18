@@ -1,3 +1,7 @@
+2009-Aug-18	weaver  Tag V01-01-00.  Added run statistics to control_gui display by forwarding
+			summarized L1Accepts (damage and size) to control level.  Created shared memory
+			client version of monobs.  Changed interface to configdb to allow editing
+			of XTC files.  Versioning is kept internally.
 2009-Aug-15	weaver	Tag V01-00-03.  Changed monobs/CamDisplay and AcqDisplay to
 			serve all channels found on Configure.  Rearranged production
 			code into dev and devtest packages.

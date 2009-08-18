@@ -2,6 +2,7 @@
 #define PDS_RECORDER
 
 #include "pds/utility/Appliance.hh"
+#include "pdsdata/xtc/Src.hh"
 
 namespace Pds {
 
@@ -16,6 +17,12 @@ public:
 private:
   FILE* _f;
   Pool* _pool;
+  enum { SizeofPath=128 };
+  char     _path[SizeofPath];
+  enum { SizeofConfig=0x800000 };
+  char     _config[SizeofConfig];
+  Src      _src;
+  unsigned _node;
 };
 
 }

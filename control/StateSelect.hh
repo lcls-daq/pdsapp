@@ -8,6 +8,7 @@ class QPoint;
 class QString;
 class QLabel;
 class QComboBox;
+class QPalette;
 
 namespace Pds {
   class PartitionControl;
@@ -33,6 +34,8 @@ namespace Pds {
     PartitionControl& _control;
     QComboBox*        _select;
     QLabel*           _display;
+    QPalette*         _green;
+    QPalette*         _yellow;
   };
 };
 

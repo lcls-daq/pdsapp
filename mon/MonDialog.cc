@@ -6,6 +6,7 @@
 #include "MonQtTH1F.hh"
 #include "MonQtTH2F.hh"
 #include "MonQtImage.hh"
+#include "MonQtWaveform.hh"
 #include "MonQtProf.hh"
 #include "MonQtChart.hh"
 #include "MonQtEntry.hh"
@@ -64,6 +65,17 @@ namespace Pds {
       _axis[MonQtBase::X] = 0;
       _axis[MonQtBase::Y] = 0;
       addAxis( Z, MonDialogAxis::NoMin );
+    }
+
+    MonDialogEntry(QWidget* p, 
+		   const char* name, 
+		   MonQtWaveform* hist) :
+      QVWidget(p,name),
+      _hist(hist)
+    {
+      addAxis( X, MonDialogAxis::NoLog );
+      addAxis( Y, MonDialogAxis::All );
+      _axis[MonQtBase::Z] = 0;
     }
 
     MonDialogEntry(QWidget* p, 
@@ -156,6 +168,17 @@ void MonDialogAxis::validate_log(int state)
 //  MonDialog
 //
 MonDialog::MonDialog(MonCanvas* canvas, 
+		     MonQtWaveform* hist) :
+  QVWidget((QWidget*)0, "Waveform Dialog"),
+  _canvas(canvas),
+  _nentries(0)
+{
+  _entries[_nentries++] = new MonDialogEntry(this, "Waveform", hist);
+
+  addbuttons(canvas);
+}
+
+MonDialog::MonDialog(MonCanvas* canvas, 
 		     MonQtTH1F* hist,
 		     MonQtTH1F* since,
 		     MonQtTH1F* diff,
@@ -216,25 +239,17 @@ MonDialog::MonDialog(MonCanvas* canvas,
 
 MonDialog::MonDialog(MonCanvas* canvas, 
 		     MonQtImage* hist,
-		     MonQtImage* since,
-		     MonQtImage* diff,
 		     MonQtTH1F* histx,
 		     MonQtTH1F* histy,
-		     MonQtTH1F* diffx,
-		     MonQtTH1F* diffy,
 		     MonQtChart* chartx,
 		     MonQtChart* charty) :
   QVWidget((QWidget*)0, "Image Dialog"),
   _canvas(canvas),
   _nentries(0)
 {
-  _entries[_nentries++] = new MonDialogEntry(this, "Integrated", hist);
-  _entries[_nentries++] = new MonDialogEntry(this, "Since"     , since);
-  _entries[_nentries++] = new MonDialogEntry(this, "Difference", diff);
-  _entries[_nentries++] = new MonDialogEntry(this, "Integrated X", histx);
-  _entries[_nentries++] = new MonDialogEntry(this, "Integrated Y", histy);
-  _entries[_nentries++] = new MonDialogEntry(this, "Difference X", diffx);
-  _entries[_nentries++] = new MonDialogEntry(this, "Difference Y", diffy);
+  _entries[_nentries++] = new MonDialogEntry(this, "Normal", hist);
+  _entries[_nentries++] = new MonDialogEntry(this, "Projection X", histx);
+  _entries[_nentries++] = new MonDialogEntry(this, "Projection Y", histy);
   _entries[_nentries++] = new MonDialogEntry(this, "Chart X", chartx);
   _entries[_nentries++] = new MonDialogEntry(this, "Chart Y", charty);
 

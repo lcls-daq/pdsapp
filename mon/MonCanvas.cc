@@ -83,10 +83,13 @@ void MonCanvas::save_image()
 void MonCanvas::info() {}
 void MonCanvas::show_info() { info(); }
 
+void MonCanvas::setNormal     () { select(Normal); }
 void MonCanvas::setIntegrated () { select(Integrated); }
 void MonCanvas::setSince      () { select(Since); }
 void MonCanvas::setDifference () { select(Difference); }
 void MonCanvas::setChart      () { select(Chart); }
+void MonCanvas::setProjectionX() { select(ProjectionX); }
+void MonCanvas::setProjectionY() { select(ProjectionY); }
 void MonCanvas::setIntegratedX() { select(IntegratedX); }
 void MonCanvas::setIntegratedY() { select(IntegratedY); }
 void MonCanvas::setDifferenceX() { select(DifferenceX); }

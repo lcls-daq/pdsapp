@@ -14,9 +14,9 @@ SelectDialog::SelectDialog(QWidget* parent,
   setWindowTitle("Partition Selection");
 
   QVBoxLayout* layout = new QVBoxLayout(this);
-  layout->addWidget(_segbox = new NodeGroup("Segment Level",this));
-  layout->addWidget(_evtbox = new NodeGroup("Event Level",this));
-  layout->addWidget(_recbox = new NodeGroup("Recorder Level",this));
+  layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this));
+  layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this));
+  layout->addWidget(_recbox = new NodeGroup("Recording Nodes",this));
 
   QPushButton* acceptb = new QPushButton("Ok",this);
   QPushButton* rejectb = new QPushButton("Cancel",this);

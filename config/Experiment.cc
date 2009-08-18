@@ -153,7 +153,7 @@ list<string> Experiment::xtc_files(const string& device,
 {
   list<string> l;
   glob_t g;
-  string path = data_path(device,type)+"/*";
+  string path = data_path(device,type)+"/*.xtc";
   glob(path.c_str(), 0, 0, &g);
   for(unsigned i=0; i<g.gl_pathc; i++)
     l.push_back(string(basename(g.gl_pathv[i])));
