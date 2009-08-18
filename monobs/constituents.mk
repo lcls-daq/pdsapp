@@ -1,6 +1,6 @@
 libnames := 
 
-tgtnames := monobs monshm
+tgtnames := monobs monshm monshmserver
 
 commonlibs := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata pdsdata/acqdata
 
@@ -13,3 +13,7 @@ tgtsrcs_monshm := monshm.cc CamDisplay.cc AcqDisplay.cc XtcMonitorClient.cc
 tgtlibs_monshm := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata 
 tgtlibs_monshm += $(commonlibs) pds/mon
 tgtslib_monshm := /usr/lib/rt
+
+tgtsrcs_monshmserver := monshmserver.cc
+tgtlibs_monshmserver := $(commonlibs) pds/mon
+tgtslib_monshmserver := /usr/lib/rt
