@@ -64,11 +64,11 @@ public:
   }
   ~XtcMonServer() 
   { if (_linked) 
-    { printf("Unlinking ... \n");
-      if (mq_unlink(_toMonQname) == (mqd_t)-1) perror("mq_unlink To Monitor");
-      if (mq_unlink(_fromMonQname) == (mqd_t)-1) perror("mq_unlink From Monitor");
-      shm_unlink(_shmName);
-      printf("Finished.\n");
+    { printf("Not Unlinking ... \n");
+//      if (mq_unlink(_toMonQname) == (mqd_t)-1) perror("mq_unlink To Monitor");
+//      if (mq_unlink(_fromMonQname) == (mqd_t)-1) perror("mq_unlink From Monitor");
+//      shm_unlink(_shmName);
+//      printf("Finished.\n");
     }
   }
 public:
@@ -103,19 +103,7 @@ public:
       if (mq_send(_myOutputQueue, (const char*)&_myMsg, sizeof(_myMsg), 0)) perror("mq_send");
       _bufferCount += 1;
     }
-    /*
-    // early unlinking for safety prevents later client connections
-    if (_linked && (_bufferCount > (_numberOfBuffers * 2)))
-    {
-      _linked = false;
-      printf("Unlinking ... \n");
-      if (mq_unlink(_toMonQname) == (mqd_t)-1) perror("mq_unlink To Monitor");
-      if (mq_unlink(_fromMonQname) == (mqd_t)-1) perror("mq_unlink From Monitor");
-      shm_unlink(_shmName);
-      printf("Finished.\n");
-    }
-    */
-    return dg;
+     return dg;
   }
 
   int init(char *p) 
@@ -141,7 +129,7 @@ public:
 
     umask(1);  // try to enable others to open these devices.
 
-    if (!shm_unlink(_shmName)) perror("shm_unlink found a remnant of previous lives");
+//    if (!shm_unlink(_shmName)) perror("shm_unlink found a remnant of previous lives");
     int shm = shm_open(_shmName, OFLAGS, PERMS);
     if (shm < 0) {ret++; perror("shm_open");}
 
@@ -150,12 +138,26 @@ public:
     _myShm = (char*)mmap(NULL, _sizeOfShm, PROT_READ|PROT_WRITE, MAP_SHARED, shm, 0);
     if (_myShm == MAP_FAILED) {ret++; perror("mmap");}
 
-    if (mq_unlink(_toMonQname) != (mqd_t)-1) perror("mq_unlink To Monitor found a remnant of previous lives");
-    if (mq_unlink(_fromMonQname) != (mqd_t)-1) perror("mq_unlink From Monitor found a remnant of previous lives");
+//    if (mq_unlink(_toMonQname) != (mqd_t)-1) perror("mq_unlink To Monitor found a remnant of previous lives");
+//    if (mq_unlink(_fromMonQname) != (mqd_t)-1) perror("mq_unlink From Monitor found a remnant of previous lives");
     _myOutputQueue = mq_open(_toMonQname, O_CREAT|O_RDWR, PERMS, &_mymq_attr);
     if (_myOutputQueue == (mqd_t)-1) {ret++; perror("mq_open output");}
     _myInputQueue = mq_open(_fromMonQname, O_CREAT|O_RDWR, PERMS, &_mymq_attr);
     if (_myInputQueue == (mqd_t)-1) {ret++; perror("mq_open input");}
+
+    // flush the queues just to be sure they are empty.
+    do {
+      mq_getattr(_myInputQueue, &_mymq_attr);
+      if (_mymq_attr.mq_curmsgs)
+           mq_receive(_myInputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority);
+     } while (_mymq_attr.mq_curmsgs);
+
+    do {
+      mq_getattr(_myOutputQueue, &_mymq_attr);
+      if (_mymq_attr.mq_curmsgs)
+            mq_receive(_myOutputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority);
+    } while (_mymq_attr.mq_curmsgs);
+
 
     // prestuff the input queue which doubles as the free list
     for (int i=0; i<_numberOfBuffers; i++) {
