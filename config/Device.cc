@@ -20,6 +20,7 @@ using namespace Pds_ConfigDb;
 
 const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
 
+
 DeviceEntry::DeviceEntry(unsigned id) :
   Pds::Src(Pds::Level::Source)
 {
@@ -115,27 +116,19 @@ bool Device::update_key(const string& config, const string& path)
   if (!entry) return false;
   string kpath = keypath(path,entry->key());
   struct stat s;
-  if (stat(kpath.c_str(),&s)) outofdate=true;
+  if (stat(kpath.c_str(),&s)) { outofdate=true; }
   for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
     UTypeName utype(iter->name());
     string tpath = typepath(path,entry->key(),utype);
     string tlink = typelink(utype,iter->entry());
     if (!stat(tpath.c_str(),&s)) {
       int sz=readlink(tpath.c_str(),buff,line_size);
-      if (sz<0) outofdate=true;
+      if (sz<0) { outofdate=true; }
       else {
-#if 0
 	//
-	//  Test that the symbolic link points to the xtc file of the same name
+	//  Test that the symbolic link points to file equivalent to the xtc file
 	//
-	buff[sz] = 0;
-	if (strcmp(buff,tlink.c_str())) 
-	  outofdate=true;
-#else
-	//
-	//  Test that the symbolic link points to an equivalent file as the xtc file
-	//
-	string tlinkpath = tpath+"/"+tlink;
+	string tlinkpath = tpath.substr(0,tpath.find_last_of("/"))+"/"+tlink;
 	struct stat ls;
 	if (!stat(tlinkpath.c_str(),&ls) && s.st_size==ls.st_size) {
 	  FILE* f_link = fopen(tlinkpath.c_str(),"r");
@@ -145,17 +138,17 @@ bool Device::update_key(const string& config, const string& path)
 	  if (fread(bufflink, s.st_size, 1, f_link)!=fread(buffpath, s.st_size, 1, f_path) ||
 	      memcmp(bufflink,buffpath,s.st_size)!=0) {
 	    printf("%s link is old\n",tlinkpath.c_str());
-	    outofdate=true;
+	    outofdate=true; 
 	  }
 	}
 	else {
 	  printf("No %s link\n",tlinkpath.c_str());
 	  outofdate=true;
 	}
-#endif
       }
     }
     else {
+      printf("No %s path\n",tpath.c_str());
       outofdate=true;
     }
   }
@@ -173,10 +166,6 @@ bool Device::update_key(const string& config, const string& path)
     for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
       UTypeName utype(iter->name());
       string tpath = typepath(path,key,utype);
-#if 0
-      string tlink = typelink(utype,iter->entry());
-      symlink(tlink.c_str(), tpath.c_str());
-#else
       //
       //  If the latest versioned xtc file is up-to-date, point to it; else make another version.
       //
@@ -186,36 +175,41 @@ bool Device::update_key(const string& config, const string& path)
       glob_t gv;
       string tvsns = tbase + ".[0-9]*";
       glob(tvsns.c_str(),0,0,&gv);
-      nv = gv.gl_pathc;
+      nv = gv.gl_pathc;               // count of numeric extensions
       globfree(&gv);
 
       if (nv>0) {
-	ostringstream o;
-	o << tbase << "." << nv-1;
-	string tlink = o.str();
+	string sext;                  // latest numeric extension
+	{ ostringstream o;
+	  o  << "." << nv-1;
+	  sext = o.str(); }
+	string talnk = tbase + sext;  // path from cwd
 	struct stat ls;
 	stat(tpath.c_str(),&s);
-	stat(tlink.c_str(),&ls);
+	stat(talnk.c_str(),&ls);
 	if (s.st_size==ls.st_size) {
 	  FILE* f_base = fopen(tbase.c_str(),"r");
-	  FILE* f_link = fopen(tlink.c_str(),"r");
+	  FILE* f_link = fopen(talnk.c_str(),"r");
 	  char* buffbase = new char[s.st_size];
 	  char* bufflink = new char[s.st_size];
 	  if (fread(buffbase, s.st_size, 1, f_base)==fread(bufflink, s.st_size, 1, f_link) &&
 	      memcmp(buffbase,bufflink,s.st_size)==0) {
-	    printf("%s is up-to-date\n",tlink.c_str());
+	    printf("%s is up-to-date\n",talnk.c_str());
+	    string tlink = typelink(utype,iter->entry())+sext; // path from key
 	    symlink(tlink.c_str(), tpath.c_str());
 	    continue;
 	  }
 	}
       }
+      //
+      //  make a new version and link to it
+      //
       { ostringstream o;
 	o << "cp " << tbase << " " << tbase << "." << nv;
 	system(o.str().c_str()); }
       { ostringstream o;
-	o << tbase << "." << nv;
+	o << typelink(utype,iter->entry()) << "." << nv;
 	symlink(o.str().c_str(), tpath.c_str()); }
-#endif
     }
     TableEntry t(entry->name(), key, entry->entries());
     _table.set_top_entry(t);
