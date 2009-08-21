@@ -77,8 +77,9 @@ public:
   
   InDatagram* events     (InDatagram* dg) 
   { mq_getattr(_myInputQueue, &_mymq_attr);
-    if (_mymq_attr.mq_curmsgs) 
-    { Datagram& dgrm = dg->datagram();
+    Datagram& dgrm = dg->datagram();
+    if (_mymq_attr.mq_curmsgs || (dgrm.seq.service() != TransitionId::L1Accept))
+    {
       if (mq_receive(_myInputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority) < 0) perror("mq_receive");
       _bufferP = _myShm + (_sizeOfBuffers * _myMsg.bufferIndex());
       //  write the datagram
