@@ -26,7 +26,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ClockTime.hh"
 
-#include <map>
+#include <vector>
 
 #include <time.h>
 #include <math.h>
@@ -194,8 +194,10 @@ namespace Pds {
     ~ConfigAction() {}
   public:
     DisplayGroup* group(unsigned phy) { 
-      MapType::const_iterator it = _groups.find(phy);
-      return (it == _groups.end()) ? 0 : it->second;
+      for(unsigned i=0; i<_src.size(); i++)
+	if (_src[i]==phy)
+	  return _groups[i];
+      return 0;
     } 
     Transition* fire(Transition* tr) { return tr; }
     InDatagram* fire(InDatagram* in) {
@@ -212,53 +214,60 @@ namespace Pds {
       if (xtc.contains.id()==TypeId::Id_Xtc)
 	return iterate(xtc,iter);
 
+      // already booked?
+      for(unsigned i=0; i<_src.size(); i++)
+	if (_src[i]==xtc.src.phy())
+	  return 0;
+
       int advance = 0;
       switch(xtc.contains.id()) {
       case TypeId::Id_Opal1kConfig: 
 	{ const Pds::Opal1k::ConfigV1& cfg = *reinterpret_cast<const Pds::Opal1k::ConfigV1*>(xtc.payload());
-	  _groups.insert(ElType(xtc.src.phy(),
-				new DisplayGroup(DetInfo::name((DetInfo&)xtc.src),
-						 Opal1kConfigType::Column_Pixels,
-						 Opal1kConfigType::Row_Pixels,
-						 cfg.output_resolution_bits(),
-						 _monsrv)));
+	  _src   .push_back(xtc.src.phy());
+	  _groups.push_back(new DisplayGroup(DetInfo::name((DetInfo&)xtc.src),
+					     Opal1kConfigType::Column_Pixels,
+					     Opal1kConfigType::Row_Pixels,
+					     cfg.output_resolution_bits(),
+					     _monsrv));
+	  printf("Created group %d @ xtc %p\n", _groups.size(), &xtc);
 	  break; }
       case TypeId::Id_TM6740Config:
 	{ const Pds::Pulnix::TM6740ConfigV1& cfg = *reinterpret_cast<const Pds::Pulnix::TM6740ConfigV1*>(xtc.payload());
-	  _groups.insert(ElType(xtc.src.phy(),
-				new DisplayGroup(DetInfo::name((DetInfo&)xtc.src),
-						 TM6740ConfigType::Column_Pixels >> cfg.horizontal_binning(),
-						 TM6740ConfigType::Row_Pixels >> cfg.vertical_binning(),
-						 cfg.output_resolution_bits(),
-						 _monsrv)));
+	  _src   .push_back(xtc.src.phy());
+	  _groups.push_back(new DisplayGroup(DetInfo::name((DetInfo&)xtc.src),
+					     TM6740ConfigType::Column_Pixels >> cfg.horizontal_binning(),
+					     TM6740ConfigType::Row_Pixels >> cfg.vertical_binning(),
+					     cfg.output_resolution_bits(),
+					     _monsrv));
 	  break; }
       default: break;
       }
       return advance;
     }
     void reset() {
-      for(MapType::iterator it=_groups.begin(); it!=_groups.end(); it++)
-	delete it->second;
+      /*
+      for(unsigned i=0; i<_groups.size(); i++)
+	delete _groups[i];
+      _src   .clear();
       _groups.clear();
       _monsrv.dontserve();
       _monsrv.cds().reset();
+      */
     }
   private:
     MonServerManager& _monsrv;
     GenericPool   _iter;
-    typedef std::map <unsigned,DisplayGroup*> MapType;
-    typedef std::pair<unsigned,DisplayGroup*> ElType;
-    MapType _groups;
+    std::vector<unsigned>      _src;
+    std::vector<DisplayGroup*> _groups;
   };
 
-  class UnconfigAction : public Action, XtcIterator {
+  class UnconfigAction : public Action {
   public:
     UnconfigAction(ConfigAction& config) : _config(config) {}
     ~UnconfigAction() {}
   public:
-    Transition* fire(Transition* tr) { _config.reset(); return tr; }
-    InDatagram* fire(InDatagram* dg) { return dg; }
-    int process(const Xtc&, InDatagramIterator*) { return 0; }
+    Transition* fire(Transition* tr) { return tr; }
+    InDatagram* fire(InDatagram* dg) { _config.reset(); return dg; }
   private:
     ConfigAction& _config;
   };
