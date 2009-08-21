@@ -1,3 +1,4 @@
+2009-Aug-21     cpo     Add acqiris calibration code, and profile histograms to AcqConfig
 2009-Aug-18	weaver  Tag V01-01-00.  Added run statistics to control_gui display by forwarding
 			summarized L1Accepts (damage and size) to control level.  Created shared memory
 			client version of monobs.  Changed interface to configdb to allow editing
