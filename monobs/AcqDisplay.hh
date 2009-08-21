@@ -21,7 +21,7 @@ namespace Pds {
 
   class DisplayConfig {
   public:
-    DisplayConfig(MonCds& cds);
+    DisplayConfig(char* groupNameModifier, MonCds& cds);
     ~DisplayConfig();
     void reset();
     void request(const Src& src,const Acqiris::ConfigV1&);
@@ -41,6 +41,8 @@ namespace Pds {
     MonEntry* _entry[MaxSrc][MaxChan];
     Src       _src[MaxSrc];
     Acqiris::ConfigV1 _config[MaxSrc];
+    char*     _groupNameModifier;
+    char      _groupNameBuffer[128];
   };
 
   class AcqDisplayConfigAction;
@@ -50,34 +52,38 @@ namespace Pds {
   public:
     AcqDisplay(MonCds& cds);
     DisplayConfig& config() {return _dispConfig;}
+    DisplayConfig& configProfile() {return _dispConfigProfile;}
     ~AcqDisplay();
   private:
     DisplayConfig     _dispConfig;
+    DisplayConfig     _dispConfigProfile;
     AcqDisplayConfigAction* _config;
     AcqDisplayL1Action* _l1;
   };
 
   class AcqDisplayConfigAction : public Action, public XtcIterator {
   public:
-    AcqDisplayConfigAction(DisplayConfig& disp);
+    AcqDisplayConfigAction(DisplayConfig& disp, DisplayConfig& dispprofile);
     ~AcqDisplayConfigAction();
     Transition* fire(Transition* tr);
     InDatagram* fire(InDatagram* dg);
     int process(const Xtc& xtc,InDatagramIterator* iter);
   private:
     DisplayConfig& _disp;
+    DisplayConfig& _dispprofile;
     GenericPool    _iter;
   };
 
   class AcqDisplayL1Action : public Action, public XtcIterator {
   public:
-    AcqDisplayL1Action(DisplayConfig& disp);
+    AcqDisplayL1Action(DisplayConfig& disp, DisplayConfig& dispprofile);
     ~AcqDisplayL1Action();
     Transition* fire(Transition* tr);
     InDatagram* fire(InDatagram* dg);
     int process(const Xtc& xtc,InDatagramIterator* iter);
   private:
     DisplayConfig& _disp;
+    DisplayConfig& _dispprofile;
     GenericPool    _iter;
     ClockTime      _now;
   };

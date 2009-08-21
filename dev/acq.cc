@@ -121,6 +121,27 @@ namespace Pds {
 
 using namespace Pds;
 
+static void calibrate() {
+  AcqFinder acqFinder;
+  unsigned numinstruments=0;
+  if ((numinstruments = acqFinder.numInstruments())>0) {
+    printf("Found %d acqiris instruments\n",numinstruments);
+    for (unsigned i=0;i<numinstruments;i++) {
+      printf("Calibrating...\n");
+      ViStatus status = AcqrsD1_calibrate(acqFinder.id(i));
+      if(status != VI_SUCCESS)
+	{
+	  char message[256];
+	  AcqrsD1_errorMessage(acqFinder.id(i),status,message);
+	  printf("Acqiris calibration error: %s\n",message);
+	}
+      printf("Acqiris calibration successful.\n");
+    }
+  } else {
+    printf("Calibration error: found %d acqiris instruments\n",(int)acqFinder.numInstruments());
+  }
+}
+
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
@@ -130,7 +151,7 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:C")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -140,6 +161,10 @@ int main(int argc, char** argv) {
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
+      break;
+    case 'C':
+      calibrate();
+      return 0;
       break;
     }
   }
