@@ -64,12 +64,13 @@ InDatagram* Recorder::events(InDatagram* in) {
 	in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
       }
     }
-  default:  // write this transition
+ default:  // write this transition
+    fwrite(&(in->datagram()),sizeof(in->datagram()),1,_f);
     { struct iovec iov;
       int remaining = in->datagram().xtc.sizeofPayload();
       while(remaining) {
         int isize = iter->read(&iov,1,remaining);
-        int fsize = fwrite(iov.iov_base,iov.iov_len,1,_f);
+        fwrite(iov.iov_base,iov.iov_len,1,_f);
         remaining -= isize;
       }
       fflush(_f);
