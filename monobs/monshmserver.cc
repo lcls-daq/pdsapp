@@ -78,6 +78,7 @@ public:
   InDatagram* events     (InDatagram* dg) 
   { mq_getattr(_myInputQueue, &_mymq_attr);
     Datagram& dgrm = dg->datagram();
+    // reserve the last four buffers for transitions
     if ((_mymq_attr.mq_curmsgs > 4) || ((dgrm.seq.service() != TransitionId::L1Accept) && _mymq_attr.mq_curmsgs))
     {
       if (mq_receive(_myInputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority) < 0) perror("mq_receive");
