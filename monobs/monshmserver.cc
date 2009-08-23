@@ -64,7 +64,7 @@ public:
   }
   ~XtcMonServer() 
   { if (_linked) 
-    { printf("Not Unlinking ... \n");
+    { printf("Nolonger Unlinking ... \n");
 //      if (mq_unlink(_toMonQname) == (mqd_t)-1) perror("mq_unlink To Monitor");
 //      if (mq_unlink(_fromMonQname) == (mqd_t)-1) perror("mq_unlink From Monitor");
 //      shm_unlink(_shmName);
@@ -239,7 +239,6 @@ int main(int argc, char** argv) {
   char partitionTag[80] = "";
   (void) signal(SIGINT, sigfunc);
   if (prctl(PR_SET_PDEATHSIG, SIGINT) < 0) printf("Changing death signal failed!\n");
-  else printf("Death signal changed\n");
   int c;
   while ((c = getopt(argc, argv, "p:i:n:P:s:")) != -1) {
     errno = 0;
