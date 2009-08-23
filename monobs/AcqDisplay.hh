@@ -34,8 +34,8 @@ namespace Pds {
   private:
     enum {MaxSrc=6};
     enum {MaxChan=6};
-    MonCds&   _cds;
-    unsigned  _numentry;
+    MonCds& _cds;
+    //    unsigned  _numentry;
     unsigned  _numsource;
     MonGroup* _group[MaxSrc];
     MonEntry* _entry[MaxSrc][MaxChan];
@@ -50,7 +50,7 @@ namespace Pds {
 
   class AcqDisplay : public Fsm {
   public:
-    AcqDisplay(MonCds& cds);
+    AcqDisplay(MonServerManager& cds);
     DisplayConfig& config() {return _dispConfig;}
     DisplayConfig& configProfile() {return _dispConfigProfile;}
     ~AcqDisplay();
@@ -63,12 +63,13 @@ namespace Pds {
 
   class AcqDisplayConfigAction : public Action, public XtcIterator {
   public:
-    AcqDisplayConfigAction(DisplayConfig& disp, DisplayConfig& dispprofile);
+    AcqDisplayConfigAction(MonServerManager& monsrv,DisplayConfig& disp, DisplayConfig& dispprofile);
     ~AcqDisplayConfigAction();
     Transition* fire(Transition* tr);
     InDatagram* fire(InDatagram* dg);
     int process(const Xtc& xtc,InDatagramIterator* iter);
   private:
+    MonServerManager& _monsrv;
     DisplayConfig& _disp;
     DisplayConfig& _dispprofile;
     GenericPool    _iter;

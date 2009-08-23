@@ -24,15 +24,19 @@ namespace Pds {
 
   class AcqDisplayUnconfig : public Action {
   public:
-    AcqDisplayUnconfig(DisplayConfig& dc, DisplayConfig& dcprof) : _dc(dc),_dcprof(dcprof) {}
+    AcqDisplayUnconfig(MonServerManager& monsrv,
+		       DisplayConfig& dc, 
+		       DisplayConfig& dcprof) : _monsrv(monsrv), _dc(dc),_dcprof(dcprof) {}
     ~AcqDisplayUnconfig() {}
   public:
     Transition* fire(Transition* tr) { return tr; }
     InDatagram* fire(InDatagram* dg) {
-      // need to fix race condition with shutdown here
-      // _dc.reset(); _dcprof.reset();
+      _monsrv.dontserve();
+      _dc.reset(); _dcprof.reset();
+      _monsrv.serve();
       return dg; }
   private:
+    MonServerManager& _monsrv;
     DisplayConfig& _dc;
     DisplayConfig& _dcprof;
   };
@@ -59,7 +63,10 @@ MonEntry* DisplayConfig::entry(const Src& src, unsigned channel) {
 }
 
 void DisplayConfig::reset() {
-  _cds.reset();
+  for (unsigned i=0;i<_numsource;i++) {
+    _cds.remove(_group[i]);
+    delete _group[i];
+  }
   _numsource=0;
 }
 
@@ -91,12 +98,13 @@ Acqiris::ConfigV1* DisplayConfig::acqcfg(const Src& src)
   return 0;
 }
 
-AcqDisplay::AcqDisplay(MonCds& cds) :
-  _dispConfig("Waveform",cds),_dispConfigProfile("Profile",cds)
+AcqDisplay::AcqDisplay(MonServerManager& monsrv) :
+  _dispConfig       ("Waveform",monsrv.cds()),
+  _dispConfigProfile("Profile" ,monsrv.cds())
 {	
-  _config = new AcqDisplayConfigAction(_dispConfig,_dispConfigProfile);
+  _config = new AcqDisplayConfigAction(monsrv, _dispConfig,_dispConfigProfile);
   callback(TransitionId::Configure, _config);
-  callback(TransitionId::Unconfigure, new AcqDisplayUnconfig(_dispConfig,_dispConfigProfile));
+  callback(TransitionId::Unconfigure, new AcqDisplayUnconfig(monsrv, _dispConfig,_dispConfigProfile));
   _l1 = new AcqDisplayL1Action(_dispConfig,_dispConfigProfile);
   callback(TransitionId::L1Accept, _l1);
 }
@@ -110,22 +118,24 @@ AcqDisplay::~AcqDisplay() {
 
 AcqDisplayConfigAction::~AcqDisplayConfigAction() {}
 
-AcqDisplayConfigAction::AcqDisplayConfigAction(DisplayConfig& disp, DisplayConfig& dispprofile) :
-  _disp(disp), _dispprofile(dispprofile), _iter(sizeof(ZcpDatagramIterator),1) {}
+AcqDisplayConfigAction::AcqDisplayConfigAction(MonServerManager& monsrv,DisplayConfig& disp, DisplayConfig& dispprofile) :
+  _monsrv(monsrv), _disp(disp), _dispprofile(dispprofile), _iter(sizeof(ZcpDatagramIterator),1) {}
 
 Transition* AcqDisplayConfigAction::fire(Transition* tr) {
   return tr;
 }
 
 InDatagram* AcqDisplayConfigAction::fire(InDatagram* dg) {
+  _monsrv.dontserve();
   InDatagramIterator* in_iter = dg->iterator(&_iter);
   iterate(dg->datagram().xtc,in_iter);
   delete in_iter;
+  _monsrv.serve();
   return dg;
 }
 
 int AcqDisplayConfigAction::process(const Xtc& xtc,
-                                         InDatagramIterator* iter)
+				    InDatagramIterator* iter)
 {
   if (xtc.contains.id()==TypeId::Id_Xtc)
     return iterate(xtc,iter);

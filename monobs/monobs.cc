@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
   MonServerManager* manager = new MonServerManager(MonPort::Mon);
   CamDisplay* camdisp = new CamDisplay(*manager);
 
-  AcqDisplay* acqdisp = new AcqDisplay(manager->cds());
+  AcqDisplay* acqdisp = new AcqDisplay(*manager);
   manager->serve();
 
   Appliance* apps;

@@ -39,7 +39,15 @@ namespace Pds {
 
   class CamFex {
   public:
-    CamFex(MonGroup& group, unsigned width, unsigned height, unsigned depth) {
+    CamFex(const char* name, MonCds& cds, unsigned width, unsigned height, unsigned depth) :
+      _cds(cds)
+    {
+      char name_buffer[64];
+      sprintf(name_buffer,"%s Fex",name);
+      _group = new MonGroup(name_buffer);
+      _cds.add(_group);
+
+      MonGroup& group = *_group;
       int nb = 128;
       float maxi = (1<<depth)*width*height;
       group.add(integral = 
@@ -76,6 +84,8 @@ namespace Pds {
     }
 
     ~CamFex() {
+      _cds.remove(_group);
+      delete _group;
     }
     int update(InDatagramIterator& iter,
 	       const ClockTime& now) {
@@ -98,6 +108,8 @@ namespace Pds {
       return advance;
     }
   private:
+    MonCds&       _cds;
+    MonGroup*     _group;
     MonEntryTH1F* integral;
     MonEntryTH1F* logintegral;
     MonEntryTH1F* meanx;
@@ -113,28 +125,27 @@ namespace Pds {
 		 unsigned width,
 		 unsigned height,
 		 unsigned depth,
-		 MonServerManager& monsrv) :
-      _sem(monsrv.cds().payload_sem()) 
+		 MonCds&  cds) :
+      _cds(cds)
     {
       char name_buffer[64];
-      { sprintf(name_buffer,"%s Image",name);
-	MonGroup* group = new MonGroup(name_buffer);
-	monsrv.cds().add(group);
-	MonDescImage desc("Image",width>>BinShift,height>>BinShift,1<<BinShift,1<<BinShift);
-	group->add(_image = new MonEntryImage(desc)); }
-      { sprintf(name_buffer,"%s Fex",name);
-	MonGroup* group = new MonGroup(name_buffer);
-	monsrv.cds().add(group);
-	_fex = new CamFex(*group,width,height,depth); }
+      sprintf(name_buffer,"%s Image",name);
+      _group = new MonGroup(name_buffer);
+      _cds.add(_group);
+      MonDescImage desc("Image",width>>BinShift,height>>BinShift,1<<BinShift,1<<BinShift);
+      _group->add(_image = new MonEntryImage(desc));
+      _fex = new CamFex(name,cds,width,height,depth);
     }
     ~DisplayGroup() { 
-      //      delete _image; 
       delete _fex; 
+      _cds.remove(_group);
+      delete _group;
     }
   public:
     int  update_frame(InDatagramIterator& iter,
 		      const ClockTime& now) {
-      _sem.take();
+      Semaphore& sem = _cds.payload_sem();
+      sem.take();
 
       //  copy the frame header
       FrameType frame;
@@ -170,7 +181,7 @@ namespace Pds {
       for(unsigned ip=0; ip<4; ip++)
 	image.content(0,ip,0);
       
-      _sem.give();
+      sem.give();
 
       image.time(now);
       return advance;
@@ -179,8 +190,10 @@ namespace Pds {
 		      const ClockTime& now) {
       return _fex->update(iter, now);
     }
+    MonGroup* group() { return _group; }
   private:
-    Semaphore&     _sem;
+    MonCds&        _cds;
+    MonGroup*      _group;
     MonEntryImage* _image;
     CamFex*        _fex;
   };
@@ -228,7 +241,7 @@ namespace Pds {
 					     Opal1kConfigType::Column_Pixels,
 					     Opal1kConfigType::Row_Pixels,
 					     cfg.output_resolution_bits(),
-					     _monsrv));
+					     _monsrv.cds()));
 	  printf("Created group %d @ xtc %p\n", _groups.size(), &xtc);
 	  break; }
       case TypeId::Id_TM6740Config:
@@ -238,21 +251,19 @@ namespace Pds {
 					     TM6740ConfigType::Column_Pixels >> cfg.horizontal_binning(),
 					     TM6740ConfigType::Row_Pixels >> cfg.vertical_binning(),
 					     cfg.output_resolution_bits(),
-					     _monsrv));
+					     _monsrv.cds()));
 	  break; }
       default: break;
       }
       return advance;
     }
     void reset() {
-      /*
+      _monsrv.dontserve();
       for(unsigned i=0; i<_groups.size(); i++)
 	delete _groups[i];
       _src   .clear();
       _groups.clear();
-      _monsrv.dontserve();
-      _monsrv.cds().reset();
-      */
+      _monsrv.serve();
     }
   private:
     MonServerManager& _monsrv;

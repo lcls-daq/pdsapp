@@ -1,3 +1,4 @@
+2009-Aug-22	weaver	Fixed most reconfigure problems in monshm.cc
 2009-Aug-22     cpo     Fix datagram writing bug in Recorder.cc
 2009-Aug-21     cpo     Add acqiris calibration code, and profile histograms to AcqConfig
 2009-Aug-18	weaver  Tag V01-01-00.  Added run statistics to control_gui display by forwarding

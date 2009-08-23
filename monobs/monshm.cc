@@ -76,8 +76,7 @@ int main(int argc, char** argv) {
   MonServerManager* manager = new MonServerManager(MonPort::Mon);
   CamDisplay* camdisp = new CamDisplay(*manager);
 
-  AcqDisplay* acqdisp = new AcqDisplay(manager->cds());
-  manager->serve();
+  AcqDisplay* acqdisp = new AcqDisplay(*manager);
 
   Appliance* apps = camdisp;
   acqdisp->connect(apps);
