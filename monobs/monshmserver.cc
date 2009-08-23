@@ -78,7 +78,7 @@ public:
   InDatagram* events     (InDatagram* dg) 
   { mq_getattr(_myInputQueue, &_mymq_attr);
     Datagram& dgrm = dg->datagram();
-    if (_mymq_attr.mq_curmsgs || (dgrm.seq.service() != TransitionId::L1Accept))
+    if ((_mymq_attr.mq_curmsgs > 4) || ((dgrm.seq.service() != TransitionId::L1Accept) && _mymq_attr.mq_curmsgs))
     {
       if (mq_receive(_myInputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority) < 0) perror("mq_receive");
       _bufferP = _myShm + (_sizeOfBuffers * _myMsg.bufferIndex());
@@ -270,6 +270,8 @@ int main(int argc, char** argv) {
     usage(argv[0]);
     return 1;
   }
+
+  if (numberOfBuffers<8) numberOfBuffers=8;
 
   sprintf(partitionTag, "%d_", platform);
   char temp[100];
