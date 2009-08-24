@@ -11,10 +11,11 @@
 using namespace Pds_ConfigDb;
 
 template <class T>
-NumericInt<T>::NumericInt(const char* label, T val, T vlo, T vhi, IntMode mo) :
+NumericInt<T>::NumericInt(const char* label, T val, T vlo, T vhi, IntMode mo, double sca) :
   Parameter(label),
   value(val),
-  mode (mo)
+  mode (mo),
+  scale(sca)
 {
   range[0]=vlo;
   range[1]=vhi;
@@ -34,13 +35,23 @@ QLayout* NumericInt<T>::initialize(QWidget* parent)
     layout->addWidget(_input = new QLineEdit(parent));  
     _input->setReadOnly(!allowEdit());
     flush();
-    if (mode==Decimal)
+    switch(mode) {
+    case Decimal:
       _input->setValidator(new IntValidator( *this, *_input, range[0], range[1]));
-    else
+      break;
+    case Hex:
       _input->setValidator(new HexValidator( *this, *_input, range[0], range[1]));
+      break;
+    default:
+      _input->setValidator(new DoubleValidator( *this, *_input, range[0]*scale, range[1]*scale));
+    }
   }
   else {
-    _display = new QLabel(QString::number(value,mode==Decimal ? 10:16));
+    switch(mode) {
+    case Decimal: _display = new QLabel(QString::number(value,10)); break;
+    case Hex:     _display = new QLabel(QString::number(value,16)); break;
+    default:      _display = new QLabel(QString::number(double(value)*scale)); break;
+    }
     _display->setFrameShape(QFrame::Box);
     layout->addWidget(_display);
   }
@@ -53,17 +64,27 @@ void NumericInt<T>::update()
 {
   if (allowEdit()) {
     bool ok;
-    value = (mode==Decimal) ? _input->text().toInt() : _input->text().toInt(&ok,16);
+    switch(mode) {
+    case Decimal:  value = _input->text().toInt(); break;
+    case Hex:      value = _input->text().toInt(&ok,16); break;
+    default:       value = int(_input->text().toDouble(&ok)/scale); break;
+    }
   }
 }
 
 template <class T>
 void NumericInt<T>::flush()
 {
+  QString v;
+  switch(mode) {
+    case Decimal: v = QString::number(value,10); break;
+    case Hex:	  v = QString::number(value,16); break;
+    default:      v = QString::number(double(value)*scale); break;
+  }
   if (allowEdit())
-    _input->setText(QString::number(value,mode==Decimal ? 10:16));            
+    _input->setText(v);
   else
-    _display->setText(QString::number(value,mode==Decimal ? 10:16));            
+    _display->setText(v);
 }
 
 template <class T>

@@ -61,7 +61,7 @@ namespace Pds_ConfigDb {
       _coupling("Trig Coupling", Pds::Acqiris::TrigV1::DC50ohm, trigcoupling_range),
       _input("Trig Input",-1,-10,10),
       _slope("Trig Slope", Pds::Acqiris::TrigV1::Positive, trigslope_range),
-      _level("Trig Level",0.0,-5.0,5.0)
+      _level("Trig Level (V)",0.0,-5.0,5.0)
     {}
     void insert(Pds::LinkedList<Parameter>& pList) {
       pList.insert(&_coupling);
@@ -97,8 +97,8 @@ namespace Pds_ConfigDb {
   public:
 
     AcqHoriz() :
-      _sampInterval("Sample Interval",1.e-6,0.0,1.0),
-      _delayTime("Delay Time",0.0,-1.0,1.0),
+      _sampInterval("Sample Interval [sec]",1.e-6,0.0,1.0),
+      _delayTime("Delay Time [sec]",0.0,-1.0,1.0),
       _nbrSamples("Samples",1000,1,1000000000),
       _nbrSegments("Segments",1,1,1000000000)
     {}
@@ -137,7 +137,7 @@ namespace Pds_ConfigDb {
   public:
     Private_Data() :
       _nbrConvertersPerChannel("Number of Converters Per Channel",1,1,4),
-      _channelMask("Channel Mask",1,1,0xfffff,Hex),
+      _channelMask("Channel Mask [hex]",1,1,0xfffff,Hex),
       _nbrBanks("Number of Banks",1,1,1),
       _numChan(_channelMask),
       _vertSet("Vert Config", _vertArgs, _numChan)

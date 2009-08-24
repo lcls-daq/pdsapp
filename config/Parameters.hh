@@ -48,7 +48,7 @@ namespace Pds_ConfigDb {
     const char* _label;
   };
 
-  enum IntMode { Decimal, Hex };
+  enum IntMode { Decimal, Hex, Scaled };
 
   class ParameterSet;
 
@@ -56,7 +56,7 @@ namespace Pds_ConfigDb {
   class NumericInt : public Parameter,
 		     public ParameterCount {
   public:
-    NumericInt(const char* label, T val, T vlo, T vhi, IntMode mo=Decimal);
+    NumericInt(const char* label, T val, T vlo, T vhi, IntMode mo=Decimal, double sca=1.);
     ~NumericInt();
 
     QLayout* initialize(QWidget*);
@@ -69,6 +69,7 @@ namespace Pds_ConfigDb {
     T       value;
     T       range[2];
     IntMode mode;
+    double  scale;
     QLineEdit* _input;
     QLabel*    _display;
   };

@@ -6,6 +6,8 @@
 
 #include <new>
 
+static const double EvrPeriod = 1./119.e6;
+
 using namespace Pds_ConfigDb;
 
 namespace Pds_ConfigDb {
@@ -22,8 +24,8 @@ namespace Pds_ConfigDb {
     _map_rst_ena("Map_Reset"  , Enums::Enable, Enums::Enabled_Names),
     _map_trg_ena("Map_Trigger", Enums::Enable, Enums::Enabled_Names),
     _prescale   ("Prescale", 1, 1, 0x7fffffff),
-    _delay      ("Delay"   , 0, 0, 0x7fffffff),
-    _width      ("Width"   , 0, 0, 0x7fffffff)
+    _delay      ("Delay [sec]"   , 0, 0, 0x7fffffff, Scaled, EvrPeriod),
+    _width      ("Width [sec]"   , 0, 0, 0x7fffffff, Scaled, EvrPeriod)
     {}
    
     void insert(Pds::LinkedList<Parameter>& pList) {

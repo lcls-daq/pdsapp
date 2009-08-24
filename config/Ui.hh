@@ -6,7 +6,6 @@
 namespace Pds_ConfigDb {
 
   class Experiment;
-  class Transaction_Ui;
   class Experiment_Ui;
   class Devices_Ui;
 
@@ -14,10 +13,6 @@ namespace Pds_ConfigDb {
   public:
     Ui(Experiment&,bool edit);
     ~Ui();
-  private:
-    Transaction_Ui* _transaction;
-    Experiment_Ui*  _experiment;
-    Devices_Ui*     _devices;
   };
 };
 

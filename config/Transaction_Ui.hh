@@ -18,7 +18,6 @@ namespace Pds_ConfigDb {
     void db_clear();
     void db_commit();
     void db_update();
-    void db_current();
   signals:
     void db_changed();
   private:

@@ -175,12 +175,13 @@ namespace Pds_ConfigDb {
 
       ControlConfigType* tc;
       switch(_control.value) {
-      case System  : tc = new(to) ControlConfigType(pvcs, pvms); break;
       case Duration: tc = new(to) ControlConfigType(pvcs, pvms, 
 						    ClockTime(_duration_sec.value,
 							      _duration_nsec.value)); break;
       case Events  : tc = new(to) ControlConfigType(pvcs, pvms,
 						    _events.value); break;
+      case System  :
+      default      : tc = new(to) ControlConfigType(pvcs, pvms); break;
       }
       return tc->size();
     }

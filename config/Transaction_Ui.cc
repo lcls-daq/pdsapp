@@ -5,7 +5,6 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
-#include <QtGui/QMessageBox>
 
 using namespace Pds_ConfigDb;
 
@@ -19,11 +18,9 @@ Transaction_Ui::Transaction_Ui(QWidget* parent,
   QPushButton* clear   = new QPushButton("Clear" , this);
   QPushButton* commit  = new QPushButton("Commit", this);
   QPushButton* update  = new QPushButton("Update Keys", this);
-  QPushButton* current = new QPushButton("Current Keys", this);
   layout->addWidget(clear);
   layout->addWidget(commit);
   layout->addWidget(update);
-  layout->addWidget(current);
 
   if (edit) {
     connect(clear  , SIGNAL(clicked()), this, SLOT(db_clear() ));
@@ -35,7 +32,6 @@ Transaction_Ui::Transaction_Ui(QWidget* parent,
     commit->setEnabled(false);
     update->setEnabled(false);
   }
-  connect(current, SIGNAL(clicked()), this, SLOT(db_current()));
   setLayout(layout);
 
   _expt.read();
@@ -61,17 +57,4 @@ void Transaction_Ui::db_update()
   _expt.update_keys();
   _expt.write();
   emit db_changed();
-}
-
-void Transaction_Ui::db_current()
-{
-  QString message;
-  list<TableEntry>& l = _expt.table().entries();
-  for(list<TableEntry>::const_iterator iter = l.begin(); iter != l.end(); ++iter) {
-    message += iter->name().c_str();
-    message += "\t" ;
-    message += iter->key().c_str();
-    message += "\n";
-  }
-  QMessageBox::information(this, "Current Keys", message);
 }
