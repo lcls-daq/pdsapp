@@ -1,6 +1,7 @@
 #ifndef Pds_ConfigDb_Experiment_hh
 #define Pds_ConfigDb_Experiment_hh
 
+#include "pdsapp/config/Path.hh"
 #include "pdsapp/config/Table.hh"
 #include "pdsapp/config/Device.hh"
 
@@ -15,13 +16,13 @@ namespace Pds_ConfigDb {
 
   class Experiment {
   public:
-    Experiment(const string&);
+    Experiment(const Path&);
   public:
-    bool is_valid() const;
     void create();
     void read();
     void write() const;
   public:
+    const Path& path() const { return _path; }
     const Table& table() const { return _table; }
     Table& table() { return _table; }
     const list<Device>& devices() const { return _devices; }
@@ -29,10 +30,6 @@ namespace Pds_ConfigDb {
     Device* device(const string&);
   public:
     void add_device(const string&, const list<DeviceEntry>&);
-    string data_path(const string& device, const UTypeName& type) const;
-    string desc_path(const string& device, const UTypeName& type) const;
-    list<string> xtc_files(const string& device, const UTypeName& type) const;
-    string key_path (const string& device, const string& key ) const;
     void import_data(const string& device,
 		     const UTypeName& type,
 		     const string& file,
@@ -43,7 +40,7 @@ namespace Pds_ConfigDb {
   private:
     bool update_key(const TableEntry&);
   private:
-    string _path;
+    Path _path;
     Table  _table;
     list<Device> _devices;
   };

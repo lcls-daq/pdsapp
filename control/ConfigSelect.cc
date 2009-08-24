@@ -19,7 +19,7 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
 			   const char*       db_path) :
   QGroupBox("Configuration",parent),
   _pcontrol(control),
-  _expt    (db_path)
+  _expt    (Pds_ConfigDb::Path(db_path))
 {
   _expt.read();
 

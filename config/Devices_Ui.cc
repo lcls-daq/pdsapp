@@ -4,14 +4,7 @@
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Device.hh"
 #include "pdsapp/config/PdsDefs.hh"
-
 #include "pdsapp/config/Dialog.hh"
-#include "pdsapp/config/EvrConfig.hh"
-#include "pdsapp/config/AcqConfig.hh"
-#include "pdsapp/config/Opal1kConfig.hh"
-#include "pdsapp/config/TM6740Config.hh"
-#include "pdsapp/config/FrameFexConfig.hh"
-#include "pdsapp/config/ControlConfig.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -44,13 +37,6 @@ Devices_Ui::Devices_Ui(QWidget* parent,
   QGroupBox("Devices Configuration", parent),
   _expt    (expt)
 {
-  _dict.enroll(Pds::TypeId::Id_AcqConfig,new AcqConfig);
-  _dict.enroll(Pds::TypeId::Id_EvrConfig,new EvrConfig);
-  _dict.enroll(Pds::TypeId::Id_Opal1kConfig,new Opal1kConfig);
-  _dict.enroll(Pds::TypeId::Id_TM6740Config,new TM6740Config);
-  _dict.enroll(Pds::TypeId::Id_FrameFexConfig,new FrameFexConfig);
-  _dict.enroll(Pds::TypeId::Id_ControlConfig ,new ControlConfig);
-
   QHBoxLayout* layout = new QHBoxLayout(this);
   { QVBoxLayout* layout1 = new QVBoxLayout;
     layout1->addWidget(new QLabel("Device", this));
@@ -290,12 +276,11 @@ void Devices_Ui::view_component()
   size_t len = type.find(']') - fs; 
   QString qname(type.substr(fs,len).c_str());
 
-  string path(_expt.data_path("",stype));
+  string path(_expt.path().data_path("",stype));
   QString qpath(path.c_str());
   QString qfile = qpath + "/" + qname;
 
   printf("Reading component from file %s\n",qPrintable(qpath));
-
 
   Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath, qpath, qfile);
   d->exec();
@@ -316,7 +301,7 @@ void Devices_Ui::add_component(const QString& type)
   if (!item) return;
   string cfg(qPrintable(item->text()));
 
-  list<string> xtc_files = _expt.xtc_files(det,stype);
+  list<string> xtc_files = _expt.path().xtc_files(det,stype);
   QStringList choices;
   for(list<string>::const_iterator iter=xtc_files.begin(); iter!=xtc_files.end(); iter++)
     choices << iter->c_str();
@@ -343,7 +328,7 @@ void Devices_Ui::add_component(const QString& type)
       }
     }
     else if (schoice==create_str) {
-      string path(_expt.data_path("",stype));
+      string path(_expt.path().data_path("",stype));
       QString qpath(path.c_str());
 
       Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath, qpath);
@@ -357,7 +342,7 @@ void Devices_Ui::add_component(const QString& type)
       }
     }
     else {
-      string path(_expt.data_path("",stype));
+      string path(_expt.path().data_path("",stype));
       QString qpath(path.c_str());
       QString qchoice = qpath + "/" + choice;
 

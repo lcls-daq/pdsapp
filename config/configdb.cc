@@ -1,3 +1,4 @@
+#include "Path.hh"
 #include "Experiment.hh"
 #include "PdsDefs.hh"
 using namespace Pds_ConfigDb;
@@ -53,11 +54,12 @@ int main(int argc, char** argv)
       
   string cmd(argv[1]);
   string dbname(argv[2]);
+  Path path(dbname);
   Experiment db(dbname);
 
-  if (!db.is_valid()) {
+  if (!path.is_valid()) {
     if (cmd==create_cmd)
-      db.create();
+      path.create();
     else {
       printf("No valid database found at %s\nExiting.\n",argv[2]);
       exit(1);

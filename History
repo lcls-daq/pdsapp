@@ -1,3 +1,4 @@
+2009-Aug-24	weaver	Added numeric key browser (configdb_list).
 2009-Aug-22	weaver	Fixed most reconfigure problems in monshm.cc
 2009-Aug-22     cpo     Fix datagram writing bug in Recorder.cc
 2009-Aug-21     cpo     Add acqiris calibration code, and profile histograms to AcqConfig

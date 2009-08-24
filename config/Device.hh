@@ -1,6 +1,7 @@
 #ifndef Pds_ConfigDb_Devices_hh
 #define Pds_ConfigDb_Devices_hh
 
+#include "pdsapp/config/DeviceEntry.hh"
 #include "pdsapp/config/Table.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
@@ -14,15 +15,6 @@ using std::string;
 namespace Pds_ConfigDb {
 
   class UTypeName;
-
-  class DeviceEntry : public Pds::Src {
-  public:
-    DeviceEntry(unsigned id);
-    DeviceEntry(const Pds::Src& id);
-    DeviceEntry(const string& id);
-  public:
-    string   id () const;
-  };
 
   class Device {
   public:

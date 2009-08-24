@@ -11,52 +11,29 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
+#include <glob.h>
+#include <libgen.h>
+
 using namespace Pds_ConfigDb;
 
 const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
 
-Experiment::Experiment(const string& path) :
+Experiment::Experiment(const Path& path) :
   _path(path)
 {
-}
-
-bool Experiment::is_valid() const
-{
-  struct stat s;
-  if (stat(_path.c_str(),&s)) return false;
-
-  char buff[128];
-  sprintf(buff,"%s/db"  ,_path.c_str());  if (stat(buff,&s)) return false;
-  sprintf(buff,"%s/desc",_path.c_str());  if (stat(buff,&s)) return false;
-  sprintf(buff,"%s/keys",_path.c_str());  if (stat(buff,&s)) return false;
-  sprintf(buff,"%s/xtc" ,_path.c_str());  if (stat(buff,&s)) return false;
-  return true;
-}
-
-void Experiment::create()
-{
-  //  mode_t mode = S_IRWXU | S_IRWXG;
-  mode_t mode = _fmode;
-  mkdir(_path.c_str(),mode);
-  char buff[128];
-  sprintf(buff,"%s/db"  ,_path.c_str());  mkdir(buff,mode);
-  sprintf(buff,"%s/desc",_path.c_str());  mkdir(buff,mode);
-  sprintf(buff,"%s/keys",_path.c_str());  mkdir(buff,mode);
-  sprintf(buff,"%s/xtc" ,_path.c_str());  mkdir(buff,mode);
 }
 
 void Experiment::read()
 {
   const int line_size=128;
   char buff[line_size];
-  string path;
-  path = _path + "/db/expt";
 
+  string path = _path.expt();
   cout << "Reading table from path " << path << endl;
-
   _table = Table(path);
   _devices.clear();
-  path = _path + "/db/devices";
+
+  path = _path.devices();
   ifstream f(path.c_str());
   while(f.good()) {
     unsigned sz=line_size;
@@ -64,7 +41,7 @@ void Experiment::read()
     char* p = strtok(buff,"\t");
     if (!p) break;
     string name(p);
-    path = _path + "/db/devices." + name;
+    path = _path.device(name);
     list<DeviceEntry> args;
     while( (p=strtok(NULL,"\t")) )
       args.push_back(DeviceEntry(string(p)));
@@ -74,8 +51,8 @@ void Experiment::read()
         
 void Experiment::write() const
 {
-  _table.write(_path+"/db/expt");
-  string fp = _path + "/db/devices";
+  _table.write(_path.expt());
+  string fp = _path.devices();
   ofstream f(fp.c_str());
   for(list<Device>::const_iterator iter=_devices.begin(); iter!=_devices.end(); iter++) {
     f << iter->name();
@@ -87,7 +64,7 @@ void Experiment::write() const
   }
 
   for(list<Device>::const_iterator iter=_devices.begin(); iter!=_devices.end(); iter++)
-    iter->table().write(_path+"/db/devices."+iter->name());
+    iter->table().write(_path.device(iter->name()));
 }
 
 Device* Experiment::device(const string& name)
@@ -110,55 +87,8 @@ void Experiment::add_device(const string& name,
   _devices.push_back(device);
   //  mode_t mode = S_IRWXU | S_IRWXG;
   mode_t mode = _fmode;
-  mkdir(device.keypath(_path,"").c_str(),mode);
-  cout << "Added dir " << device.keypath(_path,"") << endl;
-}
-
-string Experiment::key_path(const string& device, const string& key) const
-{
-  return _path+"/xtc/"+device+"/"+key;
-}
-
-string Experiment::data_path(const string& device,
-			     const UTypeName& type) const
-{
-  string path = _path + "/xtc/" + PdsDefs::qtypeName(type);
-  struct stat s;
-  if (stat(path.c_str(),&s)) {
-    //    mode_t mode = S_IRWXU | S_IRWXG;
-    mode_t mode = _fmode;
-    mkdir(path.c_str(),mode);
-  }
-  return path;
-}
-
-string Experiment::desc_path(const string& device,
-			     const UTypeName& type) const
-{
-  string path = _path + "/desc/" + PdsDefs::qtypeName(type);
-  struct stat s;
-  if (stat(path.c_str(),&s)) {
-    //    mode_t mode = S_IRWXU | S_IRWXG;
-    mode_t mode = _fmode;
-    mkdir(path.c_str(),mode);
-  }
-  return path;
-}
-
-#include <glob.h>
-#include <libgen.h>
-
-list<string> Experiment::xtc_files(const string& device,
-				   const UTypeName& type) const
-{
-  list<string> l;
-  glob_t g;
-  string path = data_path(device,type)+"/*.xtc";
-  glob(path.c_str(), 0, 0, &g);
-  for(unsigned i=0; i<g.gl_pathc; i++)
-    l.push_back(string(basename(g.gl_pathv[i])));
-  globfree(&g);
-  return l;
+  mkdir(device.keypath(_path.base(),"").c_str(),mode);
+  cout << "Added dir " << device.keypath(_path.base(),"") << endl;
 }
 
 void Experiment::import_data(const string& device,
@@ -173,7 +103,7 @@ void Experiment::import_data(const string& device,
 
   mode_t mode = _fmode;
   const char* base = basename(const_cast<char*>(file.c_str()));
-  string dst = data_path(device,type)+"/"+base;
+  string dst = _path.data_path(device,type)+"/"+base;
   struct stat s;
   if (!stat(dst.c_str(),&s)) {
     cerr << dst << " already exists." << endl 
@@ -189,7 +119,7 @@ void Experiment::import_data(const string& device,
   sprintf(buff,"cp %s %s",file.c_str(),dst.c_str());
   system(buff);
 
-  dst = desc_path(device,type)+"/"+base;
+  dst = _path.desc_path(device,type)+"/"+base;
   dir = dirname(const_cast<char*>(dst.c_str()));
   if (stat(dir,&s)) {
     mkdir(dir,mode);
@@ -207,7 +137,7 @@ bool Experiment::update_key(const TableEntry& entry)
   unsigned valid=0;
   for(list<FileEntry>::const_iterator iter=entry.entries().begin();
       iter != entry.entries().end(); iter++)
-    if (device(iter->name())->validate_key(iter->entry(),_path))
+    if (device(iter->name())->validate_key(iter->entry(),_path.base()))
       valid++;
   if (valid != entry.entries().size()) {
     cerr << "Cannot update " << entry.name() << '[' << entry.key() << ']' << endl;
@@ -221,7 +151,7 @@ bool Experiment::update_key(const TableEntry& entry)
   int changed=0;
   for(list<FileEntry>::const_iterator iter=entry.entries().begin();
       iter != entry.entries().end(); iter++)
-    if (device(iter->name())->update_key(iter->entry(),_path)) 
+    if (device(iter->name())->update_key(iter->entry(),_path.base())) 
       changed++;
 
   mode_t mode = _fmode;
@@ -232,7 +162,7 @@ bool Experiment::update_key(const TableEntry& entry)
   //
   const int line_size=128;
   char buff[line_size];
-  string kpath = _path + "/keys/" + entry.key();
+  string kpath = _path.key_path(entry.key());
   unsigned invalid = entry.entries().size();   // number of expected devices 
 
   glob_t g;
@@ -272,14 +202,14 @@ bool Experiment::update_key(const TableEntry& entry)
   }
   
   if (invalid) {
-    kpath = _path + "/keys/[0-9]*";
+    kpath = _path.key_path(string("[0-9]*"));
     glob_t g;
     glob(kpath.c_str(),0,0,&g);
     sprintf(buff,"%08x",g.gl_pathc);
     globfree(&g);
     string key(buff);
     TableEntry te = TableEntry(entry.name(),key,entry.entries());
-    kpath = _path + "/keys/" + key;
+    kpath = _path.key_path(key);
     mkdir(kpath.c_str(),mode);
     for(list<FileEntry>::const_iterator iter=te.entries().begin();
 	iter!=te.entries().end(); iter++) {
@@ -308,9 +238,9 @@ void Experiment::update_keys()
 
 void Experiment::dump() const
 {  
-  cout << "Experiment " << _path << endl;
-  _table.dump(_path+"/db/expt");
-  cout << endl << _path << "/db/devices" << endl;
+  cout << "Experiment " << endl;
+  _table.dump(_path.expt());
+  cout << endl << _path.devices() << endl;
   for(list<Device>::const_iterator iter=_devices.begin(); iter!=_devices.end(); iter++) {
     cout << iter->name();
     for(list<DeviceEntry>::const_iterator diter=iter->src_list().begin();
@@ -319,6 +249,6 @@ void Experiment::dump() const
     cout << endl;
   }
   for(list<Device>::const_iterator iter=_devices.begin(); iter!=_devices.end(); iter++) {
-    iter->table().dump(_path+"/db/devices."+iter->name());
+    iter->table().dump(_path.device(iter->name()));
   }
 }

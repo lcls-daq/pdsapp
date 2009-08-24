@@ -1,11 +1,14 @@
 libnames       := configdb
-libsrcs_configdb := Table.cc \
+libsrcs_configdb := Path.cc \
+		    Table.cc \
 		    Device.cc \
+		    DeviceEntry.cc \
 		    Experiment.cc \
 		    PdsDefs.cc
 
 tgtnames       := configdb
 tgtnames       += configdb_gui
+tgtnames       += configdb_list
 
 # executable python modules: configdb_gui.py
 
@@ -42,4 +45,27 @@ tgtlibs_configdb_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pd
 tgtlibs_configdb_gui += qt/QtGui qt/QtCore
 tgtlibs_configdb_gui += pdsapp/configdb
 tgtslib_configdb_gui := /usr/lib/rt
+
+tgtsrcs_configdb_list := configdb_list.cc
+tgtsrcs_configdb_list += ListUi.cc ListUi_moc.cc
+tgtsrcs_configdb_list += Dialog.cc Dialog_moc.cc 
+tgtsrcs_configdb_list += SubDialog.cc SubDialog_moc.cc 
+tgtsrcs_configdb_list += Validators.cc Validators_moc.cc 
+tgtsrcs_configdb_list += ParameterSet.cc ParameterSet_moc.cc
+tgtsrcs_configdb_list += SerializerDictionary.cc
+tgtsrcs_configdb_list += Serializer.cc
+tgtsrcs_configdb_list += Opal1kConfig.cc
+tgtsrcs_configdb_list += TM6740Config.cc
+tgtsrcs_configdb_list += FrameFexConfig.cc
+tgtsrcs_configdb_list += EvrConfig.cc
+tgtsrcs_configdb_list += ControlConfig.cc
+tgtsrcs_configdb_list += AcqConfig.cc
+tgtsrcs_configdb_list += Parameters.cc
+tgtsrcs_configdb_list += BitCount.cc
+tgtsrcs_configdb_list += templates.cc
+tgtincs_configdb_list := qt/include
+tgtlibs_configdb_list := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata
+tgtlibs_configdb_list += qt/QtGui qt/QtCore
+tgtlibs_configdb_list += pdsapp/configdb
+tgtslib_configdb_list := /usr/lib/rt
 

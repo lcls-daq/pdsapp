@@ -2,6 +2,14 @@
 
 #include "pdsapp/config/Serializer.hh"
 
+#include "pdsapp/config/Dialog.hh"
+#include "pdsapp/config/EvrConfig.hh"
+#include "pdsapp/config/AcqConfig.hh"
+#include "pdsapp/config/Opal1kConfig.hh"
+#include "pdsapp/config/TM6740Config.hh"
+#include "pdsapp/config/FrameFexConfig.hh"
+#include "pdsapp/config/ControlConfig.hh"
+
 using namespace Pds_ConfigDb;
 
 SerializerDEntry::SerializerDEntry(Pds::TypeId::Type t,
@@ -20,6 +28,12 @@ bool SerializerDEntry::operator==(const SerializerDEntry& s) const
 
 SerializerDictionary::SerializerDictionary()
 {
+  enroll(Pds::TypeId::Id_AcqConfig,new AcqConfig);
+  enroll(Pds::TypeId::Id_EvrConfig,new EvrConfig);
+  enroll(Pds::TypeId::Id_Opal1kConfig,new Opal1kConfig);
+  enroll(Pds::TypeId::Id_TM6740Config,new TM6740Config);
+  enroll(Pds::TypeId::Id_FrameFexConfig,new FrameFexConfig);
+  enroll(Pds::TypeId::Id_ControlConfig ,new ControlConfig);
 }
 
 SerializerDictionary::~SerializerDictionary()

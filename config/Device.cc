@@ -21,32 +21,6 @@ using namespace Pds_ConfigDb;
 const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
 
 
-DeviceEntry::DeviceEntry(unsigned id) :
-  Pds::Src(Pds::Level::Source)
-{
-  _phy = id; 
-}
-
-DeviceEntry::DeviceEntry(const Pds::Src& id) :
-  Pds::Src(id)
-{
-}
-
-DeviceEntry::DeviceEntry(const string& id) 
-{
-  char sep;
-  istringstream i(id);
-  i >> std::hex >> _log >> sep >> _phy;
-}
-
-string DeviceEntry::id() const
-{
-  ostringstream o;
-  o << std::hex << setfill('0') << setw(8) << _log << '.' << setw(8) << _phy;
-  return o.str();
-}
-
-
 Device::Device(const string& path,
 	       const string& name,
 	       const list<DeviceEntry>& src_list) :
