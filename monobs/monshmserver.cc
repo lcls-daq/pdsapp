@@ -64,7 +64,7 @@ public:
   }
   ~XtcMonServer() 
   { if (_linked) 
-    { printf("Nolonger Unlinking ... \n");
+    { printf("Not Unlinking ... \n");
 //      if (mq_unlink(_toMonQname) == (mqd_t)-1) perror("mq_unlink To Monitor");
 //      if (mq_unlink(_fromMonQname) == (mqd_t)-1) perror("mq_unlink From Monitor");
 //      shm_unlink(_shmName);
@@ -148,16 +148,17 @@ public:
     if (_myInputQueue == (mqd_t)-1) {ret++; perror("mq_open input");}
 
     // flush the queues just to be sure they are empty.
+    Msg m;
     do {
       mq_getattr(_myInputQueue, &_mymq_attr);
       if (_mymq_attr.mq_curmsgs)
-           mq_receive(_myInputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority);
+           mq_receive(_myInputQueue, (char*)&m, sizeof(m), &_priority);
      } while (_mymq_attr.mq_curmsgs);
 
     do {
       mq_getattr(_myOutputQueue, &_mymq_attr);
       if (_mymq_attr.mq_curmsgs)
-            mq_receive(_myOutputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority);
+            mq_receive(_myOutputQueue, (char*)&m, sizeof(m), &_priority);
     } while (_mymq_attr.mq_curmsgs);
 
 
