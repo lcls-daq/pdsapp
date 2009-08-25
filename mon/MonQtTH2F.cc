@@ -155,9 +155,8 @@ void MonQtTH2F::projecty(MonQtTH1F* h)
   int ny = d.nbinsy();
   float* z = _data->data();
   for (int ybin=0; ybin<ny; ybin++) {
-    for (int xbin=0; xbin<nx; xbin++) {
+    for (int xbin=0; xbin<nx; xbin++)
       h->addcontent(ybin, *z++);
-    }
   }
 }
 
@@ -169,6 +168,21 @@ float MonQtTH2F::min(Axis ax) const
 float MonQtTH2F::max(Axis ax) const 
 {
   return (ax == X) ? _xmax : (ax==Y) ? _ymax : _zmax;
+}
+
+void MonQtTH2F::dump(FILE* f) const
+{
+  const MonDescTH2F& d(reinterpret_cast<const MonDescTH2F&>(*_desc));
+  unsigned nx = d.nbinsx();
+  unsigned ny = d.nbinsy();
+  float* z = _data->data();
+  for (unsigned ybin=0; ybin<ny; ybin++) {
+    double y = (double(2*(ny-ybin)-1)*d.ylow() + double(2*ybin+1)*d.yup()) / double(2*ny);
+    for (unsigned xbin=0; xbin<nx; xbin++) {
+      double x = (double(2*(nx-xbin)-1)*d.xlow() + double(2*xbin+1)*d.xup()) / double(2*nx);
+      fprintf(f,"%g %g %g\n",x,y,*z++);
+    }
+  }
 }
 
 void MonQtTH2F::color(int color)

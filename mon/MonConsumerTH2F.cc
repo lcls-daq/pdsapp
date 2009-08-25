@@ -174,6 +174,23 @@ unsigned MonConsumerTH2F::getplots(MonQtBase** plots,
   return Nplots;
 }
 
+const MonQtBase* MonConsumerTH2F::selected() const
+{
+  MonQtBase* v;
+  switch(_selected) {
+  case MonCanvas::Difference : v = _diff   ; break;
+  case MonCanvas::DifferenceX: v = _diff_x ; break;
+  case MonCanvas::DifferenceY: v = _diff_y ; break;
+  case MonCanvas::Integrated : v = _hist   ; break;
+  case MonCanvas::IntegratedX: v = _hist_x ; break;
+  case MonCanvas::IntegratedY: v = _hist_y ; break;
+  case MonCanvas::ChartX     : v = _chartx ; break;
+  case MonCanvas::ChartY     : v = _charty ; break;
+  default                    : v = 0       ; break;
+  }
+  return v;
+}
+
 void MonConsumerTH2F::select(Select selection)
 {
   //   if (selection==Since) {

@@ -2,6 +2,7 @@
 #include <QtGui/QActionGroup>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QFileDialog>
+#include <QtGui/QMessageBox>
 
 #include "MonCanvas.hh"
 #include "MonQtBase.hh"
@@ -27,6 +28,7 @@ MonCanvas::MonCanvas(QWidget&        parent,
     file_menu->addAction("Close", this, SLOT(close()));
     file_menu->addSeparator();
     file_menu->addAction("Save image", this, SLOT(save_image()));
+    file_menu->addAction("Save data" , this, SLOT(save_data ()));
     menu_bar->addMenu(file_menu);
 
     _select = new QMenu("Select");
@@ -61,10 +63,6 @@ void MonCanvas::close() {}
 
 void MonCanvas::save_image()  
 {
-  QPixmap pixmap(QWidget::size());
-  QWidget::render(&pixmap);
-  QImage img = pixmap.toImage();
-
   char time_buffer[32];
   time_t seq_tm = _entry->time().seconds();
   strftime(time_buffer,32,"%Y%m%d_%H%M%S",localtime(&seq_tm));
@@ -76,8 +74,41 @@ void MonCanvas::save_image()
   QString fname = 
     QFileDialog::getSaveFileName(this,"Save File As (.bmp,.jpg,.png)",
 				 def,".bmp;.png;.jpg");
-  if (!fname.isNull())
-    img.save(fname);
+  if (!fname.isNull()) {
+    QPixmap pixmap(QWidget::size());
+    QWidget::render(&pixmap);
+    pixmap.toImage().save(fname);
+  }
+}
+
+void MonCanvas::save_data()  
+{
+  char time_buffer[32];
+  time_t seq_tm = _entry->time().seconds();
+  strftime(time_buffer,32,"%Y%m%d_%H%M%S",localtime(&seq_tm));
+
+  QString def =_entry->desc().name();
+  def += "_";
+  def += time_buffer;
+  def += ".dat";
+  QString fname = 
+    QFileDialog::getSaveFileName(this,"Save File As (.dat)",
+				 def,".dat");
+  if (!fname.isNull()) {
+    FILE* f = fopen(qPrintable(fname),"w");
+    if (!f)
+      QMessageBox::warning(this, "Save data", 
+			   QString("Error opening %1 for writing").arg(fname));
+    else {
+      const MonQtBase* v = selected();
+      if (v) 
+	v->dump(f);
+      else 
+	QMessageBox::warning(this, "Save data", 
+			     QString("Error grabbing data"));
+      fclose(f);
+    }
+  }
 }
 
 void MonCanvas::info() {}
@@ -101,28 +132,6 @@ void MonCanvas::select(Select selection)
 {
   _selected = selection;
 }
-
-/*
-void MonCanvas::saveas(const char* type, const char* groupname) 
-{
-  if (!strlen(type)) {
-    const char* filetypes[] = {"Bitmap", "*.bmp",
-			       "JPEG",   "*.jpg",
-			       "PNG",    "*.png",
-			       0,        0};
-    TGFileInfo info;
-    info.fFileTypes = filetypes;
-    info.fFilename = _entryname;
-    new TGFileDialog(fClient->GetQt(), GetParent(), kFDSave, &info);
-    _canvas.GetCanvas()->SaveAs(info.fFilename);
-  } else {
-    unsigned len = strlen(groupname)+strlen(_entryname)+strlen(type)+3;
-    char filename[len];
-    sprintf(filename, "%s_%s.%s", groupname, _entryname, type);
-    _canvas.GetCanvas()->SaveAs(filename);
-  }
-}
-*/
 
 //const char* MonCanvas::name() const {return _entryname;}
 

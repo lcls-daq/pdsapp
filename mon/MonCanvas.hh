@@ -30,6 +30,7 @@ namespace Pds {
     virtual int update() = 0;
     virtual int reset(const MonGroup& group) = 0;
     virtual unsigned getplots(MonQtBase**, const char** names) = 0;
+    virtual const MonQtBase* selected() const = 0;
 
   signals:
     void redraw();
@@ -38,6 +39,7 @@ namespace Pds {
     void settings();
     void close();
     void save_image();
+    void save_data ();
     void show_info();
 
   public:

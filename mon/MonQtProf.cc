@@ -141,6 +141,13 @@ float MonQtProf::max(Axis ax) const
   return (ax == X) ? _xmax : (ax==Y) ? _ymax : 0;
 }
 
+void MonQtProf::dump(FILE* f) const
+{
+  int nb = _nbins;
+  for(int i=0; i<nb; i++)
+    fprintf(f,"%g %g\n",0.5*(_x[i]+_x[i+1]),_y[i]);
+}
+
 void MonQtProf::color(int color)
 {
 }

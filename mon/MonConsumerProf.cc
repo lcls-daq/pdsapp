@@ -72,6 +72,19 @@ MonConsumerProf::~MonConsumerProf()
   delete _chart;
 }
 
+const MonQtBase* MonConsumerProf::selected() const
+{
+  MonQtBase* v;
+  switch(_selected) {
+  case MonCanvas::Difference: v = _diff ; break;
+  case MonCanvas::Integrated: v = _hist ; break;
+  case MonCanvas::Chart     : v = _chart; break;
+  case MonCanvas::Since     : v = _since; break;
+  default                   : v = 0; break;
+  }
+  return v;
+}
+
 void MonConsumerProf::select(Select selection)
 {
   if (selection==Since) {

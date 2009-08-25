@@ -72,7 +72,8 @@ void DisplayConfig::reset() {
 
 void DisplayConfig::request(const Src& src, const Acqiris::ConfigV1& config) {
   if (_numsource>=MaxSrc) throw("DisplayConfig::request: Too many sources\n");
-  sprintf(_groupNameBuffer,"%s: %s",DetInfo::name(reinterpret_cast<const DetInfo&>(src)),_groupNameModifier);
+  //  sprintf(_groupNameBuffer,"%s: %s",DetInfo::name(reinterpret_cast<const DetInfo&>(src)),_groupNameModifier);
+  sprintf(_groupNameBuffer,"%s\n%s",DetInfo::name(reinterpret_cast<const DetInfo&>(src)),_groupNameModifier);
   _group[_numsource]=new MonGroup(_groupNameBuffer);
   _cds.add(_group[_numsource]);
   _src[_numsource]=src;

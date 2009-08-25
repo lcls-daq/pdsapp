@@ -193,6 +193,13 @@ float MonQtWaveform::max(Axis ax) const
   return (ax == X) ? _xmax : (ax==Y) ? _ymax : 0;
 }
 
+void MonQtWaveform::dump(FILE* f) const
+{
+  int nb = NBINS;
+  for(int i=0; i<nb; i++)
+    fprintf(f,"%g %g\n",0.5*(_x[i]+_x[i+1]),_y[i]);
+}
+
 void MonQtWaveform::color(int color)
 {
   //  SetLineColor(color);

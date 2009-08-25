@@ -1,6 +1,8 @@
 #ifndef Pds_MonROOTBASE_HH
 #define Pds_MonROOTBASE_HH
 
+#include <stdio.h>
+
 class QwtPlot;
 
 namespace Pds {
@@ -33,6 +35,7 @@ namespace Pds {
     bool isautorng(Axis ax) const;
     virtual float min(Axis ax) const = 0;
     virtual float max(Axis ax) const = 0;
+    virtual void dump(FILE*) const = 0;
 
     virtual void attach(QwtPlot*);
     void apply();

@@ -240,6 +240,14 @@ float MonQtChart::max(Axis ax) const
   return (ax == X) ? float(_npoints) : (ax==Y) ? _ymax : 0;
 }
 
+void MonQtChart::dump(FILE* f) const
+{
+  int current = _current;
+  for(unsigned i=0; i<_npoints; i++)
+    fprintf(f,"%g %g\n",_xl[current+i],_yl[current+i]);
+}
+
+
 void MonQtChart::color(int color)
 {
 }

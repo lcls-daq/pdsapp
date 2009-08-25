@@ -135,6 +135,19 @@ unsigned MonConsumerTH1F::getplots(MonQtBase** plots,
   return Nplots;
 }
 
+const MonQtBase* MonConsumerTH1F::selected() const
+{
+  MonQtBase* v;
+  switch(_selected) {
+  case MonCanvas::Difference: v = _diff ; break;
+  case MonCanvas::Integrated: v = _hist ; break;
+  case MonCanvas::Chart     : v = _chart; break;
+  case MonCanvas::Since     : v = _since; break;
+  default                   : v = 0     ; break;
+  }
+  return v;
+}
+
 void MonConsumerTH1F::select(Select selection)
 {
   if (selection==Since) {

@@ -40,6 +40,7 @@ namespace Pds {
 			  bool autorng, bool islog);
     virtual float min(Axis ax) const;
     virtual float max(Axis ax) const;
+    virtual void dump(FILE*) const;
 
     void color(int color);
     int  color() const;

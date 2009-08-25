@@ -102,6 +102,11 @@ unsigned MonConsumerWaveform::getplots(MonQtBase** plots,
   return Nplots;
 }
 
+const MonQtBase* MonConsumerWaveform::selected() const
+{
+  return _hist;
+}
+
 void MonConsumerWaveform::select(Select selection)
 {
   printf("select %d plot %p hist %p\n", selection, _plot, _hist);

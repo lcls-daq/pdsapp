@@ -78,7 +78,7 @@ MonConsumerImage::MonConsumerImage(QWidget& parent,
   _menu_service(ChartX     , false);
   _menu_service(ChartY     , false);
 
-  select(Difference);
+  select(Normal);
 }
 
 MonConsumerImage::~MonConsumerImage() 
@@ -154,6 +154,20 @@ unsigned MonConsumerImage::getplots(MonQtBase** plots,
   *plots++ = _charty;
   for (unsigned i=0; i<Nplots; i++) names[i] = Names[i];
   return Nplots;
+}
+
+const MonQtBase* MonConsumerImage::selected() const
+{
+  MonQtBase* v;
+  switch(_selected) {
+  case MonCanvas::Normal     : v = _hist  ; break;
+  case MonCanvas::ProjectionX: v = _hist_x; break;
+  case MonCanvas::ProjectionY: v = _hist_y; break;
+  case MonCanvas::ChartX     : v = _chartx; break;
+  case MonCanvas::ChartY     : v = _charty; break;
+  default                    : v = 0; break;
+  }
+  return v;
 }
 
 void MonConsumerImage::select(Select selection)

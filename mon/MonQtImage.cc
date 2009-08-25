@@ -142,6 +142,19 @@ float MonQtImage::max(Axis ax) const
   return (ax == X) ? _xmax : (ax==Y) ? _ymax : _zmax;
 }
 
+void MonQtImage::dump(FILE* f) const
+{
+  const MonDescImage& d(reinterpret_cast<const MonDescImage&>(*_desc));
+  unsigned nx = d.nbinsx();
+  unsigned ny = d.nbinsy();
+  const unsigned* z = _contents;
+  for(unsigned j=0; j<ny; j++) {
+    for(unsigned k=0; k<nx; k++)
+      fprintf(f,"%d ",*z++);
+    fprintf(f,"\n");
+  }
+}
+
 void MonQtImage::color(int color)
 {
 }
