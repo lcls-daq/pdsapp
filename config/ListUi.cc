@@ -65,9 +65,19 @@ void ListUi::update_device_list()
     glob_t g;
     glob(kpath.c_str(),0,0,&g);
     for(unsigned k=0; k<g.gl_pathc; k++) {
-      unsigned phy = strtoul(basename(g.gl_pathv[k]),NULL,16);
-      DeviceEntry entry(phy);
-      *new QListWidgetItem(Pds::DetInfo::name(reinterpret_cast<const Pds::DetInfo&>(entry)),_devlist);
+      const char* src = basename(g.gl_pathv[k]);
+      unsigned phy = strtoul(src,NULL,16);
+      if (strlen(src)==1) {
+	*new QListWidgetItem(Pds::Level::name((Pds::Level::Type)phy),_devlist);
+      }
+      else if (strlen(src)==8) {
+	DeviceEntry entry(phy);
+	*new QListWidgetItem(Pds::DetInfo::name(reinterpret_cast<const Pds::DetInfo&>(entry)),_devlist);
+      }
+      else {
+	printf("config source %s does not compute.  Skipping.\n",src);
+	continue;
+      }
       _devices.push_back(string(g.gl_pathv[k]));
     }
     globfree(&g);
