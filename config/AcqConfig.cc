@@ -17,8 +17,8 @@ namespace Pds_ConfigDb {
   class AcqVert {
   public:
     AcqVert() :
-      _fullScale("Full Scale (Volts)",2.0,0.0,2.0),
-      _offset("Offset (Volts)",0.0,0.0,5.0),
+      _fullScale("Full Scale (Volts)",2.0,0.05,5.0),
+      _offset("Offset (Volts)",0.0,-2.0,2.0),
       _coupling("Coupling", Pds::Acqiris::VertV1::DC, coupling_range),
       _bandwidth("Bandwidth", Pds::Acqiris::VertV1::None, bandwidth_range)
     {}
