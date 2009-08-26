@@ -1,3 +1,4 @@
+2009-Aug-26     cpo     Fix AcqConfig.cc limits for offset/fullscale for acqiris.
 2009-Aug-24	weaver	Added numeric key browser (configdb_list).  Add "Save data" option to mondisplay. 
 2009-Aug-22	weaver	Fixed most reconfigure problems in monshm.cc
 2009-Aug-22     cpo     Fix datagram writing bug in Recorder.cc
