@@ -1,6 +1,6 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evgr xtcwriter pnccd xtctruncate xtcEpicsWriterTest xtcEpicsReaderTest
+tgtnames    := evgr xtcwriter pnccd xtctruncate
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
@@ -28,13 +28,3 @@ tgtslib_pnccd := /usr/lib/rt
 tgtsrcs_xtctruncate := xtctruncate.cc
 tgtlibs_xtctruncate := pdsdata/xtcdata pds/service
 tgtslib_xtctruncate := /usr/lib/rt
-
-tgtsrcs_xtcEpicsWriterTest := xtcEpicsWriterTest.cc EpicsMonitorPv.cc EpicsMonitorPv.hh XtcEpicsMonitor.cc XtcEpicsMonitor.hh XtcEpicsPv.cc XtcEpicsPv.hh EpicsPvData.cc EpicsPvData.hh EpicsDbrTools.cc EpicsDbrTools.hh console_io.cc console_io.hh
-tgtincs_xtcEpicsWriterTest := epics/include epics/include/os/Linux
-tgtlibs_xtcEpicsWriterTest := pdsdata/xtcdata pds/service epics/ca epics/Com
-tgtslib_xtcEpicsWriterTest := 
-
-tgtsrcs_xtcEpicsReaderTest := xtcEpicsReaderTest.cc XtcEpicsFileReader.cc XtcEpicsFileReader.hh XtcEpicsIterator.cc XtcEpicsIterator.hh EpicsDbrTools.cc EpicsDbrTools.hh XtcEpicsPv.hh EpicsPvData.cc
-tgtincs_xtcEpicsReaderTest := epics/include epics/include/os/Linux
-tgtlibs_xtcEpicsReaderTest := pdsdata/xtcdata
-tgtslib_xtcEpicsReaderTest := 
