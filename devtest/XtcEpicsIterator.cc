@@ -1,17 +1,13 @@
 #include <stdio.h>
 #include <string>
-#include "pdsdata/xtc/Xtc.hh"
-#include "pdsdata/xtc/Level.hh"
-#include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/xtc/ProcInfo.hh"
+
 #include "XtcEpicsIterator.hh"
-#include "XtcEpicsMonitor.hh"
-#include "EpicsPvData.hh"
 
 namespace Pds
 {
 
 using std::string;
+const Src XtcEpicsIterator::srcLevel(Level::Recorder);
 
 int XtcEpicsIterator::process(Xtc* xtc) 
 {    
@@ -22,12 +18,13 @@ int XtcEpicsIterator::process(Xtc* xtc)
     printf("%s level: ",Level::name(level));
     
     
-    if (level != XtcEpicsMonitor::srcLevel.level()) 
+    if (level != srcLevel.level()) 
     {
-        printf("XtcEpicsIterator::level is not correct (should be %s)\n", Level::name( XtcEpicsMonitor::srcLevel.level() ) );
+        printf("XtcEpicsIterator::level is not correct (should be %s)\n", Level::name( srcLevel.level() ) );
         return 0; // return Zero to stop recursive processing
     }
     
+    int iVersion = (int) xtc->contains.version();
     TypeId::Type xtcTypeId = xtc->contains.id();
     switch ( xtcTypeId ) 
     {
@@ -37,8 +34,13 @@ int XtcEpicsIterator::process(Xtc* xtc)
         iter.iterate();
         break;
       }
-    case ( XtcEpicsMonitor::typeXtc ) :
+    case ( typeXtc ) :
       {
+        if ( iVersion != iXtcVersion ) 
+        {
+            printf( "Xtc TypdId version (%d) is not compatible with reader supported version (%d)", iVersion, iXtcVersion );
+            break;
+        }
         EpicsPvHeader* pEpicsPvData = (EpicsPvHeader*) ( xtc->payload() );
         pEpicsPvData->printPv();
         printf( "\n" );

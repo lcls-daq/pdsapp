@@ -21,7 +21,7 @@ namespace EpicsBld
  */
 namespace ConfigurationMulticast
 {
-	const unsigned int uDefaultAddr = 239<<24 | 255<<16 | 0<<8 | 1; /// multicast address
+	const unsigned int uDefaultAddr = 239<<24 | 255<<16 | 24<<8 | 1; /// multicast address
 	const unsigned int uDefaultPort = 50000;
 	const unsigned int uDefaultMaxDataSize = 256; /// in bytes
 	const unsigned char ucDefaultTTL = 32; /// minimum: 1 + (# of routers in the middle)

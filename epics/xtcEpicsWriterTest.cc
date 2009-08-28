@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <getopt.h>
 #include "cadef.h"
-#include "XtcEpicsFileReader.hh"
 #include "XtcEpicsMonitor.hh"
 
 namespace Pds
@@ -17,7 +16,7 @@ using namespace Pds;
 
 void showUsageXtcEpicsTest()
 {
-    printf( "Usage:  xtcEpicsMonitorTest  [-v|--version] [-h|--help] <xtc filename>  <pv1 name> [ <pv2 name> ... ]\n" 
+    printf( "Usage:  xtcEpicsWriterTest  [-v|--version] [-h|--help] <xtc filename>  <pv1 name> [ <pv2 name> ... ]\n" 
       "  Options:\n"
       "    -v      Show file version\n"
       "    -h      Show Usage\n"
@@ -26,7 +25,7 @@ void showUsageXtcEpicsTest()
 
 void showVersionXtcEpicsTest()
 {
-    printf( "Version:  xtcEpicsMonitorTest  Ver %s\n", sXtcEpicsTestVersion );
+    printf( "Version:  xtcEpicsWriterTest  Ver %s\n", sXtcEpicsTestVersion );
 }
 
 int main(int argc,char **argv)

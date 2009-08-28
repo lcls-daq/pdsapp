@@ -3,7 +3,6 @@
 #include "pdsdata/xtc/Dgram.hh"
 #include "XtcEpicsFileReader.hh"
 #include "XtcEpicsIterator.hh"
-#include "XtcEpicsMonitor.hh"
 
 namespace Pds
 {    
@@ -29,7 +28,7 @@ int XtcEpicsFileReader::doFileRead()
         return 1;
     }
 
-    XtcFileIterator xtcFileIter(fileXtc,XtcEpicsMonitor::iMaxXtcSize);
+    XtcFileIterator xtcFileIter(fileXtc,XtcEpicsIterator::iMaxXtcSize);
     
     while ( Dgram* dg = xtcFileIter.next() )
     {

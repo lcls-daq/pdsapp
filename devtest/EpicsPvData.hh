@@ -1,6 +1,5 @@
 #ifndef EPICS_PV_DATA_H
 #define EPICS_PV_DATA_H
-#include <alarm.h>
 #include "EpicsDbrTools.hh"
 
 namespace Pds
@@ -42,7 +41,7 @@ private:
     template <int iDbrType> 
     int printCtrlPvByDbrId() const;
 
-    static const int _iSizeAllDbrTypes = sizeof(dbr_text);
+    static const int _iSizeAllDbrTypes = EpicsDbrTools::iSizeAllDbrTypes;
     typedef int (EpicsPvHeader::*TPrintPvFuncPointer)() const;
     static const TPrintPvFuncPointer lfuncPrintPvFunctionTable[_iSizeAllDbrTypes];
     
@@ -278,11 +277,11 @@ int EpicsPvCtrl<iDbrType1, EpicsPvBase> ::printPv() const
 {
     printf( "\n> PV (Ctrl) Id %d\n", this->iPvId ); 
     printf( "Name: %s\n", this->sPvName ); 
-    printf( "Type: %s\n", dbr_text[this->iDbrType] ); 
+    printf( "Type: %s\n", Epics::dbr_text[this->iDbrType] ); 
     if ( this->iNumElements > 1 ) printf("Length: %d\n", this->iNumElements);
     
-    printf("Status: %s\n", epicsAlarmConditionStrings[this->status] );
-    printf("Severity: %s\n", epicsAlarmSeverityStrings[this->severity] );    
+    printf("Status: %s\n", Epics::epicsAlarmConditionStrings[this->status] );
+    printf("Severity: %s\n", Epics::epicsAlarmSeverityStrings[this->severity] );    
         
     EpicsDbrTools::printCtrlFields( *static_cast<const EpicsPvBase*>(this) );
     
@@ -302,16 +301,22 @@ template <int iDbrType1, class EpicsPvBase>
 int EpicsPvTime<iDbrType1, EpicsPvBase> ::printPv() const
 {
     printf( "\n> PV (Time) Id %d\n", this->iPvId); 
-    printf( "Type: %s\n", dbr_text[this->iDbrType] ); 
+    printf( "Type: %s\n", Epics::dbr_text[this->iDbrType] ); 
     if ( this->iNumElements > 1 ) printf("Length: %d\n", this->iNumElements);
     
-    printf("Status: %s\n", epicsAlarmConditionStrings[this->status] );
-    printf("Severity: %s\n", epicsAlarmSeverityStrings[this->severity] );    
+    printf("Status: %s\n", Epics::epicsAlarmConditionStrings[this->status] );
+    printf("Severity: %s\n", Epics::epicsAlarmSeverityStrings[this->severity] );    
     
-    static const char timeFormatStr[40] = "%04Y-%02m-%02d %02H:%02M:%02S.%03f"; /* Time format string */    
+    static const char timeFormatStr[40] = "%04Y-%02m-%02d %02H:%02M:%02S"; /* Time format string */    
     char sTimeText[40];
-    epicsTimeToStrftime(sTimeText, sizeof(sTimeText), timeFormatStr, &this->stamp);
-    printf( "TimeStamp: %s\n", sTimeText );        
+    
+    struct tm tmTimeStamp;
+    localtime_r( (const time_t*) &this->stamp.secPastEpoch, &tmTimeStamp );
+    tmTimeStamp.tm_year += 20; // Epics Epoch starts from 1990, whereas linux time.h Epoch starts from 1970    
+    
+    strftime(sTimeText, sizeof(sTimeText), timeFormatStr, &tmTimeStamp );
+
+    printf( "TimeStamp: %s.%09u\n", sTimeText, (unsigned int) this->stamp.nsec );
    
     printf( "Value: " );
     const TDbrOrg* pValue = &this->value;

@@ -33,6 +33,5 @@ int EpicsPvHeader::printPv()
     
     return 0;
 }
-    
 
 } // namespace Pds    

@@ -7,8 +7,7 @@
 #include <alarm.h>
 #include <epicsTime.h>
 #include "cadef.h"
-#include "EpicsDbrTools.hh"
-#include "EpicsPvData.hh"
+#include "pdsdata/epics/EpicsPvData.hh"
 
 namespace Pds
 {
