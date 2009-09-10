@@ -1,25 +1,26 @@
-2009-Aug-27     tomytsai     Add epics data xtc archiver sample program in pdsapp/epics
+2009-Aug-27 tomytsai    Add epics data collector level 1 (segment) node in pdsapp/dev/epicArch.cc
+2009-Aug-27 tomytsai    Add epics data xtc archiver sample program in pdsapp/epics
 2009-Aug-26     cpo     Fix AcqConfig.cc limits for offset/fullscale for acqiris.
-2009-Aug-24	weaver	Added numeric key browser (configdb_list).  Add "Save data" option to mondisplay. 
+2009-Aug-24	weaver	Added numeric key browser (configdb_list).  Add "Save data" option to mondisplay.
 2009-Aug-22	weaver	Fixed most reconfigure problems in monshm.cc
 2009-Aug-22     cpo     Fix datagram writing bug in Recorder.cc
 2009-Aug-21     cpo     Add acqiris calibration code, and profile histograms to AcqConfig
 2009-Aug-18	weaver  Tag V01-01-00.  Added run statistics to control_gui display by forwarding
-			summarized L1Accepts (damage and size) to control level.  Created shared memory
-			client version of monobs.  Changed interface to configdb to allow editing
-			of XTC files.  Versioning is kept internally.
+            summarized L1Accepts (damage and size) to control level.  Created shared memory
+            client version of monobs.  Changed interface to configdb to allow editing
+            of XTC files.  Versioning is kept internally.
 2009-Aug-15	weaver	Tag V01-00-03.  Changed monobs/CamDisplay and AcqDisplay to
-			serve all channels found on Configure.  Rearranged production
-			code into dev and devtest packages.
+            serve all channels found on Configure.  Rearranged production
+            code into dev and devtest packages.
 2009-Aug-12	weaver	Tag V01-00-02 for production release.
 2009-Aug-11	jackp	Moved production code out of devtest into new package called dev.
 2009-Aug-4	weaver	Fixed xtc file viewing in configdb_gui.  Added read-replace and
-			read-append buttons for creating new xtcs (replacing configuration
-			cycles or appending them).
-2009-Jul-22	weaver	Tag V01-00-01. Synchronized with pds V01-00-01.  
-			Configdb fixes to file permissions, hexadecimal integer support,
-			viewing.
-			RunControl fixes to EPICS interface, configuration.
+            read-append buttons for creating new xtcs (replacing configuration
+            cycles or appending them).
+2009-Jul-22	weaver	Tag V01-00-01. Synchronized with pds V01-00-01.
+            Configdb fixes to file permissions, hexadecimal integer support,
+            viewing.
+            RunControl fixes to EPICS interface, configuration.
 2009-Jul-21	jackp	Added monshmserver
 2009-Jul-17	jackp	Changed DetInfo reference in segtest.cc to pnCCDframe and added devtest/xtctruncate
 2009-Jul-14	weaver	Tag V01-00-00. Consistent with pds V01-00-00.  Added pdsapp/control
@@ -28,15 +29,15 @@
 22-Jun-2009	weaver  config - fixed early delete of ParameterSet objects.
 01-Jun-2009	weaver	Added test/control as a model for run control sequencer.
 16-Apr-2009	weaver	Fixed some bugs in configdb_gui (always generated new keys).
-			Added Pulnix TM6740CL to configdb_gui and devtest/tm6740.
-			Added -d option to devtest/evr to simulate dropped evr multicasts.
-			Added vmon archiving.  Added error message from test/StatsApp to
-			note out-or-order pulse ids (except on rollover).
-			Added ClearReadout occurrence handling in test/controltest to
-			automatically 'disable'.
- 3-Apr-2009     cpo     Fix some acqiris voltage calculation bugs.
+            Added Pulnix TM6740CL to configdb_gui and devtest/tm6740.
+            Added -d option to devtest/evr to simulate dropped evr multicasts.
+            Added vmon archiving.  Added error message from test/StatsApp to
+            note out-or-order pulse ids (except on rollover).
+            Added ClearReadout occurrence handling in test/controltest to
+            automatically 'disable'.
+3-Apr-2009     cpo     Fix some acqiris voltage calculation bugs.
 31-Mar-2009	weaver	Tag V00-08-00. Tracks pds V00-08-00.  Moved camtest.cc to
-			devtest/opal1k.cc.  Added vmondisplay.
+            devtest/opal1k.cc.  Added vmondisplay.
 24-Mar-2009     cpo     Tag V00-07-03. Remove xtcreader from pdsapp.
 24-Mar-2009     cpo     Tag V00-07-02. Removed xtcreader dependencies.
                         Cleaned up voltage calculations in AcqDisplay.
@@ -44,13 +45,13 @@
                         waveforms.  Fix xtcreader compile bugs.  Move
                         monitoring stuff for both opal1k and acqiris
                         to new package monobs (mon observer).
-20-Mar-2009	weaver	Tag V00-07-00. More changes to config.  Alias/key management and xtc 
-			generation are handled in the same gui (both C++ now).  Added 
-			show/killPartition to test package.  controltest now gets a 
-			partition id from source level. Compatible with pds V00-07-02.
+20-Mar-2009	weaver	Tag V00-07-00. More changes to config.  Alias/key management and xtc
+            generation are handled in the same gui (both C++ now).  Added
+            show/killPartition to test package.  controltest now gets a
+            partition id from source level. Compatible with pds V00-07-02.
 10-Mar-2009	weaver  Many changes to /config.  Minor fixes to /mon.
 19-Feb-2009	weaver  Added /mon for monitoring test server and Qt/Qwt display client.
 29-Jan-2009	weaver  Added /camtest for Opal1000 segment level and feature extraction.
-			Added /config for configuration database setup
+            Added /config for configuration database setup
 14-Nov-2008     cpo     Modifications for offline iteration.
 26-Sep-2008	weaver	Initial import.
