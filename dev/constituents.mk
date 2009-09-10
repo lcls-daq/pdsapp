@@ -2,7 +2,7 @@
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr acq opal1k # tm6740
+tgtnames    := evr acq opal1k epicsArch # tm6740
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
@@ -38,3 +38,7 @@ tgtlibs_tm6740 := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/
 tgtlibs_tm6740 += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/camera pds/config
 tgtlibs_tm6740 += $(leutron_libs)
 tgtincs_tm6740 := leutron/include
+
+tgtsrcs_epicsArch := epicsArch.cc
+tgtlibs_epicsArch := pdsdata/xtcdata pdsdata/epics pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pds/epicsArch epics/ca epics/Com
+tgtslib_epicsArch := /usr/lib/rt

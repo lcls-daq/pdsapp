@@ -12,7 +12,7 @@ namespace Pds
     
 using std::string;
 
-const Src XtcEpicsMonitor::srcLevel(Level::Recorder);
+const Src XtcEpicsMonitor::srcLevel(Level::Recorder); // For direct file recording
     
 XtcEpicsMonitor::XtcEpicsMonitor( char* lcFnXtc, int iNumPv, char* lsPvName[] ) :
     _sFnXtc(lcFnXtc), _fhXtc(NULL)
@@ -49,7 +49,6 @@ XtcEpicsMonitor::~XtcEpicsMonitor()
 
 int XtcEpicsMonitor::runMonitorLoop()
 {
-    const double fCaPendIoTimeOut = 1; // in seconds
     const int iNumPv = _lpvPvList.size();
     
     GenericPool* pPool = new GenericPool(XtcEpicsMonitor::iMaxXtcSize, 1);
@@ -92,9 +91,9 @@ int XtcEpicsMonitor::runMonitorLoop()
         if ( bPvUpdated )
         {
             /// !! For debug print
-            //printf("Size of Data: Xtc %d Datagram %d Payload %d Total %d\n", 
-            //    sizeof(Xtc), sizeof(Datagram), pDatagram->xtc.sizeofPayload(), 
-            //    sizeof(Datagram) + pDatagram->xtc.sizeofPayload() );
+            printf("Size of Data: Xtc %d Datagram %d Payload %d Total %d\n", 
+                sizeof(Xtc), sizeof(Datagram), pDatagram->xtc.sizeofPayload(), 
+                sizeof(Datagram) + pDatagram->xtc.sizeofPayload() );
             fwrite(pDatagram, sizeof(Datagram) + pDatagram->xtc.sizeofPayload(), 1, _fhXtc);
         }            
         delete pDatagram;
@@ -106,9 +105,7 @@ int XtcEpicsMonitor::runMonitorLoop()
         fflush(NULL);
         
         if ( cIntput == 'n' || cIntput == 'N' || cIntput == 'q' || cIntput == 'Q')
-            break;
-                    
-        ca_pend_event(fCaPendIoTimeOut);
+            break;                    
     }
     
     printf("\n");
@@ -145,7 +142,9 @@ int XtcEpicsMonitor::setupPvList(int iNumPv, char* lsPvName[], TEpicsMonitorPvLi
     }    
     
     /* flush all CA monitor requests*/
-    ca_flush_io();    
+    ca_flush_io();        
+    ca_pend_event(0.2); 
+    
     return 0;
 }
 

@@ -33,11 +33,27 @@ try
 #ifdef __linux__
     iRecvBufSize += 2048; // 1125
 #endif
+    
+    iRecvBufSize = 5000;
+    /*
+     * In NEH machine, atca201 - atca212, we need to set iRecvBufSize >= 4729 
+     * The actual buffer size (queried by getsockopt() ) is 9458 
+     * Smaller value will cause multicast receiving fails: tcpdump can see and print out the packet, but our
+     * program cannot receive the packet. netstat -s will show errors in receiving packets 
+     */
+
     if(
       setsockopt(_iSocket, SOL_SOCKET, SO_RCVBUF, (char*)&iRecvBufSize, sizeof(iRecvBufSize)) 
       == -1)
         throw string("BldServerSlim::BldServerSlim() : setsockopt(...SO_RCVBUF) failed");
-      
+
+    //int iQueriedRecvBufSize, iLenQueriedRecvBufSize;
+    //if(
+    //  getsockopt(_iSocket, SOL_SOCKET, SO_RCVBUF, (char*)&iQueriedRecvBufSize, (socklen_t*) &iLenQueriedRecvBufSize) 
+    //  == -1)
+    //    throw string("BldServerSlim::BldServerSlim() : getsockopt(...SO_RCVBUF) failed");
+    //printf( "Org Buffer Size = %d, Queried Buffer Size = %d\n", iRecvBufSize, iQueriedRecvBufSize);
+        
     int iYes = 1;
     
 #ifdef VXWORKS 
@@ -187,10 +203,10 @@ void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize )
     printf("Dumping Data (Data Size = %d):\n", iDataSize);
     for (int i=0; i< iDataSize; i++)
     {
-        if ( pcData[i] >= 32 && pcData[i] <= 126 )
-            printf( "%c", pcData[i] );
-        else
-            printf( "[%02X]", (unsigned int) pcData[i] );           
+//        if ( pcData[i] >= 32 && pcData[i] <= 126 )
+//            printf( "%c", pcData[i] );
+//        else
+            printf( "[%02d: %02X]", i, (unsigned int) pcData[i] );           
     }
     printf("\n");
 }
