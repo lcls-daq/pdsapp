@@ -13,6 +13,7 @@ public:
     _payload(dg.xtc.sizeofPayload())
   {
     datagram().xtc.alloc(sizeof(_payload));
+    datagram().xtc.damage.increase(dg.xtc.damage.value());
   }
   ~SummaryDg() {}
 private:
