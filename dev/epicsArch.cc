@@ -131,12 +131,11 @@ using namespace Pds;
 
 static void showUsage()
 {
-    printf( "Usage:  epicsArch  [-v|--version] [-h|--help] [-d|--detctor <detid>] [-p|--platform <platform>] "
+    printf( "Usage:  epicsArch  [-v|--version] [-h|--help] [-p|--platform <platform>] "
       "[-a|--arp <arp process id>] [-i|--interval <min trigger interval>] <config filename>\n" 
       "  Options:\n"
       "    -v|--version       Show file version\n"
       "    -h|--help          Show Usage\n"
-      "    -d|--detector      Set detctor id\n"
       "    -p|--platform      Set platform id\n"
       "    -a|--arp           Set arp process id\n"
       "    -i|--interval      Set minimum trigger interval, in seconds (float value)\n"
@@ -163,13 +162,12 @@ int main(int argc, char** argv)
     };    
     
     // parse the command line for our boot parameters
-    unsigned int detid = -1UL;
     unsigned int uPlatform = -1UL;
     Arp* arp = NULL;
     float fMinTriggerInterval = 1.0f;
 
     
-    while ( int opt = getopt_long(argc, argv, ":vhd:p:a:i:", loOptions, &iOptionIndex ) )
+    while ( int opt = getopt_long(argc, argv, ":vhp:a:i:", loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
@@ -178,9 +176,6 @@ int main(int argc, char** argv)
         case 'v':               /* Print usage */
             showVersion();
             return 0;            
-        case 'd':
-            detid    = strtoul(optarg, NULL, 0);
-            break;
         case 'p':
             uPlatform = strtoul(optarg, NULL, 0);
             break;
@@ -214,9 +209,9 @@ int main(int argc, char** argv)
         showUsage();
         return 1;        
     }    
-    else if ( uPlatform == -1UL || detid == -1UL ) 
+    else if ( uPlatform == -1UL ) 
     {   
-        printf( "epicsArch:main(): Please specify platform and detector ID in command line\n\n" );
+        printf( "epicsArch:main(): Please specify platform in command line\n\n" );
         showUsage();
         return 2;
     }
@@ -236,7 +231,7 @@ int main(int argc, char** argv)
 
     // need to put in new numbers in DetInfo.hh for the epicsArch
     Node node(Level::Source,uPlatform);
-    DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::Acqiris, 0);
+    DetInfo detInfo(node.pid(), Pds::DetInfo::EpicsArch, 0, DetInfo::NoDevice, 0);
 
     Task* task = new Task(Task::MakeThisATask);
 
