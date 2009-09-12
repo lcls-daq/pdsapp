@@ -5,10 +5,6 @@
 #include "pds/management/PartitionControl.hh"
 
 #include "pds/collection/Node.hh"
-#include "pds/utility/StreamPorts.hh"
-#include "pds/collection/PingReply.hh"
-#include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/xtc/BldInfo.hh"
 
 #include <QtGui/QLabel>
 #include <QtGui/QHBoxLayout>
@@ -81,15 +77,8 @@ void PartitionSelect::select_dialog()
       _nodes[_nnodes++] = node;
     }
 
-    // hack the XTOD FEE BLD for now -cpo
-    Node bldnode(Level::Reporter, 0);
-    Ins bld(Pds::StreamPorts::bld(Pds::BldInfo::FEEGasDetEnergy));
-    bldnode.fixup(bld.address(),Ether());
-    printf("*** Listening for bld mcast addr 0x%x\n",bld.address());
-    _nodes[_nnodes++] = bldnode;
-
     _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes);
-    _pcontrol.set_target_state(PartitionControl::Mapped);
+    _pcontrol.set_target_state(PartitionControl::Configured);
 
     _display = dialog->display();
     if (show)

@@ -13,7 +13,7 @@
 using namespace Pds;
 
 
-static const char* _Map           = "ALLOCATE";
+static const char* _Allocate      = "ALLOCATE";
 static const char* _Begin_Running = "BEGIN RUNNING";
 static const char* _Disable       = "DISABLE";
 static const char* _Enable        = "ENABLE";
@@ -59,12 +59,13 @@ void StateSelect::populate()
   _select->clear();
   switch(_control.target_state()) {
   case PartitionControl::Unmapped:   
-                                       _select->addItem(_Map);
+                                       _select->addItem(_Allocate);
 				       _select->addItem(_Begin_Running);
 				       emit deallocated();
 				       break;
   case PartitionControl::Mapped:
                                        emit allocated();
+				       break;
   case PartitionControl::Configured:
                                        _select->addItem(_Begin_Running);
 				       _select->addItem(_Shutdown);
@@ -103,8 +104,8 @@ void StateSelect::selected(const QString& state)
     _control.set_target_state(PartitionControl::Enabled);
   else if (state==_End_Running)
     _control.set_target_state(PartitionControl::Configured);
-  else if (state==_Map)
-    _control.set_target_state(PartitionControl::Mapped);
+  else if (state==_Allocate)
+    _control.set_target_state(PartitionControl::Configured);
   else if (state==_Shutdown)
     _control.set_target_state(PartitionControl::Unmapped);
   else if (state==_Next_Cycle)

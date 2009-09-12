@@ -27,7 +27,7 @@ namespace Pds_ConfigDb {
     bool pull(void* from) {
       Pds::ControlData::PVControl& tc = *new(from) Pds::ControlData::PVControl;
       // construct the full name from the array base and index
-      if (tc.index())
+      if (tc.array())
 	snprintf(_name.value, Pds::ControlData::PVControl::NameSize,
 		 "%s[%d]", tc.name(), tc.index());
       else
@@ -74,7 +74,7 @@ namespace Pds_ConfigDb {
     bool pull(void* from) {
       Pds::ControlData::PVMonitor& tc = *new(from) Pds::ControlData::PVMonitor;
       // construct the full name from the array base and index
-      if (tc.index())
+      if (tc.array())
 	snprintf(_name.value, Pds::ControlData::PVMonitor::NameSize,
 		 "%s[%d]", tc.name(), tc.index());
       else

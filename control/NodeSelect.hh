@@ -16,6 +16,7 @@ namespace Pds {
   public:
     NodeSelect(const Node& node);
     NodeSelect(const Node& node, const PingReply& msg);
+    NodeSelect(const Node& node, const char* desc);
     NodeSelect(const NodeSelect&);
     ~NodeSelect();
   public:

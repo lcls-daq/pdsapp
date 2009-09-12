@@ -57,11 +57,11 @@ Transition* SeqAppliance::transitions(Transition* tr)
 	len = (new(_config_buffer) ControlConfigType(Pds::ControlData::ConfigV1::Default))->size();
       }
 
-      printf("SeqAppliance: configuration is size 0x%x bytes\n",len);
       _cur_config = reinterpret_cast<ControlConfigType*>(_config_buffer);
       _end_config = _cur_config->size() >= unsigned(len) ? 
 	0 : _config_buffer + len;
       _configtc.extent = sizeof(Xtc) + _cur_config->size();
+      _control.set_transition_payload(TransitionId::Configure,&_configtc,_cur_config);
     }
   case TransitionId::BeginCalibCycle:
     //  apply the configuration
@@ -70,6 +70,7 @@ Transition* SeqAppliance::transitions(Transition* tr)
 				EnableEnv(_cur_config->duration()).value() :
 				EnableEnv(_cur_config->events()).value());
     _pvmanager.configure(*_cur_config);
+    _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_cur_config);
     break;
   case TransitionId::EndCalibCycle:
   case TransitionId::Unconfigure:
@@ -96,7 +97,7 @@ InDatagram* SeqAppliance::events     (InDatagram* dg)
   case TransitionId::Configure:
   case TransitionId::BeginCalibCycle:
     _done = false;
-    dg->insert(_configtc,_cur_config);
+    //    dg->insert(_configtc,_cur_config); 
     break;
   case TransitionId::EndCalibCycle:
     //  advance the configuration

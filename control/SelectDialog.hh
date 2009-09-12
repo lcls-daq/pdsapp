@@ -38,6 +38,7 @@ namespace Pds {
     NodeGroup* _segbox;
     NodeGroup* _evtbox;
     NodeGroup* _recbox;
+    NodeGroup* _rptbox;
     QList<Node> _selected;
   };
 };

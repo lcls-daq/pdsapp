@@ -47,7 +47,7 @@ QList<Node> NodeGroup::selected()
   foreach(QAbstractButton* b, buttons) {
     if (b->isChecked()) {
       int id = _buttons->id(b);
-      nodes << _nodes[_buttons->id(b)].node();
+      nodes << _nodes[id].node();
     }
   }
   return nodes;
@@ -87,6 +87,16 @@ NodeSelect::NodeSelect(const Node& node, const PingReply& msg) :
   }
   else 
     _label  = "Segment";
+  struct in_addr inaddr;
+  inaddr.s_addr = ntohl(node.ip());
+  _label += QString(" : %1").arg(inet_ntoa(inaddr));
+  _label += QString(" : %1").arg(node.pid());
+}
+
+NodeSelect::NodeSelect(const Node& node, const char* desc) :
+  _node    (node)
+{
+  _label = desc;
   struct in_addr inaddr;
   inaddr.s_addr = ntohl(node.ip());
   _label += QString(" : %1").arg(inet_ntoa(inaddr));

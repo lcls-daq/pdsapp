@@ -9,6 +9,7 @@ libsrcs_configdb := Path.cc \
 tgtnames       := configdb
 tgtnames       += configdb_gui
 tgtnames       += configdb_list
+tgtnames       += create_scan
 
 # executable python modules: configdb_gui.py
 
@@ -71,3 +72,9 @@ tgtlibs_configdb_list += qt/QtGui qt/QtCore
 tgtlibs_configdb_list += pdsapp/configdb
 tgtslib_configdb_list := /usr/lib/rt
 
+tgtsrcs_create_scan := ControlScan.cc ControlScan_moc.cc
+tgtsrcs_create_scan += create_scan_config.cc
+tgtincs_create_scan := qt/include
+tgtlibs_create_scan := pdsdata/xtcdata pdsdata/controldata
+tgtlibs_create_scan += qt/QtGui qt/QtCore
+tgtslib_create_scan := /usr/lib/rt

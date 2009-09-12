@@ -84,7 +84,7 @@ MainWindow::MainWindow(unsigned          platform,
   _pvmanager = new PVManager(*pvs);
 
   //  the order matters
-  _controlcb->add_appliance(run);
+  _controlcb->add_appliance(run);    // must be first
   _controlcb->add_appliance(new Decoder(Level::Control));
   _controlcb->add_appliance(state);
   _controlcb->add_appliance(new SeqAppliance(*_control,*_config,

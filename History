@@ -1,3 +1,6 @@
+2009-Sep-11 	weaver	Added scan tool for creating control configurations.  
+			Added bld to partition select screen in control_gui.
+			Changed initial target state from Mapped to Configured.
 2009-Aug-27 tomytsai    Add epics data collector level 1 (segment) node in pdsapp/dev/epicArch.cc
 2009-Aug-27 tomytsai    Add epics data xtc archiver sample program in pdsapp/epics
 2009-Aug-26     cpo     Fix AcqConfig.cc limits for offset/fullscale for acqiris.
