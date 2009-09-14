@@ -28,7 +28,7 @@ static const char sEpicsArchVersion[] = "0.90";
 class SegWireSettingsEpicsArch : public SegWireSettings 
 {
 public:
-    SegWireSettingsEpicsArch() {}
+    SegWireSettingsEpicsArch(const Src& src) { _sources.push_back(src); }
     virtual ~SegWireSettingsEpicsArch() {}
     void connect (InletWire& wire, StreamParams::StreamType s, int interface) {}        
     const std::list<Src>& sources() const { return _sources; }
@@ -44,8 +44,10 @@ private:
 class EvtCBEpicsArch : public EventCallback 
 {
 public:
-    EvtCBEpicsArch(Task* task, unsigned int uPlatform, CfgClientNfs& cfgService, const string& sFnConfig, float fMinTriggerInterval ) :
-      _task(task), _uPlatform(uPlatform), _cfg(cfgService), _sFnConfig(sFnConfig), _fMinTriggerInterval(fMinTriggerInterval),
+    EvtCBEpicsArch(Task* task, unsigned int uPlatform, CfgClientNfs& cfgService, const string& sFnConfig, 
+      float fMinTriggerInterval, int iDebugLevel) :
+      _task(task), _uPlatform(uPlatform), _cfg(cfgService), _sFnConfig(sFnConfig), 
+      _fMinTriggerInterval(fMinTriggerInterval), _iDebugLevel(iDebugLevel),
       _bAttached(false), _epicsArchmgr(NULL)  
     {
         //// !! For debug test only
@@ -80,7 +82,7 @@ private:
         // send the data out.    This is "higher level" idea.
      
         reset();        
-        _epicsArchmgr = new EpicsArchManager(_cfg, _sFnConfig, _fMinTriggerInterval);
+        _epicsArchmgr = new EpicsArchManager(_cfg, _sFnConfig, _fMinTriggerInterval, _iDebugLevel);
         _epicsArchmgr->appliance().connect(frmk->inlet());
         _bAttached = true;
     }
@@ -118,6 +120,7 @@ private:
     CfgClientNfs&       _cfg;
     string              _sFnConfig;
     float               _fMinTriggerInterval;
+    int                 _iDebugLevel;
     bool                _bAttached;
     EpicsArchManager*   _epicsArchmgr;    
 }; // class EvtCBEpicsArch
@@ -131,15 +134,16 @@ using namespace Pds;
 
 static void showUsage()
 {
-    printf( "Usage:  epicsArch  [-v|--version] [-h|--help] [-p|--platform <platform>] "
-      "[-a|--arp <arp process id>] [-i|--interval <min trigger interval>] <config filename>\n" 
+    printf( "Usage:  epicsArch  [-v|--version] [-h|--help] [-a|--arp <arp process id>] "
+      "[-i|--interval <min trigger interval>] [-d|--debug <debug level>] -p|--platform <platform> -f <config filename>\n" 
       "  Options:\n"
       "    -v|--version       Show file version\n"
       "    -h|--help          Show Usage\n"
-      "    -p|--platform      Set platform id\n"
+      "    -f|--file          Set configuration filename [required]\n"
+      "    -p|--platform      Set platform id [required]\n"
       "    -a|--arp           Set arp process id\n"
       "    -i|--interval      Set minimum trigger interval, in seconds (float value)\n"
-      "  <config filename>    Configuration File\n" );
+    );
 }
 
 static void showVersion()
@@ -154,10 +158,11 @@ int main(int argc, char** argv)
     {
        {"ver",      0, 0, 'v'},
        {"help",     0, 0, 'h'},
-       {"detector", 1, 0, 'd'},
        {"platform", 1, 0, 'p'},
+       {"file",     1, 0, 'f'},
        {"arp",      1, 0, 'a'},
        {"interval", 1, 0, 'i'},
+       {"debug",    1, 0, 'd'},
        {0,          0, 0,  0  }
     };    
     
@@ -165,9 +170,10 @@ int main(int argc, char** argv)
     unsigned int uPlatform = -1UL;
     Arp* arp = NULL;
     float fMinTriggerInterval = 1.0f;
-
+    string sFnConfig;
+    int iDebugLevel = 0;
     
-    while ( int opt = getopt_long(argc, argv, ":vhp:a:i:", loOptions, &iOptionIndex ) )
+    while ( int opt = getopt_long(argc, argv, ":vhp:f:a:i:d:", loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
@@ -179,11 +185,17 @@ int main(int argc, char** argv)
         case 'p':
             uPlatform = strtoul(optarg, NULL, 0);
             break;
+        case 'f':
+            sFnConfig = optarg;
+            break;
         case 'a':
             arp = new Arp(optarg);
             break;
         case 'i':
             fMinTriggerInterval = (float) strtod(optarg, NULL);
+            break;            
+        case 'd':
+            iDebugLevel = strtoul(optarg, NULL, 0);
             break;            
         case '?':               /* Terse output mode */
             printf( "epicsArch:main(): Unknown option: %c\n", optopt );
@@ -203,21 +215,19 @@ int main(int argc, char** argv)
     argv += optind;
 
 
-    if ( argc < 1 ) 
-    {   
-        printf( "epicsArch:main(): Command Line Syntax Incorrect\n" );
-        showUsage();
-        return 1;        
-    }    
-    else if ( uPlatform == -1UL ) 
+    if ( uPlatform == -1UL ) 
     {   
         printf( "epicsArch:main(): Please specify platform in command line\n\n" );
         showUsage();
+        return 1;
+    }
+    else if ( sFnConfig.empty() ) 
+    {   
+        printf( "epicsArch:main(): Please specify config filename in command line\n\n" );
+        showUsage();
         return 2;
     }
-    
-    string sFnConfig(argv[0]);
-    
+        
     // launch the SegmentLevel
     if (arp) 
     {
@@ -239,9 +249,9 @@ int main(int argc, char** argv)
     {
         // keep this: it's the "hook" into the configuration database
         CfgClientNfs cfgService = CfgClientNfs(detInfo);
-        SegWireSettingsEpicsArch settings;
+        SegWireSettingsEpicsArch settings(detInfo);
         
-        EvtCBEpicsArch evtCBEpicsArch(task, uPlatform, cfgService, sFnConfig, fMinTriggerInterval);
+        EvtCBEpicsArch evtCBEpicsArch(task, uPlatform, cfgService, sFnConfig, fMinTriggerInterval, iDebugLevel);
         SegmentLevel seglevel(uPlatform, settings, evtCBEpicsArch, arp);
         
         seglevel.attach();    
