@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include <string>
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/epics/EpicsXtcSettings.hh"
 
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
@@ -240,8 +241,7 @@ int main(int argc, char** argv)
     }
 
     // need to put in new numbers in DetInfo.hh for the epicsArch
-    Node node(Level::Source,uPlatform);
-    DetInfo detInfo(node.pid(), Pds::DetInfo::EpicsArch, 0, DetInfo::NoDevice, 0);
+    const DetInfo& detInfo = EpicsXtcSettings::detInfo;
 
     Task* task = new Task(Task::MakeThisATask);
 
