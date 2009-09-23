@@ -3,6 +3,10 @@
 
 #include <QtGui/QWidget>
 
+// signal support
+#include <QtCore/qsocketnotifier.h>
+#include "signal.h"
+
 namespace Pds {
   class CCallback;
   class ControlLog;
@@ -17,11 +21,18 @@ namespace Pds {
 	       const char*       partition,
 	       const char*       dbpath);
     ~MainWindow();
+
+    // Unix signal handlers.
+    static void intSignalHandler(int unused);
+    static void termSignalHandler(int unused);
+
   signals:
     void timedout();
     //    void platform_failed();
   public slots:
     void handle_timeout();
+    void handle_sigint();
+    void handle_sigterm();
     //    void handle_platform_error();
   public:
     ControlLog& log();
@@ -34,6 +45,10 @@ namespace Pds {
     CfgClientNfs*     _config;
     PVManager*        _pvmanager;
     ControlLog*       _log;
+
+    // signal handler support
+    QSocketNotifier *snInt;
+    QSocketNotifier *snTerm;
   };
 };
 

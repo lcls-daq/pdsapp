@@ -24,6 +24,13 @@
 
 #include <stdlib.h>
 
+// forward declaration
+static int setup_unix_signal_handlers();
+
+// Unix signal support
+static int sigintFd[2];
+static int sigtermFd[2];
+
 namespace Pds {
   class CCallback : public ControlCallback {
   public:
@@ -95,6 +102,20 @@ MainWindow::MainWindow(unsigned          platform,
   QObject::connect(state, SIGNAL(deallocated()), config, SLOT(deallocated()));
   QObject::connect(this , SIGNAL(timedout())   , this  , SLOT(handle_timeout()));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));
+
+  // Unix signal support
+  if (setup_unix_signal_handlers() ||
+      (::socketpair(AF_UNIX, SOCK_STREAM, 0, sigintFd)) ||
+      (::socketpair(AF_UNIX, SOCK_STREAM, 0, sigtermFd))) {
+    // setup of Unix signal handlers failed
+    printf("Couldn't set up Unix signal handlers\n");
+  } else {
+    // create socket notifiers to trigger Qt signals from Unix signals
+    snInt = new QSocketNotifier(sigintFd[1], QSocketNotifier::Read, this);
+    connect(snInt, SIGNAL(activated(int)), this, SLOT(handle_sigint()));
+    snTerm = new QSocketNotifier(sigtermFd[1], QSocketNotifier::Read, this);
+    connect(snTerm, SIGNAL(activated(int)), this, SLOT(handle_sigterm()));
+  }
 }
   
 MainWindow::~MainWindow()
@@ -144,3 +165,83 @@ void MainWindow::handle_timeout()
 
 }
 
+//
+// In the slot functions connected to the QSocket::activated signals,
+// read the byte.  Now safely back in Qt with signal, and can do all
+// the Qt stuff not allowed to do in the Unix signal handler.
+//
+void MainWindow::handle_sigterm()
+{
+    snTerm->setEnabled(false);
+    char tmp;
+    ::read(sigtermFd[1], &tmp, sizeof(tmp));
+
+    printf("SIGTERM received.  Closing all windows.\n");
+
+    // do Qt stuff
+    QApplication::closeAllWindows();
+
+    snTerm->setEnabled(true);
+}
+
+void MainWindow::handle_sigint()
+{
+    snInt->setEnabled(false);
+    char tmp;
+    ::read(sigintFd[1], &tmp, sizeof(tmp));
+
+    printf("SIGINT received.  Closing all windows.\n");
+
+    // do Qt stuff
+    QApplication::closeAllWindows();
+
+    snInt->setEnabled(true);
+}
+
+//
+// setup_unix_signal_handlers -
+//
+// RETURNS: 0 on success, non-0 on error.
+//
+static int setup_unix_signal_handlers()
+{
+    struct sigaction int_action, term_action;
+
+    int_action.sa_handler = MainWindow::intSignalHandler;
+    sigemptyset(&int_action.sa_mask);
+    int_action.sa_flags = 0;
+    int_action.sa_flags |= SA_RESTART;
+
+    if (sigaction(SIGINT, &int_action, 0) > 0) {
+        return 1;
+    }
+
+    term_action.sa_handler = MainWindow::termSignalHandler;
+    sigemptyset(&term_action.sa_mask);
+    term_action.sa_flags = 0;
+    term_action.sa_flags |= SA_RESTART;
+
+    if (sigaction(SIGTERM, &term_action, 0) > 0) {
+        return 2;
+    }
+
+    return 0;
+}
+
+//
+// In Unix signal handlers, write a byte to the write end of a socket
+// pair and return.  This will cause the corresponding QSocketNotifier
+// to emit its activated() signal, which will in turn cause the appropriate
+// Qt slot function to run.
+//
+void MainWindow::intSignalHandler(int)
+{
+    char a = 1;
+    ::write(sigintFd[0], &a, sizeof(a));
+}
+
+void MainWindow::termSignalHandler(int)
+{
+    char a = 1;
+    ::write(sigtermFd[0], &a, sizeof(a));
+}
