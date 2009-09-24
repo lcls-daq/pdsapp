@@ -215,7 +215,6 @@ int main(int argc, char** argv)
     argc -= optind;
     argv += optind;
 
-
     if ( uPlatform == -1UL ) 
     {   
         printf( "epicsArch:main(): Please specify platform in command line\n\n" );
