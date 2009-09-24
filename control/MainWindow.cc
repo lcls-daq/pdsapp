@@ -98,9 +98,9 @@ MainWindow::MainWindow(unsigned          platform,
 					     *_pvmanager));
   _control->attach();
 
-  QObject::connect(state, SIGNAL(allocated())  , config, SLOT(allocated()));
-  QObject::connect(state, SIGNAL(deallocated()), config, SLOT(deallocated()));
-  QObject::connect(this , SIGNAL(timedout())   , this  , SLOT(handle_timeout()));
+  QObject::connect(state , SIGNAL(allocated())  , config, SLOT(allocated()));
+  QObject::connect(state , SIGNAL(deallocated()), config, SLOT(deallocated()));
+  QObject::connect(this  , SIGNAL(timedout())   , this  , SLOT(handle_timeout()));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));
 
   // Unix signal support
@@ -136,11 +136,18 @@ void MainWindow::controleb_tmo()
 
 void MainWindow::platform_error()
 {
+  /*
+  **  No automatic method for restarting the source level
+  **
   _log->append("Platform failed.\n  Restarting \"source\" application.\n");
   system("restart_source");
   _log->append("Attaching ...\n");
   //  _control->detach();
   _control->attach();
+  */
+  QString msg("Platform failed.  Need to restart \"source\" application.");
+  _log->append(msg);
+  QMessageBox::critical(this, "Platform Error", msg);
 }
 
 void MainWindow::handle_timeout()
@@ -154,11 +161,12 @@ void MainWindow::handle_timeout()
     NodeSelect s(*alloc.node(k));
     msg += s.label() + QString("\n");
   }
-  msg += QString("Resetting...\n");
+  //  msg += QString("Resetting...\n");
+  msg += QString("Need to restart.\n");
 
   _log->append(msg);
 
-  QMessageBox::warning(this, "Transition Error", msg);
+  QMessageBox::critical(this, "Transition Error", msg);
 
   system("restart_nodes");
 

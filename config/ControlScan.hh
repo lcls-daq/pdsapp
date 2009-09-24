@@ -3,20 +3,37 @@
 
 #include <QtGui/QWidget>
 
+#include "pdsapp/config/SerializerDictionary.hh"
+
+#include <string>
+
 class QCheckBox;
 class QButtonGroup;
 class QLineEdit;
+class QString;
 
 namespace Pds_ConfigDb {
-
+  class Experiment;
+  class TableEntry;
   class ControlScan : public QWidget {
     Q_OBJECT
   public:
-    ControlScan();
+    ControlScan(QWidget*, Experiment&);
     ~ControlScan();
+  public:
+    void set_run_type(const QString&);
   public slots:
-    void create();
+    void update ();
+    void details();
+  signals:
+    void created(int);
   private:
+    void write();
+  private:
+    int update_key();
+  private:
+    Experiment& _expt;
+    std::string _run_type;
     QLineEdit* _steps       ;
     QLineEdit* _control_name;
     QLineEdit* _control_lo  ;
@@ -29,6 +46,7 @@ namespace Pds_ConfigDb {
     QButtonGroup* _acqB;
     QLineEdit* _events_value ;
     QLineEdit* _time_value   ;
+    SerializerDictionary _dict;
   };
 };
 

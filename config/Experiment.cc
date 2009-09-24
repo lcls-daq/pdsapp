@@ -136,9 +136,12 @@ bool Experiment::update_key(const TableEntry& entry)
   //
   unsigned valid=0;
   for(list<FileEntry>::const_iterator iter=entry.entries().begin();
-      iter != entry.entries().end(); iter++)
+      iter != entry.entries().end(); iter++) {
     if (device(iter->name())->validate_key(iter->entry(),_path.base()))
       valid++;
+    else
+      printf("%s/%s not valid\n",iter->name().c_str(),iter->entry().c_str());
+  }
   if (valid != entry.entries().size()) {
     cerr << "Cannot update " << entry.name() << '[' << entry.key() << ']' << endl;
     return false;
@@ -151,8 +154,10 @@ bool Experiment::update_key(const TableEntry& entry)
   int changed=0;
   for(list<FileEntry>::const_iterator iter=entry.entries().begin();
       iter != entry.entries().end(); iter++)
-    if (device(iter->name())->update_key(iter->entry(),_path.base())) 
+    if (device(iter->name())->update_key(iter->entry(),_path.base())) {
       changed++;
+      printf("%s/%s changed\n",iter->name().c_str(),iter->entry().c_str());
+    }
 
   mode_t mode = _fmode;
   //  mode_t mode = S_IRWXU | S_IRWXG;

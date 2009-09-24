@@ -6,11 +6,14 @@
 #include "pdsapp/config/Experiment.hh"
 
 class QComboBox;
-class QLineEdit;
+
+namespace Pds_ConfigDb {
+  class Reconfig_Ui;
+  class ControlScan;
+};
 
 namespace Pds {
   class PartitionControl;
-
   class ConfigSelect : public QGroupBox {
     Q_OBJECT
   public:
@@ -19,18 +22,20 @@ namespace Pds {
 		 const char*       db_path);
     ~ConfigSelect();
   public:
-    unsigned run_key() const;
+    void read_db();
   public slots:
-    void set_run_type(const QString&);
-    void set_run_key (const QString&);
-    void update_run_types();
-    void allocated  ();
-    void deallocated();
+    void set_run_type(const QString&); // a run type has been selected
+    void update      ();  // the latest key for the selected run type has changed
+    void run_scan    (int);
+    void allocated   ();
+    void deallocated ();
   private:
-    PartitionControl& _pcontrol;
-    Pds_ConfigDb::Experiment _expt;
-    QComboBox*        _runType;
-    QLineEdit*        _runKey;
+    PartitionControl&          _pcontrol;
+    Pds_ConfigDb::Experiment   _expt;
+    Pds_ConfigDb::Reconfig_Ui* _reconfig;
+    Pds_ConfigDb::ControlScan* _scan;
+    QComboBox*                 _runType;
+    unsigned                   _run_key;
   };
 };
 

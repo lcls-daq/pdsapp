@@ -37,7 +37,7 @@ namespace Pds_ConfigDb {
     void update_keys();
 
     void dump() const;
-  private:
+  public:
     bool update_key(const TableEntry&);
   private:
     Path _path;

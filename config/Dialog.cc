@@ -31,6 +31,21 @@ namespace Pds_ConfigDb {
 using namespace Pds_ConfigDb;
 
 static const QString nopath(".");
+static const QString nochoice;
+
+Dialog::Dialog(QWidget* parent,
+	       Serializer& s,
+	       const QString& file) :
+  QDialog(parent),
+  _s(s),
+  _read_dir (nochoice),
+  _write_dir(nochoice),
+  _file     (file)
+{
+  layout();
+
+  append(file);
+}
 
 Dialog::Dialog(QWidget* parent,
 	       Serializer& s,
@@ -165,31 +180,28 @@ void Dialog::write()
   _s.writeParameters(cycle->buffer);
   _cycles[i] = cycle;
 
-  QString filet = _file.mid(_file.lastIndexOf("/")+1);
-
-  bool ok;
-  QString file = QInputDialog::getText(this,"File to write to:","Filename:",
-				       QLineEdit::Normal,filet,&ok);
-  if (!ok)
-    return;
-  if (file.isEmpty())
-    return;
-
   const int bufsize = 128;
   char* buff = new char[bufsize];
 
-  QString fullname = _write_dir + "/" + file;
-  strcpy(buff,qPrintable(fullname));
-  /*
-  struct stat s;
-  if (!stat(buff,&s)) {
-    QMessageBox::warning(this, "Save error", "Chosen filename already exists");
-    delete[] buff;
-    return;
-  }
-  */
+  if (!_write_dir.isNull()) {
+    QString filet = _file.mid(_file.lastIndexOf("/")+1);
 
-  _file=file;
+    bool ok;
+    QString file = QInputDialog::getText(this,"File to write to:","Filename:",
+					 QLineEdit::Normal,filet,&ok);
+    if (!ok)
+      return;
+    if (file.isEmpty())
+      return;
+
+    _file=file;
+    QString fullname = _write_dir + "/" + file;
+    strcpy(buff,qPrintable(fullname));
+  }
+  else {
+    strcpy(buff,qPrintable(_file));
+  }
+
   FILE* output = fopen(buff,"w");
   for(unsigned k=0; k<_cycles.size(); k++)
     fwrite(_cycles[k]->buffer, _cycles[k]->size, 1, output);

@@ -17,6 +17,9 @@ namespace Pds_ConfigDb {
   public:
     Dialog(QWidget* parent,
 	   Serializer& s,
+	   const QString& file);
+    Dialog(QWidget* parent,
+	   Serializer& s,
 	   const QString& read_dir,
 	   const QString& write_dir);
     Dialog(QWidget* parent,

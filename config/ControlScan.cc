@@ -1,5 +1,10 @@
 #include "pdsapp/config/ControlScan.hh"
 
+#include "pdsapp/config/Parameters.hh"
+#include "pdsapp/config/Dialog.hh"
+#include "pdsapp/config/Experiment.hh"
+#include "pdsapp/config/PdsDefs.hh"
+
 #include "pdsdata/control/PVControl.hh"
 #include "pdsdata/control/PVMonitor.hh"
 #include "pdsdata/control/ConfigV1.hh"
@@ -31,7 +36,7 @@ static void _parse_name(const QString& text,
 			int&     index)
 {
   QRegExp exp("\\[[0-9]+\\]");
-  int i = exp.indexIn(text);
+  int i = text.indexOf(exp);
   base = text.mid(0,i);
   if (i==-1)
     index = -1;
@@ -51,8 +56,11 @@ static void _parse_range(const QString& lo,
   v0 = x0;
 }
 
-ControlScan::ControlScan() : 
+static const char* scan_file = "live_scan.xtc";
+
+ControlScan::ControlScan(QWidget* parent, Experiment& expt) :
   QWidget(0),
+  _expt        (expt),
   _steps       (new QLineEdit),
   _control_name(new QLineEdit),
   _control_lo  (new QLineEdit),
@@ -66,7 +74,7 @@ ControlScan::ControlScan() :
   _events_value (new QLineEdit),
   _time_value   (new QLineEdit)
 {
-  new QIntValidator(_steps);
+  new QIntValidator(0,0x7fffffff,_steps);
   new QDoubleValidator(_control_lo);
   new QDoubleValidator(_control_hi);
   new QDoubleValidator(_readback_offset);
@@ -92,7 +100,9 @@ ControlScan::ControlScan() :
   _acqB->addButton(timeB  );
   eventsB->setChecked(true);
 
-  QPushButton* saveB = new QPushButton("Save");
+  QPushButton* applyB = new QPushButton("OK");
+  QPushButton* editB  = new QPushButton("Details");
+  QPushButton* closeB = new QPushButton("Close");
 
   QVBoxLayout* layout = new QVBoxLayout;
   { QHBoxLayout* layout1 = new QHBoxLayout;
@@ -119,7 +129,7 @@ ControlScan::ControlScan() :
     layout1->addWidget(new QLabel("seconds"),2,2);
     ca_box->setLayout(layout1);
     layout->addWidget(ca_box); }
-  { QGroupBox* acq_box = new QGroupBox("Acquisition");
+  { QGroupBox* acq_box = new QGroupBox("Acquisition / Step");
     QVBoxLayout* layout1 = new QVBoxLayout;
     { QHBoxLayout* layout2 = new QHBoxLayout;
       layout2->addWidget(eventsB);
@@ -136,12 +146,16 @@ ControlScan::ControlScan() :
     layout->addWidget(acq_box); }
   { QHBoxLayout* layout1 = new QHBoxLayout;
     layout1->addStretch();
-    layout1->addWidget(saveB);
+    layout1->addWidget(applyB);
+    layout1->addWidget(editB);
+    layout1->addWidget(closeB);
     layout1->addStretch();
     layout->addLayout(layout1); }
   setLayout(layout);
 
-  connect(saveB, SIGNAL(clicked()), this, SLOT(create()));
+  connect(applyB, SIGNAL(clicked()), this, SLOT(update ()));
+  connect(editB , SIGNAL(clicked()), this, SLOT(details()));
+  connect(closeB, SIGNAL(clicked()), this, SLOT(hide   ()));
 
   _settleB->setEnabled(false);
 }
@@ -150,9 +164,44 @@ ControlScan::~ControlScan()
 {
 }
 
-void ControlScan::create()
+void ControlScan::update()
 {
-  QString file = QFileDialog::getSaveFileName(this,"File to write to:",".", "*.xtc");
+  write();
+  int key = update_key();
+  emit created(key);
+}
+
+void ControlScan::set_run_type(const QString& runType)
+{
+  _run_type = std::string(qPrintable(runType));
+}
+
+void ControlScan::details() // modal dialog
+{
+  write();
+
+  UTypeName utype = PdsDefs::utypeName(PdsDefs::RunControl);
+  string path = _expt.path().data_path("",utype);
+  QString file = QString("%1/%2").arg(path.c_str()).arg(scan_file);
+
+  Parameter::allowEdit(true);
+  Serializer* s = _dict.lookup(Pds::TypeId::Id_ControlConfig);
+  Dialog* d = new Dialog(this, *s, file);
+  d->exec();
+  if (d->result() == QDialog::Accepted) {
+    int key = update_key();
+    emit created(key);
+  }
+
+  delete d;
+}
+
+void ControlScan::write()
+{
+  UTypeName utype = PdsDefs::utypeName(PdsDefs::RunControl);
+  string path = _expt.path().data_path("",utype);
+  QString file = QString("%1/%2").arg(path.c_str()).arg(scan_file);
+
   if (file.isNull() || file.isEmpty())
     return;
 
@@ -161,7 +210,8 @@ void ControlScan::create()
   sprintf(buff,"%s",qPrintable(file));
 
   FILE* output = fopen(buff,"w");
-  int steps = _steps->text().toInt();
+
+  unsigned steps = _steps->text().toInt();
 
   QString control_base;
   int     control_index;
@@ -214,3 +264,22 @@ void ControlScan::create()
   fclose(output);
 }
 
+
+int ControlScan::update_key()
+{
+  static const char* dev_name = "RunControl";
+  static const char* cfg_name = "SCAN";
+
+  Pds_ConfigDb::UTypeName utype = PdsDefs::utypeName(PdsDefs::RunControl);
+
+  _expt.table().set_entry(_run_type, FileEntry(dev_name, cfg_name));
+  _expt.device(dev_name)->table().set_entry(cfg_name, FileEntry(utype, scan_file));
+
+  _expt.update_key(*_expt.table().get_top_entry(_run_type));
+
+  int key = strtoul(_expt.table().get_top_entry(_run_type)->key().c_str(),NULL,16);
+
+  _expt.read();
+
+  return key;
+}
