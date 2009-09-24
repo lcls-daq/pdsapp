@@ -15,6 +15,7 @@
 #include "pds/acqiris/AcqFinder.hh"
 #include "pds/acqiris/AcqServer.hh"
 #include "pds/config/CfgClientNfs.hh"
+#include "acqiris/aqdrv4/AcqirisImport.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -71,7 +72,7 @@ namespace Pds {
     {
       printf("Seg connected to platform 0x%x\n", 
 	     _platform);
-
+      
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       AcqFinder acqFinder;
       unsigned numinstruments=0;
@@ -129,13 +130,21 @@ static void calibrate() {
     for (unsigned i=0;i<numinstruments;i++) {
       printf("Calibrating...\n");
       ViStatus status = AcqrsD1_calibrate(acqFinder.id(i));
-      if(status != VI_SUCCESS)
-	{
-	  char message[256];
-	  AcqrsD1_errorMessage(acqFinder.id(i),status,message);
-	  printf("Acqiris calibration error: %s\n",message);
-	}
-      printf("Acqiris calibration successful.\n");
+      if(status != VI_SUCCESS) {
+        char message[256];
+        AcqrsD1_errorMessage(acqFinder.id(i),status,message);
+        printf("Acqiris calibration error: %s\n",message);
+      } else {
+        printf("Acqiris calibration successful.\n");
+        status = Acqrs_calSave(acqFinder.id(i),AcqManager::calibPath(),1);
+        if(status != VI_SUCCESS) {
+          char message[256];
+          AcqrsD1_errorMessage(acqFinder.id(i),status,message);
+          printf("Acqiris calibration save error: %s\n",message);
+        } else {
+          printf("Calibration saved.\n");
+        }
+      }
     }
   } else {
     printf("Calibration error: found %d acqiris instruments\n",(int)acqFinder.numInstruments());
