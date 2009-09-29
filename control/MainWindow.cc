@@ -14,6 +14,7 @@
 #include "pds/management/ControlCallback.hh"
 #include "pds/utility/SetOfStreams.hh"
 #include "pds/config/CfgClientNfs.hh"
+#include "pds/client/DamageBrowser.hh"
 #include "pds/client/Decoder.hh"
 
 #include <QtGui/QApplication>
@@ -56,7 +57,24 @@ namespace Pds {
     ControlTimeout(MainWindow& w) : _w(w) {}
     ~ControlTimeout() {}
   public:
-    void routine() { _w.controleb_tmo(); }
+    void routine() { 
+      _w.controleb_tmo(); 
+    }
+  private:
+    MainWindow& _w;
+  };
+
+  class ControlDamage : public Appliance {
+  public:
+    ControlDamage(MainWindow& w) : _w(w) {}
+    ~ControlDamage() {}
+  public:
+    Transition* transitions(Transition* tr) { return tr; }
+    InDatagram* events     (InDatagram* dg) 
+    { if (dg->datagram().xtc.damage.value())
+	_w.transition_damaged(*dg);
+      return dg;
+    }
   private:
     MainWindow& _w;
   };
@@ -93,6 +111,7 @@ MainWindow::MainWindow(unsigned          platform,
   //  the order matters
   _controlcb->add_appliance(run);    // must be first
   _controlcb->add_appliance(new Decoder(Level::Control));
+  _controlcb->add_appliance(new ControlDamage(*this));
   _controlcb->add_appliance(state);
   _controlcb->add_appliance(new SeqAppliance(*_control,*_config,
 					     *_pvmanager));
@@ -100,7 +119,8 @@ MainWindow::MainWindow(unsigned          platform,
 
   QObject::connect(state , SIGNAL(allocated())  , config, SLOT(allocated()));
   QObject::connect(state , SIGNAL(deallocated()), config, SLOT(deallocated()));
-  QObject::connect(this  , SIGNAL(timedout())   , this  , SLOT(handle_timeout()));
+  QObject::connect(this  , SIGNAL(transition_failed(const QString&))   , 
+		   this  , SLOT(handle_failed_transition(const QString&)));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));
 
   // Unix signal support
@@ -131,7 +151,45 @@ ControlLog& MainWindow::log() { return *_log; }
 
 void MainWindow::controleb_tmo()
 {
-  emit timedout();
+  QString msg = QString("Timeout waiting for transition %1 -> %2 to complete.\n")
+    .arg(_control->current_state())
+    .arg(_control->target_state ());
+  msg += QString("Failing nodes:\n");
+  Allocation alloc = _control->eb().remaining();
+  for(unsigned k=0; k<alloc.nnodes(); k++) {
+    NodeSelect s(*alloc.node(k));
+    msg += s.label() + QString("\n");
+  }
+  msg += QString("Need to restart.\n");
+
+  emit transition_failed(msg);
+}
+
+void MainWindow::transition_damaged(const InDatagram& dg)
+{
+  DamageBrowser b(dg);
+  const std::list<Xtc>& damaged = b.damaged();
+
+  QString msg = QString("%1 damaged:").arg(TransitionId::name(dg.datagram().seq.service()));
+  for(std::list<Xtc>::const_iterator it=damaged.begin(); it!=damaged.end(); it++) {
+    const Xtc& xtc = *it;
+    if (xtc.src.level()==Level::Source) {
+      const DetInfo& info = static_cast<const DetInfo&>(xtc.src);
+      msg += QString("\n  %1 : 0x%2").arg(DetInfo::name(info)).arg(QString::number(xtc.damage.value(),0,16));
+    }
+    else {
+      const ProcInfo& info = static_cast<const ProcInfo&>(xtc.src);
+      struct in_addr inaddr;
+      inaddr.s_addr = ntohl(info.ipAddr());
+      msg += QString("\n  %1 : %2 : %3 : 0x%4").
+	arg(Level::name(xtc.src.level())).
+	arg(inet_ntoa(inaddr)).
+	arg(info.processId()).
+	arg(QString::number(xtc.damage.value(),16));
+    }
+  }
+
+  emit transition_failed(msg);
 }
 
 void MainWindow::platform_error()
@@ -145,32 +203,15 @@ void MainWindow::platform_error()
   //  _control->detach();
   _control->attach();
   */
-  QString msg("Platform failed.  Need to restart \"source\" application.");
+  QString msg("Partition failed.  Need to restart \"source\" application.");
   _log->append(msg);
   QMessageBox::critical(this, "Platform Error", msg);
 }
 
-void MainWindow::handle_timeout()
+void MainWindow::handle_failed_transition(const QString& msg)
 {
-  QString msg = QString("Timeout waiting for transition %1 -> %2 to complete.\n")
-    .arg(_control->current_state())
-    .arg(_control->target_state ());
-  msg += QString("Failing nodes:\n");
-  Allocation alloc = _control->eb().remaining();
-  for(unsigned k=0; k<alloc.nnodes(); k++) {
-    NodeSelect s(*alloc.node(k));
-    msg += s.label() + QString("\n");
-  }
-  //  msg += QString("Resetting...\n");
-  msg += QString("Need to restart.\n");
-
   _log->append(msg);
-
-  QMessageBox::critical(this, "Transition Error", msg);
-
-  system("restart_nodes");
-
-
+  QMessageBox::critical(this, "Transition Failed", msg);
 }
 
 //

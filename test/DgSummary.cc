@@ -28,5 +28,7 @@ DgSummary::~DgSummary() {}
 Transition* DgSummary::transitions(Transition* tr) { return tr; }
 
 InDatagram* DgSummary::events     (InDatagram* dg) { 
-  return new(&_pool) SummaryDg(dg->datagram());
+  if (dg->datagram().seq.service()==TransitionId::L1Accept)
+    return new(&_pool) SummaryDg(dg->datagram());
+  return dg;
 }

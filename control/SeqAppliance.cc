@@ -51,7 +51,7 @@ Transition* SeqAppliance::transitions(Transition* tr)
     break;
   case TransitionId::Configure:
     {
-      int len = _config.fetch(*tr, _controlConfigType, _config_buffer);
+      int len = _config.fetch(*tr, _controlConfigType, _config_buffer, MaxConfigSize);
       if (len <= 0) {
 	printf("SeqAppliance: failed to retrieve configuration.  Applying default.\n");
 	len = (new(_config_buffer) ControlConfigType(Pds::ControlData::ConfigV1::Default))->size();

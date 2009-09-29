@@ -16,7 +16,6 @@ tgtlibs_evr += evgr/evr evgr/evg
 tgtlibs_evr += pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr 
 tgtslib_evr := /usr/lib/rt
 
-
 #ifeq ($(shell uname -m | egrep -c '(x86_|amd)64$$'),1)
 #ARCHCODE=64
 #else

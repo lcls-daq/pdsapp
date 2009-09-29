@@ -13,6 +13,7 @@ namespace Pds {
   class CfgClientNfs;
   class QualifiedControl;
   class PVManager;
+  class InDatagram;
 
   class MainWindow : public QWidget {
     Q_OBJECT
@@ -27,16 +28,17 @@ namespace Pds {
     static void termSignalHandler(int unused);
 
   signals:
-    void timedout();
+    void transition_failed(const QString&);
     //    void platform_failed();
   public slots:
-    void handle_timeout();
+    void handle_failed_transition(const QString&);
     void handle_sigint();
     void handle_sigterm();
     //    void handle_platform_error();
   public:
     ControlLog& log();
     void controleb_tmo();
+    void transition_damaged(const InDatagram&);
     void platform_error();
   private:
     friend class ControlTimeout;
