@@ -42,12 +42,12 @@ private:
 //    Implements the callbacks for attaching/dissolving.
 //    Appliances can be added to the stream here.
 //
-class EvtCBEpicsArch : public EventCallback 
+class EvtCbEpicsArch : public EventCallback 
 {
 public:
-    EvtCBEpicsArch(Task* task, unsigned int uPlatform, CfgClientNfs& cfgService, const string& sFnConfig, 
+    EvtCbEpicsArch(Task* task, int iPlatform, CfgClientNfs& cfgService, const string& sFnConfig, 
       float fMinTriggerInterval, int iDebugLevel) :
-      _task(task), _uPlatform(uPlatform), _cfg(cfgService), _sFnConfig(sFnConfig), 
+      _task(task), _iPlatform(iPlatform), _cfg(cfgService), _sFnConfig(sFnConfig), 
       _fMinTriggerInterval(fMinTriggerInterval), _iDebugLevel(iDebugLevel),
       _bAttached(false), _epicsArchmgr(NULL)  
     {
@@ -55,7 +55,7 @@ public:
         //_epicsArchmgr = new EpicsArchManager(_cfg, _sFnConfig);        
     }
 
-    virtual ~EvtCBEpicsArch()
+    virtual ~EvtCbEpicsArch()
     {
         reset();
     }
@@ -74,8 +74,8 @@ private:
     // Implements EventCallback
     virtual void attached(SetOfStreams& streams)        
     {        
-        printf("EvtCBEpicsArch connected to uPlatform 0x%x\n", 
-             _uPlatform);
+        printf("EvtCbEpicsArch connected to iPlatform 0x%x\n", 
+             _iPlatform);
 
         Stream* frmk = streams.stream(StreamParams::FrameWork);
         // you'll need a Manager. the Manager
@@ -93,8 +93,8 @@ private:
         static const char* reasonname[] = { "platform unavailable", 
                                         "crates unavailable", 
                                         "fcpm unavailable" };
-        printf("Seg: unable to allocate crates on uPlatform 0x%x : %s\n", 
-             _uPlatform, reasonname[reason]);
+        printf("Seg: unable to allocate crates on iPlatform 0x%x : %s\n", 
+             _iPlatform, reasonname[reason]);
              
         reset();        
     }
@@ -117,14 +117,14 @@ private:
         
 private:
     Task*               _task;
-    unsigned int        _uPlatform;
+    int                 _iPlatform;
     CfgClientNfs&       _cfg;
     string              _sFnConfig;
     float               _fMinTriggerInterval;
     int                 _iDebugLevel;
     bool                _bAttached;
     EpicsArchManager*   _epicsArchmgr;    
-}; // class EvtCBEpicsArch
+}; // class EvtCbEpicsArch
 
 
 } // namespace Pds 
@@ -135,15 +135,15 @@ using namespace Pds;
 
 static void showUsage()
 {
-    printf( "Usage:  epicsArch  [-v|--version] [-h|--help] [-a|--arp <arp process id>] "
-      "[-i|--interval <min trigger interval>] [-d|--debug <debug level>] -p|--platform <platform> -f <config filename>\n" 
+    printf( "Usage:  epicsArch  [-v|--version] [-h|--help] [-i|--interval <min trigger interval>] "
+      "[-d|--debug <debug level>] -p|--platform <platform>  -f <config filename>\n" 
       "  Options:\n"
       "    -v|--version       Show file version\n"
       "    -h|--help          Show Usage\n"
-      "    -f|--file          Set configuration filename [required]\n"
-      "    -p|--platform      Set platform id [required]\n"
-      "    -a|--arp           Set arp process id\n"
-      "    -i|--interval      Set minimum trigger interval, in seconds (float value)\n"
+      "    -d|--debug         Set debug level\n"
+      "    -i|--interval      Set minimum trigger interval, in seconds (float number) [Default: 1.0]\n"
+      "    -f|--file          [*required*] Set configuration filename\n"
+      "    -p|--platform      [*required*] Set platform id\n"
     );
 }
 
@@ -159,22 +159,20 @@ int main(int argc, char** argv)
     {
        {"ver",      0, 0, 'v'},
        {"help",     0, 0, 'h'},
+       {"debug",    1, 0, 'd'},
+       {"interval", 1, 0, 'i'},
        {"platform", 1, 0, 'p'},
        {"file",     1, 0, 'f'},
-       {"arp",      1, 0, 'a'},
-       {"interval", 1, 0, 'i'},
-       {"debug",    1, 0, 'd'},
        {0,          0, 0,  0  }
     };    
     
     // parse the command line for our boot parameters
-    unsigned int uPlatform = -1UL;
-    Arp* arp = NULL;
+    int iPlatform = -1;
     float fMinTriggerInterval = 1.0f;
     string sFnConfig;
     int iDebugLevel = 0;
     
-    while ( int opt = getopt_long(argc, argv, ":vhp:f:a:i:d:", loOptions, &iOptionIndex ) )
+    while ( int opt = getopt_long(argc, argv, ":vhi:d:p:f:", loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
@@ -183,21 +181,18 @@ int main(int argc, char** argv)
         case 'v':               /* Print usage */
             showVersion();
             return 0;            
+        case 'd':
+            iDebugLevel = strtoul(optarg, NULL, 0);
+            break;            
+        case 'i':
+            fMinTriggerInterval = (float) strtod(optarg, NULL);
+            break;            
         case 'p':
-            uPlatform = strtoul(optarg, NULL, 0);
+            iPlatform = strtoul(optarg, NULL, 0);
             break;
         case 'f':
             sFnConfig = optarg;
             break;
-        case 'a':
-            arp = new Arp(optarg);
-            break;
-        case 'i':
-            fMinTriggerInterval = (float) strtod(optarg, NULL);
-            break;            
-        case 'd':
-            iDebugLevel = strtoul(optarg, NULL, 0);
-            break;            
         case '?':               /* Terse output mode */
             printf( "epicsArch:main(): Unknown option: %c\n", optopt );
             break;
@@ -215,51 +210,35 @@ int main(int argc, char** argv)
     argc -= optind;
     argv += optind;
 
-    if ( uPlatform == -1UL ) 
+    if ( iPlatform == -1 ) 
     {   
-        printf( "epicsArch:main(): Please specify platform in command line\n\n" );
+        printf( "epicsArch:main(): Please specify platform in command line\n" );
         showUsage();
         return 1;
     }
-    else if ( sFnConfig.empty() ) 
+    if ( sFnConfig.empty() ) 
     {   
-        printf( "epicsArch:main(): Please specify config filename in command line\n\n" );
+        printf( "epicsArch:main(): Please specify config filename in command line\n" );
         showUsage();
         return 2;
     }
         
-    // launch the SegmentLevel
-    if (arp) 
-    {
-        if (arp->error()) 
-        {
-            printf( "epicsArch:main(): failed to create odfArp : %s\n", strerror(arp->error()));
-            delete arp;
-            return 3;
-        }
-    }
-
     // need to put in new numbers in DetInfo.hh for the epicsArch
     const DetInfo& detInfo = EpicsXtcSettings::detInfo;
 
     Task* task = new Task(Task::MakeThisATask);
 
-    // Local scope: task and arp remain as valid pointers during the life time of this local scope
-    {
-        // keep this: it's the "hook" into the configuration database
-        CfgClientNfs cfgService = CfgClientNfs(detInfo);
-        SegWireSettingsEpicsArch settings(detInfo);
-        
-        EvtCBEpicsArch evtCBEpicsArch(task, uPlatform, cfgService, sFnConfig, fMinTriggerInterval, iDebugLevel);
-        SegmentLevel seglevel(uPlatform, settings, evtCBEpicsArch, arp);
-        
-        seglevel.attach();    
-        if ( evtCBEpicsArch.IsAttached() )    
-            task->mainLoop();          
-    }
+    // keep this: it's the "hook" into the configuration database
+    CfgClientNfs cfgService = CfgClientNfs(detInfo);
+    SegWireSettingsEpicsArch settings(detInfo);
     
-    task->destroy(); 
-    delete arp;
+    EvtCbEpicsArch evtCBEpicsArch(task, iPlatform, cfgService, sFnConfig, fMinTriggerInterval, iDebugLevel);
+    SegmentLevel seglevel(iPlatform, settings, evtCBEpicsArch, NULL);
     
+    seglevel.attach();    
+    if ( evtCBEpicsArch.IsAttached() )    
+        task->mainLoop();          
+    
+    task->destroy();    
     return 0;
 }
