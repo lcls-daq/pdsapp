@@ -43,6 +43,7 @@ namespace Pds {
   MySeqServer* mySeqServerGlobal = NULL;
   int       pipefd[2];
   unsigned rateInCPS = 1;
+  unsigned seconds = 1;
 
   class ServerMsg {
     public:
@@ -79,8 +80,8 @@ namespace Pds {
               _go(false),
               _pipe(fd),
               _evr(0),
-              period(1000000000LL / rateInCPS),
-              _f(0), _f_increment(360/rateInCPS), _t(0)
+              period((1000000000LL*seconds) / rateInCPS),
+              _f(0), _f_increment(360*seconds/rateInCPS), _t(0)
               { _task->call(this); }
 
     ~MySeqServer() { _task->destroy(); }
@@ -88,16 +89,18 @@ namespace Pds {
     void routine() 
     {
       _sleepTime.tv_sec = 0;
+      _sleepTime.tv_nsec = 0;
+      if (rateInCPS > 1) seconds = 0;
       ServerMsg dg;
       while(1) {
         while (!_go) {};
         // generate these at specified interval
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &_now);
-        dg.evr.seq = Sequence(Sequence::Event, TransitionId::L1Accept, ClockTime(_now.tv_sec, _now.tv_nsec), TimeStamp(_t, _f, _evr));
-        dg.evr.evr = _evr++;
+        clock_gettime(CLOCK_REALTIME, &_now);
         dg.offset = 0;
         dg.ptr    = 0;
         dg.length = 0;
+        dg.evr.seq = Sequence(Sequence::Event, TransitionId::L1Accept, ClockTime(_now.tv_sec, _now.tv_nsec), TimeStamp(_t, _f, _evr));
+        dg.evr.evr = _evr++;
         ::write(_pipe,&dg,sizeof(dg));
         _outlet.send((char*)&dg,0,0,_dst);
         _f += _f_increment;
@@ -105,10 +108,11 @@ namespace Pds {
         _t = (random() & 0x3) + 12;
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &_done);
         _busyTime = timeDiff(&_done, &_now);
-        if (period > _busyTime) {
-          _sleepTime.tv_nsec = period - _busyTime;
-          if (nanosleep(&_sleepTime, &_now)<0) perror("nanosleep");
+        if (seconds) _sleepTime.tv_sec = seconds;
+        else {
+          if (period > _busyTime)  _sleepTime.tv_nsec = period - _busyTime;
         }
+        if (nanosleep(&_sleepTime, &_fooTime)<0) perror("nanosleep");
         //printf ("busy time %llu,   sleep time %ld\n", _busyTime, _sleepTime.tv_nsec);
       }
     }
@@ -122,7 +126,7 @@ namespace Pds {
     bool _go;
     int   _pipe;
     unsigned _evr;
-    timespec _now, _done, _sleepTime;
+    timespec _now, _done, _sleepTime, _fooTime;
     long long unsigned period, _busyTime;
     unsigned _f, _f_increment;
     unsigned _t;
@@ -130,7 +134,7 @@ namespace Pds {
   };
 
   class MyL1Server : public EbServer, EbCountSrv {
-      enum { PayloadSize = 4*1024*1024 };
+      enum { PayloadSize = 1024 };
     public:
       MyL1Server(unsigned platform,
           int size1, int size2,
@@ -177,11 +181,10 @@ namespace Pds {
       {
         _more=false;
         ::read(pipefd[0],&_hdr,sizeof(_hdr));
-        char* p;
-        int sz = _fetch(&p);
-        Xtc* xtc = new (payload) Xtc(_xtc);
-        memcpy(xtc->alloc(sz),p,sz);
-        _hdr.length = xtc->extent;
+        _xtc.extent = PayloadSize + sizeof(Xtc);
+        memcpy(payload, &_xtc, sizeof(_xtc));
+        memcpy(payload+sizeof(_xtc),_payload,PayloadSize);
+        _hdr.length = _xtc.extent;
         return _hdr.length;
       }
       int      fetch       (ZcpFragment& zf, int flags)
@@ -221,8 +224,8 @@ namespace Pds {
     private:
       int     _fetch       (char** payload)
       {
-        int sz = (_dsize==0) ? _size0 : _size0 + ((random()%_dsize) & ~3);
-        *payload = &_payload[(random()%(PayloadSize-sz)) & ~3];
+        int sz = PayloadSize;
+        *payload = _payload;
         return sz;
       }
     private:
@@ -349,7 +352,7 @@ namespace Pds {
     public:
       L1Action(MyFEX& fex) : _fex(fex) {}
       Transition* fire(Transition* tr) { return tr; }
-      InDatagram* fire(InDatagram* dg) { return _fex.l1accept(dg); }
+      InDatagram* fire(InDatagram* dg) { return dg; }
     private:
       MyFEX& _fex;
   };
@@ -492,7 +495,7 @@ using namespace Pds;
 
 void _print_help(const char* p0)
 {
-  printf("Usage : %s -p <platform> [-i <det_id> -r <rateInCPS> -s <size_lo size_hi> -v]\n",
+  printf("Usage : %s -p <platform> [-i <det_id> -r <rateInCPS> -s <seconds> -v]\n",
       p0);
 }
 
@@ -512,8 +515,7 @@ int main(int argc, char** argv) {
         detid  = strtoul(optarg, NULL, 0);
         break;
       case 's':
-        if (sscanf(optarg,"%d,%d",&size1,&size2)==1)
-          size2 = size1;
+        sscanf(optarg,"%d",&seconds);
         break;
       case 'p':
         platform = strtoul(optarg, NULL, 0);
@@ -542,7 +544,9 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  printf("rateInCPS %d\n", rateInCPS);
+  printf("rateInCPS (%d", rateInCPS);
+  if (seconds > 1) printf("/%d", seconds);
+  printf(")\n");
 
   Task* task = new Task(Task::MakeThisATask);
   Node node(Level::Source,platform);
