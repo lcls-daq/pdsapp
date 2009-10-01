@@ -44,8 +44,10 @@ private:
 class EvtCBRceProxy : public EventCallback 
 {
 public:
-    EvtCBRceProxy(Task* task, int iPlatform, CfgClientNfs& cfgService, const string& sRceIp, int iDebugLevel) :
-      _task(task), _iPlatform(iPlatform), _cfg(cfgService), _sRceIp(sRceIp), _iDebugLevel(iDebugLevel),
+    EvtCBRceProxy(Task* task, int iPlatform, CfgClientNfs& cfgService, const string& sRceIp, 
+      int iNumLinks, int iPayloadSizePerLink, int iDebugLevel) :
+      _task(task), _iPlatform(iPlatform), _cfg(cfgService), _sRceIp(sRceIp), 
+      _iNumLinks(iNumLinks), _iPayloadSizePerLink(iPayloadSizePerLink), _iDebugLevel(iDebugLevel),
       _bAttached(false), _rceProxymgr(NULL), _pSelfNode(NULL)
     {
     }
@@ -79,7 +81,7 @@ private:
         // send the data out.    This is "higher level" idea.
      
         reset();        
-        _rceProxymgr = new RceProxyManager(_cfg, _sRceIp, *_pSelfNode, _iDebugLevel);
+        _rceProxymgr = new RceProxyManager(_cfg, _sRceIp, _iNumLinks, _iPayloadSizePerLink, *_pSelfNode, _iDebugLevel);
         _rceProxymgr->appliance().connect(frmk->inlet());
         _bAttached = true;
     }
@@ -116,6 +118,8 @@ private:
     int                 _iPlatform;
     CfgClientNfs&       _cfg;
     string              _sRceIp;
+    int                 _iNumLinks;
+    int                 _iPayloadSizePerLink;
     int                 _iDebugLevel;
     bool                _bAttached;
     RceProxyManager*    _rceProxymgr;
@@ -130,17 +134,20 @@ using namespace Pds;
 
 static void showUsage()
 {
-    printf( "Usage: rceProxy [-s|--version] [-h|--help] [-d|--debug <debug level>] "
+    printf( "Usage: rceProxy [-x|--version] [-h|--help] [-d|--debug <debug level>] "
       "[-t|--detector <detector type>] [-i|--detid <detector id>] [-v|--device <device type>] [-e|--devid <device id>] "
+      "[-n|--numlinks <number of links>] [-a|--payloadsize <payload size per link>]"
       "-p|--platform <platform id>  -r|--rceip <rce ip> \n" 
       "  Options:\n"
-      "    -s|--version       Show file version\n"
+      "    -x|--version       Show file version\n"
       "    -h|--help          Show Usage\n"
       "    -d|--debug         Set debug level\n"
-      "    -t|--detector      Set detector type [Default: 8(Camp)]\n"
-      "    -i|--detid         Set detector id   [Default: 0]\n"
-      "    -v|--device        Set device type   [Default: 5(pnCCD)]\n"
-      "    -e|--devid         Set device id     [Default: 0]\n"
+      "    -t|--detector      Set detector type         [Default: 8(Camp)]\n"
+      "    -i|--detid         Set detector id           [Default: 0]\n"
+      "    -v|--device        Set device type           [Default: 5(pnCCD)]\n"
+      "    -e|--devid         Set device id             [Default: 0]\n"
+      "    -n|--numlinks      Set number of links       [Default: 2]\n"
+      "    -a|--payloadsize   Set payload size per link [Default: 524304]\n"
       "    -p|--platform      [*required*] Set platform id \n"
       "    -r|--rceip         [*required*] Set host IP address of RCE \n"
     );
@@ -156,16 +163,18 @@ int main(int argc, char** argv)
     int iOptionIndex = 0;
     struct option loOptions[] = 
     {
-       {"ver",      0, 0, 's'},
-       {"help",     0, 0, 'h'},
-       {"debug",    1, 0, 'd'},
-       {"detector", 1, 0, 't'},
-       {"detId",    1, 0, 'i'},
-       {"device",   1, 0, 'v'},
-       {"devId",    1, 0, 'e'},
-       {"platform", 1, 0, 'p'},
-       {"rceIp",    1, 0, 'r'},
-       {0,          0, 0,  0 },
+       {"ver",          0, 0, 'x'},
+       {"help",         0, 0, 'h'},
+       {"debug",        1, 0, 'd'},
+       {"detector",     1, 0, 't'},
+       {"detId",        1, 0, 'i'},
+       {"device",       1, 0, 'v'},
+       {"devId",        1, 0, 'e'},
+       {"numlinks",     1, 0, 'n'},
+       {"payloadsize",  1, 0, 'a'},
+       {"platform",     1, 0, 'p'},
+       {"rceIp",        1, 0, 'r'},
+       {0,              0, 0,  0 },
     };    
     
     // parse the command line for our boot parameters
@@ -174,10 +183,12 @@ int main(int argc, char** argv)
     int                 iDetectorId = 0;
     DetInfo::Device     device  = DetInfo::pnCCD;
     int                 iDeviceId = 0;
+    int                 iNumLinks = 2;
+    int                 iPayloadSizePerLink = 524304;
     int                 iPlatform = -1;
     string              sRceIp;
     
-    while ( int opt = getopt_long(argc, argv, ":shd:t:i:v:e:p:r:", loOptions, &iOptionIndex ) )
+    while ( int opt = getopt_long(argc, argv, ":xhd:t:i:v:e:n:a:p:r:", loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
@@ -204,6 +215,12 @@ int main(int argc, char** argv)
             break;            
         case 'e':
             iDeviceId = strtoul(optarg, NULL, 0);
+            break;            
+        case 'n':
+            iNumLinks = strtoul(optarg, NULL, 0);
+            break;            
+        case 'a':
+            iPayloadSizePerLink = strtoul(optarg, NULL, 0);
             break;            
         case 'p':
             iPlatform = strtol(optarg, NULL, 0);
@@ -251,7 +268,7 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsRceProxy settings(detInfo);
     
-    EvtCBRceProxy evtCbRceProxy(task, iPlatform, cfgService, sRceIp, iDebugLevel);
+    EvtCBRceProxy evtCbRceProxy(task, iPlatform, cfgService, sRceIp, iNumLinks, iPayloadSizePerLink, iDebugLevel);
     SegmentLevel seglevel(iPlatform, settings, evtCbRceProxy, NULL);    
     evtCbRceProxy.setSelfNode( seglevel.header() );    
     
