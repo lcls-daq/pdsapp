@@ -109,7 +109,9 @@ int XtcEpicsMonitor::runMonitorLoop()
         fflush(NULL);
         
         if ( cIntput == 'n' || cIntput == 'N' || cIntput == 'q' || cIntput == 'Q')
-            break;                    
+            break;    
+            
+        ca_pend_event(0.5); 
     }
     
     printf("\n");
@@ -141,7 +143,7 @@ int XtcEpicsMonitor::setupPvList(int iNumPv, char* lsPvName[], TEpicsMonitorPvLi
         if (iFail != 0)
         {
             printf( "setupPvList()::EpicsMonitorPv::init(%s) failed\n", epicsPvCur.getPvName().c_str());
-            return 1;
+            return 1;   
         }       
     }    
     
