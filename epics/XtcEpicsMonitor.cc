@@ -68,7 +68,11 @@ int XtcEpicsMonitor::runMonitorLoop()
         {
             EpicsMonitorPv& epicsPvCur = _lpvPvList[iPvName];
             if ( !epicsPvCur.isConnected() )
+            {
+                printf( "XtcEpicsMonitor::runMonitorLoop(): PV %s has not been connected to CA library\n",
+                  epicsPvCur.getPvName().c_str() );
                 continue;
+            }
             
             epicsPvCur.printPv();
             
