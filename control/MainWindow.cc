@@ -78,6 +78,29 @@ namespace Pds {
   private:
     MainWindow& _w;
   };
+
+  class FileReport : public Appliance {
+  public:
+    FileReport(ControlLog& log) : _log(log) {}
+    ~FileReport() {}
+  public:
+    Transition* transitions(Transition* tr) { return tr; }
+    InDatagram* events     (InDatagram* dg) 
+    { 
+      if (dg->datagram().seq.service()==TransitionId::BeginRun) {
+	char fname[256];
+	char dtime[64];
+	time_t tm = dg->datagram().seq.clock().seconds();
+	strftime(dtime,64,"%Y%m%d-%H%M%S",gmtime(&tm));
+	sprintf(fname,"%s-0.xtc",dtime);
+	_log.append(QString("Data will be written to %1\n").arg(fname));
+      }
+      return dg;
+    }
+  private:
+    ControlLog& _log;
+  };
+
 };
 
 using namespace Pds;
