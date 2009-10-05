@@ -63,14 +63,15 @@ InDatagram* Recorder::events(InDatagram* in) {
 	in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
       }
     }
- default:  // write this transition
-    fwrite(&(in->datagram()),sizeof(in->datagram()),1,_f);
-    { struct iovec iov;
+  default:  // write this transition
+    if (_f) {    // (Damaged) L1Accepts may trickle in after EndRun!
+      fwrite(&(in->datagram()),sizeof(in->datagram()),1,_f);
+      struct iovec iov;
       int remaining = in->datagram().xtc.sizeofPayload();
       while(remaining) {
-        int isize = iter->read(&iov,1,remaining);
-        fwrite(iov.iov_base,iov.iov_len,1,_f);
-        remaining -= isize;
+	int isize = iter->read(&iov,1,remaining);
+	fwrite(iov.iov_base,iov.iov_len,1,_f);
+	remaining -= isize;
       }
       fflush(_f);
     }

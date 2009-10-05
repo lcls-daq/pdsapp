@@ -5,6 +5,7 @@
 
 namespace Pds {
   class ControlLog : public QTextEdit {
+    Q_OBJECT
   public:
     ControlLog();
     ~ControlLog();

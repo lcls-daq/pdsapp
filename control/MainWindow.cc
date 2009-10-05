@@ -135,6 +135,7 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(run);    // must be first
   _controlcb->add_appliance(new Decoder(Level::Control));
   _controlcb->add_appliance(new ControlDamage(*this));
+  _controlcb->add_appliance(new FileReport(*_log));
   _controlcb->add_appliance(state);
   _controlcb->add_appliance(new SeqAppliance(*_control,*_config,
 					     *_pvmanager));
