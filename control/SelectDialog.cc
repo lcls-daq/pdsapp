@@ -33,10 +33,16 @@ SelectDialog::SelectDialog(QWidget* parent,
   connect(rejectb, SIGNAL(clicked()), this, SLOT(reject()));
 
   // add available BLD
-  for(int i=BldInfo::FEEGasDetEnergy; i<BldInfo::NumberOf; i++) {
-    Node n(Level::Reporter, 0);
-    n.fixup(StreamPorts::bld(i).address(),Ether());
-    _rptbox->addNode(NodeSelect(n,BldInfo::name(BldInfo(0,BldInfo::Type(i)))));
+//   for(int i=BldInfo::FEEGasDetEnergy; i<BldInfo::NumberOf; i++) {
+//     Node n(Level::Reporter, 0);
+//     n.fixup(StreamPorts::bld(i).address(),Ether());
+//     _rptbox->addNode(NodeSelect(n,BldInfo::name(BldInfo(0,BldInfo::Type(i)))));
+//   }
+  { Node n(Level::Reporter, 0);
+    n.fixup(StreamPorts::bld(BldInfo::FEEGasDetEnergy).address(),Ether());
+    _rptbox->addNode(NodeSelect(n,BldInfo::name(BldInfo(0,BldInfo::FEEGasDetEnergy))));
+//     n.fixup(StreamPorts::bld(BldInfo::EBeam).address(),Ether());
+//     _rptbox->addNode(NodeSelect(n,BldInfo::name(BldInfo(0,BldInfo::EBeam))));
   }
   _pcontrol.platform_rollcall(this);
 }

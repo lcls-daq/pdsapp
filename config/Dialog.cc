@@ -11,6 +11,7 @@
 
 #include <sys/stat.h>
 #include <libgen.h>
+#include <errno.h>
 
 namespace Pds_ConfigDb {
 
@@ -203,9 +204,14 @@ void Dialog::write()
   }
 
   FILE* output = fopen(buff,"w");
-  for(unsigned k=0; k<_cycles.size(); k++)
-    fwrite(_cycles[k]->buffer, _cycles[k]->size, 1, output);
-  fclose(output);
+  if (output) {
+    for(unsigned k=0; k<_cycles.size(); k++)
+      fwrite(_cycles[k]->buffer, _cycles[k]->size, 1, output);
+    fclose(output);
+  }
+  else {
+    printf("Error opening %s : %s\n",buff,strerror(errno));
+  }
   delete[] buff;
   accept();
 }

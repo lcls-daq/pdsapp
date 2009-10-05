@@ -55,9 +55,8 @@ InDatagram* Recorder::events(InDatagram* in) {
       if (_f) {
 	printf("Opened %s\n",fname);
 	fwrite(_config, sizeof(Datagram) + 
-	       reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1,
-	       
-	       _f);
+	       reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),
+	       1,_f);
       }
       else {
 	printf("Error opening %s : %s\n",fname,strerror(errno));

@@ -27,8 +27,10 @@ NodeGroup::~NodeGroup()
 void NodeGroup::addNode(const NodeSelect& node)
 {
   int index = _nodes.size();
-  _nodes << node;
-  emit node_added(index);
+  if (!_nodes.contains(node)) {
+    _nodes << node;
+    emit node_added(index);
+  }
 }
 
 void NodeGroup::add_node(int index)
@@ -112,3 +114,5 @@ NodeSelect::NodeSelect(const NodeSelect& s) :
 NodeSelect::~NodeSelect() 
 {
 }
+
+bool NodeSelect::operator==(const NodeSelect& n) const { return n._node == _node; }

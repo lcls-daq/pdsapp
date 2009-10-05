@@ -22,6 +22,8 @@ namespace Pds {
   public:
     const QString& label() const { return _label; }
     const Node& node() const { return _node; }
+  public:
+    bool operator==(const NodeSelect&) const;
   private:
     Node _node;
     QString _label;

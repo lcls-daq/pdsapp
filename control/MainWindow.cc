@@ -151,18 +151,21 @@ ControlLog& MainWindow::log() { return *_log; }
 
 void MainWindow::controleb_tmo()
 {
-  QString msg = QString("Timeout waiting for transition %1 -> %2 to complete.\n")
-    .arg(_control->current_state())
-    .arg(_control->target_state ());
-  msg += QString("Failing nodes:\n");
   Allocation alloc = _control->eb().remaining();
-  for(unsigned k=0; k<alloc.nnodes(); k++) {
-    NodeSelect s(*alloc.node(k));
-    msg += s.label() + QString("\n");
+  // kludge: weaver  we get some timeouts even though the transition is complete
+  if (alloc.nnodes()) {
+    QString msg = QString("Timeout waiting for transition %1 -> %2 to complete.\n")
+      .arg(_control->current_state())
+      .arg(_control->target_state ());
+    msg += QString("Failing nodes:\n");
+    for(unsigned k=0; k<alloc.nnodes(); k++) {
+      NodeSelect s(*alloc.node(k));
+      msg += s.label() + QString("\n");
+    }
+    msg += QString("Need to restart.\n");
+    
+    emit transition_failed(msg);
   }
-  msg += QString("Need to restart.\n");
-
-  emit transition_failed(msg);
 }
 
 void MainWindow::transition_damaged(const InDatagram& dg)
@@ -210,8 +213,9 @@ void MainWindow::platform_error()
 
 void MainWindow::handle_failed_transition(const QString& msg)
 {
+  printf("%s\n",qPrintable(msg));
   _log->append(msg);
-  QMessageBox::critical(this, "Transition Failed", msg);
+//   QMessageBox::critical(this, "Transition Failed", msg);
 }
 
 //
