@@ -23,6 +23,7 @@ private:
   char     _config[SizeofConfig];
   Src      _src;
   unsigned _node;
+  unsigned _beginrunerr;
 };
 
 }

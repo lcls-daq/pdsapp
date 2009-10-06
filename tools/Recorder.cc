@@ -15,7 +15,8 @@ using namespace Pds;
 Recorder::Recorder(const char* path) : 
   Appliance(), 
   _pool    (new GenericPool(sizeof(ZcpDatagramIterator),1)),
-  _node    (0)
+  _node    (0),
+  _beginrunerr(0)
 {
   struct stat st;
   if (stat(path,&st)) {
@@ -45,33 +46,21 @@ InDatagram* Recorder::events(InDatagram* in) {
     memcpy   (_config, &in->datagram(), sizeof(Datagram));
     iter->copy(_config+sizeof(Datagram), in->datagram().xtc.sizeofPayload());
     break;
-  case TransitionId::BeginRun: // open the file, write configure, and this transition
-    { char fname[256];
-      char dtime[64];
-      time_t tm = in->datagram().seq.clock().seconds();
-      strftime(dtime,64,"%Y%m%d-%H%M%S",gmtime(&tm));
-      sprintf(fname,"%s/%s-%d.xtc",_path,dtime,_node);
-      _f=fopen(fname,"w");
-      if (_f) {
-	printf("Opened %s\n",fname);
-	fwrite(_config, sizeof(Datagram) + 
-	       reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),
-	       1,_f);
-      }
-      else {
-	printf("Error opening %s : %s\n",fname,strerror(errno));
-	in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
-      }
+  case TransitionId::BeginRun:
+    if (_beginrunerr) {
+      in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
+      _beginrunerr=0;
     }
+    // deliberately "fall through" the case statement (no "break), so we
+    // rewrite configure transition information every beginrun.
   default:  // write this transition
-    if (_f) {    // (Damaged) L1Accepts may trickle in after EndRun!
-      fwrite(&(in->datagram()),sizeof(in->datagram()),1,_f);
-      struct iovec iov;
+    fwrite(&(in->datagram()),sizeof(in->datagram()),1,_f);
+    { struct iovec iov;
       int remaining = in->datagram().xtc.sizeofPayload();
       while(remaining) {
-	int isize = iter->read(&iov,1,remaining);
-	fwrite(iov.iov_base,iov.iov_len,1,_f);
-	remaining -= isize;
+        int isize = iter->read(&iov,1,remaining);
+        fwrite(iov.iov_base,iov.iov_len,1,_f);
+        remaining -= isize;
       }
       fflush(_f);
     }
@@ -95,6 +84,28 @@ Transition* Recorder::transitions(Transition* tr) {
 	_node = k;
 	break;
       }
+    }
+  }
+  if (tr->id()==TransitionId::BeginRun) {
+    RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
+    // open the file, write configure, and this transition
+    printf("run %d expt %d\n",rinfo.run(),rinfo.experiment());
+    char fname[256];
+    unsigned slice=0;
+    unsigned chunk=0;
+    sprintf(fname,"%s/e%d-r%d_s%d_c%d.xtc",
+            _path,rinfo.experiment(),rinfo.run(),slice,chunk);
+    _f=fopen(fname,"w");
+    if (_f) {
+      printf("Opened %s\n",fname);
+      fwrite(_config, sizeof(Datagram) + 
+             reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1,
+	       
+             _f);
+    }
+    else {
+      printf("Error opening %s : %s\n",fname,strerror(errno));
+      _beginrunerr++;
     }
   }
   return tr;
