@@ -54,6 +54,7 @@ int XtcEpicsMonitor::runMonitorLoop()
     GenericPool* pPool = new GenericPool(XtcEpicsMonitor::iMaxXtcSize, 1);
     TypeId typeIdXtc(XtcEpicsMonitor::typeXtc, XtcEpicsMonitor::iXtcVersion);        
     
+    bool bFirstReport = true;
     /* Keep waiting for CA events */
     while (1)
     {
@@ -78,7 +79,7 @@ int XtcEpicsMonitor::runMonitorLoop()
             
             XtcEpicsPv* pXtcEpicsPvCur = new(&pDatagram->xtc) XtcEpicsPv(typeIdXtc, srcLevel);
 
-            int iFail = pXtcEpicsPvCur->setValue( epicsPvCur );
+            int iFail = pXtcEpicsPvCur->setValue( epicsPvCur, bFirstReport );
             if ( iFail == 0 )
                 bPvUpdated = true;
                 
@@ -90,7 +91,7 @@ int XtcEpicsMonitor::runMonitorLoop()
                   iPvName+1, XtcEpicsMonitor::iMaxXtcSize );
                 break;
             }
-        }                
+        }        
                 
         if ( bPvUpdated )
         {
@@ -102,6 +103,8 @@ int XtcEpicsMonitor::runMonitorLoop()
         }            
         delete pDatagram;
         
+        if ( bFirstReport ) bFirstReport = false;
+        
         printf( "\nContiue monitoring %d PVs? [Y/[nq]]", iNumPv );
         
         char cIntput = 'Y';
@@ -111,7 +114,7 @@ int XtcEpicsMonitor::runMonitorLoop()
         if ( cIntput == 'n' || cIntput == 'N' || cIntput == 'q' || cIntput == 'Q')
             break;    
             
-        ca_pend_event(0.5); 
+        ca_pend_event(1); 
     }
     
     printf("\n");
