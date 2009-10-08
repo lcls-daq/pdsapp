@@ -41,8 +41,8 @@ SelectDialog::SelectDialog(QWidget* parent,
   { Node n(Level::Reporter, 0);
     n.fixup(StreamPorts::bld(BldInfo::FEEGasDetEnergy).address(),Ether());
     _rptbox->addNode(NodeSelect(n,BldInfo::name(BldInfo(0,BldInfo::FEEGasDetEnergy))));
-//     n.fixup(StreamPorts::bld(BldInfo::EBeam).address(),Ether());
-//     _rptbox->addNode(NodeSelect(n,BldInfo::name(BldInfo(0,BldInfo::EBeam))));
+    n.fixup(StreamPorts::bld(BldInfo::EBeam).address(),Ether());
+    _rptbox->addNode(NodeSelect(n,BldInfo::name(BldInfo(0,BldInfo::EBeam))));
   }
   _pcontrol.platform_rollcall(this);
 }
