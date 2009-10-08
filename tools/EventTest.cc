@@ -50,7 +50,7 @@ void EventTest::attached(SetOfStreams& streams)
   //  Stream* occr = streams.stream(StreamParams::Occurrence);
   //  occr->outlet()->sink(OccurrenceId::Vmon);
 
-  if (_options.outfile) (new Recorder(_options.outfile))->connect(frmk->inlet());
+  if (_options.outfile) (new Recorder(_options.outfile, _options.sliceID))->connect(frmk->inlet());
   
   switch (_options.mode) {
   case EventOptions::Counter:

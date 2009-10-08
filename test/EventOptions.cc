@@ -11,13 +11,14 @@ const unsigned DefaultBufferSize = 0x100000;
 
 EventOptions::EventOptions(int argc, char** argv) :
   platform(0),
+  sliceID(0),
   buffersize(DefaultBufferSize),
   arpsuidprocess(0),
   outfile(0),
   mode(Counter)
 {
   int c;
-  while ((c = getopt(argc, argv, "f:p:b:a:ed")) != -1) {
+  while ((c = getopt(argc, argv, "f:p:b:a:s:ed")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -28,6 +29,10 @@ EventOptions::EventOptions(int argc, char** argv) :
     case 'p':
       platform = strtoul(optarg, &endPtr, 0);
       if (errno != 0 || endPtr == optarg) platform = 0;
+      break;
+    case 's':
+      sliceID = strtoul(optarg, &endPtr, 0);
+      if (errno != 0 || endPtr == optarg) sliceID = 0;
       break;
     case 'a':
       arpsuidprocess = optarg;
@@ -53,7 +58,8 @@ int EventOptions::validate(const char* arg0) const
 	   "         -d displays transition summaries and eb statistics\n"
 	   "         -b <buffer_size>\n"
            "         -a <arp_suid_executable>\n"
-           "         -f <outputfilename>\n",
+           "         -f <outputfilename>\n"
+           "         -s <slice_ID>\n",
 	   arg0);
     return 0;
   }

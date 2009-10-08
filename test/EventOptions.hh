@@ -10,6 +10,7 @@ public:
 
 public:  
   unsigned platform;
+  unsigned sliceID;
   unsigned buffersize;
   const char* arpsuidprocess;
   const char* outfile;
