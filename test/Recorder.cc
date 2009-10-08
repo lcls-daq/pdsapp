@@ -83,6 +83,11 @@ InDatagram* Recorder::events(InDatagram* in) {
   }
   if (in->datagram().seq.service()==TransitionId::EndRun) {
     fclose(_f);
+    if (rename(_fnamerunning,_fname)) {
+      printf("Unable to rename %s. Reason: %s\n",_fnamerunning,
+             strerror(errno));
+      in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
+    }
     _f = 0;
   }
 
@@ -106,23 +111,23 @@ Transition* Recorder::transitions(Transition* tr) {
     RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
     // open the file, write configure, and this transition
     printf("run %d expt %d\n",rinfo.run(),rinfo.experiment());
-    char fname[256];
     unsigned chunk=0;
     // create directory
-    sprintf(fname,"%s/e%d", _path,rinfo.experiment());
-    local_mkdir(fname);
+    sprintf(_fname,"%s/e%d", _path,rinfo.experiment());
+    local_mkdir(_fname);
     // open file
-    sprintf(fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
+    sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
             _path,rinfo.experiment(),rinfo.experiment(),rinfo.run(),_sliceID,chunk);
-    _f=fopen(fname,"w");
+    sprintf(_fnamerunning,"%s.inprogress",_fname);
+    _f=fopen(_fnamerunning,"w");
     if (_f) {
-      printf("Opened %s\n",fname);
+      printf("Opened %s\n",_fnamerunning);
       fwrite(_config, sizeof(Datagram) + 
              reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1,
            _f);
     }
     else {
-      printf("Error opening file %s : %s\n",fname,strerror(errno));
+      printf("Error opening file %s : %s\n",_fnamerunning,strerror(errno));
       _beginrunerr++;
     }
   }
