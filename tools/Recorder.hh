@@ -8,7 +8,7 @@ namespace Pds {
 
 class Recorder : public Appliance {
 public:
-  Recorder(const char* fname);
+  Recorder(const char* fname, unsigned int sliceID);
   ~Recorder() {}
   Transition* transitions(Transition*);
   InDatagram* occurrences(InDatagram* in);
@@ -23,6 +23,7 @@ private:
   char     _config[SizeofConfig];
   Src      _src;
   unsigned _node;
+  unsigned int _sliceID;
   unsigned _beginrunerr;
 };
 

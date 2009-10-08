@@ -9,16 +9,31 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <libgen.h>
+#include <sys/types.h>
+#include <dirent.h>
 
 using namespace Pds;
 
-Recorder::Recorder(const char* path) : 
+static void local_mkdir (const char * path)
+{
+  struct stat buf;
+
+  if (path && (stat(path, &buf) != 0)) {
+    if (mkdir(path, 0777)) {
+      perror("Recorder:: mkdir");
+    }
+  }
+}
+
+Recorder::Recorder(const char* path, unsigned int sliceID) : 
   Appliance(), 
   _pool    (new GenericPool(sizeof(ZcpDatagramIterator),1)),
   _node    (0),
+  _sliceID (sliceID),
   _beginrunerr(0)
 {
   struct stat st;
+
   if (stat(path,&st)) {
     printf("Cannot stat %s : %s\n",path,strerror(errno));
     printf("Using current working directory\n");
@@ -76,13 +91,14 @@ InDatagram* Recorder::events(InDatagram* in) {
 }
 
 Transition* Recorder::transitions(Transition* tr) {
-  if (tr->id()==TransitionId::Configure) {
+  if (tr->id()==TransitionId::Map) {
     const Allocation& alloc = reinterpret_cast<const Allocate*>(tr)->allocation();
+
     for(unsigned k=0; k<alloc.nnodes(); k++) {
       const Node& n = *alloc.node(k);
       if (n.procInfo() == reinterpret_cast<const ProcInfo&>(_src)) {
-	_node = k;
-	break;
+        _node = k;
+        break;
       }
     }
   }
@@ -91,20 +107,22 @@ Transition* Recorder::transitions(Transition* tr) {
     // open the file, write configure, and this transition
     printf("run %d expt %d\n",rinfo.run(),rinfo.experiment());
     char fname[256];
-    unsigned slice=0;
     unsigned chunk=0;
-    sprintf(fname,"%s/e%d-r%d_s%d_c%d.xtc",
-            _path,rinfo.experiment(),rinfo.run(),slice,chunk);
+    // create directory
+    sprintf(fname,"%s/e%d", _path,rinfo.experiment());
+    local_mkdir(fname);
+    // open file
+    sprintf(fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
+            _path,rinfo.experiment(),rinfo.experiment(),rinfo.run(),_sliceID,chunk);
     _f=fopen(fname,"w");
     if (_f) {
       printf("Opened %s\n",fname);
       fwrite(_config, sizeof(Datagram) + 
              reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1,
-	       
-             _f);
+           _f);
     }
     else {
-      printf("Error opening %s : %s\n",fname,strerror(errno));
+      printf("Error opening file %s : %s\n",fname,strerror(errno));
       _beginrunerr++;
     }
   }
