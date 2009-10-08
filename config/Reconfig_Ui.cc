@@ -149,5 +149,5 @@ void Reconfig_Ui::change_component()
         
 Serializer& Reconfig_Ui::lookup(const UTypeName& stype)
 { 
-  return *_dict.lookup(PdsDefs::typeId(stype)->id());
+  return *_dict.lookup(*PdsDefs::typeId(stype));
 }    

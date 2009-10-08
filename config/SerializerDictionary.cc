@@ -4,15 +4,23 @@
 
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/EvrConfig.hh"
+#include "pdsapp/config/EvrConfig_V1.hh"
 #include "pdsapp/config/AcqConfig.hh"
 #include "pdsapp/config/Opal1kConfig.hh"
 #include "pdsapp/config/TM6740Config.hh"
 #include "pdsapp/config/FrameFexConfig.hh"
 #include "pdsapp/config/ControlConfig.hh"
 
+#include "pds/config/EvrConfigType.hh"
+#include "pds/config/AcqConfigType.hh"
+#include "pds/config/Opal1kConfigType.hh"
+#include "pds/config/TM6740ConfigType.hh"
+#include "pds/config/FrameFexConfigType.hh"
+#include "pds/config/ControlConfigType.hh"
+
 using namespace Pds_ConfigDb;
 
-SerializerDEntry::SerializerDEntry(Pds::TypeId::Type t,
+SerializerDEntry::SerializerDEntry(const Pds::TypeId& t,
 				   Serializer* s) :
   type(t), serializer(s) {}
 
@@ -22,18 +30,20 @@ SerializerDEntry::~SerializerDEntry()
 
 bool SerializerDEntry::operator==(const SerializerDEntry& s) const
 {
-  return type==s.type;
+  return type.value()==s.type.value();
 }
 
 
 SerializerDictionary::SerializerDictionary()
 {
-  enroll(Pds::TypeId::Id_AcqConfig,new AcqConfig);
-  enroll(Pds::TypeId::Id_EvrConfig,new EvrConfig);
-  enroll(Pds::TypeId::Id_Opal1kConfig,new Opal1kConfig);
-  enroll(Pds::TypeId::Id_TM6740Config,new TM6740Config);
-  enroll(Pds::TypeId::Id_FrameFexConfig,new FrameFexConfig);
-  enroll(Pds::TypeId::Id_ControlConfig ,new ControlConfig);
+  enroll(_acqConfigType     ,new AcqConfig);
+  enroll(_evrConfigType     ,new EvrConfig);
+  enroll(_opal1kConfigType  ,new Opal1kConfig);
+  enroll(_tm6740ConfigType  ,new TM6740Config);
+  enroll(_frameFexConfigType,new FrameFexConfig);
+  enroll(_controlConfigType ,new ControlConfig);
+  //  retired
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,1), new EvrConfig_V1);
 }
 
 SerializerDictionary::~SerializerDictionary()
@@ -43,7 +53,7 @@ SerializerDictionary::~SerializerDictionary()
     delete iter->serializer;
 }
 
-void SerializerDictionary::enroll(Pds::TypeId::Type type,
+void SerializerDictionary::enroll(const Pds::TypeId& type,
 				  Serializer* s)
 {
   SerializerDEntry entry(type,s);
@@ -51,11 +61,11 @@ void SerializerDictionary::enroll(Pds::TypeId::Type type,
   _list.push_back(entry);
 }
 
-Serializer* SerializerDictionary::lookup(Pds::TypeId::Type type)
+Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
 {
   for(list<SerializerDEntry>::iterator iter=_list.begin();
       iter!=_list.end(); iter++)
-    if (iter->type==type)
+    if (iter->type.value()==type.value())
       return iter->serializer;
   return 0;
 }

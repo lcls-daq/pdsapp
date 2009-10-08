@@ -118,7 +118,7 @@ void ListUi::view_xtc()
 
   QString qfile(_types[_xtclist->currentRow()].c_str());
 
-  Dialog* d = new Dialog(_xtclist, *_dict.lookup(t.id()), qpath, qpath, qfile);
+  Dialog* d = new Dialog(_xtclist, *_dict.lookup(t), qpath, qpath, qfile);
   d->exec();
   delete d;
 }

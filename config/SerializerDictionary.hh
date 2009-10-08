@@ -12,11 +12,11 @@ namespace Pds_ConfigDb {
 
   class SerializerDEntry {
   public:
-    SerializerDEntry(Pds::TypeId::Type, Serializer*);
+    SerializerDEntry(const Pds::TypeId&, Serializer*);
     ~SerializerDEntry();
   public:
     bool operator==(const SerializerDEntry&) const;
-    Pds::TypeId::Type type;
+    Pds::TypeId       type;
     Serializer*       serializer;
   };
 
@@ -25,8 +25,8 @@ namespace Pds_ConfigDb {
     SerializerDictionary();
     ~SerializerDictionary();
   public:
-    Serializer* lookup(Pds::TypeId::Type type);
-    void enroll(Pds::TypeId::Type, Serializer*);
+    Serializer* lookup(const Pds::TypeId& type);
+    void enroll(const Pds::TypeId&, Serializer*);
   private:
     list<SerializerDEntry> _list;
   };

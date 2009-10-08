@@ -7,8 +7,9 @@
 
 #include "pdsdata/control/PVControl.hh"
 #include "pdsdata/control/PVMonitor.hh"
-#include "pdsdata/control/ConfigV1.hh"
 #include "pdsdata/xtc/ClockTime.hh"
+
+#include "pds/config/ControlConfigType.hh"
 
 #include <QtGui/QGroupBox>
 #include <QtGui/QVBoxLayout>
@@ -185,7 +186,7 @@ void ControlScan::details() // modal dialog
   QString file = QString("%1/%2").arg(path.c_str()).arg(scan_file);
 
   Parameter::allowEdit(true);
-  Serializer* s = _dict.lookup(Pds::TypeId::Id_ControlConfig);
+  Serializer* s = _dict.lookup(_controlConfigType);
   Dialog* d = new Dialog(this, *s, file);
   d->exec();
   if (d->result() == QDialog::Accepted) {

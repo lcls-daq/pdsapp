@@ -361,5 +361,5 @@ void Devices_Ui::add_component(const QString& type)
         
 Serializer& Devices_Ui::lookup(const UTypeName& stype)
 { 
-  return *_dict.lookup(PdsDefs::typeId(stype)->id());
+  return *_dict.lookup(*PdsDefs::typeId(stype));
 }    
