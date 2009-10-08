@@ -69,15 +69,17 @@ InDatagram* Recorder::events(InDatagram* in) {
     // deliberately "fall through" the case statement (no "break), so we
     // rewrite configure transition information every beginrun.
   default:  // write this transition
-    fwrite(&(in->datagram()),sizeof(in->datagram()),1,_f);
-    { struct iovec iov;
-      int remaining = in->datagram().xtc.sizeofPayload();
-      while(remaining) {
-        int isize = iter->read(&iov,1,remaining);
-        fwrite(iov.iov_base,iov.iov_len,1,_f);
-        remaining -= isize;
+    if (_f) {
+      fwrite(&(in->datagram()),sizeof(in->datagram()),1,_f);
+      { struct iovec iov;
+        int remaining = in->datagram().xtc.sizeofPayload();
+        while(remaining) {
+          int isize = iter->read(&iov,1,remaining);
+          fwrite(iov.iov_base,iov.iov_len,1,_f);
+          remaining -= isize;
+        }
+        fflush(_f);
       }
-      fflush(_f);
     }
     break;
   }
