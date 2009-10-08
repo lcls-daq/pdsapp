@@ -2,6 +2,7 @@
 #define Pds_StateSelect_hh
 
 #include "pds/utility/Appliance.hh"
+#include "pds/offlineclient/OfflineClient.hh"
 #include <QtGui/QGroupBox>
 
 class QPoint;
@@ -12,13 +13,15 @@ class QPalette;
 
 namespace Pds {
   class PartitionControl;
-
+  class MainWindow;
+ 
   class StateSelect : public QGroupBox,
 		      public Appliance {
     Q_OBJECT
   public:
-    StateSelect(QWidget*,
-		PartitionControl&);
+    StateSelect(MainWindow*,
+		PartitionControl&,
+        OfflineClient*);
     ~StateSelect();
   public:
     virtual Transition* transitions(Transition*);
@@ -32,10 +35,12 @@ namespace Pds {
     void selected(const QString&);
   private:
     PartitionControl& _control;
+    OfflineClient*    _offlineclient;
     QComboBox*        _select;
     QLabel*           _display;
     QPalette*         _green;
     QPalette*         _yellow;
+    MainWindow&       _w;
   };
 };
 

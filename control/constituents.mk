@@ -16,13 +16,15 @@ tgtsrcs_control_gui += PVMonitor.cc
 tgtsrcs_control_gui += PVControl.cc
 tgtsrcs_control_gui += EpicsCA.cc
 tgtlibs_control_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata
-tgtlibs_control_gui += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/client pds/config pds/management
+tgtlibs_control_gui += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/client pds/offlineclient pds/config pds/management
 tgtlibs_control_gui += pdsapp/configdb
 tgtlibs_control_gui += qt/QtGui qt/QtCore
 tgtlibs_control_gui += epics/ca epics/Com
+tgtlibs_control_gui += offlinedb/mysqlclient offlinedb/offlinedb
 tgtslib_control_gui := /usr/lib/rt
 tgtincs_control_gui := qt/include
 tgtincs_control_gui += epics/include epics/include/os/Linux
+tgtincs_control_gui += offlinedb/include
 
 tgtsrcs_catest := catest.cc PVMonitor.cc EpicsCA.cc
 tgtslib_catest := /usr/lib/rt

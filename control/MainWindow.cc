@@ -10,6 +10,7 @@
 #include "pdsapp/control/RunStatus.hh"
 #include "pdsapp/control/ControlLog.hh"
 
+#include "pds/offlineclient/OfflineClient.hh"
 #include "pds/management/QualifiedControl.hh"
 #include "pds/management/ControlCallback.hh"
 #include "pds/utility/SetOfStreams.hh"
@@ -81,24 +82,39 @@ namespace Pds {
 
   class FileReport : public Appliance {
   public:
-    FileReport(ControlLog& log) : _log(log) {}
+    FileReport(ControlLog& log) :
+      _log(log),
+      _experiment_number(0),
+      _run_number(0)
+    {
+    }
     ~FileReport() {}
+
   public:
-    Transition* transitions(Transition* tr) { return tr; }
+    Transition* transitions(Transition* tr)
+    {
+      if (tr->id()==TransitionId::BeginRun) {
+          RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
+          _run_number = rinfo.run();
+          _experiment_number = rinfo.experiment();
+      }
+    return tr;
+    }
+
     InDatagram* events     (InDatagram* dg) 
     { 
       if (dg->datagram().seq.service()==TransitionId::BeginRun) {
-	char fname[256];
-	char dtime[64];
-	time_t tm = dg->datagram().seq.clock().seconds();
-	strftime(dtime,64,"%Y%m%d-%H%M%S",gmtime(&tm));
-	sprintf(fname,"%s-0.xtc",dtime);
-	_log.append(QString("Data will be written to %1\n").arg(fname));
+        char fname[256];
+        sprintf(fname, "e%d-r%04d-sNN-c00.xtc", 
+                _experiment_number, _run_number);
+        _log.append(QString("Data will be written to %1\n").arg(fname));
       }
       return dg;
     }
   private:
     ControlLog& _log;
+    unsigned int _experiment_number;
+    unsigned int _run_number;
   };
 
 };
@@ -108,7 +124,9 @@ using Pds_ConfigDb::Experiment;
 
 MainWindow::MainWindow(unsigned          platform,
 		       const char*       partition,
-		       const char*       db_path) :
+		       const char*       db_path,
+		       const char*       offlinerc,
+		       const char*       experiment) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
   _control  (new QualifiedControl(platform, *_controlcb, new ControlTimeout(*this))),
@@ -120,11 +138,23 @@ MainWindow::MainWindow(unsigned          platform,
   StateSelect*      state ;
   PVDisplay*        pvs;
   RunStatus*        run;
+  unsigned int      experiment_number = 0;
+
+  if (offlinerc) {
+    // offline database
+    _offlineclient = new OfflineClient(offlinerc, partition, experiment);
+    experiment_number = _offlineclient->GetExperimentNumber();
+    _control->set_experiment(experiment_number);
+    printf("MainWindow(): GetExperimentNumber() returned %u\n", experiment_number);
+  } else {
+    // NULL offline database
+    _offlineclient = (OfflineClient*)NULL;
+  }
 
   QVBoxLayout* layout = new QVBoxLayout(this);
   layout->addWidget(config    = new ConfigSelect   (this, *_control, db_path));
   layout->addWidget(            new PartitionSelect(this, *_control, partition, db_path));
-  layout->addWidget(state     = new StateSelect    (this, *_control));
+  layout->addWidget(state     = new StateSelect    (this, *_control, _offlineclient));
   layout->addWidget(pvs       = new PVDisplay      (this, *_control));
   layout->addWidget(run       = new RunStatus      (this));
   layout->addWidget(_log      = new ControlLog);
@@ -137,6 +167,9 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(new ControlDamage(*this));
   _controlcb->add_appliance(new FileReport(*_log));
   _controlcb->add_appliance(state);
+  if (offlinerc) {
+    _controlcb->add_appliance(_offlineclient);
+  }
   _controlcb->add_appliance(new SeqAppliance(*_control,*_config,
 					     *_pvmanager));
   _control->attach();
@@ -169,6 +202,7 @@ MainWindow::~MainWindow()
   delete _control; 
   delete _controlcb; 
   delete _pvmanager;
+  delete _offlineclient;
 }
 
 ControlLog& MainWindow::log() { return *_log; }

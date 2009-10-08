@@ -6,6 +6,7 @@
 // signal support
 #include <QtCore/qsocketnotifier.h>
 #include "signal.h"
+#include "pds/offlineclient/OfflineClient.hh"
 
 namespace Pds {
   class CCallback;
@@ -20,7 +21,9 @@ namespace Pds {
   public:
     MainWindow(unsigned          platform,
 	       const char*       partition,
-	       const char*       dbpath);
+	       const char*       dbpath,
+	       const char*       offlinerc,
+	       const char*       experiment);
     ~MainWindow();
 
     // Unix signal handlers.
@@ -47,6 +50,7 @@ namespace Pds {
     CfgClientNfs*     _config;
     PVManager*        _pvmanager;
     ControlLog*       _log;
+    OfflineClient*    _offlineclient;
 
     // signal handler support
     QSocketNotifier *snInt;

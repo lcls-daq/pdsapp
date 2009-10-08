@@ -18,10 +18,12 @@ int main(int argc, char** argv)
   unsigned nbld = 0;
   const char* partition = "partition";
   const char* dbpath    = "none";
+  const char* offlinerc = (char *)NULL;
+  const char* experiment = (char *)NULL;
   unsigned key=0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:b:P:D:")) != -1) {
+  while ((c = getopt(argc, argv, "p:b:P:D:L:E:")) != -1) {
     char* endPtr;
     switch (c) {
     case 'b':
@@ -40,10 +42,18 @@ int main(int argc, char** argv)
     case 'k':
       key = strtoul(optarg, &endPtr, 0);
       break;
+    case 'L':
+      offlinerc = optarg;
+      break;
+    case 'E':
+      experiment = optarg;
+      break;
     }
   }
-  if (platform==-1UL || !partition || !dbpath) {
-    printf("usage: %s -p <platform> -P <partition_description> -D <db name> [-b <bld>]\n", argv[0]);
+  if ((platform==-1UL || !partition || !dbpath) ||
+      (offlinerc && !experiment) || (!offlinerc && experiment)) {
+    printf("usage: %s -p <platform> -P <partition_description> -D <db name> [-b <bld>]\n"
+           "             [-L <offlinerc> -E <experiment_name>]\n", argv[0]);
     return 0;
   }
 
@@ -53,7 +63,9 @@ int main(int argc, char** argv)
 
   MainWindow* window = new MainWindow(platform,
 				      partition,
-				      dbpath);
+				      dbpath,
+				      offlinerc,
+				      experiment);
   window->show();
   app.exec();
 
