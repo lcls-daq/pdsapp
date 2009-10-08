@@ -105,9 +105,9 @@ namespace Pds {
     { 
       if (dg->datagram().seq.service()==TransitionId::BeginRun) {
         char fname[256];
-        sprintf(fname, "e%d-r%04d-sNN-c00.xtc", 
+        sprintf(fname, "e%d-r%04d-sNN-cNN.xtc", 
                 _experiment_number, _run_number);
-        _log.append(QString("Data will be written to %1\n").arg(fname));
+        _log.append(QString("Data file: %1\n").arg(fname));
       }
       return dg;
     }

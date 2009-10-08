@@ -1,3 +1,4 @@
+2009-Oct-7      caf     Version to support logbook entries and filename convention.  Tag V01-03-00.
 2009-Oct-6      cpo     Support for sending run/expt number to event level.
 2009-Oct-05	weaver	Tag V01-02-06 corresponding to current -> 1.2.6
 2009-Sep-29     tomytsai  Add rceProxy application in pdsapp/dev/rceProxy.cc
