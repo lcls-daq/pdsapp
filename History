@@ -1,4 +1,5 @@
-2009-Oct-08	weaver  Tag V01-04-00.  Evr no longer uses command line argument for opcode.
+2009-Oct-8      cpo     Fix bug with run number allocation during automatic reconfig when changing config db.  Tagged V01-03-02.
+2009-Oct-08     weaver  Tag V01-04-00.  Evr no longer uses command line argument for opcode.
 			Added configdb support for versioned configurations.
 2009-Oct-7      caf     Version to support logbook entries and filename convention.  Tag V01-03-00.
 2009-Oct-6      cpo     Support for sending run/expt number to event level.
