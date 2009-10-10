@@ -1,3 +1,4 @@
+2009-Oct-8      cpo     Forgot to add the MySqlRunAllocator.  Tagged V01-03-03.
 2009-Oct-8      cpo     Fix bug with run number allocation during automatic reconfig when changing config db.  Tagged V01-03-02.
 2009-Oct-08     weaver  Tag V01-04-00.  Evr no longer uses command line argument for opcode.
 			Added configdb support for versioned configurations.
