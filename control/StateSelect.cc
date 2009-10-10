@@ -1,11 +1,8 @@
-#include "MainWindow.hh"
 #include "StateSelect.hh"
-#include "ControlLog.hh"
 
 #include "pds/management/PartitionControl.hh"
 #include "pds/utility/Occurrence.hh"
 #include "pds/utility/OccurrenceId.hh"
-#include "pds/offlineclient/OfflineClient.hh"
 
 #include <QtCore/QString>
 #include <QtGui/QLabel>
@@ -25,15 +22,12 @@ static const char* _End_Running   = "END RUNNING";
 static const char* _Shutdown      = "SHUTDOWN";
 static const char* _NoChange      = "NO CHANGE";
 
-StateSelect::StateSelect(MainWindow* parent,
-			 PartitionControl& control,
-			 OfflineClient *offlineclient) :
+StateSelect::StateSelect(QWidget* parent,
+			 PartitionControl& control) :
   QGroupBox("Control",parent),
   _control (control),
-  _offlineclient (offlineclient),
   _green   (new QPalette(Qt::green)),
-  _yellow  (new QPalette(Qt::yellow)),
-  _w(*parent)
+  _yellow  (new QPalette(Qt::yellow))
 {
   _display = new QLabel("-",this);
   _display->setAlignment(Qt::AlignHCenter);
@@ -106,23 +100,9 @@ void StateSelect::selected(const QString& state)
     _control.set_target_state(PartitionControl::Disabled);
   else if (state==_Enable)
     _control.set_target_state(PartitionControl::Enabled);
-  else if (state==_Begin_Running) {
-    // be careful, _offlineclient could be NULL
-    if (_offlineclient) {
-      unsigned int runNumber = 0;
-      if (_offlineclient->AllocateRunNumber(&runNumber)) {
-        printf("Error: AllocateRunNumber failed in StateSelect\n");
-	_w.log().append("Error: AllocateRunNumber failed in StateSelect\n");
-      } else {
-        _control.set_run(runNumber);
-        _control.set_target_state(PartitionControl::Enabled);
-      }
-    } else {
-      // no offline client -- set run number to 0
-      _control.set_run(0);
-      _control.set_target_state(PartitionControl::Enabled);
-    }
-  } else if (state==_End_Running)
+  else if (state==_Begin_Running)
+    _control.set_target_state(PartitionControl::Enabled);
+  else if (state==_End_Running)
     _control.set_target_state(PartitionControl::Configured);
   else if (state==_Allocate)
     _control.set_target_state(PartitionControl::Configured);
