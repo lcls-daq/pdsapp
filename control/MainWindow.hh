@@ -15,6 +15,7 @@ namespace Pds {
   class QualifiedControl;
   class PVManager;
   class InDatagram;
+  class RunAllocator;
 
   class MainWindow : public QWidget {
     Q_OBJECT
@@ -51,6 +52,7 @@ namespace Pds {
     PVManager*        _pvmanager;
     ControlLog*       _log;
     OfflineClient*    _offlineclient;
+    RunAllocator*     _runallocator;
 
     // signal handler support
     QSocketNotifier *snInt;

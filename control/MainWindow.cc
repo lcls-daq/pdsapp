@@ -9,6 +9,7 @@
 #include "pdsapp/control/PVManager.hh"
 #include "pdsapp/control/RunStatus.hh"
 #include "pdsapp/control/ControlLog.hh"
+#include "pdsapp/control/MySqlRunAllocator.hh"
 
 #include "pds/offlineclient/OfflineClient.hh"
 #include "pds/management/QualifiedControl.hh"
@@ -143,18 +144,21 @@ MainWindow::MainWindow(unsigned          platform,
   if (offlinerc) {
     // offline database
     _offlineclient = new OfflineClient(offlinerc, partition, experiment);
+    _runallocator = new MySqlRunAllocator(_offlineclient);
     experiment_number = _offlineclient->GetExperimentNumber();
     _control->set_experiment(experiment_number);
     printf("MainWindow(): GetExperimentNumber() returned %u\n", experiment_number);
   } else {
+    _runallocator = new RunAllocator;
     // NULL offline database
     _offlineclient = (OfflineClient*)NULL;
   }
+  _control->set_runAllocator(_runallocator);
 
   QVBoxLayout* layout = new QVBoxLayout(this);
   layout->addWidget(config    = new ConfigSelect   (this, *_control, db_path));
   layout->addWidget(            new PartitionSelect(this, *_control, partition, db_path));
-  layout->addWidget(state     = new StateSelect    (this, *_control, _offlineclient));
+  layout->addWidget(state     = new StateSelect    (this, *_control));
   layout->addWidget(pvs       = new PVDisplay      (this, *_control));
   layout->addWidget(run       = new RunStatus      (this));
   layout->addWidget(_log      = new ControlLog);
