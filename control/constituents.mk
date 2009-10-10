@@ -9,6 +9,7 @@ tgtsrcs_control_gui += PartitionSelect.cc PartitionSelect_moc.cc
 tgtsrcs_control_gui += StateSelect.cc     StateSelect_moc.cc
 tgtsrcs_control_gui += PVDisplay.cc       PVDisplay_moc.cc
 tgtsrcs_control_gui += ControlLog.cc	  ControlLog_moc.cc
+tgtsrcs_control_gui += MySqlRunAllocator.cc
 tgtsrcs_control_gui += SeqAppliance.cc
 tgtsrcs_control_gui += RunStatus.cc
 tgtsrcs_control_gui += PVManager.cc
