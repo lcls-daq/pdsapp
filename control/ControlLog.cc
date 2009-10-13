@@ -2,6 +2,7 @@
 
 #include <QtCore/QString>
 #include <QtCore/QTime>
+#include <QtGui/QTextCursor>
 
 using namespace Pds;
 
@@ -11,6 +12,7 @@ ControlLog::ControlLog() :
 			toString("hh:mm:ss")))
 {
   setReadOnly(true);
+  qRegisterMetaType<QTextCursor>();
 }
 
 ControlLog::~ControlLog() {}

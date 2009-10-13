@@ -14,7 +14,7 @@ using namespace Pds_ConfigDb;
 namespace Pds_ConfigDb {
 
   static const char* beam_range[] = { "Off", "On", NULL };
-  static const char* rate_range[] = { "120Hz", "60Hz", "30Hz", "10Hz", "5Hz", "1Hz", "0.5Hz", NULL };
+  static const char* rate_range[] = { "120Hz/Full", "60Hz", "30Hz", "10Hz", "5Hz", "1Hz", "0.5Hz", NULL };
 
   class EvrConfig::Private_Data {
     enum { MaxPulses=32 };

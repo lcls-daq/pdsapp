@@ -24,6 +24,7 @@
 #include <QtGui/QMenuBar>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QMessageBox>
+#include <QtCore/QTime>
 
 #include <stdlib.h>
 
@@ -217,8 +218,8 @@ void MainWindow::controleb_tmo()
   // kludge: weaver  we get some timeouts even though the transition is complete
   if (alloc.nnodes()) {
     QString msg = QString("Timeout waiting for transition %1 -> %2 to complete.\n")
-      .arg(_control->current_state())
-      .arg(_control->target_state ());
+      .arg(PartitionControl::name(_control->current_state()))
+      .arg(PartitionControl::name(_control->target_state ()));
     msg += QString("Failing nodes:\n");
     for(unsigned k=0; k<alloc.nnodes(); k++) {
       NodeSelect s(*alloc.node(k));
@@ -235,7 +236,9 @@ void MainWindow::transition_damaged(const InDatagram& dg)
   DamageBrowser b(dg);
   const std::list<Xtc>& damaged = b.damaged();
 
-  QString msg = QString("%1 damaged:").arg(TransitionId::name(dg.datagram().seq.service()));
+  QString msg = QString("%1 damaged (0x%2):").
+    arg(TransitionId::name(dg.datagram().seq.service())).
+    arg(QString::number(dg.datagram().xtc.damage.value(),16));
   for(std::list<Xtc>::const_iterator it=damaged.begin(); it!=damaged.end(); it++) {
     const Xtc& xtc = *it;
     if (xtc.src.level()==Level::Source) {
@@ -275,8 +278,11 @@ void MainWindow::platform_error()
 
 void MainWindow::handle_failed_transition(const QString& msg)
 {
-  printf("%s\n",qPrintable(msg));
-  _log->append(msg);
+  QString t = QString("%1: %2")
+    .arg(QTime::currentTime().toString("hh:mm:ss"))
+    .arg(msg);
+  printf("%s\n",qPrintable(t));
+  _log->append(t);
 //   QMessageBox::critical(this, "Transition Failed", msg);
 }
 

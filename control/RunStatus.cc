@@ -11,10 +11,12 @@
 
 using namespace Pds;
 
-class QCounter : public QLabel {
+class QCounter {
 public:
-  QCounter() : QLabel(0), _count(0) {}
+  QCounter() : _widget(new QLabel(0)), _count(0) {}
   ~QCounter() {}
+public:
+  QWidget* widget() const { return _widget; }
 public:
   void reset    () { _count=0; }
   void increment() { _count++; }
@@ -26,11 +28,12 @@ public:
     else if (c < 10000000ULL)    { c /= 1000ULL; unit=QString("kBytes"); }
     else if (c < 10000000000ULL) { c /= 1000000ULL; unit=QString("MBytes"); }
     else                         { c /= 1000000000ULL; unit=QString("GBytes"); }
-    setText(QString("%1 %2").arg(c).arg(unit)); 
+    _widget->setText(QString("%1 %2").arg(c).arg(unit)); 
   }
-  void update_count() { setText(QString::number(_count)); }
-  void update_time () { setText(QString("%1:%2:%3").arg(_count/3600).arg((_count%3600)/60).arg(_count%60)); }
+  void update_count() { _widget->setText(QString::number(_count)); }
+  void update_time () { _widget->setText(QString("%1:%2:%3").arg(_count/3600).arg((_count%3600)/60).arg(_count%60)); }
 private:
+  QLabel* _widget;
   unsigned long long _count;
 };
   
@@ -46,18 +49,22 @@ RunStatus::RunStatus(QWidget* parent) :
 {
   QGridLayout* layout = new QGridLayout(this);
   layout->addWidget(new QLabel("Duration",this),0,0,Qt::AlignRight);
-  layout->addWidget(_duration,0,1,Qt::AlignLeft);
+  layout->addWidget(_duration->widget(),0,1,Qt::AlignLeft);
   layout->addWidget(new QLabel("Events",this),1,0,Qt::AlignRight);
-  layout->addWidget(_events,1,1,Qt::AlignLeft);
+  layout->addWidget(_events->widget(),1,1,Qt::AlignLeft);
   layout->addWidget(new QLabel("Damaged",this),2,0,Qt::AlignRight);
-  layout->addWidget(_damaged,2,1,Qt::AlignLeft);
+  layout->addWidget(_damaged->widget(),2,1,Qt::AlignLeft);
   layout->addWidget(new QLabel("Size",this),3,0,Qt::AlignRight);
-  layout->addWidget(_bytes,3,1,Qt::AlignLeft);
+  layout->addWidget(_bytes->widget(),3,1,Qt::AlignLeft);
   setLayout(layout);
 }
 
 RunStatus::~RunStatus()
 {
+  delete _duration;
+  delete _events;
+  delete _damaged;
+  delete _bytes;
 }
 
 Transition* RunStatus::transitions(Transition* tr) 

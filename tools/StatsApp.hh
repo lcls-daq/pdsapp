@@ -74,7 +74,7 @@ public:
           const Node& node = *alloc.node(i);
 	  const Src& s = node.procInfo();
 	  if (s.level()==Level::Control) continue;
-	  if (s.level()>=_src.level() && !(s==_src)) continue;
+	  if (s.level()>=_src.level() && !(s==_src) && s.level()!=Level::Reporter) continue;
 	  NodeStats* empty = _list.empty();
 	  NodeStats* curr  = _list.forward();
 	  while ( curr != empty && curr->node().level()>s.level() )

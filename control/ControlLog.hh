@@ -2,6 +2,7 @@
 #define Pds_ControlLog_hh
 
 #include <QtGui/QTextEdit>
+#include <QtGui/QTextCursor>
 
 namespace Pds {
   class ControlLog : public QTextEdit {
@@ -11,5 +12,7 @@ namespace Pds {
     ~ControlLog();
   };
 };
+
+Q_DECLARE_METATYPE(QTextCursor)
 
 #endif
