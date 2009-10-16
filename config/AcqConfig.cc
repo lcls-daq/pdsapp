@@ -11,13 +11,17 @@ using namespace Pds_ConfigDb;
 
 namespace Pds_ConfigDb {
 
+  enum AcqVFullScale {V0_1,V0_2,V0_5,V1,V2,V5};
+  static const double fullscale_value[] = {0.1,0.2,0.5,1.0,2.0,5.0};
+  static const char*  fullscale_range[] = {"0.1","0.2","0.5","1","2","5",NULL};
+
   static const char* coupling_range[] = {"GND","DC","AC","DC50ohm","AC50ohm",NULL};
   static const char* bandwidth_range[]= {"None","25MHz","700MHz","200MHz","20MHz","35MHz",NULL};
 
   class AcqVert {
   public:
     AcqVert() :
-      _fullScale("Full Scale (Volts)",2.0,0.05,5.0),
+      _fullScale("Full Scale (Volts)",V2, fullscale_range),
       _offset("Offset (Volts)",0.0,-2.0,2.0),
       _coupling("Coupling", Pds::Acqiris::VertV1::DC, coupling_range),
       _bandwidth("Bandwidth", Pds::Acqiris::VertV1::None, bandwidth_range)
@@ -30,7 +34,9 @@ namespace Pds_ConfigDb {
     }
     bool pull(void* from) {
       Pds::Acqiris::VertV1& tc = *new(from) Pds::Acqiris::VertV1;
-      _fullScale.value = tc.fullScale();
+      unsigned i=0;
+      while(tc.fullScale()!=fullscale_value[i] && ++i<V5) ;
+      _fullScale.value = AcqVFullScale(i);
       _offset.value = tc.offset();
       _coupling.value = (Pds::Acqiris::VertV1::Coupling)(tc.coupling());
       _bandwidth.value = (Pds::Acqiris::VertV1::Bandwidth)tc.bandwidth();
@@ -38,14 +44,14 @@ namespace Pds_ConfigDb {
     }
 
     int push(void* to) {
-      Pds::Acqiris::VertV1& tc = *new(to) Pds::Acqiris::VertV1(_fullScale.value,
+      Pds::Acqiris::VertV1& tc = *new(to) Pds::Acqiris::VertV1(fullscale_value[_fullScale.value],
                                                                _offset.value,
                                                                _coupling.value,
                                                                _bandwidth.value);
       return sizeof(tc);
     }
   private:
-    NumericFloat<double> _fullScale;
+    Enumerated<AcqVFullScale> _fullScale;
     NumericFloat<double> _offset;
     Enumerated<Pds::Acqiris::VertV1::Coupling>  _coupling;
     Enumerated<Pds::Acqiris::VertV1::Bandwidth> _bandwidth;
