@@ -1,11 +1,12 @@
-2009-Oct-13	weaver	Tag V01-04-01.  Deployed everything at HEAD.
+2009-Oct-19 tomytsai  Rename pdsapp/test/epicsBldClientTest to bldClientTest, and add command line usage supports
+2009-Oct-13 weaver  Tag V01-04-01.  Deployed everything at HEAD.
 2009-Oct-8      cpo     Forgot to add the MySqlRunAllocator.  Tagged V01-03-03.
 2009-Oct-8      cpo     Fix bug with run number allocation during automatic reconfig when changing config db.  Tagged V01-03-02.
 2009-Oct-08     weaver  Tag V01-04-00.  Evr no longer uses command line argument for opcode.
-			Added configdb support for versioned configurations.
+      Added configdb support for versioned configurations.
 2009-Oct-7      caf     Version to support logbook entries and filename convention.  Tag V01-03-00.
 2009-Oct-6      cpo     Support for sending run/expt number to event level.
-2009-Oct-05	weaver	Tag V01-02-06 corresponding to current -> 1.2.6
+2009-Oct-05 weaver  Tag V01-02-06 corresponding to current -> 1.2.6
 2009-Sep-29     tomytsai  Add rceProxy application in pdsapp/dev/rceProxy.cc
 2009-Sep-24     weaver  Added scan and reconfigure features to run control.
 2009-Sep-24     cpo     More support for saving/loading acqiris calibrations.
