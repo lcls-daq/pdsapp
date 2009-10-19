@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <memory.h>
 #include <errno.h>
+#include <getopt.h>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -45,7 +46,7 @@ try
     if(
       setsockopt(_iSocket, SOL_SOCKET, SO_RCVBUF, (char*)&iRecvBufSize, sizeof(iRecvBufSize)) 
       == -1)
-        throw string("BldServerSlim::BldServerSlim() : setsockopt(...SO_RCVBUF) failed");
+       throw string("BldServerSlim::BldServerSlim() : setsockopt(...SO_RCVBUF) failed");
 
     //int iQueriedRecvBufSize, iLenQueriedRecvBufSize;
     //if(
@@ -176,20 +177,75 @@ string BldServerSlim::addressToStr( unsigned int uAddr )
 using namespace Pds::ConfigurationMulticast;
 void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize );
 
+static void showUsage()
+{
+    printf( "Usage:  bldServerTest  [-v|--version] [-h|--help] <Interface IP>\n" 
+      "  Options:\n"
+      "    -v|--version       Show file version\n"
+      "    -h|--help          Show Usage\n"
+      "    <Interface IP>     Set the network interface for receiving multicast\n"
+    );
+}
+
+static const char sBldServerTestVersion[] = "0.90";
+
+static void showVersion()
+{
+    printf( "Version:  bldServerTest  Ver %s\n", sBldServerTestVersion );
+}
+
 int main(int argc, char** argv)
 {
-    unsigned int uMaxDataSize = 512;
-    Pds::BldServerSlim bldServer(uDefaultAddr, uDefaultPort, uMaxDataSize,
-        ( argc>=2 ? argv[1] : NULL ) ); 
+    int iOptionIndex = 0;
+    struct option loOptions[] = 
+    {
+       {"ver",      0, 0, 'v'},
+       {"help",     0, 0, 'h'},
+       {0,          0, 0,  0  }
+    };    
+        
+    while ( int opt = getopt_long(argc, argv, ":vh", loOptions, &iOptionIndex ) )
+    {
+        if ( opt == -1 ) break;
             
-    std::vector<unsigned char> vcFetchBuffer( uMaxDataSize );
+        switch(opt) 
+        {            
+        case 'v':               /* Print usage */
+            showVersion();
+            return 0;            
+        case '?':               /* Terse output mode */
+            printf( "epicsArch:main(): Unknown option: %c\n", optopt );
+            break;
+        case ':':               /* Terse output mode */
+            printf( "epicsArch:main(): Missing argument for %c\n", optopt );
+            break;
+        default:            
+        case 'h':               /* Print usage */
+            showUsage();
+            return 0;
+            
+        }
+    }
+
+    argc -= optind;
+    argv += optind;  
+      
+    char* sInterfaceIp = NULL;
+    
+    if (argc >= 1 )
+      sInterfaceIp = argv[0];    
+    
+    Pds::BldServerSlim bldServer(uDefaultAddr, uDefaultPort, uDefaultMaxDataSize,
+      sInterfaceIp ); 
+            
+    std::vector<unsigned char> vcFetchBuffer( uDefaultMaxDataSize );
         
     printf( "Beginning Multicast Server Testing. Press Ctrl-C to Exit...\n" );        
     
     while (1) // Pds::ConsoleIO::kbhit(NULL) == 0 )
     {       
         unsigned int iRecvDataSize = 0;
-        bldServer.fetch(uMaxDataSize, &vcFetchBuffer[0], iRecvDataSize);
+        bldServer.fetch(uDefaultMaxDataSize, &vcFetchBuffer[0], iRecvDataSize);
         printData( vcFetchBuffer, iRecvDataSize );
     }
 
