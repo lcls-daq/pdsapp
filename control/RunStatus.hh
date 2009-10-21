@@ -16,6 +16,7 @@ namespace Pds {
 		    public Appliance,
 		    public Timer,
 		    public XtcIterator {
+    Q_OBJECT
   public:
     RunStatus(QWidget*);
     ~RunStatus();
@@ -29,6 +30,10 @@ namespace Pds {
     virtual unsigned repetitive() const;
   public:
     virtual int process(const Xtc&, InDatagramIterator*);
+  private slots:
+    void update_stats();
+  signals:
+    void changed();
   private:
     Task*     _task;
     GenericPool _pool;

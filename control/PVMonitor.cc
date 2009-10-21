@@ -50,8 +50,15 @@ namespace Pds {
       bool runnable = true;
       for(std::list<PvType>::const_iterator iter = _channels.begin();
 	  iter != _channels.end(); iter++) {
-	runnable &= (value[iter->index()] >= iter->loValue() &&
-		     value[iter->index()] <= iter->hiValue());
+	int idx = iter->index();
+	if (idx <0) idx=0;
+	printf("monitor[%d] %g < %g < %g\n", 
+	       iter->index(),
+	       iter->loValue(),
+	       value[idx],
+	       iter->hiValue());
+	runnable &= (value[idx] >= iter->loValue() &&
+		     value[idx] <= iter->hiValue());
       }
       if (_runnable != runnable) {
 	_runnable=runnable;

@@ -57,6 +57,8 @@ RunStatus::RunStatus(QWidget* parent) :
   layout->addWidget(new QLabel("Size",this),3,0,Qt::AlignRight);
   layout->addWidget(_bytes->widget(),3,1,Qt::AlignLeft);
   setLayout(layout);
+
+  QObject::connect(this, SIGNAL(changed()), this, SLOT(update_stats()));
 }
 
 RunStatus::~RunStatus()
@@ -70,10 +72,11 @@ RunStatus::~RunStatus()
 Transition* RunStatus::transitions(Transition* tr) 
 {
   if (tr->id() == TransitionId::BeginRun) {
-    _duration->reset(); _duration->update_time();
-    _events  ->reset(); _events  ->update_count();
-    _damaged ->reset(); _damaged ->update_count();
-    _bytes   ->reset(); _bytes   ->update_bytes();
+    _duration->reset();
+    _events  ->reset();
+    _damaged ->reset();
+    _bytes   ->reset();
+    emit changed();
     start();
   }
   else if (tr->id() == TransitionId::EndRun) {
@@ -115,6 +118,11 @@ int RunStatus::process(const Xtc& xtc, InDatagramIterator* iter) {
 void  RunStatus::expired() 
 {
   _duration->increment();
+  emit changed();
+}
+
+void RunStatus::update_stats()
+{
   _duration->update_time();
   _events  ->update_count();
   _damaged ->update_count();

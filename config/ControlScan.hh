@@ -29,6 +29,7 @@ namespace Pds_ConfigDb {
     void created(int);
   private:
     void write();
+    void read(const char*);
   private:
     int update_key();
   private:

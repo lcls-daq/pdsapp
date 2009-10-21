@@ -7,15 +7,19 @@
 
 #include "db_access.h"
 
-#define handle_type(ctype, stype, dtype) case ctype: \
-  { struct stype* ival = (struct stype*)dbr; \
-    dtype* inp  = &ival->value; \
+#define handle_type(ctype, stype, dtype) case ctype:	\
+  { struct stype* ival = (struct stype*)dbr;		\
+    dtype* inp  = &ival->value;				\
     dtype* outp = (dtype*)_pvdata;			\
-    for(int k=0; k<nelem; k++) *outp++ = *inp++;	\
-    outp = (dtype*)_pvdata;				  \
+    for(int k=0; k<nelem; k++) *outp++ = *inp++;	  \
+    outp = (dtype*)_pvdata;					  \
     for(std::list<PvType>::const_iterator it = _channels.begin(); \
-        it != _channels.end(); it++) \
-      outp[it->index()] = dtype(it->value());	\
+        it != _channels.end(); it++) { 				  \
+      int idx = it->index();						\
+      if (idx<0) idx=0;							\
+      printf("handle_type %s idx %d val %g\n",#ctype,it->index(),it->value()); \
+      outp[idx] = dtype(it->value());				\
+    }								  \
   }
 
 typedef Pds::ControlData::PVControl PvType;
@@ -31,7 +35,7 @@ namespace Pds {
       _connected(false), _runnable(false), _pvdata(0)
     {
     }
-    virtual ~ControlCA() { if (_pvdata) delete[] _pvdata; }
+    virtual ~ControlCA() { printf("Deleting %p\n",_pvdata); if (_pvdata) delete[] _pvdata; }
   public:
     void connected   (bool c)
     {
@@ -44,8 +48,11 @@ namespace Pds {
     void  getData     (const void* dbr)  
     {
       int nelem = _channel.nelements();
-      if (!_pvdata)
-	_pvdata = new char[dbr_size_n(_channel.type(),nelem)];
+      if (!_pvdata) {
+	int sz = dbr_size_n(_channel.type(),nelem);
+	_pvdata = new char[sz];
+	printf("pvdata allocated @ %p sz %d\n",_pvdata,sz);
+      }
 
       switch(_channel.type()) {
 	handle_type(DBR_TIME_SHORT , dbr_time_short , dbr_short_t ) break;
@@ -57,7 +64,7 @@ namespace Pds {
       }
       
     }
-    void* putData     () { return _pvdata; }
+    void* putData     () { printf("putData called\n"); return _pvdata; }
     void  putStatus   (bool s) { 
       if (s!=_runnable) { 
 	_runnable=s; 

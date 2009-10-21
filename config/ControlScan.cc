@@ -29,6 +29,9 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 using namespace Pds_ConfigDb;
 
@@ -58,6 +61,8 @@ static void _parse_range(const QString& lo,
 }
 
 static const char* scan_file = "live_scan.xtc";
+
+enum { Events, Duration };
 
 ControlScan::ControlScan(QWidget* parent, Experiment& expt) :
   QWidget(0),
@@ -97,8 +102,8 @@ ControlScan::ControlScan(QWidget* parent, Experiment& expt) :
 
   QRadioButton* eventsB = new QRadioButton("Events");
   QRadioButton* timeB   = new QRadioButton("Time");
-  _acqB->addButton(eventsB);
-  _acqB->addButton(timeB  );
+  _acqB->addButton(eventsB,Events);
+  _acqB->addButton(timeB  ,Duration);
   eventsB->setChecked(true);
 
   QPushButton* applyB = new QPushButton("OK");
@@ -159,6 +164,8 @@ ControlScan::ControlScan(QWidget* parent, Experiment& expt) :
   connect(closeB, SIGNAL(clicked()), this, SLOT(hide   ()));
 
   _settleB->setEnabled(false);
+
+  read(scan_file);
 }
 
 ControlScan::~ControlScan()
@@ -235,24 +242,28 @@ void ControlScan::write()
   for(unsigned k=0; k<=steps; k++) {
     controls.clear();
     monitors.clear();
-    if (control_index>=0)
-      controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
-						     control_index, 
-						     control_v));
-    else
-      controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
-						     control_v));
-    if (readback_index>=0)
-      monitors.push_back(Pds::ControlData::PVMonitor(qPrintable(readback_base),
-						     readback_index, 
-						     control_v + readback_o - readback_m,
-						     control_v + readback_o + readback_m));
-    else
-      monitors.push_back(Pds::ControlData::PVMonitor(qPrintable(readback_base),
-						     control_v + readback_o - readback_m,
-						     control_v + readback_o + readback_m));
+    if (!control_base.isEmpty()) {
+      if (control_index>=0)
+	controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
+						       control_index, 
+						       control_v));
+      else
+	controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
+						       control_v));
+    }
+    if (!readback_base.isEmpty()) {
+      if (readback_index>=0)
+	monitors.push_back(Pds::ControlData::PVMonitor(qPrintable(readback_base),
+						       readback_index, 
+						       control_v + readback_o - readback_m,
+						       control_v + readback_o + readback_m));
+      else
+	monitors.push_back(Pds::ControlData::PVMonitor(qPrintable(readback_base),
+						       control_v + readback_o - readback_m,
+						       control_v + readback_o + readback_m));
+    }
     Pds::ControlData::ConfigV1* c;
-    if (_acqB->checkedId()==0) {
+    if (_acqB->checkedId()==Duration) {
       double s = _time_value->text().toDouble();
       Pds::ClockTime ctime(unsigned(s),unsigned(fmod(s,1.)*1.e9));
       c = new (buff) Pds::ControlData::ConfigV1(controls, monitors, ctime);
@@ -263,12 +274,89 @@ void ControlScan::write()
     control_v += control_step;
   }
   fclose(output);
+  delete[] buff;
+}
+
+
+void ControlScan::read(const char* ifile)
+{
+  UTypeName utype = PdsDefs::utypeName(PdsDefs::RunControl);
+  string path = _expt.path().data_path("",utype);
+  QString file = QString("%1/%2").arg(path.c_str()).arg(ifile);
+
+  if (file.isNull() || file.isEmpty())
+    return;
+
+  const int bufsize = 0x1000;
+  char* buff = new char[bufsize];
+  sprintf(buff,"%s",qPrintable(file));
+
+  struct stat sstat;
+  if (stat(buff,&sstat))
+    return;
+
+  FILE* f = fopen(buff,"r");
+
+  char* dbuf = new char[sstat.st_size];
+  int len = fread(dbuf, 1, sstat.st_size, f);
+  if (len != sstat.st_size) {
+    printf("Read %d/%ld bytes from %s\n",len,sstat.st_size,buff);
+    return;
+  }
+
+  const Pds::ControlData::ConfigV1& cfg = 
+    *reinterpret_cast<const Pds::ControlData::ConfigV1*>(dbuf);
+
+  int npts = len/cfg.size();
+  printf("cfg size %d/%d (%d)\n",cfg.size(),len,npts);
+  _steps->setText(QString::number(npts-1));
+
+  if (cfg.uses_duration()) {
+    _acqB->button(Duration)->setChecked(true);
+    double s = double(cfg.duration().seconds()) +
+      1.e-9 *  double(cfg.duration().nanoseconds());
+    _time_value->setText(QString::number(s));
+  }
+  else {
+    _acqB->button(Events  )->setChecked(true);
+    _events_value->setText(QString::number(cfg.events()));
+  }
+
+  const Pds::ControlData::ConfigV1& lst = 
+    *reinterpret_cast<const Pds::ControlData::ConfigV1*>(dbuf+(npts-1)*cfg.size());
+
+  if (cfg.npvControls()) {
+    const Pds::ControlData::PVControl& ctl = cfg.pvControl(0);
+    if (ctl.array())
+      _control_name->setText(QString("%1[%2]").arg(ctl.name()).arg(ctl.index()));
+    else
+      _control_name->setText(QString(ctl.name()));
+
+    _control_lo->setText(QString::number(cfg.pvControl(0).value()));
+    _control_hi->setText(QString::number(lst.pvControl(0).value()));
+  }
+
+  if (cfg.npvMonitors()) {
+    const Pds::ControlData::PVMonitor& mon = cfg.pvMonitor(0);
+    if (mon.array())
+      _readback_name->setText(QString("%1[%2]").arg(mon.name()).arg(mon.index()));
+    else
+      _readback_name->setText(QString(mon.name()));
+
+    _readback_offset->setText(QString::number(0.5*(mon.loValue()+mon.hiValue())-
+					      cfg.pvControl(0).value()));
+    _readback_margin->setText(QString::number(0.5*(mon.hiValue()-mon.loValue())));
+  }
+  
+  delete[] dbuf;
+  delete[] buff;
+  fclose(f);
 }
 
 
 int ControlScan::update_key()
 {
-  static const char* dev_name = "RunControl";
+  static const char* dev_name = "Control";
   static const char* cfg_name = "SCAN";
 
   Pds_ConfigDb::UTypeName utype = PdsDefs::utypeName(PdsDefs::RunControl);
