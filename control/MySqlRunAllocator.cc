@@ -1,6 +1,7 @@
 
 #include "MySqlRunAllocator.hh"
 #include "pds/offlineclient/OfflineClient.hh"
+#include <stdio.h>
 
 using namespace Pds;
 
