@@ -25,6 +25,7 @@ private:
   unsigned _node;
   unsigned int _sliceID;
   unsigned _beginrunerr;
+  bool     _path_error;
   char     _fname[512];
   char     _fnamerunning[512];
 };

@@ -30,25 +30,32 @@ Recorder::Recorder(const char* path, unsigned int sliceID) :
   _pool    (new GenericPool(sizeof(ZcpDatagramIterator),1)),
   _node    (0),
   _sliceID (sliceID),
-  _beginrunerr(0)
+  _beginrunerr(0),
+  _path_error(false)
 {
   struct stat st;
 
   if (stat(path,&st)) {
     printf("Cannot stat %s : %s\n",path,strerror(errno));
-    printf("Using current working directory\n");
-    strcpy(_path,".");
+    printf("Error: Data will not be recorded.\n");
+    _path_error = true;
+    _path[0] = '\0';  // cannot stat path, so _path is empty
   }
   else if (S_ISDIR(st.st_mode))
     strcpy(_path,path);
   else
     strcpy(_path,dirname(const_cast<char*>(path)));
 
-  printf("Using path: %s\n",_path);
+  if (_path_error) {
+    printf("No output path\n");
+  } else {
+    printf("Using path: %s\n",_path);
+  }
 }
 
 InDatagram* Recorder::events(InDatagram* in) {
 
+  struct stat st;
   InDatagramIterator* iter = in->iterator(_pool);
 
   switch(in->datagram().seq.service()) {
@@ -84,11 +91,20 @@ InDatagram* Recorder::events(InDatagram* in) {
     break;
   }
   if (in->datagram().seq.service()==TransitionId::EndRun) {
-    fclose(_f);
-    if (rename(_fnamerunning,_fname)) {
-      printf("Unable to rename %s. Reason: %s\n",_fnamerunning,
-             strerror(errno));
-      in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
+    if (_f) {
+      fclose(_f);
+      if (stat(_fname,&st) == 0) {
+        printf("Unable to rename %s. Reason: %s already exists\n",
+                _fnamerunning, _fname);
+        in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
+      }
+      else if (rename(_fnamerunning,_fname)) {
+        printf("Unable to rename %s. Reason: %s\n",_fnamerunning,
+               strerror(errno));
+        in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
+      } else {
+        printf("Renamed %s to %s\n",_fnamerunning, _fname);
+      }
     }
     _f = 0;
   }
@@ -114,23 +130,29 @@ Transition* Recorder::transitions(Transition* tr) {
     // open the file, write configure, and this transition
     printf("run %d expt %d\n",rinfo.run(),rinfo.experiment());
     unsigned chunk=0;
-    // create directory
-    sprintf(_fname,"%s/e%d", _path,rinfo.experiment());
-    local_mkdir(_fname);
-    // open file
-    sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
-            _path,rinfo.experiment(),rinfo.experiment(),rinfo.run(),_sliceID,chunk);
-    sprintf(_fnamerunning,"%s.inprogress",_fname);
-    _f=fopen(_fnamerunning,"w");
-    if (_f) {
-      printf("Opened %s\n",_fnamerunning);
-      fwrite(_config, sizeof(Datagram) + 
-             reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1,
-           _f);
+    if (_path_error) {
+      printf("Error opening output file : failed to stat output path\n",_fnamerunning);
+      _beginrunerr++;
     }
     else {
-      printf("Error opening file %s : %s\n",_fnamerunning,strerror(errno));
-      _beginrunerr++;
+      // create directory
+      sprintf(_fname,"%s/e%d", _path,rinfo.experiment());
+      local_mkdir(_fname);
+      // open file
+      sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
+              _path,rinfo.experiment(),rinfo.experiment(),rinfo.run(),_sliceID,chunk);
+      sprintf(_fnamerunning,"%s.inprogress",_fname);
+      _f=fopen(_fnamerunning,"w");
+      if (_f) {
+        printf("Opened %s\n",_fnamerunning);
+        fwrite(_config, sizeof(Datagram) + 
+               reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1,
+             _f);
+      }
+      else {
+        printf("Error opening file %s : %s\n",_fnamerunning,strerror(errno));
+        _beginrunerr++;
+      }
     }
   }
   return tr;
