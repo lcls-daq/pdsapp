@@ -50,12 +50,15 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   setLayout(layout);
 
   connect(bEdit   , SIGNAL(clicked()),                 _reconfig, SLOT(show()));
-  connect(bScan   , SIGNAL(clicked()),	               _scan    , SLOT(show()));
+  connect(bScan   , SIGNAL(clicked(bool)),	       this, SLOT(enable_scan(bool)));
   connect(_runType, SIGNAL(activated(const QString&)), this, SLOT(set_run_type(const QString&)));
   connect(_reconfig,SIGNAL(changed()),                 this, SLOT(update()));
   connect(_scan    ,SIGNAL(created(int)),              this, SLOT(run_scan(int)));
 
   read_db();
+
+  bScan->setCheckable(true);
+  bScan->setChecked  (false);
 }
 
 ConfigSelect::~ConfigSelect() 
@@ -119,4 +122,10 @@ void ConfigSelect::run_scan(int key)
   
   //  Run
   _pcontrol.reconfigure();
+}
+
+void ConfigSelect::enable_scan(bool l)
+{
+  _scan->setVisible(l);
+  if (!l) update();  // refresh the run key from "Type"
 }

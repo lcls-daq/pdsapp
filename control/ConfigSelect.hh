@@ -29,6 +29,7 @@ namespace Pds {
     void run_scan    (int);
     void allocated   ();
     void deallocated ();
+    void enable_scan (bool);
   private:
     PartitionControl&          _pcontrol;
     Pds_ConfigDb::Experiment   _expt;
