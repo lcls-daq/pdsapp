@@ -1,6 +1,6 @@
 libnames := 
 
-tgtnames := monobs monshm monshmserver
+tgtnames := monobs monshm monshmserver offlineobs
 
 commonlibs := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata pdsdata/acqdata
 
@@ -17,3 +17,11 @@ tgtslib_monshm := /usr/lib/rt
 tgtsrcs_monshmserver := monshmserver.cc
 tgtlibs_monshmserver := $(commonlibs) pds/mon
 tgtslib_monshmserver := /usr/lib/rt
+
+tgtsrcs_offlineobs := offlineobs.cc OfflineAppliance.cc
+tgtlibs_offlineobs := $(commonlibs) pds/mon pds/offlineclient
+tgtlibs_offlineobs += offlinedb/mysqlclient offlinedb/offlinedb epics/ca epics/Com
+tgtslib_offlineobs := /usr/lib/rt
+tgtincs_offlineobs := offlinedb/include offlineclient
+tgtincs_offlineobs += epics/include epics/include/os/Linux
+
