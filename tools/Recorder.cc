@@ -131,7 +131,7 @@ Transition* Recorder::transitions(Transition* tr) {
     printf("run %d expt %d\n",rinfo.run(),rinfo.experiment());
     unsigned chunk=0;
     if (_path_error) {
-      printf("Error opening output file : failed to stat output path\n",_fnamerunning);
+      printf("Error opening output file : failed to stat output path\n");
       _beginrunerr++;
     }
     else {
