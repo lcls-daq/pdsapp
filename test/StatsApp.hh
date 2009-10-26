@@ -6,6 +6,7 @@
 #include "pds/client/XtcIterator.hh"
 #include "pds/service/LinkedList.hh"
 #include "pds/utility/Appliance.hh"
+#include "pds/utility/EbBase.hh"
 #include "pds/xtc/InDatagram.hh"
 #include "pds/xtc/InDatagramIterator.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
@@ -89,6 +90,7 @@ public:
       break;
     case TransitionId::Enable:
       {
+	EbBase::printFixups(20);
 	NodeStats* n = _list.forward();
 	while(n != _list.empty()) {
 	  n->reset();
