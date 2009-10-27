@@ -13,14 +13,14 @@ public:
       char* sInterfaceIp = NULL);
     ~BldServerSlim();
 
+    bool IsInitialized() { return _bInitialized; }
     int fetch(unsigned int iBufSize, void* pFetchBuffer, unsigned int& iRecvDataSize);
     
-private:
-    static std::string addressToStr( unsigned int uAddr );
-    
-    int _iSocket;
-    unsigned int _uMaxDataSize;
-    unsigned int _uAddr, _uPort;
+private:    
+    int           _iSocket;
+    unsigned int  _uMaxDataSize;
+    unsigned int  _uAddr, _uPort;
+    bool          _bInitialized;
     
     struct msghdr      _hdr; // Control structure socket receive 
     struct iovec       _iov; // Buffer description socket receive 

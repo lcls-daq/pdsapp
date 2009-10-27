@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 #include "pds/service/NetServer.hh"
 #include "pds/service/Ins.hh"
@@ -15,9 +17,11 @@ using std::string;
 
 namespace Pds 
 {
+  
+static std::string addressToStr( unsigned int uAddr );
 
 BldServerSlim::BldServerSlim(unsigned uAddr, unsigned uPort, unsigned int uMaxDataSize,
-  char* sInterfaceIp) : _iSocket(-1), _uMaxDataSize(uMaxDataSize), _uAddr(uAddr), _uPort(uPort)
+  char* sInterfaceIp) : _iSocket(-1), _uMaxDataSize(uMaxDataSize), _uAddr(uAddr), _uPort(uPort), _bInitialized(false)
 {
 try
 {
@@ -35,7 +39,8 @@ try
     iRecvBufSize += 2048; // 1125
 #endif
     
-    iRecvBufSize = 5000;
+    if ( iRecvBufSize < 5000 )
+      iRecvBufSize = 5000;
     /*
      * In NEH machine, atca201 - atca212, we need to set iRecvBufSize >= 4729 
      * The actual buffer size (queried by getsockopt() ) is 9458 
@@ -91,7 +96,7 @@ try
     {
         unsigned int uSockAddr = ntohl(sockaddrName.sin_addr.s_addr);
         unsigned int uSockPort = (unsigned int )ntohs(sockaddrName.sin_port);
-        printf( "Local addr: %s Port %u\n", addressToStr(uSockAddr).c_str(), uSockPort );
+        printf( "Server addr: %s  Port %u  Buffer Size %u\n", addressToStr(uSockAddr).c_str(), uSockPort, iRecvBufSize );
     }
     else
         throw string("BldServerSlim::BldServerSlim() : getsockname() failed");
@@ -108,22 +113,48 @@ try
     /*
      * register multicast address
      */    
-    if (sInterfaceIp != NULL)
-        printf( "multicast interface IP: %s\n", sInterfaceIp );
+    in_addr_t uiInterface;
+     
+    if (sInterfaceIp == NULL || sInterfaceIp[0] == 0 )
+    {
+      uiInterface = INADDR_ANY;
+    }
+    else
+    {
+        if ( sInterfaceIp[0] < '0' || sInterfaceIp[0] > '9' )
+        {        
+          struct ifreq ifr;
+          strcpy( ifr.ifr_name, sInterfaceIp );
+          int iError = ioctl( _iSocket, SIOCGIFADDR, (char*)&ifr );
+          if ( iError == 0 )
+            uiInterface = ntohl( *(unsigned int*) &(ifr.ifr_addr.sa_data[2]) );
+          else
+          {
+            printf( "Cannot get IP address from network interface %s\n", sInterfaceIp );
+            uiInterface = 0;
+          }
+        }
+        else
+        {
+          uiInterface = ntohl(inet_addr(sInterfaceIp));
+        }              
+    }                
 
-    in_addr_t uiInterface =  (
-      sInterfaceIp == NULL || sInterfaceIp[0] == 0? 
-      INADDR_ANY :
-      ntohl(inet_addr(sInterfaceIp)) );
+    if ( uiInterface != 0 )
+    {
+      printf( "multicast interface IP: %s\n", addressToStr(uiInterface).c_str() );
+      
+      struct ip_mreq ipMreq;
+      memset((char*)&ipMreq, 0, sizeof(ipMreq));
+      ipMreq.imr_multiaddr.s_addr = htonl(_uAddr);
+      ipMreq.imr_interface.s_addr = htonl(uiInterface);
+      if (
+        setsockopt (_iSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&ipMreq,
+        sizeof(ipMreq)) < 0 )
+          throw string("BldServerSlim::BldServerSlim() : setsockopt(...IP_ADD_MEMBERSHIP) failed");    
+    }
 
-    struct ip_mreq ipMreq;
-    memset((char*)&ipMreq, 0, sizeof(ipMreq));
-    ipMreq.imr_multiaddr.s_addr = htonl(_uAddr);
-    ipMreq.imr_interface.s_addr = htonl(uiInterface);
-    if (
-      setsockopt (_iSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&ipMreq,
-      sizeof(ipMreq)) < 0 )
-        throw string("BldServerSlim::BldServerSlim() : setsockopt(...IP_ADD_MEMBERSHIP) failed");    
+    _bInitialized = true;
 }       
 catch (string& sError)
 {
@@ -144,6 +175,12 @@ int BldServerSlim::fetch(unsigned int iBufSize, void* pFetchBuffer, unsigned int
         printf( "BldServerSlim::fetch() : Input parameter invalid\n" );
         return 1;
     }
+    
+    if ( !_bInitialized )
+    {
+      printf( "BldServerSlim::fetch() : BldServerSlim is not initialized successfully\n" );
+      return 2;
+    }
         
     _iov.iov_base = pFetchBuffer;
     _iov.iov_len  = iBufSize;               
@@ -154,7 +191,7 @@ int BldServerSlim::fetch(unsigned int iBufSize, void* pFetchBuffer, unsigned int
     return 0;
 }
 
-string BldServerSlim::addressToStr( unsigned int uAddr )
+string addressToStr( unsigned int uAddr )
 {
     unsigned int uNetworkAddr = htonl(uAddr);
     const unsigned char* pcAddr = (const unsigned char*) &uNetworkAddr;
@@ -179,11 +216,16 @@ void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize );
 
 static void showUsage()
 {
-    printf( "Usage:  bldServerTest  [-v|--version] [-h|--help] <Interface IP>\n" 
-      "  Options:\n"
-      "    -v|--version       Show file version\n"
-      "    -h|--help          Show Usage\n"
-      "    <Interface IP>     Set the network interface for receiving multicast\n"
+    printf( "Usage:  bldServerTest  [-v|--version] [-h|--help] [-a|--address <Ip Address>] [-p|--port <Port>] [-i|--interface <Interface Name/IP>]  [<Interface name/IP>]\n"
+      " Options:\n"
+      "   -v|--version                        Show file version\n"
+      "   -h|--help                           Show Usage\n"
+      "   -a|--address   <Ip Address>         Set the multicast address to be listened to. Default: %s\n"
+      "   -p|--port      <Port>               Set the port to be listened to. Default: %u\n"
+      "   -s|--size      <Buffer Size>        Set the max data size for allocating buffer. Default: %u\n"
+      "   -i|--interface <Interface Name/IP>  Set the network interface for receiving multicast. Use ether IP address (xxx.xx.xx.xx) or name (eth0, eth1,...)\n"
+      "   <Interface IP/Name>                 Same as above. *This is an argument without the option (-i) flag\n",
+      Pds::addressToStr(uDefaultAddr).c_str(), uDefaultPort, uDefaultMaxDataSize
     );
 }
 
@@ -201,10 +243,18 @@ int main(int argc, char** argv)
     {
        {"ver",      0, 0, 'v'},
        {"help",     0, 0, 'h'},
-       {0,          0, 0,  0  }
+       {"address",  1, 0, 'a'},
+       {"port",     1, 0, 'p'},
+       {"size",     1, 0, 's'},
+       {"interface",1, 0, 'i'},       
+       {0,          0, 0,  0 }
     };    
-        
-    while ( int opt = getopt_long(argc, argv, ":vh", loOptions, &iOptionIndex ) )
+      
+    char*         sInterfaceIp  = NULL;    
+    unsigned int  uAddr         = uDefaultAddr;
+    unsigned int  uPort         = uDefaultPort;
+    unsigned int  uMaxDataSize  = uDefaultMaxDataSize;
+    while ( int opt = getopt_long(argc, argv, ":vha:p:i:s:", loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
@@ -212,12 +262,24 @@ int main(int argc, char** argv)
         {            
         case 'v':               /* Print usage */
             showVersion();
-            return 0;            
+            return 0;
+        case 'a':
+            uAddr = ntohl(inet_addr(optarg));
+            break;
+        case 'p':
+            uPort = strtoul(optarg, NULL, 0);
+            break;
+        case 's':
+            uMaxDataSize = strtoul(optarg, NULL, 0);
+            break;
+        case 'i':
+            sInterfaceIp = optarg;
+            break;            
         case '?':               /* Terse output mode */
-            printf( "epicsArch:main(): Unknown option: %c\n", optopt );
+            printf( "bldServerTest:main(): Unknown option: %c\n", optopt );
             break;
         case ':':               /* Terse output mode */
-            printf( "epicsArch:main(): Missing argument for %c\n", optopt );
+            printf( "bldServerTest:main(): Missing argument for %c\n", optopt );
             break;
         default:            
         case 'h':               /* Print usage */
@@ -229,14 +291,16 @@ int main(int argc, char** argv)
 
     argc -= optind;
     argv += optind;  
-      
-    char* sInterfaceIp = NULL;
-    
+          
     if (argc >= 1 )
       sInterfaceIp = argv[0];    
     
-    Pds::BldServerSlim bldServer(uDefaultAddr, uDefaultPort, uDefaultMaxDataSize,
-      sInterfaceIp ); 
+    Pds::BldServerSlim bldServer(uAddr, uPort, uMaxDataSize, sInterfaceIp ); 
+    if ( !bldServer.IsInitialized() )
+    {
+      printf( "bldServerTest:main(): bldServerSlim is not initialzed successfully\n" );
+      return 1;
+    }
             
     std::vector<unsigned char> vcFetchBuffer( uDefaultMaxDataSize );
         
@@ -245,7 +309,13 @@ int main(int argc, char** argv)
     while (1) // Pds::ConsoleIO::kbhit(NULL) == 0 )
     {       
         unsigned int iRecvDataSize = 0;
-        bldServer.fetch(uDefaultMaxDataSize, &vcFetchBuffer[0], iRecvDataSize);
+        int iFail = bldServer.fetch(uDefaultMaxDataSize, &vcFetchBuffer[0], iRecvDataSize);
+        if ( iFail != 0 )
+        {
+          printf( "bldServerTest:main(): bldServer.fetch() failed. Error Code = %d\n", iFail );
+          return 2;
+        }
+        
         printData( vcFetchBuffer, iRecvDataSize );
     }
 

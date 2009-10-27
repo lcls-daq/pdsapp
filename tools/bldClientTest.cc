@@ -4,6 +4,8 @@
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
+#include <string>
+#include <sstream>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -11,11 +13,17 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <sys/uio.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 #include "multicastConfig.hh"
 #include "bldClientTest.hh"
 
+using std::string;
+using namespace Pds::ConfigurationMulticast;
+
 namespace EpicsBld
 {
+static int iDefaultDataSeed = 1;
 
 /**
  * class Ins
@@ -103,7 +111,8 @@ class Port : public Ins
     // successful error() returns 0. If construction fails, error()
     // returns a non-zero value which corresponds to the reason (as an
     // "errno").
-    int  error() const;
+    int   error() const;
+    int   getSocket()  { return _socket; } // modified by tomy, used to get the socket handle
   protected:
     void error(int value);
     int _socket;
@@ -171,12 +180,26 @@ public:
   
   virtual int sendRawData(int iSizeData, const char* pData);
 private:
-  int _initClient( unsigned int uMaxDataSize, unsigned char ucTTL, 
-    unsigned int uInterfaceIp);
+  int _initClient( unsigned int uMaxDataSize, unsigned char ucTTL, unsigned int uInterfaceIp);
+  int _initClient( unsigned int uMaxDataSize, unsigned char ucTTL, char* sInterfaceIp);
 
   Client* _pSocket; // socket
   unsigned _uAddr, _uPort;
 };
+
+static string addressToStr( unsigned int uAddr )
+{
+    unsigned int uNetworkAddr = htonl(uAddr);
+    const unsigned char* pcAddr = (const unsigned char*) &uNetworkAddr;
+    std::stringstream sstream;
+    sstream << 
+      (int) pcAddr[0] << "." <<
+      (int) pcAddr[1] << "." <<
+      (int) pcAddr[2] << "." <<
+      (int) pcAddr[3];
+      
+     return sstream.str();
+}
 
 } // namespace EpicsBld
 
@@ -185,7 +208,8 @@ extern "C"
 { 
 // forward declaration
 int BldClientTestSendInterface(int iDataSeed, char* sInterfaceIp);
-
+int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort, 
+      unsigned int uMaxDataSize, int iDataSeed, char* sInterfaceIp);
   
 /**
  * Bld Client basic test function
@@ -205,6 +229,20 @@ int BldClientTestSendBasic(int iDataSeed)
 /**
  * Bld Client test function with IP interface selection
  *
+ * Similar to the above function. It lets user to specify the network interface by
+ * IP address (xxx.xx.xx.xx) or name (eth0, eth1,...).
+ *
+ * This fucntion is only used for quick testing of Bld Client, such as 
+ * running from CExp Command Line.
+ */
+int BldClientTestSendInterface(int iDataSeed, char* sInterfaceIp)
+{ 
+  return BldClientTestSendAddr(uDefaultAddr, uDefaultPort, uDefaultMaxDataSize, iDataSeed, sInterfaceIp);
+}
+
+/**
+ * Bld Client test function with address and IP interface selection
+ *
  * Similar to BldClientTestSendBasic(), but with the argument (sInterfaceIp)
  * to specify the IP interface for sending multicast.
  *
@@ -215,30 +253,32 @@ int BldClientTestSendBasic(int iDataSeed)
  * This fucntion is only used for quick testing of Bld Client, such as 
  * running from CExp Command Line.
  */
-int BldClientTestSendInterface(int iDataSeed, char* sInterfaceIp)
+int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort, 
+      unsigned int uMaxDataSize, int iDataSeed, char* sInterfaceIp)
 {
   const int iSleepInterval = 3;
-    
-  using namespace Pds::ConfigurationMulticast;
+      
   EpicsBld::BldClientInterface* pBldClient = 
-    EpicsBld::BldClientFactory::createBldClient(uDefaultAddr, uDefaultPort, 
-      uDefaultMaxDataSize, ucDefaultTTL, sInterfaceIp);
+    EpicsBld::BldClientFactory::createBldClient(uAddr, uPort, 
+      uMaxDataSize, ucDefaultTTL, sInterfaceIp);
 
-  printf( "Beginning Multicast Client Testing.\n"
-          "Data Seed = %d  Interface Ip = %s\n"
-          "Press Ctrl+C to Exit...\n",
-          iDataSeed, (sInterfaceIp ? sInterfaceIp: "NULL [Default IP]") );
-  
-  unsigned int uIntDataSize = (uDefaultMaxDataSize/sizeof(int));
+  unsigned int uIntDataSize = (uMaxDataSize/sizeof(int));
   int* liData = new int[uIntDataSize];
   int iTestValue = iDataSeed * 1000;
+
+  printf( "Beginning Multicast Client Testing\n"
+          "Data Seed = %d  Interface = %s  Buffer Size = %u\n"
+          "Press Ctrl+C to Exit...\n",
+          iDataSeed, 
+          (sInterfaceIp ? sInterfaceIp: "NULL [Default Interface]"),
+          uMaxDataSize );  
   
   while ( 1 )  
   {
     for (unsigned int uIndex=0; uIndex<uIntDataSize; uIndex++)
       liData[uIndex] = iTestValue;
       
-    printf("Bld send to %x port %d Value %d\n", uDefaultAddr, uDefaultPort, iTestValue);
+    printf("Bld send to %s port %d Value %d\n", EpicsBld::addressToStr(uAddr).c_str(), uPort, iTestValue);
     
     pBldClient->sendRawData(uIntDataSize*sizeof(int), 
       reinterpret_cast<char*>(liData));
@@ -325,13 +365,20 @@ int BldClientSendRawData(void* pVoidBldClient, int iSizeData, char* pData)
 
 static void showUsage()
 {
-    printf( "Usage:  bldClientTest  [-v|--version] [-h|--help] <Data Seed> <Interface IP>\n" 
-      "  Options:\n"
-      "    -v|--version       Show file version\n"
-      "    -h|--help          Show Usage\n"
-      "    <Data Seed>        Set the seed value for generating different data for each client program\n"
-      "    <Interface IP>     Set the network interface for sending multicast\n"
+    printf( "Usage:  bldClientTest  [-v|--version] [-h|--help] [-a|--address <Ip Address>] [-p|--port <Port>] [-i|--interface <Interface Name/IP>]  [<Data Seed> <Interface name/IP>]\n" 
+      " Options:\n"
+      "   -v|--version                        Show file version\n"
+      "   -h|--help                           Show Usage\n"
+      "   -a|--address   <Ip Address>         Set the multicast address to be sent to. Default: %s\n"
+      "   -p|--port      <Port>               Set the port to be sent to. Default: %u\n"
+      "   -s|--seed      <Data Seed>          Set the seed value for generating different data for each client program. Default: %i\n"
+      "   -z|--size      <Buffer Size>        Set the max data size for allocating buffer. Default: %u\n"
+      "   -i|--interface <Interface Name/IP>  Set the network interface for receiving multicast. Use ether IP address (xxx.xx.xx.xx) or name (eth0, eth1,...)\n"
+      "   <Data Seed>                         Same as -s flag above. *This is an argument without the option (-s`) flag\n"
+      "   <Interface Name/IP>                 Same as -i flag above. *This is an argument without the option (-i) flag\n",
+      EpicsBld::addressToStr(uDefaultAddr).c_str(), uDefaultPort, EpicsBld::iDefaultDataSeed, uDefaultMaxDataSize
     );
+    
 }
 
 static const char sBldClientTestVersion[] = "0.90";
@@ -348,10 +395,20 @@ int main(int argc, char** argv)
   {
      {"ver",      0, 0, 'v'},
      {"help",     0, 0, 'h'},
+     {"address",  1, 0, 'a'},
+     {"port",     1, 0, 'p'},
+     {"seed",     1, 0, 's'},
+     {"size",     1, 0, 'z'},
+     {"interface",1, 0, 'i'},            
      {0,          0, 0,  0  }
   };    
     
-  while ( int opt = getopt_long(argc, argv, ":vh", loOptions, &iOptionIndex ) )
+  unsigned int  uAddr         = uDefaultAddr;
+  unsigned int  uPort         = uDefaultPort;
+  unsigned int  uMaxDataSize  = uDefaultMaxDataSize;  
+  int           iDataSeed     = EpicsBld::iDefaultDataSeed;
+  char*         sInterfaceIp  = NULL;      
+  while ( int opt = getopt_long(argc, argv, ":vha:p:i:s:z:", loOptions, &iOptionIndex ) )
   {
       if ( opt == -1 ) break;
           
@@ -360,11 +417,26 @@ int main(int argc, char** argv)
       case 'v':               /* Print usage */
           showVersion();
           return 0;            
+      case 'a':
+          uAddr = ntohl(inet_addr(optarg));
+          break;
+      case 'p':
+          uPort = strtoul(optarg, NULL, 0);
+          break;
+      case 's':
+          iDataSeed = strtol(optarg, NULL, 0);
+          break;
+      case 'z':
+          uMaxDataSize = strtoul(optarg, NULL, 0);
+          break;
+      case 'i':
+          sInterfaceIp = optarg;
+          break;            
       case '?':               /* Terse output mode */
-          printf( "epicsArch:main(): Unknown option: %c\n", optopt );
+          printf( "bldClientTest:main(): Unknown option: %c\n", optopt );
           break;
       case ':':               /* Terse output mode */
-          printf( "epicsArch:main(): Missing argument for %c\n", optopt );
+          printf( "bldClientTest:main(): Missing argument for %c\n", optopt );
           break;
       default:            
       case 'h':               /* Print usage */
@@ -376,9 +448,6 @@ int main(int argc, char** argv)
 
   argc -= optind;
   argv += optind;  
-
-  int iDataSeed = 1;
-  char* sInterfaceIp = NULL;
   
   if (argc >= 1 )
     iDataSeed = atoi(argv[0]);
@@ -386,7 +455,7 @@ int main(int argc, char** argv)
   if (argc >= 2 )    
     sInterfaceIp = argv[1];
     
-  return BldClientTestSendInterface( iDataSeed, sInterfaceIp );
+  return BldClientTestSendAddr( uAddr, uPort, uMaxDataSize, iDataSeed, sInterfaceIp );
 }
 
 } // extern "C" 
@@ -796,9 +865,7 @@ BldClientTest::BldClientTest(unsigned uAddr, unsigned uPort,
   unsigned int uMaxDataSize, unsigned char ucTTL, char* sInterfaceIp) : 
   _pSocket(NULL), _uAddr(uAddr), _uPort(uPort)
 {
-  unsigned int uInterfaceIp = ( (sInterfaceIp == NULL)?
-    0 : ntohl(inet_addr(sInterfaceIp)) );
-  _initClient(uMaxDataSize, ucTTL, uInterfaceIp); 
+  _initClient(uMaxDataSize, ucTTL, sInterfaceIp); 
 }
 
 BldClientTest::BldClientTest(unsigned uAddr, unsigned uPort, 
@@ -808,8 +875,7 @@ BldClientTest::BldClientTest(unsigned uAddr, unsigned uPort,
   _initClient(uMaxDataSize, ucTTL, uInterfaceIp );
 }
 
-int BldClientTest::_initClient( unsigned int uMaxDataSize, unsigned char ucTTL, 
-  unsigned int uInterfaceIp)
+int BldClientTest::_initClient( unsigned int uMaxDataSize, unsigned char ucTTL, unsigned int uInterfaceIp)
 {
   if ( _pSocket != NULL) delete _pSocket; 
   
@@ -818,9 +884,50 @@ int BldClientTest::_initClient( unsigned int uMaxDataSize, unsigned char ucTTL,
   
   if ( uInterfaceIp != 0) 
   {
-    printf( "multicast interface IP: %d.%d.%d.%d\n", ((unsigned char*)&uInterfaceIp)[3], ((unsigned char*)&uInterfaceIp)[2],
-     ((unsigned char*)&uInterfaceIp)[1], ((unsigned char*)&uInterfaceIp)[0] );
+    printf( "multicast interface IP: %s\n", EpicsBld::addressToStr(uInterfaceIp).c_str() );
     _pSocket->multicastSetInterface(uInterfaceIp);
+  }   
+  return 0;
+}
+
+int BldClientTest::_initClient( unsigned int uMaxDataSize, unsigned char ucTTL, char* sInterfaceIp)
+{
+  if ( _pSocket != NULL) delete _pSocket; 
+  
+  _pSocket = new Client(0, uMaxDataSize);
+  _pSocket->multicastSetTTL(ucTTL);
+    
+  in_addr_t uiInterface;
+   
+  if (sInterfaceIp == NULL || sInterfaceIp[0] == 0 )
+  {
+    uiInterface = 0;
+  }
+  else
+  {
+      if ( sInterfaceIp[0] < '0' || sInterfaceIp[0] > '9' )
+      {        
+        struct ifreq ifr;
+        strcpy( ifr.ifr_name, sInterfaceIp );
+        int iError = ioctl( _pSocket->getSocket(), SIOCGIFADDR, (char*)&ifr );
+        if ( iError == 0 )
+          uiInterface = ntohl( *(unsigned int*) &(ifr.ifr_addr.sa_data[2]) );
+        else
+        {
+          printf( "Cannot get IP address from network interface %s\n", sInterfaceIp );
+          uiInterface = 0;
+        }
+      }
+      else
+      {
+        uiInterface = ntohl(inet_addr(sInterfaceIp));
+      }        
+  }                
+    
+  if ( uiInterface != 0) 
+  {
+    printf( "multicast interface IP: %s\n", EpicsBld::addressToStr(uiInterface).c_str() );
+    _pSocket->multicastSetInterface(uiInterface);
   }   
   return 0;
 }
