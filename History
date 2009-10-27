@@ -1,6 +1,7 @@
+2009-Oct-27 tomytsai  Add command line options for bldServerTest and bldClientTest to support the multicast address/port/interface options.
 2009-Oct-20 weaver  Tag V01-04-02.  Bug fix to config/ControlScan for live editing of scan
-			configurations, and it now reads last used configuration.
-			control/RunStatus now updates in QApplication thread.
+      configurations, and it now reads last used configuration.
+      control/RunStatus now updates in QApplication thread.
 2009-Oct-19 tomytsai  Rename pdsapp/test/epicsBldClientTest to bldClientTest, and add command line usage supports
 2009-Oct-13 weaver  Tag V01-04-01.  Deployed everything at HEAD.
 2009-Oct-8      cpo     Forgot to add the MySqlRunAllocator.  Tagged V01-03-03.

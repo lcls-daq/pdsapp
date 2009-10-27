@@ -374,7 +374,7 @@ static void showUsage()
       "   -s|--seed      <Data Seed>          Set the seed value for generating different data for each client program. Default: %i\n"
       "   -z|--size      <Buffer Size>        Set the max data size for allocating buffer. Default: %u\n"
       "   -i|--interface <Interface Name/IP>  Set the network interface for receiving multicast. Use ether IP address (xxx.xx.xx.xx) or name (eth0, eth1,...)\n"
-      "   <Data Seed>                         Same as -s flag above. *This is an argument without the option (-s`) flag\n"
+      "   <Data Seed>                         Same as -s flag above. *This is an argument without the option (-s) flag\n"
       "   <Interface Name/IP>                 Same as -i flag above. *This is an argument without the option (-i) flag\n",
       EpicsBld::addressToStr(uDefaultAddr).c_str(), uDefaultPort, EpicsBld::iDefaultDataSeed, uDefaultMaxDataSize
     );
