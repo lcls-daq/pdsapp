@@ -18,7 +18,6 @@ SelectDialog::SelectDialog(QWidget* parent,
   QVBoxLayout* layout = new QVBoxLayout(this);
   layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this));
   layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this));
-  layout->addWidget(_recbox = new NodeGroup("Recording Nodes",this));
   layout->addWidget(_rptbox = new NodeGroup("Reporting Nodes",this));
 
   QPushButton* acceptb = new QPushButton("Ok",this);
@@ -57,7 +56,6 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
   case Level::Control : _control = hdr; break;
   case Level::Segment : _segbox->addNode(NodeSelect(hdr, msg)); break;
   case Level::Event   : _evtbox->addNode(NodeSelect(hdr)); break;
-  case Level::Recorder: _recbox->addNode(NodeSelect(hdr)); break;
   case Level::Reporter: _rptbox->addNode(NodeSelect(hdr)); break;
   default: break;
   }
@@ -72,7 +70,6 @@ QWidget* SelectDialog::display() {
   QVBoxLayout* layout = new QVBoxLayout(d);
   layout->addWidget(_segbox->freeze()); 
   layout->addWidget(_evtbox->freeze()); 
-  layout->addWidget(_recbox->freeze()); 
   layout->addWidget(_rptbox->freeze()); 
   d->setLayout(layout);
   return d;
@@ -83,7 +80,6 @@ void SelectDialog::select() {
   _selected << _control;
   _selected << _segbox->selected();
   _selected << _evtbox->selected();
-  _selected << _recbox->selected();
   _selected << _rptbox->selected();
   accept();
 }
