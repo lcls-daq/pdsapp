@@ -194,7 +194,7 @@ int main(int argc, char** argv)
             
         switch(opt) 
         {            
-        case 's':
+        case 'x':
             showVersion();
             return 0;            
         case 'h':               
