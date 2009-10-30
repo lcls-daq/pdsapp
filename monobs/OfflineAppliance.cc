@@ -293,16 +293,24 @@ int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
   int  status;
   int read_count = 0;
   int ix;
+  static bool epics_initialized = false;
 
-  // Initialize Channel Access
-  status = ca_task_initialize();
-  if (status != ECA_NORMAL) {
-    printf("Error: %s: Unable to initialize Channel Access", __FUNCTION__);
-    // On failure, return array of empty strings
-    for (ix = 0; ix < (int)in.size(); ix ++) {
-      out.push_back("");
+  if (!epics_initialized) {
+    // Initialize Channel Access
+    status = ca_task_initialize();
+    if (status == ECA_NORMAL) {
+      epics_initialized = true;
     }
-  } else {
+    else {
+      printf("Error: %s: Unable to initialize Channel Access", __FUNCTION__);
+      // On failure, return array of empty strings
+      for (ix = 0; ix < (int)in.size(); ix ++) {
+        out.push_back("");
+      }
+    }
+  }
+
+  if (epics_initialized) {
     // Create channels
     for (ix = 0; ix < (int)in.size(); ix ++) {
       status = ca_create_channel(in[ix].c_str(), 0, 0, 0, &chan[ix]);
@@ -345,8 +353,6 @@ int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
     for (ix = 0; ix < (int)in.size(); ix ++) {
       out.push_back((read_count > 0) ? epics_string[ix]: "");
     }
-    // Free resources and close channel access
-    ca_task_exit();
   }
   return read_count;
 }
