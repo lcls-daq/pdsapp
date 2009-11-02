@@ -62,7 +62,7 @@ namespace Pds {
 
   long long int timeDiff(timespec* end, timespec* start) {
     long long int diff;
-    diff =  (end->tv_sec - start->tv_sec) * 1000000000;
+    diff =  (end->tv_sec - start->tv_sec) * 1000000000LL;
     diff += end->tv_nsec;
     diff -= start->tv_nsec;
     return diff;
@@ -80,7 +80,7 @@ namespace Pds {
               _go(false),
               _pipe(fd),
               _evr(0),
-              period((1000000000LL*seconds) / rateInCPS),
+              period(1000000000LL),
               _f(0), _f_increment(360*seconds/rateInCPS), _t(0)
               { _task->call(this); }
 
@@ -90,35 +90,48 @@ namespace Pds {
     {
       _sleepTime.tv_sec = 0;
       _sleepTime.tv_nsec = 0;
-      if (rateInCPS > 1) seconds = 0;
+      _waitTime.tv_sec = 0;
+      _waitTime.tv_nsec = 250000000;
+      unsigned trips = 0;
+      if (seconds > 1) {
+        rateInCPS = 1;
+        period = 1000000000LL * seconds;
+      } else if (rateInCPS > 1) {
+        seconds = 0;
+        period = 1000000000LL / rateInCPS;
+      }
+      printf("Period is %llu nsec\n", period);
       ServerMsg dg;
       while(1) {
-        while (!_go) {};
+        while (!_go) {
+          if (nanosleep(&_waitTime, &_fooTime)<0) perror("nanosleep while spinning");
+          trips = 0;
+        }
         // generate these at specified interval
-        clock_gettime(CLOCK_REALTIME, &_now);
+        clock_gettime(CLOCK_REALTIME, &_start);
         dg.offset = 0;
         dg.ptr    = 0;
         dg.length = 0;
-        dg.evr.seq = Sequence(Sequence::Event, TransitionId::L1Accept, ClockTime(_now.tv_sec, _now.tv_nsec), TimeStamp(_t, _f, _evr));
+        dg.evr.seq = Sequence(Sequence::Event, TransitionId::L1Accept, ClockTime(_start.tv_sec, _start.tv_nsec), TimeStamp(_t, _f, _evr));
         dg.evr.evr = _evr++;
         ::write(_pipe,&dg,sizeof(dg));
         _outlet.send((char*)&dg,0,0,_dst);
         _f += _f_increment;
         _f &= Pds::s_fiduc;  // mask it to correct number of bits
         _t = (random() & 0x3) + 12;
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &_done);
-        _busyTime = timeDiff(&_done, &_now);
+        clock_gettime(CLOCK_REALTIME, &_done);
+        _busyTime = timeDiff(&_done, &_start);
         if (seconds) _sleepTime.tv_sec = seconds;
         else {
           if (period > _busyTime)  _sleepTime.tv_nsec = period - _busyTime;
         }
         if (nanosleep(&_sleepTime, &_fooTime)<0) perror("nanosleep");
-        //printf ("busy time %llu,   sleep time %ld\n", _busyTime, _sleepTime.tv_nsec);
+        if (trips++ < 10) printf ("busy time %llu nsec,   sleep time %lu sec and %lu nsec\n", _busyTime, _sleepTime.tv_sec,  _sleepTime.tv_nsec);
       }
     }
     void dst(const Ins& ins) { _dst=ins; }
     void enable() { _go = true; printf("going\n");}
-    void disable() { _go = false; printf("stopping\n");}
+    void disable() { _go = false; printf("stopping, evr %d\n", _evr);}
 
     private:
     Task* _task;
@@ -126,7 +139,7 @@ namespace Pds {
     bool _go;
     int   _pipe;
     unsigned _evr;
-    timespec _now, _done, _sleepTime, _fooTime;
+    timespec _start, _done, _sleepTime, _fooTime, _waitTime;
     long long unsigned period, _busyTime;
     unsigned _f, _f_increment;
     unsigned _t;
@@ -495,7 +508,7 @@ using namespace Pds;
 
 void _print_help(const char* p0)
 {
-  printf("Usage : %s -p <platform> [-i <det_id> -r <rateInCPS> -s <seconds> -v]\n",
+  printf("Usage : %s -p <platform> [-i <det_id> -v] [(-r <rateInCPS>) | (-s <seconds>)] \n",
       p0);
 }
 
