@@ -17,6 +17,14 @@ const Src XtcEpicsMonitor::srcLevel(Level::Recorder); // For direct file recordi
 XtcEpicsMonitor::XtcEpicsMonitor( char* lcFnXtc, int iNumPv, char* lsPvName[] ) :
     _sFnXtc(lcFnXtc), _fhXtc(NULL)
 {
+    // initialize Channel Access        
+    int iFail = ca_task_initialize();    
+    if (ECA_NORMAL != iFail ) 
+    {
+        SEVCHK( iFail, "XtcEpicsMonitor::XtcEpicsMonitor(): ca_task_initialize() failed" );    
+        throw "XtcEpicsMonitor::XtcEpicsMonitor(): ca_task_initialize() failed";
+    }
+  
     if ( lcFnXtc == NULL || iNumPv <= 0 || lsPvName == NULL )
         throw string("XtcEpicsMonitor::XtcEpicsMonitor(): Invalid parameters");
         
@@ -24,7 +32,7 @@ XtcEpicsMonitor::XtcEpicsMonitor( char* lcFnXtc, int iNumPv, char* lsPvName[] ) 
     if ( _fhXtc == NULL )
         throw string("XtcEpicsMonitor::XtcEpicsMonitor()::fopen(%s) failed\n", _sFnXtc.c_str());     
                 
-    int iFail = setupPvList( iNumPv, lsPvName, _lpvPvList );
+    iFail = setupPvList( iNumPv, lsPvName, _lpvPvList );
     if (iFail != 0)
         throw string("XtcEpicsMonitor::XtcEpicsMonitor()::setupPvList() Failed");        
 }
@@ -45,6 +53,10 @@ XtcEpicsMonitor::~XtcEpicsMonitor()
         fclose(_fhXtc);
         _fhXtc = NULL;
     }
+    
+    int iFail = ca_task_exit();
+    if (ECA_NORMAL != iFail ) 
+      SEVCHK( iFail, "XtcEpicsMonitor::~XtcEpicsMonitor(): ca_task_exit() failed" );    
 }
 
 int XtcEpicsMonitor::runMonitorLoop()
