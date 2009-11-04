@@ -257,8 +257,8 @@ void MainWindow::transition_damaged(const InDatagram& dg)
   emit transition_failed(msg);
 
   if (dg.datagram().xtc.damage.value() & (1<<Pds::Damage::UserDefined)) {
-    msg += QString("\n  Need to restart DAQ");
-    QMessageBox::critical(this, "Transition Failed", msg);
+    QString nmsg = QString("%1\n  Need to restart DAQ").arg(msg);
+    QMessageBox::critical(this, "Transition Failed", nmsg);
   }
 }
 
