@@ -289,24 +289,24 @@ int OfflineAppliance::_saveRunParameter(LogBook::Connection *conn, const char *i
 int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
 {
   chid chan[in.size()];
+  char chan_status[in.size()];
   dbr_string_t epics_string[in.size()];
   int  status;
   int read_count = 0;
   int ix;
-  static bool epics_initialized = false;
+  bool epics_initialized = false;
 
-  if (!epics_initialized) {
-    // Initialize Channel Access
-    status = ca_task_initialize();
-    if (status == ECA_NORMAL) {
-      epics_initialized = true;
-    }
-    else {
-      printf("Error: %s: Unable to initialize Channel Access", __FUNCTION__);
-      // On failure, return array of empty strings
-      for (ix = 0; ix < (int)in.size(); ix ++) {
-        out.push_back("");
-      }
+  // Initialize Channel Access
+  status = ca_task_initialize();
+  if (ECA_NORMAL == status) {
+    epics_initialized = true;
+  }
+  else {
+    SEVCHK(status, NULL);
+    printf("Error: %s: Unable to initialize Channel Access", __FUNCTION__);
+    // On failure, return array of empty strings
+    for (ix = 0; ix < (int)in.size(); ix ++) {
+      out.push_back("");
     }
   }
 
@@ -314,36 +314,47 @@ int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
     // Create channels
     for (ix = 0; ix < (int)in.size(); ix ++) {
       status = ca_create_channel(in[ix].c_str(), 0, 0, 0, &chan[ix]);
-      if (status != ECA_NORMAL) {
+      if (ECA_NORMAL == status) {
+        chan_status[ix] = 1;
+      }
+      else {
+        SEVCHK(status, NULL);
+        chan_status[ix] = 0;
         printf("Error: %s: problem establishing connection to %s.", __FUNCTION__, in[ix].c_str());
-        break;
       }
     }
 
     // Send the requests and wait for channels to be found.
-    (void)ca_pend_io(OFFLINE_EPICS_TIMEOUT);
+    status = ca_pend_io(OFFLINE_EPICS_TIMEOUT);
+    SEVCHK(status, NULL);
 
     // Make get requests
     for (ix = 0; ix < (int)in.size(); ix ++) {
-      epics_string[ix][0] = '\0';   // empty string is default
-      if (ca_state(chan[ix]) == cs_conn) {
+      if ((chan_status[ix]) && (cs_conn == ca_state(chan[ix]))) {
         // channel is connected
         status = ca_bget(chan[ix], epics_string[ix]);
         if (ECA_NORMAL == status){
           ++read_count;   // increment count of PVs successfully read
         } else {
+          SEVCHK(status, NULL);
           printf("Error in call to ca_bget()");
         }
       } else {
         // channel is not connected
-        printf("Error: failed to read PV %s\n", in[ix].c_str());
+        printf("Error: failed to connect PV %s\n", in[ix].c_str());
+        epics_string[ix][0] = '\0';   // empty string is default
       }
     }
 
     // Flush I/O
-    ca_flush_io();
+    status = ca_flush_io();
+    SEVCHK(status, NULL);
 
-    if (ca_pend_io(2 * OFFLINE_EPICS_TIMEOUT) == ECA_TIMEOUT) {
+    // Give operations time to complete
+    status = ca_pend_io(2 * OFFLINE_EPICS_TIMEOUT);
+    SEVCHK(status, NULL);
+
+    if (ECA_TIMEOUT == status) {
       printf("Error: %s: Get Timed Out\n", __FUNCTION__);
       // From ca_pend_io() manual:
       //   "If ECA_TIMEOUT is returned then failure must be assumed for all
@@ -352,7 +363,13 @@ int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
     }
     for (ix = 0; ix < (int)in.size(); ix ++) {
       out.push_back((read_count > 0) ? epics_string[ix]: "");
+      // shut down and reclaim resources associated with channel
+      status = ca_clear_channel(chan[ix]);
+      SEVCHK(status, NULL);
     }
+
+    // free channel access resources
+    ca_context_destroy();
   }
   return read_count;
 }
