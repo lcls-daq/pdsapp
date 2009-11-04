@@ -142,7 +142,7 @@ Transition* Recorder::transitions(Transition* tr) {
       sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
               _path,rinfo.experiment(),rinfo.experiment(),rinfo.run(),_sliceID,chunk);
       sprintf(_fnamerunning,"%s.inprogress",_fname);
-      _f=fopen(_fnamerunning,"w");
+      _f=fopen(_fnamerunning,"wx"); // x: if the file already exists, fopen() fails
       if (_f) {
         printf("Opened %s\n",_fnamerunning);
         fwrite(_config, sizeof(Datagram) + 
