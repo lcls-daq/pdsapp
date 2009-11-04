@@ -32,10 +32,10 @@ namespace Pds {
     static void termSignalHandler(int unused);
 
   signals:
-    void transition_failed(const QString&);
+    void transition_failed(const QString&,bool);
     //    void platform_failed();
   public slots:
-    void handle_failed_transition(const QString&);
+    void handle_failed_transition(const QString&,bool);
     void handle_sigint();
     void handle_sigterm();
     //    void handle_platform_error();

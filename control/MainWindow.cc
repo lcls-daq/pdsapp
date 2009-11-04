@@ -178,8 +178,8 @@ MainWindow::MainWindow(unsigned          platform,
 
   QObject::connect(state , SIGNAL(allocated())  , config, SLOT(allocated()));
   QObject::connect(state , SIGNAL(deallocated()), config, SLOT(deallocated()));
-  QObject::connect(this  , SIGNAL(transition_failed(const QString&))   , 
-		   this  , SLOT(handle_failed_transition(const QString&)));
+  QObject::connect(this  , SIGNAL(transition_failed(const QString&, bool))   , 
+		   this  , SLOT(handle_failed_transition(const QString&, bool)));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));
 
   // Unix signal support
@@ -224,7 +224,7 @@ void MainWindow::controleb_tmo()
     }
     msg += QString("Need to restart.\n");
     
-    emit transition_failed(msg);
+    emit transition_failed(msg,true);
   }
 }
 
@@ -254,12 +254,13 @@ void MainWindow::transition_damaged(const InDatagram& dg)
     }
   }
 
-  emit transition_failed(msg);
 
   if (dg.datagram().xtc.damage.value() & (1<<Pds::Damage::UserDefined)) {
-    QString nmsg = QString("%1\n  Need to restart DAQ").arg(msg);
-    QMessageBox::critical(this, "Transition Failed", nmsg);
+    msg += QString("\n  Need to restart DAQ");
+    emit transition_failed(msg,true);
   }
+  else
+    emit transition_failed(msg,false);
 }
 
 void MainWindow::platform_error()
@@ -278,14 +279,18 @@ void MainWindow::platform_error()
   QMessageBox::critical(this, "Platform Error", msg);
 }
 
-void MainWindow::handle_failed_transition(const QString& msg)
+void MainWindow::handle_failed_transition(const QString& msg, bool critical)
 {
   QString t = QString("%1: %2")
     .arg(QTime::currentTime().toString("hh:mm:ss"))
     .arg(msg);
   printf("%s\n",qPrintable(t));
   _log->append(t);
+
+  if (critical)
+    QMessageBox::critical(this, "Transition Failed", msg);
 }
+
 
 //
 // In the slot functions connected to the QSocket::activated signals,
