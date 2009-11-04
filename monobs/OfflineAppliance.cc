@@ -338,6 +338,7 @@ int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
         } else {
           SEVCHK(status, NULL);
           printf("Error in call to ca_bget()");
+          epics_string[ix][0] = '\0';   // empty string is default
         }
       } else {
         // channel is not connected
