@@ -54,7 +54,6 @@ Reconfig_Ui::Reconfig_Ui(QWidget* parent,
   connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
   connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
   connect(applyB  , SIGNAL(clicked()), this, SLOT(apply()));
-  connect(closeB  , SIGNAL(clicked()), this, SLOT(apply()));
   connect(closeB  , SIGNAL(clicked()), this, SLOT(hide()));
 
   update_device_list();
