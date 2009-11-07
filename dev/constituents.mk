@@ -43,5 +43,5 @@ tgtlibs_epicsArch := pdsdata/xtcdata pdsdata/epics pds/service pds/collection pd
 tgtslib_epicsArch := /usr/lib/rt
 
 tgtsrcs_rceProxy := rceProxy.cc
-tgtlibs_rceProxy := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pds/rceProxy
+tgtlibs_rceProxy := pdsdata/pnccddata pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pds/rceProxy
 tgtslib_rceProxy := /usr/lib/rt
