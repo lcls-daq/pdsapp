@@ -40,8 +40,8 @@ StateSelect::StateSelect(QWidget* parent,
   layout->addWidget(_display,1,1,1,1);
   setLayout(layout);
 
-  QObject::connect(this, SIGNAL(state_changed()),
-		   this, SLOT(populate()));
+  QObject::connect(this, SIGNAL(state_changed(QString)),
+		   this, SLOT(populate(QString)));
   QObject::connect(_select, SIGNAL(activated(const QString&)), 
 		   this, SLOT(selected(const QString&)));
 }
@@ -52,8 +52,10 @@ StateSelect::~StateSelect()
   delete _yellow;
 }
 
-void StateSelect::populate()
+void StateSelect::populate(QString label)
 {
+  _display->setText(label);
+
   QObject::disconnect(_select, SIGNAL(activated(const QString&)), 
 		      this, SLOT(selected(const QString&)));
   _select->clear();
@@ -116,9 +118,7 @@ Transition* StateSelect::transitions(Transition* tr)
 {
   if (tr->id() == TransitionId::Unmap) {
     QString label(TransitionId::name(tr->id()));
-    _display->setText(label);
-
-    emit state_changed(); 
+    emit state_changed(label); 
  }
   return tr; 
 }
@@ -127,9 +127,7 @@ InDatagram* StateSelect::events     (InDatagram* dg)
 {
   if (dg->datagram().seq.type()==Sequence::Event) {
     QString label(TransitionId::name(dg->datagram().seq.service()));
-    _display->setText(label);
-
-    emit state_changed(); 
+    emit state_changed(label); 
   }
   return dg; 
 }

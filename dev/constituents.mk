@@ -2,7 +2,7 @@
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr acq opal1k epicsArch rceProxy # tm6740
+tgtnames    := evr acq opal1k epicsArch rceProxy bld # tm6740
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
@@ -41,6 +41,11 @@ tgtincs_tm6740 := leutron/include
 tgtsrcs_epicsArch := epicsArch.cc
 tgtlibs_epicsArch := pdsdata/xtcdata pdsdata/epics pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pds/epicsArch epics/ca epics/Com
 tgtslib_epicsArch := /usr/lib/rt
+
+tgtsrcs_bld := bld.cc 
+tgtlibs_bld := pdsdata/xtcdata
+tgtlibs_bld += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
+tgtslib_bld := /usr/lib/rt
 
 tgtsrcs_rceProxy := rceProxy.cc
 tgtlibs_rceProxy := pdsdata/pnccddata pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pds/rceProxy

@@ -37,7 +37,7 @@ namespace Pds {
     Node _recorders[MAX_NODES];
     NodeGroup* _segbox;
     NodeGroup* _evtbox;
-    NodeGroup* _rptbox;
+    //    NodeGroup* _rptbox;
     QList<Node> _selected;
   };
 };

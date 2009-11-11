@@ -3,9 +3,9 @@
 
 #include "pds/utility/Appliance.hh"
 #include <QtGui/QGroupBox>
+#include <QtCore/QString>
 
 class QPoint;
-class QString;
 class QLabel;
 class QComboBox;
 class QPalette;
@@ -24,11 +24,11 @@ namespace Pds {
     virtual Transition* transitions(Transition*);
     virtual InDatagram* events     (InDatagram*);
   signals:
-    void state_changed();
+    void state_changed(QString);
     void allocated    ();
     void deallocated  ();
   public slots:
-    void populate();
+    void populate(QString);
     void selected(const QString&);
   private:
     PartitionControl& _control;

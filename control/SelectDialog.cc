@@ -18,7 +18,7 @@ SelectDialog::SelectDialog(QWidget* parent,
   QVBoxLayout* layout = new QVBoxLayout(this);
   layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this));
   layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this));
-  layout->addWidget(_rptbox = new NodeGroup("Reporting Nodes",this));
+  //  layout->addWidget(_rptbox = new NodeGroup("Reporting Nodes",this));
 
   QPushButton* acceptb = new QPushButton("Ok",this);
   QPushButton* rejectb = new QPushButton("Cancel",this);
@@ -31,18 +31,6 @@ SelectDialog::SelectDialog(QWidget* parent,
   connect(acceptb, SIGNAL(clicked()), this, SLOT(select()));
   connect(rejectb, SIGNAL(clicked()), this, SLOT(reject()));
 
-  // add available BLD
-  for(int i=0; i<BldInfo::NumberOf; i++) {
-    Node n(Level::Reporter, 0);
-    n.fixup(StreamPorts::bld(i).address(),Ether());
-    _rptbox->addNode(NodeSelect(n,BldInfo::name(BldInfo(0,BldInfo::Type(i)))));
-  }
-//   { Node n(Level::Reporter, 0);
-//     n.fixup(StreamPorts::bld(BldInfo::FEEGasDetEnergy).address(),Ether());
-//     _rptbox->addNode(NodeSelect(n,BldInfo::name(BldInfo(0,BldInfo::FEEGasDetEnergy))));
-//     n.fixup(StreamPorts::bld(BldInfo::EBeam).address(),Ether());
-//     _rptbox->addNode(NodeSelect(n,BldInfo::name(BldInfo(0,BldInfo::EBeam))));
-//   }
   _pcontrol.platform_rollcall(this);
 }
 
@@ -56,7 +44,7 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
   case Level::Control : _control = hdr; break;
   case Level::Segment : _segbox->addNode(NodeSelect(hdr, msg)); break;
   case Level::Event   : _evtbox->addNode(NodeSelect(hdr)); break;
-  case Level::Reporter: _rptbox->addNode(NodeSelect(hdr)); break;
+    //  case Level::Reporter: _rptbox->addNode(NodeSelect(hdr)); break;
   default: break;
   }
 }
@@ -70,7 +58,7 @@ QWidget* SelectDialog::display() {
   QVBoxLayout* layout = new QVBoxLayout(d);
   layout->addWidget(_segbox->freeze()); 
   layout->addWidget(_evtbox->freeze()); 
-  layout->addWidget(_rptbox->freeze()); 
+  //  layout->addWidget(_rptbox->freeze()); 
   d->setLayout(layout);
   return d;
 }
@@ -80,6 +68,6 @@ void SelectDialog::select() {
   _selected << _control;
   _selected << _segbox->selected();
   _selected << _evtbox->selected();
-  _selected << _rptbox->selected();
+  //  _selected << _rptbox->selected();
   accept();
 }
