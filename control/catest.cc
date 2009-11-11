@@ -54,8 +54,8 @@ int main(int argc, char* argv[])
   cfg.init(alloc);
   Transition tr(TransitionId::Configure, key);
 
-  const int size = 0x10000;
-  char* buffer   = new char[size];
+  // const int size = 0x10000;
+  // char* buffer   = new char[size];
   int sz         = cfg.fetch(&tr);
   if (sz<=0) { return -1;  }
   printf("Fetched 0x%x bytes configuration data\n",sz);

@@ -156,7 +156,6 @@ int MonTab::readconfig(FILE* fp)
   unsigned MaxLine = 256;
   char line[MaxLine], eat[MaxLine], entryname[MaxLine];
   unsigned nentries;
-  int color=_color;
 
   if (!fgets(line, MaxLine, fp)) return -1;
   if (sscanf(line, "%s %d", eat, &nentries)!=2) {

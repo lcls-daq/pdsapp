@@ -84,12 +84,14 @@ public:
       memcpy(payload,xtc->payload(),xtc->sizeofPayload());
       // add the new segment xtc at the end
       if (outdg->seq.service() == TransitionId::L1Accept) {
-	pnCcdRce* r = new(eventXtc) pnCcdRce();
+        pnCcdRce* r __attribute__((unused));
+	r = new(eventXtc) pnCcdRce();
         printf(".");
 //	printf(" ~%d\n", r->extent);
       }
       else if (outdg->seq.service() == TransitionId::Configure) {
-	pnCcdRceConf* c = new(eventXtc) pnCcdRceConf();
+        pnCcdRceConf* c __attribute__((unused));;
+	c = new(eventXtc) pnCcdRceConf();
 //	printf(" ~%d\n", c->extent);
       }
     }

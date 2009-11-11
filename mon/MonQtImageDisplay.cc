@@ -52,7 +52,7 @@ namespace Pds {
       double         dv  = double(imax-imin)/double(sz.height());
       double          v  = imax;
       for(int k=0; k<sz.height(); k++) {
-	unsigned char uv(v);
+        unsigned char uv(static_cast<unsigned char>(v));
 	for(int j=0; j<sz.width(); j++)
 	  *dst++ = uv;
 	v -= dv;
