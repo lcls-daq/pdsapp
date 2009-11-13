@@ -1,4 +1,6 @@
 #include "RunStatus.hh"
+#include "DamageStats.hh"
+#include "QCounter.hh"
 
 #include "pds/service/GenericPool.hh"
 #include "pds/service/Task.hh"
@@ -7,46 +9,23 @@
 
 #include <QtCore/QString>
 #include <QtGui/QLabel>
-#include <QtGui/QHBoxLayout>
+#include <QtGui/QGridLayout>
+#include <QtGui/QPushButton>
 
 using namespace Pds;
 
-class QCounter {
-public:
-  QCounter() : _widget(new QLabel(0)), _count(0) {}
-  ~QCounter() {}
-public:
-  QWidget* widget() const { return _widget; }
-public:
-  void reset    () { _count=0; }
-  void increment() { _count++; }
-  void increment(unsigned n) { _count+=n; }
-  void update_bytes() { 
-    unsigned long long c = _count;
-    QString unit;
-    if      (c < 10000ULL   )    { unit=QString("bytes"); }
-    else if (c < 10000000ULL)    { c /= 1000ULL; unit=QString("kBytes"); }
-    else if (c < 10000000000ULL) { c /= 1000000ULL; unit=QString("MBytes"); }
-    else                         { c /= 1000000000ULL; unit=QString("GBytes"); }
-    _widget->setText(QString("%1 %2").arg(c).arg(unit)); 
-  }
-  void update_count() { _widget->setText(QString::number(_count)); }
-  void update_time () { _widget->setText(QString("%1:%2:%3").arg(_count/3600).arg((_count%3600)/60).arg(_count%60)); }
-private:
-  QLabel* _widget;
-  unsigned long long _count;
-};
-  
-
-RunStatus::RunStatus(QWidget* parent) :
+RunStatus::RunStatus(QWidget* parent, PartitionSelect& partition) :
   QGroupBox("Run Statistics",parent),
   _task    (new Task(TaskObject("runsta"))),
   _pool    (sizeof(CDatagramIterator),1),
   _duration(new QCounter),
   _events  (new QCounter),
   _damaged (new QCounter),
-  _bytes   (new QCounter)
+  _bytes   (new QCounter),
+  _partition(partition),
+  _details (0)
 {
+  _detailsB = new QPushButton("Damage Stats");
   QGridLayout* layout = new QGridLayout(this);
   layout->addWidget(new QLabel("Duration",this),0,0,Qt::AlignRight);
   layout->addWidget(_duration->widget(),0,1,Qt::AlignLeft);
@@ -56,9 +35,13 @@ RunStatus::RunStatus(QWidget* parent) :
   layout->addWidget(_damaged->widget(),2,1,Qt::AlignLeft);
   layout->addWidget(new QLabel("Size",this),3,0,Qt::AlignRight);
   layout->addWidget(_bytes->widget(),3,1,Qt::AlignLeft);
+  layout->addWidget(_detailsB,4,0,1,2);
   setLayout(layout);
 
-  QObject::connect(this, SIGNAL(changed()), this, SLOT(update_stats()));
+  QObject::connect(this, SIGNAL(changed()), this    , SLOT(update_stats()));
+  QObject::connect(this, SIGNAL(reset_s()), this    , SLOT(reset()));
+
+  _detailsB->setEnabled(false);
 }
 
 RunStatus::~RunStatus()
@@ -67,22 +50,45 @@ RunStatus::~RunStatus()
   delete _events;
   delete _damaged;
   delete _bytes;
+  if (_details) {
+    _detailsB->setEnabled(false);
+    QObject::disconnect(_detailsB, SIGNAL(clicked()), _details, SLOT(show()));
+    QObject::disconnect(this, SIGNAL(changed()), _details, SLOT(update_stats()));
+    delete _details;
+  }
 }
 
 Transition* RunStatus::transitions(Transition* tr) 
 {
   if (tr->id() == TransitionId::BeginRun) {
-    _duration->reset();
-    _events  ->reset();
-    _damaged ->reset();
-    _bytes   ->reset();
-    emit changed();
+    emit reset_s();
     start();
   }
   else if (tr->id() == TransitionId::EndRun) {
     cancel();
   }
   return tr; 
+}
+
+void RunStatus::reset()
+{
+  _duration->reset();
+  _events  ->reset();
+  _damaged ->reset();
+  _bytes   ->reset();
+  update_stats();
+
+  if (_details) {
+    QObject::disconnect(_detailsB, SIGNAL(clicked()), _details, SLOT(show()));
+    QObject::disconnect(this, SIGNAL(changed()), _details, SLOT(update_stats()));
+    delete _details;
+  }
+  else {
+    _detailsB->setEnabled(true);
+  }
+  _details = new DamageStats(_partition);
+  QObject::connect(_detailsB, SIGNAL(clicked()), _details, SLOT(show()));
+  QObject::connect(this, SIGNAL(changed()), _details, SLOT(update_stats()));
 }
 
 InDatagram* RunStatus::events     (InDatagram* dg) 
@@ -109,8 +115,10 @@ int RunStatus::process(const Xtc& xtc, InDatagramIterator* iter) {
     unsigned payload;
     advance = iter->copy(&payload, sizeof(payload));
     _bytes -> increment(payload);
-    if (xtc.damage.value()!=0)
+    if (xtc.damage.value()!=0) {
       _damaged->increment();
+      advance += _details->increment(iter,xtc.sizeofPayload()-sizeof(payload));
+    }
   }
   return advance;
 }

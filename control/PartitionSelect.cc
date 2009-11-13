@@ -77,6 +77,8 @@ void PartitionSelect::select_dialog()
       _nodes[_nnodes++] = node;
     }
 
+    _detectors = dialog->detectors();
+
     _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes);
     _pcontrol.set_target_state(PartitionControl::Configured);
 
@@ -93,3 +95,4 @@ void PartitionSelect::display()
     _display->show();
 }
 
+const QList<DetInfo>& PartitionSelect::detectors() const { return _detectors; }

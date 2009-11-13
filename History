@@ -1,3 +1,4 @@
+2009-Nov-12 weaver	Added DamageStats to control_gui for identifying source of damaged events.
 2009-Nov-10 weaver  	Tag V01-06-00.  Removed BLD components from control_gui partition selection.
 		    	Added separate bld "segment-level" event builder.
 2009-Oct-28 weaver  Tag V01-05-00.  Removed Recorder level.

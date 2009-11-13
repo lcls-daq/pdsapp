@@ -11,7 +11,6 @@
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pds/camera/Opal1kManager.hh"
-#include "pds/camera/FexFrameServer.hh"
 
 #include <signal.h>
 #include <unistd.h>

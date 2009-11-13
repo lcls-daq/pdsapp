@@ -55,6 +55,19 @@ QList<Node> NodeGroup::selected()
   return nodes;
 }
 
+QList<DetInfo> NodeGroup::detectors() 
+{
+  QList<DetInfo> dets;
+  QList<QAbstractButton*> buttons = _buttons->buttons();
+  foreach(QAbstractButton* b, buttons) {
+    if (b->isChecked()) {
+      int id = _buttons->id(b);
+      dets << _nodes[id].det();
+    }
+  }
+  return dets;
+}
+
 NodeGroup* NodeGroup::freeze()
 {
   NodeGroup* g = new NodeGroup(title(),(QWidget*)0);
@@ -86,6 +99,7 @@ NodeSelect::NodeSelect(const Node& node, const PingReply& msg) :
     const DetInfo& src = static_cast<const DetInfo&>(msg.source(0));
     _label  = QString("%1/%2").arg(DetInfo::name(src.detector())).arg(src.detId());
     _label += QString("/%1/%2").arg(DetInfo::name(src.device  ())).arg(src.devId());
+    _det    = src;
   }
   else 
     _label  = "Segment";
@@ -107,6 +121,7 @@ NodeSelect::NodeSelect(const Node& node, const char* desc) :
 
 NodeSelect::NodeSelect(const NodeSelect& s) :
   _node (s._node),
+  _det  (s._det ),
   _label(s._label)
 {
 }

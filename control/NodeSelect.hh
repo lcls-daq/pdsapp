@@ -6,6 +6,7 @@
 #include <QtCore/QList>
 
 #include "pds/collection/Node.hh"
+#include "pdsdata/xtc/DetInfo.hh"
 
 class QButtonGroup;
 
@@ -21,11 +22,13 @@ namespace Pds {
     ~NodeSelect();
   public:
     const QString& label() const { return _label; }
-    const Node& node() const { return _node; }
+    const Node&    node () const { return _node; }
+    const DetInfo& det  () const { return _det; }
   public:
     bool operator==(const NodeSelect&) const;
   private:
-    Node _node;
+    Node    _node;
+    DetInfo _det;
     QString _label;
   };
 
@@ -40,8 +43,9 @@ namespace Pds {
     void node_added(int);
   public:
     void addNode(const NodeSelect&);
-    QList<Node> selected();
-    NodeGroup*  freeze  ();
+    QList<Node>    selected();
+    QList<DetInfo> detectors();
+    NodeGroup*     freeze  ();
   private:
     QButtonGroup* _buttons;
     QList<NodeSelect> _nodes;

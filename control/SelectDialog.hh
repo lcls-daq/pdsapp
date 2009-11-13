@@ -5,6 +5,7 @@
 #include <QtGui/QDialog>
 
 #include "pds/collection/Node.hh"
+#include "pdsdata/xtc/DetInfo.hh"
 #include <QtCore/QList>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -23,8 +24,9 @@ namespace Pds {
     ~SelectDialog();
   public:
     void        available(const Node& hdr, const PingReply& msg);
-    const QList<Node>& selected() const;
-    QWidget*           display ();
+    const QList<Node   >& selected() const;
+    const QList<DetInfo>& detectors() const;
+    QWidget*              display ();
   public slots:
     void select();
 
@@ -38,7 +40,8 @@ namespace Pds {
     NodeGroup* _segbox;
     NodeGroup* _evtbox;
     //    NodeGroup* _rptbox;
-    QList<Node> _selected;
+    QList<Node>    _selected;
+    QList<DetInfo> _detectors;
   };
 };
 

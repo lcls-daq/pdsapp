@@ -7,10 +7,12 @@
 #include "pds/client/XtcIterator.hh"
 #include <QtGui/QGroupBox>
 
-class QCounter;
+class QPushButton;
 
 namespace Pds {
-  class PartitionControl;
+  class PartitionSelect;
+  class QCounter;
+  class DamageStats;
 
   class RunStatus : public QGroupBox,
 		    public Appliance,
@@ -18,7 +20,7 @@ namespace Pds {
 		    public XtcIterator {
     Q_OBJECT
   public:
-    RunStatus(QWidget*);
+    RunStatus(QWidget*, PartitionSelect&);
     ~RunStatus();
   public:
     virtual Transition* transitions(Transition*);
@@ -31,8 +33,10 @@ namespace Pds {
   public:
     virtual int process(const Xtc&, InDatagramIterator*);
   private slots:
+    void reset();
     void update_stats();
   signals:
+    void reset_s();
     void changed();
   private:
     Task*     _task;
@@ -41,6 +45,9 @@ namespace Pds {
     QCounter* _events;
     QCounter* _damaged;
     QCounter* _bytes;
+    PartitionSelect& _partition;
+    QPushButton* _detailsB;
+    DamageStats* _details;
   };
 };
 

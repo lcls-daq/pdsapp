@@ -137,6 +137,7 @@ MainWindow::MainWindow(unsigned          platform,
   setAttribute(Qt::WA_DeleteOnClose, true);
 
   ConfigSelect*     config;
+  PartitionSelect*  ps ;
   StateSelect*      state ;
   PVDisplay*        pvs;
   RunStatus*        run;
@@ -158,10 +159,10 @@ MainWindow::MainWindow(unsigned          platform,
 
   QVBoxLayout* layout = new QVBoxLayout(this);
   layout->addWidget(config    = new ConfigSelect   (this, *_control, db_path));
-  layout->addWidget(            new PartitionSelect(this, *_control, partition, db_path));
+  layout->addWidget(ps        = new PartitionSelect(this, *_control, partition, db_path));
   layout->addWidget(state     = new StateSelect    (this, *_control));
   layout->addWidget(pvs       = new PVDisplay      (this, *_control));
-  layout->addWidget(run       = new RunStatus      (this));
+  layout->addWidget(run       = new RunStatus      (this, *ps));
   layout->addWidget(_log      = new ControlLog);
 
   _pvmanager = new PVManager(*pvs);
