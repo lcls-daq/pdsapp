@@ -96,6 +96,15 @@ namespace Pds {
     std::list<Src> _sources;
   };
 
+  class BldStreams : public EventStreams {
+  public:
+    BldStreams(PartitionMember& m) : EventStreams(m) {}
+    ~BldStreams() {}
+  public:
+    unsigned EbDepth() const { return 4; }
+    unsigned MaxSize() const { return 1024; }
+  };
+
   class BldSegmentLevel : public SegmentLevel {
   public:
     BldSegmentLevel(unsigned     platform, 
@@ -106,7 +115,7 @@ namespace Pds {
     bool attach() {
       start();
       if (connect()) {
-	_streams = new EventStreams(*this);  // specialized here
+	_streams = new BldStreams(*this);  // specialized here
 	_streams->connect();
 
 	_callback.attached(*_streams);
