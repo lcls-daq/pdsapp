@@ -9,6 +9,7 @@ namespace Pds {
   public:
     QWidget* widget() const { return _widget; }
   public:
+    unsigned long long value() const { return _count; }
     void reset    () { _count=0; }
     void increment() { _count++; }
     void decrement() { _count--; }

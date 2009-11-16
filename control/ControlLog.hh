@@ -10,6 +10,10 @@ namespace Pds {
   public:
     ControlLog();
     ~ControlLog();
+  public:
+    void appendText(const QString&);
+  signals:
+    void appended(QString);
   };
 };
 

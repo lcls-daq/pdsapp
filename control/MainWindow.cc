@@ -42,7 +42,7 @@ namespace Pds {
   public:
     void attached(SetOfStreams& streams) {
       if (_apps) _apps->connect(streams.stream(StreamParams::FrameWork)->inlet());
-      _w.log().append("Connected to platform.\n");
+      _w.log().appendText("Connected to platform.\n");
     }
     void failed   (Reason reason   ) { _w.platform_error(); }
     void dissolved(const Node& node) {}
@@ -109,7 +109,7 @@ namespace Pds {
         char fname[256];
         sprintf(fname, "e%d-r%04d-sNN-cNN.xtc", 
                 _experiment_number, _run_number);
-        _log.append(QString("Data file: %1\n").arg(fname));
+        _log.appendText(QString("Data file: %1\n").arg(fname));
       }
       return dg;
     }
@@ -269,14 +269,14 @@ void MainWindow::platform_error()
   /*
   **  No automatic method for restarting the source level
   **
-  _log->append("Platform failed.\n  Restarting \"source\" application.\n");
+  _log->appendText("Platform failed.\n  Restarting \"source\" application.\n");
   system("restart_source");
-  _log->append("Attaching ...\n");
+  _log->appendText("Attaching ...\n");
   //  _control->detach();
   _control->attach();
   */
   QString msg("Partition failed.  Need to restart \"source\" application.");
-  _log->append(msg);
+  _log->appendText(msg);
   QMessageBox::critical(this, "Platform Error", msg);
 }
 
@@ -286,7 +286,7 @@ void MainWindow::handle_failed_transition(const QString& msg, bool critical)
     .arg(QTime::currentTime().toString("hh:mm:ss"))
     .arg(msg);
   printf("%s\n",qPrintable(t));
-  _log->append(t);
+  _log->appendText(t);
 
   if (critical)
     QMessageBox::critical(this, "Transition Failed", msg);

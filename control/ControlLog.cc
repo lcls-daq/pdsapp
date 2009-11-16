@@ -13,6 +13,10 @@ ControlLog::ControlLog() :
 {
   setReadOnly(true);
   qRegisterMetaType<QTextCursor>();
+  QObject::connect(this, SIGNAL(appended(const QString&)),
+		   this, SLOT(append(const QString&)));
 }
 
 ControlLog::~ControlLog() {}
+
+void ControlLog::appendText(const QString& t) { emit appended(t); }

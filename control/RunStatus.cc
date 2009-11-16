@@ -11,6 +11,7 @@
 #include <QtGui/QLabel>
 #include <QtGui/QGridLayout>
 #include <QtGui/QPushButton>
+#include <QtGui/QPalette>
 
 using namespace Pds;
 
@@ -23,7 +24,10 @@ RunStatus::RunStatus(QWidget* parent, PartitionSelect& partition) :
   _damaged (new QCounter),
   _bytes   (new QCounter),
   _partition(partition),
-  _details (0)
+  _details (0),
+  _alarm   (false),
+  _green          ( new QPalette(Qt::green)),
+  _red            ( new QPalette(Qt::red))
 {
   _detailsB = new QPushButton("Damage Stats");
   QGridLayout* layout = new QGridLayout(this);
@@ -40,6 +44,7 @@ RunStatus::RunStatus(QWidget* parent, PartitionSelect& partition) :
 
   QObject::connect(this, SIGNAL(changed()), this    , SLOT(update_stats()));
   QObject::connect(this, SIGNAL(reset_s()), this    , SLOT(reset()));
+  QObject::connect(this, SIGNAL(damage_alarm_changed(bool)), this    , SLOT(set_damage_alarm(bool)));
 
   _detailsB->setEnabled(false);
 }
@@ -89,6 +94,9 @@ void RunStatus::reset()
   _details = new DamageStats(_partition);
   QObject::connect(_detailsB, SIGNAL(clicked()), _details, SLOT(show()));
   QObject::connect(this, SIGNAL(changed()), _details, SLOT(update_stats()));
+
+  _alarm = false;
+  emit damage_alarm_changed(false);
 }
 
 InDatagram* RunStatus::events     (InDatagram* dg) 
@@ -99,6 +107,15 @@ InDatagram* RunStatus::events     (InDatagram* dg)
     InDatagramIterator* iter = dg->iterator(&_pool);
     iterate(dg->datagram().xtc,iter);
     delete iter;
+
+    const double DamageAlarmFraction = 0.2;
+    unsigned thresh = _events->value()*DamageAlarmFraction;
+    bool alarm = _damaged->value() > thresh;
+    if (alarm && !_alarm)
+      emit damage_alarm_changed(true);
+    else if (!alarm && _alarm)
+      emit damage_alarm_changed(false);
+    _alarm = alarm;
 
     return 0;
   }
@@ -140,3 +157,6 @@ void RunStatus::update_stats()
 Task* RunStatus::task() { return _task; }
 unsigned RunStatus::duration() const { return 1000; }
 unsigned RunStatus::repetitive() const { return 1; }
+
+void RunStatus::set_damage_alarm(bool alarm)
+{ _detailsB->setPalette(alarm ? *_red : *_green); }

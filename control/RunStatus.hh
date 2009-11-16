@@ -8,6 +8,7 @@
 #include <QtGui/QGroupBox>
 
 class QPushButton;
+class QPalette;
 
 namespace Pds {
   class PartitionSelect;
@@ -35,9 +36,11 @@ namespace Pds {
   private slots:
     void reset();
     void update_stats();
+    void set_damage_alarm(bool);
   signals:
     void reset_s();
     void changed();
+    void damage_alarm_changed(bool);
   private:
     Task*     _task;
     GenericPool _pool;
@@ -48,6 +51,9 @@ namespace Pds {
     PartitionSelect& _partition;
     QPushButton* _detailsB;
     DamageStats* _details;
+    bool         _alarm;
+    QPalette*    _green;
+    QPalette*    _red;
   };
 };
 

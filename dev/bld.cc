@@ -8,7 +8,7 @@
 #include "pds/utility/SetOfStreams.hh"
 #include "pds/utility/StreamPorts.hh"
 #include "pds/utility/BldServer.hh"
-
+#include "pds/utility/EbBase.hh"
 #include "pds/service/Task.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
@@ -24,6 +24,31 @@ static bool verbose = false;
 static const unsigned NetBufferDepth = 32;
 
 namespace Pds {
+
+  class BldApp : public Appliance {
+    enum { Period=300 };
+  public:
+    BldApp(EbBase* eb) : _eb(eb), _cnt(Period) {}
+    ~BldApp() {}
+  public:
+    InDatagram* events(InDatagram* dg) 
+    {
+      if (!--_cnt) {
+	_eb->dump(1);
+	_cnt = Period;
+      }
+      return dg; 
+    }
+    Transition* transitions(Transition* tr) 
+    {
+      if (tr->id() == TransitionId::Disable)
+	_eb->dump(1);
+      return tr; 
+    }
+  private:
+    EbBase*  _eb;
+    unsigned _cnt;
+  };
 
   class BldCallback : public EventCallback, 
 		      public SegWireSettings {
@@ -64,7 +89,8 @@ namespace Pds {
 
   private:
     // Implements EventCallback
-    void attached(SetOfStreams& streams) {}
+    void attached(SetOfStreams& streams) 
+    { (new BldApp(static_cast<EbBase*>(streams.wire())))->connect(streams.stream()->inlet()); }
     void failed(Reason reason)
     {
       static const char* reasonname[] = { "platform unavailable", 
@@ -98,11 +124,8 @@ namespace Pds {
 
   class BldStreams : public EventStreams {
   public:
-    BldStreams(PartitionMember& m) : EventStreams(m) {}
+    BldStreams(PartitionMember& m) : EventStreams(m, 128*1024, 8, 4) {}
     ~BldStreams() {}
-  public:
-    unsigned EbDepth() const { return 4; }
-    unsigned MaxSize() const { return 1024; }
   };
 
   class BldSegmentLevel : public SegmentLevel {
