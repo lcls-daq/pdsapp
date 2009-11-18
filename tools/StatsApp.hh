@@ -15,48 +15,51 @@
 #include <stdio.h>
 #include <string.h>
 
-using namespace Pds;
+namespace StatsA {
+  class NodeStats : public Pds::LinkedList<NodeStats> {
+  public:
+    NodeStats(const Pds::Src& n) : _node(n) {}
+    ~NodeStats() {}
 
-class NodeStats : public LinkedList<NodeStats> {
-public:
-  NodeStats(const Src& n) : _node(n) {}
-  ~NodeStats() {}
+    const Pds::Src& node() const { return _node; }
 
-  const Src& node() const { return _node; }
+    //   unsigned damage() const { return _damage; }
+    //   unsigned events() const { return _events; }
+    //   unsigned size  () const { return _size; }
 
-//   unsigned damage() const { return _damage; }
-//   unsigned events() const { return _events; }
-//   unsigned size  () const { return _size; }
-
-  void reset() { 
-    _damage = _events = _size = 0; 
-    memset(_dmgbins,0,sizeof(_dmgbins));
-  }
-  void accumulate(const Xtc& xtc) {
-    _events++;
-    _size   += xtc.sizeofPayload();
-    unsigned dmg = xtc.damage.value();
-    _damage |= dmg;
-    for(int i=0; dmg; i++, dmg>>=1)
-      if (dmg&1)
-	_dmgbins[i]++;
-  }
-  void dump() const {
-    int indent = (Level::NumberOfLevels-_node.level())*2;
-    printf("%*c%08x/%08x : dmg 0x%08x  events 0x%x  avg sz 0x%llx\n",
-	   indent, ' ', _node.log(), _node.phy(),
-	   _damage, _events, _events ? _size/_events : 0);
-    for(int i=0; i<32; i++)
-      if (_dmgbins[i])
-	printf("%*c%8d : 0x%x\n",indent,' ',i,_dmgbins[i]);
-  }
-private:
-  Src       _node;
-  unsigned  _damage;
-  unsigned  _events;
-  unsigned long long  _size;
-  unsigned  _dmgbins[32];
+    void reset() { 
+      _damage = _events = _size = 0; 
+      memset(_dmgbins,0,sizeof(_dmgbins));
+    }
+    void accumulate(const Pds::Xtc& xtc) {
+      _events++;
+      _size   += xtc.sizeofPayload();
+      unsigned dmg = xtc.damage.value();
+      _damage |= dmg;
+      for(int i=0; dmg; i++, dmg>>=1)
+	if (dmg&1)
+	  _dmgbins[i]++;
+    }
+    void dump() const {
+      int indent = (Pds::Level::NumberOfLevels-_node.level())*2;
+      printf("%*c%08x/%08x : dmg 0x%08x  events 0x%x  avg sz 0x%llx\n",
+	     indent, ' ', _node.log(), _node.phy(),
+	     _damage, _events, _events ? _size/_events : 0);
+      for(int i=0; i<32; i++)
+	if (_dmgbins[i])
+	  printf("%*c%8d : 0x%x\n",indent,' ',i,_dmgbins[i]);
+    }
+  private:
+    Pds::Src  _node;
+    unsigned  _damage;
+    unsigned  _events;
+    unsigned long long  _size;
+    unsigned  _dmgbins[32];
+  };
 };
+
+using StatsA::NodeStats;
+using namespace Pds;
 
 class StatsApp : public Appliance, public XtcIterator {
 public:

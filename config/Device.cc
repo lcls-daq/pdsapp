@@ -107,6 +107,13 @@ bool Device::update_key(const string& config, const string& path)
 	if (!stat(tlinkpath.c_str(),&ls) && s.st_size==ls.st_size) {
 	  FILE* f_link = fopen(tlinkpath.c_str(),"r");
 	  FILE* f_path = fopen(tpath.c_str(),"r");
+	  if (!f_link || !f_path) {
+	    fprintf(stderr,"Error opening files {");
+	    if (!f_link) fprintf(stderr," %s",tlinkpath.c_str());
+	    if (!f_path) fprintf(stderr," %s",tpath.c_str());
+	    fprintf(stderr," } to verify config link\n");
+	    abort();
+	  }
 	  char* bufflink = new char[s.st_size];
 	  char* buffpath = new char[s.st_size];
 	  if (fread(bufflink, s.st_size, 1, f_link)!=fread(buffpath, s.st_size, 1, f_path) ||
@@ -164,6 +171,13 @@ bool Device::update_key(const string& config, const string& path)
 	if (s.st_size==ls.st_size) {
 	  FILE* f_base = fopen(tbase.c_str(),"r");
 	  FILE* f_link = fopen(talnk.c_str(),"r");
+	  if (!f_base || !f_link) {
+	    fprintf(stderr,"Error opening files {");
+	    if (!f_base) fprintf(stderr," %s",tbase.c_str());
+	    if (!f_link) fprintf(stderr," %s",talnk.c_str());
+	    fprintf(stderr," } to add config link\n");
+	    abort();
+	  }
 	  char* buffbase = new char[s.st_size];
 	  char* bufflink = new char[s.st_size];
 	  if (fread(buffbase, s.st_size, 1, f_base)==fread(bufflink, s.st_size, 1, f_link) &&

@@ -20,16 +20,18 @@ SelectDialog::SelectDialog(QWidget* parent,
   layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this));
   //  layout->addWidget(_rptbox = new NodeGroup("Reporting Nodes",this));
 
-  QPushButton* acceptb = new QPushButton("Ok",this);
+  _acceptb = new QPushButton("Ok",this);
   QPushButton* rejectb = new QPushButton("Cancel",this);
   QHBoxLayout* layoutb = new QHBoxLayout;
-  layoutb->addWidget(acceptb);
+  layoutb->addWidget(_acceptb);
   layoutb->addWidget(rejectb);
   layout->addLayout(layoutb);
   setLayout(layout);
 
-  connect(acceptb, SIGNAL(clicked()), this, SLOT(select()));
-  connect(rejectb, SIGNAL(clicked()), this, SLOT(reject()));
+  connect(_acceptb, SIGNAL(clicked()), this, SLOT(select()));
+  connect( rejectb, SIGNAL(clicked()), this, SLOT(reject()));
+  connect(_segbox , SIGNAL(list_changed()), this, SLOT(check_ready()));
+  connect(_evtbox , SIGNAL(list_changed()), this, SLOT(check_ready()));
 
   _pcontrol.platform_rollcall(this);
 }
@@ -43,7 +45,7 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
   switch(hdr.level()) {
   case Level::Control : _control = hdr; break;
   case Level::Segment : _segbox->addNode(NodeSelect(hdr, msg)); break;
-  case Level::Event   : _evtbox->addNode(NodeSelect(hdr)); break;
+  case Level::Event   : _evtbox->addNode(NodeSelect(hdr, msg)); break;
     //  case Level::Reporter: _rptbox->addNode(NodeSelect(hdr)); break;
   default: break;
   }
@@ -76,4 +78,10 @@ void SelectDialog::select() {
   printf("sd %x/%x\n",_detectors.last().log(),_detectors.last().phy());
 
   accept();
+}
+
+void SelectDialog::check_ready()
+{
+  _acceptb->setEnabled(_segbox->ready() && 
+		       _evtbox->ready());
 }

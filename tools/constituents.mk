@@ -36,10 +36,6 @@ tgtsrcs_montest := montest.cc
 tgtlibs_montest := $(commonlibs) pds/mon
 tgtslib_montest := /usr/lib/rt
 
-tgtsrcs_nettest := nettest.cc
-tgtlibs_nettest := $(commonlibs) pds/mon
-tgtslib_nettest := /usr/lib/rt
-
 tgtsrcs_showPartitions := showPartitions.cc
 tgtlibs_showPartitions := $(commonlibs)
 tgtslib_showPartitions := /usr/lib/rt

@@ -19,8 +19,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static bool verbose = false;
-
 static const unsigned NetBufferDepth = 32;
 
 namespace Pds {
@@ -150,6 +148,7 @@ namespace Pds {
 
 	//    Message join(Message::Ping);
 	//    mcast(join);
+	_reply.ready(true);
 	mcast(_reply);
 	return true;
       } else {

@@ -8,7 +8,8 @@
 #include "pds/utility/SetOfStreams.hh"
 #include "pds/client/Decoder.hh"
 #include "CountAction.hh"
-#include "StatsApp.hh"
+//#include "StatsApp.hh"
+#include "StatsTree.hh"
 #include "Recorder.hh"
 #include "pds/service/Task.hh"
 
@@ -69,7 +70,8 @@ void EventTest::attached(SetOfStreams& streams)
   case EventOptions::Display:
     {
       const Node& node = _event->header();
-      (new StatsApp(node.procInfo()))->connect(frmk->inlet());
+      //      (new StatsApp(node.procInfo()))->connect(frmk->inlet());
+      (new StatsTree(node.procInfo()))->connect(frmk->inlet());
       break;
     }
   }

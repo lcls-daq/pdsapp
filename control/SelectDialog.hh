@@ -29,7 +29,7 @@ namespace Pds {
     QWidget*              display ();
   public slots:
     void select();
-
+    void check_ready();
   private:
     PartitionControl& _pcontrol;
     enum { MAX_NODES=32 };
@@ -42,6 +42,7 @@ namespace Pds {
     //    NodeGroup* _rptbox;
     QList<Node>    _selected;
     QList<DetInfo> _detectors;
+    QPushButton*   _acceptb;
   };
 };
 

@@ -6,17 +6,22 @@
 #include <QtCore/QString>
 #include <QtGui/QButtonGroup>
 #include <QtGui/QVBoxLayout>
+#include <QtGui/QPalette>
 
 using namespace Pds;
 
 NodeGroup::NodeGroup(const QString& label, QWidget* parent) :
   QGroupBox(label, parent),
-  _buttons(new QButtonGroup(parent)) 
+  _buttons(new QButtonGroup(parent)),
+  _ready    (new QPalette(Qt::green)),
+  _notready(new QPalette(Qt::red))
 {
   _buttons->setExclusive(false);
   setLayout(new QVBoxLayout(this)); 
   connect(this, SIGNAL(node_added(int)), 
 	  this, SLOT(add_node(int)));
+  connect(this, SIGNAL(node_replaced(int)), 
+	  this, SLOT(replace_node(int)));
 }
 
 NodeGroup::~NodeGroup() 
@@ -26,8 +31,19 @@ NodeGroup::~NodeGroup()
 
 void NodeGroup::addNode(const NodeSelect& node)
 {
-  int index = _nodes.size();
-  if (!_nodes.contains(node)) {
+  int index = _nodes.indexOf(node);
+  if (index >= 0) {
+    printf("replace node %d %s with %s\n",
+	   index,
+	   qPrintable(_nodes[index].label()),
+	   qPrintable(node.label()));
+    _nodes.replace(index, node);
+    emit node_replaced(index);
+  }
+  else {
+    printf("add node %s\n",
+	   qPrintable(node.label()));
+    index = _nodes.size();
     _nodes << node;
     emit node_added(index);
   }
@@ -38,8 +54,22 @@ void NodeGroup::add_node(int index)
   const NodeSelect& node = _nodes[index];
   QCheckBox* button = new QCheckBox(node.label(),this);
   button->setCheckState(Qt::Checked);  // default to include
+  button->setPalette( node.ready() ? *_ready : *_notready );
   layout()->addWidget(button); 
   _buttons->addButton(button,index); 
+  QObject::connect(button, SIGNAL(clicked()), this, SIGNAL(list_changed()));
+  
+  emit list_changed();
+}
+
+void NodeGroup::replace_node(int index)
+{ 
+  const NodeSelect& node = _nodes[index];
+  QCheckBox* button = static_cast<QCheckBox*>(_buttons->button(index));
+  button->setText(node.label());
+  button->setPalette( node.ready() ? *_ready : *_notready );
+
+  emit list_changed();
 }
 
 QList<Node> NodeGroup::selected() 
@@ -81,9 +111,18 @@ NodeGroup* NodeGroup::freeze()
   return g;
 }
 
+bool NodeGroup::ready() const
+{
+  QList<QAbstractButton*> buttons = _buttons->buttons();
+  for(int i=0; i<buttons.size(); i++)
+    if (buttons[i]->isChecked() && !_nodes[i].ready())
+      return false;
+  return true;
+}
 
 NodeSelect::NodeSelect(const Node& node) :
-  _node    (node)
+  _node    (node),
+  _ready   (true)
 {
   _label = QString(Level::name(node.level()));
   struct in_addr inaddr;
@@ -93,7 +132,8 @@ NodeSelect::NodeSelect(const Node& node) :
 }
 
 NodeSelect::NodeSelect(const Node& node, const PingReply& msg) :
-  _node    (node)
+  _node    (node),
+  _ready   (msg.ready())
 {
   if (msg.nsources()) {
     const DetInfo& src = static_cast<const DetInfo&>(msg.source(0));
@@ -102,7 +142,7 @@ NodeSelect::NodeSelect(const Node& node, const PingReply& msg) :
     _det    = src;
   }
   else 
-    _label  = "Segment";
+    _label = QString(Level::name(node.level()));
   struct in_addr inaddr;
   inaddr.s_addr = ntohl(node.ip());
   _label += QString(" : %1").arg(inet_ntoa(inaddr));
@@ -110,7 +150,8 @@ NodeSelect::NodeSelect(const Node& node, const PingReply& msg) :
 }
 
 NodeSelect::NodeSelect(const Node& node, const char* desc) :
-  _node    (node)
+  _node    (node),
+  _ready   (true)
 {
   _label = desc;
   struct in_addr inaddr;
@@ -122,7 +163,8 @@ NodeSelect::NodeSelect(const Node& node, const char* desc) :
 NodeSelect::NodeSelect(const NodeSelect& s) :
   _node (s._node),
   _det  (s._det ),
-  _label(s._label)
+  _label(s._label),
+  _ready(s._ready)
 {
 }
 
@@ -131,3 +173,4 @@ NodeSelect::~NodeSelect()
 }
 
 bool NodeSelect::operator==(const NodeSelect& n) const { return n._node == _node; }
+
