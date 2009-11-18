@@ -36,7 +36,7 @@ namespace StatsT {
       for(int i=0; dmg; i++, dmg>>=1)
 	if (dmg&1)
 	  _dmgbins[i]++;
-      return xtc.contains.id()==TypeId::Id_Xtc ? iterate(xtc,iter) : 0;
+      return xtc.contains.id()==Pds::TypeId::Id_Xtc ? iterate(xtc,iter) : 0;
     }
     int  process(const Pds::Xtc& xtc, Pds::InDatagramIterator* iter) {
       NodeStats* n = _list.forward();
