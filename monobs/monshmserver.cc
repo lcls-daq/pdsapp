@@ -78,11 +78,6 @@ public:
   InDatagram* events     (InDatagram* dg) 
   { 
     Datagram& dgrm = dg->datagram();
-    printf("stamp %08x/%08x clk %08x/%08x  ",
-	   dgrm.seq.stamp().fiducials(),
-	   dgrm.seq.stamp().ticks(),
-	   dgrm.seq.clock().seconds(),
-	   dgrm.seq.clock().nanoseconds());
     mq_getattr(_myInputQueue, &_mymq_attr);
     // reserve the last four buffers for transitions
     if ((_mymq_attr.mq_curmsgs > 4) || ((dgrm.seq.service() != TransitionId::L1Accept) && _mymq_attr.mq_curmsgs))
@@ -90,7 +85,6 @@ public:
       if (mq_receive(_myInputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority) < 0) perror("mq_receive");
       _bufferP = _myShm + (_sizeOfBuffers * _myMsg.bufferIndex());
       //  write the datagram
-      printf("copied to %p\n",_bufferP);
       memcpy((char*)_bufferP, &dgrm, sizeof(Datagram));
       unsigned offset = sizeof(Datagram);
       //  write the payload
@@ -111,9 +105,6 @@ public:
       delete &iter;
       if (mq_send(_myOutputQueue, (const char*)&_myMsg, sizeof(_myMsg), 0)) perror("mq_send");
       _bufferCount += 1;
-    }
-    else {
-      printf("  ignored\n");
     }
      return dg;
   }
