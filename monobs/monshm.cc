@@ -3,11 +3,6 @@
 #include "XtcMonitorClient.hh"
 
 #include "pds/service/Task.hh"
-#include "pds/collection/Arp.hh"
-#include "pds/management/EventCallback.hh"
-#include "pds/management/ObserverLevel.hh"
-#include "pds/utility/SetOfStreams.hh"
-#include "pdsdata/xtc/DetInfo.hh"
 #include "pds/mon/MonServerManager.hh"
 
 #include "pds/utility/Appliance.hh"
