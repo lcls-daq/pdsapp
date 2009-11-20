@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
   const char* experiment_name = 0;
   const char* offlinerc = 0;
   const char* parm_list_file = 0;
-  unsigned node =  0xffff0;
+  unsigned nodes =  0;
   (void) signal(SIGINT, sigfunc);
   int c;
   while ((c = getopt(argc, argv, "p:P:E:L:V:")) != -1) {
@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
 
     ObserverLevel* event = new ObserverLevel(platform,
                partition,
-               node,
+               nodes,
                *display);
 
     if (event->attach()) {

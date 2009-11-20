@@ -76,14 +76,21 @@ public:
   InDatagram* occurrences(InDatagram* dg) { return dg; }
   
   InDatagram* events     (InDatagram* dg) 
-  { mq_getattr(_myInputQueue, &_mymq_attr);
+  { 
     Datagram& dgrm = dg->datagram();
+    printf("stamp %08x/%08x clk %08x/%08x  ",
+	   dgrm.seq.stamp().fiducials(),
+	   dgrm.seq.stamp().ticks(),
+	   dgrm.seq.clock().seconds(),
+	   dgrm.seq.clock().nanoseconds());
+    mq_getattr(_myInputQueue, &_mymq_attr);
     // reserve the last four buffers for transitions
     if ((_mymq_attr.mq_curmsgs > 4) || ((dgrm.seq.service() != TransitionId::L1Accept) && _mymq_attr.mq_curmsgs))
     {
       if (mq_receive(_myInputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority) < 0) perror("mq_receive");
       _bufferP = _myShm + (_sizeOfBuffers * _myMsg.bufferIndex());
       //  write the datagram
+      printf("copied to %p\n",_bufferP);
       memcpy((char*)_bufferP, &dgrm, sizeof(Datagram));
       unsigned offset = sizeof(Datagram);
       //  write the payload
@@ -104,6 +111,9 @@ public:
       delete &iter;
       if (mq_send(_myOutputQueue, (const char*)&_myMsg, sizeof(_myMsg), 0)) perror("mq_send");
       _bufferCount += 1;
+    }
+    else {
+      printf("  ignored\n");
     }
      return dg;
   }
@@ -215,7 +225,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -i <monitor node> -n <numb shm buffers> -s <shm buffer size>\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size>\n", progname);
 }
 
 Appliance* apps;
@@ -236,7 +246,7 @@ int main(int argc, char** argv) {
   const char* partition = 0;
   int numberOfBuffers = 0;
   unsigned sizeOfBuffers = 0;
-  unsigned node =  0xffff0;
+  unsigned nodes =  0;
   char partitionTag[80] = "";
   (void) signal(SIGINT, sigfunc);
   if (prctl(PR_SET_PDEATHSIG, SIGINT) < 0) printf("Changing death signal failed!\n");
@@ -250,7 +260,7 @@ int main(int argc, char** argv) {
       if (errno != 0 || endPtr == optarg) platform = -1UL;
       break;
     case 'i':
-      node = strtoul(optarg, &endPtr, 0);
+      nodes = strtoul(optarg, &endPtr, 0);
       break;
     case 'n':
       sscanf(optarg, "%d", &numberOfBuffers);
@@ -266,7 +276,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (!numberOfBuffers || !sizeOfBuffers || platform == -1UL || !partition || node == 0xffff) {
+  if (!numberOfBuffers || !sizeOfBuffers || platform == -1UL || !partition || nodes == 0) {
     fprintf(stderr, "Missing parameters!\n");
     usage(argv[0]);
     return 1;
@@ -276,7 +286,7 @@ int main(int argc, char** argv) {
 
   sprintf(partitionTag, "%d_", platform);
   char temp[100];
-  sprintf(temp, "%d_", node);
+  sprintf(temp, "%d_", nodes);
   strcat(partitionTag, temp);
   strcat(partitionTag, partition);
   printf("\nPartition Tag:%s\n", partitionTag);
@@ -294,7 +304,7 @@ int main(int argc, char** argv) {
 
   ObserverLevel* event = new ObserverLevel(platform,
 					   partition,
-					   node,
+					   nodes,
 					   *display);
 
   if (event->attach())

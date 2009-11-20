@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
 
   const char* arpsuidprocess = 0;
   const char* partition = 0;
-  unsigned node = 0;
+  unsigned nodes = 0;
   int c;
   while ((c = getopt(argc, argv, "d:p:a:i:P:")) != -1) {
     errno = 0;
@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
       devid  = strtoul(endPtr, &endPtr, 0);
       break;
     case 'i':
-      node = strtoul(optarg, &endPtr, 0);
+      nodes = strtoul(optarg, &endPtr, 0);
       break;
     case 'P':
       partition = optarg;
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
 
   if (platform == -1UL) {
     printf("Platform required\n");
-    printf("Usage: %s -p <platform> -P <partition> -d <detector_id> -i <monitor node> [-a <arp process id>]\n",
+    printf("Usage: %s -p <platform> -P <partition> -d <detector_id> -i <node mask> [-a <arp process id>]\n",
 	   argv[0]);
     return 1;
   }
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
 
   ObserverLevel* event = new ObserverLevel(platform,
 					   partition,
-					   node,
+					   nodes,
 					   *display);
 
   if (event->attach())

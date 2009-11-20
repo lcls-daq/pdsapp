@@ -1,3 +1,4 @@
+2009-Nov-19 weaver	Tag V01-06-01.  ObserverLevel uses node mask.
 2009-Nov-16 weaver	Removed a few more instances of Qt slots called out of Qt thread context.
 2009-Nov-12 weaver	Added DamageStats to control_gui for identifying source of damaged events.
 2009-Nov-10 weaver  	Tag V01-06-00.  Removed BLD components from control_gui partition selection.
