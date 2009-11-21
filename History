@@ -1,3 +1,4 @@
+2009-Nov-20 cpo         Add some pnccd utilities (like camex channel swapping)
 2009-Nov-19 weaver	Tag V01-06-01.  ObserverLevel uses node mask.
 2009-Nov-16 weaver	Removed a few more instances of Qt slots called out of Qt thread context.
 2009-Nov-12 weaver	Added DamageStats to control_gui for identifying source of damaged events.

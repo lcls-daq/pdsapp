@@ -1,4 +1,5 @@
 #include "Recorder.hh"
+#include "PnccdShuffle.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/collection/Node.hh"
 #include "pds/service/GenericPool.hh"
@@ -67,6 +68,7 @@ InDatagram* Recorder::events(InDatagram* in) {
   case TransitionId::Configure: // cache the configure result
     memcpy   (_config, &in->datagram(), sizeof(Datagram));
     iter->copy(_config+sizeof(Datagram), in->datagram().xtc.sizeofPayload());
+    PnccdShuffle::shuffle(in->datagram());
     break;
   case TransitionId::BeginRun:
     if (_beginrunerr) {
@@ -77,6 +79,11 @@ InDatagram* Recorder::events(InDatagram* in) {
     // rewrite configure transition information every beginrun.
   default:  // write this transition
     if (_f) {
+      // kludge for pnCCD - cpo
+      if ((in->datagram().seq.service() == TransitionId::L1Accept)) {
+        PnccdShuffle::shuffle(in->datagram());
+      }
+      // end kludge
       fwrite(&(in->datagram()),sizeof(in->datagram()),1,_f);
       { struct iovec iov;
         int remaining = in->datagram().xtc.sizeofPayload();
