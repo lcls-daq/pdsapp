@@ -28,10 +28,7 @@ DamageStats::DamageStats(PartitionSelect& partition) :
   foreach(DetInfo info, detectors) {
     QCounter* cnt = new QCounter;
     _counts << cnt;
-    l->addWidget(new QLabel(QString("%1/%2")
-			    .arg(DetInfo::name(info.detector()))
-			    .arg(DetInfo::name(info.device())),this),
-		 row,0,Qt::AlignRight);
+    l->addWidget(new QLabel(DetInfo::name(info)),row,0,Qt::AlignRight);
     l->addWidget(cnt->widget(),row,1,Qt::AlignLeft);
     row++;
   }
