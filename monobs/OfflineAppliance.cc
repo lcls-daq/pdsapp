@@ -10,8 +10,6 @@
 #include "LogBook/Connection.h"
 #include "OfflineAppliance.hh"
 
-#include "cadef.h"
-
 namespace Pds
 {
 
@@ -24,7 +22,8 @@ const char OfflineAppliance::sPvListSeparators[] = " ,;\t\r\n#";
 //
 OfflineAppliance::OfflineAppliance(OfflineClient* offlineclient, const char *parm_list_file) :
     _run_number (0),
-    _parm_list_file (parm_list_file)
+    _parm_list_file (parm_list_file),
+    _parm_list_initialized (false)
 {
   _path = offlineclient->GetPath();
   _instrument_name = offlineclient->GetInstrumentName();
@@ -49,12 +48,31 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
     int parm_list_size = 0;
     int parm_read_count = 0;
     int parm_save_count = 0;
-    TPvList vsPvNameList, vsPvValueList;
+    TPvList vsPvValueList;
+    static TPvList vsPvNameList;  // initialized in first transition, then unchanged
 
     // retrieve run # that was allocated earlier
     RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
     _run_number = rinfo.run();
     _experiment_number = rinfo.experiment();
+
+    if (!_parm_list_initialized) {
+      // read list of PVs one time only
+      if (NULL == _parm_list_file) {
+        printf("No run parameter list file specified.  Metadata will not be saved in LogBook.\n");
+      }
+      else {
+        printf("Reading list of PVs from %s\n", _parm_list_file);
+        if (_readConfigFile(_parm_list_file, vsPvNameList )) {
+          printf ("Error: reading PV names from %s failed\n", _parm_list_file);
+        }
+        else {
+          _channels = new parm_channel_t[vsPvNameList.size()];
+          printf("Completed reading list of PVs\n");
+        }
+      }
+      _parm_list_initialized = true;
+    }
 
     printf("Storing BeginRun LogBook information for %s/%s Run #%u\n",
             _instrument_name, _experiment_name, _run_number);
@@ -62,43 +80,39 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
       conn = LogBook::Connection::open(_path);
 
       if (conn != NULL) {
-          // LogBook: begin transaction
-          conn->beginTransaction();
+        // LogBook: begin transaction
+        conn->beginTransaction();
 
-          // LogBook: begin run
-          now = LusiTime::Time::now();
-          conn->beginRun(_instrument_name,
-                         _experiment_name,
-                         _run_number, "DATA", now); // DATA/CALIB
+        // LogBook: begin run
+        now = LusiTime::Time::now();
+        conn->beginRun(_instrument_name,
+                       _experiment_name,
+                       _run_number, "DATA", now); // DATA/CALIB
 
+        parm_list_size = (int) vsPvNameList.size();
+        if (parm_list_size > 0) {
           // save metadata
-          if (NULL == _parm_list_file) {
-            printf("No run parameter list file specified.  Metadata will not be saved in LogBook.\n");
-          } else if (_readConfigFile(_parm_list_file, vsPvNameList )) {
-            printf ("Error: reading PV names from %s failed\n", _parm_list_file);
-          } else {
-            parm_list_size = (int) vsPvNameList.size();
-            parm_read_count = _readEpicsPv(vsPvNameList, vsPvValueList);
-            if (parm_read_count != parm_list_size) {
-              printf("Error: read %d of %d PVs\n", parm_read_count, parm_list_size);
+          parm_read_count = _readEpicsPv(vsPvNameList, vsPvValueList);
+          if (parm_read_count != parm_list_size) {
+            printf("Error: read %d of %d PVs\n", parm_read_count, parm_list_size);
+          }
+          for ( int iPv = 0; iPv < parm_list_size; iPv++ ) {
+            if (strlen(vsPvValueList[iPv].c_str()) == 0) {
+              // skip empty values
+              continue;
             }
-            for ( int iPv = 0; iPv < parm_list_size; iPv++ ) {
-              if (strlen(vsPvValueList[iPv].c_str()) == 0) {
-                // skip empty values
-                continue;
-              }
-              if (_saveRunParameter(conn, _instrument_name,
-                            _experiment_name, _run_number,
-                            vsPvNameList[iPv].c_str(), vsPvValueList[iPv].c_str(), "PV")) {
-                printf("Error: storing PV %s in LogBook failed\n", vsPvNameList[iPv].c_str());
-              } else {
-                ++parm_save_count;
-              }
+            if (_saveRunParameter(conn, _instrument_name,
+                          _experiment_name, _run_number,
+                          vsPvNameList[iPv].c_str(), vsPvValueList[iPv].c_str(), "PV")) {
+              printf("Error: storing PV %s in LogBook failed\n", vsPvNameList[iPv].c_str());
+            } else {
+              ++parm_save_count;
             }
           }
+        }
 
-          // LogBook: commit transaction
-          conn->commitTransaction();
+        // LogBook: commit transaction
+        conn->commitTransaction();
       } else {
           printf("LogBook::Connection::connect() failed\n");
       }
@@ -288,62 +302,54 @@ int OfflineAppliance::_saveRunParameter(LogBook::Connection *conn, const char *i
 //
 int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
 {
-  chid chan[in.size()];
-  char chan_status[in.size()];
-  dbr_string_t epics_string[in.size()];
-  int  status;
+  int status;
   int read_count = 0;
   int ix;
-  bool epics_initialized = false;
 
-  // Initialize Channel Access
-  status = ca_task_initialize();
-  if (ECA_NORMAL == status) {
-    epics_initialized = true;
-  }
-  else {
-    SEVCHK(status, NULL);
-    printf("Error: %s: Unable to initialize Channel Access", __FUNCTION__);
-    // On failure, return array of empty strings
-    for (ix = 0; ix < (int)in.size(); ix ++) {
-      out.push_back("");
+  if (ca_current_context() == NULL) {
+    // Initialize Channel Access
+    status = ca_context_create(ca_disable_preemptive_callback);
+    if (ECA_NORMAL == status) {
+      // Create channels
+      for (ix = 0; ix < (int)in.size(); ix ++) {
+        status = ca_create_channel(in[ix].c_str(), 0, 0, 0, &_channels[ix].id);
+        if (ECA_NORMAL == status) {
+          _channels[ix].created = true;
+        }
+        else {
+          SEVCHK(status, NULL);
+          _channels[ix].created = false;
+          printf("Error: %s: problem establishing connection to %s.", __FUNCTION__, in[ix].c_str());
+        }
+      }
+
+      // Send the requests and wait for channels to be found.
+      (void) ca_pend_io(OFFLINE_EPICS_TIMEOUT);
+    }
+    else {
+      // ca_context_create() error
+      SEVCHK(status, NULL);
+      printf("Error: %s: Failed to initialize Channel Access", __FUNCTION__);
     }
   }
 
-  if (epics_initialized) {
-    // Create channels
-    for (ix = 0; ix < (int)in.size(); ix ++) {
-      status = ca_create_channel(in[ix].c_str(), 0, 0, 0, &chan[ix]);
-      if (ECA_NORMAL == status) {
-        chan_status[ix] = 1;
-      }
-      else {
-        SEVCHK(status, NULL);
-        chan_status[ix] = 0;
-        printf("Error: %s: problem establishing connection to %s.", __FUNCTION__, in[ix].c_str());
-      }
-    }
-
-    // Send the requests and wait for channels to be found.
-    status = ca_pend_io(OFFLINE_EPICS_TIMEOUT);
-    SEVCHK(status, NULL);
-
+  if (ca_current_context() != NULL) {
     // Make get requests
     for (ix = 0; ix < (int)in.size(); ix ++) {
-      if ((chan_status[ix]) && (cs_conn == ca_state(chan[ix]))) {
+      if ((_channels[ix].created) && (cs_conn == ca_state(_channels[ix].id))) {
         // channel is connected
-        status = ca_bget(chan[ix], epics_string[ix]);
+        status = ca_bget(_channels[ix].id, _channels[ix].value);
         if (ECA_NORMAL == status){
           ++read_count;   // increment count of PVs successfully read
         } else {
           SEVCHK(status, NULL);
           printf("Error in call to ca_bget()");
-          epics_string[ix][0] = '\0';   // empty string is default
+          _channels[ix].value[0] = '\0';  // empty string is default
         }
       } else {
         // channel is not connected
         printf("Error: failed to connect PV %s\n", in[ix].c_str());
-        epics_string[ix][0] = '\0';   // empty string is default
+        _channels[ix].value[0] = '\0';    // empty string is default
       }
     }
 
@@ -363,14 +369,15 @@ int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
       read_count = 0;
     }
     for (ix = 0; ix < (int)in.size(); ix ++) {
-      out.push_back((read_count > 0) ? epics_string[ix]: "");
-      // shut down and reclaim resources associated with channel
-      status = ca_clear_channel(chan[ix]);
-      SEVCHK(status, NULL);
+      out.push_back((read_count > 0) ? _channels[ix].value: "");
     }
-
-    // free channel access resources
-    ca_context_destroy();
+  }
+  else {
+    // EPICS not initialized
+    // ...return array of empty strings
+    for (ix = 0; ix < (int)in.size(); ix ++) {
+      out.push_back("");
+    }
   }
   return read_count;
 }

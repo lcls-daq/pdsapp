@@ -8,6 +8,9 @@
 #include "pds/offlineclient/OfflineClient.hh"
 #include "LogBook/Connection.h"
 
+// EPICS
+#include "cadef.h"
+
 // timeout value for EPICS Channel Access calls
 #define OFFLINE_EPICS_TIMEOUT 1.0
 
@@ -28,6 +31,12 @@ namespace Pds {
 
     typedef std::vector<std::string> TPvList;
 
+    typedef struct parm_channel {
+      chid         id;
+      bool         created;
+      dbr_string_t value;
+    } parm_channel_t;
+
     static int _readConfigFile( const std::string& sFnConfig, TPvList& vsPvNameList );
     static int _splitPvList( const std::string& sPvList, TPvList& vsPv );
 
@@ -45,6 +54,8 @@ namespace Pds {
     unsigned int _experiment_number;
     unsigned int _run_number;
     const char * _parm_list_file;
+    bool         _parm_list_initialized;
+    parm_channel_t  *_channels;
   };
 
 }
