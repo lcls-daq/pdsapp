@@ -15,7 +15,7 @@
 namespace StatsT {
   class NodeStats : public Pds::LinkedList<NodeStats>, public Pds::XtcIterator {
   public:
-    NodeStats(const Pds::Src& n) : _node(n) {}
+    NodeStats(const Pds::Src& n) : _node(n) { reset(); }
     ~NodeStats() {}
 
     const Pds::Src& node() const { return _node; }
@@ -27,6 +27,11 @@ namespace StatsT {
     void reset() { 
       _damage = _events = _size = 0; 
       memset(_dmgbins,0,sizeof(_dmgbins));
+      NodeStats* n = _list.forward();
+      while(n != _list.empty()) {
+	n->reset();
+	n = n->forward();
+      }
     }
     int  accumulate(const Pds::Xtc& xtc, Pds::InDatagramIterator* iter) {
       _events++;

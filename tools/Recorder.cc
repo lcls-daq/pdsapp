@@ -133,32 +133,38 @@ Transition* Recorder::transitions(Transition* tr) {
     }
   }
   if (tr->id()==TransitionId::BeginRun) {
-    RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
-    // open the file, write configure, and this transition
-    printf("run %d expt %d\n",rinfo.run(),rinfo.experiment());
-    unsigned chunk=0;
-    if (_path_error) {
-      printf("Error opening output file : failed to stat output path\n");
-      _beginrunerr++;
+    if (tr->size() == sizeof(Transition)) {  // No RunInfo
+      _f = 0;
+      printf("No RunInfo.  Not recording.\n");
     }
     else {
-      // create directory
-      sprintf(_fname,"%s/e%d", _path,rinfo.experiment());
-      local_mkdir(_fname);
-      // open file
-      sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
-              _path,rinfo.experiment(),rinfo.experiment(),rinfo.run(),_sliceID,chunk);
-      sprintf(_fnamerunning,"%s.inprogress",_fname);
-      _f=fopen(_fnamerunning,"wx"); // x: if the file already exists, fopen() fails
-      if (_f) {
-        printf("Opened %s\n",_fnamerunning);
-        fwrite(_config, sizeof(Datagram) + 
-               reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1,
-             _f);
+      RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
+      // open the file, write configure, and this transition
+      printf("run %d expt %d\n",rinfo.run(),rinfo.experiment());
+      unsigned chunk=0;
+      if (_path_error) {
+	printf("Error opening output file : failed to stat output path\n");
+	_beginrunerr++;
       }
       else {
-        printf("Error opening file %s : %s\n",_fnamerunning,strerror(errno));
-        _beginrunerr++;
+	// create directory
+	sprintf(_fname,"%s/e%d", _path,rinfo.experiment());
+	local_mkdir(_fname);
+	// open file
+	sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
+		_path,rinfo.experiment(),rinfo.experiment(),rinfo.run(),_sliceID,chunk);
+	sprintf(_fnamerunning,"%s.inprogress",_fname);
+	_f=fopen(_fnamerunning,"wx"); // x: if the file already exists, fopen() fails
+	if (_f) {
+	  printf("Opened %s\n",_fnamerunning);
+	  fwrite(_config, sizeof(Datagram) + 
+		 reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1,
+		 _f);
+	}
+	else {
+	  printf("Error opening file %s : %s\n",_fnamerunning,strerror(errno));
+	  _beginrunerr++;
+	}
       }
     }
   }

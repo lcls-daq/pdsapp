@@ -6,6 +6,7 @@
 
 #include <QtCore/QString>
 #include <QtGui/QLabel>
+#include <QtGui/QCheckBox>
 #include <QtGui/QComboBox>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QPalette>
@@ -34,16 +35,22 @@ StateSelect::StateSelect(QWidget* parent,
   _display->setPalette  (*_green);
 
   QGridLayout* layout = new QGridLayout(this);
-  layout->addWidget(new QLabel("Target State",this),0,0,1,1,Qt::AlignHCenter);
-  layout->addWidget(_select = new QComboBox(this),1,0,1,1);
-  layout->addWidget(new QLabel("Last Transition",this),0,1,1,1,Qt::AlignHCenter);
-  layout->addWidget(_display,1,1,1,1);
+  layout->addWidget(_record = new QCheckBox("Record Run"), 0,0,1,2,Qt::AlignHCenter);
+  layout->addWidget(new QLabel("Target State",this),1,0,1,1,Qt::AlignHCenter);
+  layout->addWidget(_select = new QComboBox(this),2,0,1,1);
+  layout->addWidget(new QLabel("Last Transition",this),1,1,1,1,Qt::AlignHCenter);
+  layout->addWidget(_display,2,1,1,1);
   setLayout(layout);
 
+  QObject::connect(_record, SIGNAL(clicked(bool)), 
+		   this, SLOT(set_record(bool)));
   QObject::connect(this, SIGNAL(state_changed(QString)),
 		   this, SLOT(populate(QString)));
   QObject::connect(_select, SIGNAL(activated(const QString&)), 
 		   this, SLOT(selected(const QString&)));
+
+  _record->setEnabled(true);
+  _record->setChecked(true);
 }
 
 StateSelect::~StateSelect()
@@ -64,17 +71,21 @@ void StateSelect::populate(QString label)
                                        _select->addItem(_Allocate);
 				       _select->addItem(_Begin_Running);
 				       emit deallocated();
+				       _record->setEnabled(true);
 				       break;
   case PartitionControl::Mapped:
                                        emit allocated();
+				       _record->setEnabled(true);
 				       break;
   case PartitionControl::Configured:
                                        _select->addItem(_Begin_Running);
 				       _select->addItem(_Shutdown);
+				       _record->setEnabled(true);
 				       break;
   case PartitionControl::Running :
                                        _select->addItem(_End_Running);
 				       _select->addItem(_Shutdown);
+				       _record->setEnabled(false);
 				       break;
   case PartitionControl::Disabled:
                                       _select->addItem(_Enable);
@@ -112,6 +123,11 @@ void StateSelect::selected(const QString& state)
     _control.set_target_state(PartitionControl::Unmapped);
   else if (state==_Next_Cycle)
     _control.message(_control.header(),Occurrence(OccurrenceId::SequencerDone));
+}
+
+void StateSelect::set_record(bool r)
+{
+  _control.use_run_info(r);
 }
 
 Transition* StateSelect::transitions(Transition* tr) 

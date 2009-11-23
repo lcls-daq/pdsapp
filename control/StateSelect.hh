@@ -7,6 +7,7 @@
 
 class QPoint;
 class QLabel;
+class QCheckBox;
 class QComboBox;
 class QPalette;
 
@@ -30,8 +31,10 @@ namespace Pds {
   public slots:
     void populate(QString);
     void selected(const QString&);
+    void set_record(bool);
   private:
     PartitionControl& _control;
+    QCheckBox*        _record;
     QComboBox*        _select;
     QLabel*           _display;
     QPalette*         _green;
