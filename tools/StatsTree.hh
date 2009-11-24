@@ -13,7 +13,7 @@
 #include <string.h>
 
 namespace StatsT {
-  class NodeStats : public Pds::LinkedList<NodeStats>, public Pds::XtcIterator {
+  class NodeStats : public Pds::LinkedList<NodeStats>, public XtcIterator {
   public:
     NodeStats(const Pds::Src& n) : _node(n) { reset(); }
     ~NodeStats() {}

@@ -83,6 +83,7 @@ namespace Pds {
   };
 
   class FileReport : public Appliance {
+    enum { NotRecording=0xffffffff };
   public:
     FileReport(ControlLog& log) :
       _log(log),
@@ -96,9 +97,14 @@ namespace Pds {
     Transition* transitions(Transition* tr)
     {
       if (tr->id()==TransitionId::BeginRun) {
+	if (tr->size() == sizeof(Transition)) {  // No RunInfo
+	  _run_number = NotRecording;
+	}
+	else {
           RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
           _run_number = rinfo.run();
           _experiment_number = rinfo.experiment();
+	}
       }
     return tr;
     }
@@ -106,10 +112,15 @@ namespace Pds {
     InDatagram* events     (InDatagram* dg) 
     { 
       if (dg->datagram().seq.service()==TransitionId::BeginRun) {
-        char fname[256];
-        sprintf(fname, "e%d-r%04d-sNN-cNN.xtc", 
-                _experiment_number, _run_number);
-        _log.appendText(QString("Data file: %1\n").arg(fname));
+	if (_run_number == NotRecording) {
+	  _log.appendText(QString("Not recording."));
+	}
+	else {
+	  char fname[256];
+	  sprintf(fname, "e%d-r%04d-sNN-cNN.xtc", 
+		  _experiment_number, _run_number);
+	  _log.appendText(QString("Data file: %1\n").arg(fname));
+	}
       }
       return dg;
     }
