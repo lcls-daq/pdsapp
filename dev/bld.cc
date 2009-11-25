@@ -26,12 +26,13 @@ namespace Pds {
   class BldApp : public Appliance {
     enum { Period=300 };
   public:
-    BldApp(EbBase* eb) : _eb(eb), _cnt(Period) {}
+    BldApp(EbBase* eb) : _eb(eb), _cnt(0) {}
     ~BldApp() {}
   public:
     InDatagram* events(InDatagram* dg) 
     {
-      if (!--_cnt) {
+      if (_cnt!=0) _cnt--;
+      if ((dg->datagram().damage.value()&(1<<Damage::IncompleteContribution)) && _cnt==0) {
 	_eb->dump(1);
 	_cnt = Period;
       }
