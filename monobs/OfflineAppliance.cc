@@ -44,6 +44,13 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
   LogBook::Connection * conn = NULL;
   LusiTime::Time now;
 
+  if ((tr->id()==TransitionId::BeginRun) &&
+      (tr->size() == sizeof(Transition))) {
+    // no RunInfo
+    _run_number = NotRecording;
+    return tr;
+  }
+
   if (tr->id()==TransitionId::BeginRun) {
     int parm_list_size = 0;
     int parm_read_count = 0;
@@ -138,7 +145,9 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
       delete conn ;
     }
 
-  } else if (tr->id()==TransitionId::EndRun) {
+  }
+  else if ((tr->id()==TransitionId::EndRun) &&
+           (_run_number != NotRecording)) {
 
     printf("Storing EndRun LogBook information for %s/%s Run #%u\n",
             _instrument_name, _experiment_name, _run_number);

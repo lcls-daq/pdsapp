@@ -19,6 +19,7 @@ namespace Pds {
 //class OfflineClient;
 
   class OfflineAppliance : public Fsm {
+    enum { NotRecording=0xffffffff };
   public:
     OfflineAppliance(OfflineClient*, const char*);
 
