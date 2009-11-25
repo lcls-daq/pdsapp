@@ -1,6 +1,8 @@
 #ifndef PDS_EVENTOPTIONS_HH
 #define PDS_EVENTOPTIONS_HH
 
+#include <stdint.h>
+
 namespace Pds {
 class EventOptions {
 public:
@@ -17,6 +19,7 @@ public:
 
   enum Mode {Counter, Decoder, Display};
   Mode mode;
+  uint64_t chunkSize;
 }; 
 }
 

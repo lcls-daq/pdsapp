@@ -4,10 +4,12 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include <limits.h>
 
 using namespace Pds;
 
 const unsigned DefaultBufferSize = 0x100000;
+const uint64_t DefaultChunkSize = ULLONG_MAX;
 
 EventOptions::EventOptions(int argc, char** argv) :
   platform(0),
@@ -15,10 +17,11 @@ EventOptions::EventOptions(int argc, char** argv) :
   buffersize(DefaultBufferSize),
   arpsuidprocess(0),
   outfile(0),
-  mode(Counter)
+  mode(Counter),
+  chunkSize(DefaultChunkSize)
 {
   int c;
-  while ((c = getopt(argc, argv, "f:p:b:a:s:ed")) != -1) {
+  while ((c = getopt(argc, argv, "f:p:b:a:s:c:ed")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -46,6 +49,11 @@ EventOptions::EventOptions(int argc, char** argv) :
     case 'd':
       mode = Display;
       break;
+    case 'c':
+      errno = 0;
+      chunkSize = strtoull(optarg, &endPtr, 0);
+      if (errno != 0 || endPtr == optarg) chunkSize = DefaultChunkSize;
+      break;
     }
   }
 }
@@ -59,6 +67,7 @@ int EventOptions::validate(const char* arg0) const
 	   "         -b <buffer_size>\n"
            "         -a <arp_suid_executable>\n"
            "         -f <outputfilename>\n"
+           "         -c <chunk_size>\n"
            "         -s <slice_ID>\n",
 	   arg0);
     return 0;

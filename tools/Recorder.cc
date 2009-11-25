@@ -12,6 +12,7 @@
 #include <libgen.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <limits.h>
 
 using namespace Pds;
 
@@ -26,13 +27,17 @@ static void local_mkdir (const char * path)
   }
 }
 
-Recorder::Recorder(const char* path, unsigned int sliceID) : 
+Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) : 
   Appliance(), 
   _pool    (new GenericPool(sizeof(ZcpDatagramIterator),1)),
   _node    (0),
   _sliceID (sliceID),
   _beginrunerr(0),
-  _path_error(false)
+  _path_error(false),
+  _chunk(0),
+  _chunkSize(chunkSize),
+  _experiment(0),
+  _run(0)
 {
   struct stat st;
 
@@ -52,11 +57,11 @@ Recorder::Recorder(const char* path, unsigned int sliceID) :
   } else {
     printf("Using path: %s\n",_path);
   }
+
 }
 
 InDatagram* Recorder::events(InDatagram* in) {
 
-  struct stat st;
   InDatagramIterator* iter = in->iterator(_pool);
 
   switch(in->datagram().seq.service()) {
@@ -79,6 +84,7 @@ InDatagram* Recorder::events(InDatagram* in) {
     // rewrite configure transition information every beginrun.
   default:  // write this transition
     if (_f) {
+      struct stat st;
       // kludge for pnCCD - cpo
       if ((in->datagram().seq.service() == TransitionId::L1Accept)) {
         PnccdShuffle::shuffle(in->datagram());
@@ -86,13 +92,31 @@ InDatagram* Recorder::events(InDatagram* in) {
       // end kludge
       fwrite(&(in->datagram()),sizeof(in->datagram()),1,_f);
       { struct iovec iov;
+        int rv;
         int remaining = in->datagram().xtc.sizeofPayload();
         while(remaining) {
           int isize = iter->read(&iov,1,remaining);
           fwrite(iov.iov_base,iov.iov_len,1,_f);
           remaining -= isize;
         }
-        fflush(_f);
+        if ((rv = fstat(fileno(_f), &st)) != 0) {
+          perror("fstat");
+        }
+        if ((0 == rv) && ((uint64_t)st.st_size >= _chunkSize)) {
+          // chunking: close the current output file and open the next one
+          ++_chunk;     // should _chunk have an upper limit?
+          fclose(_f);
+          if (_renameOutputFile(true) != 0) {
+            in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
+          }
+          if (_openOutputFile(true) != 0) {
+            in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
+          }
+        }
+        else {
+          // flush the current output file
+          fflush(_f);
+        }
       }
     }
     break;
@@ -100,17 +124,10 @@ InDatagram* Recorder::events(InDatagram* in) {
   if (in->datagram().seq.service()==TransitionId::EndRun) {
     if (_f) {
       fclose(_f);
-      if (stat(_fname,&st) == 0) {
-        printf("Unable to rename %s. Reason: %s already exists\n",
-                _fnamerunning, _fname);
+      // rename the output file
+      if (_renameOutputFile(true) != 0) {
+        // error
         in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
-      }
-      else if (rename(_fnamerunning,_fname)) {
-        printf("Unable to rename %s. Reason: %s\n",_fnamerunning,
-               strerror(errno));
-        in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
-      } else {
-        printf("Renamed %s to %s\n",_fnamerunning, _fname);
       }
     }
     _f = 0;
@@ -139,32 +156,34 @@ Transition* Recorder::transitions(Transition* tr) {
     }
     else {
       RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
+      _experiment = rinfo.experiment();
+      _run = rinfo.run();
+      _chunk = 0;
       // open the file, write configure, and this transition
-      printf("run %d expt %d\n",rinfo.run(),rinfo.experiment());
-      unsigned chunk=0;
+      printf("run %d expt %d ",_run,_experiment);
+      if (_chunkSize < ULLONG_MAX) {
+        printf("chunk_size %llu", _chunkSize);
+      }
+      printf("\n");
+
       if (_path_error) {
-	printf("Error opening output file : failed to stat output path\n");
-	_beginrunerr++;
+        printf("Error opening output file : failed to stat output path\n");
+        _beginrunerr++;
       }
       else {
-	// create directory
-	sprintf(_fname,"%s/e%d", _path,rinfo.experiment());
-	local_mkdir(_fname);
-	// open file
-	sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
-		_path,rinfo.experiment(),rinfo.experiment(),rinfo.run(),_sliceID,chunk);
-	sprintf(_fnamerunning,"%s.inprogress",_fname);
-	_f=fopen(_fnamerunning,"wx"); // x: if the file already exists, fopen() fails
-	if (_f) {
-	  printf("Opened %s\n",_fnamerunning);
-	  fwrite(_config, sizeof(Datagram) + 
-		 reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1,
-		 _f);
-	}
-	else {
-	  printf("Error opening file %s : %s\n",_fnamerunning,strerror(errno));
-	  _beginrunerr++;
-	}
+        // create directory
+        sprintf(_fname,"%s/e%d", _path,_experiment);
+        local_mkdir(_fname);
+        // open output file
+        if (_openOutputFile(true) != 0) {
+          // error
+          _beginrunerr++;
+        }
+        else {
+          fwrite(_config, sizeof(Datagram) + 
+             reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1,
+             _f);
+        }
       }
     }
   }
@@ -173,4 +192,59 @@ Transition* Recorder::transitions(Transition* tr) {
 
 InDatagram* Recorder::occurrences(InDatagram* in) {
   return in;
+}
+
+//
+// Recorder::_renameOutputFile - rename output file
+//
+// RETURNS: 0 on success, otherwise -1.
+//
+int Recorder::_renameOutputFile(bool verbose) {
+  struct stat st;
+  int rv = -1;      // return value
+
+  if (stat(_fname,&st) == 0) {
+    if (verbose) {
+      printf("Unable to rename %s. Reason: %s already exists\n",
+              _fnamerunning, _fname);
+    }
+  }
+  else if (rename(_fnamerunning,_fname)) {
+    if (verbose) {
+      printf("Unable to rename %s. Reason: %s\n",_fnamerunning,
+             strerror(errno));
+      }
+  } else {
+    rv = 0;         // return 0 for success
+    if (verbose) {
+      printf("Renamed %s to %s\n",_fnamerunning, _fname);
+    }
+  }
+  return (rv);
+}
+
+//
+// Recorder::_openOutputFile - open output file
+//
+// RETURNS: 0 on success, otherwise -1.
+//
+int Recorder::_openOutputFile(bool verbose) {
+  int rv = -1;
+
+  sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
+    _path, _experiment, _experiment, _run, _sliceID, _chunk);
+  sprintf(_fnamerunning,"%s.inprogress",_fname);
+  _f=fopen(_fnamerunning,"wx"); // x: if the file already exists, fopen() fails
+  if (_f) {
+    rv = 0;         // return 0 for success
+    if (verbose) {
+      printf("Opened %s\n",_fnamerunning);
+    }
+  }
+  else {
+    if (verbose) {
+      printf("Error opening file %s : %s\n",_fnamerunning,strerror(errno));
+    }
+  }
+  return rv;
 }
