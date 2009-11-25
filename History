@@ -1,3 +1,4 @@
+2009-Nov-24 caf     Added support for the eventtest -c chunk_size flag.
 2009-Nov-23 caf     Simplified offlineobs: do not destroy and reinitialize the EPICS context once established.
 2009-Nov-20 cpo         Add some pnccd utilities (like camex channel swapping)
 2009-Nov-19 weaver	Tag V01-06-01.  ObserverLevel uses node mask.
