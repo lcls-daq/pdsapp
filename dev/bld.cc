@@ -32,7 +32,7 @@ namespace Pds {
     InDatagram* events(InDatagram* dg) 
     {
       if (_cnt!=0) _cnt--;
-      if ((dg->datagram().damage.value()&(1<<Damage::IncompleteContribution)) && _cnt==0) {
+      if ((dg->datagram().xtc.damage.value()&(1<<Damage::DroppedContribution)) && _cnt==0) {
 	_eb->dump(1);
 	_cnt = Period;
       }

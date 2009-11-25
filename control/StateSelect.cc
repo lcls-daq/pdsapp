@@ -31,6 +31,7 @@ StateSelect::StateSelect(QWidget* parent,
   _yellow  (new QPalette(Qt::yellow))
 {
   _display = new QLabel("-",this);
+  _display->setAutoFillBackground(true);
   _display->setAlignment(Qt::AlignHCenter);
   _display->setPalette  (*_green);
 
@@ -42,6 +43,11 @@ StateSelect::StateSelect(QWidget* parent,
   layout->addWidget(_display,2,1,1,1);
   setLayout(layout);
 
+  QFont font = _record->font();
+  font.setPointSize(font.pointSize() + 4);
+  _record->setFont(font);
+  _record->setAutoFillBackground(true);
+
   QObject::connect(_record, SIGNAL(clicked(bool)), 
 		   this, SLOT(set_record(bool)));
   QObject::connect(this, SIGNAL(state_changed(QString)),
@@ -49,6 +55,7 @@ StateSelect::StateSelect(QWidget* parent,
   QObject::connect(_select, SIGNAL(activated(const QString&)), 
 		   this, SLOT(selected(const QString&)));
 
+  _record->setPalette(*_green);
   _record->setEnabled(true);
   _record->setChecked(true);
 }
@@ -127,6 +134,7 @@ void StateSelect::selected(const QString& state)
 
 void StateSelect::set_record(bool r)
 {
+  _record->setPalette(r ? *_green : *_yellow);
   _control.use_run_info(r);
 }
 
