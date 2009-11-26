@@ -33,7 +33,7 @@ StateSelect::StateSelect(QWidget* parent,
   _display = new QLabel("-",this);
   _display->setAutoFillBackground(true);
   _display->setAlignment(Qt::AlignHCenter);
-  _display->setPalette  (*_green);
+  _display->setPalette  (*_yellow);
 
   QGridLayout* layout = new QGridLayout(this);
   layout->addWidget(_record = new QCheckBox("Record Run"), 0,0,1,2,Qt::AlignHCenter);
@@ -111,7 +111,7 @@ void StateSelect::populate(QString label)
   QObject::connect(_select, SIGNAL(activated(const QString&)), 
 		   this, SLOT(selected(const QString&)));
 
-  _display->setPalette( _control.current_state()==_control.target_state() ? *_green : *_yellow );
+  _display->setPalette( _control.target_state()==PartitionControl::Enabled ? *_green : *_yellow );
 }
 
 void StateSelect::selected(const QString& state)
