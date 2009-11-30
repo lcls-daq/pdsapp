@@ -6,7 +6,6 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/service/GenericPool.hh"
-#include "pdsapp/test/PnccdShuffle.hh"
 
 #include "pds/mon/MonServerManager.hh"
 
@@ -31,6 +30,7 @@
 #include "pdsdata/xtc/Dgram.hh"
 
 #define PERMS (S_IRUSR|S_IRGRP|S_IROTH|S_IWUSR|S_IWGRP|S_IWOTH)
+//#define PERMS (S_IRUSR|S_IWUSR)
 #define OFLAGS (O_CREAT|O_RDWR)
 
 using namespace Pds;
@@ -58,35 +58,29 @@ public:
     _sizeOfBuffers(s),
     _numberOfBuffers(n),
     _bufferCount(0),
-    _linked(true),
     _priority(0)
   { _myMsg.numberOfBuffers(n);
     _myMsg.sizeOfBuffers(s);
   }
   ~XtcMonServer() 
-  { if (_linked) 
-    { printf("Not Unlinking ... \n");
+  { printf("Not Unlinking ... \n");
 //      if (mq_unlink(_toMonQname) == (mqd_t)-1) perror("mq_unlink To Monitor");
 //      if (mq_unlink(_fromMonQname) == (mqd_t)-1) perror("mq_unlink From Monitor");
 //      shm_unlink(_shmName);
 //      printf("Finished.\n");
-    }
   }
+
 public:
   Transition* transitions(Transition* tr) { return tr; }
   InDatagram* occurrences(InDatagram* dg) { return dg; }
   
   InDatagram* events     (InDatagram* dg) 
-  { 
+  { mq_getattr(_myInputQueue, &_mymq_attr);
     Datagram& dgrm = dg->datagram();
-    mq_getattr(_myInputQueue, &_mymq_attr);
     // reserve the last four buffers for transitions
     if ((_mymq_attr.mq_curmsgs > 4) || ((dgrm.seq.service() != TransitionId::L1Accept) && _mymq_attr.mq_curmsgs))
     {
       if (mq_receive(_myInputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority) < 0) perror("mq_receive");
-      if ((dgrm.seq.service() == TransitionId::L1Accept) || (dgrm.seq.service() == TransitionId::Configure)) {
-        PnccdShuffle::shuffle(dgrm);
-      }
       _bufferP = _myShm + (_sizeOfBuffers * _myMsg.bufferIndex());
       //  write the datagram
       memcpy((char*)_bufferP, &dgrm, sizeof(Datagram));
@@ -134,7 +128,7 @@ public:
     _mymq_attr.mq_msgsize = (long int)sizeof(Msg);
     _mymq_attr.mq_flags = 0L;
 
-    umask(1);  // try to enable others to open these devices.
+    umask(1);  // try to enable world members to open these devices.
 
 //    if (!shm_unlink(_shmName)) perror("shm_unlink found a remnant of previous lives");
     int shm = shm_open(_shmName, OFLAGS, PERMS);
@@ -148,9 +142,19 @@ public:
 //    if (mq_unlink(_toMonQname) != (mqd_t)-1) perror("mq_unlink To Monitor found a remnant of previous lives");
 //    if (mq_unlink(_fromMonQname) != (mqd_t)-1) perror("mq_unlink From Monitor found a remnant of previous lives");
     _myOutputQueue = mq_open(_toMonQname, O_CREAT|O_RDWR, PERMS, &_mymq_attr);
-    if (_myOutputQueue == (mqd_t)-1) {ret++; perror("mq_open output");}
+    if (_myOutputQueue == (mqd_t)-1) {
+      ret++;
+      perror("mq_open output");
+      printf("mq_attr:\n\tmq_flags 0x%0lx\n\tmq_maxmsg 0x%0lx\n\tmq_msgsize 0x%0lx\n\t mq_curmsgs 0x%0lx\n",
+          _mymq_attr.mq_flags, _mymq_attr.mq_maxmsg, _mymq_attr.mq_msgsize, _mymq_attr.mq_curmsgs );
+    }
     _myInputQueue = mq_open(_fromMonQname, O_CREAT|O_RDWR, PERMS, &_mymq_attr);
-    if (_myInputQueue == (mqd_t)-1) {ret++; perror("mq_open input");}
+    if (_myInputQueue == (mqd_t)-1) {
+      ret++;
+      perror("mq_open input");
+      printf("mq_attr:\n\tmq_flags 0x%0lx\n\tmq_maxmsg 0x%0lx\n\tmq_msgsize 0x%0lx\n\t mq_curmsgs 0x%0lx\n",
+          _mymq_attr.mq_flags, _mymq_attr.mq_maxmsg, _mymq_attr.mq_msgsize, _mymq_attr.mq_curmsgs );
+    }
 
     // flush the queues just to be sure they are empty.
     Msg m;
@@ -168,7 +172,7 @@ public:
 
 
     // prestuff the input queue which doubles as the free list
-    for (int i=0; i<_numberOfBuffers; i++) {
+    for (int i=0; i<_numberOfBuffers && !ret; i++) {
       if (mq_send(_myInputQueue, (const char *)_myMsg.bufferIndex(i), sizeof(Msg), 0)) 
       { ret++; perror("mq_send inQueueStuffing");
       }
@@ -183,7 +187,6 @@ private:
   unsigned _sizeOfBuffers;
   int _numberOfBuffers;
   int _bufferCount;
-  bool _linked;
   unsigned _sizeOfShm;
   char *_bufferP;   //  pointer to the shared memory area being used
   char *_myShm; // the pointer to start of shared memory
@@ -220,7 +223,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size>\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -i <monitor node> -n <numb shm buffers> -s <shm buffer size> [-u <uniqueID>]\n", progname);
 }
 
 Appliance* apps;
@@ -241,12 +244,14 @@ int main(int argc, char** argv) {
   const char* partition = 0;
   int numberOfBuffers = 0;
   unsigned sizeOfBuffers = 0;
-  unsigned nodes =  0;
+  unsigned node =  0xffff0;
   char partitionTag[80] = "";
+  const char* uniqueID = 0;
+
   (void) signal(SIGINT, sigfunc);
   if (prctl(PR_SET_PDEATHSIG, SIGINT) < 0) printf("Changing death signal failed!\n");
   int c;
-  while ((c = getopt(argc, argv, "p:i:n:P:s:")) != -1) {
+  while ((c = getopt(argc, argv, "p:i:n:P:s:u:")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -255,7 +260,10 @@ int main(int argc, char** argv) {
       if (errno != 0 || endPtr == optarg) platform = -1UL;
       break;
     case 'i':
-      nodes = strtoul(optarg, &endPtr, 0);
+      node = strtoul(optarg, &endPtr, 0);
+      break;
+    case 'u':
+      uniqueID = optarg;
       break;
     case 'n':
       sscanf(optarg, "%d", &numberOfBuffers);
@@ -267,11 +275,13 @@ int main(int argc, char** argv) {
       sizeOfBuffers = (unsigned) strtoul(optarg, NULL, 0);
       break;
     default:
+      printf("Unrecogized parameter\n");
+      usage(argv[0]);
       break;
     }
   }
 
-  if (!numberOfBuffers || !sizeOfBuffers || platform == -1UL || !partition || nodes == 0) {
+  if (!numberOfBuffers || !sizeOfBuffers || platform == -1UL || !partition || node == 0xffff) {
     fprintf(stderr, "Missing parameters!\n");
     usage(argv[0]);
     return 1;
@@ -281,8 +291,12 @@ int main(int argc, char** argv) {
 
   sprintf(partitionTag, "%d_", platform);
   char temp[100];
-  sprintf(temp, "%d_", nodes);
+  sprintf(temp, "%d_", node);
   strcat(partitionTag, temp);
+  if (uniqueID) {
+    strcat(partitionTag, uniqueID);
+    strcat(partitionTag, "_");
+  }
   strcat(partitionTag, partition);
   printf("\nPartition Tag:%s\n", partitionTag);
 
@@ -299,7 +313,7 @@ int main(int argc, char** argv) {
 
   ObserverLevel* event = new ObserverLevel(platform,
 					   partition,
-					   nodes,
+					   node,
 					   *display);
 
   if (event->attach())
