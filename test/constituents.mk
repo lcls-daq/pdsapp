@@ -4,7 +4,7 @@ CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
 libsrcs_test := EventTest.cc EventOptions.cc Recorder.cc DgSummary.cc PnccdShuffle.cc
 
-tgtnames := eventtest segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest
+tgtnames := eventtest segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 
@@ -51,3 +51,11 @@ tgtslib_bldClientTest := /usr/lib/rt
 tgtsrcs_bldServerTest := bldServerTest.cpp bldServerTest.h
 tgtlibs_bldServerTest := pds/service
 tgtslib_bldServerTest := /usr/lib/rt
+
+tgtsrcs_bldMonitor := bldMonitor.cc bldMonitor.hh
+tgtlibs_bldMonitor := $(commonlibs)
+tgtslib_bldMonitor := /usr/lib/rt
+
+tgtsrcs_observertest := observertest.cc
+tgtlibs_observertest := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/test
+tgtslib_observertest := /usr/lib/rt
