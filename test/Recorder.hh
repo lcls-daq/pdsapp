@@ -18,6 +18,8 @@ public:
 private:
   int _openOutputFile(bool verbose);
   int _renameOutputFile(bool verbose);
+  int _renameOutputFile(int run, bool verbose);
+  int _renameFile(char *oldName, char *newName, bool verbose);
 
   FILE* _f;
   Pool* _pool;
@@ -30,8 +32,9 @@ private:
   unsigned int _sliceID;
   unsigned _beginrunerr;
   bool     _path_error;
-  char     _fname[512];
-  char     _fnamerunning[512];
+  enum { SizeofName=512 };
+  char     _fname[SizeofName];
+  char     _fnamerunning[SizeofName];
   unsigned int _chunk;
   uint64_t _chunkSize;
   int      _experiment;

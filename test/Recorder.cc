@@ -5,6 +5,7 @@
 #include "pds/service/GenericPool.hh"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <sys/stat.h>
@@ -15,6 +16,10 @@
 #include <limits.h>
 
 using namespace Pds;
+
+// scandir support
+static int _filter_xtc(const struct dirent *entry);
+static char filter_match_begin[64];
 
 static void local_mkdir (const char * path)
 {
@@ -171,6 +176,11 @@ Transition* Recorder::transitions(Transition* tr) {
         _beginrunerr++;
       }
       else {
+        // rename .xtc.inprogress file from previous run, if present
+        if (_run > 1) {
+          _renameOutputFile(_run-1, true);
+        }
+
         // create directory
         sprintf(_fname,"%s/e%d", _path,_experiment);
         local_mkdir(_fname);
@@ -195,32 +205,74 @@ InDatagram* Recorder::occurrences(InDatagram* in) {
 }
 
 //
-// Recorder::_renameOutputFile - rename output file
+// Recorder::_renameFile - rename file
 //
 // RETURNS: 0 on success, otherwise -1.
 //
-int Recorder::_renameOutputFile(bool verbose) {
+int Recorder::_renameFile(char *oldName, char *newName, bool verbose) {
   struct stat st;
   int rv = -1;      // return value
 
-  if (stat(_fname,&st) == 0) {
+  if (stat(newName,&st) == 0) {
     if (verbose) {
       printf("Unable to rename %s. Reason: %s already exists\n",
-              _fnamerunning, _fname);
+              oldName, newName);
     }
   }
-  else if (rename(_fnamerunning,_fname)) {
+  else if (rename(oldName,newName)) {
     if (verbose) {
-      printf("Unable to rename %s. Reason: %s\n",_fnamerunning,
+      printf("Unable to rename %s. Reason: %s\n",oldName,
              strerror(errno));
       }
   } else {
     rv = 0;         // return 0 for success
     if (verbose) {
-      printf("Renamed %s to %s\n",_fnamerunning, _fname);
+      printf("Renamed %s to %s\n",oldName, newName);
     }
   }
   return (rv);
+}
+
+//
+// Recorder::_renameOutputFile - rename output file
+//
+// RETURNS: 0 on success, otherwise -1.
+//
+int Recorder::_renameOutputFile(bool verbose) {
+  return (_renameFile(_fnamerunning, _fname, verbose));
+}
+
+int Recorder::_renameOutputFile(int run, bool verbose) {
+  int rv = 0;
+  char path[SizeofName];
+  struct dirent **namelist;
+
+  // construct path
+  sprintf(path,"%s/e%d", _path,_experiment);
+
+  // set pattern to match with scandir()
+  sprintf(filter_match_begin, "e%d-r%04d-s%02d-", _experiment, run, _sliceID);
+
+  int ii = scandir(path, &namelist, _filter_xtc, alphasort);
+  if (ii < 0) {
+    perror("scandir");
+    rv = -1;  // ERROR
+  }
+  else {
+    char     oldname[SizeofName];
+    char     newname[SizeofName];
+    unsigned int suffixLen = strlen(".inprogress");
+    while (ii--) {
+      snprintf(oldname, SizeofName, "%s/%s", path, namelist[ii]->d_name);
+      if (strlen(oldname) > suffixLen) {
+        strncpy(newname, oldname, SizeofName);
+        newname[strlen(oldname) - suffixLen] = '\0';
+        (void)_renameFile(oldname, newname, true);
+      }
+      free(namelist[ii]);
+    }
+  }
+  return rv;
 }
 
 //
@@ -245,6 +297,26 @@ int Recorder::_openOutputFile(bool verbose) {
     if (verbose) {
       printf("Error opening file %s : %s\n",_fnamerunning,strerror(errno));
     }
+  }
+  return rv;
+}
+
+//
+// _filter_xtc - callback routine for scandir()
+//
+// RETURNS: 1 if entry->d_name matches the desired pattern, otherwise 0.
+//
+static int _filter_xtc(const struct dirent *entry) {
+  int rv = 0;
+
+  // see if name begins with filter_match_begin[] and ends with ".xtc.inprogress"
+  unsigned int suffixLen = strlen(".xtc.inprogress");
+  if ((entry != NULL) && (entry->d_name != NULL) &&
+      (strncmp(entry->d_name, filter_match_begin,
+      strlen(filter_match_begin)) == 0) &&
+      (strlen(entry->d_name) > suffixLen) &&
+      (strcmp(entry->d_name + strlen(entry->d_name) - suffixLen, ".xtc.inprogress") == 0)) {
+    rv = 1;
   }
   return rv;
 }
