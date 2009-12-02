@@ -14,6 +14,16 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 
+// BldStreams
+#include "pds/utility/EbS.hh"
+#include "pds/utility/ToEventWire.hh"
+#include "pds/management/PartitionMember.hh"
+#include "pds/management/VmonServerAppliance.hh"
+#include "pds/service/VmonSourceId.hh"
+#include "pds/service/BitList.hh"
+#include "pds/vmon/VmonEb.hh"
+#include "pds/xtc/XtcType.hh"
+
 #include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -121,10 +131,75 @@ namespace Pds {
     std::list<Src> _sources;
   };
 
-  class BldStreams : public EventStreams {
+//   class BldStreams : public EventStreams {
+//   public:
+//     BldStreams(PartitionMember& m) : EventStreams(m, 128*1024, 8, 4) {}
+//     ~BldStreams() {}
+//   };
+
+  class BldEvBuilder : public EbS {
   public:
-    BldStreams(PartitionMember& m) : EventStreams(m, 128*1024, 8, 4) {}
-    ~BldStreams() {}
+    BldEvBuilder(const Src& id,
+		 const TypeId& ctns,
+		 Level::Type level,
+		 Inlet& inlet,
+		 OutletWire& outlet,
+		 int stream,
+		 int ipaddress,
+		 unsigned eventsize,
+		 unsigned eventpooldepth,
+		 VmonEb* vmoneb=0) : 
+      EbS(id, ctns, level, inlet, outlet, stream, ipaddress, eventsize, eventpooldepth, vmoneb) {}
+    ~BldEvBuilder() {}
+  public:
+    int processIo(Server* s) { EbS::processIo(s); return 1; }
+    int poll() {   
+      if(!ServerManager::poll()) return 0;
+      if(active().isZero()) ServerManager::arm(managed());
+      return 1;
+    }
+  };
+
+  class BldStreams : public WiredStreams {
+  public:
+    BldStreams(PartitionMember& m) :
+      WiredStreams(VmonSourceId(m.header().level(), m.header().ip()))
+    {
+      unsigned max_size = 128*1024;
+      unsigned net_buf_depth = 16;
+      unsigned eb_depth = 8;
+
+      const Node& node = m.header();
+      Level::Type level = node.level();
+      int ipaddress = node.ip();
+      const Src& src = m.header().procInfo();
+      for (int s = 0; s < StreamParams::NumberOfStreams; s++) {
+
+	_outlets[s] = new ToEventWire(*stream(s)->outlet(), 
+				      m, 
+				      ipaddress, 
+				      max_size*net_buf_depth,
+				      m.occurrences());
+
+	_inlet_wires[s] = new BldEvBuilder(src,
+					   _xtcType,
+					   level,
+					   *stream(s)->inlet(), 
+					   *_outlets[s],
+					   s,
+					   ipaddress,
+					   max_size, eb_depth,
+					   new VmonEb(src,32,eb_depth,(1<<23),(1<<22)));
+				       
+	(new VmonServerAppliance(src))->connect(stream(s)->inlet());
+      }
+    }
+    ~BldStreams() {  
+      for (int s = 0; s < StreamParams::NumberOfStreams; s++) {
+	delete _inlet_wires[s];
+	delete _outlets[s];
+      }
+    }
   };
 
   class BldSegmentLevel : public SegmentLevel {
