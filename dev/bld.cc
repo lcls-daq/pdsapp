@@ -16,6 +16,7 @@
 
 // BldStreams
 #include "pds/utility/EbS.hh"
+#include "pds/utility/EbSequenceKey.hh"
 #include "pds/utility/ToEventWire.hh"
 #include "pds/management/PartitionMember.hh"
 #include "pds/management/VmonServerAppliance.hh"
@@ -154,9 +155,58 @@ namespace Pds {
   public:
     int processIo(Server* s) { EbS::processIo(s); return 1; }
     int poll() {   
+//     { printf("BldEb::poll ifds  ");
+//       unsigned* p = reinterpret_cast<unsigned*>(ioList());
+//       unsigned nfd = numFds() >> 5;
+//       do { printf("%08x ",*p++); } while(nfd--);
+//       printf("\n"); }
+
       if(!ServerManager::poll()) return 0;
       if(active().isZero()) ServerManager::arm(managed());
       return 1;
+    }
+  private:
+    void _flushOne() {
+      EbEventBase* event = _pending.forward();
+      EbEventBase* empty = _pending.empty();
+      //  Prefer to flush an unvalued event first
+      while( event != empty ) {
+	EbBitMask value(event->allocated().remaining() & _valued_clients);
+	if (value.isZero()) {
+	  _postEvent(event);
+	  return;
+	}
+	event = event->forward();
+      }
+      _postEvent(_pending.forward());
+    }
+    EbEventBase* _new_event  ( const EbBitMask& serverId) {
+      unsigned depth = _datagrams.depth();
+
+      if (_vmoneb) _vmoneb->depth(depth);
+      
+      if (depth==1) _flushOne(); // keep one buffer for recopy possibility
+      
+      CDatagram* datagram = new(&_datagrams) CDatagram(_ctns, _id);
+      EbSequenceKey* key = new(&_keys) EbSequenceKey(const_cast<Datagram&>(datagram->datagram()));
+      return new(&_events) EbEvent(serverId, _clients, datagram, key);
+    }
+    EbEventBase* _new_event  ( const EbBitMask& serverId,
+			       char*            payload, 
+			       unsigned         sizeofPayload ) {
+      CDatagram* datagram = new(&_datagrams) CDatagram(_ctns, _id);
+      EbSequenceKey* key = new(&_keys) EbSequenceKey(const_cast<Datagram&>(datagram->datagram()));
+      EbEvent* event = new(&_events) EbEvent(serverId, _clients, datagram, key);
+      event->allocated().insert(serverId);
+      event->recopy(payload, sizeofPayload, serverId);
+      
+      unsigned depth = _datagrams.depth();
+      
+      if (_vmoneb) _vmoneb->depth(depth);
+      
+      if (depth==0) _flushOne();
+      
+      return event;
     }
   };
 
