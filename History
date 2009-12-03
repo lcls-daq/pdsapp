@@ -1,3 +1,6 @@
+2009-Dec-03 weaver  Tag V01-08-01.  Added derived event-builder in dev/bld to handle BLD.  Added
+		    record/no_record option to RunControl.  All observers now specify a mask of
+		    event nodes to receive.
 2009-Nov-24 caf     Added support for the eventtest -c chunk_size flag.
 2009-Nov-23 caf     Simplified offlineobs: do not destroy and reinitialize the EPICS context once established.
 2009-Nov-20 cpo         Add some pnccd utilities (like camex channel swapping)
