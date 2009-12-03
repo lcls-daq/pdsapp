@@ -6,6 +6,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/service/GenericPool.hh"
+#include "pdsapp/test/PnccdShuffle.hh"
 
 #include "pds/mon/MonServerManager.hh"
 
@@ -81,6 +82,9 @@ public:
     if ((_mymq_attr.mq_curmsgs > 4) || ((dgrm.seq.service() != TransitionId::L1Accept) && _mymq_attr.mq_curmsgs))
     {
       if (mq_receive(_myInputQueue, (char*)&_myMsg, sizeof(_myMsg), &_priority) < 0) perror("mq_receive");
+      if ((dgrm.seq.service() == TransitionId::L1Accept) || (dgrm.seq.service() == TransitionId::Configure)) {
+        PnccdShuffle::shuffle(dgrm);
+      }
       _bufferP = _myShm + (_sizeOfBuffers * _myMsg.bufferIndex());
       //  write the datagram
       memcpy((char*)_bufferP, &dgrm, sizeof(Datagram));
