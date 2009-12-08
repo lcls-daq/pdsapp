@@ -1,7 +1,7 @@
 #ifndef Pds_DamageStats_hh
 #define Pds_DamageStats_hh
 
-#include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/ProcInfo.hh"
 #include <QtGui/QWidget>
 #include <QtCore/QList>
 
@@ -21,7 +21,7 @@ namespace Pds {
     void  update_stats();
   private:
     PartitionSelect& _partition;
-    QList<DetInfo>   _detectors;
+    QList<ProcInfo>  _segments;
     QList<QCounter*> _counts;
   };
 };

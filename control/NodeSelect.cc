@@ -33,16 +33,10 @@ void NodeGroup::addNode(const NodeSelect& node)
 {
   int index = _nodes.indexOf(node);
   if (index >= 0) {
-    printf("replace node %d %s with %s\n",
-	   index,
-	   qPrintable(_nodes[index].label()),
-	   qPrintable(node.label()));
     _nodes.replace(index, node);
     emit node_replaced(index);
   }
   else {
-    printf("add node %s\n",
-	   qPrintable(node.label()));
     index = _nodes.size();
     _nodes << node;
     emit node_added(index);

@@ -28,8 +28,10 @@ namespace Pds_ConfigDb {
       _pulseSet("Pulse Definition"  , _pulseArgs , _npulses ),
       _outputSet("Output Definition", _outputArgs, _noutputs)
     {
-      for(unsigned k=0; k<MaxPulses; k++)
+      for(unsigned k=0; k<MaxPulses; k++) {
+	_pulses[k].id(k);
 	_pulses[k].insert(_pulseArgs[k]);
+      }
       for(unsigned k=0; k<MaxOutputs; k++)
 	_outputs[k].insert(_outputArgs[k]);
     }

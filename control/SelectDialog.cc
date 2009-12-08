@@ -51,9 +51,11 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
   }
 }
 
-const QList<Node   >& SelectDialog::selected() const { return _selected; }
+const QList<Node    >& SelectDialog::selected () const { return _selected; }
 
-const QList<DetInfo>& SelectDialog::detectors() const { return _detectors; }
+const QList<DetInfo >& SelectDialog::detectors() const { return _detinfo; }
+
+const QList<ProcInfo>& SelectDialog::segments () const { return _seginfo; }
 
 QWidget* SelectDialog::display() {
   QWidget* d = new QWidget((QWidget*)0);
@@ -74,8 +76,10 @@ void SelectDialog::select() {
   _selected << _evtbox->selected();
   //  _selected << _rptbox->selected();
 
-  _detectors << _segbox->detectors();
-  printf("sd %x/%x\n",_detectors.last().log(),_detectors.last().phy());
+  _detinfo << _segbox->detectors();
+  foreach(Node n, _segbox->selected()) {
+    _seginfo  << n.procInfo();
+  }
 
   accept();
 }

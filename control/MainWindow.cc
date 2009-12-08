@@ -119,7 +119,9 @@ namespace Pds {
 	  char fname[256];
 	  sprintf(fname, "e%d-r%04d-sNN-cNN.xtc", 
 		  _experiment_number, _run_number);
-	  _log.appendText(QString("Data file: %1\n").arg(fname));
+	  _log.appendText(QString("%1: Recording data file: %2\n")
+			  .arg(QTime::currentTime().toString("hh:mm:ss"))
+			  .arg(fname));
 	}
       }
       return dg;

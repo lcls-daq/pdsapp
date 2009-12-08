@@ -4,7 +4,7 @@
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/Damage.hh"
-#include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/ProcInfo.hh"
 
 namespace Pds {
   class SummaryDg : public CDatagram {
@@ -18,12 +18,12 @@ namespace Pds {
     }
     ~SummaryDg() {}
   public:
-    void append(const DetInfo& det) {
-      *static_cast<DetInfo*>(datagram().xtc.alloc(sizeof(det))) = det;
+    void append(const ProcInfo& info) {
+      *static_cast<ProcInfo*>(datagram().xtc.alloc(sizeof(info))) = info;
     }
   private:
     unsigned _payload;
-    DetInfo  _info[32];
+    char     _info[32*sizeof(ProcInfo)];
   };
 };
 
@@ -58,8 +58,8 @@ int DgSummary::process(const Xtc& xtc, InDatagramIterator* iter)
   if (xtc.contains.id() == TypeId::Id_Xtc)
     return iterate(xtc, iter);
 
-  if (xtc.damage.value()==0 && xtc.src.level() == Level::Source) {
-    _out->append(static_cast<const DetInfo&>(xtc.src));
+  if (xtc.damage.value()!=0 && xtc.src.level() == Level::Segment) {
+    _out->append(static_cast<const ProcInfo&>(xtc.src));
     return -1; 
   }
 

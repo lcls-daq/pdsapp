@@ -6,6 +6,7 @@
 
 #include "pds/collection/Node.hh"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/ProcInfo.hh"
 
 namespace Pds {
 
@@ -20,7 +21,8 @@ namespace Pds {
 		    const char*       db_name);
     ~PartitionSelect();
   public:
-    const QList<DetInfo>& detectors() const;
+    const QList<DetInfo >& detectors() const;
+    const QList<ProcInfo>& segments () const;
   public slots:
     void select_dialog();
     void display      ();
@@ -32,7 +34,8 @@ namespace Pds {
     enum { MAX_NODES=64 };
     unsigned _nnodes;
     Node _nodes[MAX_NODES];
-    QList<DetInfo> _detectors;
+    QList<DetInfo > _detectors;
+    QList<ProcInfo> _segments;
   };
 };
 

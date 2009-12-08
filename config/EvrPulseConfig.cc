@@ -7,7 +7,6 @@ using namespace Pds_ConfigDb;
 static const double EvrPeriod = 1./119.e6;
 
 EvrPulseConfig::EvrPulseConfig() :
-  _pulse      ("Pulse"  ,  0, 0, 31),
   _trigger    ("Trigger", -1, -1, 31),
   _set        ("Set"    , -1, -1, 31),
   _clear      ("Clear"  , -1, -1, 31),
@@ -19,9 +18,10 @@ EvrPulseConfig::EvrPulseConfig() :
   _delay      ("Delay [sec]"   , 0, 0, 0x7fffffff, Scaled, EvrPeriod),
   _width      ("Width [sec]"   , 0, 0, 0x7fffffff, Scaled, EvrPeriod)
 {}
-   
+
+void EvrPulseConfig::id(unsigned pid) { _pulse=pid; }
+
 void EvrPulseConfig::insert(Pds::LinkedList<Parameter>& pList) {
-  pList.insert(&_pulse);
   pList.insert(&_trigger);
   pList.insert(&_set);
   pList.insert(&_clear);
@@ -36,7 +36,8 @@ void EvrPulseConfig::insert(Pds::LinkedList<Parameter>& pList) {
 
 bool EvrPulseConfig::pull(void* from) {
   Pds::EvrData::PulseConfig& tc = *new(from) Pds::EvrData::PulseConfig;
-  _pulse.value = tc.pulse();
+  if (_pulse != tc.pulse())
+    printf("Read pulse id %d.  Retaining pulse id %d.\n",tc.pulse(),_pulse);
   _trigger.value = tc.trigger();
   _set.value = tc.set();
   _clear.value = tc.clear();
@@ -51,7 +52,7 @@ bool EvrPulseConfig::pull(void* from) {
 }
 
 int EvrPulseConfig::push(void* to) {
-  Pds::EvrData::PulseConfig& tc = *new(to) Pds::EvrData::PulseConfig(_pulse.value,
+  Pds::EvrData::PulseConfig& tc = *new(to) Pds::EvrData::PulseConfig(_pulse,
 								     _trigger.value,
 								     _set.value,
 								     _clear.value,

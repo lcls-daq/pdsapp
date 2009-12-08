@@ -16,21 +16,20 @@ DamageStats::DamageStats(PartitionSelect& partition) :
   _partition(partition)
 {
   setWindowTitle("Damage Stats");
-  foreach(DetInfo info, _partition.detectors()) {
-    if (info.detector() != DetInfo::NoDetector &&
-	info.detector() != DetInfo::EpicsArch)
-      _detectors << info;
-  }
 
   QGridLayout* l = new QGridLayout(this);
-  const QList<DetInfo>& detectors = _detectors;
   int row=0;
-  foreach(DetInfo info, detectors) {
-    QCounter* cnt = new QCounter;
-    _counts << cnt;
-    l->addWidget(new QLabel(DetInfo::name(info)),row,0,Qt::AlignRight);
-    l->addWidget(cnt->widget(),row,1,Qt::AlignLeft);
-    row++;
+  for(int i=0; i<_partition.detectors().size(); i++) {
+    const DetInfo&  det  = _partition.detectors().at(i);
+    const ProcInfo& proc = _partition.segments ().at(i);
+    if (det.detector() != DetInfo::NoDetector) {
+      QCounter* cnt = new QCounter;
+      _counts   << cnt;
+      _segments << proc;
+      l->addWidget(new QLabel(DetInfo::name(det)),row,0,Qt::AlignRight);
+      l->addWidget(cnt->widget(),row,1,Qt::AlignLeft);
+      row++;
+    }
   }
   setLayout(l);
 
@@ -44,17 +43,15 @@ DamageStats::~DamageStats()
 int DamageStats::increment(InDatagramIterator* iter, int extent)
 {
   int advance=0;
-  foreach(QCounter* cnt, _counts) {
-    cnt->increment();
-  }
-  const QList<DetInfo>& det = _detectors;
-  DetInfo info;
+
+  const QList<ProcInfo>& segm = _segments;
+  ProcInfo info(Level::Control,0,0);
   while(extent) {
     advance += iter->copy(&info, sizeof(info));
     extent  -= sizeof(info);
-    for(int i=0; i<det.size(); i++) {
-      if (det.at(i)==info)
-	_counts.at(i)->decrement();
+    for(int i=0; i<segm.size(); i++) {
+      if (segm.at(i)==info)
+	_counts.at(i)->increment();
     }
   }
   return advance;

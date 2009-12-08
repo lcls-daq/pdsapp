@@ -9,11 +9,12 @@ namespace Pds_ConfigDb {
   public:
     EvrPulseConfig();
   public:   
+    void id(unsigned);
     void insert(Pds::LinkedList<Parameter>& pList);
     bool pull(void* from);
-    int push(void* to);
+    int  push(void* to);
   private:
-    NumericInt<unsigned>    _pulse;
+    unsigned                _pulse;
     NumericInt<int>         _trigger;
     NumericInt<int>         _set;
     NumericInt<int>         _clear;

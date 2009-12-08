@@ -24,8 +24,9 @@ namespace Pds {
     ~SelectDialog();
   public:
     void        available(const Node& hdr, const PingReply& msg);
-    const QList<Node   >& selected() const;
-    const QList<DetInfo>& detectors() const;
+    const QList<Node    >& selected()  const;
+    const QList<DetInfo >& detectors() const;
+    const QList<ProcInfo>& segments () const;
     QWidget*              display ();
   public slots:
     void select();
@@ -41,7 +42,8 @@ namespace Pds {
     NodeGroup* _evtbox;
     //    NodeGroup* _rptbox;
     QList<Node>    _selected;
-    QList<DetInfo> _detectors;
+    QList<DetInfo > _detinfo;
+    QList<ProcInfo> _seginfo;
     QPushButton*   _acceptb;
   };
 };
