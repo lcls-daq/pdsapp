@@ -23,7 +23,7 @@ namespace Pds_ConfigDb {
     AcqVert() :
       _fullScale("Full Scale (Volts)",V2, fullscale_range),
       _offset("Offset (Volts)",0.0,-2.0,2.0),
-      _coupling("Coupling", Pds::Acqiris::VertV1::DC, coupling_range),
+      _coupling("Coupling", Pds::Acqiris::VertV1::DC50ohm, coupling_range),
       _bandwidth("Bandwidth", Pds::Acqiris::VertV1::None, bandwidth_range)
     {}
     void insert(Pds::LinkedList<Parameter>& pList) {
