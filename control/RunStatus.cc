@@ -102,6 +102,19 @@ void RunStatus::reset()
 InDatagram* RunStatus::events     (InDatagram* dg) 
 {
   if (dg->datagram().seq.isEvent()) {
+    /*
+    { unsigned* d = reinterpret_cast<unsigned*>(dg->datagram().xtc.payload());
+      unsigned* e = d + (dg->datagram().xtc.sizeofPayload()>>2);
+      printf("RS::events payload: ");
+      while(d<e) printf(" %08x",*d++);
+      printf("\n");
+    }
+    */
+    if (!_details) {
+      printf("RunStatus::events L1Accept and no details\n");
+      return 0;
+    }
+
     _events->increment();
 
     InDatagramIterator* iter = dg->iterator(&_pool);
@@ -135,6 +148,9 @@ int RunStatus::process(const Xtc& xtc, InDatagramIterator* iter) {
     if (xtc.damage.value()!=0) {
       _damaged->increment();
       advance += _details->increment(iter,xtc.sizeofPayload()-sizeof(payload));
+    }
+    else if (xtc.sizeofPayload() != sizeof(unsigned)) {
+      printf("RS::process payload %x  dmg %x\n",xtc.sizeofPayload(),xtc.damage.value());
     }
   }
   return advance;

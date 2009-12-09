@@ -58,10 +58,8 @@ int DgSummary::process(const Xtc& xtc, InDatagramIterator* iter)
   if (xtc.contains.id() == TypeId::Id_Xtc)
     return iterate(xtc, iter);
 
-  if (xtc.damage.value()!=0 && xtc.src.level() == Level::Segment) {
+  if (xtc.damage.value()!=0 && xtc.src.level() == Level::Segment)
     _out->append(static_cast<const ProcInfo&>(xtc.src));
-    return -1; 
-  }
 
   return 0;
 }

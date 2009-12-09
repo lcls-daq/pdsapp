@@ -42,6 +42,8 @@ DamageStats::~DamageStats()
 
 int DamageStats::increment(InDatagramIterator* iter, int extent)
 {
+  static int _ndbgPrints=32;
+
   int advance=0;
 
   const QList<ProcInfo>& segm = _segments;
@@ -49,9 +51,18 @@ int DamageStats::increment(InDatagramIterator* iter, int extent)
   while(extent) {
     advance += iter->copy(&info, sizeof(info));
     extent  -= sizeof(info);
-    for(int i=0; i<segm.size(); i++) {
-      if (segm.at(i)==info)
+    int i=0;
+    while( i<segm.size() ) {
+      if (segm.at(i)==info) {
 	_counts.at(i)->increment();
+	break;
+      }
+      i++;
+    }
+    if (i==segm.size() && _ndbgPrints) {
+      printf("DmgStats no match for proc %x/%d\n",
+	     info.ipAddr(), info.processId());
+      _ndbgPrints--;
     }
   }
   return advance;
