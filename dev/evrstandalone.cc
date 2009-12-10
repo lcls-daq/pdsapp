@@ -31,8 +31,8 @@ void EvrStandAloneManager::configure() {
   // setup map ram
   int ram=0; int enable=1;
   _er.MapRamEnable(ram,0);
-  int opcode=45;
-  _er.SetFIFOEvent(ram, opcode, enable);
+  int opcode=140;
+//   _er.SetFIFOEvent(ram, opcode, enable);
   int trig=0; int set=-1; int clear=-1;
   _er.SetPulseMap(ram, opcode, trig, set, clear);
 
@@ -103,6 +103,5 @@ int main(int argc, char** argv) {
 
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
   new EvrStandAloneManager(erInfo);
-  while (1) sleep(10);
   return 0;
 }
