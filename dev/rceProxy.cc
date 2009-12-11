@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include <string>
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/TypeId.hh"
 
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
@@ -45,9 +46,10 @@ class EvtCBRceProxy : public EventCallback
 {
 public:
     EvtCBRceProxy(Task* task, int iPlatform, CfgClientNfs& cfgService, const string& sRceIp, 
-      int iNumLinks, int iPayloadSizePerLink, int iDebugLevel) :
+      int iNumLinks, int iPayloadSizePerLink, TypeId typeIdData, int iDebugLevel) :
       _task(task), _iPlatform(iPlatform), _cfg(cfgService), _sRceIp(sRceIp), 
-      _iNumLinks(iNumLinks), _iPayloadSizePerLink(iPayloadSizePerLink), _iDebugLevel(iDebugLevel),
+      _iNumLinks(iNumLinks), _iPayloadSizePerLink(iPayloadSizePerLink), 
+      _typeIdData(typeIdData), _iDebugLevel(iDebugLevel),
       _bAttached(false), _rceProxymgr(NULL), _pSelfNode(NULL)
     {
     }
@@ -80,8 +82,8 @@ private:
         // is notified when it's time to stop/start, or
         // send the data out.    This is "higher level" idea.
      
-        reset();        
-        _rceProxymgr = new RceProxyManager(_cfg, _sRceIp, _iNumLinks, _iPayloadSizePerLink, *_pSelfNode, _iDebugLevel);
+        reset();                
+        _rceProxymgr = new RceProxyManager(_cfg, _sRceIp, _iNumLinks, _iPayloadSizePerLink, _typeIdData, *_pSelfNode, _iDebugLevel);
         _rceProxymgr->appliance().connect(frmk->inlet());
         _bAttached = true;
     }
@@ -120,6 +122,7 @@ private:
     string              _sRceIp;
     int                 _iNumLinks;
     int                 _iPayloadSizePerLink;
+    TypeId              _typeIdData;
     int                 _iDebugLevel;
     bool                _bAttached;
     RceProxyManager*    _rceProxymgr;
@@ -137,6 +140,7 @@ static void showUsage()
     printf( "Usage: rceProxy [-x|--version] [-h|--help] [-d|--debug <debug level>] "
       "[-t|--detector <detector type>] [-i|--detid <detector id>] [-v|--device <device type>] [-e|--devid <device id>] "
       "[-n|--numlinks <number of links>] [-a|--payloadsize <payload size per link>]"
+      "[-y|--typeid <type id>] [-s|--typever <type version>]"
       "-p|--platform <platform id>  -r|--rceip <rce ip> \n" 
       "  Options:\n"
       "    -x|--version       Show file version\n"
@@ -148,6 +152,8 @@ static void showUsage()
       "    -e|--devid         Set device id             [Default: 0]\n"
       "    -n|--numlinks      Set number of links       [Default: 2]\n"
       "    -a|--payloadsize   Set payload size per link [Default: 524304]\n"
+      "    -y|--typeid        Set data type id          [Default: Id_pnCCDframe]\n"
+      "    -s|--typever       Set data type version     [Default: 1]\n"
       "    -p|--platform      [*required*] Set platform id \n"
       "    -r|--rceip         [*required*] Set host IP address of RCE \n"
     );
@@ -172,20 +178,24 @@ int main(int argc, char** argv)
        {"devId",        1, 0, 'e'},
        {"numlinks",     1, 0, 'n'},
        {"payloadsize",  1, 0, 'a'},
+       {"typeid",       1, 0, 'y'},
+       {"typever",      1, 0, 's'},
        {"platform",     1, 0, 'p'},
        {"rceIp",        1, 0, 'r'},
        {0,              0, 0,  0 },
     };    
     
     // parse the command line for our boot parameters
-    int                 iDebugLevel = 0;
-    DetInfo::Detector   detector = DetInfo::Camp;
-    int                 iDetectorId = 0;
-    DetInfo::Device     device  = DetInfo::pnCCD;
-    int                 iDeviceId = 0;
-    int                 iNumLinks = 2;
+    int                 iDebugLevel         = 0;
+    DetInfo::Detector   detector            = DetInfo::Camp;
+    int                 iDetectorId         = 0;
+    DetInfo::Device     device              = DetInfo::pnCCD;
+    int                 iDeviceId           = 0;
+    int                 iNumLinks           = 2;
     int                 iPayloadSizePerLink = 524304;
-    int                 iPlatform = -1;
+    TypeId::Type        typeId          = TypeId::Id_pnCCDframe;
+    int                 iTypeVer         = 1;
+    int                 iPlatform           = -1;    
     string              sRceIp;
     
     while ( int opt = getopt_long(argc, argv, ":xhd:t:i:v:e:n:a:p:r:", loOptions, &iOptionIndex ) )
@@ -222,6 +232,12 @@ int main(int argc, char** argv)
         case 'a':
             iPayloadSizePerLink = strtoul(optarg, NULL, 0);
             break;            
+        case 'y':
+            typeId = (TypeId::Type) strtoul(optarg, NULL, 0);
+            break;            
+        case 's':
+            iTypeVer = strtoul(optarg, NULL, 0);
+            break;                        
         case 'p':
             iPlatform = strtol(optarg, NULL, 0);
             break;
@@ -256,11 +272,14 @@ int main(int argc, char** argv)
     
     // print summary of command line options and system settings
     printf( "rceProxy settings:\n"
-      "  Platform %d  RceIp %s  Detector %s id %d  Device %s id %d\n",
-      iPlatform, sRceIp.c_str(), DetInfo::name(detector), iDetectorId, DetInfo::name(device), iDeviceId );
+      "  Platform %d  RceIp %s  Detector %s id %d  Device %s id %d  Type id %s ver %d\n",
+      iPlatform, sRceIp.c_str(), DetInfo::name(detector), iDetectorId, DetInfo::name(device), iDeviceId, 
+        TypeId::name(typeId), iTypeVer );
+    
+    TypeId typeIdData(typeId, iTypeVer);
     
     // need to put in new numbers in DetInfo.hh for the rceProxy
-    const DetInfo detInfo( getpid(), detector, iDetectorId, device, iDeviceId);    
+    const DetInfo detInfo( getpid(), detector, iDetectorId, device, iDeviceId);        
 
     Task* task = new Task(Task::MakeThisATask);
 
@@ -268,7 +287,7 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsRceProxy settings(detInfo);
     
-    EvtCBRceProxy evtCbRceProxy(task, iPlatform, cfgService, sRceIp, iNumLinks, iPayloadSizePerLink, iDebugLevel);
+    EvtCBRceProxy evtCbRceProxy(task, iPlatform, cfgService, sRceIp, iNumLinks, iPayloadSizePerLink, typeIdData, iDebugLevel);
     SegmentLevel seglevel(iPlatform, settings, evtCbRceProxy, NULL);    
     evtCbRceProxy.setSelfNode( seglevel.header() );    
     
