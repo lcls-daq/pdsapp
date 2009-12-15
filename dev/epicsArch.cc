@@ -237,8 +237,7 @@ int main(int argc, char** argv)
     
     seglevel.attach();    
     if ( evtCBEpicsArch.IsAttached() )    
-        task->mainLoop();          
-    
-    task->destroy();    
+        task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)
+        
     return 0;
 }

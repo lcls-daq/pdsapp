@@ -293,8 +293,7 @@ int main(int argc, char** argv)
     
     seglevel.attach();    
     if ( evtCbRceProxy.IsAttached() )    
-        task->mainLoop();          
+        task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)          
     
-    task->destroy();     
     return 0;
 }
