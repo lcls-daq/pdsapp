@@ -78,9 +78,6 @@ private:
              _iPlatform);
 
         Stream* frmk = streams.stream(StreamParams::FrameWork);
-        // you'll need a Manager. the Manager
-        // is notified when it's time to stop/start, or
-        // send the data out.    This is "higher level" idea.
      
         reset();        
         _epicsArchmgr = new EpicsArchManager(_cfg, _sFnConfig, _fMinTriggerInterval, _iDebugLevel);
@@ -223,7 +220,6 @@ int main(int argc, char** argv)
         return 2;
     }
         
-    // need to put in new numbers in DetInfo.hh for the epicsArch
     const DetInfo& detInfo = EpicsXtcSettings::detInfo;
 
     Task* task = new Task(Task::MakeThisATask);

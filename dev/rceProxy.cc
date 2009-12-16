@@ -42,10 +42,10 @@ private:
 //    Implements the callbacks for attaching/dissolving.
 //    Appliances can be added to the stream here.
 //
-class EvtCBRceProxy : public EventCallback 
+class EvtCbRceProxy : public EventCallback 
 {
 public:
-    EvtCBRceProxy(Task* task, int iPlatform, CfgClientNfs& cfgService, const string& sRceIp, 
+    EvtCbRceProxy(Task* task, int iPlatform, CfgClientNfs& cfgService, const string& sRceIp, 
       int iNumLinks, int iPayloadSizePerLink, TypeId typeIdData, int iDebugLevel) :
       _task(task), _iPlatform(iPlatform), _cfg(cfgService), _sRceIp(sRceIp), 
       _iNumLinks(iNumLinks), _iPayloadSizePerLink(iPayloadSizePerLink), 
@@ -54,7 +54,7 @@ public:
     {
     }
 
-    virtual ~EvtCBRceProxy()
+    virtual ~EvtCbRceProxy()
     {
         reset();
     }
@@ -74,13 +74,10 @@ private:
     // Implements EventCallback
     virtual void attached(SetOfStreams& streams)        
     {        
-        printf("EvtCBRceProxy connected to iPlatform 0x%x\n", 
+        printf("EvtCbRceProxy connected to iPlatform 0x%x\n", 
              _iPlatform);
 
         Stream* frmk = streams.stream(StreamParams::FrameWork);
-        // you'll need a Manager. the Manager
-        // is notified when it's time to stop/start, or
-        // send the data out.    This is "higher level" idea.
      
         reset();                
         _rceProxymgr = new RceProxyManager(_cfg, _sRceIp, _iNumLinks, _iPayloadSizePerLink, _typeIdData, *_pSelfNode, _iDebugLevel);
@@ -127,7 +124,7 @@ private:
     bool                _bAttached;
     RceProxyManager*    _rceProxymgr;
     const Node*         _pSelfNode;
-}; // class EvtCBRceProxy
+}; // class EvtCbRceProxy
 
 
 } // namespace Pds 
@@ -287,7 +284,7 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsRceProxy settings(detInfo);
     
-    EvtCBRceProxy evtCbRceProxy(task, iPlatform, cfgService, sRceIp, iNumLinks, iPayloadSizePerLink, typeIdData, iDebugLevel);
+    EvtCbRceProxy evtCbRceProxy(task, iPlatform, cfgService, sRceIp, iNumLinks, iPayloadSizePerLink, typeIdData, iDebugLevel);
     SegmentLevel seglevel(iPlatform, settings, evtCbRceProxy, NULL);    
     evtCbRceProxy.setSelfNode( seglevel.header() );    
     
