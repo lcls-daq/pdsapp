@@ -9,7 +9,7 @@
 #include "pdsdata/xtc/XtcFileIterator.hh"
 #include "pdsdata/pnCCD/ConfigV1.hh"
 #include "pdsdata/pnCCD/FrameV1.hh"
-#include "pdsapp/test/PnccdFrameDetail.hh"
+#include "pdsapp/tools/PnccdFrameDetail.hh"
 
 static PNCCD::ConfigV1 cfg;
 

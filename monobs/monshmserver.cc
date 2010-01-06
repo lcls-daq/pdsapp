@@ -6,7 +6,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/service/GenericPool.hh"
-#include "pdsapp/test/PnccdShuffle.hh"
+#include "pdsapp/tools/PnccdShuffle.hh"
 
 #include "pds/mon/MonServerManager.hh"
 
@@ -95,13 +95,13 @@ public:
       int remaining = dgrm.xtc.sizeofPayload();
       while(remaining) {
         int isize = iter.read(&iov,1,remaining);
-	/*
+  /*
         printf("Iterator found %x bytes at %p dgrm at %p next %p\n",
                iov.iov_len,iov.iov_base,&dgrm,
                dgrm.xtc.next());
-	*/
-	memcpy(_bufferP+offset, iov.iov_base, iov.iov_len);
-	offset += iov.iov_len;
+  */
+  memcpy(_bufferP+offset, iov.iov_base, iov.iov_len);
+  offset += iov.iov_len;
         remaining -= isize;
       }
       delete &iter;
@@ -313,12 +313,12 @@ int main(int argc, char** argv) {
   
   Task* task = new Task(Task::MakeThisATask);
   MyCallback* display = new MyCallback(task, 
-				       apps);
+               apps);
 
   ObserverLevel* event = new ObserverLevel(platform,
-					   partition,
-					   node,
-					   *display);
+             partition,
+             node,
+             *display);
 
   if (event->attach())
     task->mainLoop();
