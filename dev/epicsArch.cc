@@ -49,10 +49,10 @@ public:
       float fMinTriggerInterval, int iDebugLevel) :
       _task(task), _iPlatform(iPlatform), _cfg(cfgService), _sFnConfig(sFnConfig), 
       _fMinTriggerInterval(fMinTriggerInterval), _iDebugLevel(iDebugLevel),
-      _bAttached(false), _epicsArchmgr(NULL)  
+      _bAttached(false), _epicsArchManager(NULL)  
     {
         //// !! For debug test only
-        //_epicsArchmgr = new EpicsArchManager(_cfg, _sFnConfig);        
+        //_epicsArchManager = new EpicsArchManager(_cfg, _sFnConfig);        
     }
 
     virtual ~EvtCbEpicsArch()
@@ -65,8 +65,8 @@ public:
 private:
     void reset()
     {
-        delete _epicsArchmgr;
-        _epicsArchmgr = NULL;
+        delete _epicsArchManager;
+        _epicsArchManager = NULL;
         
         _bAttached = false;
     }
@@ -80,8 +80,8 @@ private:
         Stream* frmk = streams.stream(StreamParams::FrameWork);
      
         reset();        
-        _epicsArchmgr = new EpicsArchManager(_cfg, _sFnConfig, _fMinTriggerInterval, _iDebugLevel);
-        _epicsArchmgr->appliance().connect(frmk->inlet());
+        _epicsArchManager = new EpicsArchManager(_cfg, _sFnConfig, _fMinTriggerInterval, _iDebugLevel);
+        _epicsArchManager->appliance().connect(frmk->inlet());
         _bAttached = true;
     }
     
@@ -120,7 +120,7 @@ private:
     float               _fMinTriggerInterval;
     int                 _iDebugLevel;
     bool                _bAttached;
-    EpicsArchManager*   _epicsArchmgr;    
+    EpicsArchManager*   _epicsArchManager;    
 }; // class EvtCbEpicsArch
 
 
@@ -136,7 +136,7 @@ static void showUsage()
       "[-d|--debug <debug level>] -p|--platform <platform>  -f <config filename>\n" 
       "  Options:\n"
       "    -v|--version       Show file version\n"
-      "    -h|--help          Show Usage\n"
+      "    -h|--help          Show usage\n"
       "    -d|--debug         Set debug level\n"
       "    -i|--interval      Set minimum trigger interval, in seconds (float number) [Default: 1.0]\n"
       "    -f|--file          [*required*] Set configuration filename\n"

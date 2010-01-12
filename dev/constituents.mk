@@ -2,7 +2,7 @@
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr evrstandalone acq opal1k epicsArch rceProxy bld # tm6740
+tgtnames    := evr evrstandalone acq opal1k epicsArch rceProxy bld princeton# tm6740
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
@@ -57,3 +57,7 @@ tgtslib_bld := /usr/lib/rt
 tgtsrcs_rceProxy := rceProxy.cc
 tgtlibs_rceProxy := pdsdata/pnccddata pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pds/rceProxy
 tgtslib_rceProxy := /usr/lib/rt
+
+tgtsrcs_princeton := princeton.cc
+tgtlibs_princeton := pdsdata/pnccddata pdsdata/xtcdata pdsdata/princetondata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pds/princeton pvcam/pvcam
+tgtslib_princeton := /usr/lib/rt dl raw1394 pthread
