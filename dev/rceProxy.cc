@@ -46,10 +46,10 @@ class EvtCbRceProxy : public EventCallback
 {
 public:
     EvtCbRceProxy(Task* task, int iPlatform, CfgClientNfs& cfgService, const string& sRceIp, 
-      int iNumLinks, int iPayloadSizePerLink, TypeId typeIdData, int iDebugLevel) :
+      int iNumLinks, int iPayloadSizePerLink, TypeId typeIdData, int iTsWidth, int iPhase, int iDebugLevel) :
       _task(task), _iPlatform(iPlatform), _cfg(cfgService), _sRceIp(sRceIp), 
       _iNumLinks(iNumLinks), _iPayloadSizePerLink(iPayloadSizePerLink), 
-      _typeIdData(typeIdData), _iDebugLevel(iDebugLevel),
+      _typeIdData(typeIdData), _iTsWidth(iTsWidth), _iPhase(iPhase), _iDebugLevel(iDebugLevel),
       _bAttached(false), _rceProxymgr(NULL), _pSelfNode(NULL)
     {
     }
@@ -80,7 +80,8 @@ private:
         Stream* frmk = streams.stream(StreamParams::FrameWork);
      
         reset();                
-        _rceProxymgr = new RceProxyManager(_cfg, _sRceIp, _iNumLinks, _iPayloadSizePerLink, _typeIdData, *_pSelfNode, _iDebugLevel);
+        _rceProxymgr = new RceProxyManager(_cfg, _sRceIp, _iNumLinks, _iPayloadSizePerLink, _typeIdData, 
+         _iTsWidth, _iPhase, *_pSelfNode, _iDebugLevel);
         _rceProxymgr->appliance().connect(frmk->inlet());
         _bAttached = true;
     }
@@ -120,6 +121,8 @@ private:
     int                 _iNumLinks;
     int                 _iPayloadSizePerLink;
     TypeId              _typeIdData;
+    int                 _iTsWidth;
+    int                 _iPhase;
     int                 _iDebugLevel;
     bool                _bAttached;
     RceProxyManager*    _rceProxymgr;
@@ -136,8 +139,8 @@ static void showUsage()
 {
     printf( "Usage: rceProxy [-x|--version] [-h|--help] [-d|--debug <debug level>] "
       "[-t|--detector <detector type>] [-i|--detid <detector id>] [-v|--device <device type>] [-e|--devid <device id>] "
-      "[-n|--numlinks <number of links>] [-a|--payloadsize <payload size per link>]"
-      "[-y|--typeid <type id>] [-s|--typever <type version>]"
+      "[-n|--numlinks <number of links>] [-a|--payloadsize <payload size per link>] [-y|--typeid <type id>] "
+      "[-s|--typever <type version>] [-w|--tswidth  <traffic shaping width>] [-z|--phase <phase>] "
       "-p|--platform <platform id>  -r|--rceip <rce ip> \n" 
       "  Options:\n"
       "    -x|--version       Show file version\n"
@@ -151,6 +154,8 @@ static void showUsage()
       "    -a|--payloadsize   Set payload size per link [Default: 524304]\n"
       "    -y|--typeid        Set data type id          [Default: Id_pnCCDframe]\n"
       "    -s|--typever       Set data type version     [Default: 1]\n"
+      "    -w|--tswidth       Set traffic shaping width [Default: 4]\n"
+      "    -z|--phase         Set initial phase         [Default: 0]\n"
       "    -p|--platform      [*required*] Set platform id \n"
       "    -r|--rceip         [*required*] Set host IP address of RCE \n"
     );
@@ -177,6 +182,8 @@ int main(int argc, char** argv)
        {"payloadsize",  1, 0, 'a'},
        {"typeid",       1, 0, 'y'},
        {"typever",      1, 0, 's'},
+       {"tswidth",      1, 0, 'w'},
+       {"phase",        1, 0, 'z'},       
        {"platform",     1, 0, 'p'},
        {"rceIp",        1, 0, 'r'},
        {0,              0, 0,  0 },
@@ -190,12 +197,14 @@ int main(int argc, char** argv)
     int                 iDeviceId           = 0;
     int                 iNumLinks           = 2;
     int                 iPayloadSizePerLink = 524304;
-    TypeId::Type        typeId          = TypeId::Id_pnCCDframe;
-    int                 iTypeVer         = 1;
+    TypeId::Type        typeId              = TypeId::Id_pnCCDframe;
+    int                 iTypeVer            = 1;
+    int                 iTsWidth            = 4;
+    int                 iPhase              = 0;
     int                 iPlatform           = -1;    
     string              sRceIp;
     
-    while ( int opt = getopt_long(argc, argv, ":xhd:t:i:v:e:n:a:p:r:", loOptions, &iOptionIndex ) )
+    while ( int opt = getopt_long(argc, argv, ":xhd:t:i:v:e:n:a:w:z:p:r:", loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
@@ -234,6 +243,12 @@ int main(int argc, char** argv)
             break;            
         case 's':
             iTypeVer = strtoul(optarg, NULL, 0);
+            break;                        
+        case 'w':
+            iTsWidth = strtoul(optarg, NULL, 0);
+            break;            
+        case 'z':
+            iPhase = strtoul(optarg, NULL, 0);
             break;                        
         case 'p':
             iPlatform = strtol(optarg, NULL, 0);
@@ -284,7 +299,8 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsRceProxy settings(detInfo);
     
-    EvtCbRceProxy evtCbRceProxy(task, iPlatform, cfgService, sRceIp, iNumLinks, iPayloadSizePerLink, typeIdData, iDebugLevel);
+    EvtCbRceProxy evtCbRceProxy(task, iPlatform, cfgService, sRceIp, iNumLinks, iPayloadSizePerLink, 
+     typeIdData, iTsWidth, iPhase, iDebugLevel);
     SegmentLevel seglevel(iPlatform, settings, evtCbRceProxy, NULL);    
     evtCbRceProxy.setSelfNode( seglevel.header() );    
     
