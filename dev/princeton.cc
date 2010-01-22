@@ -45,8 +45,8 @@ private:
 class EvtCbPrinceton : public EventCallback 
 {
 public:
-    EvtCbPrinceton(Task* task, int iPlatform, CfgClientNfs& cfgService, string sFnOtuput, int iDebugLevel) :
-      _task(task), _iPlatform(iPlatform), _cfg(cfgService), _sFnOtuput(sFnOtuput), _iDebugLevel(iDebugLevel),
+    EvtCbPrinceton(int iPlatform, CfgClientNfs& cfgService, bool bMakeUpEvent, string sFnOtuput, int iDebugLevel) :
+      _iPlatform(iPlatform), _cfg(cfgService), _bMakeUpEvent(bMakeUpEvent), _sFnOtuput(sFnOtuput), _iDebugLevel(iDebugLevel),
       _bAttached(false), _princetonManager(NULL)  
     {
         //// !! For debug test only
@@ -78,7 +78,7 @@ private:
         Stream* frmk = streams.stream(StreamParams::FrameWork);
      
         reset();        
-        _princetonManager = new PrincetonManager(_cfg, _sFnOtuput, _iDebugLevel);
+        _princetonManager = new PrincetonManager(_cfg, _bMakeUpEvent, _sFnOtuput, _iDebugLevel);
         _princetonManager->appliance().connect(frmk->inlet());
         _bAttached = true;
     }
@@ -111,9 +111,9 @@ private:
     }
         
 private:
-    Task*               _task;
     int                 _iPlatform;
     CfgClientNfs&       _cfg;
+    bool                _bMakeUpEvent;
     string              _sFnOtuput;
     int                 _iDebugLevel;
     bool                _bAttached;
@@ -129,12 +129,13 @@ using namespace Pds;
 
 static void showUsage()
 {
-    printf( "Usage:  princeton  [-v|--version] [-h|--help] [-f <output filename>]"
+    printf( "Usage:  princeton  [-v|--version] [-h|--help] [-m|--makeup] [-f|--file <output filename>]"
       "[-d|--debug <debug level>] -p|--platform <platform>\n" 
       "  Options:\n"
       "    -v|--version       Show file version\n"
       "    -h|--help          Show usage\n"
-      "    -f|--file          Set output filename - If not set, data is sent to event level nodes\n"
+      "    -m|--makeup        Use makeup event mode\n"
+      "    -f|--file          Set output filename - If not set, default to use stream mode\n"
       "    -d|--debug         Set debug level\n"
       "    -p|--platform      [*required*] Set platform id\n"
     );
@@ -152,6 +153,7 @@ int main(int argc, char** argv)
     {
        {"ver",      0, 0, 'v'},
        {"help",     0, 0, 'h'},
+       {"makeup",   0, 0, 'm'},       
        {"file",     1, 0, 'f'},       
        {"debug",    1, 0, 'd'},
        {"platform", 1, 0, 'p'},
@@ -159,9 +161,10 @@ int main(int argc, char** argv)
     };    
     
     // parse the command line for our boot parameters
-    int     iPlatform   = -1;
-    int     iDebugLevel = 0;
+    int     iPlatform     = -1;
+    bool    bMakeUpEvent  = false;
     string  sFnOtuput;
+    int     iDebugLevel   = 0;
     
     while ( int opt = getopt_long(argc, argv, ":vhf:d:p:", loOptions, &iOptionIndex ) )
     {
@@ -172,6 +175,9 @@ int main(int argc, char** argv)
         case 'v':               /* Print usage */
             showVersion();
             return 0;            
+        case 'm':
+            bMakeUpEvent = true;
+            break;            
         case 'f':
             sFnOtuput = optarg;
             break;            
@@ -215,7 +221,7 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsPrinceton settings(detInfo);
     
-    EvtCbPrinceton evtCBPrinceton(task, iPlatform, cfgService, sFnOtuput, iDebugLevel);
+    EvtCbPrinceton evtCBPrinceton(iPlatform, cfgService, bMakeUpEvent, sFnOtuput, iDebugLevel);
     SegmentLevel seglevel(iPlatform, settings, evtCBPrinceton, NULL);
     
     seglevel.attach();    
