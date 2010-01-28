@@ -78,7 +78,17 @@ private:
         Stream* frmk = streams.stream(StreamParams::FrameWork);
      
         reset();        
+        
+        try
+        {            
         _princetonManager = new PrincetonManager(_cfg, _bMakeUpEvent, _sFnOtuput, _iDebugLevel);
+        }
+        catch ( PrincetonManagerException& eManager )
+        {
+          printf( "EvtCbPrinceton::attached() PrincetonManager init failed, error message = \n  %s\n", eManager.what() );
+          return;
+        }        
+        
         _princetonManager->appliance().connect(frmk->inlet());
         _bAttached = true;
     }
@@ -226,12 +236,7 @@ int main(int argc, char** argv)
     
     seglevel.attach();    
     if ( evtCBPrinceton.IsAttached() )    
-        task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)
-        
-    }
-    catch ( PrincetonManagerException& eManager )
-    {
-      printf( "main(): PrincetonManager exception %s\n", eManager.what() );
+        task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)        
     }
     catch (...)
     {
