@@ -72,11 +72,9 @@ private:
     // Implements EventCallback
     virtual void attached(SetOfStreams& streams)        
     {        
-        printf("EvtCbPrinceton connected to iPlatform 0x%x\n", 
-             _iPlatform);
-
-        Stream* frmk = streams.stream(StreamParams::FrameWork);
-     
+        printf("Connected to iPlatform %d, debug level %d\n", 
+             _iPlatform, _iDebugLevel);
+             
         reset();        
         
         try
@@ -85,11 +83,12 @@ private:
         }
         catch ( PrincetonManagerException& eManager )
         {
-          printf( "EvtCbPrinceton::attached() PrincetonManager init failed, error message = \n  %s\n", eManager.what() );
+          printf( "EvtCbPrinceton::attached(): PrincetonManager init failed, error message = \n  %s\n", eManager.what() );
           return;
         }        
         
-        _princetonManager->appliance().connect(frmk->inlet());
+        Stream* streamFramework = streams.stream(StreamParams::FrameWork);
+        _princetonManager->appliance().connect(streamFramework->inlet());
         _bAttached = true;
     }
     
