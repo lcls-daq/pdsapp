@@ -175,7 +175,7 @@ int main(int argc, char** argv)
     string  sFnOtuput;
     int     iDebugLevel   = 0;
     
-    while ( int opt = getopt_long(argc, argv, ":vhf:d:p:", loOptions, &iOptionIndex ) )
+    while ( int opt = getopt_long(argc, argv, ":vhmf:d:p:", loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
