@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
+#include <signal.h>
 #include <string>
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/epics/EpicsXtcSettings.hh"
@@ -155,6 +156,17 @@ static void showVersion()
     printf( "Version:  epicArch  Ver %s\n", sPrincetonVersion );
 }
 
+static int    iSignalCaught   = 0;
+static Task*  taskMainThread  = NULL;
+void princetonSignalIntHandler( int )
+{
+  printf( "princetonSignalIntHandler(): SIGINT received. Stopping all activities\n" );
+  iSignalCaught = 1;
+  
+  if (taskMainThread != NULL) 
+    taskMainThread->destroy();     
+}
+
 int main(int argc, char** argv) 
 {
     int iOptionIndex = 0;
@@ -218,6 +230,17 @@ int main(int argc, char** argv)
         showUsage();
         return 1;
     }        
+
+    /*
+     * Register singal handler
+     */
+    struct sigaction sigActionInt;
+    sigemptyset(&sigActionInt.sa_mask);
+    sigActionInt.sa_handler = princetonSignalIntHandler;
+    sigActionInt.sa_flags   = SA_RESTART;    
+
+    if (sigaction(SIGINT, &sigActionInt, 0) != 0 ) 
+      printf( "main(): Cannot register signal handler\n" );
     
     try
     {   
@@ -225,6 +248,7 @@ int main(int argc, char** argv)
     const DetInfo detInfo( getpid(), Pds::DetInfo::NoDetector, 0, DetInfo::Princeton, 0);    
 
     Task* task = new Task(Task::MakeThisATask);
+    taskMainThread = task;
 
     // keep this: it's the "hook" into the configuration database
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
@@ -239,7 +263,10 @@ int main(int argc, char** argv)
     }
     catch (...)
     {
-      printf( "main(): Unknown exception\n" );
+      if ( iSignalCaught != 0 )
+        exit(0);
+      else
+        printf( "main(): Unknown exception\n" );
     }
     
     return 0;
