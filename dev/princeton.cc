@@ -160,7 +160,7 @@ static int    iSignalCaught   = 0;
 static Task*  taskMainThread  = NULL;
 void princetonSignalIntHandler( int )
 {
-  printf( "princetonSignalIntHandler(): SIGINT received. Stopping all activities\n" );
+  printf( "\nprincetonSignalIntHandler(): SIGINT received. Stopping all activities\n" );
   iSignalCaught = 1;
   
   if (taskMainThread != NULL) 
