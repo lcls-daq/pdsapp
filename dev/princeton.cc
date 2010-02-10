@@ -158,9 +158,9 @@ static void showVersion()
 
 static int    iSignalCaught   = 0;
 static Task*  taskMainThread  = NULL;
-void princetonSignalIntHandler( int )
+void princetonSignalIntHandler( int iSignalNo )
 {
-  printf( "\nprincetonSignalIntHandler(): SIGINT received. Stopping all activities\n" );
+  printf( "\nprincetonSignalIntHandler(): signal %d received. Stopping all activities\n", iSignalNo );
   iSignalCaught = 1;
   
   if (taskMainThread != NULL) 
@@ -234,13 +234,15 @@ int main(int argc, char** argv)
     /*
      * Register singal handler
      */
-    struct sigaction sigActionInt;
-    sigemptyset(&sigActionInt.sa_mask);
-    sigActionInt.sa_handler = princetonSignalIntHandler;
-    sigActionInt.sa_flags   = SA_RESTART;    
+    struct sigaction sigActionSettings;
+    sigemptyset(&sigActionSettings.sa_mask);
+    sigActionSettings.sa_handler = princetonSignalIntHandler;
+    sigActionSettings.sa_flags   = SA_RESTART;    
 
-    if (sigaction(SIGINT, &sigActionInt, 0) != 0 ) 
-      printf( "main(): Cannot register signal handler\n" );
+    if (sigaction(SIGINT, &sigActionSettings, 0) != 0 ) 
+      printf( "main(): Cannot register signal handler for SIGINT\n" );
+    if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 ) 
+      printf( "main(): Cannot register signal handler for SIGTERM\n" );
     
     try
     {   
