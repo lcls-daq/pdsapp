@@ -46,8 +46,8 @@ private:
 class EvtCbPrinceton : public EventCallback 
 {
 public:
-    EvtCbPrinceton(int iPlatform, CfgClientNfs& cfgService, bool bMakeUpEvent, string sFnOtuput, int iDebugLevel) :
-      _iPlatform(iPlatform), _cfg(cfgService), _bMakeUpEvent(bMakeUpEvent), _sFnOtuput(sFnOtuput), _iDebugLevel(iDebugLevel),
+    EvtCbPrinceton(int iPlatform, CfgClientNfs& cfgService, bool bDelayMode, string sFnOtuput, int iDebugLevel) :
+      _iPlatform(iPlatform), _cfg(cfgService), _bDelayMode(bDelayMode), _sFnOtuput(sFnOtuput), _iDebugLevel(iDebugLevel),
       _bAttached(false), _princetonManager(NULL)  
     {
         //// !! For debug test only
@@ -80,7 +80,7 @@ private:
         
         try
         {            
-        _princetonManager = new PrincetonManager(_cfg, _bMakeUpEvent, _sFnOtuput, _iDebugLevel);
+        _princetonManager = new PrincetonManager(_cfg, _bDelayMode, _sFnOtuput, _iDebugLevel);
         }
         catch ( PrincetonManagerException& eManager )
         {
@@ -123,7 +123,7 @@ private:
 private:
     int                 _iPlatform;
     CfgClientNfs&       _cfg;
-    bool                _bMakeUpEvent;
+    bool                _bDelayMode;
     string              _sFnOtuput;
     int                 _iDebugLevel;
     bool                _bAttached;
@@ -139,15 +139,15 @@ using namespace Pds;
 
 static void showUsage()
 {
-    printf( "Usage:  princeton  [-v|--version] [-h|--help] [-m|--makeup] [-f|--file <output filename>]"
-      "[-d|--debug <debug level>] -p|--platform <platform>\n" 
+    printf( "Usage:  princeton  [-v|--version] [-h|--help] [-d|--delay] [-f|--file <output filename>]"
+      "[-l|--debug <debug level>] -p|--platform <platform>\n" 
       "  Options:\n"
       "    -v|--version       Show file version\n"
       "    -h|--help          Show usage\n"
-      "    -m|--makeup        Use makeup event mode\n"
-      "    -f|--file          Set output filename - If not set, default to use stream mode\n"
-      "    -d|--debug         Set debug level\n"
+      "    -d|--delay         Use delay mode\n"
+      "    -l|--debug         Set debug level\n"
       "    -p|--platform      [*required*] Set platform id\n"
+      //"    -f|--file          Set output filename - If not set, default to use prompt mode\n"      
     );
 }
 
@@ -174,20 +174,20 @@ int main(int argc, char** argv)
     {
        {"ver",      0, 0, 'v'},
        {"help",     0, 0, 'h'},
-       {"makeup",   0, 0, 'm'},       
+       {"delay",    0, 0, 'd'},       
        {"file",     1, 0, 'f'},       
-       {"debug",    1, 0, 'd'},
+       {"debug",    1, 0, 'l'},
        {"platform", 1, 0, 'p'},
        {0,          0, 0,  0  }
     };    
     
     // parse the command line for our boot parameters
     int     iPlatform     = -1;
-    bool    bMakeUpEvent  = false;
+    bool    bDelayMode  = false;
     string  sFnOtuput;
     int     iDebugLevel   = 0;
     
-    while ( int opt = getopt_long(argc, argv, ":vhmf:d:p:", loOptions, &iOptionIndex ) )
+    while ( int opt = getopt_long(argc, argv, ":vhdf:l:p:", loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
@@ -196,13 +196,13 @@ int main(int argc, char** argv)
         case 'v':               /* Print usage */
             showVersion();
             return 0;            
-        case 'm':
-            bMakeUpEvent = true;
+        case 'd':
+            bDelayMode = true;
             break;            
         case 'f':
             sFnOtuput = optarg;
             break;            
-        case 'd':
+        case 'l':
             iDebugLevel = strtoul(optarg, NULL, 0);
             break;            
         case 'p':
@@ -219,7 +219,7 @@ int main(int argc, char** argv)
             showUsage();
             return 0;            
         }
-    }
+    } 
 
     argc -= optind;
     argv += optind;
@@ -256,7 +256,7 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsPrinceton settings(detInfo);
     
-    EvtCbPrinceton evtCBPrinceton(iPlatform, cfgService, bMakeUpEvent, sFnOtuput, iDebugLevel);
+    EvtCbPrinceton evtCBPrinceton(iPlatform, cfgService, bDelayMode, sFnOtuput, iDebugLevel);
     SegmentLevel seglevel(iPlatform, settings, evtCBPrinceton, NULL);
     
     seglevel.attach();    
