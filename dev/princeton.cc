@@ -46,12 +46,10 @@ private:
 class EvtCbPrinceton : public EventCallback 
 {
 public:
-    EvtCbPrinceton(int iPlatform, CfgClientNfs& cfgService, bool bDelayMode, string sFnOtuput, int iDebugLevel) :
-      _iPlatform(iPlatform), _cfg(cfgService), _bDelayMode(bDelayMode), _sFnOtuput(sFnOtuput), _iDebugLevel(iDebugLevel),
+    EvtCbPrinceton(int iPlatform, CfgClientNfs& cfgService, bool bDelayMode, int iDebugLevel) :
+      _iPlatform(iPlatform), _cfg(cfgService), _bDelayMode(bDelayMode), _iDebugLevel(iDebugLevel),
       _bAttached(false), _princetonManager(NULL)  
     {
-        //// !! For debug test only
-        //_princetonManager = new PrincetonManager(_cfg, _sFnConfig);        
     }
 
     virtual ~EvtCbPrinceton()
@@ -80,7 +78,7 @@ private:
         
         try
         {            
-        _princetonManager = new PrincetonManager(_cfg, _bDelayMode, _sFnOtuput, _iDebugLevel);
+        _princetonManager = new PrincetonManager(_cfg, _bDelayMode, _iDebugLevel);
         }
         catch ( PrincetonManagerException& eManager )
         {
@@ -124,7 +122,6 @@ private:
     int                 _iPlatform;
     CfgClientNfs&       _cfg;
     bool                _bDelayMode;
-    string              _sFnOtuput;
     int                 _iDebugLevel;
     bool                _bAttached;
     PrincetonManager*   _princetonManager;    
@@ -147,7 +144,6 @@ static void showUsage()
       "    -d|--delay         Use delay mode\n"
       "    -l|--debug         Set debug level\n"
       "    -p|--platform      [*required*] Set platform id\n"
-      //"    -f|--file          Set output filename - If not set, default to use prompt mode\n"      
     );
 }
 
@@ -175,7 +171,6 @@ int main(int argc, char** argv)
        {"ver",      0, 0, 'v'},
        {"help",     0, 0, 'h'},
        {"delay",    0, 0, 'd'},       
-       {"file",     1, 0, 'f'},       
        {"debug",    1, 0, 'l'},
        {"platform", 1, 0, 'p'},
        {0,          0, 0,  0  }
@@ -184,10 +179,9 @@ int main(int argc, char** argv)
     // parse the command line for our boot parameters
     int     iPlatform     = -1;
     bool    bDelayMode  = false;
-    string  sFnOtuput;
     int     iDebugLevel   = 0;
     
-    while ( int opt = getopt_long(argc, argv, ":vhdf:l:p:", loOptions, &iOptionIndex ) )
+    while ( int opt = getopt_long(argc, argv, ":vhdl:p:", loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
@@ -198,9 +192,6 @@ int main(int argc, char** argv)
             return 0;            
         case 'd':
             bDelayMode = true;
-            break;            
-        case 'f':
-            sFnOtuput = optarg;
             break;            
         case 'l':
             iDebugLevel = strtoul(optarg, NULL, 0);
@@ -256,7 +247,7 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsPrinceton settings(detInfo);
     
-    EvtCbPrinceton evtCBPrinceton(iPlatform, cfgService, bDelayMode, sFnOtuput, iDebugLevel);
+    EvtCbPrinceton evtCBPrinceton(iPlatform, cfgService, bDelayMode, iDebugLevel);
     SegmentLevel seglevel(iPlatform, settings, evtCBPrinceton, NULL);
     
     seglevel.attach();    
