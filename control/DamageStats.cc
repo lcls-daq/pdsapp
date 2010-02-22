@@ -19,15 +19,18 @@ DamageStats::DamageStats(PartitionSelect& partition) :
 
   QGridLayout* l = new QGridLayout(this);
   int row=0;
+  l->addWidget(new QLabel("Source"), row, 0, Qt::AlignRight);
+  l->addWidget(new QLabel("Events"), row, 1, Qt::AlignRight);
+  row++;
   for(int i=0; i<_partition.detectors().size(); i++) {
     const DetInfo&  det  = _partition.detectors().at(i);
     const ProcInfo& proc = _partition.segments ().at(i);
     if (det.detector() != DetInfo::NoDetector) {
+      l->addWidget(new QLabel(DetInfo::name(det)),row,0,Qt::AlignRight);
       QCounter* cnt = new QCounter;
+      l->addWidget(cnt->widget(),row,1,Qt::AlignRight);
       _counts   << cnt;
       _segments << proc;
-      l->addWidget(new QLabel(DetInfo::name(det)),row,0,Qt::AlignRight);
-      l->addWidget(cnt->widget(),row,1,Qt::AlignLeft);
       row++;
     }
   }
@@ -72,5 +75,15 @@ void DamageStats::update_stats()
 {
   foreach(QCounter* cnt, _counts) {
     cnt->update_count();
+  }
+}
+
+void DamageStats::dump() const
+{
+  int i=0;
+  while( i<_segments.size() ) {
+    const ProcInfo& info = _segments.at(i);
+    printf("%08x.%d: %lld\n", info.ipAddr(), info.processId(), _counts.at(i)->value());
+    i++;
   }
 }

@@ -72,6 +72,14 @@ Transition* RunStatus::transitions(Transition* tr)
   else if (tr->id() == TransitionId::EndRun) {
     cancel();
   }
+  else if (tr->id() == TransitionId::Disable) {
+    unsigned d = unsigned(_duration->value());
+    printf("Duration: %02d:%02d:%02d\n", d/3600, (d%3600)/60, d%60);
+    printf("Events  : %lld\n",_events ->value());
+    printf("Damaged : %lld\n",_damaged->value());
+    printf("Bytes   : %lld\n",_bytes  ->value());
+    _details->dump();
+  }
   return tr; 
 }
 

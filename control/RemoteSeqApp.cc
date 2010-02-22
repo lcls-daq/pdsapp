@@ -40,9 +40,13 @@ bool RemoteSeqApp::readTransition()
   Pds::ControlData::ConfigV1& config = 
     *reinterpret_cast<Pds::ControlData::ConfigV1*>(_config_buffer);
 
-  if (::read(_socket, &config, sizeof(config))<0) {
-    printf("RemoteSeqApp failed to read config : %s\n",
-	   strerror(errno));
+  int len = ::read(_socket, &config, sizeof(config));
+  if (len != sizeof(config)) {
+    if (errno==0)
+      printf("RemoteSeqApp: remote end closed\n");
+    else
+      printf("RemoteSeqApp failed to read config : %s\n",
+	     strerror(errno));
     return false;
   }
   int payload = config.size()-sizeof(config);
@@ -52,6 +56,15 @@ bool RemoteSeqApp::readTransition()
 	     strerror(errno));
       return false;
     }
+    else if (config.uses_duration())
+      printf("received remote configuration for %d/%d seconds, %d controls\n",
+	     config.duration().seconds(),
+	     config.duration().nanoseconds(),
+	     config.npvControls());
+    else if (config.uses_events())
+      printf("received remote configuration for %d events, %d controls\n",
+	     config.events(),
+	     config.npvControls());
 
   _configtc.extent = sizeof(Xtc) + config.size();
   return true;
@@ -65,6 +78,7 @@ void RemoteSeqApp::routine()
   //  replace the configuration with default running
   new(_config_buffer) ControlConfigType(Pds::ControlData::ConfigV1::Default);
   _configtc.extent = sizeof(Xtc) + config.size();
+  _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
   _control.set_transition_env(TransitionId::Enable, 
 			      config.uses_duration() ?
 			      EnableEnv(config.duration()).value() :
@@ -121,6 +135,7 @@ void RemoteSeqApp::routine()
 	  //  replace the configuration with default running
 	  new(_config_buffer) ControlConfigType(Pds::ControlData::ConfigV1::Default);
 	  _configtc.extent = sizeof(Xtc) + config.size();
+	  _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
 	  _control.set_transition_env(TransitionId::Enable, 
 				      config.uses_duration() ?
 				      EnableEnv(config.duration()).value() :
@@ -158,7 +173,8 @@ InDatagram* RemoteSeqApp::events     (InDatagram* dg)
       ::write(_socket,&id,sizeof(id));
     }
     else if (id==TransitionId::Configure ||
-	     id==TransitionId::Enable)
+	     id==TransitionId::Enable ||
+	     id==TransitionId::Disable)
       ::write(_socket,&id,sizeof(id));
   }
   return dg;

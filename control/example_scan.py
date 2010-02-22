@@ -50,6 +50,7 @@ class DAQData:
         self.monitorpvs.append(pv)
         
     def send(self,socket):
+        print "execute"
         socket.send(struct.pack('<6I',
                                 self.control,0,
                                 self.nseconds,self.seconds,
@@ -65,6 +66,7 @@ class DAQStatus:
         self.value = struct.unpack('<i',s.recv(4))
         if self.value < 0:
             raise StandardError
+        print "returned"
         
 if __name__ == "__main__":
     import sys

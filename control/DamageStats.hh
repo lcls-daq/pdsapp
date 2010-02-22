@@ -17,6 +17,7 @@ namespace Pds {
     ~DamageStats();
   public:
     int   increment(InDatagramIterator*,int);
+    void  dump() const;
   public slots:
     void  update_stats();
   private:

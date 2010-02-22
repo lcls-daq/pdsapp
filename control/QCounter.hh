@@ -14,6 +14,7 @@ namespace Pds {
     void increment() { _count++; }
     void decrement() { _count--; }
     void increment(unsigned n) { _count+=n; }
+    void insert   (unsigned n) { _count|=n; }
     void update_bytes() { 
       unsigned long long c = _count;
       QString unit;
@@ -25,6 +26,7 @@ namespace Pds {
     }
     void update_count() { _widget->setText(QString::number(_count)); }
     void update_time () { _widget->setText(QString("%1:%2:%3").arg(_count/3600).arg((_count%3600)/60).arg(_count%60)); }
+    void update_mask () { _widget->setText(QString::number(_count,0x10)); }
   private:
     QLabel* _widget;
     unsigned long long _count;
