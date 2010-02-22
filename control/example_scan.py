@@ -7,6 +7,11 @@ import socket
 from optparse import OptionParser
 
 class ControlPV:
+    def __init__(self,name,value):
+        self.name = name
+        self.index = -1
+        self.value = value
+
     def __init__(self,name,index,value):
         self.name = name
         self.index = index
@@ -16,6 +21,12 @@ class ControlPV:
         socket.send(struct.pack('<32sId',self.name,self.index,self.value))
 
 class MonitorPV:
+    def __init__(self,name,lo,hi):
+        self.name = name
+        self.index = -1
+        self.lo    = lo
+        self.hi    = hi
+        
     def __init__(self,name,index,lo,hi):
         self.name = name
         self.index = index
@@ -88,8 +99,8 @@ if __name__ == "__main__":
 #    in the file header
 #
     data = DAQData()
-    data.addcontrol(ControlPV('EXAMPLEPV1',0,0))
-    data.addcontrol(ControlPV('EXAMPLEPV2',0,0))
+    data.addcontrol(ControlPV('EXAMPLEPV1',0))
+    data.addcontrol(ControlPV('EXAMPLEPV2',0))
     data.send(s)
 #
 #  Wait for the DAQ to declare 'configured'
@@ -101,8 +112,8 @@ if __name__ == "__main__":
 #
     data = DAQData()
     data.setevents(100)
-    data.addcontrol(ControlPV('EXAMPLEPV1',0,0))
-    data.addcontrol(ControlPV('EXAMPLEPV2',0,0))
+    data.addcontrol(ControlPV('EXAMPLEPV1',0))
+    data.addcontrol(ControlPV('EXAMPLEPV2',0))
     data.send(s)
 #
 #  Wait for the DAQ to declare 'enabled'
@@ -123,8 +134,8 @@ if __name__ == "__main__":
 #  Cycle 2
     data = DAQData()
     data.setevents(100)
-    data.addcontrol(ControlPV('EXAMPLEPV1',0,1))
-    data.addcontrol(ControlPV('EXAMPLEPV2',0,0))
+    data.addcontrol(ControlPV('EXAMPLEPV1',1))
+    data.addcontrol(ControlPV('EXAMPLEPV2',0))
     data.send(s)
     result = DAQStatus(s)
 #  Enable the sequence
@@ -134,8 +145,8 @@ if __name__ == "__main__":
 #  Cycle 3
     data = DAQData()
     data.setevents(100)
-    data.addcontrol(ControlPV('EXAMPLEPV1',0,1))
-    data.addcontrol(ControlPV('EXAMPLEPV2',0,1))
+    data.addcontrol(ControlPV('EXAMPLEPV1',1))
+    data.addcontrol(ControlPV('EXAMPLEPV2',1))
     data.send(s)
     result = DAQStatus(s)
 #  Enable the sequence
