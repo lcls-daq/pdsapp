@@ -24,6 +24,9 @@ namespace Pds {
   public:
     virtual Transition* transitions(Transition*);
     virtual InDatagram* events     (InDatagram*);
+  public:
+    void enable_control();
+    void disable_control();
   signals:
     void state_changed(QString);
     void allocated    ();

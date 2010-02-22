@@ -66,6 +66,9 @@ StateSelect::~StateSelect()
   delete _yellow;
 }
 
+void StateSelect::enable_control () { _select->setEnabled(true ); }
+void StateSelect::disable_control() { _select->setEnabled(false); }
+
 void StateSelect::populate(QString label)
 {
   _display->setText(label);

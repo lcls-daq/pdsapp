@@ -8,33 +8,32 @@ from optparse import OptionParser
 
 class ControlPV:
     def __init__(self,name,value):
-        self.name = name
         self.index = -1
-        self.value = value
-
-    def __init__(self,name,index,value):
-        self.name = name
-        self.index = index
+        list = name.rstrip("]").split("[")
+        if (len(list)>2):
+            raise StandardError
+        self.name = list[0]
+        if (len(list)>1):
+            self.index = int(list[1])
         self.value = value
 
     def send(self,socket):
-        socket.send(struct.pack('<32sId',self.name,self.index,self.value))
+        socket.send(struct.pack('<32sid',self.name,self.index,self.value))
 
 class MonitorPV:
     def __init__(self,name,lo,hi):
-        self.name = name
-        self.index = -1
-        self.lo    = lo
-        self.hi    = hi
-        
-    def __init__(self,name,index,lo,hi):
-        self.name = name
-        self.index = index
+        self.index = -1        
+        list = name.rstrip("]").split("[")
+        if (len(list)>2):
+            raise StandardError
+        self.name = list[0]
+        if (len(list)>1):
+            self.index = int(list[1])
         self.lo    = lo
         self.hi    = hi
         
     def send(self,socket):
-        socket.send(struct.pack('<32sIdd',self.name,self.index,self.lo,self.hi))
+        socket.send(struct.pack('<32sidd',self.name,self.index,self.lo,self.hi))
         
 class DAQData:
     def __init__(self):
@@ -99,6 +98,7 @@ if __name__ == "__main__":
 #    in the file header
 #
     data = DAQData()
+    data.setevents(0)
     data.addcontrol(ControlPV('EXAMPLEPV1',0))
     data.addcontrol(ControlPV('EXAMPLEPV2',0))
     data.send(s)

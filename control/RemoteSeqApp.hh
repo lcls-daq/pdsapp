@@ -9,6 +9,7 @@
 
 namespace Pds {
   class PartitionControl;
+  class StateSelect;
   class Src;
   class Task;
   
@@ -17,6 +18,7 @@ namespace Pds {
   public:
     enum { Control_Port = 10149 };
     RemoteSeqApp(PartitionControl& control,
+		 StateSelect&      manual,
 		 const Src&        src);
     ~RemoteSeqApp();
   public:
@@ -28,11 +30,12 @@ namespace Pds {
     bool readTransition();
   private:
     PartitionControl&  _control;
+    StateSelect&       _manual;
     Xtc                _configtc;
     char*              _config_buffer;
     bool               _done;
     Task*              _task;
-    int                _socket;
+    volatile int       _socket;
   };
 };
 

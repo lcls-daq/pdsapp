@@ -189,7 +189,7 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(state);
 //   _controlcb->add_appliance(new SeqAppliance(*_control,*_config,
 // 					     *_pvmanager));
-  _controlcb->add_appliance(new RemoteSeqApp(*_control,_config->src()));
+  _controlcb->add_appliance(new RemoteSeqApp(*_control, *state,_config->src()));
   _control->attach();
 
   QObject::connect(state , SIGNAL(allocated())  , config, SLOT(allocated()));

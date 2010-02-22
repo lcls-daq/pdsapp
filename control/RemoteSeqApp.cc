@@ -1,4 +1,5 @@
 #include "RemoteSeqApp.hh"
+#include "StateSelect.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/utility/Transition.hh"
 #include "pds/xtc/EnableEnv.hh"
@@ -19,8 +20,10 @@ static const int MaxConfigSize = 0x100000;
 using namespace Pds;
 
 RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
+			   StateSelect&      manual,
 			   const Src&        src) :
   _control      (control),
+  _manual       (manual),
   _configtc     (_controlConfigType, src),
   _config_buffer(new char[MaxConfigSize]),
   _task         (new Task(TaskObject("remseq"))),
@@ -113,6 +116,8 @@ void RemoteSeqApp::routine()
 	  printf("RemoteSeqApp accepted connection from %x/%d\n",
 		 name.get().address(), name.get().portId());
 
+	  _manual.disable_control();
+
 	  //  First, reconfigure with the initial settings
 	  if (readTransition()) {
 	    _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
@@ -141,6 +146,8 @@ void RemoteSeqApp::routine()
 				      EnableEnv(config.duration()).value() :
 				      EnableEnv(config.events()).value());
 	  _control.set_target_state(PartitionControl::Configured);
+
+	  _manual.enable_control();
 	}
 	printf("RemoteSeqApp::routine listen failed : %s\n",
 	       strerror(errno));
