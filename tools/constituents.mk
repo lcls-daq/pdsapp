@@ -1,15 +1,15 @@
-libnames := test
+libnames := tools
 
 CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
-libsrcs_test := EventTest.cc EventOptions.cc RecorderQ.cc Recorder.cc DgSummary.cc PnccdShuffle.cc
+libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc DgSummary.cc PnccdShuffle.cc
 
 tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 
 tgtsrcs_event := event.cc
-tgtlibs_event := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/test
+tgtlibs_event := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/tools
 tgtslib_event := /usr/lib/rt
 
 tgtsrcs_segtest := segtest.cc
@@ -57,5 +57,5 @@ tgtlibs_bldMonitor := $(commonlibs)
 tgtslib_bldMonitor := /usr/lib/rt
 
 tgtsrcs_observertest := observertest.cc
-tgtlibs_observertest := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/test
+tgtlibs_observertest := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/tools
 tgtslib_observertest := /usr/lib/rt

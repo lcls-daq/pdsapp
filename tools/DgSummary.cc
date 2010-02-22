@@ -55,11 +55,14 @@ InDatagram* DgSummary::events     (InDatagram* dg) {
 
 int DgSummary::process(const Xtc& xtc, InDatagramIterator* iter)
 {
-  if (xtc.contains.id() == TypeId::Id_Xtc)
-    return iterate(xtc, iter);
+  int advance = 0;
 
   if (xtc.damage.value()!=0 && xtc.src.level() == Level::Segment)
     _out->append(static_cast<const ProcInfo&>(xtc.src));
+  else if (xtc.src.level() == Level::Source)
+    advance = -1;
+  else if (xtc.contains.id() == TypeId::Id_Xtc)
+    advance = iterate(xtc, iter);
 
-  return 0;
+  return advance;
 }
