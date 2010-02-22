@@ -62,6 +62,14 @@ void RemoteSeqApp::routine()
   Pds::ControlData::ConfigV1& config = 
     *reinterpret_cast<Pds::ControlData::ConfigV1*>(_config_buffer);
 
+  //  replace the configuration with default running
+  new(_config_buffer) ControlConfigType(Pds::ControlData::ConfigV1::Default);
+  _configtc.extent = sizeof(Xtc) + config.size();
+  _control.set_transition_env(TransitionId::Enable, 
+			      config.uses_duration() ?
+			      EnableEnv(config.duration()).value() :
+			      EnableEnv(config.events()).value());
+
   int listener;
   if ((listener = ::socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     printf("RemoteSeqApp::routine failed to allocate socket : %s\n",
