@@ -2,7 +2,8 @@
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr evrstandalone acq opal1k epicsArch rceProxy bld princeton# tm6740
+#tgtnames    := evr evrstandalone acq opal1k epicsArch rceProxy bld princeton# tm6740
+tgtnames    := evr evrstandalone acq opal1k epicsArch rceProxy bld tm6740
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris

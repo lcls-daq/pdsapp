@@ -11,6 +11,7 @@
 //#include "StatsApp.hh"
 #include "StatsTree.hh"
 #include "Recorder.hh"
+#include "RecorderQ.hh"
 #include "pds/service/Task.hh"
 
 using namespace Pds;
@@ -43,18 +44,15 @@ void EventTest::attached(SetOfStreams& streams)
   Stream* frmk = streams.stream(StreamParams::FrameWork);
 
   //  Send event summaries to ControlLevel
-  {
-    //    frmk->outlet()->sink(TransitionId::L1Accept);
-    frmk->outlet()->sink(TransitionId::Unknown);
-
+  //    frmk->outlet()->sink(TransitionId::L1Accept);
+  frmk->outlet()->sink(TransitionId::Unknown);
+  
+  if (_options.outfile) {
     (new DgSummary)->connect(frmk->inlet());
+    (new Recorder(_options.outfile, _options.sliceID, _options.chunkSize))->connect(frmk->inlet());
+    //    (new RecorderQ(_options.outfile, _options.sliceID, _options.chunkSize))->connect(frmk->inlet());
   }
-  
-  //  Stream* occr = streams.stream(StreamParams::Occurrence);
-  //  occr->outlet()->sink(OccurrenceId::Vmon);
 
-  if (_options.outfile) (new Recorder(_options.outfile, _options.sliceID, _options.chunkSize))->connect(frmk->inlet());
-  
   switch (_options.mode) {
   case EventOptions::Counter:
     {

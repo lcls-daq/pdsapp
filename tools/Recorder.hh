@@ -11,9 +11,9 @@ class Recorder : public Appliance {
 public:
   Recorder(const char* fname, unsigned int sliceID, uint64_t chunkSize);
   ~Recorder() {}
-  Transition* transitions(Transition*);
-  InDatagram* occurrences(InDatagram* in);
-  InDatagram* events     (InDatagram* in);
+  virtual Transition* transitions(Transition*);
+  virtual InDatagram* occurrences(InDatagram* in);
+  virtual InDatagram* events     (InDatagram* in);
 
 private:
   int _openOutputFile(bool verbose);

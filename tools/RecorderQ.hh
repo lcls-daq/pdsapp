@@ -1,26 +1,24 @@
 #ifndef PDS_RECORDERQ
 #define PDS_RECORDERQ
 
-#include "pds/utility/Appliance.hh"
+#include "pdsapp/tools/Recorder.hh"
 #include "pds/service/Semaphore.hh"
 
 namespace Pds {
 
+  class DgSummary;
   class Task;
 
-  class RecorderQ : public Appliance {
+  class RecorderQ : public Recorder {
   public:
-    RecorderQ(const char* fname);
+    RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize);
     ~RecorderQ() {}
-    Transition* transitions(Transition*);
-    InDatagram* occurrences(InDatagram* in);
+  public:
     InDatagram* events     (InDatagram* in);
-
   private:
-    FILE* _f;
-    Pool* _pool;
-    Task* _task;
-    Semaphore _sem;
+    Task*      _task;
+    Semaphore  _sem;
+    DgSummary* _summary;
   };
 
 }
