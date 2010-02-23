@@ -71,8 +71,8 @@ private:
     // Implements EventCallback
     virtual void attached(SetOfStreams& streams)        
     {        
-        printf("Connected to iPlatform %d, debug level %d\n", 
-             _iPlatform, _iDebugLevel);
+        printf("Connected to iPlatform %d, delay mode %d, debug level %d\n", 
+             _iPlatform, (_bDelayMode?1:0), _iDebugLevel);
              
         reset();        
         
