@@ -48,11 +48,11 @@ class EvtCbPrinceton : public EventCallback
 public:
     EvtCbPrinceton(int iPlatform, CfgClientNfs& cfgService, bool bDelayMode, int iDebugLevel) :
       _iPlatform(iPlatform), _cfg(cfgService), _bDelayMode(bDelayMode), _iDebugLevel(iDebugLevel),
-      _bAttached(false), _princetonManager(NULL)  
+      _bAttached(false), _princetonManager(NULL)
     {
     }
 
-    virtual ~EvtCbPrinceton()
+    virtual ~EvtCbPrinceton() 
     {
         reset();
     }
