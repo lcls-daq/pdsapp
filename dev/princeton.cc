@@ -48,7 +48,7 @@ class EvtCbPrinceton : public EventCallback
 public:
     EvtCbPrinceton(int iPlatform, CfgClientNfs& cfgService, bool bDelayMode, int iDebugLevel) :
       _iPlatform(iPlatform), _cfg(cfgService), _bDelayMode(bDelayMode), _iDebugLevel(iDebugLevel),
-      _bAttached(false), _princetonManager(NULL)
+      _bAttached(false), _princetonManager(NULL) 
     {
     }
 
@@ -238,7 +238,7 @@ int main(int argc, char** argv)
     try
     {   
       
-    const DetInfo detInfo( getpid(), Pds::DetInfo::NoDetector, 0, DetInfo::Princeton, 0);    
+    const DetInfo detInfo( getpid(), DetInfo::NoDetector, 0, DetInfo::Princeton, 0);    
 
     Task* task = new Task(Task::MakeThisATask);
     taskMainThread = task;
