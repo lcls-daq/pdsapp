@@ -178,7 +178,7 @@ int main(int argc, char** argv)
     
     // parse the command line for our boot parameters
     int     iPlatform     = -1;
-    bool    bDelayMode  = false;
+    bool    bDelayMode    = false;
     int     iDebugLevel   = 0;
     
     while ( int opt = getopt_long(argc, argv, ":vhdl:p:", loOptions, &iOptionIndex ) )
