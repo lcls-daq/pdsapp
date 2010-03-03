@@ -15,7 +15,7 @@ tgtlibs_monshm += $(commonlibs) pds/mon
 tgtslib_monshm := /usr/lib/rt
 
 tgtsrcs_monshmserver := monshmserver.cc
-tgtlibs_monshmserver := pdsdata/pnccddata $(commonlibs) pds/mon pdsapp/test
+tgtlibs_monshmserver := pdsdata/pnccddata $(commonlibs) pds/mon pdsapp/tools
 tgtslib_monshmserver := /usr/lib/rt
 
 tgtsrcs_offlineobs := offlineobs.cc OfflineAppliance.cc
