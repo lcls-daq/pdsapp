@@ -1,9 +1,9 @@
-libnames := test
+libnames := 
 
 libsrcs_test := 
 
-tgtnames :=
-#tgtnames := princetonCameraTest
+#tgtnames :=
+tgtnames := princetonCameraTest
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 
