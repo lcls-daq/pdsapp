@@ -43,6 +43,8 @@ public:
   int  send   (ToNetEb&, const Ins&) { return -1; }
   int  send   (ToEb&) { return -1; }
 
+  TrafficDst* traffic(const Pds::Ins& ins) { return 0; }
+
 private:
   Datagram& _dg;
 };
