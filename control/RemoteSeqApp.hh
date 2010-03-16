@@ -36,6 +36,7 @@ namespace Pds {
     bool               _done;
     Task*              _task;
     volatile int       _socket;
+    volatile bool      _wait_for_configure;
   };
 };
 

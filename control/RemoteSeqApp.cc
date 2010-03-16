@@ -43,20 +43,21 @@ bool RemoteSeqApp::readTransition()
   Pds::ControlData::ConfigV1& config = 
     *reinterpret_cast<Pds::ControlData::ConfigV1*>(_config_buffer);
 
-  int len = ::read(_socket, &config, sizeof(config));
+  int len = ::recv(_socket, &config, sizeof(config), MSG_WAITALL);
   if (len != sizeof(config)) {
     if (errno==0)
       printf("RemoteSeqApp: remote end closed\n");
     else
-      printf("RemoteSeqApp failed to read config : %s\n",
-	     strerror(errno));
+      printf("RemoteSeqApp failed to read config hdr(%d/%d) : %s\n",
+	     len,sizeof(config),strerror(errno));
     return false;
   }
   int payload = config.size()-sizeof(config);
-  if (payload>0)
-    if (::read(_socket, &config+1, payload)<0) {
-      printf("RemoteSeqApp failed to read config : %s\n",
-	     strerror(errno));
+  if (payload>0) {
+    len = ::recv(_socket, &config+1, payload, MSG_WAITALL);
+    if (len != payload) {
+      printf("RemoteSeqApp failed to read config payload(%d/%d) : %s\n",
+	     len,payload,strerror(errno));
       return false;
     }
     else if (config.uses_duration())
@@ -68,7 +69,7 @@ bool RemoteSeqApp::readTransition()
       printf("received remote configuration for %d events, %d controls\n",
 	     config.events(),
 	     config.npvControls());
-
+  }
   _configtc.extent = sizeof(Xtc) + config.size();
   return true;
 }
@@ -121,6 +122,8 @@ void RemoteSeqApp::routine()
 	  //  First, reconfigure with the initial settings
 	  if (readTransition()) {
 	    _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
+
+	    _wait_for_configure = true;
 	    _control.reconfigure();
 
 	    while(1) {
@@ -145,9 +148,10 @@ void RemoteSeqApp::routine()
 				      config.uses_duration() ?
 				      EnableEnv(config.duration()).value() :
 				      EnableEnv(config.events()).value());
-	  _control.set_target_state(PartitionControl::Configured);
 
 	  _manual.enable_control();
+	  _control.set_target_state(PartitionControl::Configured);
+
 	}
 	printf("RemoteSeqApp::routine listen failed : %s\n",
 	       strerror(errno));
@@ -179,8 +183,13 @@ InDatagram* RemoteSeqApp::events     (InDatagram* dg)
       id = -id;
       ::write(_socket,&id,sizeof(id));
     }
-    else if (id==TransitionId::Configure ||
-	     id==TransitionId::Enable ||
+    else if (_wait_for_configure) {
+      if (id==TransitionId::Configure) {
+	::write(_socket,&id,sizeof(id));
+	_wait_for_configure = false;
+      }
+    }
+    else if (id==TransitionId::Enable ||
 	     id==TransitionId::Disable)
       ::write(_socket,&id,sizeof(id));
   }

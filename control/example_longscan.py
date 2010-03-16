@@ -104,51 +104,19 @@ if __name__ == "__main__":
 #  Wait for the DAQ to declare 'configured'
 #
     result = DAQStatus(s)
-        
-#
-#  Configure Cycle 1
-#
-    data = DAQData()
-    data.setevents(100)
-    data.addcontrol(ControlPV('EXAMPLEPV1',0))
-    data.addcontrol(ControlPV('EXAMPLEPV2',0))
-    data.send(s)
-#
-#  Wait for the DAQ to declare 'enabled'
-#
-    result = DAQStatus(s)
-#
-#  Enable the EVR sequence
-#
+    print "Configured."
 
-#
-#  Wait for the DAQ to declare 'disabled'
-#
-    result = DAQStatus(s)
-#
-#  Disable the EVR sequence
-#
+    for cycle in range(100):
+        data = DAQData()
+        data.setevents(100)
+        data.addcontrol(ControlPV('EXAMPLEPV1',cycle))
+        data.addcontrol(ControlPV('EXAMPLEPV2',100-cycle))
 
-#  Cycle 2
-    data = DAQData()
-    data.setevents(100)
-    data.addcontrol(ControlPV('EXAMPLEPV1',1))
-    data.addcontrol(ControlPV('EXAMPLEPV2',0))
-    data.send(s)
-    result = DAQStatus(s)
-#  Enable the sequence
-    result = DAQStatus(s)
-#  Disable the sequence
+        print "Cycle ", cycle
+        data.send(s)
 
-#  Cycle 3
-    data = DAQData()
-    data.setevents(100)
-    data.addcontrol(ControlPV('EXAMPLEPV1',1))
-    data.addcontrol(ControlPV('EXAMPLEPV2',1))
-    data.send(s)
-    result = DAQStatus(s)
-#  Enable the sequence
-    result = DAQStatus(s)
-#  Disable the sequence
+        result = DAQStatus(s)  # wait for enabled , then enable the EVR sequence
 
+        result = DAQStatus(s)  # wait for disabled, then disable the EVR sequence
+            
     s.close()
