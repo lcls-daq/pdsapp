@@ -82,7 +82,7 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("-a","--address",dest="host",default='',
                       help="connect to DAQ at HOST", metavar="HOST")
-    parser.add_option("-p","--port",dest="port",default=10149,
+    parser.add_option("-p","--port",dest="port",type="int",default=10149,
                       help="connect to DAQ at PORT", metavar="PORT")
 
     (options, args) = parser.parse_args()
