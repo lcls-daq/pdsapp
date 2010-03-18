@@ -21,7 +21,7 @@ static bool verbose = false;
 
 static void *thread_signals(void*)
 {
-  while(1) sleep(100);
+  while(1) sleep(10);
   return 0;
 }
 
@@ -73,6 +73,8 @@ namespace Pds {
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       _opal1k->appliance().connect(frmk->inlet());
       //      (new Decoder)->connect(frmk->inlet());
+
+      _opal1k->attach_camera();
     }
     void failed(Reason reason)
     {
@@ -96,6 +98,8 @@ namespace Pds {
       printf("SegTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
 	     who.platform(), username, who.pid(), ipname);
       
+      _opal1k->detach_camera();
+
       delete this;
     }
     
@@ -170,11 +174,14 @@ int main(int argc, char** argv) {
 
   Task* task = new Task(Task::MakeThisATask);
   Node node(Level::Source,platform);
+
   SegTest* segtest = new SegTest(task, 
 				 platform, 
 				 DetInfo(node.pid(), 
 					 det, detid, 
 					 DetInfo::Opal1000, devid));
+
+  printf("Creating segment level ...\n");
   SegmentLevel* segment = new SegmentLevel(platform, 
 					   *segtest,
 					   *segtest, 

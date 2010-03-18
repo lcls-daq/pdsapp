@@ -68,6 +68,8 @@ namespace Pds {
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       _camman->appliance().connect(frmk->inlet());
       //      (new Decoder)->connect(frmk->inlet());
+
+      _camman->attach_camera();
     }
     void failed(Reason reason)
     {
@@ -91,6 +93,8 @@ namespace Pds {
       printf("SegTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
 	     who.platform(), username, who.pid(), ipname);
       
+      _camman->detach_camera();
+
       delete this;
     }
     
