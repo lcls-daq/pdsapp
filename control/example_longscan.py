@@ -74,6 +74,7 @@ class DAQStatus:
     def __init__(self,s):
         self.value = struct.unpack('<i',s.recv(4))
         if self.value[0] < 0:
+            print "status = ", self.value[0]
             raise StandardError
         
 if __name__ == "__main__":

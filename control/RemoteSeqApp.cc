@@ -16,6 +16,7 @@
 #include <fcntl.h>
 
 static const int MaxConfigSize = 0x100000;
+static const int Control_Port  = 10130;
 
 using namespace Pds;
 
@@ -27,6 +28,7 @@ RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
   _configtc     (_controlConfigType, src),
   _config_buffer(new char[MaxConfigSize]),
   _task         (new Task(TaskObject("remseq"))),
+  _port         (Control_Port + control.header().platform()),
   _socket       (-1)
 {
   _task->call(this);
@@ -101,8 +103,7 @@ void RemoteSeqApp::routine()
       close(listener);
     }
     else {
-      const unsigned short port = Control_Port;
-      Ins src(port);
+      Ins src(_port);
       Sockaddr sa(src);
       if (::bind(listener, sa.name(), sa.sizeofName()) < 0) {
 	printf("RemoteSeqApp::routine failed to bind to %x/%d : %s\n",

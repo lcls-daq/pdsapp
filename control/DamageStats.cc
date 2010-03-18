@@ -25,14 +25,14 @@ DamageStats::DamageStats(PartitionSelect& partition) :
   for(int i=0; i<_partition.detectors().size(); i++) {
     const DetInfo&  det  = _partition.detectors().at(i);
     const ProcInfo& proc = _partition.segments ().at(i);
-    if (det.detector() != DetInfo::NoDetector) {
+    //    if (det.detector() != DetInfo::NoDetector) {
       l->addWidget(new QLabel(DetInfo::name(det)),row,0,Qt::AlignRight);
       QCounter* cnt = new QCounter;
       l->addWidget(cnt->widget(),row,1,Qt::AlignRight);
       _counts   << cnt;
       _segments << proc;
       row++;
-    }
+      //    }
   }
   setLayout(l);
 

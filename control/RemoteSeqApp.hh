@@ -16,7 +16,6 @@ namespace Pds {
   class RemoteSeqApp : public Appliance,
 		       public Routine {
   public:
-    enum { Control_Port = 10149 };
     RemoteSeqApp(PartitionControl& control,
 		 StateSelect&      manual,
 		 const Src&        src);
@@ -35,6 +34,7 @@ namespace Pds {
     char*              _config_buffer;
     bool               _done;
     Task*              _task;
+    unsigned short     _port;
     volatile int       _socket;
     volatile bool      _wait_for_configure;
   };
