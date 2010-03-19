@@ -85,6 +85,10 @@ if __name__ == "__main__":
                       help="connect to DAQ at HOST", metavar="HOST")
     parser.add_option("-p","--port",dest="port",type="int",default=10149,
                       help="connect to DAQ at PORT", metavar="PORT")
+    parser.add_option("-n","--cycles",dest="cycles",type="int",default=100,
+                      help="run N cycles", metavar="N")
+    parser.add_option("-e","--events",dest="events",type="int",default=105,
+                      help="record N events/cycle", metavar="N")
 
     (options, args) = parser.parse_args()
         
@@ -107,9 +111,9 @@ if __name__ == "__main__":
     result = DAQStatus(s)
     print "Configured."
 
-    for cycle in range(100):
+    for cycle in range(options.cycles):
         data = DAQData()
-        data.setevents(100)
+        data.setevents(options.events)
         data.addcontrol(ControlPV('EXAMPLEPV1',cycle))
         data.addcontrol(ControlPV('EXAMPLEPV2',100-cycle))
 

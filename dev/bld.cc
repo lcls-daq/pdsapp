@@ -24,6 +24,7 @@
 #include "pds/service/BitList.hh"
 #include "pds/vmon/VmonEb.hh"
 #include "pds/xtc/XtcType.hh"
+#include "pdsdata/bld/bldData.hh"
 
 #include <signal.h>
 #include <unistd.h>
@@ -34,11 +35,52 @@ static const unsigned NetBufferDepth = 32;
 
 namespace Pds {
 
-  class BldApp : public Appliance {
+  class BldConfigApp : public Appliance {
+  public:
+    BldConfigApp(const Src& src,
+		 unsigned m) : _configtc(TypeId(TypeId::Id_Xtc,1), src),
+			       _config_payload(0)
+    {
+#define CheckType(t) (m & (1<<BldInfo::t))
+#define SizeType(t) (sizeof(Xtc) + sizeof(BldData##t))
+#define AddType(t) {							\
+	Xtc& xtc = *new(p) Xtc(TypeId(TypeId::Id_##t,(uint32_t)BldData##t::version),src); \
+	xtc.extent += SizeType(t);					\
+	p += xtc.extent;						\
+      }
+      unsigned extent = 0;
+      if (CheckType(EBeam))           extent += SizeType(EBeam);
+      if (CheckType(PhaseCavity))     extent += SizeType(PhaseCavity);
+      if (CheckType(FEEGasDetEnergy)) extent += SizeType(FEEGasDetEnergy);
+      if (extent) {
+	_config_payload = new char[extent];
+	char* p = _config_payload;
+	if (CheckType(EBeam))           AddType(EBeam);
+	if (CheckType(PhaseCavity))     AddType(PhaseCavity);
+	if (CheckType(FEEGasDetEnergy)) AddType(FEEGasDetEnergy);
+      }
+#undef CheckType
+#undef SizeType
+#undef AddType
+    }
+    ~BldConfigApp() { if (_config_payload) delete[] _config_payload; }
+  public:
+    InDatagram* events     (InDatagram* dg) 
+    { if (dg->datagram().seq.service()==TransitionId::Configure)
+	dg->insert(_configtc, _config_payload);
+      return dg; }
+    Transition* transitions(Transition* tr) { return tr; }
+  private:
+    unsigned _mask;
+    Xtc   _configtc;
+    char* _config_payload;
+  };
+
+  class BldDbg : public Appliance {
     enum { Period=300 };
   public:
-    BldApp(EbBase* eb) : _eb(eb), _cnt(0) {}
-    ~BldApp() {}
+    BldDbg(EbBase* eb) : _eb(eb), _cnt(0) {}
+    ~BldDbg() {}
   public:
     InDatagram* events(InDatagram* dg) 
     {
@@ -100,7 +142,10 @@ namespace Pds {
   private:
     // Implements EventCallback
     void attached(SetOfStreams& streams) 
-    { (new BldApp(static_cast<EbBase*>(streams.wire())))->connect(streams.stream()->inlet()); }
+    { 
+      (new BldDbg(static_cast<EbBase*>(streams.wire())))->connect(streams.stream()->inlet()); 
+      (new BldConfigApp(_sources.front(),_mask))->connect(streams.stream()->inlet()); 
+    }
     void failed(Reason reason)
     {
       static const char* reasonname[] = { "platform unavailable", 

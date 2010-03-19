@@ -71,6 +71,7 @@ Transition* RunStatus::transitions(Transition* tr)
   }
   else if (tr->id() == TransitionId::EndRun) {
     cancel();
+    emit changed();
   }
   else if (tr->id() == TransitionId::Disable) {
     unsigned d = unsigned(_duration->value());
