@@ -20,6 +20,7 @@
 #include "pds/client/Action.hh"
 #include "pds/config/CfgClientNfs.hh"
 #include "pds/princeton/PrincetonManager.hh"
+#include "pds/princeton/SegmentEventLevel.hh"
 
 using std::string;
 
@@ -136,20 +137,21 @@ using namespace Pds;
 
 static void showUsage()
 {
-    printf( "Usage:  princeton  [-v|--version] [-h|--help] [-d|--delay] [-f|--file <output filename>]"
-      "[-l|--debug <debug level>] -p|--platform <platform>\n" 
+    printf( "Usage:  princeton  [-v|--version] [-h|--help] [-d|--delay <0|1>]"
+      "[-l|--debug <level>] -e|--evrip <evr ip>  -p|--platform <platform id>\n" 
       "  Options:\n"
-      "    -v|--version       Show file version\n"
-      "    -h|--help          Show usage\n"
-      "    -d|--delay         Use delay mode\n"
-      "    -l|--debug         Set debug level\n"
-      "    -p|--platform      [*required*] Set platform id\n"
+      "    -v|--version                 Show file version\n"
+      "    -h|--help                    Show usage\n"
+      "    -d|--delay    <0|1>          Use delay mode or not\n"
+      "    -l|--debug    <level>        Set debug level\n"
+      "    -e|--evrip    <evr ip>       [*required*] Set EVR ip address\n"
+      "    -p|--platform <platform id>  [*required*] Set platform id\n"
     );
 }
 
 static void showVersion()
 {
-    printf( "Version:  epicArch  Ver %s\n", sPrincetonVersion );
+    printf( "Version:  princeton  Ver %s\n", sPrincetonVersion );
 }
 
 static int    iSignalCaught   = 0;
@@ -165,23 +167,26 @@ void princetonSignalIntHandler( int iSignalNo )
 
 int main(int argc, char** argv) 
 {
-    int iOptionIndex = 0;
-    struct option loOptions[] = 
+    const char*   strOptions    = ":vhdl:e:p:";
+    struct option loOptions[]   = 
     {
        {"ver",      0, 0, 'v'},
        {"help",     0, 0, 'h'},
        {"delay",    0, 0, 'd'},       
        {"debug",    1, 0, 'l'},
+       {"evrip",    1, 0, 'e'},       
        {"platform", 1, 0, 'p'},
        {0,          0, 0,  0  }
     };    
     
     // parse the command line for our boot parameters
-    int     iPlatform     = -1;
     bool    bDelayMode    = false;
     int     iDebugLevel   = 0;
+    string  sEvrIp;
+    int     iPlatform     = -1;
     
-    while ( int opt = getopt_long(argc, argv, ":vhdl:p:", loOptions, &iOptionIndex ) )
+    int     iOptionIndex  = 0;
+    while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
@@ -196,6 +201,9 @@ int main(int argc, char** argv)
         case 'l':
             iDebugLevel = strtoul(optarg, NULL, 0);
             break;            
+        case 'e':
+            sEvrIp = optarg;
+            break;
         case 'p':
             iPlatform = strtoul(optarg, NULL, 0);
             break;
@@ -217,11 +225,18 @@ int main(int argc, char** argv)
 
     if ( iPlatform == -1 ) 
     {   
-        printf( "princeton:main(): Please specify platform in command line\n" );
+        printf( "princeton:main(): Please specify platform in command line options\n" );
         showUsage();
         return 1;
     }        
 
+    if ( sEvrIp == "" ) 
+    {   
+        printf( "princeton:main(): Please specify EVR IP in command line options\n" );
+        showUsage();
+        return 1;
+    }        
+    
     /*
      * Register singal handler
      */
@@ -247,10 +262,10 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsPrinceton settings(detInfo);
     
-    EvtCbPrinceton evtCBPrinceton(iPlatform, cfgService, bDelayMode, iDebugLevel);
-    SegmentLevel seglevel(iPlatform, settings, evtCBPrinceton, NULL);
+    EvtCbPrinceton    evtCBPrinceton(iPlatform, cfgService, bDelayMode, iDebugLevel);
+    SegmentEventLevel segEventlevel(sEvrIp.c_str(), iPlatform, settings, evtCBPrinceton, NULL);
     
-    seglevel.attach();    
+    segEventlevel.attach();    
     if ( evtCBPrinceton.IsAttached() )    
         task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)        
     }
