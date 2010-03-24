@@ -8,6 +8,8 @@ namespace Pds {
 
   class DgSummary;
   class Task;
+  class MonEntryTH1F;
+  class ClockTime;
 
   class RecorderQ : public Recorder {
   public:
@@ -15,10 +17,11 @@ namespace Pds {
     ~RecorderQ() {}
   public:
     InDatagram* events     (InDatagram* in);
+    void        record_time(unsigned, const ClockTime&);
   private:
     Task*      _task;
     Semaphore  _sem;
-    DgSummary* _summary;
+    MonEntryTH1F* _rec_time;
   };
 
 }

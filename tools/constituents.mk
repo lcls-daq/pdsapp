@@ -2,7 +2,7 @@ libnames := tools
 
 CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
-libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc DgSummary.cc PnccdShuffle.cc
+libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc
 
 tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor
 
