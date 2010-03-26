@@ -6,6 +6,7 @@
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/ControlConfigType.hh"
 #include "pds/config/AcqConfigType.hh"
+#include "pds/config/pnCCDConfigType.hh"
 
 #include <sstream>
 using std::istringstream;
@@ -22,9 +23,12 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case Acq     : type = &_acqConfigType; break;
   case Opal1k  : type = &_opal1kConfigType; break;
   case TM6740  : type = &_tm6740ConfigType; break;
+  case pnCCD   : type = &_pnCCDConfigType; break;
   case FrameFex: type = &_frameFexConfigType; break;
   case RunControl : type = &_controlConfigType; break;
-  default: break;
+  default: 
+    printf("PdsDefs::typeId id %d not found\n",unsigned(id));
+    break;
   }
   return type;
 }
@@ -36,9 +40,11 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_acqConfigType);
   test(_opal1kConfigType);
   test(_tm6740ConfigType);
+  test(_pnCCDConfigType);
   test(_frameFexConfigType);
   test(_controlConfigType);
 #undef test
+  printf("PdsDefs::typeId id %s not found\n",name.data());
   return 0;
 }
 
@@ -49,6 +55,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_acqConfigType);
   test(_opal1kConfigType);
   test(_tm6740ConfigType);
+  test(_pnCCDConfigType);
   test(_frameFexConfigType);
   test(_controlConfigType);
 #undef test
