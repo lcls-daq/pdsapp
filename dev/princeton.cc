@@ -263,7 +263,8 @@ int main(int argc, char** argv)
     SegWireSettingsPrinceton settings(detInfo);
     
     EvtCbPrinceton    evtCBPrinceton(iPlatform, cfgService, bDelayMode, iDebugLevel);
-    SegmentEventLevel segEventlevel(sEvrIp.c_str(), iPlatform, settings, evtCBPrinceton, NULL);
+    //SegmentEventLevel segEventlevel(sEvrIp.c_str(), iPlatform, settings, evtCBPrinceton, NULL);
+    SegmentLevel segEventlevel(iPlatform, settings, evtCBPrinceton, NULL); // !! for debug
     
     segEventlevel.attach();    
     if ( evtCBPrinceton.IsAttached() )    
