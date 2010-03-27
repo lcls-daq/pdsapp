@@ -12,7 +12,7 @@ const unsigned DefaultBufferSize = 0x100000;
 const uint64_t DefaultChunkSize = ULLONG_MAX;
 
 EventOptions::EventOptions(int argc, char** argv) :
-  platform(0),
+  platform(-1UL),
   sliceID(0),
   buffersize(DefaultBufferSize),
   arpsuidprocess(0),
@@ -31,7 +31,7 @@ EventOptions::EventOptions(int argc, char** argv) :
       break;
     case 'p':
       platform = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) platform = 0;
+      if (errno != 0 || endPtr == optarg) platform = -1UL;
       break;
     case 's':
       sliceID = strtoul(optarg, &endPtr, 0);
@@ -60,7 +60,7 @@ EventOptions::EventOptions(int argc, char** argv) :
 
 int EventOptions::validate(const char* arg0) const
 {
-  if (!platform) {
+  if (platform==-1UL) {
     printf("Usage: %s -p <platform>\n"
 	   "options: -e decodes each transition (no FSM is connected)\n"
 	   "         -d displays transition summaries and eb statistics\n"
