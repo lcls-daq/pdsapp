@@ -3,12 +3,17 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
 #tgtnames    := evr evrstandalone acq opal1k epicsArch rceProxy bld princeton# tm6740
-tgtnames    := evr evrstandalone acq opal1k epicsArch rceProxy bld tm6740
+tgtnames    := evr evrstandalone acq ipimb opal1k epicsArch rceProxy bld tm6740
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
 tgtlibs_acq := pdsdata/xtcdata pdsdata/acqdata acqiris/AqDrv4 pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/acqiris pds/management pds/client pds/config 
 tgtslib_acq := /usr/lib/rt
+
+tgtsrcs_ipimb := ipimb.cc
+tgtincs_ipimb := ipimb
+tgtlibs_ipimb := pdsdata/xtcdata pdsdata/ipimbdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/ipimb pds/management pds/client pds/config 
+tgtslib_ipimb := /usr/lib/rt
 
 tgtsrcs_evr := evr.cc
 tgtincs_evr := evgr

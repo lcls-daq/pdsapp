@@ -7,6 +7,7 @@
 #include "pds/config/ControlConfigType.hh"
 #include "pds/config/AcqConfigType.hh"
 #include "pds/config/pnCCDConfigType.hh"
+#include "pds/config/IpimbConfigType.hh"
 
 #include <sstream>
 using std::istringstream;
@@ -21,6 +22,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   switch(id) {
   case Evr     : type = &_evrConfigType; break;
   case Acq     : type = &_acqConfigType; break;
+  case Ipimb   : type = &_ipimbConfigType; break;
   case Opal1k  : type = &_opal1kConfigType; break;
   case TM6740  : type = &_tm6740ConfigType; break;
   case pnCCD   : type = &_pnCCDConfigType; break;
@@ -38,6 +40,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
 #define test(type) { if (name==Pds::TypeId::name(type.id())) return &type; }
   test(_evrConfigType);
   test(_acqConfigType);
+  test(_ipimbConfigType);
   test(_opal1kConfigType);
   test(_tm6740ConfigType);
   test(_pnCCDConfigType);
@@ -53,6 +56,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
 #define test(type) { if (name==PdsDefs::qtypeName(type)) return &type; }
   test(_evrConfigType);
   test(_acqConfigType);
+  test(_ipimbConfigType);
   test(_opal1kConfigType);
   test(_tm6740ConfigType);
   test(_pnCCDConfigType);
