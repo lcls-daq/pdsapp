@@ -30,8 +30,8 @@ namespace Pds {
     MySegWire(const Src& src) { _sources.push_back(src); }
     virtual ~MySegWire() {}
     void connect (InletWire& wire,
-		  StreamParams::StreamType s,
-		  int interface) {}
+      StreamParams::StreamType s,
+      int interface) {}
     const std::list<Src>& sources() const { return _sources; }
   private:
     std::list<Src> _sources;
@@ -45,10 +45,10 @@ namespace Pds {
   public:
     Seg(Task*                 task,
         unsigned              platform,
-	CfgClientNfs&         cfgService,
+  CfgClientNfs&         cfgService,
         SegWireSettings&      settings,
         Arp*                  arp,
-	char*                 evrdev) :
+  char*                 evrdev) :
       _task(task),
       _platform(platform),
       _cfg   (cfgService),
@@ -66,21 +66,21 @@ namespace Pds {
     void attached(SetOfStreams& streams)
     {
       printf("Seg connected to platform 0x%x\n", 
-	     _platform);
+       _platform);
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(_evrdev);
       EvrManager& evrmgr = *new EvrManager(erInfo,
-					   _cfg);
+             _cfg);
       evrmgr.appliance().connect(frmk->inlet());
     }
     void failed(Reason reason)
     {
       static const char* reasonname[] = { "platform unavailable", 
-					  "crates unavailable", 
-					  "fcpm unavailable" };
+            "crates unavailable", 
+            "fcpm unavailable" };
       printf("Seg: unable to allocate crates on platform 0x%x : %s\n", 
-	     _platform, reasonname[reason]);
+       _platform, reasonname[reason]);
       delete this;
     }
     void dissolved(const Node& who)
@@ -94,7 +94,7 @@ namespace Pds {
       Node::ip_name(who.ip(),ipname, iplen);
       
       printf("Seg: platform 0x%x dissolved by user %s, pid %d, on node %s", 
-	     who.platform(), username, who.pid(), ipname);
+       who.platform(), username, who.pid(), ipname);
       
       delete this;
     }
@@ -128,8 +128,10 @@ int main(int argc, char** argv) {
       arp = new Arp(optarg);
       break;
     case 'i':
-      det    = (DetInfo::Detector)strtoul(optarg, &endPtr, 0);
-      detid  = strtoul(endPtr, &endPtr, 0);
+      det    = (DetInfo::Detector)strtoul(optarg, &endPtr, 0); endPtr++;
+      if ( *endPtr == 0 ) break;
+      detid  = strtoul(endPtr, &endPtr, 0); endPtr++;
+      if ( *endPtr == 0 ) break;
       devid  = strtoul(endPtr, &endPtr, 0);
       break;
     case 'p':
@@ -157,7 +159,7 @@ int main(int argc, char** argv) {
     if (arp->error()) {
       char message[128];
       sprintf(message, "failed to create odfArp : %s", 
-	      strerror(arp->error()));
+        strerror(arp->error()));
       printf("%s %s\n",argv[0], message);
       delete arp;
       return 0;
@@ -176,7 +178,7 @@ int main(int argc, char** argv) {
   Task* task = new Task(Task::MakeThisATask);
   MySegWire settings(detInfo);
   Seg* seg = new Seg(task, platform, *cfgService,
-		     settings, arp, evrdev);
+         settings, arp, evrdev);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 

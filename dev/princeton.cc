@@ -138,11 +138,12 @@ using namespace Pds;
 static void showUsage()
 {
     printf( "Usage:  princeton  [-v|--version] [-h|--help] [-d|--delay <0|1>]"
-      "[-l|--debug <level>] -e|--evrip <evr ip>  -p|--platform <platform id>\n" 
+      "[-l|--debug <level>] [-i|--id <id>] -e|--evrip <evr ip>  -p|--platform <platform id>\n" 
       "  Options:\n"
       "    -v|--version                 Show file version\n"
       "    -h|--help                    Show usage\n"
       "    -d|--delay    <0|1>          Use delay mode or not\n"
+      "    -i|--id       <id>           Set id. Inout format: Detector/DetectorId/DeviceId\n"
       "    -l|--debug    <level>        Set debug level\n"
       "    -e|--evrip    <evr ip>       [*required*] Set EVR ip address\n"
       "    -p|--platform <platform id>  [*required*] Set platform id\n"
@@ -167,12 +168,13 @@ void princetonSignalIntHandler( int iSignalNo )
 
 int main(int argc, char** argv) 
 {
-    const char*   strOptions    = ":vhdl:e:p:";
+    const char*   strOptions    = ":vhdi:l:e:p:";
     struct option loOptions[]   = 
     {
        {"ver",      0, 0, 'v'},
        {"help",     0, 0, 'h'},
-       {"delay",    0, 0, 'd'},       
+       {"delay",    0, 0, 'd'},
+       {"id",       1, 0, 'i'},
        {"debug",    1, 0, 'l'},
        {"evrip",    1, 0, 'e'},       
        {"platform", 1, 0, 'p'},
@@ -180,10 +182,13 @@ int main(int argc, char** argv)
     };    
     
     // parse the command line for our boot parameters
-    bool    bDelayMode    = false;
-    int     iDebugLevel   = 0;
-    string  sEvrIp;
-    int     iPlatform     = -1;
+    bool              bDelayMode    = false;
+    int               iDebugLevel   = 0;
+    DetInfo::Detector detector      = DetInfo::NoDetector;
+    int               iDetectorId   = 0;
+    int               iDeviceId     = 0;
+    string            sEvrIp;
+    int               iPlatform     = -1;
     
     int     iOptionIndex  = 0;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
@@ -200,6 +205,14 @@ int main(int argc, char** argv)
             break;            
         case 'l':
             iDebugLevel = strtoul(optarg, NULL, 0);
+            break;       
+        case 'i':
+            char* pNextToken;
+            detector    = (DetInfo::Detector) strtoul(optarg, &pNextToken, 0); ++pNextToken;            
+            if ( *pNextToken == 0 ) break;
+            iDetectorId = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+            if ( *pNextToken == 0 ) break;
+            iDeviceId   = strtoul(pNextToken, &pNextToken, 0);
             break;            
         case 'e':
             sEvrIp = optarg;
@@ -253,7 +266,8 @@ int main(int argc, char** argv)
     try
     {   
       
-    const DetInfo detInfo( getpid(), DetInfo::NoDetector, 0, DetInfo::Princeton, 0);    
+    const DetInfo detInfo( getpid(), detector, iDetectorId, DetInfo::Princeton, iDeviceId);    
+    printf("Using DetInfo %s\n", DetInfo::name(detInfo) );
 
     Task* task = new Task(Task::MakeThisATask);
     taskMainThread = task;
