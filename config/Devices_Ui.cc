@@ -32,8 +32,8 @@ using std::endl;
 using namespace Pds_ConfigDb;
 
 Devices_Ui::Devices_Ui(QWidget* parent,
-		       Experiment& expt,
-		       bool edit) :
+           Experiment& expt,
+           bool edit) :
   QGroupBox("Devices Configuration", parent),
   _expt    (expt)
 {
@@ -121,15 +121,15 @@ void Devices_Ui::edit_device()
   if (device) {
     list<Pds::Src> dlist;
     for(list<DeviceEntry>::const_iterator iter = device->src_list().begin();
-	iter!=device->src_list().end(); iter++) {
+  iter!=device->src_list().end(); iter++) {
       dlist.push_back(*iter);
     }
     DetInfoDialog_Ui* dialog=new DetInfoDialog_Ui(this, dlist);
     if (dialog->exec()) {
       device->src_list().clear();
       for(list<Pds::Src>::const_iterator iter=dialog->src_list().begin();
-	  iter!=dialog->src_list().end(); iter++)
-	device->src_list().push_back(DeviceEntry(*iter));
+    iter!=dialog->src_list().end(); iter++)
+  device->src_list().push_back(DeviceEntry(*iter));
     }
     delete dialog;
   }
@@ -143,18 +143,18 @@ void Devices_Ui::new_device()
     cout << "New device name \"" << device << "\" rejected" << endl;
   else {
     for(list<Device>::const_iterator iter=_expt.devices().begin();
-	iter!=_expt.devices().end(); iter++)
+  iter!=_expt.devices().end(); iter++)
       if (iter->name()==device) {
-	cout << "New device name \"" << device << "\" rejected" << endl;
-	return;
+  cout << "New device name \"" << device << "\" rejected" << endl;
+  return;
       }
     list<Pds::Src> dlist;
     DetInfoDialog_Ui* dialog=new DetInfoDialog_Ui(this, dlist);
     if (dialog->exec()) {
       list<DeviceEntry> entries;
       for(list<Pds::Src>::const_iterator iter=dialog->src_list().begin();
-	  iter!=dialog->src_list().end(); iter++)
-	entries.push_back(DeviceEntry(*iter));
+    iter!=dialog->src_list().end(); iter++)
+  entries.push_back(DeviceEntry(*iter));
       _expt.add_device(device, entries);
       update_device_list();
     }
@@ -170,7 +170,7 @@ void Devices_Ui::update_config_list()
   if (device) {
     const list<TableEntry>& entries = device->table().entries();
     for(list<TableEntry>::const_iterator iter=entries.begin();
-	iter!=entries.end(); iter++)
+  iter!=entries.end(); iter++)
       *new QListWidgetItem(iter->name().c_str(),_cfglist);
   }
   if (ok) connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
@@ -183,10 +183,10 @@ void Devices_Ui::update_component_list()
   bool ok_view   = disconnect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(view_component()));
   _cmplist->clear();
   _cmpcfglist->clear();
-  
+    
   list<UTypeName> unassigned;
   for(unsigned i=0; i<PdsDefs::NumberOf; i++)
-    unassigned.push_back(PdsDefs::utypeName(PdsDefs::ConfigType(i)));
+    unassigned.push_back(PdsDefs::utypeName(PdsDefs::ConfigType(i)));    
 
   Device* device(_device());
   if (device) {
@@ -196,10 +196,10 @@ void Devices_Ui::update_component_list()
       entry = device->table().get_top_entry(string(qPrintable(item->text())));
     if (entry) {
       for(list<FileEntry>::const_iterator iter=entry->entries().begin();
-	  iter!=entry->entries().end(); iter++) {
-	string label = iter->name() + " [" + iter->entry() + "]";
-	*new QListWidgetItem(label.c_str(),_cmplist);
-	unassigned.remove(UTypeName(iter->name()));
+    iter!=entry->entries().end(); iter++) {
+  string label = iter->name() + " [" + iter->entry() + "]";
+  *new QListWidgetItem(label.c_str(),_cmplist);
+  unassigned.remove(UTypeName(iter->name()));
       }
     }
   }
@@ -311,20 +311,20 @@ void Devices_Ui::add_component(const QString& type)
   choices << import_str.c_str();
   bool ok;
   QString choice = QInputDialog::getItem(_devlist,
-					 "Component Data",
-					 "Select File",
-					 choices, 0, 0, &ok);
+           "Component Data",
+           "Select File",
+           choices, 0, 0, &ok);
   if (ok) {
     string schoice(qPrintable(choice));
     if (schoice==import_str) {
       QString file = QFileDialog::getOpenFileName(_devlist,
-						  "Import Data File",
-						  "","");
+              "Import Data File",
+              "","");
       if (!file.isEmpty()) {
-	string sfile(qPrintable(file));
-	_expt.import_data(det,stype,sfile,"");
-	FileEntry entry(stype,basename(const_cast<char*>(sfile.c_str())));
-	_expt.device(det)->table().set_entry(cfg,entry);
+  string sfile(qPrintable(file));
+  _expt.import_data(det,stype,sfile,"");
+  FileEntry entry(stype,basename(const_cast<char*>(sfile.c_str())));
+  _expt.device(det)->table().set_entry(cfg,entry);
       }
     }
     else if (schoice==create_str) {
@@ -336,9 +336,9 @@ void Devices_Ui::add_component(const QString& type)
       QString file(d->file());
       delete d;
       if (!file.isEmpty()) {
-	string sfile(qPrintable(file));
-	FileEntry entry(stype,sfile);
-	_expt.device(det)->table().set_entry(cfg,entry);
+  string sfile(qPrintable(file));
+  FileEntry entry(stype,sfile);
+  _expt.device(det)->table().set_entry(cfg,entry);
       }
     }
     else {

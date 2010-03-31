@@ -44,16 +44,16 @@ private:
 //    Implements the callbacks for attaching/dissolving.
 //    Appliances can be added to the stream here.
 //
-class EvtCbPrinceton : public EventCallback 
+class EventCallBackPrinceton : public EventCallback 
 {
 public:
-    EvtCbPrinceton(int iPlatform, CfgClientNfs& cfgService, bool bDelayMode, int iDebugLevel) :
+    EventCallBackPrinceton(int iPlatform, CfgClientNfs& cfgService, bool bDelayMode, int iDebugLevel) :
       _iPlatform(iPlatform), _cfg(cfgService), _bDelayMode(bDelayMode), _iDebugLevel(iDebugLevel),
       _bAttached(false), _princetonManager(NULL) 
     {
     }
 
-    virtual ~EvtCbPrinceton() 
+    virtual ~EventCallBackPrinceton() 
     {
         reset();
     }
@@ -83,7 +83,7 @@ private:
         }
         catch ( PrincetonManagerException& eManager )
         {
-          printf( "EvtCbPrinceton::attached(): PrincetonManager init failed, error message = \n  %s\n", eManager.what() );
+          printf( "EventCallBackPrinceton::attached(): PrincetonManager init failed, error message = \n  %s\n", eManager.what() );
           return;
         }        
         
@@ -126,7 +126,7 @@ private:
     int                 _iDebugLevel;
     bool                _bAttached;
     PrincetonManager*   _princetonManager;    
-}; // class EvtCbPrinceton
+}; // class EventCallBackPrinceton
 
 
 } // namespace Pds 
@@ -190,7 +190,7 @@ int main(int argc, char** argv)
     {
         if ( opt == -1 ) break;
             
-        switch(opt) 
+        switch(opt)
         {            
         case 'v':               /* Print usage */
             showVersion();
@@ -258,16 +258,15 @@ int main(int argc, char** argv)
     Task* task = new Task(Task::MakeThisATask);
     taskMainThread = task;
 
-    // keep this: it's the "hook" into the configuration database
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsPrinceton settings(detInfo);
     
-    EvtCbPrinceton    evtCBPrinceton(iPlatform, cfgService, bDelayMode, iDebugLevel);
-    //SegmentEventLevel segEventlevel(sEvrIp.c_str(), iPlatform, settings, evtCBPrinceton, NULL);
-    SegmentLevel segEventlevel(iPlatform, settings, evtCBPrinceton, NULL); // !! for debug
+    EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, bDelayMode, iDebugLevel);
+    SegmentEventLevel       segEventlevel(sEvrIp.c_str(), iPlatform, settings, eventCallBackPrinceton, NULL);
+    //SegmentLevel segEventlevel(iPlatform, settings, EventCallBackPrinceton, NULL); // !! for debug
     
     segEventlevel.attach();    
-    if ( evtCBPrinceton.IsAttached() )    
+    if ( eventCallBackPrinceton.IsAttached() )    
         task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)        
     }
     catch (...)

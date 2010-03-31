@@ -7,6 +7,7 @@
 #include "pds/config/ControlConfigType.hh"
 #include "pds/config/AcqConfigType.hh"
 #include "pds/config/pnCCDConfigType.hh"
+#include "pds/config/PrincetonConfigType.hh"
 #include "pds/config/IpimbConfigType.hh"
 
 #include <sstream>
@@ -17,17 +18,18 @@ using namespace Pds_ConfigDb;
 
 
 const Pds::TypeId* PdsDefs::typeId(ConfigType id)
-{
+{ 
   Pds::TypeId* type(0);
   switch(id) {
-  case Evr     : type = &_evrConfigType; break;
-  case Acq     : type = &_acqConfigType; break;
-  case Ipimb   : type = &_ipimbConfigType; break;
-  case Opal1k  : type = &_opal1kConfigType; break;
-  case TM6740  : type = &_tm6740ConfigType; break;
-  case pnCCD   : type = &_pnCCDConfigType; break;
-  case FrameFex: type = &_frameFexConfigType; break;
-  case RunControl : type = &_controlConfigType; break;
+  case Evr        : type = &_evrConfigType;       break;
+  case Acq        : type = &_acqConfigType;       break;
+  case Opal1k     : type = &_opal1kConfigType;    break;
+  case TM6740     : type = &_tm6740ConfigType;    break;
+  case FrameFex   : type = &_frameFexConfigType;  break;
+  case pnCCD      : type = &_pnCCDConfigType;     break;
+  case Princeton  : type = &_princetonConfigType; break;
+  case Ipimb      : type = &_ipimbConfigType; break;
+  case RunControl : type = &_controlConfigType;   break;
   default: 
     printf("PdsDefs::typeId id %d not found\n",unsigned(id));
     break;
@@ -46,6 +48,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_pnCCDConfigType);
   test(_frameFexConfigType);
   test(_controlConfigType);
+  test(_princetonConfigType);    
 #undef test
   printf("PdsDefs::typeId id %s not found\n",name.data());
   return 0;
@@ -62,6 +65,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_pnCCDConfigType);
   test(_frameFexConfigType);
   test(_controlConfigType);
+  test(_princetonConfigType);    
 #undef test
   return 0;
 }
@@ -74,7 +78,7 @@ UTypeName PdsDefs::utypeName(ConfigType type)
 UTypeName PdsDefs::utypeName(const Pds::TypeId& type)
 {
   ostringstream o;
-  o << Pds::TypeId::name(type.id());
+  o << Pds::TypeId::name(type.id());  
   return UTypeName(o.str());
 }
 

@@ -14,17 +14,11 @@ namespace Pds_ConfigDb {
     bool pull(void* from);
     int  push(void* to);
   private:
-    unsigned                _pulse;
-    NumericInt<int>         _trigger;
-    NumericInt<int>         _set;
-    NumericInt<int>         _clear;
-    Enumerated<Enums::Polarity>    _polarity;
-    Enumerated<Enums::Enabled>     _map_set_ena;
-    Enumerated<Enums::Enabled>     _map_rst_ena;
-    Enumerated<Enums::Enabled>     _map_trg_ena;
-    NumericInt<unsigned>    _prescale;
-    NumericInt<unsigned>    _delay;
-    NumericInt<unsigned>    _width;
+    unsigned                      _pulse;
+    Enumerated<Enums::Polarity>   _polarity;
+    NumericInt<unsigned>          _prescale;
+    NumericInt<unsigned>          _delay;
+    NumericInt<unsigned>          _width;
   };
 };
 
