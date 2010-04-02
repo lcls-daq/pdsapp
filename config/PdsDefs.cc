@@ -9,6 +9,7 @@
 #include "pds/config/pnCCDConfigType.hh"
 #include "pds/config/PrincetonConfigType.hh"
 #include "pds/config/IpimbConfigType.hh"
+#include "pds/config/EncoderConfigType.hh"
 
 #include <sstream>
 using std::istringstream;
@@ -21,6 +22,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
 { 
   Pds::TypeId* type(0);
   switch(id) {
+  case Encoder    : type = &_encoderConfigType;   break;
   case Evr        : type = &_evrConfigType;       break;
   case Acq        : type = &_acqConfigType;       break;
   case Opal1k     : type = &_opal1kConfigType;    break;
@@ -28,7 +30,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case FrameFex   : type = &_frameFexConfigType;  break;
   case pnCCD      : type = &_pnCCDConfigType;     break;
   case Princeton  : type = &_princetonConfigType; break;
-  case Ipimb      : type = &_ipimbConfigType; break;
+  case Ipimb      : type = &_ipimbConfigType;     break;
   case RunControl : type = &_controlConfigType;   break;
   default: 
     printf("PdsDefs::typeId id %d not found\n",unsigned(id));
@@ -43,6 +45,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_evrConfigType);
   test(_acqConfigType);
   test(_ipimbConfigType);
+  test(_encoderConfigType);
   test(_opal1kConfigType);
   test(_tm6740ConfigType);
   test(_pnCCDConfigType);
@@ -60,6 +63,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_evrConfigType);
   test(_acqConfigType);
   test(_ipimbConfigType);
+  test(_encoderConfigType);
   test(_opal1kConfigType);
   test(_tm6740ConfigType);
   test(_pnCCDConfigType);
