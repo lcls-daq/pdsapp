@@ -7,6 +7,7 @@
 #include "pdsapp/config/EvrConfig_V1.hh"
 #include "pdsapp/config/AcqConfig.hh"
 #include "pdsapp/config/IpimbConfig.hh"
+#include "pdsapp/config/EncoderConfig.hh"
 #include "pdsapp/config/Opal1kConfig.hh"
 #include "pdsapp/config/TM6740Config.hh"
 #include "pdsapp/config/pnCCDConfig.hh"
@@ -17,6 +18,7 @@
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/AcqConfigType.hh"
 #include "pds/config/IpimbConfigType.hh"
+#include "pds/config/EncoderConfigType.hh"
 #include "pds/config/Opal1kConfigType.hh"
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/pnCCDConfigType.hh"
@@ -42,6 +44,7 @@ bool SerializerDEntry::operator==(const SerializerDEntry& s) const
 
 SerializerDictionary::SerializerDictionary()
 {
+  enroll(_encoderConfigType   ,new EncoderConfig);
   enroll(_acqConfigType       ,new AcqConfig);
   enroll(_evrConfigType       ,new EvrConfig);
   enroll(_opal1kConfigType    ,new Opal1kConfig);
