@@ -2,7 +2,7 @@
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr evrstandalone acq opal1k epicsArch rceProxy bld princeton ipimb tm6740
+tgtnames    := evr evrstandalone acq opal1k epicsArch rceProxy encoder bld princeton ipimb tm6740
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
@@ -13,6 +13,11 @@ tgtsrcs_ipimb := ipimb.cc
 tgtincs_ipimb := ipimb
 tgtlibs_ipimb := pdsdata/xtcdata pdsdata/ipimbdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/ipimb pds/management pds/client pds/config 
 tgtslib_ipimb := /usr/lib/rt
+
+tgtsrcs_encoder := encoder.cc
+tgtincs_encoder := encoder
+tgtlibs_encoder := pdsdata/xtcdata pdsdata/encoderdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/encoder pds/management pds/client pds/config 
+tgtslib_encoder := /usr/lib/rt
 
 tgtsrcs_evr := evr.cc
 tgtincs_evr := evgr
