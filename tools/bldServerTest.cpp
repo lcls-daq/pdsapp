@@ -324,15 +324,23 @@ int main(int argc, char** argv)
 
 void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize )
 {
-    const unsigned char* pcData = (const unsigned char*) &vcBuffer[0];    
+    const unsigned char* pcData       = (const unsigned char*) &vcBuffer[0];    
     
-    printf("Dumping Data (Data Size = %d):\n", iDataSize);
-    for (int i=0; i< iDataSize; i++)
-    {
-//        if ( pcData[i] >= 32 && pcData[i] <= 126 )
-//            printf( "%c", pcData[i] );
-//        else
-            printf( "[%02d: %02X]", i, (unsigned int) pcData[i] );           
-    }
-    printf("\n");
+    static int uFiducialPrev = -1;
+    int        uFiducialCurr = *(unsigned int*)&pcData[12];
+    
+    if ( uFiducialPrev != -1 && uFiducialCurr > 3 && uFiducialCurr != uFiducialPrev + 3 )
+      printf( "Fiducial Prev %x Curr %x\n", uFiducialPrev, uFiducialCurr );
+      
+    uFiducialPrev = uFiducialCurr;
+    
+    //printf("Dumping Data (Data Size = %d):\n", iDataSize);
+//    for (int i=0; i< iDataSize; i++)
+//    {
+////        if ( pcData[i] >= 32 && pcData[i] <= 126 )
+////            printf( "%c", pcData[i] );
+////        else
+//            printf( "[%02d: %02X]", i, (unsigned int) pcData[i] );           
+//    }
+    //printf("\n");
 }
