@@ -197,6 +197,17 @@ void selectOpcodes( char opcodes[256], char* strSelection )
 
 void showUsage()
 {
+  printf( "Usage:  evrstandalone  [-h] [-r <a/b/c/d>] [-o <event list>]"
+    "  Options:\n"
+    "    -h               Show usage\n"
+    "    -r <a/b/c/d>     Use evr device a/b/c/d\n"
+    "    -o <event list>  Select event codes\n"
+    " ------------------------------------------------\n"
+    " Event List Examples:\n"
+    "   -o 1,2,3,4    ->  Select opcodes 1,2,3 and 4\n"
+    "   -o 1-4        ->  Select opcodes from 1 to 4\n"
+    "   -o 1,2-4,6-8  ->  Select opcodes 1, from 2 to 4, and from 6-8\n"
+  );
 }
 
 int main(int argc, char** argv) {
