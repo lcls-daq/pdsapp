@@ -1,3 +1,5 @@
+2010-Apr-06 weaver	Add classes to monobs for monitoring applications that use
+			EPICS channel access.
 2009-Dec-03 weaver  Tag V01-08-01.  Added derived event-builder in dev/bld to handle BLD.  Added
 		    record/no_record option to RunControl.  All observers now specify a mask of
 		    event nodes to receive.

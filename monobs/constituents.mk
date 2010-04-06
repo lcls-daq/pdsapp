@@ -1,6 +1,6 @@
 libnames := 
 
-tgtnames := monobs monshm monshmserver offlineobs
+tgtnames := monobs monshm monshmserver offlineobs sxrmon
 
 commonlibs := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata pdsdata/acqdata
 
@@ -25,3 +25,10 @@ tgtslib_offlineobs := /usr/lib/rt
 tgtincs_offlineobs := offlinedb/include offlineclient
 tgtincs_offlineobs += epics/include epics/include/os/Linux
 
+tgtsrcs_common := Handler.cc ShmClient.cc EpicsCA.cc 
+tgtsrcs_sxrmon := sxrmon.cc SxrSpectrum.cc $(tgtsrcs_common)
+tgtlibs_sxrmon := pdsdata/xtcdata pdsdata/opal1kdata
+tgtlibs_sxrmon += pds/service
+tgtlibs_sxrmon += epics/ca epics/Com
+tgtslib_sxrmon := $(USRLIBDIR)/rt
+tgtincs_sxrmon := epics/include epics/include/os/Linux
