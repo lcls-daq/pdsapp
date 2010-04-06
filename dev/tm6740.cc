@@ -111,7 +111,7 @@ using namespace Pds;
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  unsigned platform = 0;
+  unsigned platform = -1UL;
   Arp* arp = 0;
 
   DetInfo::Detector det(DetInfo::NoDetector);
@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (!platform) {
+  if (platform == -1UL) {
     printf("%s: platform required\n",argv[0]);
     return 0;
   }

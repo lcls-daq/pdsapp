@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
   unsigned detid = -1UL;
-  unsigned platform = 0;
+  unsigned platform = -1UL;
   Arp* arp = 0;
 
   extern char* optarg;
@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if ((!platform) || (detid == -1UL)) {
+  if ((platform == -1UL) || (detid == -1UL)) {
     printf("Platform and detid required\n");
     printf("Usage: %s -i <detid> -p <platform> [-a <arp process id>]\n", argv[0]);
     return 0;

@@ -44,8 +44,9 @@ namespace Pds {
 #define CheckType(t) (m & (1<<BldInfo::t))
 #define SizeType(t) (sizeof(Xtc) + sizeof(BldData##t))
 #define AddType(t) {							\
-	Xtc& xtc = *new(p) Xtc(TypeId(TypeId::Id_##t,(uint32_t)BldData##t::version),src); \
-	xtc.extent += SizeType(t);					\
+	Xtc& xtc = *new(p) Xtc(TypeId(TypeId::Id_##t,(uint32_t)BldData##t::version), \
+			       BldInfo(0,BldInfo::t));			\
+	xtc.extent = SizeType(t);					\
 	p += xtc.extent;						\
       }
       unsigned extent = 0;
@@ -53,6 +54,7 @@ namespace Pds {
       if (CheckType(PhaseCavity))     extent += SizeType(PhaseCavity);
       if (CheckType(FEEGasDetEnergy)) extent += SizeType(FEEGasDetEnergy);
       if (extent) {
+	_configtc.extent += extent;
 	_config_payload = new char[extent];
 	char* p = _config_payload;
 	if (CheckType(EBeam))           AddType(EBeam);
@@ -334,8 +336,9 @@ using namespace Pds;
 
 int main(int argc, char** argv) {
 
+  const unsigned NO_PLATFORM = unsigned(-1);
   // parse the command line for our boot parameters
-  unsigned platform = 0;
+  unsigned platform = NO_PLATFORM;
   unsigned mask = (1<<BldInfo::NumberOf)-1;
 
   extern char* optarg;
@@ -353,7 +356,7 @@ int main(int argc, char** argv) {
     } 
  }
 
-  if (!platform) {
+  if (platform==NO_PLATFORM) {
     printf("%s: -p <platform> required\n",argv[0]);
     return 0;
   }
