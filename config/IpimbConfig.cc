@@ -23,67 +23,63 @@ namespace Pds_ConfigDb {
     Private_Data() :
       _triggerCounter("Foo ", 1, 1, 4),
       _serialID("Foo ", 1, 1, 4),
-      _chargeAmpRange("Foo ", 1, 1, 4),
-      //      _calibrationRange("Foo ", 1, 1, 4),
-      _resetLength("Foo ", 1, 1, 4),
-      _resetDelay("Foo ", 1, 1, 4),
-      _chargeAmpRefVoltage("Foo ", 1, 1, 4),
-      //      _calibrationVoltage("Foo ", 1, 1, 4),
-      _diodeBias("Foo ", 1, 1, 4),
-      _srStatusResets("Foo ", 1, 1, 4),
+      _chargeAmpRange("Feedback capacitor (1, 100, 10k pF) ", 1, 1, 10000),
+      _calibrationRange("Calibration cap (pF) ", 1, 1, 10000),
+      _resetLength("Acquisition window (ns) ", 1000000, 1, 0xfffff),
+      _resetDelay("Reset delay (ns) ", 0xfff, 0, 0xfff),
+      _chargeAmpRefVoltage("Reference voltage ", 2.0, 0.0, 12.0),
+      _calibrationVoltage("Calibration voltage ", 0., 0., 0.),
+      _diodeBias("Diode bias voltage ", 0., 0., 200.),
+      _status("Foo ", 1, 1, 4),
       _errors("Foo ", 1, 1, 4),
-      _calStrobeLength("Foo ", 1, 1, 4),
-      _trigDelay("Foo ", 1, 1, 4) {}
+      _calStrobeLength("Foo ", 1, 1, 4),//"Calibration strobe length ", 0, 0, 0),
+      _trigDelay("Sampling delay (ns) ", 89000, 0, 0x7fff8) {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
-      pList.insert(&_triggerCounter);
-      pList.insert(&_serialID);
+      //      pList.insert(&_triggerCounter);
+      //      pList.insert(&_serialID);
       pList.insert(&_chargeAmpRange);
-      //      pList.insert(&_calibrationRange);
+      pList.insert(&_calibrationRange);
       pList.insert(&_resetLength);
       pList.insert(&_resetDelay);
       pList.insert(&_chargeAmpRefVoltage);
-      //      pList.insert(&_calibrationVoltage);
+      pList.insert(&_calibrationVoltage);
       pList.insert(&_diodeBias);
-      pList.insert(&_srStatusResets);
-      pList.insert(&_errors);
+      //      pList.insert(&_status);
+      //      pList.insert(&_errors);
       pList.insert(&_calStrobeLength);
       pList.insert(&_trigDelay);
     }
 
     int pull(void* from) { // pull "from xtc"
       IpimbConfigType& ipimbConf = *new(from) IpimbConfigType;
-      _triggerCounter.value = ipimbConf.triggerCounter();
-      _serialID.value = ipimbConf.serialID();
+      //      _triggerCounter.value = ipimbConf.triggerCounter();
+      //      _serialID.value = ipimbConf.serialID();
       _chargeAmpRange.value = ipimbConf.chargeAmpRange();
-      //      _calibrationRange.value = ipimbConf.calibrationRange();
+      _calibrationRange.value = ipimbConf.calibrationRange();
       _resetLength.value = ipimbConf.resetLength();
       _resetDelay.value = ipimbConf.resetDelay();
       _chargeAmpRefVoltage.value = ipimbConf.chargeAmpRefVoltage();
-      //      _calibrationVoltage.value = ipimbConf.calibrationVoltage();
+      _calibrationVoltage.value = ipimbConf.calibrationVoltage();
       _diodeBias.value = ipimbConf.diodeBias();
-      _srStatusResets.value = ipimbConf.srStatusResets();
-      _errors.value = ipimbConf.errors();
+      //      _status.value = ipimbConf.status();
+      //      _errors.value = ipimbConf.errors();
       _calStrobeLength.value = ipimbConf.calStrobeLength();
       _trigDelay.value  = ipimbConf.trigDelay();
       return sizeof(IpimbConfigType);
     }
 
-    int push(void* to) { // push "to xtc"
-      *new(to) IpimbConfigType(_triggerCounter.value,
-			       _serialID.value,
-			       _chargeAmpRange.value,
-			       //			       _calibrationRange.value,
-			       _resetLength.value,
-			       _resetDelay.value,
-			       _chargeAmpRefVoltage.value,
-			       //			       _calibrationVoltage.value,
-			       _diodeBias.value,
-			       _srStatusResets.value,
-			       _errors.value,
-			       _calStrobeLength.value,
-			       _trigDelay.value
-			       );
+    int push(void* to) {
+      *new(to) IpimbConfigType(_chargeAmpRange.value,
+                               _calibrationRange.value,
+                               _resetLength.value,
+                               _resetDelay.value,
+                               _chargeAmpRefVoltage.value,
+                               _calibrationVoltage.value,
+                               _diodeBias.value,
+                               _calStrobeLength.value,
+                               _trigDelay.value
+                               );
       return sizeof(IpimbConfigType);
     }
 
@@ -92,17 +88,16 @@ namespace Pds_ConfigDb {
     NumericInt<uint64_t> _triggerCounter;
     NumericInt<uint64_t> _serialID;
     NumericInt<uint16_t> _chargeAmpRange;
-    //    NumericInt<uint16_t> _calibrationRange;
+    NumericInt<uint16_t> _calibrationRange;
     NumericInt<uint32_t> _resetLength;
     NumericInt<uint16_t> _resetDelay;
     NumericFloat<float> _chargeAmpRefVoltage;
-    //    NumericInt<uint16_t> _calibrationVoltage;
+    NumericFloat<float> _calibrationVoltage;
     NumericFloat<float> _diodeBias;
-    NumericInt<uint16_t> _srStatusResets;
+    NumericInt<uint16_t> _status;
     NumericInt<uint16_t> _errors;
     NumericInt<uint16_t> _calStrobeLength;
-    NumericInt<uint16_t> _trigDelay;
-    //    BitCount _numChan;
+    NumericInt<uint32_t> _trigDelay;
   };
 };
 

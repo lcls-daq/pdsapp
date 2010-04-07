@@ -27,16 +27,16 @@ namespace Pds {
   public:
     MySegWire(IpimbServer** ipimbServer, int nServers) : _ipimbServer(ipimbServer), _nServers(nServers) { 
       for (int i=0; i< _nServers; i++) {
-	_sources.push_back(ipimbServer[i]->client()); 
+        _sources.push_back(ipimbServer[i]->client()); 
       }
     }
     virtual ~MySegWire() {}
     void connect (InletWire& wire,
-		  StreamParams::StreamType s,
-		  int interface) {
+                  StreamParams::StreamType s,
+                  int interface) {
       for (int i=0; i< _nServers; i++) {
-	printf("Adding input of server %d, fd %d\n", i, _ipimbServer[i]->fd());
-	wire.add_input(_ipimbServer[i]);
+        printf("Adding input of server %d, fd %d\n", i, _ipimbServer[i]->fd());
+        wire.add_input(_ipimbServer[i]);
       }
     }
     const std::list<Src>& sources() const { return _sources; }
@@ -54,11 +54,11 @@ namespace Pds {
   public:
     Seg(Task*                 task,
         unsigned              platform,
-	CfgClientNfs**        cfgService,
+        CfgClientNfs**        cfgService,
         SegWireSettings&      settings,
         Arp*                  arp,
         IpimbServer**         ipimbServer,
-	int nServers) :
+        int nServers) :
       _task(task),
       _platform(platform),
       _cfg   (cfgService),
@@ -78,7 +78,7 @@ namespace Pds {
     void attached(SetOfStreams& streams)
     {
       printf("Seg connected to platform 0x%x\n", 
-	     _platform);
+             _platform);
       
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       IpimbManager& ipimbMgr = *new IpimbManager(_ipimbServer, _nServers, _cfg);//, _wire);
@@ -87,10 +87,10 @@ namespace Pds {
     void failed(Reason reason)
     {
       static const char* reasonname[] = { "platform unavailable", 
-					  "crates unavailable", 
-					  "fcpm unavailable" };
+                                          "crates unavailable", 
+                                          "fcpm unavailable" };
       printf("Seg: unable to allocate crates on platform 0x%x : %s\n", 
-	     _platform, reasonname[reason]);
+             _platform, reasonname[reason]);
       delete this;
     }
     void dissolved(const Node& who)
@@ -104,7 +104,7 @@ namespace Pds {
       Node::ip_name(who.ip(),ipname, iplen);
       
       printf("Seg: platform 0x%x dissolved by user %s, pid %d, on node %s", 
-	     who.platform(), username, who.pid(), ipname);
+             who.platform(), username, who.pid(), ipname);
       
       delete this;
     }
@@ -124,19 +124,23 @@ int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
   unsigned detid = -1UL;
+  unsigned cpuid = -1UL;
   unsigned platform = 0;
   unsigned nboards = 1;
   Arp* arp = 0;
 
   extern char* optarg;
-  int c;
-  while ( (c=getopt( argc, argv, "a:i:p:n:C")) != EOF ) {
-    switch(c) {
-    case 'a':
+  int s;
+  while ( (s=getopt( argc, argv, "a:i:c:p:n:C")) != EOF ) {
+    switch(s) {
+      case 'a':
       arp = new Arp(optarg);
       break;
     case 'i':
       detid  = strtoul(optarg, NULL, 0);
+      break;
+    case 'c':
+      cpuid  = strtoul(optarg, NULL, 0);
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
@@ -158,7 +162,7 @@ int main(int argc, char** argv) {
     if (arp->error()) {
       char message[128];
       sprintf(message, "failed to create odfArp : %s", 
-	      strerror(arp->error()));
+              strerror(arp->error()));
       printf("%s %s\n",argv[0], message);
       delete arp;
       return 0;
@@ -169,12 +173,11 @@ int main(int argc, char** argv) {
 
   Task* task = new Task(Task::MakeThisATask);
   
-  //  const unsigned nServers = 2;
-  const unsigned nServers = nboards; // compiler distinguished ** and *...[2] if 2 is const
+  const unsigned nServers = nboards;
   IpimbServer* ipimbServer[nServers];
   CfgClientNfs* cfgService[nServers];
   for (unsigned i=0; i<nServers; i++) {
-    DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::Ipimb, i);
+    DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, cpuid, DetInfo::Ipimb, i);
     cfgService[i] = new CfgClientNfs(detInfo);
     ipimbServer[i] = new IpimbServer(detInfo);
   }
