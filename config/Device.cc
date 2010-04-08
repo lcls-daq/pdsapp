@@ -54,7 +54,7 @@ string Device::typelink(const UTypeName& uname, const string& entry)
   return o.str();
 }
 
-string Device::xtcpath(const string& path, const UTypeName& uname, const string& entry)
+string Device::xtcpath(const string& path, const UTypeName& uname, const string& entry) const
 {
   ostringstream o;
   o << path << "/xtc/" << PdsDefs::qtypeName(uname) << "/" << entry;
