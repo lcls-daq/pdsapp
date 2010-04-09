@@ -37,15 +37,7 @@ void EvrStandAloneManager::configure() {
   printf("Configuring evr\n");
   _er.Reset();
 
-  // setup map ram
-  int ram=0; int enable=1;
-  _er.MapRamEnable(ram,0);
-  int opcode=140;
-//   _er.SetFIFOEvent(ram, opcode, enable);
-  int trig=0; int set=-1; int clear=-1;
-  _er.SetPulseMap(ram, opcode, trig, set, clear);
-
-  int pulse = 0; int presc = 1;
+  int pulse = 0; int presc = 1; int enable = 1;
   int polarity=0;  int map_reset_ena=0; int map_set_ena=0; int map_trigger_ena=1;
   _er.SetPulseProperties(pulse, polarity, map_reset_ena, map_set_ena, map_trigger_ena,
                            enable);

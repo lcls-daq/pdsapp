@@ -60,7 +60,7 @@ tgtlibs_epicsArch := pdsdata/xtcdata pdsdata/epics pds/service pds/collection pd
 tgtslib_epicsArch := /usr/lib/rt
 
 tgtsrcs_bld := bld.cc 
-tgtlibs_bld := pdsdata/xtcdata
+tgtlibs_bld := pdsdata/xtcdata pdsdata/evrdata
 tgtlibs_bld += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 tgtslib_bld := /usr/lib/rt
 
