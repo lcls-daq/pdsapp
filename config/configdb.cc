@@ -6,6 +6,7 @@ using namespace Pds_ConfigDb;
 // Commands
 static string create_cmd("--create");
 static string update_cmd("--update-keys");
+static string branch_cmd("--branch");
 static string create_device_cmd("--create-device");
 static string create_device_alias_cmd("--create-device-alias");
 static string copy_device_alias_cmd("--copy-device-alias");
@@ -19,29 +20,31 @@ void print_help(const char* p)
 {
   printf( "Transactions:\n"
 	  "  Create device with source ids\n"
-	  "%s --create-device <DEV> <Src1> .. <SrcN>\n",p);
+	  " --create-device <DEV> <Src1> .. <SrcN>\n");
   printf( "  Create an alias entry for device\n");
-  printf("%s --create-device-alias <DEV> <ALIAS>\n",p);
+  printf(" --create-device-alias <DEV> <ALIAS>\n");
   printf( "  Copy an alias entry for device\n");
-  printf("%s --copy-device-alias <DEV> <NEW_ALIAS> <OLD_ALIAS>\n",p);
+  printf(" --copy-device-alias <DEV> <NEW_ALIAS> <OLD_ALIAS>\n");
   printf( "  Import configuration data for device\n");
-  printf("%s --import-device-data <DEV> <Type> <File> Description\n",p);
+  printf(" --import-device-data <DEV> <Type> <File> Description\n");
   printf( "  Assign configuration data to an alias entry for device\n");
-  printf("%s --assign-device-alias <DEV> <ALIAS> <Type> <File>\n",p);
+  printf(" --assign-device-alias <DEV> <ALIAS> <Type> <File>\n");
   printf( "\n" );
   printf( "  Create a expt alias entry\n");
-  printf("%s --create-expt-alias <ALIAS>\n",p);
+  printf(" --create-expt-alias <ALIAS>\n");
   printf( "  Copy a expt alias entry\n");
-  printf("%s --copy-expt-alias <NEW_ALIAS> <OLD_ALIAS>\n",p);
+  printf(" --copy-expt-alias <NEW_ALIAS> <OLD_ALIAS>\n");
   printf( "  Assign a device alias entry to a expt alias entry\n");
-  printf("%s --assign-expt-alias <ALIAS> <DEV> <DEV_ALIAS>\n",p);
+  printf(" --assign-expt-alias <ALIAS> <DEV> <DEV_ALIAS>\n");
   printf( "\n");
   printf( "  Create the database\n");
-  printf("%s --create\n",p);
+  printf(" --create\n");
   printf( "\n");
   printf( "DB Management\n");
   printf( "  Update keys\n");
-  printf("%s --update-keys\n",p);
+  printf(" --update-keys\n");
+  printf( "  Branch a new db\n");
+  printf(" --branch\n");
 }
 
 int main(int argc, char** argv)
@@ -73,6 +76,13 @@ int main(int argc, char** argv)
 
     if (cmd==update_cmd)
       db.update_keys();
+    else if (cmd==branch_cmd || strcmp(cmd.c_str(),branch_cmd.c_str())==0) {
+      Experiment* newdb = db.branch(string(argv[3]));
+      newdb->read();
+      printf("\n==NEWDB==\n");
+      newdb->dump();
+      delete newdb;
+    }
     else {
       string dev(argv[3]);
 

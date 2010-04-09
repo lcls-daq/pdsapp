@@ -4,10 +4,12 @@
 
 #include "pds/utility/SegWireSettings.hh"
 #include "pds/utility/InletWireServer.hh"
+#include "pds/utility/InletWireIns.hh"
 #include "pds/utility/Stream.hh"
 #include "pds/utility/SetOfStreams.hh"
 #include "pds/utility/StreamPorts.hh"
 #include "pds/utility/BldServer.hh"
+#include "pds/utility/NullServer.hh"
 #include "pds/utility/EbBase.hh"
 #include "pds/service/Task.hh"
 
@@ -26,6 +28,8 @@
 #include "pds/xtc/XtcType.hh"
 #include "pdsdata/bld/bldData.hh"
 
+#include "pds/config/EvrConfigType.hh"
+
 #include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -34,6 +38,8 @@
 static const unsigned NetBufferDepth = 32;
 
 namespace Pds {
+
+  static NullServer* _evrServer = 0;
 
   class BldConfigApp : public Appliance {
   public:
@@ -179,12 +185,6 @@ namespace Pds {
     std::list<Src> _sources;
   };
 
-//   class BldStreams : public EventStreams {
-//   public:
-//     BldStreams(PartitionMember& m) : EventStreams(m, 128*1024, 8, 4) {}
-//     ~BldStreams() {}
-//   };
-
   class BldEvBuilder : public EbS {
   public:
     BldEvBuilder(const Src& id,
@@ -202,12 +202,6 @@ namespace Pds {
   public:
     int processIo(Server* s) { EbS::processIo(s); return 1; }
     int poll() {   
-//     { printf("BldEb::poll ifds  ");
-//       unsigned* p = reinterpret_cast<unsigned*>(ioList());
-//       unsigned nfd = numFds() >> 5;
-//       do { printf("%08x ",*p++); } while(nfd--);
-//       printf("\n"); }
-
       if(!ServerManager::poll()) return 0;
       if(active().isZero()) ServerManager::arm(managed());
       return 1;
@@ -254,6 +248,43 @@ namespace Pds {
       if (depth==0) _flushOne();
       
       return event;
+    }
+  private:
+    IsComplete   _is_complete( EbEventBase* event, const EbBitMask& serverId)
+    {
+      static int nprint=0;
+      //
+      //  Check for special case of readout event without beam => no BLD expected
+      //    Search for FIFO Event with current pulseId and beam present code
+      //
+      if (_evrServer) {
+	if (serverId.hasBitSet(_evrServer->id())) {  // EVR just added
+	  Datagram* dg = event->datagram();
+	  uint32_t timestamp = dg->seq.stamp().fiducials();
+	  const Xtc& xtc  = *reinterpret_cast<const Xtc*>(_evrServer->payload());
+	  const Xtc& xtc1 = *reinterpret_cast<const Xtc*>(xtc.payload());
+	  const EvrDataType& evrd = *reinterpret_cast<const EvrDataType*>(xtc1.payload());
+
+	  if (nprint++%119 == 0) {
+	    printf("== nfifo %d\n",evrd.numFifoEvents());
+	    for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
+	      const EvrDataType::FIFOEvent& fe = evrd.fifoEvent(i);
+	      printf("  %d : %08x/%08x : %d\n", 
+		     i, fe.TimestampHigh, fe.TimestampLow, fe.EventCode);
+	    }
+	  }
+
+	  for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
+	    const EvrDataType::FIFOEvent& fe = evrd.fifoEvent(i);
+	    if (fe.TimestampHigh == timestamp &&
+		fe.EventCode >= 140 &&
+		fe.EventCode <= 146)
+	      return EbS::_is_complete(event,serverId);  //  A beam-present code is found
+	  }
+	  return NoBuild;   // No beam-present code is found
+	}
+      }
+      return EbS::_is_complete(event,serverId);   //  Not only EVR is present
     }
   };
 
@@ -328,6 +359,65 @@ namespace Pds {
 	_callback.failed(EventCallback::PlatformUnavailable);
 	return false;
       }
+    }
+    void allocated(const Allocation& alloc, unsigned index) {
+      //  add segment level EVR
+      unsigned partition = alloc.partitionid();
+      unsigned nnodes   = alloc.nnodes();
+      unsigned vectorid = 0;
+      for (unsigned n = 0; n < nnodes; n++) {
+	const Node & node = *alloc.node(n);
+	if (node.level() == Level::Event) {
+	  Ins ins = StreamPorts::event(partition,
+				       Level::Event,
+				       vectorid,
+				       0);
+                 
+	  if (vectorid == 0) {
+	    Ins srvIns(ins.portId());
+	    _evrServer =
+	      new NullServer(srvIns,
+			     node.procInfo(),
+			     sizeof(Pds::EvrData::DataV3)+256*sizeof(Pds::EvrData::DataV3::FIFOEvent),
+			     NetBufferDepth);
+	    _streams->wire(StreamParams::FrameWork)->add_input(_evrServer);
+	  }
+
+	  Ins mcastIns(ins.address());
+	  _evrServer->server().join(mcastIns, Ins(header().ip()));
+      
+	  printf( "BldSegmentLevel::allocated(): dst id %d  mcastIns addr %x port %d\n", vectorid, mcastIns.address(), ins.portId() ); // !! for debug only
+      
+	  vectorid++;
+	}
+      }
+      vectorid = 0;
+      for (unsigned n = 0; n < nnodes; n++) {
+	const Node & node = *alloc.node(n);
+	if (node.level() == Level::Event) {
+	  // Add vectored output clients on inlet
+	  Ins ins = StreamPorts::event(partition,
+				       Level::Event,
+				       vectorid,
+				       index);
+	  InletWireIns wireIns(vectorid, ins);
+	  _streams->wire(StreamParams::FrameWork)->add_output(wireIns);
+	  printf("SegmentLevel::allocated adding output %d to %x/%d\n",
+		 vectorid, ins.address(), ins.portId());
+	  vectorid++;
+	}
+      }
+      OutletWire* owire = _streams->stream(StreamParams::FrameWork)->outlet()->wire();
+      owire->bind(OutletWire::Bcast, StreamPorts::bcast(partition, 
+							Level::Event,
+							index));
+      
+    }
+    void dissolved() {
+      NullServer* esrv = _evrServer;
+      _evrServer = 0;
+      static_cast <InletWireServer*>(_streams->wire())->remove_input(esrv);
+      static_cast <InletWireServer*>(_streams->wire())->remove_outputs();
     }
   };
 }

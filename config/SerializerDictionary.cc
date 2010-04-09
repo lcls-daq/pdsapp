@@ -4,6 +4,7 @@
 
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/EvrConfig.hh"
+#include "pdsapp/config/EvrConfig_V2.hh"
 #include "pdsapp/config/EvrConfig_V1.hh"
 #include "pdsapp/config/AcqConfig.hh"
 #include "pdsapp/config/IpimbConfig.hh"
@@ -55,6 +56,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_princetonConfigType ,new princetonConfig);  
   enroll(_ipimbConfigType     ,new IpimbConfig);  
   //  retired
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2), new EvrConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,1), new EvrConfig_V1);
 }
 

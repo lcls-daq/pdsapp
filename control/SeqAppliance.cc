@@ -1,5 +1,6 @@
 #include "SeqAppliance.hh"
 #include "pdsapp/control/PVManager.hh"
+#include "pdsapp/control/StateSelect.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/config/CfgClientNfs.hh"
 #include "pds/utility/Transition.hh"
@@ -19,9 +20,11 @@ static const int MaxConfigSize = 0x100000;
 using namespace Pds;
 
 SeqAppliance::SeqAppliance(PartitionControl& control,
+			   StateSelect&      manual,
 			   CfgClientNfs&     config,
 			   PVManager&        pvmanager ) :
   _control      (control),
+  _manual       (manual),
   _config       (config),
   _configtc     (_controlConfigType, config.src()),
   _config_buffer(new char[MaxConfigSize]),
@@ -38,6 +41,9 @@ SeqAppliance::~SeqAppliance()
 
 Transition* SeqAppliance::transitions(Transition* tr) 
 { 
+  if (!_manual.control_enabled())
+    return tr;
+
   switch(tr->id()) {
   case TransitionId::Map:
     //  EPICS thread initialization
@@ -83,16 +89,23 @@ Transition* SeqAppliance::transitions(Transition* tr)
 
 Occurrence* SeqAppliance::occurrences(Occurrence* occ) 
 {
+  if (!_manual.control_enabled())
+    return occ;
+
   if (occ->id() == OccurrenceId::SequencerDone) {
     _done = true;
     _control.set_target_state(PartitionControl::Running);
     return 0;
   }
+
   return occ; 
 }
 
 InDatagram* SeqAppliance::events     (InDatagram* dg) 
 { 
+  if (!_manual.control_enabled())
+    return dg;
+
   switch(dg->datagram().seq.service()) {
   case TransitionId::Configure:
   case TransitionId::BeginCalibCycle:

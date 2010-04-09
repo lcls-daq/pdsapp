@@ -120,7 +120,7 @@ EpicsCAChannel::EpicsCAChannel(const char* channelName,
   const int priority = 0;
   int st = ca_create_channel(_epicsName, ConnStatusCB, this, priority, &_epicsChanID);
   if (st != ECA_NORMAL) 
-    printf("%s : %s\n", _epicsName, ca_message(st));
+    printf("EpicsCAChannel::ctor %s : %s\n", _epicsName, ca_message(st));
 }
 
 EpicsCAChannel::~EpicsCAChannel()
@@ -134,15 +134,21 @@ EpicsCAChannel::~EpicsCAChannel()
 void EpicsCAChannel::put()
 {
   int dbfType = ca_field_type(_epicsChanID);
-
+#if 0
   int st = ca_array_put_callback (dbfType,
 				  _nelements,
 				  _epicsChanID,
 				  _proxy.data(),
 				  PutDataCallback,
 				  this);
+#else
+  int st = ca_array_put (dbfType, 
+			 _nelements,
+			 _epicsChanID,
+			 _proxy.data());
+#endif				  
   if (st != ECA_NORMAL)
-    printf("%s : %s [getDataCallback st]\n",_epicsName, ca_message(st));
+    printf("%s : %s [put st] : %d\n",_epicsName, ca_message(st), dbfType);
 
   ca_flush_io();
 }
@@ -150,9 +156,9 @@ void EpicsCAChannel::put()
 void EpicsCAChannel::connStatusCallback(struct connection_handler_args chArgs)
 {
 
-  printf("EpicsCAChannel::connStatusCallback %s (%p)\n",_epicsName, this);
 
   if ( chArgs.op == CA_OP_CONN_UP ) {
+    printf("EpicsCAChannel::connStatusCallback %s connected (%p)\n",_epicsName, this);
     _connected = Connected;
     int dbfType = ca_field_type(_epicsChanID);
 
@@ -162,6 +168,8 @@ void EpicsCAChannel::connStatusCallback(struct connection_handler_args chArgs)
     if (dbr_type_is_ENUM(dbrType))
       dbrType = DBR_TIME_INT;
     
+    printf("EpicsCAChannel field type %d/%d\n",dbfType,dbrType);
+
     _type = dbrType;
     _nelements = ca_element_count(_epicsChanID);
 
@@ -187,6 +195,7 @@ void EpicsCAChannel::connStatusCallback(struct connection_handler_args chArgs)
       printf("%s : %s [connStatusCallback]\n", _epicsName, ca_message(st));
   }
   else {
+    printf("EpicsCAChannel::connStatusCallback %s disconnected (%p)\n",_epicsName, this);
     _connected = NotConnected;
     _proxy.connected(false);
   }
@@ -206,7 +215,7 @@ void EpicsCAChannel::getDataCallback(struct event_handler_args ehArgs)
 void EpicsCAChannel::putDataCallback(struct event_handler_args ehArgs)
 {
   if (ehArgs.status != ECA_NORMAL)
-    printf("%s : %s\n",_epicsName, ca_message(ehArgs.status));
+    printf("EpicsCAChannel::putDataCallback %s : %s\n",_epicsName, ca_message(ehArgs.status));
   _proxy.putStatus(ehArgs.status==ECA_NORMAL);
 }
 

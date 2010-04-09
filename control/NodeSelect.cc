@@ -73,7 +73,10 @@ QList<Node> NodeGroup::selected()
   foreach(QAbstractButton* b, buttons) {
     if (b->isChecked()) {
       int id = _buttons->id(b);
-      nodes << _nodes[id].node();
+      if (_nodes[id].det().device()==DetInfo::Evr)
+	nodes.push_front(_nodes[id].node());
+      else
+	nodes.push_back (_nodes[id].node());
     }
   }
   return nodes;
@@ -86,7 +89,10 @@ QList<DetInfo> NodeGroup::detectors()
   foreach(QAbstractButton* b, buttons) {
     if (b->isChecked()) {
       int id = _buttons->id(b);
-      dets << _nodes[id].det();
+      if (_nodes[id].det().device()==DetInfo::Evr)
+	dets.push_front(_nodes[id].det());
+      else
+	dets.push_back (_nodes[id].det());
     }
   }
   return dets;

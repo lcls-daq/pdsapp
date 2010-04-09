@@ -115,13 +115,16 @@ ShmClient::~ShmClient()
 
 int ShmClient::start() { return run(_partitionTag,_index); }
 
-void ShmClient::insert(Handler* a) { _handlers.push_back(a); }
+void ShmClient::insert(Handler* a) 
+{
+  _handlers.push_back(a); 
+}
 
 int ShmClient::processDgram(Pds::Dgram* dg)
 {
   _seq = &dg->seq;
   iterate(&dg->xtc); 
-  return 1;
+  return 0;
 }
 
 int ShmClient::process(Pds::Xtc* xtc)

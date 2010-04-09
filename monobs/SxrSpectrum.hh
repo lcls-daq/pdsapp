@@ -29,10 +29,13 @@ namespace PdsCas {
     unsigned _nev;
     Pds::Semaphore _sem;
     PVWriter*  _valu_writer;
+    PVWriter*  _rang_writer;
     PVMonitor* _xlo_mon;
     PVMonitor* _xhi_mon;
     PVMonitor* _ylo_mon;
     PVMonitor* _yhi_mon;
+    PVMonitor* _dedy_mon;
+    PVMonitor* _e0_mon;
   };
 };
 

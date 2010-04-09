@@ -9,6 +9,7 @@
 #include <map>
 using std::list;
 
+class QAbstractButton;
 class QLineEdit;
 class QButtonGroup;
 class QGroupBox;
@@ -54,7 +55,7 @@ namespace Pds {
     void read_config();
     void write_config();
     //    void change_config_file();
-    void set_tree(int);
+    void set_tree(QAbstractButton*);
     void add_client(void*);
 
   private:

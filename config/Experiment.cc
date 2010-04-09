@@ -67,6 +67,41 @@ void Experiment::write() const
     iter->table().write(_path.device(iter->name()));
 }
 
+Experiment* Experiment::branch(const string& p) const
+{
+  //  Create the directory structure
+  Path newpath(p);
+  newpath.create();
+
+  //  Create the device dependent structures
+  Experiment* newdb = new Experiment(newpath);
+  for(list<Device>::const_iterator it=devices().begin(); it!=devices().end(); it++) {
+    newdb->add_device((*it).name(),(*it).src_list());
+    const list<TableEntry>& t = (*it).table().entries();
+    //  Load the device data files
+    for(list<TableEntry>::const_iterator ait=t.begin(); ait!=t.end(); ait++) {
+      for(list<FileEntry>::const_iterator fit=(*ait).entries().begin(); fit!=(*ait).entries().end(); fit++) {
+	Pds_ConfigDb::UTypeName utype((*fit).name());
+	string file_path = (*it).xtcpath(_path.base(), utype, (*fit).entry());
+	newdb->import_data((*it).name(),
+			   utype,
+			   file_path,
+			   string(""));
+      }
+    }
+  }
+  delete newdb;
+
+  //  Load the device and alias tables
+  newdb = new Experiment(_path);
+  newdb->read();
+  newdb->_path = newpath;
+  newdb->write();
+
+  newdb->update_keys();
+  return newdb;
+}
+
 Device* Experiment::device(const string& name)
 {
   for(list<Device>::iterator iter=_devices.begin(); iter!=_devices.end(); iter++)

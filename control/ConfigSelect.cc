@@ -89,18 +89,29 @@ void ConfigSelect::update()
 
 void ConfigSelect::read_db()
 {
+  QString lastType = _runType->currentText();
+  bool lFound=false;
+
   _runType->clear();
 
   //  _expt.read();
   bool ok = 
     disconnect(_runType, SIGNAL(activated(const QString&)), this, SLOT(set_run_type(const QString&)));
   const list<TableEntry>& l = _expt.table().entries();
-  for(list<TableEntry>::const_iterator iter = l.begin(); iter != l.end(); ++iter)
-    _runType->addItem(iter->name().c_str());
+  for(list<TableEntry>::const_iterator iter = l.begin(); iter != l.end(); ++iter) {
+    QString str(iter->name().c_str());
+    _runType->addItem(str);
+    if (lastType==str)
+      lFound=true;
+  }
   if (ok) 
     connect(_runType, SIGNAL(activated(const QString&)), this, SLOT(set_run_type(const QString&)));
 
-  set_run_type(l.begin()->name().c_str());
+  
+  if (lFound)
+    set_run_type(lastType);
+  else
+    set_run_type(l.begin()->name().c_str());
 }
 
 void ConfigSelect::allocated()

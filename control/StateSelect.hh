@@ -25,6 +25,7 @@ namespace Pds {
     virtual Transition* transitions(Transition*);
     virtual InDatagram* events     (InDatagram*);
   public:
+    bool control_enabled() const;
     void enable_control();
     void disable_control();
   signals:

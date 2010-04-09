@@ -66,6 +66,7 @@ StateSelect::~StateSelect()
   delete _yellow;
 }
 
+bool StateSelect::control_enabled() const { return _select->isEnabled(); }
 void StateSelect::enable_control () { _select->setEnabled(true ); }
 void StateSelect::disable_control() { _select->setEnabled(false); }
 

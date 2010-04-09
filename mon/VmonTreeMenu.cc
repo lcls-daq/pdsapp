@@ -18,6 +18,18 @@
 #include <QtGui/QLineEdit>
 #include <QtGui/QLabel>
 
+namespace Pds {
+  class ClientButton : public QRadioButton {
+  public:
+    ClientButton(MonClient& c, QWidget* parent) : 
+      QRadioButton(c.cds().desc().name(), parent),
+      client(c) {}
+    ~ClientButton() {}
+  public:
+    MonClient& client;
+  };
+};
+
 using namespace Pds;
 
 class VmonTreeEvent : public Routine {
@@ -114,7 +126,7 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
   _client_bg_box->setLayout(new QVBoxLayout(_client_bg_box));
   layout->addWidget(_client_bg_box);
 
-  QObject::connect(_client_bg, SIGNAL(buttonClicked(int)), this, SLOT(set_tree(int)));
+  QObject::connect(_client_bg, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(set_tree(QAbstractButton*)));
 
   QObject::connect(this, SIGNAL(control_updated()), this, SLOT(control_update()));
   QObject::connect(this, SIGNAL(record_updated()), this, SLOT(record_update()));
@@ -141,10 +153,10 @@ void VmonTreeMenu::expired()
   emit record_updated();
 }
 
-void VmonTreeMenu::set_tree(int c)
+void VmonTreeMenu::set_tree(QAbstractButton* b)
 {
-  MonClient* client = reinterpret_cast<MonClient*>(c);
-  _tabs.reset(*client);
+  ClientButton* c = static_cast<ClientButton*>(b);
+  _tabs.reset(c->client);
 }
 
 void VmonTreeMenu::control_start()
@@ -246,11 +258,10 @@ void VmonTreeMenu::add(MonClient& client)
 void VmonTreeMenu::add_client(void* cptr)
 {
   MonClient& client = *reinterpret_cast<MonClient*>(cptr);
-  QString name(client.cds().desc().name());
-  QRadioButton* button = new QRadioButton(name, _client_bg_box);
+  ClientButton* button = new ClientButton(client, _client_bg_box);
   button->setChecked( false );
   _client_bg_box->layout()->addWidget(button);
-  _client_bg->addButton(button, reinterpret_cast<int>(&client));
+  _client_bg->addButton(button);
 
   MonTree* tree = new MonTree(_tabs, client, 0);
   _trees.push_back(tree);

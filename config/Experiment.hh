@@ -21,6 +21,7 @@ namespace Pds_ConfigDb {
     void create();
     void read();
     void write() const;
+    Experiment* branch(const string&) const;
   public:
     const Path& path() const { return _path; }
     const Table& table() const { return _table; }

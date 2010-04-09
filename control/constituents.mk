@@ -1,4 +1,10 @@
+ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
+qtincdir  := qt/include64
+tgtnames := catest
+else
+qtincdir  := qt/include
 tgtnames := control_gui catest
+endif
 
 tgtsrcs_control_gui := control.cc 
 tgtsrcs_control_gui += MainWindow.cc      MainWindow_moc.cc
@@ -24,13 +30,13 @@ tgtlibs_control_gui += pdsapp/configdb
 tgtlibs_control_gui += qt/QtGui qt/QtCore
 tgtlibs_control_gui += epics/ca epics/Com
 tgtlibs_control_gui += offlinedb/mysqlclient offlinedb/offlinedb
-tgtslib_control_gui := /usr/lib/rt
-tgtincs_control_gui := qt/include
+tgtslib_control_gui := $(USRLIBDIR)/rt
+tgtincs_control_gui := $(qtincdir)
 tgtincs_control_gui += epics/include epics/include/os/Linux
 tgtincs_control_gui += offlinedb/include
 
 tgtsrcs_catest := catest.cc PVMonitor.cc EpicsCA.cc
-tgtslib_catest := /usr/lib/rt
+tgtslib_catest := $(USRLIBDIR)/rt
 tgtincs_catest := epics/include epics/include/os/Linux
 tgtlibs_catest := epics/ca epics/Com
 tgtlibs_catest += pdsdata/controldata pdsdata/xtcdata

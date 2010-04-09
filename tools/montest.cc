@@ -127,7 +127,8 @@ private:
 
 int main(int argc, char** argv) {
 
-  unsigned platform=-1UL;
+  const unsigned NO_PLATFORM = (unsigned)-1;
+  unsigned platform=NO_PLATFORM;
   DetInfo::Detector det(DetInfo::NoDetector);
   unsigned detid(0), devid(0);
 
@@ -141,7 +142,7 @@ int main(int argc, char** argv) {
     switch (c) {
     case 'p':
       platform = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) platform = -1UL;
+      if (errno != 0 || endPtr == optarg) platform = NO_PLATFORM;
       break;
     case 'a':
       arpsuidprocess = optarg;
@@ -162,7 +163,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (platform == -1UL) {
+  if (platform == NO_PLATFORM) {
     printf("Platform required\n");
     printf("Usage: %s -p <platform> -P <partition> -d <detector_id> -i <node mask> [-a <arp process id>]\n",
 	   argv[0]);

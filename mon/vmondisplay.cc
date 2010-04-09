@@ -13,7 +13,8 @@ using namespace Pds;
 
 int main(int argc, char **argv) 
 {
-  unsigned platform = -1UL;
+  const unsigned NO_PLATFORM = (unsigned)-1;
+  unsigned platform = NO_PLATFORM;
   const char* partition = 0;
 
   int c;
@@ -31,7 +32,7 @@ int main(int argc, char **argv)
     }
   }
 
-  if (partition==0 || platform >0xff) {
+  if (partition==0 || platform==NO_PLATFORM) {
     printHelp(argv[0]);
     return -1;
   }

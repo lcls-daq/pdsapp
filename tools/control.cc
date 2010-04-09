@@ -76,7 +76,8 @@ int main(int argc, char** argv)
   unsigned nbld = 0;
   const char* partition = "partition";
   const char* dbpath    = "none";
-  unsigned key = -1UL;
+  const unsigned NO_KEY = (unsigned)-1;
+  unsigned key = NO_KEY;
 
   int c;
   while ((c = getopt(argc, argv, "p:b:P:D:k:")) != -1) {
@@ -100,7 +101,7 @@ int main(int argc, char** argv)
       break;
     }
   }
-  if (!platform || !partition || !dbpath || (key==-1UL)) {
+  if (!platform || !partition || !dbpath || (key==NO_KEY)) {
     printf("usage: %s -p <platform> -P <partition_description> -D <db name> -k <key> [-b <bld>]\n", argv[0]);
     return 0;
   }

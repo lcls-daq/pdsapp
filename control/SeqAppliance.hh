@@ -8,12 +8,14 @@
 
 namespace Pds {
   class PartitionControl;
+  class StateSelect;
   class CfgClientNfs;
   class PVManager;
   
   class SeqAppliance : public Appliance {
   public:
     SeqAppliance(PartitionControl& control,
+		 StateSelect&      manual,
 		 CfgClientNfs&     config,
 		 PVManager&        pvmanager);
     ~SeqAppliance();
@@ -23,6 +25,7 @@ namespace Pds {
     virtual InDatagram* events     (InDatagram*);
   private:
     PartitionControl&  _control;
+    StateSelect&       _manual;
     CfgClientNfs&      _config;
     Xtc                _configtc;
     char*              _config_buffer;

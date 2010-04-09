@@ -5,9 +5,9 @@
 #include "pdsapp/control/NodeSelect.hh"
 #include "pdsapp/control/StateSelect.hh"
 #include "pdsapp/control/RemoteSeqApp.hh"
-//#include "pdsapp/control/SeqAppliance.hh"
-//#include "pdsapp/control/PVDisplay.hh"
-//#include "pdsapp/control/PVManager.hh"
+#include "pdsapp/control/SeqAppliance.hh"
+#include "pdsapp/control/PVDisplay.hh"
+#include "pdsapp/control/PVManager.hh"
 #include "pdsapp/control/RunStatus.hh"
 #include "pdsapp/control/ControlLog.hh"
 #include "pdsapp/control/MySqlRunAllocator.hh"
@@ -153,7 +153,7 @@ MainWindow::MainWindow(unsigned          platform,
   ConfigSelect*     config;
   PartitionSelect*  ps ;
   StateSelect*      state ;
-  //  PVDisplay*        pvs;
+  PVDisplay*        pvs;
   RunStatus*        run;
   unsigned int      experiment_number = 0;
 
@@ -175,11 +175,11 @@ MainWindow::MainWindow(unsigned          platform,
   layout->addWidget(config    = new ConfigSelect   (this, *_control, db_path));
   layout->addWidget(ps        = new PartitionSelect(this, *_control, partition, db_path));
   layout->addWidget(state     = new StateSelect    (this, *_control));
-  //  layout->addWidget(pvs       = new PVDisplay      (this, *_control));
+  layout->addWidget(pvs       = new PVDisplay      (this, *_control));
   layout->addWidget(run       = new RunStatus      (this, *ps));
   layout->addWidget(_log      = new ControlLog);
 
-  //  _pvmanager = new PVManager(*pvs);
+  _pvmanager = new PVManager(*pvs);
 
   //  the order matters
   _controlcb->add_appliance(run);    // must be first
@@ -187,8 +187,8 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(new ControlDamage(*this));
   _controlcb->add_appliance(new FileReport(*_log));
   _controlcb->add_appliance(state);
-//   _controlcb->add_appliance(new SeqAppliance(*_control,*_config,
-// 					     *_pvmanager));
+  _controlcb->add_appliance(new SeqAppliance(*_control, *state, *_config,
+ 					     *_pvmanager));
   _controlcb->add_appliance(new RemoteSeqApp(*_control, *state,_config->src()));
   _control->attach();
 
@@ -219,7 +219,7 @@ MainWindow::~MainWindow()
   delete _config;
   delete _control; 
   delete _controlcb; 
-  //  delete _pvmanager;
+  delete _pvmanager;
   delete _offlineclient;
 }
 

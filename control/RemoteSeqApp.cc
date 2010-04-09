@@ -169,10 +169,12 @@ Transition* RemoteSeqApp::transitions(Transition* tr)
 
 Occurrence* RemoteSeqApp::occurrences(Occurrence* occ) 
 {
-  if (occ->id() == OccurrenceId::SequencerDone) {
-    _control.set_target_state(PartitionControl::Running);
-    return 0;
-  }
+  if (_socket >= 0)
+    if (occ->id() == OccurrenceId::SequencerDone) {
+      _control.set_target_state(PartitionControl::Running);
+      return 0;
+    }
+
   return occ; 
 }
 

@@ -10,52 +10,52 @@ commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmo
 
 tgtsrcs_event := event.cc
 tgtlibs_event := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/tools
-tgtslib_event := /usr/lib/rt
+tgtslib_event := $(USRLIBDIR)/rt
 
 tgtsrcs_segtest := segtest.cc
 tgtlibs_segtest := $(commonlibs)
-tgtslib_segtest := /usr/lib/rt
+tgtslib_segtest := $(USRLIBDIR)/rt
 
 tgtsrcs_control := control.cc
 tgtlibs_control := $(commonlibs)
-tgtslib_control := /usr/lib/rt
+tgtslib_control := $(USRLIBDIR)/rt
 
 tgtsrcs_source := source.cc
 tgtlibs_source := $(commonlibs)
-tgtslib_source := /usr/lib/rt
+tgtslib_source := $(USRLIBDIR)/rt
 
 tgtsrcs_sourcetest := sourcetest.cc
 tgtlibs_sourcetest := $(commonlibs)
-tgtslib_sourcetest := /usr/lib/rt
+tgtslib_sourcetest := $(USRLIBDIR)/rt
 
 tgtsrcs_bldtest := bldtest.cc
 tgtlibs_bldtest := $(commonlibs)
-tgtslib_bldtest := /usr/lib/rt
+tgtslib_bldtest := $(USRLIBDIR)/rt
 
 tgtsrcs_montest := montest.cc
 tgtlibs_montest := $(commonlibs) pds/mon
-tgtslib_montest := /usr/lib/rt
+tgtslib_montest := $(USRLIBDIR)/rt
 
 tgtsrcs_showPartitions := showPartitions.cc
 tgtlibs_showPartitions := $(commonlibs)
-tgtslib_showPartitions := /usr/lib/rt
+tgtslib_showPartitions := $(USRLIBDIR)/rt
 
 tgtsrcs_killPartition := killPartition.cc
 tgtlibs_killPartition := $(commonlibs)
-tgtslib_killPartition := /usr/lib/rt
+tgtslib_killPartition := $(USRLIBDIR)/rt
 
 tgtsrcs_bldClientTest := bldClientTest.cc bldClientTest.hh
 tgtlibs_bldClientTest := pds/service
-tgtslib_bldClientTest := /usr/lib/rt
+tgtslib_bldClientTest := $(USRLIBDIR)/rt
 
 tgtsrcs_bldServerTest := bldServerTest.cpp bldServerTest.h
 tgtlibs_bldServerTest := pds/service
-tgtslib_bldServerTest := /usr/lib/rt
+tgtslib_bldServerTest := $(USRLIBDIR)/rt
 
-tgtsrcs_bldMonitor := bldMonitor.cc bldMonitor.hh
-tgtlibs_bldMonitor := $(commonlibs)
-tgtslib_bldMonitor := /usr/lib/rt
+tgtsrcs_bldMonitor := bldMonitor.cc bldMonitor.hh 
+tgtlibs_bldMonitor := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/tools
+tgtslib_bldMonitor := $(USRLIBDIR)/rt
 
 tgtsrcs_observertest := observertest.cc
 tgtlibs_observertest := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/tools
-tgtslib_observertest := /usr/lib/rt
+tgtslib_observertest := $(USRLIBDIR)/rt

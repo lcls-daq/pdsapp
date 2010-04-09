@@ -51,7 +51,7 @@ public:
 	    sprintf(ipbuff,"%d.%d.%d.%d/%05d",
 		    (ip>>24), (ip>>16)&0xff, (ip>>8)&0xff, ip&0xff, n.pid());
 	    printf("%*s%s     %03d      %02d/%7s", 
-		   21-strlen(ipbuff)," ",ipbuff, n.platform(), a.partitionid(), a.partition());
+		   int(21-strlen(ipbuff))," ",ipbuff, n.platform(), a.partitionid(), a.partition());
 	    for(unsigned m=0; m<a.nnodes(); m++) {
 	      const Node& p=*a.node(m);
 	      ip = p.ip();
