@@ -2,7 +2,7 @@
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr evrstandalone acq opal1k epicsArch rceProxy encoder bld princeton ipimb tm6740
+tgtnames    := evr evrstandalone evrsnoop acq opal1k epicsArch rceProxy encoder bld princeton ipimb tm6740
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
@@ -32,6 +32,13 @@ tgtlibs_evrstandalone := pdsdata/xtcdata pdsdata/evrdata
 tgtlibs_evrstandalone += evgr/evr evgr/evg 
 tgtlibs_evrstandalone += pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr 
 tgtslib_evrstandalone := /usr/lib/rt
+
+tgtsrcs_evrsnoop := evrsnoop.cc
+tgtincs_evrsnoop := evgr
+tgtlibs_evrsnoop := pdsdata/xtcdata pdsdata/evrdata
+tgtlibs_evrsnoop += evgr/evr evgr/evg 
+tgtlibs_evrsnoop += pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr 
+tgtslib_evrsnoop := /usr/lib/rt
 
 #ifeq ($(shell uname -m | egrep -c '(x86_|amd)64$$'),1)
 #ARCHCODE=64
