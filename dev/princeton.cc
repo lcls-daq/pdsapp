@@ -138,14 +138,13 @@ using namespace Pds;
 static void showUsage()
 {
     printf( "Usage:  princeton  [-v|--version] [-h|--help] [-d|--delay <0|1>]"
-      "[-l|--debug <level>] [-i|--id <id>] -e|--evrip <evr ip>  -p|--platform <platform id>\n" 
+      "[-l|--debug <level>] [-i|--id <id>] -p|--platform <platform id>\n" 
       "  Options:\n"
       "    -v|--version                 Show file version\n"
       "    -h|--help                    Show usage\n"
       "    -d|--delay    <0|1>          Use delay mode or not\n"
       "    -i|--id       <id>           Set id. Inout format: Detector/DetectorId/DeviceId\n"
       "    -l|--debug    <level>        Set debug level\n"
-      "    -e|--evrip    <evr ip>       [*required*] Set EVR ip address\n"
       "    -p|--platform <platform id>  [*required*] Set platform id\n"
     );
 }
@@ -168,7 +167,7 @@ void princetonSignalIntHandler( int iSignalNo )
 
 int main(int argc, char** argv) 
 {
-    const char*   strOptions    = ":vhdi:l:e:p:";
+    const char*   strOptions    = ":vhdi:l:p:";
     struct option loOptions[]   = 
     {
        {"ver",      0, 0, 'v'},
@@ -176,7 +175,6 @@ int main(int argc, char** argv)
        {"delay",    0, 0, 'd'},
        {"id",       1, 0, 'i'},
        {"debug",    1, 0, 'l'},
-       {"evrip",    1, 0, 'e'},       
        {"platform", 1, 0, 'p'},
        {0,          0, 0,  0  }
     };    
@@ -187,7 +185,6 @@ int main(int argc, char** argv)
     DetInfo::Detector detector      = DetInfo::NoDetector;
     int               iDetectorId   = 0;
     int               iDeviceId     = 0;
-    string            sEvrIp;
     int               iPlatform     = -1;
     
     int     iOptionIndex  = 0;
@@ -214,9 +211,6 @@ int main(int argc, char** argv)
             if ( *pNextToken == 0 ) break;
             iDeviceId   = strtoul(pNextToken, &pNextToken, 0);
             break;            
-        case 'e':
-            sEvrIp = optarg;
-            break;
         case 'p':
             iPlatform = strtoul(optarg, NULL, 0);
             break;
@@ -242,14 +236,7 @@ int main(int argc, char** argv)
         showUsage();
         return 1;
     }        
-
-    if ( sEvrIp == "" ) 
-    {   
-        printf( "princeton:main(): Please specify EVR IP in command line options\n" );
-        showUsage();
-        return 1;
-    }        
-    
+   
     /*
      * Register singal handler
      */
@@ -276,7 +263,7 @@ int main(int argc, char** argv)
     SegWireSettingsPrinceton settings(detInfo);
     
     EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, bDelayMode, iDebugLevel);
-    SegmentEventLevel       segEventlevel(sEvrIp.c_str(), iPlatform, settings, eventCallBackPrinceton, NULL);
+    SegmentEventLevel       segEventlevel(iPlatform, settings, eventCallBackPrinceton, NULL);
     //SegmentLevel segEventlevel(iPlatform, settings, EventCallBackPrinceton, NULL); // !! for debug
     
     segEventlevel.attach();    

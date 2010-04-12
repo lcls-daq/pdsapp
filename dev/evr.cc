@@ -45,14 +45,16 @@ namespace Pds {
   public:
     Seg(Task*                 task,
         unsigned              platform,
-  CfgClientNfs&         cfgService,
+        CfgClientNfs&         cfgService,
         SegWireSettings&      settings,
         Arp*                  arp,
-  char*                 evrdev) :
-      _task(task),
-      _platform(platform),
-      _cfg   (cfgService),
-      _evrdev(evrdev)
+        char*                 evrdev,
+        bool                  bTurnOffBeamCode ) :
+      _task             (task),
+      _platform         (platform),
+      _cfg              (cfgService),
+      _evrdev           (evrdev),
+      _bTurnOffBeamCode (bTurnOffBeamCode)
     {
     }
 
@@ -70,8 +72,7 @@ namespace Pds {
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(_evrdev);
-      EvrManager& evrmgr = *new EvrManager(erInfo,
-             _cfg);
+      EvrManager& evrmgr = *new EvrManager(erInfo, _cfg, _bTurnOffBeamCode);
       evrmgr.appliance().connect(frmk->inlet());
     }
     void failed(Reason reason)
@@ -100,10 +101,11 @@ namespace Pds {
     }
     
   private:
-    Task*              _task;
-    unsigned           _platform;
-    CfgClientNfs&      _cfg;
-    const char*        _evrdev;
+    Task*           _task;
+    unsigned        _platform;
+    CfgClientNfs&   _cfg;
+    const char*     _evrdev;
+    bool            _bTurnOffBeamCode;
   };
 }
 
@@ -112,17 +114,18 @@ using namespace Pds;
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  unsigned platform = -1UL;
-  Arp* arp = 0;
-  char* evrid=0;
+  unsigned  platform  = -1UL;
+  Arp*      arp       = 0;
+  char*     evrid     = 0;
 
   DetInfo::Detector det(DetInfo::NoDetector);
   unsigned detid(0), devid(0);
 
-  extern char* optarg;
   char* endPtr;
+  bool  bTurnOffBeamCode = false;
+  
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:r:d:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:r:d:n")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -142,6 +145,9 @@ int main(int argc, char** argv) {
       break;
     case 'd':
       EvrManager::drop_pulses(strtoul(optarg, NULL, 0));
+      break;
+    case 'n':
+      bTurnOffBeamCode = true;
       break;
     }
   }
@@ -178,7 +184,7 @@ int main(int argc, char** argv) {
   Task* task = new Task(Task::MakeThisATask);
   MySegWire settings(detInfo);
   Seg* seg = new Seg(task, platform, *cfgService,
-         settings, arp, evrdev);
+         settings, arp, evrdev, bTurnOffBeamCode);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 
