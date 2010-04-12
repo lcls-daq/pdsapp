@@ -37,11 +37,12 @@ class Pds_ConfigDb::EncoderConfig::Private_Data {
    int dataSize() const
       { return sizeof(EncoderConfigType); }
 
-   NumericInt<uint8_t> _chan_num;
-   Enumerated<uint8_t> _count_mode;
-   Enumerated<uint8_t> _quadrature_mode;
-   NumericInt<uint8_t> _input_num;
-   Enumerated<uint8_t> _input_rising;   
+   NumericInt<uint8_t>  _chan_num;
+   Enumerated<uint8_t>  _count_mode;
+   Enumerated<uint8_t>  _quadrature_mode;
+   NumericInt<uint8_t>  _input_num;
+   Enumerated<uint8_t>  _input_rising;   
+   NumericInt<uint32_t> _ticks_per_sec;
 };
 
 Pds_ConfigDb::EncoderConfig::Private_Data::Private_Data() 
@@ -49,7 +50,9 @@ Pds_ConfigDb::EncoderConfig::Private_Data::Private_Data()
      _count_mode("Counter Mode ", 0, PCI3E::count_mode_to_name ),
      _quadrature_mode("Quadrature Mode ", 0, PCI3E::quad_mode_to_name ),
      _input_num("Trigger Input Number ", 0, 0, 3),
-     _input_rising("Trigger on Rising Edge ", 1, Enums::Bool_Names )
+     _input_rising("Trigger on Rising Edge ", 1, Enums::Bool_Names ),
+     _ticks_per_sec("Timestamp ticks per second ",
+                    33000000, 32000000, 34000000)
 {}
 
 void Pds_ConfigDb::EncoderConfig::Private_Data::insert( Pds::LinkedList<Parameter>& pList )
@@ -59,6 +62,7 @@ void Pds_ConfigDb::EncoderConfig::Private_Data::insert( Pds::LinkedList<Paramete
    pList.insert( &_quadrature_mode );
    pList.insert( &_input_num );
    pList.insert( &_input_rising );
+   pList.insert( &_ticks_per_sec );
 }
 
 int Pds_ConfigDb::EncoderConfig::Private_Data::pull( void* from )
@@ -70,6 +74,7 @@ int Pds_ConfigDb::EncoderConfig::Private_Data::pull( void* from )
    _quadrature_mode.value = encoderConf._quadrature_mode;
    _input_num.value       = encoderConf._input_num;
    _input_rising.value    = encoderConf._input_rising;
+   _ticks_per_sec.value    = encoderConf._ticks_per_sec;
 
    return sizeof(EncoderConfigType);
 }
@@ -80,7 +85,8 @@ int Pds_ConfigDb::EncoderConfig::Private_Data::push(void* to)
                                _count_mode.value,
                                _quadrature_mode.value,
                                _input_num.value,
-                               _input_rising.value );
+                               _input_rising.value,
+                               _ticks_per_sec.value );
 
    return sizeof(EncoderConfigType);
 }
