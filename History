@@ -1,3 +1,5 @@
+2010-Apr-14 weaver	Added -g <grabberIndex> to dev/opal1k for multiple frame grabbers per CPU.
+			monshmserver now uses pdsdata/app/XtcMonitorServer for shared memory service.
 2010-Apr-06 weaver	Add classes to monobs for monitoring applications that use
 			EPICS channel access.
 2009-Dec-03 weaver  Tag V01-08-01.  Added derived event-builder in dev/bld to handle BLD.  Added

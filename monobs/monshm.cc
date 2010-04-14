@@ -26,27 +26,21 @@ public:
 
 class MyDatagram : public InDatagram {
 public:
-  MyDatagram(Dgram& dg) : _dg(reinterpret_cast<Datagram&>(dg)) {}
+  MyDatagram(Dgram& dg) : InDatagram(reinterpret_cast<Datagram&>(dg)) {}
   ~MyDatagram() {}
 public:
   void* operator new(size_t size, Pds::Pool* pool) { return pool->alloc(size); }
   void  operator delete(void* p) { Pds::RingPool::free(p); }
 public:
-  const Datagram& datagram() const { return _dg; }
-  Datagram& datagram() { return _dg; }
-
   bool insert(const Xtc& tc, const void* payload) { return false; }
 
   InDatagramIterator* iterator(Pool* pool) const 
-  { return new(pool) CDatagramIterator(_dg); }
+  { return new(pool) CDatagramIterator(*this); }
 
   int  send   (ToNetEb&, const Ins&) { return -1; }
   int  send   (ToEb&) { return -1; }
 
   TrafficDst* traffic(const Pds::Ins& ins) { return 0; }
-
-private:
-  Datagram& _dg;
 };
     
 class MyXtcMonitorClient : public XtcMonitorClient {

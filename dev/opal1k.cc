@@ -35,10 +35,11 @@ namespace Pds {
   public:
     SegTest(Task*                 task,
 	    unsigned              platform,
-	    const Src&            src) :
+	    const Src&            src,
+	    unsigned              grabberId) :
       _task    (task),
       _platform(platform),
-      _opal1k  (new Opal1kManager(src))
+      _opal1k  (new Opal1kManager(src, grabberId))
     {
       _sources.push_back(_opal1k->server().client());
     }
@@ -122,10 +123,12 @@ int main(int argc, char** argv) {
   DetInfo::Detector det(DetInfo::NoDetector);
   unsigned detid(0), devid(0);
 
+  unsigned grabberId(0);
+
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:v")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -137,6 +140,9 @@ int main(int argc, char** argv) {
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
+      break;
+    case 'g':
+      grabberId = strtoul(optarg, NULL, 0);
       break;
     case 'v':
       verbose = true;
@@ -179,7 +185,8 @@ int main(int argc, char** argv) {
 				 platform, 
 				 DetInfo(node.pid(), 
 					 det, detid, 
-					 DetInfo::Opal1000, devid));
+					 DetInfo::Opal1000, devid),
+				 grabberId);
 
   printf("Creating segment level ...\n");
   SegmentLevel* segment = new SegmentLevel(platform, 
