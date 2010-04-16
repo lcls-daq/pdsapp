@@ -36,7 +36,7 @@ void EvrStandAloneManager::configure() {
   //  pnCCD clear signal
   //
   {
-    int opcode=140;
+    int opcode=40;
     //   _er.SetFIFOEvent(ram, opcode, enable);
     int trig=0; 
     _er.SetPulseMap(ram, opcode, trig, -1, -1);

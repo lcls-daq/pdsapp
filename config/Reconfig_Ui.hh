@@ -9,6 +9,7 @@
 using std::string;
 
 class QListWidget;
+class QListWidgetItem;
 
 namespace Pds_ConfigDb {
 
@@ -27,7 +28,7 @@ namespace Pds_ConfigDb {
     void set_run_type(const QString&);
     void update_device_list();
     void update_component_list();
-    void change_component();
+    void change_component     ();
   private:
     Device* _device() const;
     const TableEntry* _device_entry() const;
