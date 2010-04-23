@@ -2,6 +2,7 @@
 
 #include "pds/config/FrameFexConfigType.hh"
 #include "pds/config/Opal1kConfigType.hh"
+#include "pds/config/FccdConfigType.hh"
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/ControlConfigType.hh"
@@ -26,6 +27,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case Evr        : type = &_evrConfigType;       break;
   case Acq        : type = &_acqConfigType;       break;
   case Opal1k     : type = &_opal1kConfigType;    break;
+  case Fccd       : type = &_fccdConfigType;      break;
   case TM6740     : type = &_tm6740ConfigType;    break;
   case FrameFex   : type = &_frameFexConfigType;  break;
   case pnCCD      : type = &_pnCCDConfigType;     break;
@@ -47,6 +49,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_ipimbConfigType);
   test(_encoderConfigType);
   test(_opal1kConfigType);
+  test(_fccdConfigType);
   test(_tm6740ConfigType);
   test(_pnCCDConfigType);
   test(_frameFexConfigType);
@@ -65,6 +68,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_ipimbConfigType);
   test(_encoderConfigType);
   test(_opal1kConfigType);
+  test(_fccdConfigType);
   test(_tm6740ConfigType);
   test(_pnCCDConfigType);
   test(_frameFexConfigType);

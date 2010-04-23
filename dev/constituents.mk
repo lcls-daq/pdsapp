@@ -2,7 +2,7 @@
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr evrstandalone evrsnoop acq opal1k epicsArch rceProxy encoder bld princeton ipimb tm6740
+tgtnames    := evr evrstandalone evrsnoop acq opal1k epicsArch rceProxy encoder bld princeton ipimb tm6740 fccd
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
@@ -51,16 +51,22 @@ leutron_libs += leutron/LvCamDat.34.${ARCHCODE}
 leutron_libs += leutron/LvSerialCommunication.34.${ARCHCODE}
 
 tgtsrcs_opal1k := opal1k.cc 
-tgtlibs_opal1k := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_opal1k := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
 tgtlibs_opal1k += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/camera pds/config
 tgtlibs_opal1k += $(leutron_libs)
 tgtincs_opal1k := leutron/include
 
 tgtsrcs_tm6740 := tm6740.cc 
-tgtlibs_tm6740 := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_tm6740 := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
 tgtlibs_tm6740 += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/camera pds/config
 tgtlibs_tm6740 += $(leutron_libs)
 tgtincs_tm6740 := leutron/include
+
+tgtsrcs_fccd := fccd.cc
+tgtlibs_fccd := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_fccd += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/camera pds/config
+tgtlibs_fccd += $(leutron_libs)
+tgtincs_fccd := leutron/include
 
 tgtsrcs_epicsArch := epicsArch.cc
 tgtlibs_epicsArch := pdsdata/xtcdata pdsdata/epics pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pds/epicsArch epics/ca epics/Com

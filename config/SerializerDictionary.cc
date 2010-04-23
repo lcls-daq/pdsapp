@@ -10,6 +10,7 @@
 #include "pdsapp/config/IpimbConfig.hh"
 #include "pdsapp/config/EncoderConfig.hh"
 #include "pdsapp/config/Opal1kConfig.hh"
+#include "pdsapp/config/FccdConfig.hh"
 #include "pdsapp/config/TM6740Config.hh"
 #include "pdsapp/config/pnCCDConfig.hh"
 #include "pdsapp/config/princetonConfig.hh"
@@ -21,6 +22,7 @@
 #include "pds/config/IpimbConfigType.hh"
 #include "pds/config/EncoderConfigType.hh"
 #include "pds/config/Opal1kConfigType.hh"
+#include "pds/config/FccdConfigType.hh"
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/pnCCDConfigType.hh"
 #include "pds/config/PrincetonConfigType.hh"
@@ -49,6 +51,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_acqConfigType       ,new AcqConfig);
   enroll(_evrConfigType       ,new EvrConfig);
   enroll(_opal1kConfigType    ,new Opal1kConfig);
+  enroll(_fccdConfigType      ,new FccdConfig);
   enroll(_tm6740ConfigType    ,new TM6740Config);  
   enroll(_pnCCDConfigType     ,new pnCCDConfig);
   enroll(_frameFexConfigType  ,new FrameFexConfig);
