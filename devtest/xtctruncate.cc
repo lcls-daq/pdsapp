@@ -50,8 +50,8 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
-  FILE* file = fopen(xtcname,"r");
-  if (!file) {
+  int fd = open(xtcname,O_RDONLY | O_LARGEFILE);
+  if (fd < 0) {
     char s[120];
     sprintf(s, "Unable to open XTC file %s ", xtcname);
     perror(s);
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
     exit(2);
   }
 
-  XtcFileIterator iter(file,0x900000);
+  XtcFileIterator iter(fd,0x900000);
   Dgram* indg;
   while ((indg = iter.next()) && (count < numb)) {
     printf("%s transition: time 0x%x/0x%x, payloadSize %d\n",TransitionId::name(indg->seq.service()),
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
     fwrite((char*)indg,sizeof(Dgram)+indg->xtc.sizeofPayload(),1,outFile);
     count++;
   }
-  fclose(file);
+  close(fd);
   fclose(outFile);
   printf("\nWrote %d Datagrams to %s\n", count, outFilename);
   return 0;

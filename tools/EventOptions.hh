@@ -6,6 +6,7 @@
 namespace Pds {
 class EventOptions {
 public:
+  EventOptions();
   EventOptions(int argc, char** argv);
 
   int validate(const char*) const;

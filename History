@@ -1,3 +1,7 @@
+2010-Apr-27 weaver	Added Evr scanning (trigger delay) to control_gui.  Disabled calibration cycle
+			editing in config/control gui.  Added tools/ParasiticRecorder,eventp to record
+			events to disk (as an observer) for fast disk-based analysis.  Encapsulated
+			DAQ python classes in DaqScan.py module.
 2010-Apr-14 weaver	Added -g <grabberIndex> to dev/opal1k for multiple frame grabbers per CPU.
 			monshmserver now uses pdsdata/app/XtcMonitorServer for shared memory service.
 2010-Apr-06 weaver	Add classes to monobs for monitoring applications that use

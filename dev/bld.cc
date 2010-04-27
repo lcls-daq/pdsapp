@@ -364,34 +364,28 @@ namespace Pds {
       //  add segment level EVR
       unsigned partition = alloc.partitionid();
       unsigned nnodes   = alloc.nnodes();
-      unsigned vectorid = 0;
+      InletWire & inlet = *_streams->wire(StreamParams::FrameWork);
+
       for (unsigned n = 0; n < nnodes; n++) {
 	const Node & node = *alloc.node(n);
-	if (node.level() == Level::Event) {
-	  Ins ins = StreamPorts::event(partition,
-				       Level::Event,
-				       vectorid,
-				       0);
-                 
-	  if (vectorid == 0) {
-	    Ins srvIns(ins.portId());
-	    _evrServer =
-	      new NullServer(srvIns,
-			     node.procInfo(),
-			     sizeof(Pds::EvrData::DataV3)+256*sizeof(Pds::EvrData::DataV3::FIFOEvent),
-			     NetBufferDepth);
-	    _streams->wire(StreamParams::FrameWork)->add_input(_evrServer);
-	  }
+	if (node.level() == Level::Segment) {
+	  Ins ins = StreamPorts::event(partition, Level::Observer, 0, 0);
+	  _evrServer =
+	    new NullServer(ins,
+			   header().procInfo(),
+			   sizeof(Pds::EvrData::DataV3)+256*sizeof(Pds::EvrData::DataV3::FIFOEvent),
+			   NetBufferDepth);
 
 	  Ins mcastIns(ins.address());
 	  _evrServer->server().join(mcastIns, Ins(header().ip()));
-      
-	  printf( "BldSegmentLevel::allocated(): dst id %d  mcastIns addr %x port %d\n", vectorid, mcastIns.address(), ins.portId() ); // !! for debug only
-      
-	  vectorid++;
+
+	  inlet.add_input(_evrServer);
+	  break;
 	}
       }
-      vectorid = 0;
+
+      unsigned vectorid = 0;
+
       for (unsigned n = 0; n < nnodes; n++) {
 	const Node & node = *alloc.node(n);
 	if (node.level() == Level::Event) {
@@ -401,7 +395,7 @@ namespace Pds {
 				       vectorid,
 				       index);
 	  InletWireIns wireIns(vectorid, ins);
-	  _streams->wire(StreamParams::FrameWork)->add_output(wireIns);
+	  inlet.add_output(wireIns);
 	  printf("SegmentLevel::allocated adding output %d to %x/%d\n",
 		 vectorid, ins.address(), ins.portId());
 	  vectorid++;

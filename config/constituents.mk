@@ -12,6 +12,8 @@ libsrcs_configdb := Path.cc \
         Experiment.cc \
         PdsDefs.cc
 libsrcs_configdb += ControlScan.cc ControlScan_moc.cc
+libsrcs_configdb += PvScan.cc PvScan_moc.cc
+libsrcs_configdb += EvrScan.cc EvrScan_moc.cc
 libsrcs_configdb += Reconfig_Ui.cc Reconfig_Ui_moc.cc
 libsrcs_configdb += Dialog.cc     Dialog_moc.cc 
 libsrcs_configdb += SubDialog.cc    SubDialog_moc.cc 

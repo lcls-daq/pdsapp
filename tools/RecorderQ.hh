@@ -13,7 +13,8 @@ namespace Pds {
 
   class RecorderQ : public Recorder {
   public:
-    RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize);
+    RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, 
+	      bool dont_queue=false);
     ~RecorderQ() {}
   public:
     InDatagram* events     (InDatagram* in);
@@ -21,6 +22,8 @@ namespace Pds {
   private:
     Task*      _task;
     Semaphore  _sem;
+    bool       _dont_queue;  // queue depth is one
+    bool       _busy;
     MonEntryTH1F* _rec_time;
   };
 

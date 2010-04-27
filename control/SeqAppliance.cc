@@ -66,6 +66,10 @@ Transition* SeqAppliance::transitions(Transition* tr)
       _cur_config = reinterpret_cast<ControlConfigType*>(_config_buffer);
       _end_config = _cur_config->size() >= unsigned(len) ? 
 	0 : _config_buffer + len;
+      if (len > 0) 
+	printf("SeqAppliance configure tc %p (0x%x)  len 0x%x\n",
+	       _cur_config, _cur_config->size(), len);
+
       _configtc.extent = sizeof(Xtc) + _cur_config->size();
       _control.set_transition_payload(TransitionId::Configure,&_configtc,_cur_config);
     }
@@ -119,10 +123,14 @@ InDatagram* SeqAppliance::events     (InDatagram* dg)
       char* nxt_config = reinterpret_cast<char*>(_cur_config)+len;
       if (nxt_config < _end_config) {
 	_cur_config = reinterpret_cast<ControlConfigType*>(nxt_config);
+	printf("SeqAppliance endcalib tc %p  done %c\n",
+	       _cur_config, _done ? 't':'f');
 	if (_done) _control.set_target_state(PartitionControl::Enabled);
       }
       else {
 	_cur_config = reinterpret_cast<ControlConfigType*>(_config_buffer);
+	printf("SeqAppliance endcalib stop at tc %p  done %c\n",
+	       _cur_config, _done ? 't':'f');
 	if (_done) _control.set_target_state(PartitionControl::Unmapped);
       }
       _configtc.extent = sizeof(Xtc) + _cur_config->size();

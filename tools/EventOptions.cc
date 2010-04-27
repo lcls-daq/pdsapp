@@ -11,6 +11,17 @@ using namespace Pds;
 const unsigned DefaultBufferSize = 0x100000;
 const uint64_t DefaultChunkSize = ULLONG_MAX;
 
+EventOptions::EventOptions() :
+  platform((unsigned)-1),
+  sliceID(0),
+  buffersize(DefaultBufferSize),
+  arpsuidprocess(0),
+  outfile(0),
+  mode(Counter),
+  chunkSize(DefaultChunkSize)
+{
+}
+
 EventOptions::EventOptions(int argc, char** argv) :
   platform((unsigned)-1),
   sliceID(0),

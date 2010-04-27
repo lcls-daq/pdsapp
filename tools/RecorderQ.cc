@@ -38,10 +38,11 @@ namespace Pds {
 
 using namespace Pds;
 
-RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize) :
+RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, bool dont_queue) :
   Recorder(fname, sliceID, chunkSize),
   _task(new Task(TaskObject("RecEvt"))),
-  _sem (Semaphore::EMPTY)
+  _sem (Semaphore::EMPTY),
+  _dont_queue(dont_queue)
 {
   MonGroup* group = new MonGroup("RecQ");
   VmonServerManager::instance()->cds().add(group);
@@ -58,6 +59,9 @@ RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize
 InDatagram* RecorderQ::events(InDatagram* in) 
 {
   if (in->datagram().seq.service()==TransitionId::L1Accept) {
+    if (_busy)
+      return in;
+    _busy = _dont_queue;
     _task->call(new QueuedAction(in,*this));
   }
   else {
@@ -71,4 +75,5 @@ void RecorderQ::record_time(unsigned t, const ClockTime& now)
 {
   _rec_time->addcontent(1., log10f(double(t)));
   _rec_time->time(now);
+  _busy = false;
 }

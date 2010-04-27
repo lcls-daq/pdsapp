@@ -4,13 +4,17 @@ CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
 libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc
 
-tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor
+tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 
 tgtsrcs_event := event.cc
 tgtlibs_event := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/tools
 tgtslib_event := $(USRLIBDIR)/rt
+
+tgtsrcs_eventp := eventp.cc ParasiticRecorder.cc
+tgtlibs_eventp := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/tools
+tgtslib_eventp := $(USRLIBDIR)/rt
 
 tgtsrcs_segtest := segtest.cc
 tgtlibs_segtest := $(commonlibs)

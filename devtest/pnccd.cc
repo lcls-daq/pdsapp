@@ -137,8 +137,8 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
-  FILE* file = fopen(xtcname,"r");
-  if (!file) {
+  int fd = ::open(xtcname, O_RDONLY | O_LARGEFILE);
+  if (fd < 0) {
     char s[120];
     sprintf(s, "Unable to open XTC file %s ", xtcname);
     perror(s);
@@ -171,7 +171,7 @@ int main(int argc, char* argv[]) {
 
   GenericPool* pool = new GenericPool(0x400000,1);
 
-  XtcFileIterator iter(file,0x400000);
+  XtcFileIterator iter(fd,0x400000);
   Dgram* indg;
   while ((indg = iter.next())) {
     //printf("%s transition: time 0x%x/0x%x, payloadSize %d\n",TransitionId::name(indg->seq.service()),
@@ -192,7 +192,7 @@ int main(int argc, char* argv[]) {
     }
   }
   printf("\n");
-  fclose(file);
+  close(fd);
   fclose(outFile);
   close(Filedes);
   return 0;

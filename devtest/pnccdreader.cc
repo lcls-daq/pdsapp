@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
@@ -117,13 +118,13 @@ int main(int argc, char* argv[]) {
     exit(2);
   }
 
-  FILE* file = fopen(xtcname,"r");
-  if (!file) {
+  int fd = open(xtcname,O_RDONLY | O_LARGEFILE);
+  if (fd < 0) {
     perror("Unable to open file %s\n");
     exit(2);
   }
 
-  XtcFileIterator iter(file,0x900000);
+  XtcFileIterator iter(fd,0x900000);
   Dgram* dg;
   while ((dg = iter.next())) {
     myLevelIter iter(&(dg->xtc),0);
@@ -132,6 +133,6 @@ int main(int argc, char* argv[]) {
   }
   printf("Frames analyzed: %d, errors: %d\n",cpoframes, cpoframeerrors);
 
-  fclose(file);
+  close(fd);
   return 0;
 }

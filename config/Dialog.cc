@@ -13,6 +13,8 @@
 #include <libgen.h>
 #include <errno.h>
 
+//#define EDIT_CYCLES
+
 namespace Pds_ConfigDb {
 
   class Cycle {
@@ -106,6 +108,7 @@ void Dialog::layout()
     calibGroup->setLayout(layout1);
     layout->addWidget(calibGroup); }
 
+#ifdef EDIT_CYCLES
   if (Parameter::allowEdit()) {
     connect(bInsertCycle, SIGNAL(clicked()), this, SLOT(insert_cycle()));
     connect(bRemoveCycle, SIGNAL(clicked()), this, SLOT(remove_cycle()));
@@ -115,6 +118,10 @@ void Dialog::layout()
     bRemoveCycle->setEnabled(false);
   }
   connect(_cycleBox, SIGNAL(activated(int)), this, SLOT(set_cycle(int)));
+#else
+  bInsertCycle->setEnabled(false);
+  bRemoveCycle->setEnabled(false);
+#endif
 
   _s.initialize(this, layout);
 
@@ -128,8 +135,13 @@ void Dialog::layout()
   blayout->addWidget(bWrite);
   blayout->addWidget(bReturn);
   if (Parameter::allowEdit()) {
+#ifdef EDIT_CYCLES
     bReplace->setEnabled(true);
     bAppend ->setEnabled(true);
+#else
+    bReplace->setEnabled(false);
+    bAppend ->setEnabled(false);
+#endif
     bWrite  ->setEnabled(true);
     connect(bReplace, SIGNAL(clicked()), this, SLOT(replace ()));
     connect(bAppend , SIGNAL(clicked()), this, SLOT(append  ()));
