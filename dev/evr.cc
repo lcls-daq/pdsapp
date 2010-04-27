@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
       return 0;
     }
   }
-
+  
   char evrdev[16];
   sprintf(evrdev,"/dev/er%c3",*evrid);
   printf("Using evr %s\n",evrdev);
