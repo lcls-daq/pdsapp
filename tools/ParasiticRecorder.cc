@@ -14,7 +14,44 @@
 #include <glob.h>
 
 namespace Pds {
-  class OfflineProxy : public Appliance, public Routine {
+  class CleanupRoutine : public Routine {
+  public:
+    CleanupRoutine(const char* path,
+		   unsigned    lifetime_sec) :
+      _path        (path),
+      _lifetime_sec(lifetime_sec) {}
+  public:
+    void routine() 
+    { 
+      char pathname[128];
+      sprintf(pathname,"%s/e0/*.xtc*",_path);
+      glob_t g;
+      glob(pathname,0,0,&g);
+      printf("Found %d files in path %s\n",g.gl_pathc,pathname);
+      time_t now = time(0);
+      for(unsigned i=0; i<g.gl_pathc; i++) {
+	struct stat s;
+	if (!stat(g.gl_pathv[i],&s)) {
+	  if (S_ISREG(s.st_mode) && (s.st_mtime + _lifetime_sec < now)) {
+	    printf("Removing %s : expired %lu (%lu)\n",
+		   g.gl_pathv[i],s.st_mtime + _lifetime_sec,now);
+	    unlink(g.gl_pathv[i]);
+	  }
+	  else {
+	    printf("Retaining %s : expires %lu (%lu)\n",
+		   g.gl_pathv[i],s.st_mtime + _lifetime_sec,now);
+	  }
+	}
+      }
+      globfree(&g);
+      delete this;
+    }
+  private:
+    const char* _path;
+    unsigned    _lifetime_sec;
+  };
+
+  class OfflineProxy : public Appliance {
   public:
     OfflineProxy(Task*       task,
 		 const char* path,
@@ -24,28 +61,10 @@ namespace Pds {
       _path        (path),
       _lifetime_sec(lifetime_sec) {}
   public:
-    void routine() 
-    { 
-      char pathname[128];
-      sprintf(pathname,"%s/*.xtc*",_path);
-      glob_t g;
-      glob(pathname,0,0,&g);
-      time_t now = time_t(0);
-      for(unsigned i=0; i<g.gl_pathc; i++) {
-	struct stat s;
-	if (!stat(g.gl_pathv[i],&s)) {
-	  if (S_ISREG(s.st_mode) && (s.st_mtime + _lifetime_sec < now)) {
-	    printf("Removing %s\n",g.gl_pathv[i]);
-	    unlink(g.gl_pathv[i]);
-	  }
-	}
-      }
-    }
-  public:
     Transition* transitions(Transition* tr) 
     {
       if (tr->id()==TransitionId::BeginRun) {
-	_task->call(this); 
+	_task->call(new CleanupRoutine(_path,_lifetime_sec)); 
 	timespec tp;
 	clock_gettime(CLOCK_REALTIME, &tp);
 	return new(&_pool) RunInfo(tp.tv_sec,0);
