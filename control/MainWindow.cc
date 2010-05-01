@@ -281,18 +281,10 @@ void MainWindow::transition_damaged(const InDatagram& dg)
 
 void MainWindow::platform_error()
 {
-  /*
-  **  No automatic method for restarting the source level
-  **
-  _log->appendText("Platform failed.\n  Restarting \"source\" application.\n");
-  system("restart_source");
-  _log->appendText("Attaching ...\n");
-  //  _control->detach();
-  _control->attach();
-  */
-  QString msg("Partition failed.  Need to restart \"source\" application.");
+  QString msg("Partition failed.  Need to restart.");
   _log->appendText(msg);
   QMessageBox::critical(this, "Platform Error", msg);
+  close();
 }
 
 void MainWindow::handle_failed_transition(const QString& msg, bool critical)

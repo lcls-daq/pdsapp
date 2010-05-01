@@ -91,7 +91,7 @@ ShmClient::ShmClient(int argc, char* argv[]) :
       rate = strtod(optarg,NULL);
       break;
     default:
-      usage(argv[0]);
+      break;
     }
   }
 
@@ -113,7 +113,7 @@ ShmClient::~ShmClient()
     delete (*it);
 }
 
-int ShmClient::start() { return run(_partitionTag,_index); }
+int ShmClient::start() { return run(_partitionTag,_index,_index); }
 
 void ShmClient::insert(Handler* a) 
 {

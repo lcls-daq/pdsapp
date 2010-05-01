@@ -16,8 +16,10 @@ using namespace PdsCas;
 //   and replace nelm writer with a monitor.
 //
 
-SxrSpectrum::SxrSpectrum(const char* pvName) :
-  Handler   (Pds::DetInfo(-1, Pds::DetInfo::Camp, 0, Pds::DetInfo::Opal1000, 0),
+SxrSpectrum::SxrSpectrum(const char* pvName, unsigned info) :
+  Handler   (Pds::DetInfo(-1, 
+			  // Pds::DetInfo::Camp, 0, Pds::DetInfo::Opal1000, 0),
+			  (info>>24)&0xff, (info>>16)&0xff, (info>>8)&0xff, info&0xff),
 	     Pds::TypeId::Id_Frame,
 	     Pds::TypeId::Id_Opal1kConfig),
   _pvName   (pvName),
@@ -29,21 +31,21 @@ SxrSpectrum::SxrSpectrum(const char* pvName) :
 void SxrSpectrum::initialize()
 {
   char buff[64];
-  sprintf(buff,"%s:hist",_pvName);
+  sprintf(buff,"%s:HIST",_pvName);
   _valu_writer = new PVWriter(buff);
-  sprintf(buff,"%s:enrg",_pvName);
+  sprintf(buff,"%s:ENRG",_pvName);
   _rang_writer = new PVWriter(buff);
-  sprintf(buff,"%s:cntl.A",_pvName);
+  sprintf(buff,"%s:CNTL.A",_pvName);
   _xlo_mon = new PVMonitor(buff,*this);
-  sprintf(buff,"%s:cntl.B",_pvName);
+  sprintf(buff,"%s:CNTL.B",_pvName);
   _xhi_mon = new PVMonitor(buff,*this);
-  sprintf(buff,"%s:cntl.C",_pvName);
+  sprintf(buff,"%s:CNTL.C",_pvName);
   _ylo_mon = new PVMonitor(buff,*this);
-  sprintf(buff,"%s:cntl.D",_pvName);
+  sprintf(buff,"%s:CNTL.D",_pvName);
   _yhi_mon = new PVMonitor(buff,*this);
-  sprintf(buff,"%s:cntl.E",_pvName);
+  sprintf(buff,"%s:CNTL.E",_pvName);
   _dedy_mon = new PVMonitor(buff,*this);
-  sprintf(buff,"%s:cntl.F",_pvName);
+  sprintf(buff,"%s:CNTL.F",_pvName);
   _e0_mon   = new PVMonitor(buff,*this);
 }
 
