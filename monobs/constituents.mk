@@ -32,7 +32,7 @@ tgtincs_offlineobs += epics/include epics/include/os/Linux
 
 tgtsrcs_common := Handler.cc ShmClient.cc EpicsCA.cc 
 tgtsrcs_sxrmon := sxrmon.cc SxrSpectrum.cc $(tgtsrcs_common)
-tgtlibs_sxrmon := pdsdata/xtcdata pdsdata/opal1kdata
+tgtlibs_sxrmon := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/appdata
 tgtlibs_sxrmon += pds/service
 tgtlibs_sxrmon += epics/ca epics/Com
 tgtslib_sxrmon := $(USRLIBDIR)/rt

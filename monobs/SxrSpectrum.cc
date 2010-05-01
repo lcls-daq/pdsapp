@@ -19,7 +19,8 @@ using namespace PdsCas;
 SxrSpectrum::SxrSpectrum(const char* pvName, unsigned info) :
   Handler   (Pds::DetInfo(-1, 
 			  // Pds::DetInfo::Camp, 0, Pds::DetInfo::Opal1000, 0),
-			  (info>>24)&0xff, (info>>16)&0xff, (info>>8)&0xff, info&0xff),
+			  Pds::DetInfo::Detector((info>>24)&0xff), (info>>16)&0xff, 
+			  Pds::DetInfo::Device  ((info>> 8)&0xff), info&0xff),
 	     Pds::TypeId::Id_Frame,
 	     Pds::TypeId::Id_Opal1kConfig),
   _pvName   (pvName),

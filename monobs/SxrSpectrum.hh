@@ -11,7 +11,8 @@ namespace PdsCas {
   class SxrSpectrum : public Handler,
 		      public PVMonitorCb {
   public:
-    SxrSpectrum(const char* pvName);
+    SxrSpectrum(const char* pvName,
+		unsigned    detinfo);
     ~SxrSpectrum();
   public:
     virtual void   _configure(const void* payload, const Pds::ClockTime& t);

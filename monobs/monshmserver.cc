@@ -27,10 +27,11 @@ using namespace Pds;
 class LiveMonitorServer : public Appliance,
 			  public XtcMonitorServer {
 public:
-  LiveMonitorServer(unsigned sizeofBuffers, 
+  LiveMonitorServer(const char* tag,
+		    unsigned sizeofBuffers, 
 		    int numberofEvBuffers, 
 		    unsigned numberofClients) : 
-    XtcMonitorServer(sizeofBuffers, numberofEvBuffers, numberofClients),
+    XtcMonitorServer(tag, sizeofBuffers, numberofEvBuffers, numberofClients),
     _pool           (new GenericPool(sizeof(ZcpDatagramIterator),2))
   {
   }
@@ -183,8 +184,7 @@ int main(int argc, char** argv) {
   printf("\nPartition Tag:%s\n", partitionTag);
 
 
-  apps = new LiveMonitorServer(sizeOfBuffers, numberOfBuffers, nclients);
-  apps->init(partitionTag);
+  apps = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nclients);
   
   Task* task = new Task(Task::MakeThisATask);
   MyCallback* display = new MyCallback(task, 
