@@ -107,7 +107,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> -c <# clients> [-u <uniqueID>]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c <# clients>] [-u <uniqueID>]\n", progname);
 }
 
 LiveMonitorServer* apps;
