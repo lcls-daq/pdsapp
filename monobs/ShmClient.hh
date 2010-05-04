@@ -16,6 +16,9 @@ namespace PdsCas {
     ShmClient(int argc, char* argv[]);
     ~ShmClient();
   public:
+    bool valid() const;
+    static const char* options();
+  public:
     void insert(Handler*);
     int  start ();
   public:

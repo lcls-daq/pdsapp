@@ -62,10 +62,6 @@ namespace PdsCas {
   };
 };
 
-void usage(char* progname) {
-  fprintf(stderr,"Usage: %s [-p <partitionTag>] [-h]\n", progname);
-}
-
 using namespace PdsCas;
 
 ShmClient::ShmClient(int argc, char* argv[]) : 
@@ -75,12 +71,8 @@ ShmClient::ShmClient(int argc, char* argv[]) :
   int c;
   double rate = 1.;
 
-  while ((c = getopt(argc, argv, "?hi:p:r:")) != -1) {
+  while ((c = getopt(argc, argv, "i:p:r:")) != -1) {
     switch (c) {
-    case '?':
-    case 'h':
-      usage(argv[0]);
-      exit(0);
     case 'i':
       _index = strtoul(optarg,NULL,0);
       break;
@@ -93,11 +85,6 @@ ShmClient::ShmClient(int argc, char* argv[]) :
     default:
       break;
     }
-  }
-
-  if (!_partitionTag) {
-    usage(argv[0]);
-    exit(0);
   }
 
   _timer = new MyTimer(unsigned(1000/rate),*this);
@@ -171,3 +158,10 @@ void ShmClient::update()
   for(HList::iterator it = _handlers.begin(); it != _handlers.end(); it++)
     (*it)->update_pv();
 }
+
+bool ShmClient::valid() const { return _partitionTag!=0; }
+
+const char* ShmClient::options() {
+  return "[-p <partitionTag>] [-i clientID] [-h]";
+}
+
