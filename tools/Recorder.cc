@@ -288,7 +288,9 @@ int Recorder::_openOutputFile(bool verbose) {
   sprintf(_fnamerunning,"%s.inprogress",_fname);
   _f=fopen(_fnamerunning,"wx"); // x: if the file already exists, fopen() fails
   if (_f) {
-    rv = 0;         // return 0 for success
+    //    rv = 0;
+    //  Set disk buffering as a multiple of RAID stripe size (256kB)
+    rv = setvbuf(_f, NULL, _IOFBF, 4*1024*1024);
     if (verbose) {
       printf("Opened %s\n",_fnamerunning);
     }
