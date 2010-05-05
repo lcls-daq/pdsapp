@@ -14,7 +14,7 @@ namespace Pds {
       _payload(dg.xtc.sizeofPayload())
     {
       datagram().xtc.alloc(sizeof(_payload));
-      datagram().xtc.damage.increase(dg.xtc.damage.value());
+      datagram().xtc.damage.increase(dg.xtc.damage.value()&~(1<<Damage::UserDefined));
     }
     ~SummaryDg() {}
   public:
@@ -57,7 +57,7 @@ int DgSummary::process(const Xtc& xtc, InDatagramIterator* iter)
 {
   int advance = 0;
 
-  if (xtc.damage.value()!=0 && xtc.src.level() == Level::Segment)
+  if ((xtc.damage.value()&~(1<<Damage::UserDefined))!=0 && xtc.src.level() == Level::Segment)
     _out->append(static_cast<const ProcInfo&>(xtc.src));
   else if (xtc.src.level() == Level::Source)
     advance = -1;
