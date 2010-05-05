@@ -1,9 +1,12 @@
 #include "pdsapp/config/pnCCDConfig.hh"
 
 #include "pdsapp/config/Parameters.hh"
-#include "pds/config/pnCCDConfigType.hh"
+//#include "pds/config/pnCCDConfigType.hh"
+#include "pdsdata/pnCCD/ConfigV1.hh"
 
 #include <new>
+
+typedef Pds::PNCCD::ConfigV1 pnCCDConfigType;
 
 namespace Pds_ConfigDb {
 
