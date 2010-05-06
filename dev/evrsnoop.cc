@@ -35,32 +35,34 @@ void EvrStandAloneManager::stop() {
 
 void EvrStandAloneManager::configure() {
   printf("Configuring evr\n");
-  _er.Reset();
+  //_er.Reset();
 
-  int pulse = 0; int presc = 1; int enable = 1;
-  int polarity=0;  int map_reset_ena=0; int map_set_ena=0; int map_trigger_ena=1;
-  _er.SetPulseProperties(pulse, polarity, map_reset_ena, map_set_ena, map_trigger_ena,
-                           enable);
-  const double tickspersec = 119.0e6;
+  //int pulse = 0; int presc = 1; int enable = 1;
+  //int polarity=0;  int map_reset_ena=0; int map_set_ena=0; int map_trigger_ena=1;
+  //_er.SetPulseProperties(pulse, polarity, map_reset_ena, map_set_ena, map_trigger_ena,
+  //                         enable);
+  //const double tickspersec = 119.0e6;
 
-  int delay=(int)(0.0*tickspersec);
-  int width=(int)(100.e-6*tickspersec);
-  _er.SetPulseParams(pulse,presc,delay,width);
+  //int delay=(int)(0.0*tickspersec);
+  //int width=(int)(100.e-6*tickspersec);
+  //_er.SetPulseParams(pulse,presc,delay,width);
 
-  _er.SetUnivOutMap( 8, pulse);
-  _er.SetUnivOutMap( 9, pulse);
+  //_er.SetUnivOutMap( 8, pulse);
+  //_er.SetUnivOutMap( 9, pulse);
 
   int ram=0;   
+  
   for ( int opcode=0; opcode<=255; opcode++ )
   {
     if ( pOpcodes[opcode] == 0 )
       continue;
       
+    int enable = 1;
     _er.SetFIFOEvent(ram, opcode, enable);
-    int trig=0; int set=-1; int clear=-1;
-    _er.SetPulseMap(ram, opcode, trig, set, clear);
+    //int trig=0; int set=-1; int clear=-1;
+    //_er.SetPulseMap(ram, opcode, trig, set, clear);
   }
-  
+      
   // setup map ram
   _er.MapRamEnable(ram,0);
   
@@ -87,13 +89,14 @@ extern "C" {
 }
 
 EvrStandAloneManager::EvrStandAloneManager(EvgrBoardInfo<Evr> &erInfo, char opcodes[]) :
-  _er(erInfo.board()), pOpcodes(opcodes) {
-
+  _er(erInfo.board()), pOpcodes(opcodes)
+{
   configure();
-  start();
 
-  _er.IrqAssignHandler(erInfo.filedes(), &evrsa_sig_handler);
   erInfoGlobal = &erInfo;
+  _er.IrqAssignHandler(erInfo.filedes(), &evrsa_sig_handler);
+  
+  start();  
 }
 
 static EvrStandAloneManager*  pEvrStandAloneManager = NULL;
@@ -103,8 +106,8 @@ void evrStandAloneSignalHandler( int iSignalNo )
 {
   printf( "\nevrStandAloneSignalHandler(): signal %d received.\n", iSignalNo );  
   
-  if ( pEvrStandAloneManager ) 
-    pEvrStandAloneManager->stop();
+  //if ( pEvrStandAloneManager ) 
+  //  pEvrStandAloneManager->stop();
     
   bProgramStop = true;
 }

@@ -49,12 +49,12 @@ namespace Pds {
         SegWireSettings&      settings,
         Arp*                  arp,
         char*                 evrdev,
-        bool                  bTurnOffBeamCode ) :
+        bool                  bTurnOffBeamCodes ) :
       _task             (task),
       _platform         (platform),
       _cfg              (cfgService),
       _evrdev           (evrdev),
-      _bTurnOffBeamCode (bTurnOffBeamCode)
+      _bTurnOffBeamCodes (bTurnOffBeamCodes)
     {
     }
 
@@ -72,7 +72,7 @@ namespace Pds {
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(_evrdev);
-      EvrManager& evrmgr = *new EvrManager(erInfo, _cfg, _bTurnOffBeamCode);
+      EvrManager& evrmgr = *new EvrManager(erInfo, _cfg, _bTurnOffBeamCodes);
       evrmgr.appliance().connect(frmk->inlet());
     }
     void failed(Reason reason)
@@ -105,7 +105,7 @@ namespace Pds {
     unsigned        _platform;
     CfgClientNfs&   _cfg;
     const char*     _evrdev;
-    bool            _bTurnOffBeamCode;
+    bool            _bTurnOffBeamCodes;
   };
 }
 
@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
   unsigned detid(0), devid(0);
 
   char* endPtr;
-  bool  bTurnOffBeamCode = false;
+  bool  bTurnOffBeamCodes = false;
   
   int c;
   while ( (c=getopt( argc, argv, "a:i:p:r:d:n")) != EOF ) {
@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
       EvrManager::drop_pulses(strtoul(optarg, NULL, 0));
       break;
     case 'n':
-      bTurnOffBeamCode = true;
+      bTurnOffBeamCodes = true;
       break;
     }
   }
@@ -184,7 +184,7 @@ int main(int argc, char** argv) {
   Task* task = new Task(Task::MakeThisATask);
   MySegWire settings(detInfo);
   Seg* seg = new Seg(task, platform, *cfgService,
-         settings, arp, evrdev, bTurnOffBeamCode);
+         settings, arp, evrdev, bTurnOffBeamCodes);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 
