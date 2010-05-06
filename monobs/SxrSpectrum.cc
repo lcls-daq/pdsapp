@@ -25,7 +25,8 @@ SxrSpectrum::SxrSpectrum(const char* pvName, unsigned info) :
 	     Pds::TypeId::Id_Opal1kConfig),
   _pvName   (pvName),
   _nev      (0),
-  _sem      (Semaphore::FULL)
+  _sem      (Semaphore::FULL),
+  _initialized(false)
 {
 }
 
@@ -48,6 +49,10 @@ void SxrSpectrum::initialize()
   _dedy_mon = new PVMonitor(buff,*this);
   sprintf(buff,"%s:CNTL.F",_pvName);
   _e0_mon   = new PVMonitor(buff,*this);
+  sprintf(buff,"%s:CNTL.G",_pvName);
+  _y0_mon   = new PVMonitor(buff,*this);
+
+  _initialized = true;
 }
 
 SxrSpectrum::~SxrSpectrum()
@@ -60,10 +65,13 @@ SxrSpectrum::~SxrSpectrum()
   delete _yhi_mon;
   delete _dedy_mon;
   delete _e0_mon;
+  delete _y0_mon;
 }
 
 void   SxrSpectrum::updated()
 {
+  if (!_initialized) return;
+
   unsigned nb = _valu_writer->data_size()/sizeof(double)-2;
   printf("Resetting spectrum of size %d\n", nb);
   { 
@@ -74,12 +82,14 @@ void   SxrSpectrum::updated()
   { 
     double* v    =  reinterpret_cast<double*>(_rang_writer->data());
     double  ylo  = *reinterpret_cast<double*>(_ylo_mon->data());
+    double  y0   = *reinterpret_cast<double*>(_y0_mon->data());
     double  e0   = *reinterpret_cast<double*>(_e0_mon->data());
     double  dedy = *reinterpret_cast<double*>(_dedy_mon->data());
-    e0 += ylo * dedy;
+
+    double e = (ylo - y0)*dedy + e0;
     for(unsigned y=0; y<nb; y++) {
-      *v++ = e0;
-      e0  += dedy;
+      *v++ = e;
+      e   += dedy;
     }
   }
   _rang_writer->put();
@@ -93,6 +103,8 @@ void   SxrSpectrum::_configure(const void* payload, const Pds::ClockTime& t)
 
 void   SxrSpectrum::_event    (const void* payload, const Pds::ClockTime& t) 
 {
+  if (!_initialized) return;
+
   unsigned xlo(unsigned(*reinterpret_cast<double*>(_xlo_mon->data())));
   unsigned xhi(unsigned(*reinterpret_cast<double*>(_xhi_mon->data())));
   unsigned ylo(unsigned(*reinterpret_cast<double*>(_ylo_mon->data())));
@@ -110,7 +122,7 @@ void   SxrSpectrum::_event    (const void* payload, const Pds::ClockTime& t)
     int32_t v = 0;
     for(unsigned x=xlo; x<xhi; x++)
       v += *d++;
-    *p++ = double(v);
+    *p++ += double(v);
     d += frame.width() - xhi + xlo;
   }
   _nev++;
@@ -131,7 +143,7 @@ void    SxrSpectrum::update_pv()
 
   if (_nev) {
     _sem.take();
-    float  nev = float(_nev);
+    double nev = double(_nev);
     double* p = _spectrum;
     for(unsigned y=0; y<nb; y++) {
       *v++ = *p / nev;
@@ -139,11 +151,11 @@ void    SxrSpectrum::update_pv()
     }
     _nev=0;
     _sem.give();
+    _valu_writer->put();
   }
   else {
     for(unsigned y=0; y<nb; y++)
       *v++ = 0;
   }
-  _valu_writer->put();
 }
 

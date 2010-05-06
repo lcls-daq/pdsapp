@@ -29,6 +29,7 @@ namespace PdsCas {
     double     _spectrum[MaxPixels];
     unsigned _nev;
     Pds::Semaphore _sem;
+    bool _initialized;
     PVWriter*  _valu_writer;
     PVWriter*  _rang_writer;
     PVMonitor* _xlo_mon;
@@ -37,6 +38,7 @@ namespace PdsCas {
     PVMonitor* _yhi_mon;
     PVMonitor* _dedy_mon;
     PVMonitor* _e0_mon;
+    PVMonitor* _y0_mon;
   };
 };
 

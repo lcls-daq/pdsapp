@@ -13,10 +13,12 @@ namespace PdsCas {
   class ShmClient : public Pds::XtcMonitorClient,
 		    private Pds::XtcIterator {
   public:
-    ShmClient(int argc, char* argv[]);
+    ShmClient();
     ~ShmClient();
   public:
+    bool arg  (char, const char*);
     bool valid() const;
+    static const char* opts   ();
     static const char* options();
   public:
     void insert(Handler*);
@@ -32,6 +34,7 @@ namespace PdsCas {
     HList       _handlers;
     const char* _partitionTag;
     unsigned    _index;
+    double      _rate;
     class MyTimer;
     MyTimer* _timer;
     const Pds::Sequence* _seq;

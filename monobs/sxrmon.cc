@@ -11,14 +11,16 @@ void usage(const char* p)
 
 int main(int argc, char* argv[])
 {
-  ShmClient client(argc,argv);
+  ShmClient client;
 
   const char* pvName = 0;
   unsigned detinfo   = -1UL;
 
   int c;
   char* endPtr;
-  while ((c = getopt(argc, argv, "?hi:n:d:")) != -1) {
+  char opts[128];
+  sprintf(opts,"?hi:n:d:%s",client.opts());
+  while ((c = getopt(argc, argv, opts)) != -1) {
     switch (c) {
     case '?':
     case 'h':
@@ -31,8 +33,12 @@ int main(int argc, char* argv[])
       detinfo = strtoul(optarg,&endPtr,0);
       break;
     default:
+      if (!client.arg(c,optarg)) {
+	usage(argv[0]);
+	exit(1);
+      }
       break;
-    };
+    }
   }
   
   if (pvName==0 || detinfo==-1UL || !client.valid()) {

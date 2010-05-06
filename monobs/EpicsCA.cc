@@ -121,6 +121,8 @@ EpicsCAChannel::EpicsCAChannel(const char* channelName,
   int st = ca_create_channel(_epicsName, ConnStatusCB, this, priority, &_epicsChanID);
   if (st != ECA_NORMAL) 
     printf("EpicsCAChannel::ctor %s : %s\n", _epicsName, ca_message(st));
+  else
+    printf("EpicsCAChannel::ctor %s : chanID %d\n", _epicsName, _epicsChanID);
 }
 
 EpicsCAChannel::~EpicsCAChannel()

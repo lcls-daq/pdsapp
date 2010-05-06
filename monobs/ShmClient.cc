@@ -64,32 +64,11 @@ namespace PdsCas {
 
 using namespace PdsCas;
 
-ShmClient::ShmClient(int argc, char* argv[]) : 
+ShmClient::ShmClient() :
   _partitionTag(0),
-  _index(0)
+  _index(0),
+  _rate (1.)
 {
-  int c;
-  double rate = 1.;
-
-  while ((c = getopt(argc, argv, "i:p:r:")) != -1) {
-    switch (c) {
-    case 'i':
-      _index = strtoul(optarg,NULL,0);
-      break;
-    case 'p':
-      _partitionTag = optarg;
-      break;
-    case 'r':
-      rate = strtod(optarg,NULL);
-      break;
-    default:
-      break;
-    }
-  }
-
-  _timer = new MyTimer(unsigned(1000/rate),*this);
-  _timer->task()->call(new InitializeClient(*this));
-  _timer->start();
 }
 
 ShmClient::~ShmClient()
@@ -100,7 +79,31 @@ ShmClient::~ShmClient()
     delete (*it);
 }
 
-int ShmClient::start() { return run(_partitionTag,_index,_index); }
+bool ShmClient::arg(char c, const char* o)
+{
+  switch (c) {
+  case 'i':
+    _index = strtoul(o,NULL,0);
+    break;
+  case 'p':
+    _partitionTag = o;
+    break;
+  case 'r':
+    _rate = strtod(o,NULL);
+    break;
+  default:
+    return false;
+  }
+  return true;
+}
+
+int ShmClient::start() 
+{
+  _timer = new MyTimer(unsigned(1000/_rate),*this);
+  _timer->task()->call(new InitializeClient(*this));
+  _timer->start();
+  return run(_partitionTag,_index,_index); 
+}
 
 void ShmClient::insert(Handler* a) 
 {
@@ -161,7 +164,6 @@ void ShmClient::update()
 
 bool ShmClient::valid() const { return _partitionTag!=0; }
 
-const char* ShmClient::options() {
-  return "[-p <partitionTag>] [-i clientID] [-h]";
-}
+const char* ShmClient::opts   () { return "p:i:"; }
+const char* ShmClient::options() { return "[-p <partitionTag>] [-i clientID]"; }
 
