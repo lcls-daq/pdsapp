@@ -17,6 +17,8 @@ namespace Pds_ConfigDb {
     NumericInt<unsigned>          _code;
     Enumerated<Enums::Bool>       _isReadout;
     Enumerated<Enums::Bool>       _isTerminator;
+    NumericInt<unsigned>          _reportDelay;
+    NumericInt<unsigned>          _reportWidth;    
     NumericInt<unsigned>          _maskTrigger;
     NumericInt<unsigned>          _maskSet;
     NumericInt<unsigned>          _maskClear;
