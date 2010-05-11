@@ -141,6 +141,19 @@ static void showUsage()
       "    -i|--interval      Set minimum trigger interval, in seconds (float number) [Default: 1.0]\n"
       "    -f|--file          [*required*] Set configuration filename\n"
       "    -p|--platform      [*required*] Set platform id\n"
+      " ================================================================================\n"
+      "  Config File Format:\n"
+      "    - Each line of the file can contains multiple PV names, separated by \' \'(White Space), Tabs, \',\' or \';\' \n"
+      "    - Use \'#\' at the beginning of the line to comment out whole line\n"
+      "    - Use \'#\' in the middle of the line to comment out the remaining characters\n"
+      "    - Use \'<\' to include file(s)\n"
+      "  \n"
+      "  Example:\n"
+      "    %%cat epicsArch.txt\n"
+      "    < PvList0.txt, PvList1.txt # Include Two Files\n"      
+      "    iocTest:aiExample          # PV Name\n"
+      "    # This is a comment line\n"
+      "    iocTest:calcExample1, iocTest:calcExample2 # Multiple PVs\n"      
     );
 }
 
