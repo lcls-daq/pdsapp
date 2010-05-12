@@ -82,8 +82,8 @@ int Pds_ConfigDb::EncoderConfig::Private_Data::pull( void* from )
    EncoderConfigType& encoderConf = * new (from) EncoderConfigType;
 
    _chan_num.value        = encoderConf._chan_num;
-   _count_mode.value      = encoderConf._count_mode;
-   _quadrature_mode.value = encoderConf._quadrature_mode;
+   _count_mode.value      = (Pds::Encoder::ConfigV1::count_mode::type_t) encoderConf._count_mode;
+   _quadrature_mode.value = (Pds::Encoder::ConfigV1::quad_mode::type_t) encoderConf._quadrature_mode;
    _input_num.value       = encoderConf._input_num;
    _input_rising.value    = encoderConf._input_rising ? Enums::True
                                                       : Enums::False;
