@@ -45,7 +45,8 @@ namespace Pds {
   private:
     int process(const Xtc& xtc, InDatagramIterator* iter) {
       if (xtc.contains.id() == TypeId::Id_Xtc) {
-	_parent = xtc.src;
+	if (xtc.src.level()==Level::Segment)
+	  _parent = xtc.src;
 	return iterate(xtc, iter);
       }
       else if (xtc.src.level() == Level::Reporter) {
@@ -107,9 +108,8 @@ int DgSummary::process(const Xtc& xtc, InDatagramIterator* iter)
     else
       _out->append(xtc.src);
   }
-  else if (xtc.src.level() == Level::Reporter) {
+  else if (xtc.damage.value() && xtc.src.level() == Level::Reporter)
     _out->append(xtc.src);
-  }
   else if (xtc.src.level() == Level::Source)
     advance = -1;
   else if (xtc.contains.id() == TypeId::Id_Xtc)

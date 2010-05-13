@@ -40,7 +40,7 @@ DamageStats::DamageStats(PartitionSelect& partition) :
   }
   if (bldProcess) {
     for(int i=0; i<BldInfo::NumberOf; i++) {
-      BldInfo info(bldProcess,(BldInfo::Type)i);
+      BldInfo info(0,(BldInfo::Type)i);
       l->addWidget(new QLabel(BldInfo::name(info)),row,0,Qt::AlignRight);
       QCounter* cnt = new QCounter;
       l->addWidget(cnt->widget(),row,1,Qt::AlignRight);
