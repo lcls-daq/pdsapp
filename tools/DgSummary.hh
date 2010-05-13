@@ -8,6 +8,7 @@
 
 namespace Pds {
   class SummaryDg;
+  class BldStats;
 
   class DgSummary : public Appliance,
 		    public XtcIterator {
@@ -23,6 +24,7 @@ namespace Pds {
     SummaryDg*  _out;
     GenericPool _dgpool;
     GenericPool _itpool;
+    BldStats*   _bld;
   };
 };
 

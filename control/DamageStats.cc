@@ -4,6 +4,7 @@
 #include "pdsapp/control/PartitionSelect.hh"
 #include "pds/xtc/InDatagramIterator.hh"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/BldInfo.hh"
 
 #include <QtCore/QString>
 #include <QtGui/QLabel>
@@ -18,6 +19,7 @@ DamageStats::DamageStats(PartitionSelect& partition) :
   setWindowTitle("Damage Stats");
 
   QGridLayout* l = new QGridLayout(this);
+  unsigned bldProcess=0;
   int row=0;
   l->addWidget(new QLabel("Source"), row, 0, Qt::AlignRight);
   l->addWidget(new QLabel("Events"), row, 1, Qt::AlignRight);
@@ -25,14 +27,27 @@ DamageStats::DamageStats(PartitionSelect& partition) :
   for(int i=0; i<_partition.detectors().size(); i++) {
     const DetInfo&  det  = _partition.detectors().at(i);
     const ProcInfo& proc = _partition.segments ().at(i);
-    //    if (det.detector() != DetInfo::NoDetector) {
+    if (det.detector() != DetInfo::BldEb) {
       l->addWidget(new QLabel(DetInfo::name(det)),row,0,Qt::AlignRight);
       QCounter* cnt = new QCounter;
       l->addWidget(cnt->widget(),row,1,Qt::AlignRight);
       _counts   << cnt;
       _segments << proc;
       row++;
-      //    }
+    }
+    else
+      bldProcess = proc.processId();
+  }
+  if (bldProcess) {
+    for(int i=0; i<BldInfo::NumberOf; i++) {
+      BldInfo info(bldProcess,(BldInfo::Type)i);
+      l->addWidget(new QLabel(BldInfo::name(info)),row,0,Qt::AlignRight);
+      QCounter* cnt = new QCounter;
+      l->addWidget(cnt->widget(),row,1,Qt::AlignRight);
+      _counts   << cnt;
+      _segments << info;
+      row++;
+    }
   }
   setLayout(l);
 
@@ -49,7 +64,7 @@ int DamageStats::increment(InDatagramIterator* iter, int extent)
 
   int advance=0;
 
-  const QList<ProcInfo>& segm = _segments;
+  const QList<Src>& segm = _segments;
   ProcInfo info(Level::Control,0,0);
   while(extent) {
     advance += iter->copy(&info, sizeof(info));
@@ -82,8 +97,8 @@ void DamageStats::dump() const
 {
   int i=0;
   while( i<_segments.size() ) {
-    const ProcInfo& info = _segments.at(i);
-    printf("%08x.%d: %lld\n", info.ipAddr(), info.processId(), _counts.at(i)->value());
+    const Src& info = _segments.at(i);
+    printf("%08x.%08x: %lld\n", info.phy(), info.log(), _counts.at(i)->value());
     i++;
   }
 }
