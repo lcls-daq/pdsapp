@@ -24,7 +24,7 @@ using std::string;
 
 namespace Pds 
 {
-static const char sEpicsArchVersion[] = "0.90";
+static const char sEpicsArchVersion[] = "1.00";
     
 class SegWireSettingsEpicsArch : public SegWireSettings 
 {
@@ -164,8 +164,8 @@ static void showVersion()
 
 int main(int argc, char** argv) 
 {
-    int iOptionIndex = 0;
-    struct option loOptions[] = 
+    const char*         strOptions  = ":vhi:d:p:f:";
+    const struct option loOptions[] = 
     {
        {"ver",      0, 0, 'v'},
        {"help",     0, 0, 'h'},
@@ -176,13 +176,13 @@ int main(int argc, char** argv)
        {0,          0, 0,  0  }
     };    
     
-    // parse the command line for our boot parameters
-    int iPlatform = -1;
-    float fMinTriggerInterval = 1.0f;
-    string sFnConfig;
-    int iDebugLevel = 0;
+    int     iPlatform           = -1;
+    float   fMinTriggerInterval = 1.0f;
+    string  sFnConfig;
+    int     iDebugLevel         = 0;
     
-    while ( int opt = getopt_long(argc, argv, ":vhi:d:p:f:", loOptions, &iOptionIndex ) )
+    int     iOptionIndex        = 0;
+    while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             

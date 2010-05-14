@@ -26,7 +26,7 @@ using std::string;
 
 namespace Pds 
 {
-static const char sPrincetonVersion[] = "0.90";
+static const char sPrincetonVersion[] = "1.00";
     
 class SegWireSettingsPrinceton : public SegWireSettings 
 {
@@ -168,7 +168,7 @@ void princetonSignalIntHandler( int iSignalNo )
 int main(int argc, char** argv) 
 {
     const char*   strOptions    = ":vhdi:l:p:";
-    struct option loOptions[]   = 
+    const struct option loOptions[]   = 
     {
        {"ver",      0, 0, 'v'},
        {"help",     0, 0, 'h'},
@@ -187,7 +187,7 @@ int main(int argc, char** argv)
     int               iDeviceId     = 0;
     int               iPlatform     = -1;
     
-    int     iOptionIndex  = 0;
+    int               iOptionIndex  = 0;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;

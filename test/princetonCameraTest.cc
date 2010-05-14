@@ -2,19 +2,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <getopt.h>
 #include <pthread.h> 
 #include <unistd.h>
 #include "pvcam/include/master.h"
 #include "pvcam/include/pvcam.h"
 
-int testPIDaq();
+int testPIDaq(int iCamera);
+
+static const char sPrincetonCameraTestVersion[] = "0.90";
 
 namespace PICAM
 {
   void printPvError(const char *sPrefixMsg);
   void displayParamIdInfo(int16 hCam, uns32 uParamId,
                           const char sDescription[]);
-  int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue);
+  int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue, int16 iMode = ATTR_CURRENT);
   int setAnyParam(int16 hCam, uns32 uParamId, void *pParamValue);
   
   void printROI(int iNumRoi, rgn_type* roi);
@@ -25,7 +28,7 @@ using PICAM::printPvError;
 class ImageCapture
 {
 public:
-  int start();    
+  int start(int iCamera);    
   int getConfig(int& x, int& y, int& iWidth, int& iHeight, int& iBinning);
   int lockCurrentFrame(unsigned char*& pCurrentFrame);
   int unlockFrame();
@@ -56,14 +59,70 @@ private:
   static void *sendDataThread(void *);  
 };
 
+static void showUsage()
+{
+    printf( "Usage:  princetonCameraTest  [-v|--version] [-h|--help] [-c|--camera <camera number>]\n"
+      "  Options:\n"
+      "    -v|--version       Show file version\n"
+      "    -h|--help          Show usage\n"
+      "    -c|--camera        Select camera\n"
+    );
+}
+
+static void showVersion()
+{
+    printf( "Version:  princetonCameraTest  Ver %s\n", sPrincetonCameraTestVersion );
+}
+
 int main(int argc, char **argv)
 {
-  testPIDaq();
+  const char*         strOptions  = ":vhc:";
+  const struct option loOptions[] = 
+  {
+     {"ver",      0, 0, 'v'},
+     {"help",     0, 0, 'h'},
+     {"camera",   1, 0, 'c'},
+     {0,          0, 0,  0 }
+  };    
+  
+  int iCamera = 0;
+  
+  int iOptionIndex = 0;
+  while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
+  {
+      if ( opt == -1 ) break;
+          
+      switch(opt) 
+      {            
+      case 'v':               /* Print usage */
+          showVersion();
+          return 0;            
+      case 'c':
+          iCamera = strtoul(optarg, NULL, 0);
+          break;            
+      case '?':               /* Terse output mode */
+          printf( "princetonCameraTest:main(): Unknown option: %c\n", optopt );
+          break;
+      case ':':               /* Terse output mode */
+          printf( "princetonCameraTest:main(): Missing argument for %c\n", optopt );
+          break;
+      default:            
+      case 'h':               /* Print usage */
+          showUsage();
+          return 0;
+          
+      }
+  }
+
+  argc -= optind;
+  argv += optind;
+
+  testPIDaq(iCamera);
 }
 
 #include <signal.h>
 
-int testPIDaq()
+int testPIDaq(int iCamera)
 {
   ImageCapture  imageCapure;
   TestDaqThread testDaqThread;    
@@ -75,7 +134,7 @@ int testPIDaq()
     return 1;
   }
   
-  iFail = imageCapure.start();
+  iFail = imageCapure.start(iCamera);
   if (0 != iFail)
   {    
     printf("testPIDaq(): imageCapure.start() failed, error code = %d\n", iFail);
@@ -138,6 +197,14 @@ int ImageCapture::displayCameraSettings(int16 hCam)
     
   displayParamIdInfo(hCam, PARAM_EXP_RES, "Exposure Resolution");
   displayParamIdInfo(hCam, PARAM_EXP_RES_INDEX, "Exposure Resolution Index");
+
+  displayParamIdInfo(hCam, PARAM_SPDTAB_INDEX, "Original Speed Table Index");
+  
+  int16 iSpeedTableIndexMax;
+  PICAM::getAnyParam(hCam, PARAM_SPDTAB_INDEX, &iSpeedTableIndexMax, ATTR_MAX );      
+  PICAM::setAnyParam(hCam, PARAM_SPDTAB_INDEX, &iSpeedTableIndexMax );    
+
+  displayParamIdInfo(hCam, PARAM_SPDTAB_INDEX, "Updated Speed Table Index");
   
   return 0;
 }
@@ -150,7 +217,7 @@ int ImageCapture::setupCooling(int16 hCam)
   displayParamIdInfo(hCam, PARAM_COOLING_MODE, "Cooling Mode");
   //displayParamIdInfo(hCam, PARAM_TEMP_SETPOINT, "Set Cooling Temperature *Org*");  
 
-  int16 iTemperatureSet = -1000;
+  int16 iTemperatureSet = 2500;
   const int iMaxWaitingTime = 10000; // in miliseconds
   setAnyParam( hCam, PARAM_TEMP_SETPOINT, &iTemperatureSet );
   displayParamIdInfo( hCam, PARAM_TEMP_SETPOINT, "Set Cooling Temperature" );   
@@ -191,12 +258,15 @@ int ImageCapture::setupCooling(int16 hCam)
   return 0;
 }
 
-int ImageCapture::start()
+int ImageCapture::start(int iCamera)
 {
   char cam_name[CAM_NAME_LEN];  /* camera name                    */
   int16 hCam;                   /* camera handle                  */
 
   rs_bool bStatus;
+  
+  timespec timeVal0;
+  clock_gettime( CLOCK_REALTIME, &timeVal0 );        
 
   /* Initialize the PVCam Library and Open the First Camera */
   bStatus = pl_pvcam_init();
@@ -205,45 +275,66 @@ int ImageCapture::start()
     printPvError("ImageCapture::start(): pl_pvcam_init() failed");
     return 1;
   }
-
-  bStatus = pl_cam_get_name(0, cam_name);
+  
+  int16 iNumCamera = 0;
+  bStatus = pl_cam_get_total(&iNumCamera);
   if (!bStatus)
   {
-    printPvError("ImageCapture::start(): pl_cam_get_name(0) failed");
-    return 2;
+    printPvError("ImageCapture::start(): pl_cam_get_total() failed");
+    return 3;
   }
+  if ( iCamera < 0 || iCamera >= iNumCamera )
+  {
+    printf( "ImageCapture::start(): Camera serial %d doesn't exist. Total Cameras: %d.\n",
+      iCamera, iNumCamera );
+    return 4;
+  }
+  
+  bStatus = pl_cam_get_name(iCamera, cam_name);
+  if (!bStatus)
+  {
+    printPvError("ImageCapture::start(): pl_cam_get_name() failed");
+    return 5;
+  }
+  printf( "Using Camera Serial %d (Total %d)  Name %s\n", iCamera, iNumCamera, cam_name );
 
   bStatus = pl_cam_open(cam_name, &hCam, OPEN_EXCLUSIVE);
   if (!bStatus)
   {
     printPvError("ImageCapture::start(): pl_cam_open() failed");
-    return 3;
+    return 6;
   }
+  
+  timespec timeVal1;
+  clock_gettime( CLOCK_REALTIME, &timeVal1 );
+  double fOpenTime = (timeVal1.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal1.tv_sec - timeVal0.tv_sec ) * 1.e3;    
+  printf("Camera Open Time = %6.3lf ms\n", fOpenTime);  
+  
 
   displayCameraSettings(hCam);
   
   setupCooling(hCam);
     
-  const int iNumFrame = 5;
+  const int iNumFrame = 30;
   const int16 modeExposure = TIMED_MODE;
   //const int16 modeExposure = STROBED_MODE;
   const uns32 iExposureTime = 1;
   
-  //testImageCaptureStandard(hCam, iNumFrame, modeExposure, iExposureTime);
-  testImageCaptureContinous(hCam, iNumFrame, modeExposure, iExposureTime);
+  testImageCaptureStandard(hCam, iNumFrame, modeExposure, iExposureTime);
+  //testImageCaptureContinous(hCam, iNumFrame, modeExposure, iExposureTime);
 
   bStatus = pl_cam_close(hCam);
   if (!bStatus)
   {
     printPvError("ImageCapture::start(): pl_cam_close() failed");
-    return 4;
+    return 7;
   }
 
   bStatus = pl_pvcam_uninit();
   if (!bStatus)
   {
     printPvError("ImageCapture::start(): pl_pvcam_uninit() failed");
-    return 5;
+    return 8;
   }
    
   return 0;
@@ -803,7 +894,7 @@ void displayParamIdInfo(int16 hCam, uns32 uParamId,
   }
 }                             /* end of function displayParamIdInfo */
 
-int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue)
+int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue, int16 iMode)
 {
   if (pParamValue == NULL)
   {
@@ -842,7 +933,7 @@ int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue)
     return 5;
   }
 
-  bStatus = pl_get_param(hCam, uParamId, ATTR_CURRENT, pParamValue);
+  bStatus = pl_get_param(hCam, uParamId, iMode, pParamValue);
   if (!bStatus)
   {
     printf("getAnyParam(): pl_get_param(param id = %lu, ATTR_CURRENT) failed\n", uParamId);
