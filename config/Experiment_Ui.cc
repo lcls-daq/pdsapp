@@ -1,6 +1,7 @@
 #include "pdsapp/config/Experiment_Ui.hh"
 
 #include "pdsapp/config/Experiment.hh"
+#include "pdsapp/config/GlobalCfg.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -190,7 +191,8 @@ void Experiment_Ui::change_device(const string& device)
   QStringList choices;
   const list<TableEntry>& te = _expt.device(device)->table().entries();
   for(list<TableEntry>::const_iterator iter=te.begin(); iter!=te.end(); iter++)
-    choices << iter->name().c_str();
+    if (iter->name() != string(GlobalCfg::name()))
+      choices << iter->name().c_str();
   bool ok;
   QString choice = QInputDialog::getItem(_devlist,
 					 (device + " Configuration").c_str(),

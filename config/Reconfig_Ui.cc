@@ -4,7 +4,9 @@
 #include "pdsapp/config/Device.hh"
 #include "pdsapp/config/PdsDefs.hh"
 #include "pdsapp/config/Dialog.hh"
+#include "pdsapp/config/Serializer.hh"
 #include "pdsapp/config/Parameters.hh"
+#include "pdsapp/config/GlobalCfg.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -118,6 +120,13 @@ void Reconfig_Ui::update_component_list()
       for(list<FileEntry>::const_iterator iter=entry->entries().begin();
 	  iter!=entry->entries().end(); iter++)
 	*new QListWidgetItem(QString(iter->name().c_str()),_cmplist);
+    //  List global entries here
+    if ((entry = _device()->table().get_top_entry(string(GlobalCfg::name())))) {
+      GlobalCfg::cache(_expt.path(),_device());
+      for(list<FileEntry>::const_iterator iter=entry->entries().begin();
+	  iter!=entry->entries().end(); iter++)
+	*new QListWidgetItem(QString(iter->name().c_str()),_cmplist);
+    }
   }
 
   if (ok_change) connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
@@ -125,28 +134,38 @@ void Reconfig_Ui::update_component_list()
 
 void Reconfig_Ui::change_component()
 {
-  const TableEntry* entry = _device_entry();
+  std::string t(qPrintable(_cmplist->currentItem()->text()));
+  UTypeName stype(t);
+  string path = _expt.path().data_path("",stype);
+  QString qchoice;
+  const TableEntry* entry;
+  if (GlobalCfg::contains(*PdsDefs::typeId(stype))) {
+    entry = _device()->table().get_top_entry(string(GlobalCfg::name()));
+  }
+  else {
+    entry = _device_entry();
+  }
   if (entry) {
-    std::string t(qPrintable(_cmplist->currentItem()->text()));
     for(list<FileEntry>::const_iterator iter=entry->entries().begin();
 	iter!=entry->entries().end(); iter++)
       if (iter->name()==t) {
-	UTypeName stype(iter->name());
-	string path = _expt.path().data_path("",stype);
-
-	QString qchoice = QString("%1/%2").arg(path.c_str()).arg(iter->entry().c_str());
-
-	//  edit the contents of the file	
-	Dialog* d = new Dialog(this, lookup(stype), qchoice);
-	d->exec();
-	delete d;
-
+	qchoice = QString("%1/%2").arg(path.c_str()).arg(iter->entry().c_str());
 	break;
       }
+  }
+  if (qchoice.isEmpty())
+    printf("Error looking up %s\n", t.c_str());
+  else {
+    //  edit the contents of the file	
+    Dialog* d = new Dialog(this, lookup(stype), qchoice);
+    d->exec();
+    delete d;
   }
 }
         
 Serializer& Reconfig_Ui::lookup(const UTypeName& stype)
 { 
-  return *_dict.lookup(*PdsDefs::typeId(stype));
+  Serializer& s = *_dict.lookup(*PdsDefs::typeId(stype));
+  s.setPath(_expt.path());
+  return s;
 }    

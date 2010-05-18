@@ -34,6 +34,9 @@ namespace Pds_ConfigDb {
     bool   validate_key(const string& config, const string& path);
     bool   update_key  (const string& config, const string& path);
   private:
+    bool _check_config(const TableEntry* entry, const string& path, const string& key);
+    void _make_config (const TableEntry* entry, const string& path, const string& key);
+  private:
     string _name;
     Table  _table;
     list<DeviceEntry> _src_list;

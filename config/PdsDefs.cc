@@ -5,6 +5,7 @@
 #include "pds/config/FccdConfigType.hh"
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/EvrConfigType.hh"
+#include "pds/config/EvrIOConfigType.hh"
 #include "pds/config/ControlConfigType.hh"
 #include "pds/config/AcqConfigType.hh"
 #include "pds/config/pnCCDConfigType.hh"
@@ -18,6 +19,15 @@ using std::ostringstream;
 
 using namespace Pds_ConfigDb;
 
+PdsDefs::ConfigType PdsDefs::configType(const Pds::TypeId& id)
+{
+  unsigned i=0;
+  do {
+    if (id.value() == typeId(ConfigType(i))->value() )
+      break;
+  } while(++i < NumberOf);
+  return ConfigType(i);
+}
 
 const Pds::TypeId* PdsDefs::typeId(ConfigType id)
 { 
@@ -25,6 +35,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   switch(id) {
   case Encoder    : type = &_encoderConfigType;   break;
   case Evr        : type = &_evrConfigType;       break;
+  case EvrIO      : type = &_evrIOConfigType;     break;
   case Acq        : type = &_acqConfigType;       break;
   case Opal1k     : type = &_opal1kConfigType;    break;
   case Fccd       : type = &_fccdConfigType;      break;
@@ -45,6 +56,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
 {
 #define test(type) { if (name==Pds::TypeId::name(type.id())) return &type; }
   test(_evrConfigType);
+  test(_evrIOConfigType);
   test(_acqConfigType);
   test(_ipimbConfigType);
   test(_encoderConfigType);
@@ -64,6 +76,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
 {
 #define test(type) { if (name==PdsDefs::qtypeName(type)) return &type; }
   test(_evrConfigType);
+  test(_evrIOConfigType);
   test(_acqConfigType);
   test(_ipimbConfigType);
   test(_encoderConfigType);

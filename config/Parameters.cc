@@ -58,3 +58,8 @@ void     TextParameter::flush ()
   if (allowEdit())
     _input->setText(value);
 }
+
+void     TextParameter::enable(bool v)
+{
+  _input->setReadOnly(!(allowEdit() && v));
+}

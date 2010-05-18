@@ -80,5 +80,6 @@ void DoubleValidator::fixup(QString& str) const
 void DoubleValidator::validChange()
 {
   _p.update();
+  _p.flush();
 }
 

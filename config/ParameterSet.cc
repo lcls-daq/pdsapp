@@ -13,10 +13,10 @@ using namespace Pds_ConfigDb;
 ParameterSet::ParameterSet(const char* label,
 			   Pds::LinkedList<Parameter>* array,
 			   ParameterCount& count) :
-  QObject(0),
   Parameter(label),
   _array   (array),
-  _count   (count)
+  _count   (count),
+  _qset    (new ParameterSetQ(*this))
 {}
 
 ParameterSet::~ParameterSet()
@@ -33,7 +33,7 @@ QLayout* ParameterSet::initialize(QWidget* parent)
   if (Parameter::allowEdit())
     _count.connect(*this);
   QObject::connect(_box, SIGNAL(activated(int)), 
-		   this, SLOT(launch(int)));
+		   _qset, SLOT(launch(int)));
   return layout;                                     
 }
 
@@ -65,3 +65,15 @@ void ParameterSet::flush ()
   _box->update();
 }
 
+void ParameterSet::enable(bool v)
+{
+  _box->setEnabled(allowEdit() && v);
+}
+
+
+ParameterSetQ::ParameterSetQ(ParameterSet& p) : _pset(p) {}
+
+ParameterSetQ::~ParameterSetQ() {}
+
+void ParameterSetQ::launch(int i) { _pset.launch(i); }
+void ParameterSetQ::membersChanged() { _pset.membersChanged(); }

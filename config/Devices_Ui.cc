@@ -3,8 +3,10 @@
 #include "pdsapp/config/DetInfoDialog_Ui.hh"
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Device.hh"
+#include "pdsapp/config/Serializer.hh"
 #include "pdsapp/config/PdsDefs.hh"
 #include "pdsapp/config/Dialog.hh"
+#include "pdsapp/config/GlobalCfg.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -15,10 +17,12 @@
 #include <QtGui/QComboBox>
 #include <QtGui/QInputDialog>
 #include <QtGui/QFileDialog>
+#include <QtGui/QMessageBox>
 
 #include <list>
 #include <string>
 #include <iostream>
+#include <sys/stat.h>
 
 using std::list;
 using std::string;
@@ -153,8 +157,8 @@ void Devices_Ui::new_device()
     if (dialog->exec()) {
       list<DeviceEntry> entries;
       for(list<Pds::Src>::const_iterator iter=dialog->src_list().begin();
-    iter!=dialog->src_list().end(); iter++)
-  entries.push_back(DeviceEntry(*iter));
+	  iter!=dialog->src_list().end(); iter++)
+	entries.push_back(DeviceEntry(*iter));
       _expt.add_device(device, entries);
       update_device_list();
     }
@@ -170,8 +174,10 @@ void Devices_Ui::update_config_list()
   if (device) {
     const list<TableEntry>& entries = device->table().entries();
     for(list<TableEntry>::const_iterator iter=entries.begin();
-  iter!=entries.end(); iter++)
-      *new QListWidgetItem(iter->name().c_str(),_cfglist);
+	iter!=entries.end(); iter++)
+      // exclude global configuration from direct editing
+      if (iter->name() != string(GlobalCfg::name()))
+	*new QListWidgetItem(iter->name().c_str(),_cfglist);
   }
   if (ok) connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
   update_component_list();
@@ -196,10 +202,20 @@ void Devices_Ui::update_component_list()
       entry = device->table().get_top_entry(string(qPrintable(item->text())));
     if (entry) {
       for(list<FileEntry>::const_iterator iter=entry->entries().begin();
-    iter!=entry->entries().end(); iter++) {
-  string label = iter->name() + " [" + iter->entry() + "]";
-  *new QListWidgetItem(label.c_str(),_cmplist);
-  unassigned.remove(UTypeName(iter->name()));
+	  iter!=entry->entries().end(); iter++) {
+	string label = iter->name() + " [" + iter->entry() + "]";
+	*new QListWidgetItem(label.c_str(),_cmplist);
+	unassigned.remove(UTypeName(iter->name()));
+      }
+    }
+    //  List global entries here
+    if ((entry = device->table().get_top_entry(string(GlobalCfg::name())))) {
+      GlobalCfg::cache(_expt.path(),_device());
+      for(list<FileEntry>::const_iterator iter=entry->entries().begin();
+	  iter!=entry->entries().end(); iter++) {
+	string label = iter->name() + " [" + iter->entry() + "](G)";
+	*new QListWidgetItem(label.c_str(),_cmplist);
+	unassigned.remove(UTypeName(iter->name()));
       }
     }
   }
@@ -280,11 +296,16 @@ void Devices_Ui::view_component()
   QString qpath(path.c_str());
   QString qfile = qpath + "/" + qname;
 
-  printf("Reading component from file %s\n",qPrintable(qpath));
-
-  Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath, qpath, qfile);
-  d->exec();
-  delete d;
+  struct stat s;
+  if (stat(qPrintable(qfile),&s)) {
+    QString msg = QString("File \'%1\' is either old configuration version or missing.\n  Try \'Browse Keys\' to read old version.").arg(qname);
+    QMessageBox::warning(this, "Read file failed", msg);
+  }
+  else {
+    Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath, qpath, qfile);
+    d->exec();
+    delete d;
+  }
 }
 
 void Devices_Ui::add_component(const QString& type)
@@ -297,9 +318,17 @@ void Devices_Ui::add_component(const QString& type)
   if (!item) return;
   string det(qPrintable(item->text()));
 
-  item = _cfglist->currentItem();
-  if (!item) return;
-  string cfg(qPrintable(item->text()));
+  string cfg;
+  if (GlobalCfg::contains(*PdsDefs::typeId(stype))) {  // create the global alias
+    cfg = string(GlobalCfg::name());
+    if (_expt.device(det)->table().get_top_entry(cfg) == 0)
+      _expt.device(det)->table().new_top_entry(cfg);
+  }
+  else {
+    item = _cfglist->currentItem();
+    if (!item) return;
+    cfg = string(qPrintable(item->text()));
+  }
 
   list<string> xtc_files = _expt.path().xtc_files(det,stype);
   QStringList choices;
@@ -321,10 +350,10 @@ void Devices_Ui::add_component(const QString& type)
               "Import Data File",
               "","");
       if (!file.isEmpty()) {
-  string sfile(qPrintable(file));
-  _expt.import_data(det,stype,sfile,"");
-  FileEntry entry(stype,basename(const_cast<char*>(sfile.c_str())));
-  _expt.device(det)->table().set_entry(cfg,entry);
+	string sfile(qPrintable(file));
+	_expt.import_data(det,stype,sfile,"");
+	FileEntry entry(stype,basename(const_cast<char*>(sfile.c_str())));
+	_expt.device(det)->table().set_entry(cfg,entry);
       }
     }
     else if (schoice==create_str) {
@@ -336,9 +365,9 @@ void Devices_Ui::add_component(const QString& type)
       QString file(d->file());
       delete d;
       if (!file.isEmpty()) {
-  string sfile(qPrintable(file));
-  FileEntry entry(stype,sfile);
-  _expt.device(det)->table().set_entry(cfg,entry);
+	string sfile(qPrintable(file));
+	FileEntry entry(stype,sfile);
+	_expt.device(det)->table().set_entry(cfg,entry);
       }
     }
     else {
@@ -361,5 +390,7 @@ void Devices_Ui::add_component(const QString& type)
         
 Serializer& Devices_Ui::lookup(const UTypeName& stype)
 { 
-  return *_dict.lookup(*PdsDefs::typeId(stype));
+  Serializer& s = *_dict.lookup(*PdsDefs::typeId(stype));
+  s.setPath(_expt.path());
+  return s;
 }    

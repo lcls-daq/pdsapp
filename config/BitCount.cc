@@ -12,7 +12,7 @@ BitCount::~BitCount() {}
 bool BitCount::connect(ParameterSet& set)
 {
   return QObject::connect(_mask._input, SIGNAL(editingFinished()),
-			  &set, SLOT(membersChanged()));
+			  set._qset, SLOT(membersChanged()));
 }
 
 unsigned BitCount::count()

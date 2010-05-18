@@ -7,11 +7,11 @@ class QBoxLayout;
 class QWidget;
 
 namespace Pds_ConfigDb {
-
+  class Path;
   class Serializer {
   public:
-    Serializer(const char* l) : label(l) {}
-    virtual ~Serializer() {}
+    Serializer(const char* l);
+    virtual ~Serializer();
   public:
     virtual int           readParameters (void* from) = 0;
     virtual int           writeParameters(void* to) = 0;
@@ -20,9 +20,11 @@ namespace Pds_ConfigDb {
     void initialize(QWidget*, QBoxLayout*);
     void flush ();
     void update();
+    void setPath(const Path&);
   protected:
     const char*                label;
     Pds::LinkedList<Parameter> pList;
+    const Path*                path;
   };
 
 };

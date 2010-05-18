@@ -30,7 +30,8 @@ template <class T>
 QLayout* NumericInt<T>::initialize(QWidget* parent)  
 {
   QHBoxLayout* layout = new QHBoxLayout;
-  layout->addWidget(new QLabel(_label));             
+  if (_label)
+    layout->addWidget(new QLabel(_label));             
   if (allowEdit()) {
     layout->addWidget(_input = new QLineEdit(parent));  
     _input->setReadOnly(!allowEdit());
@@ -67,7 +68,7 @@ void NumericInt<T>::update()
     switch(mode) {
     case Decimal:  value = _input->text().toInt(); break;
     case Hex:      value = _input->text().toInt(&ok,16); break;
-    default:       value = int(_input->text().toDouble(&ok)/scale); break;
+    default:       value = int(_input->text().toDouble(&ok)/scale + 0.5); break;
     }
   }
 }
@@ -88,10 +89,17 @@ void NumericInt<T>::flush()
 }
 
 template <class T>
+void NumericInt<T>::enable(bool v)
+{
+  if (allowEdit())
+    _input->setReadOnly(!v);
+}
+
+template <class T>
 bool NumericInt<T>::connect(ParameterSet& set)
 {
   return QObject::connect(_input, SIGNAL(editingFinished()),
-	 	          &set, SLOT(membersChanged()));
+	 	          set._qset, SLOT(membersChanged()));
 }
 
 template <class T>
@@ -99,6 +107,13 @@ unsigned NumericInt<T>::count()
 {
   return value;
 }
+
+template <class T>
+QWidget* NumericInt<T>::widget()
+{
+  return allowEdit() ? static_cast<QWidget*>(_input) : static_cast<QWidget*>(_display);
+}
+
 
 template <class T>
 NumericFloat<T>::NumericFloat(const char* label, T val, T vlo, T vhi) :
@@ -118,7 +133,8 @@ template <class T>
 QLayout* NumericFloat<T>::initialize(QWidget* parent)  
 {
   QHBoxLayout* layout = new QHBoxLayout;
-  layout->addWidget(new QLabel(_label));             
+  if (_label)
+    layout->addWidget(new QLabel(_label));             
   if (allowEdit()) {
     layout->addWidget(_input = new QLineEdit(parent));  
     _input->setReadOnly(!allowEdit());
@@ -152,6 +168,13 @@ void NumericFloat<T>::flush()
 }
 
 template <class T>
+void NumericFloat<T>::enable(bool v)
+{
+  if (allowEdit())
+    _input->setReadOnly(!v);
+}
+
+template <class T>
 Enumerated<T>::Enumerated(const char* label, T val, const char** strlist) :
   Parameter(label),
   value (val),
@@ -168,7 +191,8 @@ template <class T>
 QLayout* Enumerated<T>::initialize(QWidget* parent)
 {
   QHBoxLayout* layout = new QHBoxLayout;
-  layout->addWidget(new QLabel(_label));
+  if (_label)
+    layout->addWidget(new QLabel(_label));
   if (allowEdit()) {
     layout->addWidget(_input = new QComboBox(parent));
     int k=0;
@@ -200,3 +224,11 @@ void Enumerated<T>::flush()
   else
     _display->setText(labels[value]);
 }
+
+template <class T>
+void Enumerated<T>::enable(bool v)
+{
+  if (allowEdit())
+    _input->setEnabled(v);
+}
+

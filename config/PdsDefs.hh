@@ -25,7 +25,7 @@ namespace Pds_ConfigDb {
 
   class PdsDefs {
   public:
-    enum ConfigType { FrameFex, Opal1k, TM6740, Evr, Acq, Ipimb, Encoder, pnCCD, RunControl, Princeton, Fccd, NumberOf };
+    enum ConfigType { FrameFex, Opal1k, TM6740, Evr, EvrIO, Acq, Ipimb, Encoder, pnCCD, RunControl, Princeton, Fccd, NumberOf };
 
     static const Pds::TypeId* typeId   (ConfigType);         
     static const Pds::TypeId* typeId   (const UTypeName&);
@@ -34,6 +34,7 @@ namespace Pds_ConfigDb {
     static UTypeName          utypeName(const Pds::TypeId&); 
     static QTypeName          qtypeName(const Pds::TypeId&); 
     static QTypeName          qtypeName(const UTypeName&);
+    static ConfigType         configType(const Pds::TypeId&);
   };
 };
 

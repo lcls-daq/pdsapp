@@ -4,6 +4,10 @@
 
 using namespace Pds_ConfigDb;
 
+Serializer::Serializer(const char* l) : label(l), path(0) {}
+
+Serializer::~Serializer() {}
+
 void Serializer::initialize(QWidget* parent, QBoxLayout* layout)
 {
   Parameter* p = pList.forward();
@@ -30,3 +34,5 @@ void Serializer::update()
     p = p->forward();
   }
 }
+
+void Serializer::setPath(const Path& p) { path = &p; }

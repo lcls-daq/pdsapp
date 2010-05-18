@@ -41,6 +41,10 @@ namespace Pds_ConfigDb {
     //  Update the widgets from the internal value
     //
     virtual void     flush () = 0;
+    //
+    //  Enable/Disable editing on this object
+    //
+    virtual void     enable(bool) = 0;
 
     static void allowEdit(bool);
     static bool allowEdit();
@@ -62,9 +66,12 @@ namespace Pds_ConfigDb {
     QLayout* initialize(QWidget*);
     void     update();
     void     flush ();
+    void     enable(bool);
   public:
     bool     connect(ParameterSet&);
     unsigned count  ();
+  public:
+    QWidget* widget();
   public:
     T       value;
     T       range[2];
@@ -83,6 +90,7 @@ namespace Pds_ConfigDb {
     QLayout* initialize(QWidget*);
     void     update();
     void     flush ();
+    void     enable(bool);
   public:
     T value;
     T range[2];
@@ -99,6 +107,7 @@ namespace Pds_ConfigDb {
     QLayout* initialize(QWidget*);
     void     update();
     void     flush ();
+    void     enable(bool);
   public:
     T value;
     const char** labels;
@@ -114,6 +123,7 @@ namespace Pds_ConfigDb {
     QLayout* initialize(QWidget*);
     void     update();
     void     flush ();
+    void     enable(bool);
   public:
     enum { MaxSize=128 };
     char value[MaxSize];

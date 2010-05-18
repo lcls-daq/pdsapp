@@ -3,7 +3,9 @@
 #include "pdsapp/config/Serializer.hh"
 
 #include "pdsapp/config/Dialog.hh"
-#include "pdsapp/config/EvrConfig.hh"
+#include "pdsapp/config/EvrIOConfig.hh"
+#include "pdsapp/config/EvrConfigP.hh"
+#include "pdsapp/config/EvrConfig_V3.hh"
 #include "pdsapp/config/EvrConfig_V2.hh"
 #include "pdsapp/config/EvrConfig_V1.hh"
 #include "pdsapp/config/AcqConfig.hh"
@@ -18,6 +20,7 @@
 #include "pdsapp/config/ControlConfig.hh"
 
 #include "pds/config/EvrConfigType.hh"
+#include "pds/config/EvrIOConfigType.hh"
 #include "pds/config/AcqConfigType.hh"
 #include "pds/config/IpimbConfigType.hh"
 #include "pds/config/EncoderConfigType.hh"
@@ -50,6 +53,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_encoderConfigType   ,new EncoderConfig);
   enroll(_acqConfigType       ,new AcqConfig);
   enroll(_evrConfigType       ,new EvrConfig);
+  enroll(_evrIOConfigType     ,new EvrIOConfig);
   enroll(_opal1kConfigType    ,new Opal1kConfig);
   enroll(_fccdConfigType      ,new FccdConfig);
   enroll(_tm6740ConfigType    ,new TM6740Config);  
@@ -59,6 +63,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_princetonConfigType ,new princetonConfig);  
   enroll(_ipimbConfigType     ,new IpimbConfig);  
   //  retired
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,3), new EvrConfig_V3);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2), new EvrConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,1), new EvrConfig_V1);
 }
@@ -71,7 +76,7 @@ SerializerDictionary::~SerializerDictionary()
 }
 
 void SerializerDictionary::enroll(const Pds::TypeId& type,
-          Serializer* s)
+				  Serializer* s)
 {
   SerializerDEntry entry(type,s);
   _list.remove(entry);
