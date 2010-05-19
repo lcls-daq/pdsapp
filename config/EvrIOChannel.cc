@@ -30,7 +30,7 @@ void EvrIOChannel::initialize()
 
 EvrIOChannel::EvrIOChannel(unsigned i) :
   _id     (i),
-  _label  (NULL, "", 6),
+  _label  (NULL, "", Pds::EvrData::IOChannel::NameLength),
   _ninfo  (0),
   _dettype(NULL, Pds::DetInfo::NoDetector, detTypes),
   _detid  (NULL,0,0,0x7fffffff,Decimal),
