@@ -39,9 +39,9 @@ QLayout* TextParameter::initialize(QWidget* parent)
     flush();
   }
   else {
-    QLabel* l = new QLabel(value);
-    l->setFrameShape(QFrame::Box);
-    layout->addWidget(l);
+    _display = new QLabel(value);
+    _display->setFrameShape(QFrame::Box);
+    layout->addWidget(_display);
   }
   layout->setContentsMargins(0,0,0,0);
   return layout;
@@ -57,6 +57,8 @@ void     TextParameter::flush ()
 {
   if (allowEdit())
     _input->setText(value);
+  else
+    _display->setText(value);
 }
 
 void     TextParameter::enable(bool v)

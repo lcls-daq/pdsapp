@@ -56,9 +56,9 @@ void EvrIOChannel::layout(QGridLayout* l, unsigned row) {
   l->addWidget(_remove               , row, column++, Qt::AlignCenter);
   l->addWidget(new QLabel("  ")      , row, column++, Qt::AlignCenter);
   l->addLayout(_dettype.initialize(0), row, column++, Qt::AlignCenter);
-  l->addLayout(_detid  .initialize(0), row, column++, Qt::AlignCenter);  _detid._input->setMaximumWidth(60);
+  l->addLayout(_detid  .initialize(0), row, column++, Qt::AlignCenter);  _detid.widget()->setMaximumWidth(60);
   l->addLayout(_devtype.initialize(0), row, column++, Qt::AlignCenter);
-  l->addLayout(_devid  .initialize(0), row, column++, Qt::AlignCenter);  _devid._input->setMaximumWidth(60);
+  l->addLayout(_devid  .initialize(0), row, column++, Qt::AlignCenter);  _devid.widget()->setMaximumWidth(60);
   l->addWidget(_add                  , row, column++, Qt::AlignCenter);
 
   connect(_add   , SIGNAL(clicked()), this, SLOT(add_info()));
@@ -102,6 +102,7 @@ void EvrIOChannel::pull(const Pds::EvrData::IOChannel& c) {
   strncpy(_label.value, c.name(), Pds::EvrData::IOChannel::NameLength);
   _label.value[Pds::EvrData::IOChannel::NameLength] = 0;
   _ninfo = c.ninfo();
+  _detnames->clear();
   for(unsigned i=0; i<c.ninfo(); i++) {
     _detnames->addItem(Pds::DetInfo::name(c.info(i)));
     _detinfo[i] = c.info(i);
