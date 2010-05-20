@@ -5,6 +5,7 @@
 #include <getopt.h>
 #include <pthread.h> 
 #include <unistd.h>
+#include <signal.h>
 #include "pvcam/include/master.h"
 #include "pvcam/include/pvcam.h"
 
@@ -37,6 +38,7 @@ private:
   // private functions
   int testImageCaptureStandard(int16 hCam, int iNumFrame, int16 modeExposure, uns32 iExposureTime);
   int testImageCaptureContinous(int16 hCam, int iNumFrame, int16 modeExposure, uns32 iExposureTime);  
+  int testImageCaptureFirstTime(int16 hCam);
   int setupROI(int16 hCam, rgn_type& region);
 
   // private data
@@ -72,6 +74,13 @@ static void showUsage()
 static void showVersion()
 {
     printf( "Version:  princetonCameraTest  Ver %s\n", sPrincetonCameraTestVersion );
+}
+
+static int giExitAll = 0;
+void signalIntHandler(int iSignalNo)
+{
+  printf( "\nsignalIntHandler(): signal %d received. Stopping all activities\n", iSignalNo );  
+  giExitAll = 1;
 }
 
 int main(int argc, char **argv)
@@ -116,6 +125,19 @@ int main(int argc, char **argv)
 
   argc -= optind;
   argv += optind;
+
+  /*
+   * Register singal handler
+   */
+  struct sigaction sigActionSettings;
+  sigemptyset(&sigActionSettings.sa_mask);
+  sigActionSettings.sa_handler = signalIntHandler;
+  sigActionSettings.sa_flags   = SA_RESTART;    
+
+  if (sigaction(SIGINT, &sigActionSettings, 0) != 0 ) 
+    printf( "main(): Cannot register signal handler for SIGINT\n" );
+  if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 ) 
+    printf( "main(): Cannot register signal handler for SIGTERM\n" );  
 
   testPIDaq(iCamera);
 }
@@ -199,12 +221,14 @@ int ImageCapture::displayCameraSettings(int16 hCam)
   displayParamIdInfo(hCam, PARAM_EXP_RES_INDEX, "Exposure Resolution Index");
 
   displayParamIdInfo(hCam, PARAM_SPDTAB_INDEX, "Original Speed Table Index");
+  displayParamIdInfo(hCam, PARAM_PIX_TIME    , "Original Pixel Transfer Time");
   
   int16 iSpeedTableIndexMax;
   PICAM::getAnyParam(hCam, PARAM_SPDTAB_INDEX, &iSpeedTableIndexMax, ATTR_MAX );      
   PICAM::setAnyParam(hCam, PARAM_SPDTAB_INDEX, &iSpeedTableIndexMax );    
 
   displayParamIdInfo(hCam, PARAM_SPDTAB_INDEX, "Updated Speed Table Index");
+  displayParamIdInfo(hCam, PARAM_PIX_TIME    , "Updated Pixel Transfer Time");
   
   return 0;
 }
@@ -283,12 +307,6 @@ int ImageCapture::start(int iCamera)
     printPvError("ImageCapture::start(): pl_cam_get_total() failed");
     return 3;
   }
-  if ( iCamera < 0 || iCamera >= iNumCamera )
-  {
-    printf( "ImageCapture::start(): Camera serial %d doesn't exist. Total Cameras: %d.\n",
-      iCamera, iNumCamera );
-    return 4;
-  }
   
   bStatus = pl_cam_get_name(iCamera, cam_name);
   if (!bStatus)
@@ -310,7 +328,7 @@ int ImageCapture::start(int iCamera)
   double fOpenTime = (timeVal1.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal1.tv_sec - timeVal0.tv_sec ) * 1.e3;    
   printf("Camera Open Time = %6.3lf ms\n", fOpenTime);  
   
-
+  
   displayCameraSettings(hCam);
   
   setupCooling(hCam);
@@ -320,6 +338,7 @@ int ImageCapture::start(int iCamera)
   //const int16 modeExposure = STROBED_MODE;
   const uns32 iExposureTime = 1;
   
+  testImageCaptureFirstTime(hCam); // dummy init capture
   testImageCaptureStandard(hCam, iNumFrame, modeExposure, iExposureTime);
   //testImageCaptureContinous(hCam, iNumFrame, modeExposure, iExposureTime);
 
@@ -358,6 +377,80 @@ int ImageCapture::setupROI(int16 hCam, rgn_type& region)
   return 0;
 }
 
+int ImageCapture::testImageCaptureFirstTime(int16 hCam)
+{    
+  rgn_type region;
+  setupROI(hCam, region);
+  region.sbin = 16;
+  region.pbin = 16;
+  
+  /* Init a sequence set the region, exposure mode and exposure time */
+  pl_exp_init_seq();
+  
+  uns32 uFrameSize = 0;
+  pl_exp_setup_seq(hCam, 1, 1, &region, TIMED_MODE, 1, &uFrameSize);
+  uns16* pFrameBuffer = (uns16 *) malloc(uFrameSize);
+  printf( "frame size for first capture = %lu\n", uFrameSize );
+
+  timeval timeSleepMicroOrg = {0, 1000 }; // 1 milliseconds  
+ 
+  /* ACQUISITION LOOP */
+  if (giExitAll != 0)
+    return 0;
+      
+  /* frame now contains valid data */
+  printf( "Taking first frame..." );    
+  
+  timespec timeVal1;
+  clock_gettime( CLOCK_REALTIME, &timeVal1 );    
+  
+  pl_exp_start_seq(hCam, pFrameBuffer);
+
+  timespec timeVal2;
+  clock_gettime( CLOCK_REALTIME, &timeVal2 );
+  
+  uns32 uNumBytesTransfered;
+  int iNumLoop = 0;
+  int16 status = 0;
+
+  /* wait for data or error */
+  while (pl_exp_check_status(hCam, &status, &uNumBytesTransfered) &&
+         (status != READOUT_COMPLETE && status != READOUT_FAILED))
+  {
+    // This data will be modified by select(), so need to be reset
+    timeval timeSleepMicro = timeSleepMicroOrg; 
+    // use select() to simulate nanosleep(), because experimentally select() controls the sleeping time more precisely
+    select( 0, NULL, NULL, NULL, &timeSleepMicro);       
+    iNumLoop++;      
+  }
+  
+  /* Check Error Codes */
+  if (status == READOUT_FAILED)
+    printPvError("ImageCapture::testImageCaptureFirstTime():pl_exp_check_status() failed");    
+
+  timespec timeVal3;
+  clock_gettime( CLOCK_REALTIME, &timeVal3 );
+
+  double fReadoutTime = -1;
+  PICAM::getAnyParam(hCam, PARAM_READOUT_TIME, &fReadoutTime);
+  
+  double fStartupTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
+  double fPollingTime = (timeVal3.tv_nsec - timeVal2.tv_nsec) * 1.e-6 + ( timeVal3.tv_sec - timeVal2.tv_sec ) * 1.e3;    
+  double fSingleFrameTime = fStartupTime + fPollingTime;
+  printf(" Startup Time = %6.3lf Polling Time = %7.3lf Readout Time = %.3lf Frame Time = %.3lf\n", 
+    fStartupTime, fPollingTime, fReadoutTime, fSingleFrameTime );        
+    
+
+  // pl_exp_finish_seq(hCam, pFrameBuffer, 0); // No need to call this function, unless we have multiple ROIs
+
+  /*Uninit the sequence */
+  pl_exp_uninit_seq();
+   
+  free(pFrameBuffer);
+  
+  return 0;
+}
+
 int ImageCapture::testImageCaptureStandard(int16 hCam, int iNumFrame, int16 modeExposure, uns32 iExposureTime)
 {
   printf( "Starting standard image capture for %d frames, exposure mode = %d, exposure time = %d ms\n",
@@ -384,6 +477,12 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, int iNumFrame, int16 mode
   /* ACQUISITION LOOP */
   for (int iFrame = 0; iFrame < iNumFrame; iFrame++)
   {    
+    if (giExitAll != 0)
+    {
+      iNumFrame = iFrame;
+      break;
+    }
+      
     /* frame now contains valid data */
     printf( "Taking frame %d...", iFrame );    
     
@@ -429,7 +528,7 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, int iNumFrame, int16 mode
     printf(" Startup Time = %6.3lf Polling Time = %7.3lf Readout Time = %.3lf Frame Time = %.3lf\n", 
       fStartupTime, fPollingTime, fReadoutTime, fSingleFrameTime );        
       
-    fAvgStartupTime += fStartupTime; fAvgPollingTime += fPollingTime; fAvgReadoutTime += fReadoutTime; fAvgSingleFrameTime += fSingleFrameTime;
+    fAvgStartupTime += fStartupTime; fAvgPollingTime += fPollingTime; fAvgReadoutTime += fReadoutTime; fAvgSingleFrameTime += fSingleFrameTime;    
   }
 
   // pl_exp_finish_seq(hCam, pFrameBuffer, 0); // No need to call this function, unless we have multiple ROIs
@@ -437,10 +536,13 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, int iNumFrame, int16 mode
   /*Uninit the sequence */
   pl_exp_uninit_seq();
  
-  fAvgStartupTime /= iNumFrame; fAvgPollingTime /= iNumFrame; fAvgReadoutTime /= iNumFrame; fAvgSingleFrameTime /= iNumFrame;
-  printf("Average Startup Time = %6.3lf Polling Time = %7.3lf Readout Time = %.3lf Frame Time = %.3lf\n", 
-    fAvgStartupTime, fAvgPollingTime, fAvgReadoutTime, fAvgSingleFrameTime );        
-
+  if ( iNumFrame > 0 )
+  {
+    fAvgStartupTime /= iNumFrame; fAvgPollingTime /= iNumFrame; fAvgReadoutTime /= iNumFrame; fAvgSingleFrameTime /= iNumFrame;
+    printf("Average Startup Time = %6.3lf Polling Time = %7.3lf Readout Time = %.3lf Frame Time = %.3lf\n", 
+      fAvgStartupTime, fAvgPollingTime, fAvgReadoutTime, fAvgSingleFrameTime );        
+  }
+  
   free(pFrameBuffer);
   
   return 0;
@@ -508,6 +610,12 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
   /* ACQUISITION LOOP */
   for (int iFrame = 0; iFrame < iNumFrame; iFrame++)
   {    
+    if (giExitAll != 0)
+    {
+      iNumFrame = iFrame;
+      break;
+    }
+    
     printf( "Taking frame %d...", iFrame );    
     
     timespec timeVal1;
@@ -597,9 +705,12 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
   
   free(pBufferWithHeader);
     
-  fAvgPollingTime /= iNumFrame; fAvgFrameProcessingTime /= iNumFrame; fAvgReadoutTime /= iNumFrame; fAvgSingleFrameTime /= iNumFrame;
-  printf("Averge Polling Time = %7.3lf Frame Processing Time = %.3lf Readout Time = %.3lf Frame Time = %.3lf\n", 
-      fAvgPollingTime, fAvgFrameProcessingTime, fAvgReadoutTime, fAvgSingleFrameTime );        
+  if ( iNumFrame > 0 )
+  {
+    fAvgPollingTime /= iNumFrame; fAvgFrameProcessingTime /= iNumFrame; fAvgReadoutTime /= iNumFrame; fAvgSingleFrameTime /= iNumFrame;
+    printf("Averge Polling Time = %7.3lf Frame Processing Time = %.3lf Readout Time = %.3lf Frame Time = %.3lf\n", 
+        fAvgPollingTime, fAvgFrameProcessingTime, fAvgReadoutTime, fAvgSingleFrameTime );        
+  }
 
   return PV_OK;
 }
