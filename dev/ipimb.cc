@@ -16,7 +16,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-// todo: make *list* of IpimbServers
 
 namespace Pds {
 
@@ -58,12 +57,14 @@ namespace Pds {
         SegWireSettings&      settings,
         Arp*                  arp,
         IpimbServer**         ipimbServer,
-        int nServers) :
+        int nServers,
+        int* portInfo) :
       _task(task),
       _platform(platform),
       _cfg   (cfgService),
       _ipimbServer(ipimbServer),
-      _nServers(nServers)
+      _nServers(nServers),
+      _portInfo(portInfo)
 
     {
     }
@@ -81,7 +82,7 @@ namespace Pds {
              _platform);
       
       Stream* frmk = streams.stream(StreamParams::FrameWork);
-      IpimbManager& ipimbMgr = *new IpimbManager(_ipimbServer, _nServers, _cfg);//, _wire);
+      IpimbManager& ipimbMgr = *new IpimbManager(_ipimbServer, _nServers, _cfg, _portInfo);
       ipimbMgr.appliance().connect(frmk->inlet());
     }
     void failed(Reason reason)
@@ -115,6 +116,7 @@ namespace Pds {
     CfgClientNfs** _cfg;
     IpimbServer**  _ipimbServer;
     const int _nServers;
+    int* _portInfo;
   };
 }
 
@@ -127,11 +129,12 @@ int main(int argc, char** argv) {
   unsigned cpuid = -1UL;
   unsigned platform = 0;
   unsigned nboards = 1;
+  FILE *fp = NULL;
   Arp* arp = 0;
 
   extern char* optarg;
   int s;
-  while ( (s=getopt( argc, argv, "a:i:c:p:n:C")) != EOF ) {
+  while ( (s=getopt( argc, argv, "a:i:c:p:n:f:C")) != EOF ) {
     switch(s) {
       case 'a':
       arp = new Arp(optarg);
@@ -148,12 +151,16 @@ int main(int argc, char** argv) {
     case 'n':
       nboards = strtoul(optarg, NULL, 0);
       break;
+    case 'f':
+      fp = fopen(optarg,"r");
+      printf("Have opened configuration file %s, %p\n", optarg, fp);
+      break;
     }
   }
 
-  if ((!platform) || (detid == -1UL)) {
-    printf("Platform and detid required\n");
-    printf("Usage: %s -i <detid> -p <platform> [-a <arp process id>]\n", argv[0]);
+  if ((!platform) || ((detid == -1UL) && !fp)) {
+    printf("Platform and detid or DetInfo file required\n");
+    printf("Usage: %s -i <detid> | -f <fileName> -p <platform> [-a <arp process id>]\n", argv[0]);
     return 0;
   }
 
@@ -176,20 +183,45 @@ int main(int argc, char** argv) {
   const unsigned nServers = nboards;
   IpimbServer* ipimbServer[nServers];
   CfgClientNfs* cfgService[nServers];
+  
+  int detector, detectorId, deviceId, port;
+  int portInfo[nServers][4];
+
   for (unsigned i=0; i<nServers; i++) {
-    DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, cpuid, DetInfo::Ipimb, i);
-    cfgService[i] = new CfgClientNfs(detInfo);
-    ipimbServer[i] = new IpimbServer(detInfo);
+    if (!fp) {
+      if (i==0) 
+        printf("No port config file specified, connect densely\n");
+      DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, cpuid, DetInfo::Ipimb, i);
+      cfgService[i] = new CfgClientNfs(detInfo);
+      ipimbServer[i] = new IpimbServer(detInfo);
+      portInfo[i][3] = -1;
+    } else {
+      fscanf(fp,"%d %d %d %d",&detector, &detectorId, &deviceId, &port);
+      portInfo[i][0] = detector;
+      portInfo[i][1] = detectorId;
+      portInfo[i][2] = deviceId;
+      portInfo[i][3] = port;
+      DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detector, detectorId, DetInfo::Ipimb, deviceId);
+      cfgService[i] = new CfgClientNfs(detInfo);
+      ipimbServer[i] = new IpimbServer(detInfo);
+    }
+  }
+  if (fp) {
+    for (unsigned i=0; i<nServers; i++) {
+      printf("Using config file info: detector %d, detector id %d, device id %d, port %d\n", 
+             portInfo[i][0], portInfo[i][1], portInfo[i][2], portInfo[i][3]);
+    }
+    fclose(fp);
   }
 
   MySegWire settings(ipimbServer, nServers);
-  Seg* seg = new Seg(task, platform, cfgService, settings, arp, ipimbServer, nServers);
+  Seg* seg = new Seg(task, platform, cfgService, settings, arp, ipimbServer, nServers, (int*) portInfo);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 
-  printf("entering ipimb task main loop\n");
   task->mainLoop();
-  printf("exiting ipimb task main loop\n");
+
+
   if (arp) delete arp;
   return 0;
 }
