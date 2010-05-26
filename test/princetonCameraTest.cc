@@ -11,7 +11,7 @@
 
 int testPIDaq(int iCamera);
 
-static const char sPrincetonCameraTestVersion[] = "0.90";
+static const char sPrincetonCameraTestVersion[] = "1.00";
 
 namespace PICAM
 {
