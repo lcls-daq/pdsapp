@@ -10,15 +10,15 @@ namespace Pds_ConfigDb {
   class princetonConfig::Private_Data {
   public:
     Private_Data() :
-      _uWidth               ("Width",               2048, 1,    2048),
-      _uHeight              ("Height",              2048, 1,    2048),
+      _uWidth               ("Width",               32, 1,    2048),
+      _uHeight              ("Height",              32, 1,    2048),
       _uOrgX                ("Orgin X",             0,    0,    2047),
       _uOrgY                ("Orgin Y",             0,    0,    2047),
       _uBinX                ("Binning X",           1,    1,    64),
       _uBinY                ("Binning Y",           1,    1,    64),
       _f32ExposureTime      ("Exposure time (sec)", 1e-3, 1e-3, 30),
-      _f32CoolingTemp       ("Cooling Temp (C)",    0,    -50,  30),      
-      _u32ReadoutSpeedIndex ("Readout Speed",       5,    0,    5),
+      _f32CoolingTemp       ("Cooling Temp (C)",    30,   -50,  30),      
+      _u32ReadoutSpeedIndex ("Readout Speed",       1,    0,    5),
       _u16ReadoutEventCode  ("Readout Event Code",  1,    1,    255)
     {}
 
