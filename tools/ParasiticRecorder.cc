@@ -6,6 +6,7 @@
 #include "pds/client/Decoder.hh"
 #include "CountAction.hh"
 #include "StatsTree.hh"
+#include "pds/utility/EbDump.hh"
 #include "RecorderQ.hh"
 #include "pds/service/Task.hh"
 
@@ -123,7 +124,8 @@ void ParasiticRecorder::attached(SetOfStreams& streams)
     }
   case EventOptions::Display:
     {
-      (new StatsTree(static_cast<EbBase*>(streams.wire())))->connect(frmk->inlet());
+      (new StatsTree())->connect(frmk->inlet());
+      (new EbDump(static_cast<EbBase*>(streams.wire())))->connect(frmk->inlet());
       break;
     }
   }

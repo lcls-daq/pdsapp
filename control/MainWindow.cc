@@ -183,7 +183,7 @@ MainWindow::MainWindow(unsigned          platform,
 
   //  the order matters
   _controlcb->add_appliance(run);    // must be first
-  _controlcb->add_appliance(new Decoder(Level::Control));
+  //  _controlcb->add_appliance(new Decoder(Level::Control));
   _controlcb->add_appliance(new ControlDamage(*this));
   _controlcb->add_appliance(new FileReport(*_log));
   _controlcb->add_appliance(state);

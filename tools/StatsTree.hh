@@ -83,7 +83,7 @@ using namespace Pds;
 
 class StatsTree : public Appliance {
 public:
-  StatsTree(EbBase* eb) : _eb(eb), _pool(sizeof(ZcpDatagramIterator),1) {}
+  StatsTree() : _pool(sizeof(ZcpDatagramIterator),1) {}
   ~StatsTree() {}
 
   Transition* transitions(Transition* in) {
@@ -119,7 +119,6 @@ public:
 	  n->dump(6);
 	  n = n->forward();
 	}
-	_eb->dump(1);
       }
       return in;
     }
@@ -150,7 +149,6 @@ public:
     return n->accumulate(xtc,iter);
   }
 private:
-  EbBase* _eb;
   LinkedList<StatsT::NodeStats> _list;
   GenericPool _pool;
   unsigned _seq;

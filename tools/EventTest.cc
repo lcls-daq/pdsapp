@@ -10,6 +10,7 @@
 #include "CountAction.hh"
 //#include "StatsApp.hh"
 #include "StatsTree.hh"
+#include "pds/utility/EbDump.hh"
 #include "Recorder.hh"
 #include "RecorderQ.hh"
 #include "pds/service/Task.hh"
@@ -70,7 +71,8 @@ void EventTest::attached(SetOfStreams& streams)
     {
       //      const Node& node = _event->header();
       //      (new StatsApp(node.procInfo()))->connect(frmk->inlet());
-      (new StatsTree(static_cast<EbBase*>(streams.wire())))->connect(frmk->inlet());
+      (new StatsTree())->connect(frmk->inlet());
+      (new EbDump(static_cast<EbBase*>(streams.wire())))->connect(frmk->inlet());
       break;
     }
   }

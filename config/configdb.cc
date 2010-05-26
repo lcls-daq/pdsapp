@@ -18,6 +18,9 @@ static string assign_expt_alias_cmd("--assign-expt-alias");
 
 void print_help(const char* p)
 {
+  printf("Usage: %s <--command> <db path> <options>\n",p);
+  printf("Command Options follow\n");
+  printf("<--command> <options>\n\n");
   printf( "Transactions:\n"
 	  "  Create device with source ids\n"
 	  " --create-device <DEV> <Src1> .. <SrcN>\n");
