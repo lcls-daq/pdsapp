@@ -202,6 +202,7 @@ namespace Pds {
     }
     int      fetch       (ZcpFragment& zf, int flags)
     {
+#ifdef USE_ZCP
       ::read(pipefd[0],&_hdr,sizeof(_hdr));
       _more=true;
 
@@ -231,6 +232,9 @@ namespace Pds {
 	}
 	return len;
       }
+#else
+      return -1;
+#endif
     }
   public:
     unsigned        count() const { return _hdr.evr.evr; }
@@ -249,9 +253,11 @@ namespace Pds {
     int       _dsize;
     char      _payload[PayloadSize];
     char      _evrPayload[sizeof(EvrDatagram)];
+#ifdef USE_ZCP
     ZcpFragment _zfragment;
     ZcpStream   _zpayload;
-    unsigned _count;
+#endif
+   unsigned _count;
   };
 
   //
