@@ -287,7 +287,7 @@ int main(int argc, char** argv)
     
     EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, iDebugLevel);
     SegmentEventLevel       segEventlevel(iPlatform, settings, eventCallBackPrinceton, NULL);
-    //SegmentLevel segEventlevel(iPlatform, settings, EventCallBackPrinceton, NULL); // !! for debug
+    //SegmentLevel segEventlevel(iPlatform, settings, eventCallBackPrinceton, NULL); // !! for debug
     
     segEventlevel.attach();    
     if ( eventCallBackPrinceton.IsAttached() )    
