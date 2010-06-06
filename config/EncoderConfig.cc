@@ -51,7 +51,7 @@ class Pds_ConfigDb::EncoderConfig::Private_Data {
 
 Pds_ConfigDb::EncoderConfig::Private_Data::Private_Data() 
    : _chan_num(        "Channel Number ",
-                       1, 1, 3 ),
+                       0, 0, 2 ),
      _count_mode(      "Counter Mode ",
                        Pds::Encoder::ConfigV1::count_mode::WRAP_FULL,
                        PCI3E::count_mode_to_name ),

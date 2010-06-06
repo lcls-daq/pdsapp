@@ -127,8 +127,8 @@ int main(int argc, char** argv) {
       break;
     case 'i':
       det    = (DetInfo::Detector)strtoul(optarg, &endPtr, 0);
-      detid  = strtoul(endPtr, &endPtr, 0);
-      devid  = strtoul(endPtr, &endPtr, 0);
+      detid  = strtoul(endPtr+1, &endPtr, 0);
+      devid  = strtoul(endPtr+1, &endPtr, 0);
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
