@@ -153,9 +153,20 @@ int main(int argc, char** argv) {
       break;
     case 'f':
       fp = fopen(optarg,"r");
-      printf("Have opened configuration file %s, %p\n", optarg, fp);
+      printf("Have opened configuration file %s\n", optarg);
       break;
     }
+  }
+
+  if (fp) {
+    char* tmp = NULL;
+    size_t sz = 0;
+    nboards = 0;
+    while (getline(&tmp, &sz, fp)>0) {
+      nboards++;
+    }
+    printf("Have found %d lines in config file, will use that many boards\n", nboards);
+    rewind(fp);
   }
 
   if ((!platform) || ((detid == -1UL) && !fp)) {
