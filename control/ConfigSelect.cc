@@ -83,6 +83,7 @@ void ConfigSelect::update()
   QString type(_runType->currentText());
   read_db();
   set_run_type(type);
+  printf("ConfigSelect::update set_run_type %s\n",qPrintable(type));
 
   _pcontrol.reconfigure();
 }
@@ -108,10 +109,14 @@ void ConfigSelect::read_db()
     connect(_runType, SIGNAL(activated(const QString&)), this, SLOT(set_run_type(const QString&)));
 
   
-  if (lFound)
+  if (lFound) {
+    printf("ConfigSelect::read_db resetting to %s\n",qPrintable(lastType));
     set_run_type(lastType);
-  else
+  }
+  else {
+    printf("ConfigSelect::read_db did not find config %s\n",qPrintable(lastType));
     set_run_type(l.begin()->name().c_str());
+  }
 }
 
 void ConfigSelect::allocated()

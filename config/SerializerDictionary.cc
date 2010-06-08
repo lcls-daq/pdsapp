@@ -14,6 +14,7 @@
 #include "pdsapp/config/Opal1kConfig.hh"
 #include "pdsapp/config/FccdConfig.hh"
 #include "pdsapp/config/TM6740Config.hh"
+#include "pdsapp/config/TM6740ConfigV1.hh"
 #include "pdsapp/config/pnCCDConfig.hh"
 #include "pdsapp/config/princetonConfig.hh"
 #include "pdsapp/config/FrameFexConfig.hh"
@@ -66,6 +67,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,3), new EvrConfig_V3);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2), new EvrConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,1), new EvrConfig_V1);
+  enroll(Pds::TypeId(Pds::TypeId::Id_TM6740Config,1), new TM6740ConfigV1);  
 }
 
 SerializerDictionary::~SerializerDictionary()

@@ -28,6 +28,7 @@ libsrcs_configdb += FccdConfig.cc
 libsrcs_configdb += pnCCDConfig.cc
 libsrcs_configdb += princetonConfig.cc
 libsrcs_configdb += TM6740Config.cc
+libsrcs_configdb += TM6740ConfigV1.cc
 libsrcs_configdb += FrameFexConfig.cc
 libsrcs_configdb += EvrOutputMap.cc EvrPulseConfig.cc EvrPulseConfig_V1.cc EvrEventCodeV3.cc EvrEventCode.cc
 libsrcs_configdb += EvrIOChannel.cc EvrIOChannel_moc.cc

@@ -245,7 +245,7 @@ namespace Pds {
 	  printf("Created group %d @ xtc %p\n", _groups.size(), &xtc);
 	  break; }
       case TypeId::Id_TM6740Config:
-	{ const Pds::Pulnix::TM6740ConfigV1& cfg = *reinterpret_cast<const Pds::Pulnix::TM6740ConfigV1*>(xtc.payload());
+	{ const TM6740ConfigType& cfg = *reinterpret_cast<const TM6740ConfigType*>(xtc.payload());
 	  _src   .push_back(xtc.src.phy());
 	  _groups.push_back(new DisplayGroup(DetInfo::name((DetInfo&)xtc.src),
 					     TM6740ConfigType::Column_Pixels >> cfg.horizontal_binning(),
