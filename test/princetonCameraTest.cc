@@ -9,7 +9,7 @@
 #include "pvcam/include/master.h"
 #include "pvcam/include/pvcam.h"
 
-int testPIDaq(int iCamera);
+int testPIDaq(int iCamera, char* sFnPrefix);
 
 static const char sPrincetonCameraTestVersion[] = "1.00";
 
@@ -29,14 +29,14 @@ using PICAM::printPvError;
 class ImageCapture
 {
 public:
-  int start(int iCamera);    
+  int start(int iCamera, char* sFnPrefix);    
   int getConfig(int& x, int& y, int& iWidth, int& iHeight, int& iBinning);
   int lockCurrentFrame(unsigned char*& pCurrentFrame);
   int unlockFrame();
   
 private:   
   // private functions
-  int testImageCaptureStandard(int16 hCam, int iNumFrame, int16 modeExposure, uns32 iExposureTime);
+  int testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 iExposureTime);
   int testImageCaptureContinous(int16 hCam, int iNumFrame, int16 modeExposure, uns32 iExposureTime);  
   int testImageCaptureFirstTime(int16 hCam);
   int setupROI(int16 hCam, rgn_type& region);
@@ -63,11 +63,12 @@ private:
 
 static void showUsage()
 {
-    printf( "Usage:  princetonCameraTest  [-v|--version] [-h|--help] [-c|--camera <camera number>]\n"
+    printf( "Usage:  princetonCameraTest  [-v|--version] [-h|--help] [-c|--camera <camera number>] [-w|--write <filename prefix>]\n"
       "  Options:\n"
-      "    -v|--version       Show file version\n"
-      "    -h|--help          Show usage\n"
-      "    -c|--camera        Select camera\n"
+      "    -v|--version                   Show file version\n"
+      "    -h|--help                      Show usage\n"
+      "    -c|--camera <camera number>    Select camera\n"
+      "    -w|--write  <filename prefix>  Select camera\n"
     );
 }
 
@@ -85,16 +86,18 @@ void signalIntHandler(int iSignalNo)
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhc:";
+  const char*         strOptions  = ":vhc:w:";
   const struct option loOptions[] = 
   {
      {"ver",      0, 0, 'v'},
      {"help",     0, 0, 'h'},
      {"camera",   1, 0, 'c'},
+     {"write",    1, 0, 'w'},
      {0,          0, 0,  0 }
   };    
   
-  int iCamera = 0;
+  int iCamera        = 0;
+  char sFnPrefix[32] = "";
   
   int iOptionIndex = 0;
   while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
@@ -108,6 +111,9 @@ int main(int argc, char **argv)
           return 0;            
       case 'c':
           iCamera = strtoul(optarg, NULL, 0);
+          break;            
+      case 'w':
+          strcpy( sFnPrefix, optarg );
           break;            
       case '?':               /* Terse output mode */
           printf( "princetonCameraTest:main(): Unknown option: %c\n", optopt );
@@ -139,12 +145,12 @@ int main(int argc, char **argv)
   if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 ) 
     printf( "main(): Cannot register signal handler for SIGTERM\n" );  
 
-  testPIDaq(iCamera);
+  testPIDaq(iCamera, sFnPrefix);
 }
 
 #include <signal.h>
 
-int testPIDaq(int iCamera)
+int testPIDaq(int iCamera, char* sFnPrefix)
 {
   ImageCapture  imageCapure;
   TestDaqThread testDaqThread;    
@@ -156,7 +162,7 @@ int testPIDaq(int iCamera)
     return 1;
   }
   
-  iFail = imageCapure.start(iCamera);
+  iFail = imageCapure.start(iCamera, sFnPrefix);
   if (0 != iFail)
   {    
     printf("testPIDaq(): imageCapure.start() failed, error code = %d\n", iFail);
@@ -282,7 +288,7 @@ int ImageCapture::setupCooling(int16 hCam)
   return 0;
 }
 
-int ImageCapture::start(int iCamera)
+int ImageCapture::start(int iCamera, char* sFnPrefix)
 {
   char cam_name[CAM_NAME_LEN];  /* camera name                    */
   int16 hCam;                   /* camera handle                  */
@@ -339,7 +345,7 @@ int ImageCapture::start(int iCamera)
   const uns32 iExposureTime = 1;
   
   testImageCaptureFirstTime(hCam); // dummy init capture
-  testImageCaptureStandard(hCam, iNumFrame, modeExposure, iExposureTime);
+  testImageCaptureStandard(hCam, sFnPrefix, iNumFrame, modeExposure, iExposureTime);
   //testImageCaptureContinous(hCam, iNumFrame, modeExposure, iExposureTime);
 
   bStatus = pl_cam_close(hCam);
@@ -451,7 +457,7 @@ int ImageCapture::testImageCaptureFirstTime(int16 hCam)
   return 0;
 }
 
-int ImageCapture::testImageCaptureStandard(int16 hCam, int iNumFrame, int16 modeExposure, uns32 iExposureTime)
+int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 iExposureTime)
 {
   printf( "Starting standard image capture for %d frames, exposure mode = %d, exposure time = %d ms\n",
     iNumFrame, (int) modeExposure, (int) iExposureTime );
@@ -522,6 +528,15 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, int iNumFrame, int16 mode
     double fReadoutTime = -1;
     PICAM::getAnyParam(hCam, PARAM_READOUT_TIME, &fReadoutTime);
     
+    if ( sFnPrefix != NULL && sFnPrefix[0] != 0 )
+    {
+      char sFnOut[64];
+      sprintf( sFnOut, "%s%02d.raw", sFnPrefix, iFrame );
+      FILE* fOut = fopen( sFnOut, "wb" );
+      fwrite( pFrameBuffer, uFrameSize, 1, fOut );
+      fclose(fOut);
+    }
+  
     double fStartupTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
     double fPollingTime = (timeVal3.tv_nsec - timeVal2.tv_nsec) * 1.e-6 + ( timeVal3.tv_sec - timeVal2.tv_sec ) * 1.e3;    
     double fSingleFrameTime = fStartupTime + fPollingTime;
