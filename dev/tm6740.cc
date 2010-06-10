@@ -35,10 +35,11 @@ namespace Pds {
   public:
     SegTest(Task*                 task,
 	    unsigned              platform,
-	    const Src&            src) :
+	    const Src&            src,
+	    unsigned              grabberId) :
       _task    (task),
       _platform(platform),
-      _camman  (new TM6740Manager(src))
+      _camman  (new TM6740Manager(src, grabberId))
     {
       _sources.push_back(src);
     }
@@ -117,10 +118,12 @@ int main(int argc, char** argv) {
   DetInfo::Detector det(DetInfo::NoDetector);
   unsigned detid(0), devid(0);
 
+  unsigned grabberId(0);
+
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:v")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -132,6 +135,9 @@ int main(int argc, char** argv) {
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
+      break;
+    case 'g':
+      grabberId = strtoul(optarg, &endPtr, 0);
       break;
     case 'v':
       verbose = true;
@@ -173,7 +179,8 @@ int main(int argc, char** argv) {
 				 platform, 
 				 DetInfo(node.pid(), 
 					 det, detid, 
-					 DetInfo::TM6740, devid));
+					 DetInfo::TM6740, devid),
+				 grabberId);
   SegmentLevel* segment = new SegmentLevel(platform, 
 					   *segtest,
 					   *segtest, 
