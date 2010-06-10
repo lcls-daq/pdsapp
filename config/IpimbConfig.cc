@@ -13,14 +13,16 @@ namespace Pds_ConfigDb {
   
   enum CapacitorValue {c_1pF, c_100pF, c_10nF};
   static const char* cap_range[] = { "1 pF", "100 pF", "10 nF", NULL };
-  static const int cap_value[] = {1, 100, 10000};
 
   class IpimbConfig::Private_Data {
   public:
     Private_Data() :
       //      _triggerCounter("Foo ", 1, 1, 4),
       //      _serialID("Foo ", 1, 1, 4),
-      _chargeAmpRange("Feedback capacitor (pF) ", c_1pF, cap_range),
+      _chargeAmpRange0("Channel 0 feedback capacitor (pF) ", c_1pF, cap_range),
+      _chargeAmpRange1("Channel 1 feedback capacitor (pF) ", c_1pF, cap_range),
+      _chargeAmpRange2("Channel 2 feedback capacitor (pF) ", c_1pF, cap_range),
+      _chargeAmpRange3("Channel 3 feedback capacitor (pF) ", c_1pF, cap_range),
       //      _calibrationRange("Calibration cap (pF) ", 1, 1, 10000),
       _resetLength("Acquisition window (ns) ", 1000000, 1, 0xfffff),
       _resetDelay("Reset delay (ns) ", 0xfff, 0, 0xfff),
@@ -30,12 +32,16 @@ namespace Pds_ConfigDb {
       //      _status("Foo ", 1, 1, 4),
       //      _errors("Foo ", 1, 1, 4),
       //      _calStrobeLength("Calibration strobe length ", 0, 0, 0),
-      _trigDelay("Sampling delay (ns) ", 89000, 0, 0x7fff8) {}
+      _trigDelay("Sampling delay (ns) ", 89000, 0, 0x7fff8),
+      _chargeAmpRange(0) {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
       //      pList.insert(&_triggerCounter);
       //      pList.insert(&_serialID);
-      pList.insert(&_chargeAmpRange);
+      pList.insert(&_chargeAmpRange0);
+      pList.insert(&_chargeAmpRange1);
+      pList.insert(&_chargeAmpRange2);
+      pList.insert(&_chargeAmpRange3);
       //      pList.insert(&_calibrationRange);
       pList.insert(&_resetLength);
       pList.insert(&_resetDelay);
@@ -52,9 +58,16 @@ namespace Pds_ConfigDb {
       IpimbConfigType& ipimbConf = *new(from) IpimbConfigType;
       //      _triggerCounter.value = ipimbConf.triggerCounter();
       //      _serialID.value = ipimbConf.serialID();
-      unsigned i=0;
-      while(ipimbConf.chargeAmpRange()!=cap_value[i] && ++i<c_10nF);
-      _chargeAmpRange.value = CapacitorValue(i);
+      //      _chargeAmpRange.value = ipimbConf.chargeAmpRange();
+      _chargeAmpRange = ipimbConf.chargeAmpRange();
+      for (int chan=0; chan<4; chan++) {
+	unsigned i=0;
+	while(((_chargeAmpRange>>(2*chan))&0x3) != i && ++i<c_10nF);
+	if (chan==0) {_chargeAmpRange0.value = CapacitorValue(i);}
+	if (chan==1) {_chargeAmpRange1.value = CapacitorValue(i);}
+	if (chan==2) {_chargeAmpRange2.value = CapacitorValue(i);}
+	if (chan==3) {_chargeAmpRange3.value = CapacitorValue(i);}
+      }
       //      _calibrationRange.value = ipimbConf.calibrationRange();
       _resetLength.value = ipimbConf.resetLength();
       _resetDelay.value = ipimbConf.resetDelay();
@@ -69,8 +82,8 @@ namespace Pds_ConfigDb {
     }
 
     int push(void* to) {
-      *new(to) IpimbConfigType(cap_value[_chargeAmpRange.value],
-                               cap_value[0], //_calibrationRange.value,
+      *new(to) IpimbConfigType(_chargeAmpRange,
+                               0, //_calibrationRange.value,
                                _resetLength.value,
                                _resetDelay.value,
                                _chargeAmpRefVoltage.value,
@@ -83,10 +96,20 @@ namespace Pds_ConfigDb {
     }
 
     int dataSize() const { return sizeof(IpimbConfigType); }
+    void updateChargeAmpRange() {
+      _chargeAmpRange = (_chargeAmpRange0.value&0x3) + 
+	((_chargeAmpRange1.value&0x3)<<2) + 
+	((_chargeAmpRange2.value&0x3)<<4) +  
+	((_chargeAmpRange3.value&0x3)<<6);
+    }
+
   public:
     //    NumericInt<uint64_t> _triggerCounter;
     //    NumericInt<uint64_t> _serialID;
-    Enumerated<CapacitorValue> _chargeAmpRange;
+    Enumerated<CapacitorValue> _chargeAmpRange0;
+    Enumerated<CapacitorValue> _chargeAmpRange1;
+    Enumerated<CapacitorValue> _chargeAmpRange2;
+    Enumerated<CapacitorValue> _chargeAmpRange3;
     //    NumericInt<uint16_t> _chargeAmpRange;
     //    NumericInt<uint16_t> _calibrationRange;
     NumericInt<uint32_t> _resetLength;
@@ -98,6 +121,7 @@ namespace Pds_ConfigDb {
     //    NumericInt<uint16_t> _errors;
     //    NumericInt<uint16_t> _calStrobeLength;
     NumericInt<uint32_t> _trigDelay;
+    uint16_t _chargeAmpRange;
   };
 };
 
@@ -113,6 +137,7 @@ int IpimbConfig::readParameters (void* from) {
 }
 
 int  IpimbConfig::writeParameters(void* to) {
+  _private_data->updateChargeAmpRange();
   return _private_data->push(to);
 }
 
