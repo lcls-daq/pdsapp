@@ -151,7 +151,6 @@ MainWindow::MainWindow(unsigned          platform,
   setAttribute(Qt::WA_DeleteOnClose, true);
 
   ConfigSelect*     config;
-  PartitionSelect*  ps ;
   StateSelect*      state ;
   PVDisplay*        pvs;
   RunStatus*        run;
@@ -173,10 +172,10 @@ MainWindow::MainWindow(unsigned          platform,
 
   QVBoxLayout* layout = new QVBoxLayout(this);
   layout->addWidget(config    = new ConfigSelect   (this, *_control, db_path));
-  layout->addWidget(ps        = new PartitionSelect(this, *_control, partition, db_path));
+  layout->addWidget(_partition= new PartitionSelect(this, *_control, partition, db_path));
   layout->addWidget(state     = new StateSelect    (this, *_control));
   layout->addWidget(pvs       = new PVDisplay      (this, *_control));
-  layout->addWidget(run       = new RunStatus      (this, *ps));
+  layout->addWidget(run       = new RunStatus      (this, *_partition));
   layout->addWidget(_log      = new ControlLog);
 
   _pvmanager = new PVManager(*pvs);
@@ -257,6 +256,23 @@ void MainWindow::transition_damaged(const InDatagram& dg)
     if (xtc.src.level()==Level::Source) {
       const DetInfo& info = static_cast<const DetInfo&>(xtc.src);
       msg += QString("\n  %1 : 0x%2").arg(DetInfo::name(info)).arg(QString::number(xtc.damage.value(),0,16));
+    }
+    else if (xtc.src.level()==Level::Segment) {
+      const ProcInfo& info = static_cast<const ProcInfo&>(xtc.src);
+      DetInfo dinfo(-1,DetInfo::NoDetector,0,DetInfo::NoDevice,0);
+      for(int i=0; i<_partition->segments().size();i++) {
+	if (_partition->segments().at(i)==info) {
+	  dinfo = _partition->detectors().at(i);
+	  break;
+	}
+      }
+      struct in_addr inaddr;
+      inaddr.s_addr = ntohl(info.ipAddr());
+      msg += QString("\n  %1 [%2 : %3] : 0x%4").
+	arg(DetInfo::name(dinfo)).
+	arg(inet_ntoa(inaddr)).
+	arg(info.processId()).
+	arg(QString::number(xtc.damage.value(),16));
     }
     else {
       const ProcInfo& info = static_cast<const ProcInfo&>(xtc.src);

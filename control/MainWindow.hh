@@ -16,6 +16,7 @@ namespace Pds {
   class PVManager;
   class InDatagram;
   class RunAllocator;
+  class PartitionSelect;
 
   class MainWindow : public QWidget {
     Q_OBJECT
@@ -53,6 +54,7 @@ namespace Pds {
     ControlLog*       _log;
     OfflineClient*    _offlineclient;
     RunAllocator*     _runallocator;
+    PartitionSelect*  _partition;
 
     // signal handler support
     QSocketNotifier *snInt;
