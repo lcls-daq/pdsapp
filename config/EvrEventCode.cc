@@ -13,8 +13,8 @@ EvrEventCode::EvrEventCode() :
   _reportDelay  ("Report Delay",  0, 0, 0xffff),
   _reportWidth  ("Report Width",  1, 1, 0xffff),
   _maskTrigger  ("Trigger Mask",  0, 0, 0x03ff, Hex),
-  _maskSet      ("Set     Mask",      0, 0, 0x03ff, Hex),
-  _maskClear    ("Clear   Mask"   , 0, 0, 0x03ff, Hex)
+  _maskSet      ("Set     Mask",  0, 0, 0x03ff, Hex),
+  _maskClear    ("Clear   Mask",  0, 0, 0x03ff, Hex)
 {}
 
 void EvrEventCode::insert(Pds::LinkedList<Parameter>& pList) {
