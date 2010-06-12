@@ -57,14 +57,14 @@ namespace Pds_ConfigDb {
     Enumerated<Pds::Acqiris::VertV1::Bandwidth> _bandwidth;
   };
 
-  static const char* trigcoupling_range[] = {"DC","AC","HFreject","DC50ohm","AC50ohm",NULL};
+  static const char* trigcoupling_range[] = {"DC","AC","HFreject",NULL};
   static const char* trigslope_range[] = {"Positive","Negative","OutOfWindow","IntoWindow",
                                           "HFDivide","SpikeStretcher",NULL};
 
   class AcqTrig {
   public:
     AcqTrig() :
-      _coupling("Trig Coupling", Pds::Acqiris::TrigV1::DC50ohm, trigcoupling_range),
+      _coupling("Trig Coupling", Pds::Acqiris::TrigV1::DC, trigcoupling_range),
       _input("Trig Input",-1,-10,10),
       _slope("Trig Slope", Pds::Acqiris::TrigV1::Positive, trigslope_range),
       _level("Trig Level (V)",0.0,-5.0,5.0)
