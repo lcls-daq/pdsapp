@@ -84,5 +84,4 @@ tgtslib_rceProxy := /usr/lib/rt
 tgtsrcs_princeton := princeton.cc
 tgtlibs_princeton := pdsdata/pnccddata pdsdata/xtcdata pdsdata/evrdata pdsdata/princetondata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pds/princeton pvcam/pvcam
 #tgtlibs_princeton := pdsdata/pnccddata pdsdata/xtcdata pdsdata/evrdata pdsdata/princetondata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pds/princeton pvcam/pvcamtest
-tgtslib_princeton := /usr/lib/rt dl raw1394 pthread
-#tgtslib_princeton := /usr/lib/rt dl pthread
+tgtslib_princeton := /usr/lib/rt dl pthread

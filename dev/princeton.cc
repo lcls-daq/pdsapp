@@ -303,4 +303,22 @@ int main(int argc, char** argv)
     
     return 0;
 }
- 
+
+// cpo: to avoid pvcam.so crappy dependency on firewire raw1394 shared library
+
+extern "C" {
+
+void raw1394_arm_register() {}
+void raw1394_new_handle_on_port() {}
+void raw1394_new_handle() {}
+void raw1394_get_nodecount() {}
+void raw1394_arm_get_buf() {}
+void raw1394_arm_unregister() {}
+void raw1394_destroy_handle() {}
+void raw1394_read() {}
+void raw1394_write() {}
+void raw1394_get_port_info() {}
+void raw1394_get_fd() {}
+void raw1394_loop_iterate() {}
+
+}
