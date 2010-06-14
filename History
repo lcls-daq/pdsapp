@@ -1,3 +1,5 @@
+2010-Jun-14 weaver	Fixed bug in acqiris configuration gui (hex channel mask -> vertical configs) which
+			prevented creation of vertical configs matching channel mask.
 2010-Apr-27 weaver	Added Evr scanning (trigger delay) to control_gui.  Disabled calibration cycle
 			editing in config/control gui.  Added tools/ParasiticRecorder,eventp to record
 			events to disk (as an observer) for fast disk-based analysis.  Encapsulated

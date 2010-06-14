@@ -34,6 +34,7 @@ HexValidator::HexValidator(Parameter& p, QLineEdit& l,
   _rlo      (rlo),
   _rhi      (rhi)
 {
+  connect(&l, SIGNAL(editingFinished()), this, SLOT(validChange()));
 }
 
 HexValidator::~HexValidator() {}
