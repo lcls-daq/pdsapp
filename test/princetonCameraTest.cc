@@ -253,7 +253,7 @@ int ImageCapture::setupCooling(int16 hCam)
   displayParamIdInfo( hCam, PARAM_TEMP_SETPOINT, "Set Cooling Temperature" );   
 
   displayParamIdInfo( hCam, PARAM_TEMP, "Temperature *Org*" );  
-  
+   
   timeval timeSleepMicroOrg = {0, 1000 }; // 1 milliseconds    
   timespec timeVal1;
   clock_gettime( CLOCK_REALTIME, &timeVal1 );      
@@ -263,7 +263,8 @@ int ImageCapture::setupCooling(int16 hCam)
   /* wait for data or error */
   while (1)
   {  
-    getAnyParam( hCam, PARAM_TEMP, &iTemperatureCurrent );
+    setAnyParam( hCam, PARAM_TEMP_SETPOINT, &iTemperatureSet );
+    getAnyParam( hCam, PARAM_TEMP,          &iTemperatureCurrent );
     if ( iTemperatureCurrent <= iTemperatureSet ) break;
     
     if ( (iNumLoop+1) % 1000 == 0 )
