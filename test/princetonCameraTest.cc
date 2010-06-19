@@ -247,25 +247,42 @@ int ImageCapture::setupCooling(int16 hCam)
   displayParamIdInfo(hCam, PARAM_COOLING_MODE, "Cooling Mode");
   //displayParamIdInfo(hCam, PARAM_TEMP_SETPOINT, "Set Cooling Temperature *Org*");  
 
-  int16 iTemperatureSet = 2500;
-  const int iMaxWaitingTime = 10000; // in miliseconds
-  setAnyParam( hCam, PARAM_TEMP_SETPOINT, &iTemperatureSet );
-  displayParamIdInfo( hCam, PARAM_TEMP_SETPOINT, "Set Cooling Temperature" );   
+  int16 iCoolingTemp = 2500;
 
-  displayParamIdInfo( hCam, PARAM_TEMP, "Temperature *Org*" );  
+  if ( iCoolingTemp == 2500 )
+  {
+    printf( "Skip cooling, since the cooling temperature is set to max value (25 C)\n" );
+    return 0;
+  }
+
+  int16 iTemperatureCurrent = -1;  
+  getAnyParam( hCam, PARAM_TEMP, &iTemperatureCurrent );
+  if ( iTemperatureCurrent <= iCoolingTemp )
+  {
+    printf( "Skip cooling, since the cuurent  temperature (%.1f C) is lower than the setting (%.1f C)\n",
+	    iTemperatureCurrent/100.0f, iCoolingTemp/100.0f );
+    return 0;
+  }  
+
+  displayParamIdInfo( hCam, PARAM_TEMP, "Temperature Before Cooling" );  
+
+  setAnyParam( hCam, PARAM_TEMP_SETPOINT, &iCoolingTemp );
+  displayParamIdInfo( hCam, PARAM_TEMP_SETPOINT, "Set Cooling Temperature" );   
+  
+
+  const int iMaxWaitingTime = 10000; // in miliseconds
    
   timeval timeSleepMicroOrg = {0, 1000 }; // 1 milliseconds    
   timespec timeVal1;
   clock_gettime( CLOCK_REALTIME, &timeVal1 );      
   
-  int16 iTemperatureCurrent = -1;  
   int iNumLoop = 0;
   /* wait for data or error */
   while (1)
   {  
-    setAnyParam( hCam, PARAM_TEMP_SETPOINT, &iTemperatureSet );
+    setAnyParam( hCam, PARAM_TEMP_SETPOINT, &iCoolingTemp );
     getAnyParam( hCam, PARAM_TEMP,          &iTemperatureCurrent );
-    if ( iTemperatureCurrent <= iTemperatureSet ) break;
+    if ( iTemperatureCurrent <= iCoolingTemp ) break;
     
     if ( (iNumLoop+1) % 1000 == 0 )
       displayParamIdInfo( hCam, PARAM_TEMP, "Temperature *Updating*" );

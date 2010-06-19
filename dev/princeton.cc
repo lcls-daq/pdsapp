@@ -26,7 +26,7 @@ using std::string;
 
 namespace Pds 
 {
-static const char sPrincetonVersion[] = "1.00";
+static const char sPrincetonVersion[] = "1.20";
     
 class SegWireSettingsPrinceton : public SegWireSettings 
 {
