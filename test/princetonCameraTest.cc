@@ -30,13 +30,14 @@ using PICAM::printPvError;
 class ImageCapture
 {
 public:
-  int start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-    int iGainIndex, float fTemperature);    
-  int getConfig(int& x, int& y, int& iWidth, int& iHeight, int& iBinning);
-  int lockCurrentFrame(unsigned char*& pCurrentFrame);
-  int unlockFrame();
   
-private:   
+  int   start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
+    int iGainIndex, float fTemperature);    
+  int   getConfig(int& x, int& y, int& iWidth, int& iHeight, int& iBinning);
+  int   lockCurrentFrame(unsigned char*& pCurrentFrame);
+  int   unlockFrame();
+  
+private:     
   // private functions
   int testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime);
   int testImageCaptureContinous(int16 hCam, int iNumFrame, int16 modeExposure, uns32 uExposureTime);  
@@ -51,7 +52,16 @@ private:
   // private static functions
   static int updateCameraSettings(int16 hCam, int iReadoutPort, int iSpeedIndex, int iGainIndex);
   static int setupCooling(int16 hCam, float fTemperature);  
+  
+  
+public:  
+  static int16 getHcam() { return _hCam; }
+  
+private:  
+  static int16          _hCam;  
 };
+
+int16 ImageCapture::_hCam = -1;
 
 class TestDaqThread
 {
@@ -91,7 +101,27 @@ static int giExitAll = 0;
 void signalIntHandler(int iSignalNo)
 {
   printf( "\nsignalIntHandler(): signal %d received. Stopping all activities\n", iSignalNo );  
-  giExitAll = 1;
+  
+  int16 hCam = ImageCapture::getHcam();
+  if ( hCam != -1 )
+  {
+    rs_bool bStatus;
+    int16   status;
+    uns32   uNumBytesTransfered;
+    bStatus = pl_exp_check_status(hCam, &status, &uNumBytesTransfered); 
+    printf( "exp status = %d\n", (int) status );
+    
+    if (!bStatus)
+      printPvError("signalIntHandler():pl_exp_check_status() failed");
+    else if ( status == EXPOSURE_IN_PROGRESS || status == READOUT_IN_PROGRESS || status == ACQUISITION_IN_PROGRESS )
+    {
+      bStatus = pl_exp_abort(hCam, CCS_HALT);
+    
+      if (!bStatus)
+        printPvError("signalIntHandler():pl_exp_abort() failed");
+    }
+  }
+  giExitAll = 1;    
 }
 
 int main(int argc, char **argv)
@@ -267,7 +297,6 @@ int ImageCapture::updateCameraSettings(int16 hCam, int iReadoutPort, int iSpeedI
   displayParamIdInfo(hCam, PARAM_EXP_RES_INDEX, "Exposure Resolution Index");
 
   displayParamIdInfo(hCam, PARAM_CLEAR_MODE  , "Clear Mode");
-  displayParamIdInfo(hCam, PARAM_CONT_CLEARS , "Continuous Clearing");
   displayParamIdInfo(hCam, PARAM_CLEAR_CYCLES, "Clear Cycles");  
   displayParamIdInfo(hCam, PARAM_NUM_OF_STRIPS_PER_CLR, "Strips Per Clear");  
   displayParamIdInfo(hCam, PARAM_MIN_BLOCK    , "Min Block Size");  
@@ -422,6 +451,8 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
     return 6;
   }
   
+  _hCam = hCam;
+  
   timespec timeVal1;
   clock_gettime( CLOCK_REALTIME, &timeVal1 );
   double fOpenTime = (timeVal1.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal1.tv_sec - timeVal0.tv_sec ) * 1.e3;    
@@ -431,13 +462,14 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
   updateCameraSettings(hCam, iReadoutPort, iSpeedIndex, iGainIndex);
   
   setupCooling(hCam, fTemperature);
+
+  testImageCaptureFirstTime(hCam); // dummy init capture
     
   const int iNumFrame         = iNumImages;
   const int16 modeExposure    = TIMED_MODE;
   //const int16 modeExposure = STROBED_MODE;
   const uns32 u32ExposureTime = iExposureTime;
   
-  testImageCaptureFirstTime(hCam); // dummy init capture
   testImageCaptureStandard(hCam, sFnPrefix, iNumFrame, modeExposure, u32ExposureTime);
   //testImageCaptureContinous(hCam, iNumFrame, modeExposure, u32ExposureTime);
 
@@ -568,6 +600,11 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
   printf( "frame size for standard capture = %lu\n", uFrameSize );
 
   timeval timeSleepMicroOrg = {0, 1000 }; // 1 milliseconds  
+  
+  if ( modeExposure == STROBED_MODE )
+  {
+    PICAM::displayParamIdInfo(hCam, PARAM_CONT_CLEARS , "Continuous Clearing");  
+  }
 
   /* Start the acquisition */
   printf("Collecting %i Frames\n", iNumFrame);
@@ -612,6 +649,7 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
     if (status == READOUT_FAILED)
     {
       printPvError("ImageCapture::testImageCaptureStandard():pl_exp_check_status() failed");
+      iNumFrame = iFrame;
       break;
     }    
 
@@ -1040,8 +1078,16 @@ static void displayParamValueInfo(int16 hCam, uns32 uParamId)
       printf(" min = %g, max = %g\n", minVal.dval, maxVal.dval);
       printf(" increment = %g\n", incrementVal.dval);
       break;
+    case TYPE_BOOLEAN:
+      status = pl_get_param(hCam, uParamId, ATTR_CURRENT,
+                            (void *) &currentVal.bval);
+      status2 = pl_get_param(hCam, uParamId, ATTR_DEFAULT,
+                             (void *) &defaultVal.bval);
+      printf(" current value = %d\n", (int) currentVal.bval);
+      printf(" default value = %d\n", (int) defaultVal.bval);
+      break;
     default:
-      printf(" data type not supported in this functions\n");
+      printf(" data type %d not supported in this functions\n", type );
       break;
     }
     if (!status || !status2 || !status3 || !status4 || !status5)
