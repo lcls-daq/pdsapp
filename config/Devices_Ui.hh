@@ -2,6 +2,7 @@
 #define Pds_Devices_Ui_hh
 
 #include "pdsapp/config/SerializerDictionary.hh"
+#include "pdsapp/config/ExpertDictionary.hh"
 
 #include <QtGui/QGroupBox>
 
@@ -36,6 +37,8 @@ namespace Pds_ConfigDb {
     void view_component();
     void add_component(const QString& type);
     void db_update();
+    void expert_mode();
+    void user_mode();
   private:
     bool validate_config_name(const string& name);
   private:
@@ -44,6 +47,7 @@ namespace Pds_ConfigDb {
   private:
     Experiment&  _expt;
     SerializerDictionary _dict;
+    ExpertDictionary     _xdict;
     QListWidget* _devlist;
     QLineEdit*   _devnewedit;
     QPushButton* _devnewbutton;
@@ -55,6 +59,7 @@ namespace Pds_ConfigDb {
     QPushButton* _cfgcpybutton;
     QListWidget* _cmplist;
     QComboBox*   _cmpcfglist;
+    bool         _expert_mode;
   };
 };
 

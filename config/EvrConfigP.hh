@@ -1,15 +1,15 @@
-#ifndef Pds_EvrConfig_hh
-#define Pds_EvrConfig_hh
+#ifndef Pds_EvrConfigP_hh
+#define Pds_EvrConfigP_hh
 
 #include "pdsapp/config/Serializer.hh"
 
 namespace Pds_ConfigDb {
   class EvrPulseTable;
 
-  class EvrConfig : public Serializer {
+  class EvrConfigP : public Serializer {
   public:
-    EvrConfig();
-    ~EvrConfig() {}
+    EvrConfigP();
+    ~EvrConfigP() {}
   public:
     int  readParameters (void* from);
     int  writeParameters(void* to);

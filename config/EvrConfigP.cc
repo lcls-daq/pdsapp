@@ -3,23 +3,23 @@
 
 using namespace Pds_ConfigDb;
 
-EvrConfig::EvrConfig():
+EvrConfigP::EvrConfigP():
   Serializer("Evr_Config"), _table(new EvrPulseTable(*this))
 {
   _table->insert(pList);
 }
 
-int EvrConfig::readParameters(void *from)
+int EvrConfigP::readParameters(void *from)
 {
   return _table->pull(from);
 }
 
-int EvrConfig::writeParameters(void *to)
+int EvrConfigP::writeParameters(void *to)
 {
   return _table->push(to);
 }
 
-int EvrConfig::dataSize() const
+int EvrConfigP::dataSize() const
 {
   return _table->dataSize();
 }

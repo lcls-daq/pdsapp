@@ -53,7 +53,7 @@ SerializerDictionary::SerializerDictionary()
 {
   enroll(_encoderConfigType   ,new EncoderConfig);
   enroll(_acqConfigType       ,new AcqConfig);
-  enroll(_evrConfigType       ,new EvrConfig);
+  enroll(_evrConfigType       ,new EvrConfigP);
   enroll(_evrIOConfigType     ,new EvrIOConfig);
   enroll(_opal1kConfigType    ,new Opal1kConfig);
   enroll(_fccdConfigType      ,new FccdConfig);

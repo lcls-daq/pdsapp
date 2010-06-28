@@ -2,6 +2,7 @@
 #define Pds_Reconfig_Ui_hh
 
 #include "pdsapp/config/SerializerDictionary.hh"
+#include "pdsapp/config/ExpertDictionary.hh"
 
 #include <QtGui/QDialog>
 
@@ -29,6 +30,8 @@ namespace Pds_ConfigDb {
     void update_device_list();
     void update_component_list();
     void change_component     ();
+    void expert_mode();
+    void user_mode();
   private:
     Device* _device() const;
     const TableEntry* _device_entry() const;
@@ -39,8 +42,10 @@ namespace Pds_ConfigDb {
     Experiment&  _expt;
     const TableEntry* _entry;
     SerializerDictionary _dict;
+    ExpertDictionary     _xdict;
     QListWidget* _devlist;
     QListWidget* _cmplist;
+    bool _expert_mode;
   };
 };
 

@@ -9,7 +9,7 @@ class QButtonGroup;
 
 namespace Pds_ConfigDb
 {
-  class EvrConfig;
+  class EvrConfigP;
   class Pulse;
   class QrLabel;
   class EvrPulseTableQ;
@@ -19,7 +19,7 @@ namespace Pds_ConfigDb
     enum    { MaxEventCodes = 32 };
     enum    { MaxPulses = 12 };
     enum    { MaxOutputs = 10 };
-    EvrPulseTable(const EvrConfig& c);
+    EvrPulseTable(const EvrConfigP& c);
     ~EvrPulseTable();
   public:
     void insert(Pds::LinkedList<Parameter>& pList);
@@ -37,7 +37,7 @@ namespace Pds_ConfigDb
     void     update_output    (int);
     void     update_eventcode ();
   public:
-    const EvrConfig&           _cfg;
+    const EvrConfigP&          _cfg;
     QrLabel*                   _outputs[MaxOutputs];
     Pulse*                     _pulses [MaxPulses];
     QButtonGroup*              _enable_group;

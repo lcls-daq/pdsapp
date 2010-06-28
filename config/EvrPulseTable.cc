@@ -183,7 +183,7 @@ namespace Pds_ConfigDb
 
 using namespace Pds_ConfigDb;
 
-EvrPulseTable::EvrPulseTable(const EvrConfig& c) : 
+EvrPulseTable::EvrPulseTable(const EvrConfigP& c) : 
   Parameter(NULL),
   _cfg(c)
 {

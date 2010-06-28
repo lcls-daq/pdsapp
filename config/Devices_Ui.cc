@@ -18,6 +18,8 @@
 #include <QtGui/QInputDialog>
 #include <QtGui/QFileDialog>
 #include <QtGui/QMessageBox>
+#include <QtGui/QMenu>
+#include <QtGui/QMenuBar>
 
 #include <list>
 #include <string>
@@ -39,41 +41,50 @@ Devices_Ui::Devices_Ui(QWidget* parent,
            Experiment& expt,
            bool edit) :
   QGroupBox("Devices Configuration", parent),
-  _expt    (expt)
+  _expt    (expt),
+  _expert_mode(false)
 {
-  QHBoxLayout* layout = new QHBoxLayout(this);
-  { QVBoxLayout* layout1 = new QVBoxLayout;
-    layout1->addWidget(new QLabel("Device", this));
-    layout1->addWidget(_devlist = new QListWidget(this));
-    layout1->addWidget(_deveditbutton = new QPushButton("Edit", this));
-    { QHBoxLayout* layout1a = new QHBoxLayout;
-      layout1a->addWidget(_devnewedit   = new QLineEdit(this));
-      layout1a->addWidget(_devnewbutton = new QPushButton("New", this));
-      layout1->addLayout(layout1a); }
-    layout->addLayout(layout1); }
-  { QVBoxLayout* layout1 = new QVBoxLayout;
-    layout1->addWidget(new QLabel("Config Name", this));
-    layout1->addWidget(_cfglist = new QListWidget(this));
-    { QHBoxLayout* layout1a = new QHBoxLayout;
-      layout1a->addWidget(_cfgnewedit   = new QLineEdit(this));
-      layout1a->addWidget(_cfgnewbutton = new QPushButton("New", this));
-      layout1->addLayout(layout1a); }
-    { QHBoxLayout* layout1a = new QHBoxLayout;
-      layout1a->addWidget(_cfgcpyedit   = new QLineEdit(this));
-      layout1a->addWidget(_cfgcpybutton = new QPushButton("Copy To", this));
-      layout1->addLayout(layout1a); }
-    layout->addLayout(layout1); }
-  { QVBoxLayout* layout1 = new QVBoxLayout;
-    layout1->addWidget(new QLabel("Component", this));
-    layout1->addWidget(_cmplist = new QListWidget(this));
-    { QHBoxLayout* layout1a = new QHBoxLayout;
-      QLabel* label = new QLabel("Add", this);
-      label->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter );
-      layout1a->addWidget(label);
-      layout1a->addWidget(_cmpcfglist = new QComboBox(this));
-      layout1->addLayout(layout1a); }
-    layout->addLayout(layout1); }
-  setLayout(layout);
+  QVBoxLayout* vbox = new QVBoxLayout;
+  { QMenuBar* menu_bar = new QMenuBar;
+    QMenu* mode_menu = new QMenu("Options");
+    mode_menu->addAction("Expert mode", this, SLOT(expert_mode()));
+    mode_menu->addAction("User mode", this, SLOT(user_mode()));
+    menu_bar->addMenu(mode_menu);
+    vbox->addWidget(menu_bar); }
+  { QHBoxLayout* layout = new QHBoxLayout;
+    { QVBoxLayout* layout1 = new QVBoxLayout;
+      layout1->addWidget(new QLabel("Device", this));
+      layout1->addWidget(_devlist = new QListWidget(this));
+      layout1->addWidget(_deveditbutton = new QPushButton("Edit", this));
+      { QHBoxLayout* layout1a = new QHBoxLayout;
+	layout1a->addWidget(_devnewedit   = new QLineEdit(this));
+	layout1a->addWidget(_devnewbutton = new QPushButton("New", this));
+	layout1->addLayout(layout1a); }
+      layout->addLayout(layout1); }
+    { QVBoxLayout* layout1 = new QVBoxLayout;
+      layout1->addWidget(new QLabel("Config Name", this));
+      layout1->addWidget(_cfglist = new QListWidget(this));
+      { QHBoxLayout* layout1a = new QHBoxLayout;
+	layout1a->addWidget(_cfgnewedit   = new QLineEdit(this));
+	layout1a->addWidget(_cfgnewbutton = new QPushButton("New", this));
+	layout1->addLayout(layout1a); }
+      { QHBoxLayout* layout1a = new QHBoxLayout;
+	layout1a->addWidget(_cfgcpyedit   = new QLineEdit(this));
+	layout1a->addWidget(_cfgcpybutton = new QPushButton("Copy To", this));
+	layout1->addLayout(layout1a); }
+      layout->addLayout(layout1); }
+    { QVBoxLayout* layout1 = new QVBoxLayout;
+      layout1->addWidget(new QLabel("Component", this));
+      layout1->addWidget(_cmplist = new QListWidget(this));
+      { QHBoxLayout* layout1a = new QHBoxLayout;
+	QLabel* label = new QLabel("Add", this);
+	label->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter );
+	layout1a->addWidget(label);
+	layout1a->addWidget(_cmpcfglist = new QComboBox(this));
+	layout1->addLayout(layout1a); }
+      layout->addLayout(layout1); }
+    vbox->addLayout(layout); }
+  setLayout(vbox);
 
   if (edit) {
     connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_config_list()));
@@ -387,10 +398,16 @@ void Devices_Ui::add_component(const QString& type)
   }
   update_component_list();
 }
-        
+
+void Devices_Ui::expert_mode() { _expert_mode=true; }
+void Devices_Ui::user_mode  () { _expert_mode=false; }
+
 Serializer& Devices_Ui::lookup(const UTypeName& stype)
 { 
-  Serializer& s = *_dict.lookup(*PdsDefs::typeId(stype));
+  Serializer& s = _expert_mode ?
+    *_xdict.lookup(*PdsDefs::typeId(stype)) :
+    *_dict .lookup(*PdsDefs::typeId(stype));
   s.setPath(_expt.path());
   return s;
 }    
+
