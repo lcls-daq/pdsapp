@@ -191,8 +191,7 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(new RemoteSeqApp(*_control, *state,_config->src()));
   _control->attach();
 
-  QObject::connect(state , SIGNAL(allocated())  , config, SLOT(allocated()));
-  QObject::connect(state , SIGNAL(deallocated()), config, SLOT(deallocated()));
+  QObject::connect(state , SIGNAL(configured(bool)), config, SLOT(configured(bool)));
   QObject::connect(this  , SIGNAL(transition_failed(const QString&, bool))   , 
 		   this  , SLOT(handle_failed_transition(const QString&, bool)));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));

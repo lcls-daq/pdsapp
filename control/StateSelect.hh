@@ -30,8 +30,7 @@ namespace Pds {
     void disable_control();
   signals:
     void state_changed(QString);
-    void allocated    ();
-    void deallocated  ();
+    void configured   (bool);
   public slots:
     void populate(QString);
     void selected(const QString&);

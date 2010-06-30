@@ -51,7 +51,7 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
 
   connect(bEdit   , SIGNAL(clicked()),                 _reconfig, SLOT(show()));
   connect(bScan   , SIGNAL(clicked(bool)),	       this, SLOT(enable_scan(bool)));
-  connect(_runType, SIGNAL(activated(const QString&)), this, SLOT(set_run_type(const QString&)));
+  connect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
   connect(_reconfig,SIGNAL(changed()),                 this, SLOT(update()));
   connect(_scan    ,SIGNAL(created(int)),              this, SLOT(run_scan(int)));
 
@@ -83,7 +83,6 @@ void ConfigSelect::update()
   QString type(_runType->currentText());
   read_db();
   set_run_type(type);
-  printf("ConfigSelect::update set_run_type %s\n",qPrintable(type));
 
   _pcontrol.reconfigure();
 }
@@ -91,42 +90,27 @@ void ConfigSelect::update()
 void ConfigSelect::read_db()
 {
   QString lastType = _runType->currentText();
-  bool lFound=false;
 
   _runType->clear();
 
   //  _expt.read();
   bool ok = 
-    disconnect(_runType, SIGNAL(activated(const QString&)), this, SLOT(set_run_type(const QString&)));
+    disconnect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
   const list<TableEntry>& l = _expt.table().entries();
   for(list<TableEntry>::const_iterator iter = l.begin(); iter != l.end(); ++iter) {
     QString str(iter->name().c_str());
     _runType->addItem(str);
-    if (lastType==str)
-      lFound=true;
   }
   if (ok) 
-    connect(_runType, SIGNAL(activated(const QString&)), this, SLOT(set_run_type(const QString&)));
+    connect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
 
-  
-  if (lFound) {
-    printf("ConfigSelect::read_db resetting to %s\n",qPrintable(lastType));
-    set_run_type(lastType);
-  }
-  else {
-    printf("ConfigSelect::read_db did not find config %s\n",qPrintable(lastType));
-    set_run_type(l.begin()->name().c_str());
-  }
+  int index = _runType->findText(lastType);
+  _runType->setCurrentIndex( index < 0 ? 0 : index );
 }
 
-void ConfigSelect::allocated()
+void ConfigSelect::configured(bool v)
 {
-  _runType->setEnabled(false);
-}
-
-void ConfigSelect::deallocated()
-{
-  _runType->setEnabled(true);
+  _runType->setEnabled(!v);
 }
 
 void ConfigSelect::run_scan(int key)
@@ -134,7 +118,6 @@ void ConfigSelect::run_scan(int key)
   //  Change key
   _run_key = key;
   _pcontrol.set_transition_env(TransitionId::Configure, _run_key);
-  printf("Set run key to %d\n",_run_key);
   
   //  Run
   _pcontrol.reconfigure();

@@ -81,33 +81,37 @@ void StateSelect::populate(QString label)
   case PartitionControl::Unmapped:   
                                        _select->addItem(_Allocate);
 				       _select->addItem(_Begin_Running);
-				       emit deallocated();
+				       emit configured(false);
 				       _record->setEnabled(true);
 				       break;
   case PartitionControl::Mapped:
-                                       emit allocated();
+                                       emit configured(false);
 				       _record->setEnabled(true);
 				       break;
   case PartitionControl::Configured:
                                        _select->addItem(_Begin_Running);
 				       _select->addItem(_Shutdown);
+				       emit configured(true);
 				       _record->setEnabled(true);
 				       break;
   case PartitionControl::Running :
                                        _select->addItem(_End_Running);
 				       _select->addItem(_Shutdown);
+				       emit configured(true);
 				       _record->setEnabled(false);
 				       break;
   case PartitionControl::Disabled:
                                       _select->addItem(_Enable);
                                       _select->addItem(_End_Running);
 				      _select->addItem(_Shutdown);
+				       emit configured(true);
 				      break;
   case PartitionControl::Enabled :
                                        _select->addItem(_Disable);
 				       _select->addItem(_Next_Cycle);
 				       _select->addItem(_End_Running);
 				       _select->addItem(_Shutdown);
+				       emit configured(true);
 				       break;
   case PartitionControl::NumberOfStates: break;
   }
