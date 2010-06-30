@@ -10,9 +10,9 @@
 #include "pvcam/include/pvcam.h"
 
 int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature);
+  int iGainIndex, float fTemperature, int iStrip);
 
-static const char sPrincetonCameraTestVersion[] = "1.30";
+static const char sPrincetonCameraTestVersion[] = "1.40";
 
 namespace PICAM
 {
@@ -32,7 +32,7 @@ class ImageCapture
 public:
   
   int   start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-    int iGainIndex, float fTemperature);    
+    int iGainIndex, float fTemperature, int iStrip);    
   int   getConfig(int& x, int& y, int& iWidth, int& iHeight, int& iBinning);
   int   lockCurrentFrame(unsigned char*& pCurrentFrame);
   int   unlockFrame();
@@ -50,7 +50,7 @@ private:
   bool _bLockFrame;
   
   // private static functions
-  static int updateCameraSettings(int16 hCam, int iReadoutPort, int iSpeedIndex, int iGainIndex);
+  static int updateCameraSettings(int16 hCam, int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip);
   static int setupCooling(int16 hCam, float fTemperature);  
   
   
@@ -76,8 +76,9 @@ private:
 static void showUsage()
 {
     printf( "Usage:  princetonCameraTest  [-v|--version] [-h|--help] [-c|--camera <camera number>]\n"
-      "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time>] [-r|--readout <readout port>]\n"
-      "[-s|--speed <speed index>] [-g|--gain <gain index>] [-t|--temp <temperature>]\n"
+      "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time>]\n"
+      "[-r|--readout <readout port>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
+      "[-t|--temp <temperature>] [-p|--strip <strip number>]\n"
       "  Options:\n"
       "    -v|--version                      Show file version\n"
       "    -h|--help                         Show usage\n"
@@ -89,6 +90,7 @@ static void showUsage()
       "    -s|--speed     <speed inedx>      Speed table index\n"      
       "    -g|--gain      <gain index>       Gain Index\n"      
       "    -t|--temp      <temperature>      Temperature (in Celcius) (Default: 25 C)\n"            
+      "    -p|--strip     <strip number>     Number of rows per clear cycle\n"
     );
 }
 
@@ -126,7 +128,7 @@ void signalIntHandler(int iSignalNo)
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhc:w:n:e:r:s:g:t:";
+  const char*         strOptions  = ":vhc:w:n:e:r:s:g:t:p:";
   const struct option loOptions[] = 
   {
      {"ver",      0, 0, 'v'},
@@ -139,6 +141,7 @@ int main(int argc, char **argv)
      {"speed",    1, 0, 's'},
      {"gain",     1, 0, 'g'},
      {"temp",     1, 0, 't'},     
+     {"strip",    1, 0, 'p'},     
      {0,          0, 0,  0 }
   };    
   
@@ -150,6 +153,7 @@ int main(int argc, char **argv)
   int   iSpeedIndex   = -1;
   int   iGainIndex    = -1;
   float fTemperature  = 25.0f;
+  int   iStrip        = -1;
   
   int iOptionIndex = 0;
   while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
@@ -183,7 +187,10 @@ int main(int argc, char **argv)
           iGainIndex    = strtoul(optarg, NULL, 0);
           break;            
       case 't':
-          fTemperature  = strtof(optarg, NULL);
+          fTemperature  = strtof (optarg, NULL);
+          break;            
+      case 'p':
+          iStrip        = strtoul(optarg, NULL, 0);
           break;            
       case '?':               /* Terse output mode */
           printf( "princetonCameraTest:main(): Unknown option: %c\n", optopt );
@@ -215,13 +222,13 @@ int main(int argc, char **argv)
   if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 ) 
     printf( "main(): Cannot register signal handler for SIGTERM\n" );  
 
-  testPIDaq(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature);
+  testPIDaq(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, iStrip);
 }
 
 #include <signal.h>
 
 int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature)
+  int iGainIndex, float fTemperature, int iStrip)
 {
   ImageCapture  imageCapure;
   TestDaqThread testDaqThread;    
@@ -233,7 +240,7 @@ int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, i
     return 1;
   }
   
-  iFail = imageCapure.start(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature);
+  iFail = imageCapure.start(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, iStrip);
   if (0 != iFail)
   {    
     printf("testPIDaq(): imageCapure.start() failed, error code = %d\n", iFail);
@@ -284,7 +291,7 @@ void* TestDaqThread::sendDataThread(void *)
    return NULL;
 }
 
-int ImageCapture::updateCameraSettings(int16 hCam, int iReadoutPort, int iSpeedIndex, int iGainIndex)
+int ImageCapture::updateCameraSettings(int16 hCam, int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip)
 {
   using PICAM::displayParamIdInfo;
   displayParamIdInfo(hCam, PARAM_EXPOSURE_MODE, "Exposure Mode");
@@ -298,7 +305,16 @@ int ImageCapture::updateCameraSettings(int16 hCam, int iReadoutPort, int iSpeedI
 
   displayParamIdInfo(hCam, PARAM_CLEAR_MODE  , "Clear Mode");
   displayParamIdInfo(hCam, PARAM_CLEAR_CYCLES, "Clear Cycles");  
+  
+  if ( iStrip >= 0 )
+  {
+    displayParamIdInfo(hCam, PARAM_NUM_OF_STRIPS_PER_CLR, "Strips Per Clear *org*");
+    int16 i16Strip = (int16) iStrip;
+    PICAM::setAnyParam(hCam, PARAM_NUM_OF_STRIPS_PER_CLR, &i16Strip );    
+  }  
   displayParamIdInfo(hCam, PARAM_NUM_OF_STRIPS_PER_CLR, "Strips Per Clear");  
+  
+  
   displayParamIdInfo(hCam, PARAM_MIN_BLOCK    , "Min Block Size");  
   displayParamIdInfo(hCam, PARAM_NUM_MIN_BLOCK, "Num of Min Block");    
   
@@ -410,7 +426,7 @@ int ImageCapture::setupCooling(int16 hCam, float fTemperature)
 }
 
 int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature)
+  int iGainIndex, float fTemperature, int iStrip)
 {
   char cam_name[CAM_NAME_LEN];  /* camera name                    */
   int16 hCam;                   /* camera handle                  */
@@ -459,7 +475,7 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
   printf("Camera Open Time = %6.3lf ms\n", fOpenTime);  
   
   
-  updateCameraSettings(hCam, iReadoutPort, iSpeedIndex, iGainIndex);
+  updateCameraSettings(hCam, iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
   
   setupCooling(hCam, fTemperature);
 
