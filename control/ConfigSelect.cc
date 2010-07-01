@@ -56,6 +56,7 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   connect(_scan    ,SIGNAL(created(int)),              this, SLOT(run_scan(int)));
 
   read_db();
+  set_run_type(_runType->currentText());
 
   bScan->setCheckable(true);
   bScan->setChecked  (false);
@@ -89,8 +90,6 @@ void ConfigSelect::update()
 
 void ConfigSelect::read_db()
 {
-  QString lastType = _runType->currentText();
-
   _runType->clear();
 
   //  _expt.read();
@@ -103,9 +102,6 @@ void ConfigSelect::read_db()
   }
   if (ok) 
     connect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
-
-  int index = _runType->findText(lastType);
-  _runType->setCurrentIndex( index < 0 ? 0 : index );
 }
 
 void ConfigSelect::configured(bool v)
