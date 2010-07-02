@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <math.h>
 #include <errno.h>
 #include <getopt.h>
 #include <pthread.h> 
@@ -345,6 +347,11 @@ int ImageCapture::updateCameraSettings(int16 hCam, int iReadoutPort, int iSpeedI
   displayParamIdInfo(hCam, PARAM_PIX_TIME    , "Pixel Transfer Time");
   displayParamIdInfo(hCam, PARAM_BIT_DEPTH   , "Bit Depth");  
   
+  displayParamIdInfo(_hCam, PARAM_LOGIC_OUTPUT, "Logic Output *org*");    
+  uns32 u32LogicOutput = (uns32) OUTPUT_NOT_SCAN;
+  PICAM::setAnyParam(hCam, PARAM_LOGIC_OUTPUT, &u32LogicOutput ); 
+  displayParamIdInfo(_hCam, PARAM_LOGIC_OUTPUT, "Logic Output *new*");    
+
   return 0;
 }
 
@@ -354,24 +361,18 @@ int ImageCapture::setupCooling(int16 hCam, float fTemperature)
   // Cooling settings
   
   displayParamIdInfo(hCam, PARAM_COOLING_MODE, "Cooling Mode");
-  //displayParamIdInfo(hCam, PARAM_TEMP_SETPOINT, "Set Cooling Temperature *Org*");  
 
   int16 iCoolingTemp = (int) (fTemperature * 100);
 
-  //if ( iCoolingTemp == 2500 )
-  //{
-  //  printf( "Skip cooling, since the cooling temperature is set to max value (%.1f C)\n", iCoolingTemp/100.f );
-  //  return 0;
-  //}
+  if ( iCoolingTemp > 2500 )
+  {
+    printf( "Skip cooling, since the cooling temperature (%.1f C) is larger than max value (25 C)\n", 
+      iCoolingTemp/100.f );
+    return 0;
+  }
 
   int16 iTemperatureCurrent = -1;  
   getAnyParam( hCam, PARAM_TEMP, &iTemperatureCurrent );
-  //if ( iTemperatureCurrent <= iCoolingTemp )
-  //{
-  //  printf( "Skip cooling, since the cuurent  temperature (%.1f C) is lower than the setting (%.1f C)\n",
-  //    iTemperatureCurrent/100.0f, iCoolingTemp/100.0f );
-  //  return 0;
-  //}  
 
   displayParamIdInfo( hCam, PARAM_TEMP, "Temperature Before Cooling" );  
 
@@ -379,9 +380,9 @@ int ImageCapture::setupCooling(int16 hCam, float fTemperature)
   displayParamIdInfo( hCam, PARAM_TEMP_SETPOINT, "Set Cooling Temperature" );   
   
 
-  const int iMaxWaitingTime = 10000; // in miliseconds
+  const int iMaxCoolingTime = 60000; // in miliseconds
    
-  timeval timeSleepMicroOrg = {0, 1000 }; // 1 milliseconds    
+  timeval timeSleepMicroOrg = {0, 5000 }; // 5 milliseconds    
   timespec timeVal1;
   clock_gettime( CLOCK_REALTIME, &timeVal1 );      
   
@@ -392,7 +393,6 @@ int ImageCapture::setupCooling(int16 hCam, float fTemperature)
   /* wait for data or error */
   while (1)
   {  
-    //setAnyParam( hCam, PARAM_TEMP_SETPOINT, &iCoolingTemp );
     getAnyParam( hCam, PARAM_TEMP,          &iTemperatureCurrent );
     
     if ( iTemperatureCurrent <= iCoolingTemp ) 
@@ -403,10 +403,14 @@ int ImageCapture::setupCooling(int16 hCam, float fTemperature)
     else
       iRead = 0;      
     
-    if ( (iNumLoop+1) % 1000 == 0 )
-      displayParamIdInfo( hCam, PARAM_TEMP, "Temperature *Updating*" );
-    
-    if ( iNumLoop > iMaxWaitingTime ) break;
+    if ( (iNumLoop+1) % 200 == 0 )
+      displayParamIdInfo(_hCam, PARAM_TEMP, "Temperature *Updating*" );
+      
+    timespec timeValCur;
+    clock_gettime( CLOCK_REALTIME, &timeValCur );
+    int iWaitTime = (timeValCur.tv_nsec - timeVal1.tv_nsec) / 1000000 + 
+     ( timeValCur.tv_sec - timeVal1.tv_sec ) * 1000; // in milliseconds
+    if ( iWaitTime > iMaxCoolingTime ) break;      
     
     // This data will be modified by select(), so need to be reset
     timeval timeSleepMicro = timeSleepMicroOrg; 
@@ -418,7 +422,7 @@ int ImageCapture::setupCooling(int16 hCam, float fTemperature)
   timespec timeVal2;
   clock_gettime( CLOCK_REALTIME, &timeVal2 );
   double fCoolingTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
-  printf("Cooling Time = %6.3lf ms\n", fCoolingTime);  
+  printf("Cooling Time = %6.1lf ms\n", fCoolingTime);  
   
   displayParamIdInfo( hCam, PARAM_TEMP, "Final Temperature" );
   
@@ -472,7 +476,7 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
   timespec timeVal1;
   clock_gettime( CLOCK_REALTIME, &timeVal1 );
   double fOpenTime = (timeVal1.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal1.tv_sec - timeVal0.tv_sec ) * 1.e3;    
-  printf("Camera Open Time = %6.3lf ms\n", fOpenTime);  
+  printf("Camera Open Time = %6.1lf ms\n", fOpenTime);  
   
   
   updateCameraSettings(hCam, iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
@@ -584,7 +588,7 @@ int ImageCapture::testImageCaptureFirstTime(int16 hCam)
   double fStartupTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
   double fPollingTime = (timeVal3.tv_nsec - timeVal2.tv_nsec) * 1.e-6 + ( timeVal3.tv_sec - timeVal2.tv_sec ) * 1.e3;    
   double fSingleFrameTime = fStartupTime + fPollingTime;
-  printf(" Startup Time = %6.3lf Polling Time = %7.3lf Readout Time = %.3lf Frame Time = %.3lf\n", 
+  printf(" Startup Time = %6.1lf Polling Time = %7.1lf Readout Time = %.1lf Frame Time = %.1lf\n", 
     fStartupTime, fPollingTime, fReadoutTime, fSingleFrameTime );        
     
 
@@ -625,7 +629,8 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
   /* Start the acquisition */
   printf("Collecting %i Frames\n", iNumFrame);
   
-  double fAvgStartupTime = 0, fAvgPollingTime = 0, fAvgReadoutTime = 0, fAvgSingleFrameTime = 0, fAvgAvgVal = 0;
+  double fAvgStartupTime = 0, fAvgPollingTime = 0, fAvgReadoutTime = 0, 
+    fAvgSingleFrameTime = 0, fAvgAvgVal = 0, fAvgStdVal = 0;
   /* ACQUISITION LOOP */
   for (int iFrame = 0; iFrame < iNumFrame; iFrame++)
   {    
@@ -675,16 +680,23 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
     double fReadoutTime = -1;
     PICAM::getAnyParam(hCam, PARAM_READOUT_TIME, &fReadoutTime);
       
-    unsigned long long ullSum = 0;
+    uint64_t uSum    = 0;
+    uint64_t uSumSq  = 0;
     for ( uns16* pPixel = pFrameBuffer; pPixel < (uns16*) ( (char*) pFrameBuffer + uFrameSize ); pPixel++ )
-      ullSum += *pPixel;
-    double fAvgVal = (double) ullSum / (double) ( uFrameSize / sizeof(uns16) );
+    {
+      uSum += *pPixel;
+      uSumSq += ((uint32_t)*pPixel) * ((uint32_t)*pPixel);
+    }
+    
+    uint64_t uNumPixels = (int) (uFrameSize / sizeof(uns16));
+    double   fAvgVal    = (double) uSum / (double) uNumPixels;
+    double   fStdVal    = sqrt( (uNumPixels * uSumSq - uSum * uSum) / (double)(uNumPixels*uNumPixels));
     
     double fStartupTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
     double fPollingTime = (timeVal3.tv_nsec - timeVal2.tv_nsec) * 1.e-6 + ( timeVal3.tv_sec - timeVal2.tv_sec ) * 1.e3;    
     double fSingleFrameTime = fStartupTime + fPollingTime;
-    printf(" Startup Time = %6.3lf Polling Time = %7.3lf Readout Time = %.3lf Frame Time = %.3lf  Avg Val = %.3lf\n", 
-      fStartupTime, fPollingTime, fReadoutTime, fSingleFrameTime, fAvgVal );        
+    printf(" Startup Time = %6.1lf Polling Time = %7.1lf Readout Time = %.1lf Frame Time = %.1lf  Avg Val = %.2lf Std = %.2lf\n", 
+      fStartupTime, fPollingTime, fReadoutTime, fSingleFrameTime, fAvgVal, fStdVal );        
            
     
     if ( sFnPrefix != NULL && sFnPrefix[0] != 0 )
@@ -701,6 +713,7 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
     fAvgStartupTime += fStartupTime; fAvgPollingTime     += fPollingTime; 
     fAvgReadoutTime += fReadoutTime; fAvgSingleFrameTime += fSingleFrameTime;    
     fAvgAvgVal      += fAvgVal;
+    fAvgStdVal      += fStdVal;
   }
 
   // pl_exp_finish_seq(hCam, pFrameBuffer, 0); // No need to call this function, unless we have multiple ROIs
@@ -712,9 +725,9 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
   {
     fAvgStartupTime /= iNumFrame; fAvgPollingTime     /= iNumFrame; 
     fAvgReadoutTime /= iNumFrame; fAvgSingleFrameTime /= iNumFrame;
-    fAvgAvgVal      /= iNumFrame;
-    printf("Average Startup Time = %6.3lf Polling Time = %7.3lf Readout Time = %.3lf Frame Time = %.3lf  Avg Val = %.3lf\n", 
-      fAvgStartupTime, fAvgPollingTime, fAvgReadoutTime, fAvgSingleFrameTime, fAvgAvgVal );        
+    fAvgAvgVal      /= iNumFrame; fAvgStdVal          /= iNumFrame;
+    printf("Average Startup Time = %6.1lf Polling Time = %7.1lf Readout Time = %.1lf Frame Time = %.1lf  Avg Val = %.2lf Std = %.2lf\n", 
+      fAvgStartupTime, fAvgPollingTime, fAvgReadoutTime, fAvgSingleFrameTime, fAvgAvgVal, fAvgStdVal );        
   }
   
   free(pFrameBuffer);
@@ -863,7 +876,7 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
     double fPollingTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
     double fFrameProcessingTime = (timeVal3.tv_nsec - timeVal2.tv_nsec) * 1.e-6 + ( timeVal3.tv_sec - timeVal2.tv_sec ) * 1.e3;    
     double fSingleFrameTime = fPollingTime + fFrameProcessingTime ;
-    printf(" Polling Time = %7.3lf Frame Processing Time = %.3lf Readout Time = %.3lf Frame Time = %.3lf\n", 
+    printf(" Polling Time = %7.1lf Frame Processing Time = %.1lf Readout Time = %.1lf Frame Time = %.1lf\n", 
       fPollingTime, fFrameProcessingTime, fReadoutTime, fSingleFrameTime );        
     
     fAvgPollingTime += fPollingTime; fAvgFrameProcessingTime += fFrameProcessingTime; fAvgReadoutTime += fReadoutTime; fAvgSingleFrameTime += fSingleFrameTime;
@@ -882,7 +895,7 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
   if ( iNumFrame > 0 )
   {
     fAvgPollingTime /= iNumFrame; fAvgFrameProcessingTime /= iNumFrame; fAvgReadoutTime /= iNumFrame; fAvgSingleFrameTime /= iNumFrame;
-    printf("Averge Polling Time = %7.3lf Frame Processing Time = %.3lf Readout Time = %.3lf Frame Time = %.3lf\n", 
+    printf("Averge Polling Time = %7.1lf Frame Processing Time = %.1lf Readout Time = %.1lf Frame Time = %.1lf\n", 
         fAvgPollingTime, fAvgFrameProcessingTime, fAvgReadoutTime, fAvgSingleFrameTime );        
   }
 
