@@ -185,26 +185,32 @@ int main(int argc, char** argv) {
 
 
   apps = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nclients);
-  
-  Task* task = new Task(Task::MakeThisATask);
-  MyCallback* display = new MyCallback(task, 
-				       apps);
+  if (apps) {
+    Task* task = new Task(Task::MakeThisATask);
+    MyCallback* display = new MyCallback(task, 
+                 apps);
 
-  ObserverLevel* event = new ObserverLevel(platform,
-					   partition,
-					   node,
-					   *display);
+    ObserverLevel* event = new ObserverLevel(platform,
+               partition,
+               node,
+               *display);
 
-  if (event->attach())
-    task->mainLoop();
-  else
-    printf("Observer failed to attach to platform\n");
-
-  event->detach();
-
-  delete apps;
-  delete event;
-  delete display;
+    if (event->attach()) {
+      task->mainLoop();
+      event->detach();
+      delete event;
+      delete display;
+    }
+    else {
+      printf("Observer failed to attach to platform\n");
+      delete event;
+    }
+  } else {
+    printf("%s: Error creating LiveMonitorServer\n", __FUNCTION__);
+  }
+  if (apps) {
+    delete apps;
+  }
   return 0;
 }
 
