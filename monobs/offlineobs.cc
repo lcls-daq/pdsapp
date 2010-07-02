@@ -125,17 +125,16 @@ int main(int argc, char** argv) {
     if (event->attach()) {
       task->mainLoop();
       event->detach();
+      delete app;
       delete event;
       delete display;
     } else {
       printf("Observer failed to attach to platform\n");
+      delete app;
       delete event;
     }
   } else {
     printf("%s: Error creating OfflineAppliance\n", __FUNCTION__);
-  }
-  if (app) {
-    delete app;
   }
   return 0;
 }

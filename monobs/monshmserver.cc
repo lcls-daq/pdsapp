@@ -198,18 +198,17 @@ int main(int argc, char** argv) {
     if (event->attach()) {
       task->mainLoop();
       event->detach();
+      delete apps;
       delete event;
       delete display;
     }
     else {
       printf("Observer failed to attach to platform\n");
+      delete apps;
       delete event;
     }
   } else {
     printf("%s: Error creating LiveMonitorServer\n", __FUNCTION__);
-  }
-  if (apps) {
-    delete apps;
   }
   return 0;
 }
