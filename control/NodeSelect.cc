@@ -102,10 +102,19 @@ NodeGroup* NodeGroup::freeze()
 {
   NodeGroup* g = new NodeGroup(title(),(QWidget*)0);
 
-  QList<QAbstractButton*> buttons = _buttons->buttons();
-  foreach(QAbstractButton* b, buttons) {
-    if (b->isChecked())
-      g->addNode(_nodes[_buttons->id(b)]);
+  {
+    QList<QAbstractButton*> buttons = _buttons->buttons();
+    foreach(QAbstractButton* b, buttons) {
+      if (b->isChecked())
+	g->addNode(_nodes[_buttons->id(b)]);
+    }
+  }
+
+  {
+    QList<QAbstractButton*> buttons = g->_buttons->buttons();
+    foreach(QAbstractButton* b, buttons) {
+      b->setEnabled(false);
+    }
   }
 
   return g;
@@ -136,10 +145,17 @@ NodeSelect::NodeSelect(const Node& node, const PingReply& msg) :
   _ready   (msg.ready())
 {
   if (msg.nsources()) {
-    const DetInfo& src = static_cast<const DetInfo&>(msg.source(0));
-    _label  = QString("%1/%2").arg(DetInfo::name(src.detector())).arg(src.detId());
-    _label += QString("/%1/%2").arg(DetInfo::name(src.device  ())).arg(src.devId());
-    _det    = src;
+    {
+      const DetInfo& src = static_cast<const DetInfo&>(msg.source(0));
+      _label  = QString("%1/%2").arg(DetInfo::name(src.detector())).arg(src.detId());
+      _label += QString("/%1/%2").arg(DetInfo::name(src.device  ())).arg(src.devId());
+      _det    = src;
+    }
+    for(unsigned i=1; i<msg.nsources(); i++) {
+      const DetInfo& src = static_cast<const DetInfo&>(msg.source(i));
+      _label += QString("\n%1/%2").arg(DetInfo::name(src.detector())).arg(src.detId());
+      _label += QString("/%1/%2").arg(DetInfo::name(src.device  ())).arg(src.devId());
+    }
   }
   else 
     _label = QString(Level::name(node.level()));
