@@ -41,10 +41,10 @@ public:
   
 private:     
   // private functions
-  int testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime);
-  int testImageCaptureContinous(int16 hCam, int iNumFrame, int16 modeExposure, uns32 uExposureTime);  
-  int testImageCaptureFirstTime(int16 hCam);
-  int setupROI(int16 hCam, rgn_type& region);
+  int testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime);
+  int testImageCaptureContinous(int iNumFrame, int16 modeExposure, uns32 uExposureTime);  
+  int testImageCaptureFirstTime();
+  int setupROI(rgn_type& region);
 
   // private data
   unsigned char* _pCurrentFrame;
@@ -52,8 +52,8 @@ private:
   bool _bLockFrame;
   
   // private static functions
-  static int updateCameraSettings(int16 hCam, int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip);
-  static int setupCooling(int16 hCam, float fTemperature);  
+  static int updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip);
+  static int setupCooling(float fTemperature);  
   
   
 public:  
@@ -293,74 +293,74 @@ void* TestDaqThread::sendDataThread(void *)
    return NULL;
 }
 
-int ImageCapture::updateCameraSettings(int16 hCam, int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip)
+int ImageCapture::updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip)
 {
   using PICAM::displayParamIdInfo;
-  displayParamIdInfo(hCam, PARAM_EXPOSURE_MODE, "Exposure Mode");
-  displayParamIdInfo(hCam, PARAM_SHTR_OPEN_MODE, "Shutter Open Mode");
-  displayParamIdInfo(hCam, PARAM_SHTR_OPEN_DELAY, "Shutter Open Delay");
-  displayParamIdInfo(hCam, PARAM_SHTR_CLOSE_DELAY, "Shutter Close Delay");
-  displayParamIdInfo(hCam, PARAM_EDGE_TRIGGER, "Edge Trigger" );
+  displayParamIdInfo(_hCam, PARAM_EXPOSURE_MODE, "Exposure Mode");
+  displayParamIdInfo(_hCam, PARAM_SHTR_OPEN_MODE, "Shutter Open Mode");
+  displayParamIdInfo(_hCam, PARAM_SHTR_OPEN_DELAY, "Shutter Open Delay");
+  displayParamIdInfo(_hCam, PARAM_SHTR_CLOSE_DELAY, "Shutter Close Delay");
+  displayParamIdInfo(_hCam, PARAM_EDGE_TRIGGER, "Edge Trigger" );
     
-  displayParamIdInfo(hCam, PARAM_EXP_RES, "Exposure Resolution");
-  displayParamIdInfo(hCam, PARAM_EXP_RES_INDEX, "Exposure Resolution Index");
+  displayParamIdInfo(_hCam, PARAM_EXP_RES, "Exposure Resolution");
+  displayParamIdInfo(_hCam, PARAM_EXP_RES_INDEX, "Exposure Resolution Index");
 
-  displayParamIdInfo(hCam, PARAM_CLEAR_MODE  , "Clear Mode");
-  displayParamIdInfo(hCam, PARAM_CLEAR_CYCLES, "Clear Cycles");  
+  displayParamIdInfo(_hCam, PARAM_CLEAR_MODE  , "Clear Mode");
+  displayParamIdInfo(_hCam, PARAM_CLEAR_CYCLES, "Clear Cycles");  
   
   if ( iStrip >= 0 )
   {
-    displayParamIdInfo(hCam, PARAM_NUM_OF_STRIPS_PER_CLR, "Strips Per Clear *org*");
+    displayParamIdInfo(_hCam, PARAM_NUM_OF_STRIPS_PER_CLR, "Strips Per Clear *org*");
     int16 i16Strip = (int16) iStrip;
-    PICAM::setAnyParam(hCam, PARAM_NUM_OF_STRIPS_PER_CLR, &i16Strip );    
+    PICAM::setAnyParam(_hCam, PARAM_NUM_OF_STRIPS_PER_CLR, &i16Strip );    
   }  
-  displayParamIdInfo(hCam, PARAM_NUM_OF_STRIPS_PER_CLR, "Strips Per Clear");  
+  displayParamIdInfo(_hCam, PARAM_NUM_OF_STRIPS_PER_CLR, "Strips Per Clear");  
   
   
-  displayParamIdInfo(hCam, PARAM_MIN_BLOCK    , "Min Block Size");  
-  displayParamIdInfo(hCam, PARAM_NUM_MIN_BLOCK, "Num of Min Block");    
+  displayParamIdInfo(_hCam, PARAM_MIN_BLOCK    , "Min Block Size");  
+  displayParamIdInfo(_hCam, PARAM_NUM_MIN_BLOCK, "Num of Min Block");    
   
   if ( iReadoutPort >= 0 )
   {
-    displayParamIdInfo(hCam, PARAM_READOUT_PORT, "Readout port *org*");
+    displayParamIdInfo(_hCam, PARAM_READOUT_PORT, "Readout port *org*");
     uns32 u32ReadoutPort = (uns32) iReadoutPort;
-    PICAM::setAnyParam(hCam, PARAM_READOUT_PORT, &u32ReadoutPort );    
+    PICAM::setAnyParam(_hCam, PARAM_READOUT_PORT, &u32ReadoutPort );    
   }  
-  displayParamIdInfo(hCam, PARAM_READOUT_PORT, "Readout port");
+  displayParamIdInfo(_hCam, PARAM_READOUT_PORT, "Readout port");
   
   if ( iSpeedIndex >= 0 )
   {
-    displayParamIdInfo(hCam, PARAM_SPDTAB_INDEX, "Speed Table Index *org*");
+    displayParamIdInfo(_hCam, PARAM_SPDTAB_INDEX, "Speed Table Index *org*");
     int16 i16SpeedTableIndex = iSpeedIndex;    
-    PICAM::setAnyParam(hCam, PARAM_SPDTAB_INDEX, &i16SpeedTableIndex ); 
+    PICAM::setAnyParam(_hCam, PARAM_SPDTAB_INDEX, &i16SpeedTableIndex ); 
   }
-  displayParamIdInfo(hCam, PARAM_SPDTAB_INDEX, "Speed Table Index");
+  displayParamIdInfo(_hCam, PARAM_SPDTAB_INDEX, "Speed Table Index");
 
   if ( iGainIndex >= 0 )
   {
-    displayParamIdInfo(hCam, PARAM_GAIN_INDEX, "Gain Index *org*");
+    displayParamIdInfo(_hCam, PARAM_GAIN_INDEX, "Gain Index *org*");
     int16 i16GainIndex = iGainIndex;    
-    PICAM::setAnyParam(hCam, PARAM_GAIN_INDEX, &i16GainIndex ); 
+    PICAM::setAnyParam(_hCam, PARAM_GAIN_INDEX, &i16GainIndex ); 
   }
-  displayParamIdInfo(hCam, PARAM_GAIN_INDEX  , "Gain Index");
+  displayParamIdInfo(_hCam, PARAM_GAIN_INDEX  , "Gain Index");
   
-  displayParamIdInfo(hCam, PARAM_PIX_TIME    , "Pixel Transfer Time");
-  displayParamIdInfo(hCam, PARAM_BIT_DEPTH   , "Bit Depth");  
+  displayParamIdInfo(_hCam, PARAM_PIX_TIME    , "Pixel Transfer Time");
+  displayParamIdInfo(_hCam, PARAM_BIT_DEPTH   , "Bit Depth");  
   
   displayParamIdInfo(_hCam, PARAM_LOGIC_OUTPUT, "Logic Output *org*");    
   uns32 u32LogicOutput = (uns32) OUTPUT_NOT_SCAN;
-  PICAM::setAnyParam(hCam, PARAM_LOGIC_OUTPUT, &u32LogicOutput ); 
+  PICAM::setAnyParam(_hCam, PARAM_LOGIC_OUTPUT, &u32LogicOutput ); 
   displayParamIdInfo(_hCam, PARAM_LOGIC_OUTPUT, "Logic Output *new*");    
 
   return 0;
 }
 
-int ImageCapture::setupCooling(int16 hCam, float fTemperature)
+int ImageCapture::setupCooling(float fTemperature)
 {
   using namespace PICAM;
   // Cooling settings
   
-  displayParamIdInfo(hCam, PARAM_COOLING_MODE, "Cooling Mode");
+  displayParamIdInfo(_hCam, PARAM_COOLING_MODE, "Cooling Mode");
 
   int16 iCoolingTemp = (int) (fTemperature * 100);
 
@@ -372,12 +372,12 @@ int ImageCapture::setupCooling(int16 hCam, float fTemperature)
   }
 
   int16 iTemperatureCurrent = -1;  
-  getAnyParam( hCam, PARAM_TEMP, &iTemperatureCurrent );
+  getAnyParam( _hCam, PARAM_TEMP, &iTemperatureCurrent );
 
-  displayParamIdInfo( hCam, PARAM_TEMP, "Temperature Before Cooling" );  
+  displayParamIdInfo( _hCam, PARAM_TEMP, "Temperature Before Cooling" );  
 
-  setAnyParam( hCam, PARAM_TEMP_SETPOINT, &iCoolingTemp );
-  displayParamIdInfo( hCam, PARAM_TEMP_SETPOINT, "Set Cooling Temperature" );   
+  setAnyParam( _hCam, PARAM_TEMP_SETPOINT, &iCoolingTemp );
+  displayParamIdInfo( _hCam, PARAM_TEMP_SETPOINT, "Set Cooling Temperature" );   
   
 
   const int iMaxCoolingTime = 60000; // in miliseconds
@@ -393,7 +393,7 @@ int ImageCapture::setupCooling(int16 hCam, float fTemperature)
   /* wait for data or error */
   while (1)
   {  
-    getAnyParam( hCam, PARAM_TEMP,          &iTemperatureCurrent );
+    getAnyParam( _hCam, PARAM_TEMP,          &iTemperatureCurrent );
     
     if ( iTemperatureCurrent <= iCoolingTemp ) 
     {
@@ -424,7 +424,7 @@ int ImageCapture::setupCooling(int16 hCam, float fTemperature)
   double fCoolingTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
   printf("Cooling Time = %6.1lf ms\n", fCoolingTime);  
   
-  displayParamIdInfo( hCam, PARAM_TEMP, "Final Temperature" );
+  displayParamIdInfo( _hCam, PARAM_TEMP, "Final Temperature" );
   
   return 0;
 }
@@ -433,7 +433,6 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
   int iGainIndex, float fTemperature, int iStrip)
 {
   char cam_name[CAM_NAME_LEN];  /* camera name                    */
-  int16 hCam;                   /* camera handle                  */
 
   rs_bool bStatus;
   
@@ -464,36 +463,34 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
   }
   printf( "Using Camera Serial %d (Total %d)  Name %s\n", iCamera, iNumCamera, cam_name );
 
-  bStatus = pl_cam_open(cam_name, &hCam, OPEN_EXCLUSIVE);
+  bStatus = pl_cam_open(cam_name, &_hCam, OPEN_EXCLUSIVE);
   if (!bStatus)
   {
     printPvError("ImageCapture::start(): pl_cam_open() failed");
     return 6;
   }
-  
-  _hCam = hCam;
-  
+    
   timespec timeVal1;
   clock_gettime( CLOCK_REALTIME, &timeVal1 );
   double fOpenTime = (timeVal1.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal1.tv_sec - timeVal0.tv_sec ) * 1.e3;    
   printf("Camera Open Time = %6.1lf ms\n", fOpenTime);  
   
   
-  updateCameraSettings(hCam, iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
+  updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
   
-  setupCooling(hCam, fTemperature);
+  setupCooling(fTemperature);
 
-  testImageCaptureFirstTime(hCam); // dummy init capture
+  testImageCaptureFirstTime(); // dummy init capture
     
   const int iNumFrame         = iNumImages;
   const int16 modeExposure    = TIMED_MODE;
   //const int16 modeExposure = STROBED_MODE;
   const uns32 u32ExposureTime = iExposureTime;
   
-  testImageCaptureStandard(hCam, sFnPrefix, iNumFrame, modeExposure, u32ExposureTime);
+  testImageCaptureStandard(sFnPrefix, iNumFrame, modeExposure, u32ExposureTime);
   //testImageCaptureContinous(hCam, iNumFrame, modeExposure, u32ExposureTime);
 
-  bStatus = pl_cam_close(hCam);
+  bStatus = pl_cam_close(_hCam);
   if (!bStatus)
   {
     printPvError("ImageCapture::start(): pl_cam_close() failed");
@@ -510,12 +507,12 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
   return 0;
 }
 
-int ImageCapture::setupROI(int16 hCam, rgn_type& region)
+int ImageCapture::setupROI(rgn_type& region)
 {
   using PICAM::getAnyParam;
   int iWidth, iHeight;
-  getAnyParam( hCam, PARAM_SER_SIZE, &iWidth );
-  getAnyParam( hCam, PARAM_PAR_SIZE, &iHeight );
+  getAnyParam( _hCam, PARAM_SER_SIZE, &iWidth );
+  getAnyParam( _hCam, PARAM_PAR_SIZE, &iHeight );
 
   // set the region to use full frame and 1x1 binning
   region.s1 = 0;
@@ -528,10 +525,10 @@ int ImageCapture::setupROI(int16 hCam, rgn_type& region)
   return 0;
 }
 
-int ImageCapture::testImageCaptureFirstTime(int16 hCam)
+int ImageCapture::testImageCaptureFirstTime()
 {    
   rgn_type region;
-  setupROI(hCam, region);
+  setupROI(region);
   region.sbin = 16;
   region.pbin = 16;
   
@@ -539,7 +536,7 @@ int ImageCapture::testImageCaptureFirstTime(int16 hCam)
   pl_exp_init_seq();
   
   uns32 uFrameSize = 0;
-  pl_exp_setup_seq(hCam, 1, 1, &region, TIMED_MODE, 1, &uFrameSize);
+  pl_exp_setup_seq(_hCam, 1, 1, &region, TIMED_MODE, 1, &uFrameSize);
   uns16* pFrameBuffer = (uns16 *) malloc(uFrameSize);
   printf( "frame size for first capture = %lu\n", uFrameSize );
 
@@ -555,7 +552,7 @@ int ImageCapture::testImageCaptureFirstTime(int16 hCam)
   timespec timeVal1;
   clock_gettime( CLOCK_REALTIME, &timeVal1 );    
   
-  pl_exp_start_seq(hCam, pFrameBuffer);
+  pl_exp_start_seq(_hCam, pFrameBuffer);
 
   timespec timeVal2;
   clock_gettime( CLOCK_REALTIME, &timeVal2 );
@@ -565,7 +562,7 @@ int ImageCapture::testImageCaptureFirstTime(int16 hCam)
   int16 status = 0;
 
   /* wait for data or error */
-  while (pl_exp_check_status(hCam, &status, &uNumBytesTransfered) &&
+  while (pl_exp_check_status(_hCam, &status, &uNumBytesTransfered) &&
          (status != READOUT_COMPLETE && status != READOUT_FAILED))
   {
     // This data will be modified by select(), so need to be reset
@@ -583,7 +580,7 @@ int ImageCapture::testImageCaptureFirstTime(int16 hCam)
   clock_gettime( CLOCK_REALTIME, &timeVal3 );
 
   double fReadoutTime = -1;
-  PICAM::getAnyParam(hCam, PARAM_READOUT_TIME, &fReadoutTime);
+  PICAM::getAnyParam(_hCam, PARAM_READOUT_TIME, &fReadoutTime);
   
   double fStartupTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
   double fPollingTime = (timeVal3.tv_nsec - timeVal2.tv_nsec) * 1.e-6 + ( timeVal3.tv_sec - timeVal2.tv_sec ) * 1.e3;    
@@ -602,20 +599,20 @@ int ImageCapture::testImageCaptureFirstTime(int16 hCam)
   return 0;
 }
 
-int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime)
+int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime)
 {
   printf( "Starting standard image capture for %d frames, exposure mode = %d, exposure time = %d ms\n",
     iNumFrame, (int) modeExposure, (int) uExposureTime );
     
   rgn_type region;
-  setupROI(hCam, region);
+  setupROI(region);
   PICAM::printROI(1, &region);
   
   /* Init a sequence set the region, exposure mode and exposure time */
   pl_exp_init_seq();
   
   uns32 uFrameSize = 0;
-  pl_exp_setup_seq(hCam, 1, 1, &region, modeExposure, uExposureTime, &uFrameSize);
+  pl_exp_setup_seq(_hCam, 1, 1, &region, modeExposure, uExposureTime, &uFrameSize);
   uns16* pFrameBuffer = (uns16 *) malloc(uFrameSize);
   printf( "frame size for standard capture = %lu\n", uFrameSize );
 
@@ -623,7 +620,7 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
   
   if ( modeExposure == STROBED_MODE )
   {
-    PICAM::displayParamIdInfo(hCam, PARAM_CONT_CLEARS , "Continuous Clearing");  
+    PICAM::displayParamIdInfo(_hCam, PARAM_CONT_CLEARS , "Continuous Clearing");  
   }
 
   /* Start the acquisition */
@@ -646,7 +643,7 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
     timespec timeVal1;
     clock_gettime( CLOCK_REALTIME, &timeVal1 );    
     
-    pl_exp_start_seq(hCam, pFrameBuffer);
+    pl_exp_start_seq(_hCam, pFrameBuffer);
 
     timespec timeVal2;
     clock_gettime( CLOCK_REALTIME, &timeVal2 );
@@ -656,7 +653,7 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
     int16 status = 0;
 
     /* wait for data or error */
-    while (pl_exp_check_status(hCam, &status, &uNumBytesTransfered) &&
+    while (pl_exp_check_status(_hCam, &status, &uNumBytesTransfered) &&
            (status != READOUT_COMPLETE && status != READOUT_FAILED))
     {
       // This data will be modified by select(), so need to be reset
@@ -678,7 +675,7 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
     clock_gettime( CLOCK_REALTIME, &timeVal3 );
 
     double fReadoutTime = -1;
-    PICAM::getAnyParam(hCam, PARAM_READOUT_TIME, &fReadoutTime);
+    PICAM::getAnyParam(_hCam, PARAM_READOUT_TIME, &fReadoutTime);
       
     uint64_t uSum    = 0;
     uint64_t uSumSq  = 0;
@@ -716,7 +713,7 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
     fAvgStdVal      += fStdVal;
   }
 
-  // pl_exp_finish_seq(hCam, pFrameBuffer, 0); // No need to call this function, unless we have multiple ROIs
+  // pl_exp_finish_seq(_hCam, pFrameBuffer, 0); // No need to call this function, unless we have multiple ROIs
 
   /*Uninit the sequence */
   pl_exp_uninit_seq();
@@ -737,7 +734,7 @@ int ImageCapture::testImageCaptureStandard(int16 hCam, char* sFnPrefix, int iNum
 
 /* Circ Buff and App Buff
    to be able to store more frames than the circular buffer can hold */
-int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 modeExposure, uns32 uExposureTime)
+int ImageCapture::testImageCaptureContinous(int iNumFrame, int16 modeExposure, uns32 uExposureTime)
 {
   printf( "Starting continuous image capture for %d frames, exposure mode = %d, exposure time = %d ms\n",
     iNumFrame, (int) modeExposure, (int) uExposureTime );
@@ -746,7 +743,7 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
   const timeval timeSleepMicroOrg = {0, 1000}; // 1 milliseconds  
   
   rgn_type region;  
-  setupROI(hCam, region);
+  setupROI(region);
   PICAM::printROI(1, &region);
 
   /* Init a sequence set the region, exposure mode and exposure time */
@@ -757,8 +754,8 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
   }
  
   uns32 uFrameSize = 0;
-  //if( pl_exp_setup_cont( hCam, 1, region, TIMED_MODE, exp_time, &uFrameSize, CIRC_NO_OVERWRITE ) ) {
-  if (!pl_exp_setup_cont(hCam, 1, &region, modeExposure, uExposureTime, &uFrameSize, CIRC_NO_OVERWRITE))
+  //if( pl_exp_setup_cont( _hCam, 1, region, TIMED_MODE, exp_time, &uFrameSize, CIRC_NO_OVERWRITE ) ) {
+  if (!pl_exp_setup_cont(_hCam, 1, &region, modeExposure, uExposureTime, &uFrameSize, CIRC_NO_OVERWRITE))
   {
     printPvError("experiment setup failed!\n");
     return 3;
@@ -786,7 +783,7 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
 
   /* Start the acquisition */
   printf("Collecting %i Frames\n", iNumFrame);
-  if (!pl_exp_start_cont(hCam, pFrameBuffer, iBufferSize))
+  if (!pl_exp_start_cont(_hCam, pFrameBuffer, iBufferSize))
   {
     printPvError("ImageCapture::testImageCaptureContinous():pl_exp_start_cont() failed");
     free(pBufferWithHeader);
@@ -816,7 +813,7 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
     while (1)
     {
       int16 status = 0;
-      if (!pl_exp_check_cont_status(hCam, &status, &uNumBytesTransfered, &uNumBufferFilled) )
+      if (!pl_exp_check_cont_status(_hCam, &status, &uNumBytesTransfered, &uNumBufferFilled) )
       {
         printPvError("ImageCapture::testImageCaptureContinous():pl_exp_start_cont() failed");
         bInnerLoopError = true;
@@ -847,7 +844,7 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
     clock_gettime( CLOCK_REALTIME, &timeVal2 );
  
     void* pFrameCurrent;
-    if (!pl_exp_get_oldest_frame(hCam, &pFrameCurrent))
+    if (!pl_exp_get_oldest_frame(_hCam, &pFrameCurrent))
     {
       printPvError("ImageCapture::testImageCaptureContinous():pl_exp_start_cont() failed");
       break;
@@ -860,7 +857,7 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
       memcpy( pBufferWithHeader+iHeaderSize/2, pBufferWithHeader, iHeaderSize/2 );
     }
     
-    if ( !pl_exp_unlock_oldest_frame(hCam) ) 
+    if ( !pl_exp_unlock_oldest_frame(_hCam) ) 
     {
       printPvError("ImageCapture::testImageCaptureContinous():pl_exp_unlock_oldest_frame() failed");
       break;
@@ -871,7 +868,7 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
     
 
     double fReadoutTime = -1;
-    PICAM::getAnyParam(hCam, PARAM_READOUT_TIME, &fReadoutTime);
+    PICAM::getAnyParam(_hCam, PARAM_READOUT_TIME, &fReadoutTime);
     
     double fPollingTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
     double fFrameProcessingTime = (timeVal3.tv_nsec - timeVal2.tv_nsec) * 1.e-6 + ( timeVal3.tv_sec - timeVal2.tv_sec ) * 1.e3;    
@@ -883,9 +880,9 @@ int ImageCapture::testImageCaptureContinous(int16 hCam, int iNumFrame, int16 mod
   }
 
   /* Stop the acquisition */
-  if (!pl_exp_stop_cont(hCam, CCS_HALT)) printPvError("ImageCapture::testImageCaptureContinous():pl_exp_stop_cont() failed");
+  if (!pl_exp_stop_cont(_hCam, CCS_HALT)) printPvError("ImageCapture::testImageCaptureContinous():pl_exp_stop_cont() failed");
   
-  // pl_exp_finish_seq(hCam, pFrameBuffer, 0); // No need to call this function, unless we have multiple ROIs
+  // pl_exp_finish_seq(_hCam, pFrameBuffer, 0); // No need to call this function, unless we have multiple ROIs
 
   /* Uninit the sequence */
   if (!pl_exp_uninit_seq()) printPvError("ImageCapture::testImageCaptureContinous():pl_exp_uninit_seq() failed");
