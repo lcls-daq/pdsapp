@@ -25,7 +25,7 @@ void EvrPulseConfig::insert(Pds::LinkedList<Parameter>& pList) {
 bool EvrPulseConfig::pull(void* from) {
   const EvrConfigType::PulseType& tc = *(const EvrConfigType::PulseType*) from;
   if (_pulse != tc.pulseId())
-    printf("Read pulse id %d.  Retaining pulse id %d.\n",tc.pulseId(),_pulse);
+    printf("Read pulse id %d.  Returning pulse id %d.\n",tc.pulseId(),_pulse);
   _polarity.value = tc.polarity() ? Enums::Pos : Enums::Neg ;
   _prescale.value = tc.prescale();
   _delay.value = tc.delay();
