@@ -49,9 +49,14 @@ void NodeGroup::add_node(int index)
   QCheckBox* button = new QCheckBox(node.label(),this);
   button->setCheckState(Qt::Checked);  // default to include
   button->setPalette( node.ready() ? *_ready : *_notready );
-  layout()->addWidget(button); 
   _buttons->addButton(button,index); 
   QObject::connect(button, SIGNAL(clicked()), this, SIGNAL(list_changed()));
+
+  QBoxLayout* l = static_cast<QBoxLayout*>(layout());
+  for(index = 0; index < l->count(); index++)
+    if (node.label() < static_cast<QCheckBox*>(l->itemAt(index)->widget())->text())
+      break;
+  l->insertWidget(index,button); 
   
   emit list_changed();
 }

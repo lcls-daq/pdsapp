@@ -81,20 +81,18 @@ void ConfigSelect::set_run_type(const QString& run_type)
 
 void ConfigSelect::update()
 {
-  QString type(_runType->currentText());
   read_db();
-  set_run_type(type);
-
   _pcontrol.reconfigure();
 }
 
 void ConfigSelect::read_db()
 {
-  _runType->clear();
+  QString type(_runType->currentText());
 
   //  _expt.read();
   bool ok = 
     disconnect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
+  _runType->clear();
   const list<TableEntry>& l = _expt.table().entries();
   for(list<TableEntry>::const_iterator iter = l.begin(); iter != l.end(); ++iter) {
     QString str(iter->name().c_str());
@@ -102,6 +100,16 @@ void ConfigSelect::read_db()
   }
   if (ok) 
     connect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
+
+  int index=0;
+  for(list<TableEntry>::const_iterator iter = l.begin(); iter != l.end(); ++iter, ++index) {
+    QString str(iter->name().c_str());
+    if (str == type) {
+      _runType->setCurrentIndex(index);
+      return;
+    }
+  }
+  _runType->setCurrentIndex(0);
 }
 
 void ConfigSelect::configured(bool v)
