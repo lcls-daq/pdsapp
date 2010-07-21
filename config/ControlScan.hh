@@ -25,16 +25,16 @@ namespace Pds_ConfigDb {
     ~ControlScan();
   public:
     void set_run_type(const QString&);
+    int update_key();
   public slots:
-    void update ();
+    void apply ();
     //    void details();
   signals:
-    void created(int);
+    void deactivate ();
+    void reconfigure();
   private:
     void write();
     void read(const char*);
-  private:
-    int update_key();
   private:
     Experiment& _expt;
     std::string _run_type;

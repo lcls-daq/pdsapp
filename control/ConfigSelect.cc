@@ -53,13 +53,14 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   connect(bScan   , SIGNAL(clicked(bool)),	       this, SLOT(enable_scan(bool)));
   connect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
   connect(_reconfig,SIGNAL(changed()),                 this, SLOT(update()));
-  connect(_scan    ,SIGNAL(created(int)),              this, SLOT(run_scan(int)));
+  connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
+  connect(_scan    ,SIGNAL(deactivate()),              bScan, SLOT(click()));
 
   read_db();
   set_run_type(_runType->currentText());
 
   bScan->setCheckable(true);
-  bScan->setChecked  (false);
+  bScan->setChecked  (_scanIsActive=false);
 }
 
 ConfigSelect::~ConfigSelect() 
@@ -82,6 +83,14 @@ void ConfigSelect::set_run_type(const QString& run_type)
 void ConfigSelect::update()
 {
   read_db();
+  if (_scanIsActive) {
+    _run_key = _scan->update_key();
+  }
+  else {
+    const TableEntry* e = _expt.table().get_top_entry(qPrintable(_runType->currentText()));
+    _run_key = strtoul(e->key().c_str(),NULL,16);
+  }
+  _pcontrol.set_transition_env(TransitionId::Configure, _run_key);
   _pcontrol.reconfigure();
 }
 
@@ -117,18 +126,9 @@ void ConfigSelect::configured(bool v)
   _runType->setEnabled(!v);
 }
 
-void ConfigSelect::run_scan(int key)
-{
-  //  Change key
-  _run_key = key;
-  _pcontrol.set_transition_env(TransitionId::Configure, _run_key);
-  
-  //  Run
-  _pcontrol.reconfigure();
-}
-
 void ConfigSelect::enable_scan(bool l)
 {
   _scan->setVisible(l);
+  _scanIsActive = l;
   if (!l) update();  // refresh the run key from "Type"
 }

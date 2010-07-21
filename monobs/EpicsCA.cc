@@ -151,8 +151,6 @@ void EpicsCAChannel::put()
 #endif				  
   if (st != ECA_NORMAL)
     printf("%s : %s [put st] : %d\n",_epicsName, ca_message(st), dbfType);
-
-  ca_flush_io();
 }
 
 void EpicsCAChannel::connStatusCallback(struct connection_handler_args chArgs)

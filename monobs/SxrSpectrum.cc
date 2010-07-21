@@ -62,17 +62,19 @@ void SxrSpectrum::initialize()
 
 SxrSpectrum::~SxrSpectrum()
 {
-  delete _pvalu_writer;
-  delete _valu_writer;
-  delete _nord_writer;
-  delete _rang_writer;
-  delete _xlo_mon;
-  delete _xhi_mon;
-  delete _ylo_mon;
-  delete _yhi_mon;
-  delete _dedy_mon;
-  delete _e0_mon;
-  delete _y0_mon;
+  if (_initialized) {
+    delete _pvalu_writer;
+    delete _valu_writer;
+    delete _nord_writer;
+    delete _rang_writer;
+    delete _xlo_mon;
+    delete _xhi_mon;
+    delete _ylo_mon;
+    delete _yhi_mon;
+    delete _dedy_mon;
+    delete _e0_mon;
+    delete _y0_mon;
+  }
 }
 
 static void _order(double xlo, double xhi, unsigned& xl, unsigned& xh)

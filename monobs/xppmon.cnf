@@ -1,0 +1,6 @@
+# Comment
+# 
+#     Detector		PvBase			Ch0Base	Ch1Base	Ch2Base	Ch3Base
+#
+	16	XPP:IOC:USERPV:SB2:IPM		1.25	1.25	1.25	1.25
+	18	XPP:IOC:USERPV:SB3:PIM		1.25	1.25	1.25	1.25

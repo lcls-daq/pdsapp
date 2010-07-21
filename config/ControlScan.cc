@@ -63,7 +63,7 @@ ControlScan::ControlScan(QWidget* parent, Experiment& expt) :
   _acqB->addButton(timeB  ,Duration);
   eventsB->setChecked(true);
 
-  QPushButton* applyB = new QPushButton("OK");
+  QPushButton* applyB = new QPushButton("Apply");
   //  QPushButton* editB  = new QPushButton("Details");
   QPushButton* closeB = new QPushButton("Close");
 
@@ -101,9 +101,9 @@ ControlScan::ControlScan(QWidget* parent, Experiment& expt) :
     layout->addLayout(layout1); }
   setLayout(layout);
 
-  connect(applyB, SIGNAL(clicked()), this, SLOT(update ()));
+  connect(applyB, SIGNAL(clicked()), this, SLOT(apply  ()));
   //  connect(editB , SIGNAL(clicked()), this, SLOT(details()));
-  connect(closeB, SIGNAL(clicked()), this, SLOT(hide   ()));
+  connect(closeB, SIGNAL(clicked()), this, SIGNAL(deactivate()));
 
   read(scan_file);
 }
@@ -112,11 +112,10 @@ ControlScan::~ControlScan()
 {
 }
 
-void ControlScan::update()
+void ControlScan::apply()
 {
   write();
-  int key = update_key();
-  emit created(key);
+  emit reconfigure();
 }
 
 void ControlScan::set_run_type(const QString& runType)
@@ -321,3 +320,4 @@ int ControlScan::update_key()
 
   return key;
 }
+

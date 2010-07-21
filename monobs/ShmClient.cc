@@ -160,10 +160,12 @@ void ShmClient::update()
 {
   for(HList::iterator it = _handlers.begin(); it != _handlers.end(); it++)
     (*it)->update_pv();
+
+  ca_flush_io();
 }
 
 bool ShmClient::valid() const { return _partitionTag!=0; }
 
-const char* ShmClient::opts   () { return "p:i:"; }
-const char* ShmClient::options() { return "[-p <partitionTag>] [-i clientID]"; }
+const char* ShmClient::opts   () { return "p:i:r:"; }
+const char* ShmClient::options() { return "[-p <partitionTag>] [-i clientID] [-r <rate, Hz>]"; }
 

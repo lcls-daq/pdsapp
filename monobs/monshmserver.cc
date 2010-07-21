@@ -43,6 +43,7 @@ public:
 public:
   Transition* transitions(Transition* tr) 
   {
+    printf("LiveMonitorServer tr %s\n",TransitionId::name(tr->id()));
     if (tr->id() == TransitionId::Unmap) 
       _pop_transition();
     return tr;

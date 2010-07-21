@@ -1,3 +1,5 @@
+2010-Jul-21 weaver	Rationalized configuration control in control_gui.  Added monobs/xppmon to export
+			XPP diode readings to EPICS.
 2010-Jun-28 weaver	Tag V02-05-00.  Added expert mode to configuration menus to provide an expert view into 
 			configurations, particularly for advanced EVR configurations.
 2010-Jun-14 weaver	Fixed bug in acqiris configuration gui (hex channel mask -> vertical configs) which
