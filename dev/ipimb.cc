@@ -153,19 +153,36 @@ int main(int argc, char** argv) {
       break;
     case 'f':
       fp = fopen(optarg,"r");
-      printf("Have opened configuration file %s\n", optarg);
+      if (fp) {
+	printf("Have opened configuration file %s\n", optarg);
+      } else {
+	char message[128];
+	sprintf(message, "failed to open ipimb config file %s\n", optarg); 
+	printf("%s %s\n",argv[0], message);
+	return 0;
+      }
       break;
     }
   }
+
+  int detector, detectorId, deviceId, port;
+  int portInfo[16][4]; // make this a struct array
 
   if (fp) {
     char* tmp = NULL;
     size_t sz = 0;
     nboards = 0;
     while (getline(&tmp, &sz, fp)>0) {
-      nboards++;
+      if (tmp[0] != '#') {
+	sscanf(tmp,"%d %d %d %d",&detector, &detectorId, &deviceId, &port);
+	portInfo[nboards][0] = detector;
+	portInfo[nboards][1] = detectorId;
+	portInfo[nboards][2] = deviceId;
+	portInfo[nboards][3] = port;
+	nboards++;
+      }
     }
-    printf("Have found %d lines in config file, will use that many boards\n", nboards);
+    printf("Have found %d uncommented lines in config file, will use that many boards\n", nboards);
     rewind(fp);
   }
 
@@ -195,9 +212,6 @@ int main(int argc, char** argv) {
   IpimbServer* ipimbServer[nServers];
   CfgClientNfs* cfgService[nServers];
   
-  int detector, detectorId, deviceId, port;
-  int portInfo[nServers][4];
-
   for (unsigned i=0; i<nServers; i++) {
     if (!fp) {
       if (i==0) 
@@ -207,11 +221,10 @@ int main(int argc, char** argv) {
       ipimbServer[i] = new IpimbServer(detInfo);
       portInfo[i][3] = -1;
     } else {
-      fscanf(fp,"%d %d %d %d",&detector, &detectorId, &deviceId, &port);
-      portInfo[i][0] = detector;
-      portInfo[i][1] = detectorId;
-      portInfo[i][2] = deviceId;
-      portInfo[i][3] = port;
+      detector = portInfo[i][0]; 
+      detectorId = portInfo[i][1];
+      deviceId = portInfo[i][2];
+      port = portInfo[i][3];
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detector, detectorId, DetInfo::Ipimb, deviceId);
       cfgService[i] = new CfgClientNfs(detInfo);
       ipimbServer[i] = new IpimbServer(detInfo);
