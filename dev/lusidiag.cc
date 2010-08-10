@@ -10,7 +10,7 @@
 #include "pds/service/Task.hh"
 #include "pds/ipimb/IpimbManager.hh"
 #include "pds/ipimb/IpimbServer.hh"
-#include "pds/ipimb/IpimbFex.hh"
+#include "pds/ipimb/LusiDiagFex.hh"
 #include "pds/config/CfgClientNfs.hh"
 
 #include <unistd.h>
@@ -83,7 +83,7 @@ namespace Pds {
              _platform);
       
       Stream* frmk = streams.stream(StreamParams::FrameWork);
-      IpimbManager& ipimbMgr = *new IpimbManager(_ipimbServer, _nServers, _cfg, _portInfo, *new IpimbFex);
+      IpimbManager& ipimbMgr = *new IpimbManager(_ipimbServer, _nServers, _cfg, _portInfo, *new LusiDiagFex);
       ipimbMgr.appliance().connect(frmk->inlet());
     }
     void failed(Reason reason)

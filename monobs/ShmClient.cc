@@ -143,6 +143,8 @@ int ShmClient::process(Pds::Xtc* xtc)
                  xtc->contains.id()==h->config_type()) {
           h->_configure(xtc->payload(),_seq->clock());
         }
+	else
+	  continue;
         return 1;
       }
     }

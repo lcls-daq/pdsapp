@@ -10,6 +10,9 @@
 #include "pdsapp/config/EvrConfig_V1.hh"
 #include "pdsapp/config/AcqConfig.hh"
 #include "pdsapp/config/IpimbConfig.hh"
+#include "pdsapp/config/IpmFexConfig.hh"
+#include "pdsapp/config/DiodeFexConfig.hh"
+#include "pdsapp/config/PimImageConfig.hh"
 #include "pdsapp/config/EncoderConfig.hh"
 #include "pdsapp/config/Opal1kConfig.hh"
 #include "pdsapp/config/FccdConfig.hh"
@@ -24,6 +27,9 @@
 #include "pds/config/EvrIOConfigType.hh"
 #include "pds/config/AcqConfigType.hh"
 #include "pds/config/IpimbConfigType.hh"
+#include "pds/config/IpmFexConfigType.hh"
+#include "pds/config/DiodeFexConfigType.hh"
+#include "pds/config/PimImageConfigType.hh"
 #include "pds/config/EncoderConfigType.hh"
 #include "pds/config/Opal1kConfigType.hh"
 #include "pds/config/FccdConfigType.hh"
@@ -63,6 +69,9 @@ SerializerDictionary::SerializerDictionary()
   enroll(_controlConfigType   ,new ControlConfig);
   enroll(_princetonConfigType ,new princetonConfig);  
   enroll(_ipimbConfigType     ,new IpimbConfig);  
+  enroll(_ipmFexConfigType    ,new IpmFexConfig);  
+  enroll(_diodeFexConfigType  ,new DiodeFexConfig);  
+  enroll(_pimImageConfigType  ,new PimImageConfig);  
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,3), new EvrConfig_V3);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2), new EvrConfig_V2);

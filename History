@@ -1,3 +1,5 @@
+2010-Aug-10 weaver	Tag V02-06-00.  Added LUSI FEX configurations.  Added configuration key to
+			remote scan interface.  Changed xppmon to report FEX values to EPICS.
 2010-Jul-21 weaver	Rationalized configuration control in control_gui.  Added monobs/xppmon to export
 			XPP diode readings to EPICS.
 2010-Jun-28 weaver	Tag V02-05-00.  Added expert mode to configuration menus to provide an expert view into 

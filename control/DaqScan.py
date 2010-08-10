@@ -69,6 +69,17 @@ class DAQData:
         for item in self.monitorpvs:
             item.send(socket)
 
+class DAQKey:
+    def __init__(self,s):
+        self.socket = s
+        self.value = struct.unpack('<i',self.socket.recv(4))[0]
+        if self.value < 0:
+            raise StandardError
+
+    def set(self,v):
+        self.value = v
+        self.socket.send(struct.pack('<i',self.value))
+        
 class DAQStatus:
     def __init__(self,s):
         self.value = struct.unpack('<i',s.recv(4))

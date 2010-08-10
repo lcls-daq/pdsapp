@@ -120,8 +120,28 @@ void RemoteSeqApp::routine()
 
 	  _manual.disable_control();
 
-	  //  First, reconfigure with the initial settings
-	  if (readTransition()) {
+	  //  First, send the current configdb and run key
+	  length = strlen(_control.partition().dbpath());
+	  ::write(_socket,&length,sizeof(length));
+	  ::write(_socket,_control.partition().dbpath(),length);
+
+	  unsigned old_key = _control.get_transition_env(TransitionId::Configure);
+	  ::write(_socket,&old_key,sizeof(old_key));
+
+	  //  Receive the requested run key
+	  unsigned new_key;
+	  int len = ::recv(_socket, &new_key, sizeof(new_key), MSG_WAITALL);
+	  if (len != sizeof(new_key)) {
+	    if (errno==0)
+	      printf("RemoteSeqApp: remote end closed\n");
+	    else
+	      printf("RemoteSeqApp failed to read new_key(%d/%d) : %s\n",
+		     len,sizeof(new_key),strerror(errno));
+	  }
+
+	  //  Reconfigure with the initial settings
+	  else if (readTransition()) {
+	    _control.set_transition_env    (TransitionId::Configure,new_key);
 	    _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
 
 	    _wait_for_configure = true;
@@ -144,15 +164,17 @@ void RemoteSeqApp::routine()
 	  //  replace the configuration with default running
 	  new(_config_buffer) ControlConfigType(Pds::ControlData::ConfigV1::Default);
 	  _configtc.extent = sizeof(Xtc) + config.size();
+	  _control.set_transition_env    (TransitionId::Configure,old_key);
 	  _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
-	  _control.set_transition_env(TransitionId::Enable, 
-				      config.uses_duration() ?
-				      EnableEnv(config.duration()).value() :
-				      EnableEnv(config.events()).value());
+	  _control.set_transition_env    (TransitionId::Enable, 
+					  config.uses_duration() ?
+					  EnableEnv(config.duration()).value() :
+					  EnableEnv(config.events()).value());
 
 	  _manual.enable_control();
 	  _control.set_target_state(PartitionControl::Configured);
-
+	  _control.reconfigure();
+	  
 	}
 	printf("RemoteSeqApp::routine listen failed : %s\n",
 	       strerror(errno));

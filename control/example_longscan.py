@@ -3,6 +3,7 @@
 
 import socket
 import DaqScan
+import ConfigDb
 
 from optparse import OptionParser
 
@@ -10,9 +11,9 @@ if __name__ == "__main__":
     import sys
 
     parser = OptionParser()
-    parser.add_option("-a","--address",dest="host",default='',
+    parser.add_option("-a","--address",dest="host",default='xpp-daq',
                       help="connect to DAQ at HOST", metavar="HOST")
-    parser.add_option("-p","--port",dest="port",type="int",default=10149,
+    parser.add_option("-p","--port",dest="port",type="int",default=10133,
                       help="connect to DAQ at PORT", metavar="PORT")
     parser.add_option("-n","--cycles",dest="cycles",type="int",default=100,
                       help="run N cycles", metavar="N")
@@ -25,6 +26,14 @@ if __name__ == "__main__":
 
     s.connect((options.host,options.port))
 
+#
+#  First, get the current configuration key in use and set the value to be used
+#
+    cdb = ConfigDb.Db()
+    cdb.recv_path(s)
+    key = DaqScan.DAQKey(s)
+    key.set(key.value)
+    
 #
 #  Send the structure the first time to put the control variables
 #    in the file header

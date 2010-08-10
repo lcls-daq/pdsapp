@@ -9,8 +9,7 @@ namespace PdsCas {
 
   class XppPim : public Handler {
   public:
-    enum { NDIODES=4 };
-    XppPim(const char* pvbase, int detid, float* basev);
+    XppPim(const char* pvbase, int detid);
     ~XppPim();
   public:
     virtual void   _configure(const void* payload, const Pds::ClockTime& t);
@@ -23,8 +22,7 @@ namespace PdsCas {
     enum { PVNAMELEN=32 };
     char _pvName[PVNAMELEN];
     bool _initialized;
-    double      _base      [NDIODES];
-    PVWriter*  _valu_writer[NDIODES];
+    PVWriter*  _valu_writer;
   };
 };
 

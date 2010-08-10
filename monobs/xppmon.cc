@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     if (line[0]!='#') {
       if (sscanf(line,"%d\t%s\t%f\t%f\t%f\t%f",
 		 &detid,pvbase,
-		 &chbase[0],&chbase[1],&chbase[2],&chbase[3]) != 6) {
+		 &chbase[0],&chbase[1],&chbase[2],&chbase[3]) < 2) {
 	fprintf(stderr,"Error scanning line: %s\n",line);
       }
       else {

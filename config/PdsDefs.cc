@@ -11,6 +11,9 @@
 #include "pds/config/pnCCDConfigType.hh"
 #include "pds/config/PrincetonConfigType.hh"
 #include "pds/config/IpimbConfigType.hh"
+#include "pds/config/IpmFexConfigType.hh"
+#include "pds/config/DiodeFexConfigType.hh"
+#include "pds/config/PimImageConfigType.hh"
 #include "pds/config/EncoderConfigType.hh"
 
 #include <sstream>
@@ -44,6 +47,9 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case pnCCD      : type = &_pnCCDConfigType;     break;
   case Princeton  : type = &_princetonConfigType; break;
   case Ipimb      : type = &_ipimbConfigType;     break;
+  case IpmDiode   : type = &_ipmFexConfigType;    break;
+  case PimDiode   : type = &_diodeFexConfigType;  break;
+  case PimImage   : type = &_pimImageConfigType;  break;
   case RunControl : type = &_controlConfigType;   break;
   default: 
     printf("PdsDefs::typeId id %d not found\n",unsigned(id));
@@ -59,6 +65,9 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_evrIOConfigType);
   test(_acqConfigType);
   test(_ipimbConfigType);
+  test(_ipmFexConfigType);
+  test(_diodeFexConfigType);
+  test(_pimImageConfigType);
   test(_encoderConfigType);
   test(_opal1kConfigType);
   test(_fccdConfigType);
@@ -79,6 +88,9 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_evrIOConfigType);
   test(_acqConfigType);
   test(_ipimbConfigType);
+  test(_ipmFexConfigType);
+  test(_diodeFexConfigType);
+  test(_pimImageConfigType);
   test(_encoderConfigType);
   test(_opal1kConfigType);
   test(_fccdConfigType);

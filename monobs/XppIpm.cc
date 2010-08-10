@@ -3,23 +3,21 @@
 
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/ipimb/DataV1.hh"
+#include "pdsdata/lusi/IpmFexV1.hh"
 
 #include <string.h>
 #include <stdio.h>
 
 using namespace PdsCas;
 
-XppIpm::XppIpm(const char* pvbase, int detid, float* basev) :
+XppIpm::XppIpm(const char* pvbase, int detid) :
   Handler(Pds::DetInfo(-1,
 		       Pds::DetInfo::Detector(detid), 1, Pds::DetInfo::Ipimb, 0),
-	  Pds::TypeId::Id_IpimbData,
-	  Pds::TypeId::Id_IpimbConfig),
+	  Pds::TypeId::Id_IpmFex,
+	  Pds::TypeId::Id_IpmFexConfig),
   _initialized(false)
 {
   strncpy(_pvName,pvbase,PVNAMELEN);
-  for(unsigned i=0; i<NDIODES; i++)
-    _base[i] = basev[i];
 }
 
 XppIpm::~XppIpm()
@@ -51,27 +49,23 @@ void XppIpm::initialize()
 }
 
 
-void XppIpm::_configure(const void* payload, const Pds::ClockTime& t) {}
+void XppIpm::_configure(const void* payload, const Pds::ClockTime& t) 
+{
+}
 
 
 void XppIpm::_event    (const void* payload, const Pds::ClockTime& t) 
 {
   if (!_initialized) return;
 
-  const Pds::Ipimb::DataV1& data = *reinterpret_cast<const Pds::Ipimb::DataV1*>(payload);
-  double v0 = _base[0] - data.channel0Volts();
-  double v1 = _base[1] - data.channel1Volts();
-  double v2 = _base[2] - data.channel2Volts();
-  double v3 = _base[3] - data.channel3Volts();
+  const Pds::Lusi::IpmFexV1& data =
+    *reinterpret_cast<const Pds::Lusi::IpmFexV1*>(payload);
 
-  *reinterpret_cast<double*>(_valu_writer[0]->data()) = v0;
-  *reinterpret_cast<double*>(_valu_writer[1]->data()) = v1;
-  *reinterpret_cast<double*>(_valu_writer[2]->data()) = v2;
-  *reinterpret_cast<double*>(_valu_writer[3]->data()) = v3;
-
-  *reinterpret_cast<double*>(_sum_writer ->data()) = v0+v1+v2+v3;
-  *reinterpret_cast<double*>(_xpos_writer->data()) = (v1-v3)/(v1+v3);
-  *reinterpret_cast<double*>(_ypos_writer->data()) = (v0-v2)/(v0+v2);
+  for(unsigned i=0; i<NDIODES; i++)
+    *reinterpret_cast<double*>(_valu_writer[i]->data()) = data.channel[i];
+  *reinterpret_cast<double*>(_sum_writer ->data()) = data.sum;
+  *reinterpret_cast<double*>(_xpos_writer->data()) = data.xpos;
+  *reinterpret_cast<double*>(_ypos_writer->data()) = data.ypos;
 
   for(unsigned i=0; i<NDIODES; i++) {
     _valu_writer[i]->put();
