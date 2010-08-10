@@ -60,8 +60,7 @@ int main(int argc, char* argv[])
   while(getline(&line, &line_sz, f) != -1) {
     if (line[0]!='#') {
       if (sscanf(line,"%d\t%s\t%f\t%f\t%f\t%f",
-		 &detid,pvbase,
-		 &chbase[0],&chbase[1],&chbase[2],&chbase[3]) < 2) {
+		 &detid,pvbase) < 2) {
 	fprintf(stderr,"Error scanning line: %s\n",line);
       }
       else {
@@ -69,12 +68,12 @@ int main(int argc, char* argv[])
 	case Pds::DetInfo::XppSb1Ipm:
 	case Pds::DetInfo::XppSb2Ipm:
 	case Pds::DetInfo::XppSb3Ipm:
-	  client.insert(new XppIpm(pvbase,detid,chbase));
+	  client.insert(new XppIpm(pvbase,detid));
 	  break;
 	case Pds::DetInfo::XppMonPim:
 	case Pds::DetInfo::XppSb3Pim:
 	case Pds::DetInfo::XppSb4Pim:
-	  client.insert(new XppPim(pvbase,detid,chbase));
+	  client.insert(new XppPim(pvbase,detid));
 	  break;
 	default:
 	  fprintf(stderr,"Error in lookup of detector index %d\n",detid);
