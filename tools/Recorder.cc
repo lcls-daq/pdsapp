@@ -63,6 +63,9 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) :
     printf("Using path: %s\n",_path);
   }
 
+  mode_t newmask = S_IWOTH;
+  mode_t oldmask = umask(newmask);
+  printf("Changed umask from %o to %o\n",oldmask,newmask);
 }
 
 InDatagram* Recorder::events(InDatagram* in) {
