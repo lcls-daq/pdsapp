@@ -29,10 +29,11 @@ int main(int argc, char** argv) {
   EventLevel* event = new EventLevel(options.platform,
 				     *test,
 				     arp);
-  if (test->attach(event))
-    task->mainLoop();
 
-  test->detach();
+  if (test->attach(event)) {
+    task->mainLoop();
+    test->detach();
+  }
 
   if (arp) delete arp;
   return 0;
