@@ -23,3 +23,8 @@ int EvrConfigP::dataSize() const
 {
   return _table->dataSize();
 }
+
+bool EvrConfigP::validate() 
+{
+  return _table->validate();
+}

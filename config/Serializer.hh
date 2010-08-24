@@ -16,6 +16,7 @@ namespace Pds_ConfigDb {
     virtual int           readParameters (void* from) = 0;
     virtual int           writeParameters(void* to) = 0;
     virtual int           dataSize() const = 0;
+    virtual bool          validate() { return true; }
   public:
     void initialize(QWidget*, QBoxLayout*);
     void flush ();

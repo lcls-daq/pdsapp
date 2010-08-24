@@ -25,7 +25,8 @@ namespace Pds_ConfigDb
     void insert(Pds::LinkedList<Parameter>& pList);
     int  pull  (const void* from);
     int  push  (void* to) const;
-    int dataSize() const;
+    int  dataSize() const;
+    bool validate();
   public:
     QLayout* initialize(QWidget* parent);
     void     flush     ();

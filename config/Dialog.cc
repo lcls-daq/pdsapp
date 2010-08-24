@@ -193,6 +193,10 @@ void Dialog::write()
   _s.writeParameters(cycle->buffer);
   _cycles[i] = cycle;
 
+  // Validate
+  if (!_s.validate())
+    return;
+
   const int bufsize = 128;
   char* buff = new char[bufsize];
 

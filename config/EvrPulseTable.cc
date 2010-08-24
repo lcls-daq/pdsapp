@@ -13,6 +13,7 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QLabel>
 #include <QtGui/QLineEdit>
+#include <QtGui/QMessageBox>
 
 static const int PolarityGroup = 100;
 
@@ -398,6 +399,44 @@ int EvrPulseTable::dataSize() const {
     nec*sizeof(EvrConfigType::EventCodeType) +
     npt*sizeof(EvrConfigType::PulseType) +
     nom*sizeof(EvrConfigType::OutputMapType);
+}
+
+bool EvrPulseTable::validate()
+{
+  // Check that the pulse delays + widths don't exceed the period for known event codes
+
+  QString msg;
+  for(unsigned i=0; i<MaxPulses; i++) {
+    const Pulse& p = *_pulses[i];
+    if (!p._enable->isChecked())
+      continue;
+
+    if (p._polarity->state() == PolarityButton::None)
+      continue;
+
+    unsigned ec = p._eventCode.value;
+    if ((ec >= 40 && ec<= 46) ||
+	(ec >=140 && ec<=146)) {
+      
+      int period = 119e6*double(1<<((ec%100)-40))/120.;
+      int delay  = p._delay.value;
+      int width  = p._width.value;
+      if (period < (delay + width)) {
+	msg += QString("Pulse delay (%1s) + width (%2s) exceeds period (%3s) for event code %4\n")
+	  .arg(double(delay )/119e6)
+	  .arg(double(width )/119e6)
+	  .arg(double(period)/119e6)
+	  .arg(ec);
+      }
+    }
+  }  
+
+  if (!msg.isEmpty()) {
+    QMessageBox::warning(0, "Parameter Error", msg);
+    //    return false;
+  }
+
+  return true;
 }
 
 QLayout* EvrPulseTable::initialize(QWidget* parent) 
