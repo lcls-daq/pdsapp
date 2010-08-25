@@ -15,7 +15,7 @@ int main(int argc, char** argv)
 {
   const char* partition = 0;
   unsigned nodes = 0;
-  unsigned lifetime = 300;
+  unsigned lifetime = 36000;
   EventOptions options;
 
   int c;
