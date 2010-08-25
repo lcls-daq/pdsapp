@@ -14,7 +14,10 @@
 #include "PnccdFrameDetail.hh"
 #include "PnccdShuffle.hh"
 
-static PNCCD::ConfigV1 cfg;
+#include <vector>
+
+static std::vector<PNCCD::ConfigV1> _config;
+static std::vector<Pds::DetInfo>    _info;
 
 #define NPRINTMAX 32
 static unsigned nprint=0;
@@ -128,22 +131,23 @@ public:
   enum {Stop, Continue};
   myLevelIter(Xtc* xtc, unsigned depth) : XtcIterator(xtc), _depth(depth) {}
 
-  void process(const DetInfo& d, const PNCCD::FrameV1* f) {
+  void process(const DetInfo& d, const PNCCD::FrameV1* f, const PNCCD::ConfigV1& cfg) {
     for (unsigned i=0;i<cfg.numLinks();i++) {
       PNCCD::Line* line = (PNCCD::Line*)(const_cast<uint16_t*>(f->data()));
       for (unsigned j=0;j<PNCCD::Image::NumLines;j++) {
-        PnccdShuffle::shuffle(line,&buffer,sizeof(PNCCD::Line)/sizeof(uint16_t));
-        memcpy(line,&buffer,sizeof(PNCCD::Line));
-        line++;
+	PnccdShuffle::shuffle(line,&buffer,sizeof(PNCCD::Line)/sizeof(uint16_t));
+	memcpy(line,&buffer,sizeof(PNCCD::Line));
+	line++;
       }
       f = f->next(cfg);
     }
   }
 
-  void process(const DetInfo&, const PNCCD::ConfigV1& config) {
-    cfg = config;
+  void process(const DetInfo& info, const PNCCD::ConfigV1& config) {
+    _config.push_back(config);
+    _info  .push_back(info);
     printf("*** Processing pnCCD config.  Number of Links: %d, PayloadSize per Link: %d\n",
-           cfg.numLinks(),cfg.payloadSizePerLink());
+           config.numLinks(),config.payloadSizePerLink());
   }
 
   int process(Xtc* xtc) {
@@ -162,15 +166,20 @@ public:
     }
     case (TypeId::Id_pnCCDframe) : {
       // check size is correct before re-ordering
-      int expected = cfg.numLinks()*(sizeof(PNCCD::Image)+sizeof(PNCCD::FrameV1));
-      if (xtc->sizeofPayload()==expected) {
-        process(info, (const PNCCD::FrameV1*)(xtc->payload()));
-      } else {
-        if (nprint++ < NPRINTMAX) {
-          printf("*** Error: no reordering.  Found payloadsize 0x%x, expected 0x%x\n",
-                 xtc->sizeofPayload(),sizeof(PNCCD::Image));
-        }
-      }
+      for (unsigned k=0; k<_info.size(); k++)
+	if (_info[k] == info) {
+	  const PNCCD::ConfigV1& cfg = _config[k];
+	  int expected = cfg.numLinks()*(sizeof(PNCCD::Image)+sizeof(PNCCD::FrameV1));
+	  if (xtc->sizeofPayload()==expected) {
+	    process(info, (const PNCCD::FrameV1*)(xtc->payload()), cfg);
+	  } else {
+	    if (nprint++ < NPRINTMAX) {
+	      printf("*** Error: no reordering.  Found payloadsize 0x%x, expected 0x%x\n",
+		     xtc->sizeofPayload(),sizeof(PNCCD::Image));
+	    }
+	  }
+	  break;
+	}
       break;
     }
     case (TypeId::Id_pnCCDconfig) : {
@@ -186,7 +195,16 @@ private:
   unsigned _depth;
 };
 
-void PnccdShuffle::shuffle(Datagram& dg) {
-  myLevelIter iter(&(dg.xtc),0);
-  iter.iterate();
+void PnccdShuffle::shuffle(Datagram& dg) 
+{
+  if (dg.seq.service() == TransitionId::Configure) {
+    _config.clear();
+    _info  .clear();
+    myLevelIter iter(&(dg.xtc),0);
+    iter.iterate();
+  }
+  else if (!_config.empty() && dg.seq.service() == TransitionId::L1Accept) {
+    myLevelIter iter(&(dg.xtc),0);
+    iter.iterate();
+  }
 }

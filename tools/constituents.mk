@@ -2,18 +2,19 @@ libnames := tools
 
 CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
-libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc
+libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc CspadShuffle.cc
 
 tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
+liblibs_tools := pdsdata/cspaddata pdsdata/pnccddata
 
 tgtsrcs_event := event.cc
-tgtlibs_event := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/tools
+tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools
 tgtslib_event := $(USRLIBDIR)/rt
 
 tgtsrcs_eventp := eventp.cc ParasiticRecorder.cc
-tgtlibs_eventp := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/tools
+tgtlibs_eventp := $(liblibs_tools) $(commonlibs) pdsapp/tools
 tgtslib_eventp := $(USRLIBDIR)/rt
 
 tgtsrcs_segtest := segtest.cc
@@ -57,9 +58,9 @@ tgtlibs_bldServerTest := pds/service
 tgtslib_bldServerTest := $(USRLIBDIR)/rt
 
 tgtsrcs_bldMonitor := bldMonitor.cc bldMonitor.hh 
-tgtlibs_bldMonitor := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/tools
+tgtlibs_bldMonitor := $(liblibs_tools) $(commonlibs) pdsapp/tools
 tgtslib_bldMonitor := $(USRLIBDIR)/rt
 
 tgtsrcs_observertest := observertest.cc
-tgtlibs_observertest := pdsdata/pnccddata pdsdata/opal1kdata $(commonlibs) pdsapp/tools
+tgtlibs_observertest := $(liblibs_tools) $(commonlibs) pdsapp/tools
 tgtslib_observertest := $(USRLIBDIR)/rt

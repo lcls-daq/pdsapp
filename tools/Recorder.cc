@@ -1,5 +1,6 @@
 #include "Recorder.hh"
 #include "PnccdShuffle.hh"
+#include "CspadShuffle.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/collection/Node.hh"
 #include "pds/service/GenericPool.hh"
@@ -70,6 +71,9 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) :
 
 InDatagram* Recorder::events(InDatagram* in) {
 
+  PnccdShuffle::shuffle(in->datagram());
+  CspadShuffle::shuffle(in->datagram());
+
   InDatagramIterator* iter = in->iterator(_pool);
 
   switch(in->datagram().seq.service()) {
@@ -81,7 +85,6 @@ InDatagram* Recorder::events(InDatagram* in) {
   case TransitionId::Configure: // cache the configure result
     memcpy   (_config, &in->datagram(), sizeof(Datagram));
     iter->copy(_config+sizeof(Datagram), in->datagram().xtc.sizeofPayload());
-    PnccdShuffle::shuffle(in->datagram());
     break;
   case TransitionId::BeginRun:
     if (_beginrunerr) {
@@ -93,11 +96,6 @@ InDatagram* Recorder::events(InDatagram* in) {
   default:  // write this transition
     if (_f) {
       struct stat st;
-      // kludge for pnCCD - cpo
-      if ((in->datagram().seq.service() == TransitionId::L1Accept)) {
-        PnccdShuffle::shuffle(in->datagram());
-      }
-      // end kludge
       fwrite(&(in->datagram()),sizeof(in->datagram()),1,_f);
       { struct iovec iov;
         int rv;
