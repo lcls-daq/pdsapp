@@ -22,6 +22,7 @@
 #include "pdsapp/config/princetonConfig.hh"
 #include "pdsapp/config/FrameFexConfig.hh"
 #include "pdsapp/config/ControlConfig.hh"
+#include "pdsapp/config/CspadConfig.hh"
 
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/EvrIOConfigType.hh"
@@ -38,6 +39,7 @@
 #include "pds/config/PrincetonConfigType.hh"
 #include "pds/config/FrameFexConfigType.hh"
 #include "pds/config/ControlConfigType.hh"
+#include "pds/config/CspadConfigType.hh"
 
 using namespace Pds_ConfigDb;
 
@@ -72,6 +74,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_ipmFexConfigType    ,new IpmFexConfig);  
   enroll(_diodeFexConfigType  ,new DiodeFexConfig);  
   enroll(_pimImageConfigType  ,new PimImageConfig);  
+  enroll(_cspadConfigType     ,new CspadConfig);  
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,3), new EvrConfig_V3);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2), new EvrConfig_V2);

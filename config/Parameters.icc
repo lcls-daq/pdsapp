@@ -232,3 +232,110 @@ void Enumerated<T>::enable(bool v)
     _input->setEnabled(v);
 }
 
+
+template <class T, int N>
+NumericIntArray<T,N>::NumericIntArray(const char* label, T val, T vlo, T vhi, IntMode mo, double sca) :
+  Parameter(label),
+  mode (mo),
+  scale(sca)
+{
+  for(int i=0; i<N; i++) value[i]=val;
+  range[0]=vlo;
+  range[1]=vhi;
+}
+
+template <class T, int N>
+NumericIntArray<T,N>::~NumericIntArray() 
+{
+}
+
+template <class T, int N>
+QLayout* NumericIntArray<T,N>::initialize(QWidget* parent)  
+{
+  QHBoxLayout* layout = new QHBoxLayout;
+  if (_label)
+    layout->addWidget(new QLabel(_label));             
+  if (allowEdit()) {
+    for(int i=0; i<N; i++) {
+      layout->addWidget(_input[i] = new QLineEdit(parent));  
+      _input[i]->setReadOnly(!allowEdit());
+    }
+    flush();
+    for(int i=0; i<N; i++) {
+      switch(mode) {
+      case Decimal:
+        _input[i]->setValidator(new IntValidator( *this, *_input[i], range[0], range[1]));
+        break;
+      case Hex:
+        _input[i]->setValidator(new HexValidator( *this, *_input[i], range[0], range[1]));
+        break;
+      default:
+        _input[i]->setValidator(new DoubleValidator( *this, *_input[i], range[0]*scale, range[1]*scale));
+      }
+    }
+  }
+  else {
+    for(int i=0; i<N; i++) {
+      switch(mode) {
+      case Decimal: _display[i] = new QLabel(QString::number(value[i],10)); break;
+      case Hex:     _display[i] = new QLabel(QString::number(value[i],16)); break;
+      default:      _display[i] = new QLabel(QString::number(double(value[i])*scale)); break;
+      }
+      _display[i]->setFrameShape(QFrame::Box);
+      layout->addWidget(_display[i]);
+    }
+  }
+  layout->setContentsMargins(0,0,0,0);               
+  return layout;                                     
+}
+
+template <class T, int N>
+void NumericIntArray<T,N>::update()
+{
+  if (allowEdit()) {
+    for(int i=0; i<N; i++) {
+      bool ok;
+      switch(mode) {
+      case Decimal:  value[i] = _input[i]->text().toInt(); break;
+      case Hex:      value[i] = _input[i]->text().toInt(&ok,16); break;
+      default:       value[i] = int(_input[i]->text().toDouble(&ok)/scale + 0.5); break;
+      }
+    }
+  }
+}
+
+template <class T, int N>
+void NumericIntArray<T,N>::flush()
+{
+  for(int i=0; i<N; i++) {
+    QString v;
+    switch(mode) {
+      case Decimal: v = QString::number(value[i],10); break;
+      case Hex:	    v = QString::number(value[i],16); break;
+      default:      v = QString::number(double(value[i])*scale); break;
+    }
+    if (allowEdit())
+      _input[i]->setText(v);
+    else
+      _display[i]->setText(v);
+  }
+}
+
+template <class T, int N>
+void NumericIntArray<T,N>::enable(bool v)
+{
+  if (allowEdit())
+    for(int i=0; i<N; i++)
+      _input[i]->setReadOnly(!v);
+}
+
+template <class T, int N>
+void NumericIntArray<T,N>::setWidth(unsigned w)
+{
+  for(int i=0; i<N; i++) {
+    if (allowEdit()) _input  [i]->setMaximumWidth(w);
+    else             _display[i]->setMaximumWidth(w);
+  }
+}
+
+

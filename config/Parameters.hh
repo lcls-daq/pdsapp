@@ -131,6 +131,28 @@ namespace Pds_ConfigDb {
     unsigned   _size;
     QLabel*    _display;
   };
+
+  template <class T, int N>
+  class NumericIntArray : public Parameter {
+  public:
+    NumericIntArray(const char* label, T val, T vlo, T vhi, IntMode mo=Decimal, double sca=1.);
+    ~NumericIntArray();
+
+    QLayout* initialize(QWidget*);
+    void     update();
+    void     flush ();
+    void     enable(bool);
+  public:
+    void     setWidth(unsigned);
+  public:
+    T       value[N];
+    T       range[2];
+    IntMode mode;
+    double  scale;
+    QLineEdit* _input[N];
+    QLabel*    _display[N];
+  };
+
 };
 
 #endif
