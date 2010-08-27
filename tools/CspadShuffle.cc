@@ -42,6 +42,7 @@ public:
 	break;
       }
       case (TypeId::Id_CspadElement) : {
+	if (xtc->damage.value()) break;
 	Pds::CsPad::ElementV1* data = reinterpret_cast<Pds::CsPad::ElementV1*>(xtc->payload());
 	for(unsigned i=0; i<_info.size(); i++)
 	  if (_info[i] == info) {
