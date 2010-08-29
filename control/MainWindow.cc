@@ -192,6 +192,7 @@ MainWindow::MainWindow(unsigned          platform,
   _control->attach();
 
   QObject::connect(state , SIGNAL(configured(bool)), config, SLOT(configured(bool)));
+  QObject::connect(state , SIGNAL(state_changed(QString)), _partition, SLOT(change_state(QString)));
   QObject::connect(this  , SIGNAL(transition_failed(const QString&, bool))   , 
 		   this  , SLOT(handle_failed_transition(const QString&, bool)));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));

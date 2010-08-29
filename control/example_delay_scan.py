@@ -4,6 +4,7 @@
 import socket
 import DaqScan
 import ConfigDb
+import Evr
 
 from optparse import OptionParser
 
@@ -32,8 +33,27 @@ if __name__ == "__main__":
     cdb = ConfigDb.Db()
     cdb.recv_path(s)
     key = DaqScan.DAQKey(s)
-    key.set(key.value)
+
+#
+#  Generate a new key with different EVR pulse delays for each cycle
+#
+    evr = Evr.ConfigV4()
+    evr.read(cdb.xtcpath(key.value,Evr.DetInfo,Evr.TypeId))
     
+    newkey = cdb.copy_key(key.value)
+    newxtc = cdb.remove_xtc(newkey,Evr.DetInfo,Evr.TypeId)
+    print 'Generated key ',newkey
+    
+    delay_offset = 0
+    delay_step   = 100.e-9
+    f = open(newxtc,'w')
+    for cycle in range(options.cycles):
+        evr.pulses[0].delay = int(delay_offset + cycle*delay_step*119e6)
+        evr.write(f)
+    f.close()
+
+    key.set(newkey)
+
 #
 #  Send the structure the first time to put the control variables
 #    in the file header
@@ -49,12 +69,6 @@ if __name__ == "__main__":
     result = DaqScan.DAQStatus(s)
     print "Configured."
 
-#
-#  Wait for the user to declare 'ready'
-#    Setting up monitoring displays for example
-#  
-    ready = raw_input('--Hit Enter when Ready-->')
-
     for cycle in range(options.cycles):
         data = DaqScan.DAQData()
         data.setevents(options.events)
@@ -68,10 +82,4 @@ if __name__ == "__main__":
 
         result = DaqScan.DAQStatus(s)  # wait for disabled, then disable the EVR sequence
             
-#
-#  Wait for the user to declare 'done'
-#    Saving monitoring displays for example
-#
-    ready = raw_input('--Hit Enter when Done-->')
-
     s.close()

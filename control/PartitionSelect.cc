@@ -29,16 +29,15 @@ PartitionSelect::PartitionSelect(QWidget*          parent,
 {
   sprintf(_db_path,"%s/keys",db_path);
 
-  QPushButton* selectb;
   QPushButton* display;
 
   QHBoxLayout* layout = new QHBoxLayout(this);
-  layout->addWidget(selectb = new QPushButton("Select",this));
-  layout->addWidget(display = new QPushButton("Display",this));
+  layout->addWidget(_selectb = new QPushButton("Select",this));
+  layout->addWidget( display = new QPushButton("Display",this));
   setLayout(layout);
 
-  connect(selectb, SIGNAL(clicked()), this, SLOT(select_dialog()));
-  connect(display, SIGNAL(clicked()), this, SLOT(display()));
+  connect(_selectb, SIGNAL(clicked()), this, SLOT(select_dialog()));
+  connect( display, SIGNAL(clicked()), this, SLOT(display()));
 }
 
 PartitionSelect::~PartitionSelect() 
@@ -94,6 +93,12 @@ void PartitionSelect::display()
 {
   if (_display)
     _display->show();
+}
+
+void PartitionSelect::change_state(QString s)
+{
+  if (s == QString(TransitionId::name(TransitionId::Unmap))) _selectb->setEnabled(true);
+  if (s == QString(TransitionId::name(TransitionId::Map  ))) _selectb->setEnabled(false);
 }
 
 const QList<DetInfo >& PartitionSelect::detectors() const { return _detectors; }
