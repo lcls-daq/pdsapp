@@ -128,6 +128,7 @@ class QuadV1:
 
 class ConfigV1:
     def __init__(self):
+        self.concentratorVersion = 0
         self.runDelay = 0
         self.eventCode = 0
         self.inactiveRunMode = 0
@@ -143,7 +144,8 @@ class ConfigV1:
     def read(self,name):
         f = open(name,'r')
 
-        (self.runDelay, self.eventCode, self.inactiveRunMode, self.activeRunMode, \
+        (self.concentratorVersion, \
+         self.runDelay, self.eventCode, self.inactiveRunMode, self.activeRunMode, \
          self.testDataIndex, self.payloadPerQuad, self.badAsicMask0, self.badAsicMask1, \
          self.asicMask, self.quadMask) \
         = struct.unpack(self.fmt(),f.read(struct.calcsize(self.fmt())))
@@ -158,6 +160,7 @@ class ConfigV1:
 
     def write(self,f):
         f.write(struct.pack(self.fmt(),
+                            self.concentratorVersion,
                             self.runDelay, self.eventCode, self.inactiveRunMode, self.activeRunMode,
                             self.testDataIndex, self.payloadPerQuad, self.badAsicMask0, self.badAsicMask1,
                             self.asicMask, self.quadMask))
@@ -166,4 +169,4 @@ class ConfigV1:
             self.quads[i].write(f)
         
     def fmt(self):
-        return '<10I'
+        return '<11I'
