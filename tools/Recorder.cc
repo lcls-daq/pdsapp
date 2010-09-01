@@ -13,14 +13,13 @@
 #include <errno.h>
 #include <libgen.h>
 #include <sys/types.h>
+#include <sys/file.h>
 #include <dirent.h>
 #include <limits.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 using namespace Pds;
-
-// scandir support
-static int _filter_xtc(const struct dirent *entry);
-static char filter_match_begin[64];
 
 static void local_mkdir (const char * path)
 {
@@ -91,8 +90,6 @@ InDatagram* Recorder::events(InDatagram* in) {
       in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
       _beginrunerr=0;
     }
-    // deliberately "fall through" the case statement (no "break), so we
-    // rewrite configure transition information every beginrun.
   default:  // write this transition
     if (_f) {
       struct stat st;
@@ -112,9 +109,6 @@ InDatagram* Recorder::events(InDatagram* in) {
           // chunking: close the current output file and open the next one
           ++_chunk;     // should _chunk have an upper limit?
           fclose(_f);
-          if (_renameOutputFile(true) != 0) {
-            in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
-          }
           if (_openOutputFile(true) != 0) {
             in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
           }
@@ -130,11 +124,6 @@ InDatagram* Recorder::events(InDatagram* in) {
   if (in->datagram().seq.service()==TransitionId::EndRun) {
     if (_f) {
       fclose(_f);
-      // rename the output file
-      if (_renameOutputFile(true) != 0) {
-        // error
-        in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
-      }
     }
     _f = 0;
   }
@@ -177,11 +166,6 @@ Transition* Recorder::transitions(Transition* tr) {
         _beginrunerr++;
       }
       else {
-        // rename .xtc.inprogress file from previous run, if present
-        if (_run > 1) {
-          _renameOutputFile(_run-1, true);
-        }
-
         // create directory
         sprintf(_fname,"%s/e%d", _path,_experiment);
         local_mkdir(_fname);
@@ -206,77 +190,6 @@ InDatagram* Recorder::occurrences(InDatagram* in) {
 }
 
 //
-// Recorder::_renameFile - rename file
-//
-// RETURNS: 0 on success, otherwise -1.
-//
-int Recorder::_renameFile(char *oldName, char *newName, bool verbose) {
-  struct stat st;
-  int rv = -1;      // return value
-
-  if (stat(newName,&st) == 0) {
-    if (verbose) {
-      printf("Unable to rename %s. Reason: %s already exists\n",
-              oldName, newName);
-    }
-  }
-  else if (rename(oldName,newName)) {
-    if (verbose) {
-      printf("Unable to rename %s. Reason: %s\n",oldName,
-             strerror(errno));
-      }
-  } else {
-    rv = 0;         // return 0 for success
-    if (verbose) {
-      printf("Renamed %s to %s\n",oldName, newName);
-    }
-  }
-  return (rv);
-}
-
-//
-// Recorder::_renameOutputFile - rename output file
-//
-// RETURNS: 0 on success, otherwise -1.
-//
-int Recorder::_renameOutputFile(bool verbose) {
-  return (_renameFile(_fnamerunning, _fname, verbose));
-}
-
-int Recorder::_renameOutputFile(int run, bool verbose) {
-  int rv = 0;
-  char path[SizeofName];
-  struct dirent **namelist;
-
-  // construct path
-  sprintf(path,"%s/e%d", _path,_experiment);
-
-  // set pattern to match with scandir()
-  sprintf(filter_match_begin, "e%d-r%04d-s%02d-", _experiment, run, _sliceID);
-
-  int ii = scandir(path, &namelist, _filter_xtc, alphasort);
-  if (ii < 0) {
-    perror("scandir");
-    rv = -1;  // ERROR
-  }
-  else {
-    char     oldname[SizeofName];
-    char     newname[SizeofName];
-    unsigned int suffixLen = strlen(".inprogress");
-    while (ii--) {
-      snprintf(oldname, SizeofName, "%s/%s", path, namelist[ii]->d_name);
-      if (strlen(oldname) > suffixLen) {
-        strncpy(newname, oldname, SizeofName);
-        newname[strlen(oldname) - suffixLen] = '\0';
-        (void)_renameFile(oldname, newname, true);
-      }
-      free(namelist[ii]);
-    }
-  }
-  return rv;
-}
-
-//
 // Recorder::_openOutputFile - open output file
 //
 // RETURNS: 0 on success, otherwise -1.
@@ -284,16 +197,33 @@ int Recorder::_renameOutputFile(int run, bool verbose) {
 int Recorder::_openOutputFile(bool verbose) {
   int rv = -1;
 
+  struct flock flk;
+  flk.l_type   = F_WRLCK;
+  flk.l_whence = SEEK_SET;
+  flk.l_start  = 0;
+  flk.l_len    = 0;
+
   sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
     _path, _experiment, _experiment, _run, _sliceID, _chunk);
   sprintf(_fnamerunning,"%s.inprogress",_fname);
   _f=fopen(_fnamerunning,"wx"); // x: if the file already exists, fopen() fails
   if (_f) {
+    int rc;
+    do { rc = fcntl(fileno(_f), F_SETLKW, &flk); }
+    while(rc<0 && errno==EINTR);
+    if (rc<0) {
+      perror(_fnamerunning);
+      return rv;
+    }
+    if ( (rv = rename(_fnamerunning, _fname)) ) {
+      perror(_fname);
+      return rv;
+    }
     //    rv = 0;
     //  Set disk buffering as a multiple of RAID stripe size (256kB)
     rv = setvbuf(_f, NULL, _IOFBF, 4*1024*1024);
     if (verbose) {
-      printf("Opened %s\n",_fnamerunning);
+      printf("Opened %s\n",_fname);
     }
   }
   else {
@@ -304,22 +234,3 @@ int Recorder::_openOutputFile(bool verbose) {
   return rv;
 }
 
-//
-// _filter_xtc - callback routine for scandir()
-//
-// RETURNS: 1 if entry->d_name matches the desired pattern, otherwise 0.
-//
-static int _filter_xtc(const struct dirent *entry) {
-  int rv = 0;
-
-  // see if name begins with filter_match_begin[] and ends with ".xtc.inprogress"
-  unsigned int suffixLen = strlen(".xtc.inprogress");
-  if ((entry != NULL) && (entry->d_name != NULL) &&
-      (strncmp(entry->d_name, filter_match_begin,
-      strlen(filter_match_begin)) == 0) &&
-      (strlen(entry->d_name) > suffixLen) &&
-      (strcmp(entry->d_name + strlen(entry->d_name) - suffixLen, ".xtc.inprogress") == 0)) {
-    rv = 1;
-  }
-  return rv;
-}
