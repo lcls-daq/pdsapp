@@ -207,9 +207,9 @@ static string addressToStr( unsigned int uAddr )
 extern "C" 
 { 
 // forward declaration
-int BldClientTestSendInterface(int iDataSeed, char* sInterfaceIp);
+int BldClientTestSendInterface(int iDataSeed, char* sInterfaceIp, int iNumPackets);
 int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort, 
-      unsigned int uMaxDataSize, int iDataSeed, char* sInterfaceIp);
+      unsigned int uMaxDataSize, int iDataSeed, char* sInterfaceIp, int iNumPackets);
   
 /**
  * Bld Client basic test function
@@ -223,7 +223,7 @@ int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort,
  */
 int BldClientTestSendBasic(int iDataSeed)
 { 
-  return BldClientTestSendInterface(iDataSeed, NULL);
+  return BldClientTestSendInterface(iDataSeed, NULL, 0);
 }
 
 /**
@@ -235,9 +235,9 @@ int BldClientTestSendBasic(int iDataSeed)
  * This fucntion is only used for quick testing of Bld Client, such as 
  * running from CExp Command Line.
  */
-int BldClientTestSendInterface(int iDataSeed, char* sInterfaceIp)
+int BldClientTestSendInterface(int iDataSeed, char* sInterfaceIp, int iNumPackets)
 { 
-  return BldClientTestSendAddr(uDefaultAddr, uDefaultPort, uDefaultMaxDataSize, iDataSeed, sInterfaceIp);
+  return BldClientTestSendAddr(uDefaultAddr, uDefaultPort, uDefaultMaxDataSize, iDataSeed, sInterfaceIp, iNumPackets);
 }
 
 /**
@@ -254,7 +254,7 @@ int BldClientTestSendInterface(int iDataSeed, char* sInterfaceIp)
  * running from CExp Command Line.
  */
 int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort, 
-      unsigned int uMaxDataSize, int iDataSeed, char* sInterfaceIp)
+      unsigned int uMaxDataSize, int iDataSeed, char* sInterfaceIp, int iNumPackets)
 {
   const int iSleepInterval = 3;
       
@@ -273,7 +273,8 @@ int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort,
           (sInterfaceIp ? sInterfaceIp: "NULL [Default Interface]"),
           uMaxDataSize );  
   
-  while ( 1 )  
+  int iPacketsSent = 0;
+  while ( true )  
   {
     for (unsigned int uIndex=0; uIndex<uIntDataSize; uIndex++)
       liData[uIndex] = iTestValue;
@@ -283,6 +284,10 @@ int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort,
     pBldClient->sendRawData(uIntDataSize*sizeof(int), 
       reinterpret_cast<char*>(liData));
     iTestValue++;
+
+    if ( iNumPackets > 0 && ++iPacketsSent >= iNumPackets )
+      break;
+    
     sleep(iSleepInterval);
     // Waiting for keyboard interrupt to break the infinite loop
   } 
@@ -374,6 +379,7 @@ static void showUsage()
       "   -s|--seed      <Data Seed>          Set the seed value for generating different data for each client program. Default: %i\n"
       "   -z|--size      <Buffer Size>        Set the max data size for allocating buffer. Default: %u\n"
       "   -i|--interface <Interface Name/IP>  Set the network interface for receiving multicast. Use ether IP address (xxx.xx.xx.xx) or name (eth0, eth1,...)\n"
+      "   -n|--number    <Number of packets>  Number of packets to be sent (0: Keep sending packets and wait for Ctrl-C to quit)\n"
       "   <Data Seed>                         Same as -s flag above. *This is an argument without the option (-s) flag\n"
       "   <Interface Name/IP>                 Same as -i flag above. *This is an argument without the option (-i) flag\n",
       EpicsBld::addressToStr(uDefaultAddr).c_str(), uDefaultPort, EpicsBld::iDefaultDataSeed, uDefaultMaxDataSize
@@ -391,7 +397,8 @@ static void showVersion()
 int main(int argc, char** argv)
 {  
   int iOptionIndex = 0;
-  struct option loOptions[] = 
+  const char*         sOptions    = ":vha:p:i:s:z:n:";
+  const struct option loOptions[] = 
   {
      {"ver",      0, 0, 'v'},
      {"help",     0, 0, 'h'},
@@ -400,15 +407,17 @@ int main(int argc, char** argv)
      {"seed",     1, 0, 's'},
      {"size",     1, 0, 'z'},
      {"interface",1, 0, 'i'},            
-     {0,          0, 0,  0  }
+     {"number",   1, 0, 'n'},            
+     {0,          0, 0,  0 }
   };    
     
   unsigned int  uAddr         = uDefaultAddr;
   unsigned int  uPort         = uDefaultPort;
   unsigned int  uMaxDataSize  = uDefaultMaxDataSize;  
   int           iDataSeed     = EpicsBld::iDefaultDataSeed;
+  int           iNumPackets   = 0;
   char*         sInterfaceIp  = NULL;      
-  while ( int opt = getopt_long(argc, argv, ":vha:p:i:s:z:", loOptions, &iOptionIndex ) )
+  while ( int opt = getopt_long(argc, argv, sOptions, loOptions, &iOptionIndex ) )
   {
       if ( opt == -1 ) break;
           
@@ -431,6 +440,9 @@ int main(int argc, char** argv)
           break;
       case 'i':
           sInterfaceIp = optarg;
+          break;            
+      case 'n':
+          iNumPackets  = strtoul(optarg, NULL, 0);
           break;            
       case '?':               /* Terse output mode */
           printf( "bldClientTest:main(): Unknown option: %c\n", optopt );
@@ -455,7 +467,7 @@ int main(int argc, char** argv)
   if (argc >= 2 )    
     sInterfaceIp = argv[1];
     
-  return BldClientTestSendAddr( uAddr, uPort, uMaxDataSize, iDataSeed, sInterfaceIp );
+  return BldClientTestSendAddr( uAddr, uPort, uMaxDataSize, iDataSeed, sInterfaceIp, iNumPackets );
 }
 
 } // extern "C" 
