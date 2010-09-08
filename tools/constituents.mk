@@ -1,10 +1,16 @@
 libnames := tools
 
+
+#CPPFLAGS += -D_FILE_OFFSET_BITS=64 -fopenmp
+# 
+#libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle_OMP.cc
+#libslib_tools := $(USRLIBDIR)/gomp
+
 CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
 libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc CspadShuffle.cc
 
-tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp
+tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 liblibs_tools := pdsdata/cspaddata pdsdata/pnccddata
@@ -64,3 +70,7 @@ tgtslib_bldMonitor := $(USRLIBDIR)/rt
 tgtsrcs_observertest := observertest.cc
 tgtlibs_observertest := $(liblibs_tools) $(commonlibs) pdsapp/tools
 tgtslib_observertest := $(USRLIBDIR)/rt
+
+tgtsrcs_xtcdump := xtcdump.cc
+tgtlibs_xtcdump := $(commonlibs)
+tgtslib_xtcdump := $(USRLIBDIR)/rt

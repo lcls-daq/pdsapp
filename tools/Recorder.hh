@@ -7,6 +7,8 @@
 
 namespace Pds {
 
+class GenericPool;
+
 class Recorder : public Appliance {
 public:
   Recorder(const char* fname, unsigned int sliceID, uint64_t chunkSize);
@@ -39,6 +41,7 @@ private:
   uint64_t _chunkSize;
   int      _experiment;
   int      _run;
+  GenericPool* _occPool;
 };
 
 }

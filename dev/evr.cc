@@ -21,6 +21,14 @@
 
 namespace Pds {
 
+  class TimeStampApp : public Appliance {
+  public:
+    TimeStampApp() {}
+  public:
+    InDatagram* events     (InDatagram* i) { return i; }
+    Transition* transitions(Transition* tr) { tr->_stampIt(); return tr; }
+  };
+
   //
   //  This class creates the server when the streams are connected.
   //  Real implementations will have something like this.
@@ -71,6 +79,7 @@ namespace Pds {
        _platform);
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
+      (new TimeStampApp())->connect(frmk->inlet());
       EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(_evrdev);
       EvrManager& evrmgr = *new EvrManager(erInfo, _cfg, _bTurnOffBeamCodes);
       evrmgr.appliance().connect(frmk->inlet());

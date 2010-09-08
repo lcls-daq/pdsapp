@@ -5,6 +5,8 @@
 #include "pds/collection/Node.hh"
 #include "pds/service/GenericPool.hh"
 
+#include "pds/utility/Occurrence.hh"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,6 +21,23 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+namespace Pds {
+  class OpenFileOccurrence : public Occurrence {
+  public:
+    OpenFileOccurrence(const char* name) :
+      Occurrence(OccurrenceId::DataFileOpened, sizeof(*this)) 
+    {
+      strncpy(_name, name, NameLength);
+      _name[NameLength-1] = 0;
+    }
+  public:
+    const char* name() const { return _name; }
+  private:
+    enum { NameLength=64 };
+    char _name[NameLength];
+  };
+};
+    
 using namespace Pds;
 
 static void local_mkdir (const char * path)
@@ -42,7 +61,8 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) :
   _chunk(0),
   _chunkSize(chunkSize),
   _experiment(0),
-  _run(0)
+  _run(0),
+  _occPool(new GenericPool(sizeof(OpenFileOccurrence),4))
 {
   struct stat st;
 
@@ -225,6 +245,7 @@ int Recorder::_openOutputFile(bool verbose) {
     if (verbose) {
       printf("Opened %s\n",_fname);
     }
+    post(new(_occPool) OpenFileOccurrence(_fname));
   }
   else {
     if (verbose) {
