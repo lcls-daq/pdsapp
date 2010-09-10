@@ -10,6 +10,7 @@
 
 #include "pds/service/NetServer.hh"
 #include "pds/service/Ins.hh"
+#include "pds/xtc/EvrDatagram.hh"
 #include "multicastConfig.hh"
 #include "bldServerTest.h"
 
@@ -21,7 +22,7 @@ namespace Pds
 static std::string addressToStr( unsigned int uAddr );
 
 BldServerSlim::BldServerSlim(unsigned uAddr, unsigned uPort, unsigned int uMaxDataSize,
-  char* sInterfaceIp) : _iSocket(-1), _uMaxDataSize(uMaxDataSize), _uAddr(uAddr), _uPort(uPort), _bInitialized(false)
+  char* sInterfaceIp) : _iSocket(-1), _uMaxDataSize(uMaxDataSize), _uAddr(uAddr), _uPort(uPort), _bInitialized(false), _lastEvr(0)
 {
 try
 {
@@ -168,6 +169,16 @@ BldServerSlim::~BldServerSlim()
 {
 }
 
+void BldServerSlim::lastEVR(unsigned e)
+{
+  if (_lastEvr) {
+    if (e - _lastEvr > 1) {
+      printf ("\tGAP GAP GAP, missed %d packets\n", (e - _lastEvr)-1);
+    }
+  } else printf("Watching for gaps in EVR packets\n");
+  _lastEvr = e;
+}
+
 int BldServerSlim::fetch(unsigned int iBufSize, void* pFetchBuffer, unsigned int& iRecvDataSize)
 {
     if ( iBufSize > _uMaxDataSize || pFetchBuffer == NULL )
@@ -223,13 +234,14 @@ static void showUsage()
       "   -a|--address   <Ip Address>         Set the multicast address to be listened to. Default: %s\n"
       "   -p|--port      <Port>               Set the port to be listened to. Default: %u\n"
       "   -s|--size      <Buffer Size>        Set the max data size for allocating buffer. Default: %u\n"
+      "   -e|--evrGapHunt                     Watch for and print out message if a gap is seen in EVR packets\n"
       "   -i|--interface <Interface Name/IP>  Set the network interface for receiving multicast. Use ether IP address (xxx.xx.xx.xx) or name (eth0, eth1,...)\n"
       "   <Interface IP/Name>                 Same as above. *This is an argument without the option (-i) flag\n",
       Pds::addressToStr(uDefaultAddr).c_str(), uDefaultPort, uDefaultMaxDataSize
     );
 }
 
-static const char sBldServerTestVersion[] = "0.90";
+static const char sBldServerTestVersion[] = "0.91";
 
 static void showVersion()
 {
@@ -238,6 +250,7 @@ static void showVersion()
 
 int main(int argc, char** argv)
 {
+    bool evrGapHunt = false;
     int iOptionIndex = 0;
     struct option loOptions[] = 
     {
@@ -246,7 +259,8 @@ int main(int argc, char** argv)
        {"address",  1, 0, 'a'},
        {"port",     1, 0, 'p'},
        {"size",     1, 0, 's'},
-       {"interface",1, 0, 'i'},       
+       {"interface",1, 0, 'i'},
+       {"evrGapHunt", 0, 0, 'e'},
        {0,          0, 0,  0 }
     };    
       
@@ -254,7 +268,7 @@ int main(int argc, char** argv)
     unsigned int  uAddr         = uDefaultAddr;
     unsigned int  uPort         = uDefaultPort;
     unsigned int  uMaxDataSize  = uDefaultMaxDataSize;
-    while ( int opt = getopt_long(argc, argv, ":vha:p:i:s:", loOptions, &iOptionIndex ) )
+    while ( int opt = getopt_long(argc, argv, ":vha:p:i:s:e", loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
@@ -274,7 +288,11 @@ int main(int argc, char** argv)
             break;
         case 'i':
             sInterfaceIp = optarg;
-            break;            
+            break;
+        case 'e':
+            evrGapHunt = !evrGapHunt;
+            printf("Evr gap hunt now %s\n", evrGapHunt ? "ON" : "OFF");
+            break;
         case '?':               /* Terse output mode */
             printf( "bldServerTest:main(): Unknown option: %c\n", optopt );
             break;
@@ -303,6 +321,7 @@ int main(int argc, char** argv)
     }
             
     std::vector<unsigned char> vcFetchBuffer( uDefaultMaxDataSize );
+    Pds::EvrDatagram* dgram = (Pds::EvrDatagram*)&vcFetchBuffer[0];
         
     printf( "Beginning Multicast Server Testing. Press Ctrl-C to Exit...\n" );        
     
@@ -316,7 +335,15 @@ int main(int argc, char** argv)
           return 2;
         }
         
-        printData( vcFetchBuffer, iRecvDataSize );
+
+        if (evrGapHunt)
+        {
+          bldServer.lastEVR(dgram->evr);
+        }
+        else
+        {
+          printData( vcFetchBuffer, iRecvDataSize );
+        }
     }
 
     return 0;
