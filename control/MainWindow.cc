@@ -84,12 +84,10 @@ namespace Pds {
   };
 
   class FileReport : public Appliance {
-    enum { NotRecording=0xffffffff };
   public:
     FileReport(ControlLog& log) :
       _log(log),
-      _experiment_number(0),
-      _run_number(0)
+      _experiment(0)
     {
     }
     ~FileReport() {}
@@ -99,38 +97,47 @@ namespace Pds {
     {
       if (tr->id()==TransitionId::BeginRun) {
 	if (tr->size() == sizeof(Transition)) {  // No RunInfo
-	  _run_number = NotRecording;
+	  char fname[256];
+	  sprintf(fname, "e%d-r%04d-sNN-cNN.xtc", 
+		  0, tr->env().value());
+	  _log.appendText(QString("%1: Not recording. Transient data file: %2\n")
+			  .arg(QTime::currentTime().toString("hh:mm:ss"))
+			  .arg(fname));
 	}
 	else {
           RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
-          _run_number = rinfo.run();
-          _experiment_number = rinfo.experiment();
+	  char fname[256];
+	  sprintf(fname, "e%d-r%04d-s00-c00.xtc", 
+		  rinfo.experiment(), rinfo.run());
+	  _experiment = rinfo.experiment();
+	  _log.appendText(QString("%1: Recording run %2. Transient data file: %3\n")
+			  .arg(QTime::currentTime().toString("hh:mm:ss"))
+			  .arg(rinfo.run())
+			  .arg(fname));
 	}
       }
     return tr;
     }
 
-    InDatagram* events     (InDatagram* dg) 
-    { 
-      if (dg->datagram().seq.service()==TransitionId::BeginRun) {
-	if (_run_number == NotRecording) {
-	  _log.appendText(QString("Not recording."));
-	}
-	else {
-	  char fname[256];
-	  sprintf(fname, "e%d-r%04d-sNN-cNN.xtc", 
-		  _experiment_number, _run_number);
-	  _log.appendText(QString("%1: Recording data file: %2\n")
-			  .arg(QTime::currentTime().toString("hh:mm:ss"))
-			  .arg(fname));
-	}
+    InDatagram* events     (InDatagram* dg) { return dg; }
+
+    Occurrence* occurrences(Occurrence* occ) 
+    {
+      if (occ->id() == OccurrenceId::DataFileOpened) {
+	const DataFileOpened& dfo = *static_cast<const DataFileOpened*>(occ);
+	char fname[256];
+	sprintf(fname, "e%d-r%04d-s%02d-c%02d.xtc", 
+		dfo.expt, dfo.run, dfo.stream, dfo.chunk);
+	_log.appendText(QString("%1: Opened data file %2")
+			.arg(QTime::currentTime().toString("hh:mm:ss"))
+			.arg(fname));
       }
-      return dg;
+      return occ; 
     }
+
   private:
     ControlLog& _log;
-    unsigned int _experiment_number;
-    unsigned int _run_number;
+    unsigned    _experiment;
   };
 
 };

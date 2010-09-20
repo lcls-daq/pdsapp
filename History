@@ -1,3 +1,6 @@
+2010-Sep-13 weaver	Tag V02-08-00.	Transient data filenames (eventp) reported by control_gui.
+			Transient data filenames match recorded data filenames when recording.
+			control_gui exports data filenames to logbook proxy.
 2010-Aug-10 weaver	Tag V02-06-00.  Added LUSI FEX configurations.  Added configuration key to
 			remote scan interface.  Changed xppmon to report FEX values to EPICS.
 2010-Jul-21 weaver	Rationalized configuration control in control_gui.  Added monobs/xppmon to export

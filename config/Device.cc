@@ -118,13 +118,18 @@ bool Device::_check_config(const TableEntry* entry, const string& path, const st
 	struct stat ls;
 	if (!stat(tlinkpath.c_str(),&ls) && s.st_size==ls.st_size) {
 	  FILE* f_link = fopen(tlinkpath.c_str(),"r");
+	  if (!f_link) {
+	    perror(tlinkpath.c_str());
+	    printf("Failed to open link, recreating.\n");
+	    outofdate=true;
+	    continue;
+	  }
 	  FILE* f_path = fopen(tpath.c_str(),"r");
-	  if (!f_link || !f_path) {
-	    fprintf(stderr,"Error opening files {");
-	    if (!f_link) fprintf(stderr," %s",tlinkpath.c_str());
-	    if (!f_path) fprintf(stderr," %s",tpath.c_str());
-	    fprintf(stderr," } to verify config link\n");
-	    abort();
+	  if (!f_path) {
+	    perror(tpath.c_str());
+	    printf("Failed to open file, recreating.\n");
+	    outofdate=true;
+	    continue;
 	  }
 	  char* bufflink = new char[s.st_size];
 	  char* buffpath = new char[s.st_size];

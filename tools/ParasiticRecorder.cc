@@ -66,9 +66,8 @@ namespace Pds {
     {
       if (tr->id()==TransitionId::BeginRun) {
 	_task->call(new CleanupRoutine(_path,_lifetime_sec)); 
-	timespec tp;
-	clock_gettime(CLOCK_REALTIME, &tp);
-	return new(&_pool) RunInfo(tp.tv_sec,0);
+	if (tr->size()==sizeof(Transition))
+	  return new(&_pool) RunInfo(tr->env().value(),0);
       }
       return tr; 
     }

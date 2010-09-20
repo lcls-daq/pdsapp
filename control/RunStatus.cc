@@ -131,7 +131,7 @@ InDatagram* RunStatus::events     (InDatagram* dg)
     delete iter;
 
     const double DamageAlarmFraction = 0.2;
-    unsigned thresh = _events->value()*DamageAlarmFraction + 20;
+    unsigned thresh = unsigned(_events->value()*DamageAlarmFraction) + 20;
     bool alarm = _damaged->value() > thresh;
     if (alarm && !_alarm)
       emit damage_alarm_changed(true);
