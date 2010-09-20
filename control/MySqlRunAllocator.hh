@@ -11,7 +11,7 @@ namespace Pds {
   public:
     MySqlRunAllocator(OfflineClient*);
     unsigned alloc();
-    int      reportOpenFile(int run, int stream, int chunk);
+    int      reportOpenFile(int expt, int run, int stream, int chunk);
   private:
     OfflineClient* _offlineclient;
   };
