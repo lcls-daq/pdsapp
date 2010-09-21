@@ -126,7 +126,6 @@ int main(int argc, char* argv[]) {
 
   XtcFileIteratorC iter(fd,0x900000);
   CDatagram* cdg;
-  unsigned n=0;
   ClockTime l1clk = parseClock(l1timestamp);
   ClockTime trclk = parseClock(trtimestamp);
   while ((cdg = iter.next())) {

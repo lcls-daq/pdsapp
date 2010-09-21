@@ -3,6 +3,8 @@
 
 #include "pdsapp/config/Parameters.hh"
 
+#include <QtCore/QObject>
+
 class QButtonGroup;
 
 namespace Pds_ConfigDb
@@ -31,6 +33,17 @@ namespace Pds_ConfigDb
     Pds::LinkedList<Parameter> _pList;
     GlobalP*                   _globalP;
     QuadP*                     _quadP[4];
+  };
+
+  class CspadConfigTableQ : public QObject {
+    Q_OBJECT
+  public:
+    CspadConfigTableQ(GlobalP&,
+		      QWidget*);
+  public slots:
+    void update_readout();
+  private:
+    GlobalP& _table;
   };
 };
 

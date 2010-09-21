@@ -54,7 +54,7 @@ QValidator::State HexValidator::validate(QString& input,
 {
   if (input.size()==0) return Intermediate;
   bool ok;
-  unsigned v = input.toInt(&ok, 16);
+  unsigned v = input.toUInt(&ok, 16);
   if (!ok) return Invalid;
   if (v < _rlo || v > _rhi) return Invalid;
   return Acceptable;

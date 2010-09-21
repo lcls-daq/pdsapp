@@ -67,7 +67,7 @@ private:
     InDatagram* indg = static_cast<InDatagram*>(&dgrm);
 
     PnccdShuffle::shuffle(dgrm);
-    //    CspadShuffle::shuffle(dgrm);
+    CspadShuffle::shuffle(dgrm);
 
     //  write the datagram
     memcpy(b, &dgrm, sizeof(Datagram));

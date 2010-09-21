@@ -1,6 +1,7 @@
 #include "pdsapp/config/CspadConfigTable.hh"
-#include "pdsdata/cspad/ConfigV1.hh"
+#include "pdsapp/config/CspadSector.hh"
 #include "pdsdata/cspad/ElementV1.hh"
+#include "pds/config/CsPadConfigType.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -16,8 +17,8 @@ static const unsigned Rows    = Pds::CsPad::MaxRowsPerASIC;
 
 namespace Pds_ConfigDb
 {
-  const char* RunModeText [] = { "NoRunning", "RunButDrop", "RunAndSendToRCE", "RunAndSendTriggeredByTTL", "ExternalTriggerSendToRCE", "ExternalTriggerDrop", NULL };
-  const char* DataModeText[] = { "Normal", "ShiftTest", "TestData", "Reserved", NULL };
+  static const char* RunModeText [] = { "NoRunning", "RunButDrop", "RunAndSendToRCE", "RunAndSendTriggeredByTTL", "ExternalTriggerSendToRCE", "ExternalTriggerDrop", NULL };
+  //  static const char* DataModeText[] = { "Normal", "ShiftTest", "TestData", "Reserved", NULL };
 
   class GlobalP {
   public:
@@ -27,12 +28,8 @@ namespace Pds_ConfigDb
       _inactiveRunMode ( "Inact Run Mode", Pds::CsPad::RunButDrop, RunModeText),
       _activeRunMode   ( "Activ Run Mode", Pds::CsPad::RunAndSendTriggeredByTTL, RunModeText),
       _testDataIndex   ( "Test Data Indx", 4, 0, 7, Decimal ),
-      _payloadPerQuad  ( "Quad Payload"  , sizeof(Pds::CsPad::ElementV1) + 
-			 ASICS*Columns*Rows*sizeof(uint16_t) + 4,
-			 0, 0x7fffffff, Decimal),
       _badAsicMask     ( "Bad ASIC Mask (hex)" , 0, 0, -1ULL, Hex),
-      _AsicMask        ( "ASIC Mask (hex)"     , 0xf, 0, 0xf, Hex),
-      _quadMask        ( "Quad Mask (hex)"     , 0xf, 0, 0xf, Hex)
+      _sectors         ( "Sector Mask (hex)"   , 0xffffffff, 0, 0xffffffff, Hex)
     {}
   public:
     void enable(bool v) 
@@ -45,35 +42,40 @@ namespace Pds_ConfigDb
       _inactiveRunMode.value = Pds::CsPad::RunButDrop;
       _activeRunMode  .value = Pds::CsPad::RunAndSendTriggeredByTTL;
       _testDataIndex  .value = 4;
-      _payloadPerQuad .value = sizeof(Pds::CsPad::ElementV1) + ASICS*Columns*Rows*sizeof(uint16_t) + 4;
       _badAsicMask    .value = 0;
-      _AsicMask       .value = 0xf;
-      _quadMask       .value = 0xf;
+      _sectors        .value = 0xffffffff;
     }
-    void pull   (const Pds::CsPad::ConfigV1& p) 
+    void pull   (const CsPadConfigType& p)
     {
       _runDelay .value = p.runDelay(); 
       _eventCode.value = p.eventCode(); 
       _inactiveRunMode.value = (Pds::CsPad::RunModes)p.inactiveRunMode();
       _activeRunMode  .value = (Pds::CsPad::RunModes)p.activeRunMode();
       _testDataIndex  .value = p.tdi();
-      _payloadPerQuad .value = p.payloadSize();
       _badAsicMask    .value = (uint64_t(p.badAsicMask1())<<32) | p.badAsicMask0();
-      _AsicMask       .value = p.asicMask();
-      _quadMask       .value = p.quadMask();
+      _sectors        .value = p.roiMask(0) | (p.roiMask(1)<<8) | (p.roiMask(2)<<16) | (p.roiMask(3)<<24);
+      update_readout();
     }
-    void push   (Pds::CsPad::ConfigV1* p) 
+    void push   (CsPadConfigType* p) 
     {
-      *new (p) Pds::CsPad::ConfigV1( _runDelay .value,
-				     _eventCode.value,
-				     _inactiveRunMode.value,
-				     _activeRunMode  .value,
-				     _testDataIndex  .value,
-				     _payloadPerQuad .value,
-				     _badAsicMask    .value & 0xffffffff,
-				     _badAsicMask    .value >> 32,
-				     _AsicMask       .value,
-				     _quadMask       .value );
+      unsigned rmask = _sectors.value;
+      unsigned qmask = 0;
+      for(unsigned i=0; i<4; i++)
+	if (rmask&(0xff<<(8*i))) qmask |= (1<<i);
+      unsigned amask = (rmask&0xfcfcfcfc) ? 0xf : 1;
+
+      *new (p) CsPadConfigType( _runDelay .value,
+				_eventCode.value,
+				_inactiveRunMode.value,
+				_activeRunMode  .value,
+				_testDataIndex  .value,
+				sizeof(Pds::CsPad::ElementV1) + 4 + Columns*Rows*sizeof(uint16_t)*
+				( amask==1 ? 4 : 16 ),
+				_badAsicMask    .value & 0xffffffff,
+				_badAsicMask    .value >> 32,
+				amask,
+				qmask,
+				rmask );
     }
   public:
     void initialize(QWidget* parent, QVBoxLayout* layout)
@@ -84,8 +86,20 @@ namespace Pds_ConfigDb
       layout->addLayout(_activeRunMode  .initialize(parent));
       layout->addLayout(_testDataIndex  .initialize(parent));
       layout->addLayout(_badAsicMask    .initialize(parent));
-      layout->addLayout(_AsicMask       .initialize(parent));
-      layout->addLayout(_quadMask       .initialize(parent));
+      layout->addLayout(_sectors        .initialize(parent));
+
+      QGridLayout* gl = new QGridLayout;
+      gl->addWidget(_roiCanvas[0] = new CspadSector(*_sectors._input,0),0,0,::Qt::AlignBottom|::Qt::AlignRight);
+      gl->addWidget(_roiCanvas[1] = new CspadSector(*_sectors._input,1),0,1,::Qt::AlignBottom|::Qt::AlignLeft);
+      gl->addWidget(_roiCanvas[3] = new CspadSector(*_sectors._input,3),1,0,::Qt::AlignTop   |::Qt::AlignRight);
+      gl->addWidget(_roiCanvas[2] = new CspadSector(*_sectors._input,2),1,1,::Qt::AlignTop   |::Qt::AlignLeft);
+      layout->addLayout(gl);
+
+      _qlink = new CspadConfigTableQ(*this,parent);
+      if (Parameter::allowEdit())
+	::QObject::connect(_sectors._input, SIGNAL(editingFinished()), _qlink, SLOT(update_readout()));
+
+      update_readout();
     }
 
     void insert(Pds::LinkedList<Parameter>& pList) {
@@ -95,8 +109,13 @@ namespace Pds_ConfigDb
       pList.insert(&_activeRunMode);
       pList.insert(&_testDataIndex);
       pList.insert(&_badAsicMask);
-      pList.insert(&_AsicMask);
-      pList.insert(&_quadMask);
+      pList.insert(&_sectors);
+    }
+
+    void update_readout() {
+      unsigned m = _sectors.value;
+      for(int i=0; i<4; i++)
+	_roiCanvas[i]->update(m);
     }
 
   public:
@@ -105,10 +124,10 @@ namespace Pds_ConfigDb
     Enumerated<Pds::CsPad::RunModes> _inactiveRunMode;
     Enumerated<Pds::CsPad::RunModes> _activeRunMode;
     NumericInt<unsigned>             _testDataIndex;
-    NumericInt<unsigned>             _payloadPerQuad;
     NumericInt<uint64_t>             _badAsicMask;
-    NumericInt<unsigned>             _AsicMask;
-    NumericInt<unsigned>             _quadMask;
+    NumericInt<unsigned>             _sectors;
+    CspadSector*                     _roiCanvas[4];
+    CspadConfigTableQ*               _qlink;
   };
 
 
@@ -386,7 +405,7 @@ void CspadConfigTable::insert(Pds::LinkedList<Parameter>& pList)
 }
 
 int CspadConfigTable::pull(const void* from) {
-  const Pds::CsPad::ConfigV1& tc = *reinterpret_cast<const Pds::CsPad::ConfigV1*>(from);
+  const CsPadConfigType& tc = *reinterpret_cast<const CsPadConfigType*>(from);
 
   _globalP->pull(tc);
   for(unsigned q=0; q<4; q++)
@@ -397,7 +416,7 @@ int CspadConfigTable::pull(const void* from) {
 
 int CspadConfigTable::push(void* to) const {
 
-  Pds::CsPad::ConfigV1& tc = *reinterpret_cast<Pds::CsPad::ConfigV1*>(to);
+  CsPadConfigType& tc = *reinterpret_cast<CsPadConfigType*>(to);
   _globalP->push(&tc);
 
   for(unsigned q=0; q<4; q++)
@@ -407,7 +426,7 @@ int CspadConfigTable::push(void* to) const {
 }
 
 int CspadConfigTable::dataSize() const {
-  return sizeof(Pds::CsPad::ConfigV1);
+  return sizeof(CsPadConfigType);
 }
 
 bool CspadConfigTable::validate()
@@ -450,5 +469,14 @@ void CspadConfigTable::flush () {
 void CspadConfigTable::enable(bool) 
 {
 }
+
+CspadConfigTableQ::CspadConfigTableQ(GlobalP& table,
+				     QWidget* parent) : 
+  QObject(parent),
+  _table (table)
+{
+}
+
+void CspadConfigTableQ::update_readout() { _table.update_readout(); }
 
 #include "Parameters.icc"

@@ -1,14 +1,15 @@
 #include "pdsapp/tools/CspadShuffle.hh"
 
 #include "pds/xtc/Datagram.hh"
-#include "pds/config/CspadConfigType.hh"
+#include "pds/config/CsPadConfigType.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/XtcFileIterator.hh"
-#include "pdsdata/cspad/ConfigV1.hh"
-#include "pdsdata/cspad/ElementV1.hh"
+#include "pdsdata/cspad/ElementHeader.hh"
+#include "pdsdata/cspad/ElementIterator.hh"
+#include "pdsdata/cspad/ElementV2.hh"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -18,18 +19,65 @@
 
 using namespace Pds;
 
-static std::vector<CspadConfigType> _config;
+static std::vector<CsPadConfigType> _config;
 static std::vector<Pds::DetInfo>    _info;
 
 //
-//  Byte swap the payload (pixel data only) to fix the endianness
+//  Need an iterator that is safe for backwards copy
 //
-class myIter : public XtcIterator {
+class myIter {
 public:
   enum Status {Stop, Continue};
-  myIter(Xtc* xtc) : XtcIterator(xtc) {}
+  myIter(Xtc* root, uint32_t*& pwrite) : 
+    _root  (root), 
+    _pwrite(pwrite) {}
 
-  int process(Xtc* xtc) {
+private:
+  void _write(const void* p, ssize_t sz) 
+  {
+    //    printf("_write %p %p %x\n",_pwrite,p,sz);
+
+    const uint32_t* pread = (uint32_t*)p;
+    if (_pwrite!=pread) {
+      const uint32_t* const end = pread+(sz>>2);
+      while(pread < end)
+	*_pwrite++ = *pread++;
+    }
+    else
+      _pwrite += sz>>2;
+  }
+
+public:
+  void iterate() { iterate(_root); }
+
+private:
+  void iterate(Xtc* root) {
+    if (root->damage.value() & ( 1 << Damage::IncompleteContribution)) {
+      return _write(root,root->extent);
+    }
+
+    int remaining = root->sizeofPayload();
+    Xtc* xtc     = (Xtc*)root->payload();
+
+    uint32_t* pwrite = _pwrite;
+    _write(root, sizeof(Xtc));
+    
+    while(remaining > 0)
+      {
+	unsigned extent = xtc->extent;
+	if(extent==0) {
+	  printf("Breaking on zero extent\n");
+	  break; // try to skip corrupt event
+	}
+	process(xtc);
+	remaining -= extent;
+	xtc        = (Xtc*)((char*)xtc+extent);
+      }
+
+    reinterpret_cast<Xtc*>(pwrite)->extent = (_pwrite-pwrite)*sizeof(uint32_t);
+  }
+
+  void process(Xtc* xtc) {
     const DetInfo& info = *(DetInfo*)(&xtc->src);
     Level::Type level = xtc->src.level();
     if (level < 0 || level >= Level::NumberOfLevels ) {
@@ -38,44 +86,58 @@ public:
     else {
       switch (xtc->contains.id()) {
       case (TypeId::Id_Xtc) : {
-	iterate(xtc);
-	break;
+	myIter iter(xtc,_pwrite);
+	iter.iterate();
+	return;
       }
       case (TypeId::Id_CspadElement) : {
 	if (xtc->damage.value()) break;
-	Pds::CsPad::ElementV1* data = reinterpret_cast<Pds::CsPad::ElementV1*>(xtc->payload());
+	if (xtc->contains.version()!=1) break;
 	for(unsigned i=0; i<_info.size(); i++)
 	  if (_info[i] == info) {
-	    const CspadConfigType& cfg = _config[i];
-	    unsigned qmask = cfg.quadMask();
-	    while(qmask) {
-	      uint32_t* p=reinterpret_cast<uint32_t*>(data+1);
-	      const uint32_t* const e=reinterpret_cast<const uint32_t*>(data->next(cfg));
-	      while( p < e ) {
-		unsigned v =
-		  ((*p&0xff000000)>>24) |
-		  ((*p&0x00ff0000)>> 8) |
-		  ((*p&0x0000ff00)<< 8) |
-		  ((*p&0x000000ff)<<24);
-		*p++ = v;
+
+	    const CsPadConfigType& cfg = _config[i];
+	    CsPad::ElementIterator iter(cfg, *xtc);
+
+	    // Copy the xtc header
+	    xtc->contains = TypeId(TypeId::Id_CspadElement,CsPad::ElementV2::Version);
+	    _write(xtc, sizeof(Xtc));
+
+	    const CsPad::ElementHeader* hdr;
+	    while( (hdr=iter.next()) ) {
+	      _write(hdr,sizeof(*hdr));
+
+	      unsigned smask = cfg.roiMask(hdr->quad());
+	      unsigned id;
+	      const CsPad::Section *s,*end;
+	      while( (s=iter.next(id)) ) {
+		if (smask&(1<<id))
+		  _write(s,sizeof(*s));
+		end = s;
 	      }
-	      qmask &= ~(1<<data->quad());
-	      data = const_cast<Pds::CsPad::ElementV1*>(data->next(cfg));
+
+	      //  Copy the quadrant trailer
+	      _write(reinterpret_cast<const uint16_t*>(end+1)-2,2*sizeof(uint16_t));
 	    }
+	    return;
 	  }
-	break;
       }
       case (TypeId::Id_CspadConfig) : {
-	_config.push_back(*reinterpret_cast<const CspadConfigType*>(xtc->payload()));
-	_info  .push_back(info);
+	if (xtc->contains.version()==_CsPadConfigType.version()) {
+	  _config.push_back(*reinterpret_cast<const CsPadConfigType*>(xtc->payload()));
+	  _info  .push_back(info);
+	}
 	break;
       }
       default :
 	break;
       }
     }
-    return Continue;
+    _write(xtc,xtc->extent);
   }
+private:
+  Xtc*       _root;
+  uint32_t*& _pwrite;
 };
 
 void CspadShuffle::shuffle(Datagram& dg) 
@@ -83,11 +145,13 @@ void CspadShuffle::shuffle(Datagram& dg)
   if (dg.seq.service() == TransitionId::Configure) {
     _config.clear();
     _info  .clear();
-    myIter iter(&(dg.xtc));
+    uint32_t* pdg = reinterpret_cast<uint32_t*>(&(dg.xtc));
+    myIter iter(&(dg.xtc),pdg);
     iter.iterate();
   }
   else if (!_config.empty() && dg.seq.service() == TransitionId::L1Accept) {
-    myIter iter(&(dg.xtc));
+    uint32_t* pdg = reinterpret_cast<uint32_t*>(&(dg.xtc));
+    myIter iter(&(dg.xtc),pdg);
     iter.iterate();
   }
 }

@@ -36,7 +36,10 @@ libsrcs_configdb += EvrIOChannel.cc EvrIOChannel_moc.cc
 libsrcs_configdb += EvrIOConfig.cc
 libsrcs_configdb += EvrPulseTable.cc EvrPulseTable_moc.cc
 libsrcs_configdb += EvrConfig.cc EvrConfigP.cc EvrConfig_V3.cc EvrConfig_V2.cc EvrConfig_V1.cc
-libsrcs_configdb += CspadConfigTable.cc 
+libsrcs_configdb += CspadConfigTable_V1.cc 
+libsrcs_configdb += CspadConfig_V1.cc
+libsrcs_configdb += CspadSector.cc
+libsrcs_configdb += CspadConfigTable.cc CspadConfigTable_moc.cc
 libsrcs_configdb += CspadConfig.cc
 libsrcs_configdb += ControlConfig.cc
 libsrcs_configdb += IpimbConfig.cc
@@ -60,9 +63,11 @@ tgtnames       += configdb_list
 
 # executable python modules: configdb_gui.py
 
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata
+
 tgtsrcs_configdb := configdb.cc
 tgtincs_configdb := $(qtincdir)
-tgtlibs_configdb := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata
+tgtlibs_configdb := $(datalibs)
 tgtlibs_configdb += pdsapp/configdb
 tgtlibs_configdb += qt/QtGui qt/QtCore
 tgtslib_configdb := $(USRLIBDIR)/rt
@@ -76,7 +81,7 @@ tgtsrcs_configdb_gui += Info_Ui.cc 		Info_Ui_moc.cc
 tgtsrcs_configdb_gui += ListUi.cc 		ListUi_moc.cc
 tgtsrcs_configdb_gui += DetInfoDialog_Ui.cc 	DetInfoDialog_Ui_moc.cc
 tgtincs_configdb_gui := $(qtincdir)
-tgtlibs_configdb_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata
+tgtlibs_configdb_gui := $(datalibs)
 tgtlibs_configdb_gui += qt/QtGui qt/QtCore
 tgtlibs_configdb_gui += pdsapp/configdb
 tgtslib_configdb_gui := $(USRLIBDIR)/rt
@@ -84,14 +89,14 @@ tgtslib_configdb_gui := $(USRLIBDIR)/rt
 tgtsrcs_configdb_list := configdb_list.cc
 tgtsrcs_configdb_list += ListUi.cc ListUi_moc.cc
 tgtincs_configdb_list := $(qtincdir)
-tgtlibs_configdb_list := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata
+tgtlibs_configdb_list := $(datalibs)
 tgtlibs_configdb_list += qt/QtGui qt/QtCore
 tgtlibs_configdb_list += pdsapp/configdb
 tgtslib_configdb_list := $(USRLIBDIR)/rt
 
 tgtsrcs_create_scan := create_scan_config.cc
 tgtincs_create_scan := $(qtincdir)
-tgtlibs_create_scan := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata
+tgtlibs_create_scan := $(datalibs)
 tgtlibs_create_scan += qt/QtGui qt/QtCore
 tgtlibs_create_scan += pdsapp/configdb
 tgtslib_create_scan := $(USRLIBDIR)/rt

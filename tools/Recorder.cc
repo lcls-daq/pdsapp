@@ -75,7 +75,7 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) :
 InDatagram* Recorder::events(InDatagram* in) {
 
   PnccdShuffle::shuffle(in->datagram());
-  //  CspadShuffle::shuffle(in->datagram());
+  CspadShuffle::shuffle(in->datagram());
 
   InDatagramIterator* iter = in->iterator(_pool);
 

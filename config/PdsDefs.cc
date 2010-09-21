@@ -15,7 +15,7 @@
 #include "pds/config/DiodeFexConfigType.hh"
 #include "pds/config/PimImageConfigType.hh"
 #include "pds/config/EncoderConfigType.hh"
-#include "pds/config/CspadConfigType.hh"
+#include "pds/config/CsPadConfigType.hh"
 
 #include <sstream>
 using std::istringstream;
@@ -52,7 +52,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case PimDiode   : type = &_diodeFexConfigType;  break;
   case PimImage   : type = &_pimImageConfigType;  break;
   case RunControl : type = &_controlConfigType;   break;
-  case Cspad      : type = &_cspadConfigType;     break;
+  case Cspad      : type = &_CsPadConfigType;     break;
   default: 
     printf("PdsDefs::typeId id %d not found\n",unsigned(id));
     break;
@@ -78,7 +78,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_frameFexConfigType);
   test(_controlConfigType);
   test(_princetonConfigType);    
-  test(_cspadConfigType);    
+  test(_CsPadConfigType);    
 #undef test
   printf("PdsDefs::typeId id %s not found\n",name.data());
   return 0;
@@ -102,7 +102,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_frameFexConfigType);
   test(_controlConfigType);
   test(_princetonConfigType);    
-  test(_cspadConfigType);    
+  test(_CsPadConfigType);    
 #undef test
   return 0;
 }
