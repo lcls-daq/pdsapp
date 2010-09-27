@@ -59,13 +59,13 @@ namespace Pds {
         Arp*                  arp,
         IpimbServer**         ipimbServer,
         int nServers,
-        int* portInfo) :
+        char** portName) :
       _task(task),
       _platform(platform),
       _cfg   (cfgService),
       _ipimbServer(ipimbServer),
       _nServers(nServers),
-      _portInfo(portInfo)
+      _portName(portName)
 
     {
     }
@@ -83,7 +83,7 @@ namespace Pds {
              _platform);
       
       Stream* frmk = streams.stream(StreamParams::FrameWork);
-      IpimbManager& ipimbMgr = *new IpimbManager(_ipimbServer, _nServers, _cfg, _portInfo, *new IpimbFex);
+      IpimbManager& ipimbMgr = *new IpimbManager(_ipimbServer, _nServers, _cfg, _portName, *new IpimbFex);
       ipimbMgr.appliance().connect(frmk->inlet());
     }
     void failed(Reason reason)
@@ -117,7 +117,7 @@ namespace Pds {
     CfgClientNfs** _cfg;
     IpimbServer**  _ipimbServer;
     const int _nServers;
-    int* _portInfo;
+    char** _portName;
   };
 }
 
@@ -130,12 +130,13 @@ int main(int argc, char** argv) {
   unsigned cpuid = -1UL;
   unsigned platform = 0;
   unsigned nboards = 1;
+  bool doBaselineSubtraction = true;
   FILE *fp = NULL;
   Arp* arp = 0;
 
   extern char* optarg;
   int s;
-  while ( (s=getopt( argc, argv, "a:i:c:p:n:f:C")) != EOF ) {
+  while ( (s=getopt( argc, argv, "a:i:c:p:n:b:f")) != EOF ) {
     switch(s) {
       case 'a':
       arp = new Arp(optarg);
@@ -152,6 +153,8 @@ int main(int argc, char** argv) {
     case 'n':
       nboards = strtoul(optarg, NULL, 0);
       break;
+    case 'b':
+      doBaselineSubtraction = (strtoul(optarg, NULL, 0) > 0);
     case 'f':
       fp = fopen(optarg,"r");
       if (fp) {
@@ -166,8 +169,10 @@ int main(int argc, char** argv) {
     }
   }
 
-  int detector, detectorId, deviceId, port;
-  int portInfo[16][4]; // make this a struct array
+  int detector, detectorId, deviceId;
+  char port[16]; // long enough for "/dev/ttyPSmn\n"
+  int portInfo[16][3]; // make this a struct array
+  char* portName[16];
 
   if (fp) {
     char* tmp = NULL;
@@ -175,11 +180,11 @@ int main(int argc, char** argv) {
     nboards = 0;
     while (getline(&tmp, &sz, fp)>0) {
       if (tmp[0] != '#') {
-	sscanf(tmp,"%d %d %d %d",&detector, &detectorId, &deviceId, &port);
+	sscanf(tmp,"%d %d %d %s",&detector, &detectorId, &deviceId, port);
 	portInfo[nboards][0] = detector;
 	portInfo[nboards][1] = detectorId;
 	portInfo[nboards][2] = deviceId;
-	portInfo[nboards][3] = port;
+	strcpy(portName[nboards], port);
 	nboards++;
       }
     }
@@ -219,28 +224,27 @@ int main(int argc, char** argv) {
         printf("No port config file specified, connect densely\n");
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, cpuid, DetInfo::Ipimb, i);
       cfgService[i] = new CfgClientNfs(detInfo);
-      ipimbServer[i] = new IpimbServer(detInfo);
-      portInfo[i][3] = -1;
+      ipimbServer[i] = new IpimbServer(detInfo, doBaselineSubtraction);
+      portName[i] = NULL;
     } else {
       detector = portInfo[i][0]; 
       detectorId = portInfo[i][1];
       deviceId = portInfo[i][2];
-      port = portInfo[i][3];
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detector, detectorId, DetInfo::Ipimb, deviceId);
       cfgService[i] = new CfgClientNfs(detInfo);
-      ipimbServer[i] = new IpimbServer(detInfo);
+      ipimbServer[i] = new IpimbServer(detInfo, doBaselineSubtraction);
     }
   }
   if (fp) {
     for (unsigned i=0; i<nServers; i++) {
-      printf("Using config file info: detector %d, detector id %d, device id %d, port %d\n", 
-             portInfo[i][0], portInfo[i][1], portInfo[i][2], portInfo[i][3]);
+      printf("Using config file info: detector %d, detector id %d, device id %d, port %s\n", 
+             portInfo[i][0], portInfo[i][1], portInfo[i][2], portName[i]);
     }
     fclose(fp);
   }
 
   MySegWire settings(ipimbServer, nServers);
-  Seg* seg = new Seg(task, platform, cfgService, settings, arp, ipimbServer, nServers, (int*) portInfo);
+  Seg* seg = new Seg(task, platform, cfgService, settings, arp, ipimbServer, nServers, (char**) portName);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 
