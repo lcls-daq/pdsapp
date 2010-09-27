@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   int s;
-  while ( (s=getopt( argc, argv, "a:i:c:p:n:b:f")) != EOF ) {
+  while ( (s=getopt( argc, argv, "a:i:c:p:n:b:f:C")) != EOF ) {
     switch(s) {
       case 'a':
       arp = new Arp(optarg);
@@ -155,6 +155,7 @@ int main(int argc, char** argv) {
       break;
     case 'b':
       doBaselineSubtraction = (strtoul(optarg, NULL, 0) > 0);
+      break;
     case 'f':
       fp = fopen(optarg,"r");
       if (fp) {
@@ -172,7 +173,7 @@ int main(int argc, char** argv) {
   int detector, detectorId, deviceId;
   char port[16]; // long enough for "/dev/ttyPSmn\n"
   int portInfo[16][3]; // make this a struct array
-  char* portName[16];
+  char portName[16][16];
 
   if (fp) {
     char* tmp = NULL;
@@ -225,7 +226,7 @@ int main(int argc, char** argv) {
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, cpuid, DetInfo::Ipimb, i);
       cfgService[i] = new CfgClientNfs(detInfo);
       ipimbServer[i] = new IpimbServer(detInfo, doBaselineSubtraction);
-      portName[i] = NULL;
+      portName[i][0] = '\0';
     } else {
       detector = portInfo[i][0]; 
       detectorId = portInfo[i][1];
