@@ -59,15 +59,16 @@ namespace Pds {
         Arp*                  arp,
         IpimbServer**         ipimbServer,
         int nServers,
-        char** portName) :
+        char* portName[16]) :
       _task(task),
       _platform(platform),
       _cfg   (cfgService),
       _ipimbServer(ipimbServer),
-      _nServers(nServers),
-      _portName(portName)
-
+      _nServers(nServers)
     {
+      for (int i=0; i<16; i++) {
+	_portName[i] = portName[i];
+      }
     }
 
     virtual ~Seg()
@@ -117,7 +118,7 @@ namespace Pds {
     CfgClientNfs** _cfg;
     IpimbServer**  _ipimbServer;
     const int _nServers;
-    char** _portName;
+    char* _portName[16];
   };
 }
 
@@ -173,8 +174,10 @@ int main(int argc, char** argv) {
   int detector, detectorId, deviceId;
   char port[16]; // long enough for "/dev/ttyPSmn\n"
   int portInfo[16][3]; // make this a struct array
-  char portName[16][16];
-
+  char* portName[16];
+  for (int i=0; i<16; i++) {
+    portName[i] = new char[16];
+  }
   if (fp) {
     char* tmp = NULL;
     size_t sz = 0;
@@ -245,7 +248,7 @@ int main(int argc, char** argv) {
   }
 
   MySegWire settings(ipimbServer, nServers);
-  Seg* seg = new Seg(task, platform, cfgService, settings, arp, ipimbServer, nServers, (char**) portName);
+  Seg* seg = new Seg(task, platform, cfgService, settings, arp, ipimbServer, nServers, portName);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 
