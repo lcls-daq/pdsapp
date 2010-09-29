@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
   unsigned cpuid = -1UL;
   unsigned platform = 0;
   unsigned nboards = 1;
-  bool doBaselineSubtraction = true;
+  int baselineSubtraction = 1;
   FILE *fp = NULL;
   Arp* arp = 0;
 
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
       nboards = strtoul(optarg, NULL, 0);
       break;
     case 'b':
-      doBaselineSubtraction = (strtoul(optarg, NULL, 0) > 0);
+      baselineSubtraction = strtoul(optarg, NULL, 0);
       break;
     case 'f':
       fp = fopen(optarg,"r");
@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
         printf("No port config file specified, connect densely\n");
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, cpuid, DetInfo::Ipimb, i);
       cfgService[i] = new CfgClientNfs(detInfo);
-      ipimbServer[i] = new IpimbServer(detInfo, doBaselineSubtraction);
+      ipimbServer[i] = new IpimbServer(detInfo, baselineSubtraction);
       portName[i][0] = '\0';
     } else {
       detector = portInfo[i][0]; 
@@ -233,7 +233,7 @@ int main(int argc, char** argv) {
       deviceId = portInfo[i][2];
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detector, detectorId, DetInfo::Ipimb, deviceId);
       cfgService[i] = new CfgClientNfs(detInfo);
-      ipimbServer[i] = new IpimbServer(detInfo, doBaselineSubtraction);
+      ipimbServer[i] = new IpimbServer(detInfo, baselineSubtraction);
     }
   }
   if (fp) {
