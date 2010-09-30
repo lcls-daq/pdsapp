@@ -172,8 +172,9 @@ BldServerSlim::~BldServerSlim()
 void BldServerSlim::lastEVR(unsigned e)
 {
   if (_lastEvr) {
-    if (e - _lastEvr > 1) {
-      printf ("\tGAP GAP GAP, missed %d packets\n", (e - _lastEvr)-1);
+    int gap;
+    if ((gap = e - _lastEvr) != 1) {
+      printf("\tGAP GAP GAP, evr %s %d\n", gap < 0 ? "restart" : "gap", gap - 1);
     }
   } else printf("Watching for gaps in EVR packets\n");
   _lastEvr = e;
