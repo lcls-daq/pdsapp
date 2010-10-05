@@ -59,15 +59,16 @@ namespace Pds {
         Arp*                  arp,
         IpimbServer**         ipimbServer,
         int nServers,
-        char** portName) :
+        char* portName[16]) :
       _task(task),
       _platform(platform),
       _cfg   (cfgService),
       _ipimbServer(ipimbServer),
-      _nServers(nServers),
-      _portName(portName)
-
+      _nServers(nServers)
     {
+      for (int i=0; i<16; i++) {
+	_portName[i] = portName[i];
+      }
     }
 
     virtual ~Seg()
@@ -117,7 +118,7 @@ namespace Pds {
     CfgClientNfs** _cfg;
     IpimbServer**  _ipimbServer;
     const int _nServers;
-    char** _portName;
+    char* _portName[16];
   };
 }
 
@@ -171,21 +172,26 @@ int main(int argc, char** argv) {
   }
 
   int detector, detectorId, deviceId;
+  int polarity;
   char port[16]; // long enough for "/dev/ttyPSmn\n"
   int portInfo[16][3]; // make this a struct array
-  char portName[16][16];
-
+  char* portName[16];
+  for (int i=0; i<16; i++) {
+    portName[i] = new char[16];
+  }
+  int polarities[16];
   if (fp) {
     char* tmp = NULL;
     size_t sz = 0;
     nboards = 0;
     while (getline(&tmp, &sz, fp)>0) {
       if (tmp[0] != '#') {
-	sscanf(tmp,"%d %d %d %s",&detector, &detectorId, &deviceId, port);
+	sscanf(tmp,"%d %d %d %s,%d",&detector, &detectorId, &deviceId, port, &polarity);
 	portInfo[nboards][0] = detector;
 	portInfo[nboards][1] = detectorId;
 	portInfo[nboards][2] = deviceId;
 	strcpy(portName[nboards], port);
+	polarities[nboards] = polarity;
 	nboards++;
       }
     }
@@ -225,7 +231,7 @@ int main(int argc, char** argv) {
         printf("No port config file specified, connect densely\n");
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, cpuid, DetInfo::Ipimb, i);
       cfgService[i] = new CfgClientNfs(detInfo);
-      ipimbServer[i] = new IpimbServer(detInfo, baselineSubtraction);
+      ipimbServer[i] = new IpimbServer(detInfo, baselineSubtraction, polarities[i]);
       portName[i][0] = '\0';
     } else {
       detector = portInfo[i][0]; 
@@ -233,7 +239,7 @@ int main(int argc, char** argv) {
       deviceId = portInfo[i][2];
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detector, detectorId, DetInfo::Ipimb, deviceId);
       cfgService[i] = new CfgClientNfs(detInfo);
-      ipimbServer[i] = new IpimbServer(detInfo, baselineSubtraction);
+      ipimbServer[i] = new IpimbServer(detInfo, baselineSubtraction, 0);
     }
   }
   if (fp) {
@@ -245,7 +251,7 @@ int main(int argc, char** argv) {
   }
 
   MySegWire settings(ipimbServer, nServers);
-  Seg* seg = new Seg(task, platform, cfgService, settings, arp, ipimbServer, nServers, (char**) portName);
+  Seg* seg = new Seg(task, platform, cfgService, settings, arp, ipimbServer, nServers, portName);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 
