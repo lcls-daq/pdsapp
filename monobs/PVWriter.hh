@@ -10,7 +10,7 @@ namespace PdsCas {
     PVWriter(const char* pvName) : EpicsCA(pvName,0) {}
     ~PVWriter() {}
   public:
-    void  put() { _channel.put(); }
+    void  put() { if (connected()) _channel.put(); }
   };
 
 };
