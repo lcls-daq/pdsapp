@@ -59,15 +59,19 @@ namespace Pds {
         Arp*                  arp,
         IpimbServer**         ipimbServer,
         int nServers,
-        char* portName[16]) :
+        char* portName[16],
+	int baselineMode,
+	int polarities[16]) :
       _task(task),
       _platform(platform),
       _cfg   (cfgService),
       _ipimbServer(ipimbServer),
-      _nServers(nServers)
+      _nServers(nServers),
+      _baselineMode(baselineMode)
     {
       for (int i=0; i<16; i++) {
 	_portName[i] = portName[i];
+	_polarities[i] = polarities[i];
       }
     }
 
@@ -84,7 +88,7 @@ namespace Pds {
              _platform);
       
       Stream* frmk = streams.stream(StreamParams::FrameWork);
-      IpimbManager& ipimbMgr = *new IpimbManager(_ipimbServer, _nServers, _cfg, _portName, *new LusiDiagFex);
+      IpimbManager& ipimbMgr = *new IpimbManager(_ipimbServer, _nServers, _cfg, _portName, _baselineMode, _polarities, *new LusiDiagFex);
       ipimbMgr.appliance().connect(frmk->inlet());
     }
     void failed(Reason reason)
@@ -119,6 +123,8 @@ namespace Pds {
     IpimbServer**  _ipimbServer;
     const int _nServers;
     char* _portName[16];
+    int _polarities[16];
+    int _baselineMode;
   };
 }
 
@@ -186,7 +192,7 @@ int main(int argc, char** argv) {
     nboards = 0;
     while (getline(&tmp, &sz, fp)>0) {
       if (tmp[0] != '#') {
-	sscanf(tmp,"%d %d %d %s,%d",&detector, &detectorId, &deviceId, port, &polarity);
+	sscanf(tmp,"%d %d %d %s %d",&detector, &detectorId, &deviceId, port, &polarity);
 	portInfo[nboards][0] = detector;
 	portInfo[nboards][1] = detectorId;
 	portInfo[nboards][2] = deviceId;
@@ -231,7 +237,7 @@ int main(int argc, char** argv) {
         printf("No port config file specified, connect densely\n");
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, cpuid, DetInfo::Ipimb, i);
       cfgService[i] = new CfgClientNfs(detInfo);
-      ipimbServer[i] = new IpimbServer(detInfo, baselineSubtraction, polarities[i]);
+      ipimbServer[i] = new IpimbServer(detInfo);
       portName[i][0] = '\0';
     } else {
       detector = portInfo[i][0]; 
@@ -239,19 +245,19 @@ int main(int argc, char** argv) {
       deviceId = portInfo[i][2];
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detector, detectorId, DetInfo::Ipimb, deviceId);
       cfgService[i] = new CfgClientNfs(detInfo);
-      ipimbServer[i] = new IpimbServer(detInfo, baselineSubtraction, 0);
+      ipimbServer[i] = new IpimbServer(detInfo);
     }
   }
   if (fp) {
     for (unsigned i=0; i<nServers; i++) {
-      printf("Using config file info: detector %d, detector id %d, device id %d, port %s\n", 
-             portInfo[i][0], portInfo[i][1], portInfo[i][2], portName[i]);
+      printf("Using config file info: detector %d, detector id %d, device id %d, port %s, polarity %d\n", 
+             portInfo[i][0], portInfo[i][1], portInfo[i][2], portName[i], polarities[i]);
     }
     fclose(fp);
   }
 
   MySegWire settings(ipimbServer, nServers);
-  Seg* seg = new Seg(task, platform, cfgService, settings, arp, ipimbServer, nServers, portName);
+  Seg* seg = new Seg(task, platform, cfgService, settings, arp, ipimbServer, nServers, portName, baselineSubtraction, polarities);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 
