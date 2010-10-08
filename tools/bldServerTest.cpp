@@ -355,13 +355,28 @@ void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize )
     const unsigned char* pcData       = (const unsigned char*) &vcBuffer[0];    
     
     static int uFiducialPrev = -1;
-    int        uFiducialCurr = *(unsigned int*)&pcData[12];
+    int        uFiducialCurr = 0x1ffff & *(unsigned int*)&pcData[12];
+
+    static unsigned int iCount = 0;
     
     if ( uFiducialPrev != -1 && uFiducialCurr > 3 && uFiducialCurr != uFiducialPrev + 3 )
-      printf( "Fiducial Prev %x Curr %x\n", uFiducialPrev, uFiducialCurr );
+    {
+      printf( "** Fiducial Prev 0x%x Curr 0x%x Diff 0x%x\n", uFiducialPrev, uFiducialCurr,
+        uFiducialCurr - uFiducialPrev );
+      fflush(NULL);
+      fsync(1);
+    }
+    else if ( iCount == 0 )
+    {
+      printf( "Fiducial Prev 0x%x Curr 0x%x Diff 0x%x\n", uFiducialPrev, uFiducialCurr,
+        uFiducialCurr - uFiducialPrev );
+      fflush(NULL);
+      fsync(1);
+    }
       
     uFiducialPrev = uFiducialCurr;
-    
+    iCount = (iCount+1) % 1000;
+
     //printf("Dumping Data (Data Size = %d):\n", iDataSize);
 //    for (int i=0; i< iDataSize; i++)
 //    {
