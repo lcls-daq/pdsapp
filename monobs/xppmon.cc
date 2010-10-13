@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 
   int    detid;
   char*  pvbase = new char[64];
-  float  chbase[4];
+  //float  chbase[4];
 
   size_t line_sz = 256;
   char*  line = new char[line_sz];

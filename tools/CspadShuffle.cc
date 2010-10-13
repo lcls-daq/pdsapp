@@ -109,7 +109,7 @@ private:
 
 	      unsigned smask = cfg.roiMask(hdr->quad());
 	      unsigned id;
-	      const CsPad::Section *s,*end;
+	      const CsPad::Section *s=0,*end=0;
 	      while( (s=iter.next(id)) ) {
 		if (smask&(1<<id))
 		  _write(s,sizeof(*s));

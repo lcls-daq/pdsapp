@@ -51,7 +51,7 @@ namespace Pds_ConfigDb
     int push(void* to) const {
       EvrIOConfigType& tc = *reinterpret_cast<EvrIOConfigType*>(to);
       Pds::EvrData::IOChannel ch[MaxOutputs];
-      for(unsigned i=0; i<MaxOutputs; i++)
+      for(int i=0; i<MaxOutputs; i++)
 	_channel[i]->push(ch[i]);
       *new(&tc) EvrIOConfigType(_conn.value, ch, MaxOutputs);
       return tc.size();

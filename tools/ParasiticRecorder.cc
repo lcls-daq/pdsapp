@@ -33,7 +33,7 @@ namespace Pds {
       for(unsigned i=0; i<g.gl_pathc; i++) {
 	struct stat s;
 	if (!stat(g.gl_pathv[i],&s)) {
-	  if (S_ISREG(s.st_mode) && (s.st_mtime + _lifetime_sec < now)) {
+	  if (S_ISREG(s.st_mode) && (s.st_mtime + _lifetime_sec < (unsigned)now)) {
 	    printf("Removing %s : expired %lu (%lu)\n",
 		   g.gl_pathv[i],s.st_mtime + _lifetime_sec,now);
 	    unlink(g.gl_pathv[i]);

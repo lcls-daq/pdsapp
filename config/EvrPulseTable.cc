@@ -418,7 +418,7 @@ bool EvrPulseTable::validate()
     if ((ec >= 40 && ec<= 46) ||
 	(ec >=140 && ec<=146)) {
       
-      int period = 119e6*double(1<<((ec%100)-40))/120.;
+      int period = (int) (119e6*double(1<<((ec%100)-40))/120.);
       int delay  = p._delay.value;
       int width  = p._width.value;
       if (period < (delay + width)) {

@@ -148,7 +148,7 @@ void   SxrSpectrum::_event    (const void* payload, const Pds::ClockTime& t)
   double* q = _pspectrum;
   for(int y=0; y<nb; y++) {
     int32_t v = -o;
-    for(int x=_xlo; x<_xhi; x++)
+    for(unsigned x=_xlo; x<_xhi; x++)
       v += *d++;
     *p++ += *q++ = double(v);
     d += frame.width() - _xhi + _xlo;

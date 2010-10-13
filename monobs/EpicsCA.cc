@@ -122,7 +122,7 @@ EpicsCAChannel::EpicsCAChannel(const char* channelName,
   if (st != ECA_NORMAL) 
     printf("EpicsCAChannel::ctor %s : %s\n", _epicsName, ca_message(st));
   else
-    printf("EpicsCAChannel::ctor %s : chanID %d\n", _epicsName, _epicsChanID);
+    printf("EpicsCAChannel::ctor %s : chanID %d\n", _epicsName, (int)_epicsChanID);
 }
 
 EpicsCAChannel::~EpicsCAChannel()
