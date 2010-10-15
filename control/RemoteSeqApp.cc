@@ -1,5 +1,6 @@
 #include "RemoteSeqApp.hh"
 #include "StateSelect.hh"
+#include "PVManager.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/utility/Transition.hh"
 #include "pds/xtc/EnableEnv.hh"
@@ -7,6 +8,8 @@
 #include "pds/service/Task.hh"
 #include "pds/service/Sockaddr.hh"
 #include "pds/service/Ins.hh"
+#include "pdsdata/control/PVControl.hh"
+#include "pdsdata/control/PVMonitor.hh"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -22,11 +25,14 @@ using namespace Pds;
 
 RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
 			   StateSelect&      manual,
+			   PVManager&        pvmanager,
 			   const Src&        src) :
   _control      (control),
   _manual       (manual),
+  _pvmanager    (pvmanager),
   _configtc     (_controlConfigType, src),
   _config_buffer(new char[MaxConfigSize]),
+  _cfgmon_buffer(new char[MaxConfigSize]),
   _task         (new Task(TaskObject("remseq"))),
   _port         (Control_Port + control.header().platform()),
   _socket       (-1)
@@ -38,6 +44,7 @@ RemoteSeqApp::~RemoteSeqApp()
 {
   _task->destroy();
   delete[] _config_buffer;
+  delete[] _cfgmon_buffer;
 }
 
 bool RemoteSeqApp::readTransition()
@@ -72,6 +79,17 @@ bool RemoteSeqApp::readTransition()
 	     config.events(),
 	     config.npvControls());
   }
+
+  //  Create config with only monitor channels
+  std::list<ControlData::PVControl> controls;
+  std::list<ControlData::PVMonitor> monitors;
+  for(unsigned i=0; i<config.npvMonitors(); i++)
+    monitors.push_back(config.pvMonitor(i));
+  if (config.uses_duration())
+    new(_cfgmon_buffer) ControlConfigType(controls, monitors, config.duration());
+  else
+    new(_cfgmon_buffer) ControlConfigType(controls, monitors, config.events  ());
+
   _configtc.extent = sizeof(Xtc) + config.size();
   return true;
 }
@@ -149,6 +167,8 @@ void RemoteSeqApp::routine()
 
 	    while(1) {
 	      if (!readTransition())  break;
+	      //	      _pvmanager.unconfigure();
+	      //	      _pvmanager.configure(*reinterpret_cast<ControlConfigType*>(_config_buffer));
 	      _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
 	      _control.set_transition_env(TransitionId::Enable, 
 					  config.uses_duration() ?
@@ -156,6 +176,7 @@ void RemoteSeqApp::routine()
 					  EnableEnv(config.events()).value());
 	      _control.set_target_state(PartitionControl::Enabled);
 	    }
+	    //	    _pvmanager.unconfigure();
 	  }
 
 	  close(_socket);
@@ -186,6 +207,11 @@ void RemoteSeqApp::routine()
 
 Transition* RemoteSeqApp::transitions(Transition* tr) 
 { 
+  if (tr->id()==TransitionId::BeginCalibCycle)
+    _pvmanager.configure(*reinterpret_cast<ControlConfigType*>(_cfgmon_buffer));
+  else if (tr->id()==TransitionId::EndCalibCycle)
+    _pvmanager.unconfigure();
+
   return tr;
 }
 

@@ -19,6 +19,8 @@ if __name__ == "__main__":
                       help="run N cycles", metavar="N")
     parser.add_option("-e","--events",dest="events",type="int",default=105,
                       help="record N events/cycle", metavar="N")
+    parser.add_option("-q","--qbeam",dest="qbeam",type="float",default=-1.,
+                      help="require qbeam > Q", metavar="Q")
 
     (options, args) = parser.parse_args()
         
@@ -42,6 +44,7 @@ if __name__ == "__main__":
     data.setevents(0)
     data.addcontrol(DaqScan.ControlPV('EXAMPLEPV1',0))
     data.addcontrol(DaqScan.ControlPV('EXAMPLEPV2',0))
+    data.addmonitor(DaqScan.MonitorPV('BEAM:LCLS:ELEC:Q',options.qbeam,1.))
     data.send(s)
 #
 #  Wait for the DAQ to declare 'configured'
@@ -60,6 +63,7 @@ if __name__ == "__main__":
         data.setevents(options.events)
         data.addcontrol(DaqScan.ControlPV('EXAMPLEPV1',cycle))
         data.addcontrol(DaqScan.ControlPV('EXAMPLEPV2',100-cycle))
+        data.addmonitor(DaqScan.MonitorPV('BEAM:LCLS:ELEC:Q',options.qbeam,1.))
 
         print "Cycle ", cycle
         data.send(s)

@@ -9,6 +9,7 @@
 
 namespace Pds {
   class PartitionControl;
+  class PVManager;
   class StateSelect;
   class Src;
   class Task;
@@ -18,6 +19,7 @@ namespace Pds {
   public:
     RemoteSeqApp(PartitionControl& control,
 		 StateSelect&      manual,
+		 PVManager&        pvmanager,
 		 const Src&        src);
     ~RemoteSeqApp();
   public:
@@ -30,8 +32,10 @@ namespace Pds {
   private:
     PartitionControl&  _control;
     StateSelect&       _manual;
+    PVManager&         _pvmanager;
     Xtc                _configtc;
     char*              _config_buffer;
+    char*              _cfgmon_buffer;
     bool               _done;
     Task*              _task;
     unsigned short     _port;

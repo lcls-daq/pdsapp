@@ -129,12 +129,20 @@ bool Device::_check_config(const TableEntry* entry, const string& path, const st
 	    perror(tpath.c_str());
 	    printf("Failed to open file, recreating.\n");
 	    outofdate=true;
+	    fclose(f_path);
 	    continue;
 	  }
 	  char* bufflink = new char[s.st_size];
 	  char* buffpath = new char[s.st_size];
-	  if (fread(bufflink, s.st_size, 1, f_link)!=fread(buffpath, s.st_size, 1, f_path) ||
-	      memcmp(bufflink,buffpath,s.st_size)!=0) {
+	  bool equal_size = 
+	    fread(bufflink, s.st_size, 1, f_link)==
+	    fread(buffpath, s.st_size, 1, f_path);
+	  fclose(f_path);
+	  fclose(f_link);
+	  bool equal_mem = memcmp(bufflink,buffpath,s.st_size)==0;
+	  delete[] bufflink;
+	  delete[] buffpath;
+	  if (!equal_size || !equal_mem) {
 	    printf("%s link is old\n",tlinkpath.c_str());
 	    outofdate=true; 
 	  }
@@ -191,8 +199,15 @@ void Device::_make_config(const TableEntry* entry, const string& path, const str
 	}
 	char* buffbase = new char[s.st_size];
 	char* bufflink = new char[s.st_size];
-	if (fread(buffbase, s.st_size, 1, f_base)==fread(bufflink, s.st_size, 1, f_link) &&
-	    memcmp(buffbase,bufflink,s.st_size)==0) {
+	bool equal_size = 
+	  fread(buffbase, s.st_size, 1, f_base)==
+	  fread(bufflink, s.st_size, 1, f_link);
+	fclose(f_base);
+	fclose(f_link);
+	bool equal_mem = memcmp(buffbase,bufflink,s.st_size)==0;
+	delete[] buffbase;
+	delete[] bufflink;
+	if (equal_size && equal_mem) {
 	  printf("%s is up-to-date\n",talnk.c_str());
 	  string tlink = typelink(utype,iter->entry())+sext; // path from key
 	  symlink(tlink.c_str(), tpath.c_str());
