@@ -44,7 +44,7 @@ if __name__ == "__main__":
     newkey = cdb.copy_key(key.value)
     print 'Generated key ',newkey
 
-    cspad = Cspad.ConfigV1()
+    cspad = Cspad.ConfigV2()
     cspad.read(cdb.xtcpath(key.value,Cspad.DetInfo,Cspad.TypeId))
 
     newxtc = cdb.remove_xtc(newkey,Cspad.DetInfo,Cspad.TypeId)

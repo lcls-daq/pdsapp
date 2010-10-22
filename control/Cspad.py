@@ -170,3 +170,50 @@ class ConfigV1:
         
     def fmt(self):
         return '<11I'
+
+
+class ConfigV2:
+    def __init__(self):
+        self.concentratorVersion = 0
+        self.runDelay = 0
+        self.eventCode = 0
+        self.inactiveRunMode = 0
+        self.activeRunMode = 0
+        self.testDataIndex = 0
+        self.payloadPerQuad = 0
+        self.badAsicMask0 = 0
+        self.badAsicMask1 = 0
+        self.asicMask = 0
+        self.quadMask = 0
+        self.roiMask = 0
+        self.quads = []
+
+    def read(self,name):
+        f = open(name,'r')
+
+        (self.concentratorVersion, \
+         self.runDelay, self.eventCode, self.inactiveRunMode, self.activeRunMode, \
+         self.testDataIndex, self.payloadPerQuad, self.badAsicMask0, self.badAsicMask1, \
+         self.asicMask, self.quadMask, self.roiMask) \
+        = struct.unpack(self.fmt(),f.read(struct.calcsize(self.fmt())))
+
+        print self.eventCode, self.asicMask, self.quadMask, self.roiMask
+        
+        self.quads = []
+        for i in range(4):
+            self.quads.append(QuadV1().read(f))
+            
+        f.close()
+
+    def write(self,f):
+        f.write(struct.pack(self.fmt(),
+                            self.concentratorVersion,
+                            self.runDelay, self.eventCode, self.inactiveRunMode, self.activeRunMode,
+                            self.testDataIndex, self.payloadPerQuad, self.badAsicMask0, self.badAsicMask1,
+                            self.asicMask, self.quadMask, self.roiMask))
+
+        for i in range(4):
+            self.quads[i].write(f)
+        
+    def fmt(self):
+        return '<12I'
