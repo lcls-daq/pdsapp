@@ -17,6 +17,7 @@ namespace Pds {
   class InDatagram;
   class RunAllocator;
   class PartitionSelect;
+  class UserMessage;
 
   class MainWindow : public QWidget {
     Q_OBJECT
@@ -33,10 +34,10 @@ namespace Pds {
     static void termSignalHandler(int unused);
 
   signals:
-    void transition_failed(const QString&,bool);
+    void message_received(const QString&,bool);
     //    void platform_failed();
   public slots:
-    void handle_failed_transition(const QString&,bool);
+    void handle_message(const QString&,bool);
     void handle_sigint();
     void handle_sigterm();
     //    void handle_platform_error();
@@ -44,6 +45,7 @@ namespace Pds {
     ControlLog& log();
     void controleb_tmo();
     void transition_damaged(const InDatagram&);
+    void insert_message(const char*);
     void platform_error();
   private:
     friend class ControlTimeout;

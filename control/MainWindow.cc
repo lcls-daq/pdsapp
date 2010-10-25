@@ -79,6 +79,13 @@ namespace Pds {
 	_w.transition_damaged(*dg);
       return dg;
     }
+    Occurrence* occurrences(Occurrence* occ)
+    { if (occ->id()==OccurrenceId::UserMessage)
+	_w.insert_message(static_cast<UserMessage*>(occ)->msg());
+      else if (occ->id()==OccurrenceId::ClearReadout) 
+        _w.insert_message("Detector out-of-order.\nShutdown and Select/Allocate.\n");
+      return occ; 
+    }
   private:
     MainWindow& _w;
   };
@@ -201,8 +208,8 @@ MainWindow::MainWindow(unsigned          platform,
 
   QObject::connect(state , SIGNAL(configured(bool)), config, SLOT(configured(bool)));
   QObject::connect(state , SIGNAL(state_changed(QString)), _partition, SLOT(change_state(QString)));
-  QObject::connect(this  , SIGNAL(transition_failed(const QString&, bool))   , 
-		   this  , SLOT(handle_failed_transition(const QString&, bool)));
+  QObject::connect(this  , SIGNAL(message_received(const QString&, bool))   , 
+		   this  , SLOT(handle_message(const QString&, bool)));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));
 
   // Unix signal support
@@ -247,7 +254,7 @@ void MainWindow::controleb_tmo()
     }
     msg += QString("Need to restart.\n");
     
-    emit transition_failed(msg,true);
+    emit message_received(msg,true);
   }
 }
 
@@ -297,10 +304,16 @@ void MainWindow::transition_damaged(const InDatagram& dg)
 
   if (dg.datagram().xtc.damage.value() & (1<<Pds::Damage::UserDefined)) {
     msg += QString("\n  Need to restart DAQ");
-    emit transition_failed(msg,true);
+    emit message_received(msg,true);
   }
   else
-    emit transition_failed(msg,false);
+    emit message_received(msg,false);
+}
+
+void MainWindow::insert_message(const char* msg)
+{
+  QString m(msg);
+  emit message_received(m,true);
 }
 
 void MainWindow::platform_error()
@@ -311,7 +324,7 @@ void MainWindow::platform_error()
   close();
 }
 
-void MainWindow::handle_failed_transition(const QString& msg, bool critical)
+void MainWindow::handle_message(const QString& msg, bool critical)
 {
   QString t = QString("%1: %2")
     .arg(QTime::currentTime().toString("hh:mm:ss"))
@@ -320,7 +333,7 @@ void MainWindow::handle_failed_transition(const QString& msg, bool critical)
   _log->appendText(t);
 
   if (critical)
-    QMessageBox::critical(this, "Transition Failed", msg);
+    QMessageBox::critical(this, "Error", msg);
 }
 
 
