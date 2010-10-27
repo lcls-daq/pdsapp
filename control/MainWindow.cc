@@ -333,7 +333,7 @@ void MainWindow::handle_message(const QString& msg, bool critical)
   _log->appendText(t);
 
   if (critical)
-    QMessageBox::critical(this, "Error", msg);
+    QMessageBox::critical(this, "DAQ Control Error", msg);
 }
 
 
