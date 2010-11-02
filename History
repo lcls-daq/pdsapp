@@ -1,3 +1,4 @@
+2010-Nov-02 caf         Tag V02-08-05.
 2010-Sep-13 weaver	Tag V02-08-00.	Transient data filenames (eventp) reported by control_gui.
 			Transient data filenames match recorded data filenames when recording.
 			control_gui exports data filenames to logbook proxy.
