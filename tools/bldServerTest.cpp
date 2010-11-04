@@ -7,6 +7,7 @@
 #include <sstream>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <signal.h>
 
 #include "pds/service/NetServer.hh"
 #include "pds/service/Ins.hh"
@@ -225,6 +226,7 @@ string addressToStr( unsigned int uAddr )
 
 using namespace Pds::ConfigurationMulticast;
 void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize );
+void printSummary();
 
 static void showUsage()
 {
@@ -234,6 +236,7 @@ static void showUsage()
       "   -h|--help                           Show Usage\n"
       "   -a|--address   <Ip Address>         Set the multicast address to be listened to. Default: %s\n"
       "   -p|--port      <Port>               Set the port to be listened to. Default: %u\n"
+      "   -P|--Print                          Print only an occasional summary of received packets\n"
       "   -s|--size      <Buffer Size>        Set the max data size for allocating buffer. Default: %u\n"
       "   -e|--evrGapHunt                     Watch for and print out message if a gap is seen in EVR packets\n"
       "   -i|--interface <Interface Name/IP>  Set the network interface for receiving multicast. Use ether IP address (xxx.xx.xx.xx) or name (eth0, eth1,...)\n"
@@ -242,16 +245,26 @@ static void showUsage()
     );
 }
 
-static const char sBldServerTestVersion[] = "0.91";
+static const char sBldServerTestVersion[] = "0.92";
 
 static void showVersion()
 {
     printf( "Version:  bldServerTest  Ver %s\n", sBldServerTestVersion );
 }
 
+long long unsigned packetCount = 0LL;
+long long unsigned dataTotal = 0LL;
+
+void sigHandler( int signal ) {
+  psignal( signal, "Signal received: ");
+  printSummary();
+  exit(0);
+}
+
 int main(int argc, char** argv)
 {
     bool evrGapHunt = false;
+    bool printOnlySummary = false;
     int iOptionIndex = 0;
     struct option loOptions[] = 
     {
@@ -259,6 +272,7 @@ int main(int argc, char** argv)
        {"help",     0, 0, 'h'},
        {"address",  1, 0, 'a'},
        {"port",     1, 0, 'p'},
+       {"Print",    0, 0, 'P'},
        {"size",     1, 0, 's'},
        {"interface",1, 0, 'i'},
        {"evrGapHunt", 0, 0, 'e'},
@@ -269,7 +283,7 @@ int main(int argc, char** argv)
     unsigned int  uAddr         = uDefaultAddr;
     unsigned int  uPort         = uDefaultPort;
     unsigned int  uMaxDataSize  = uDefaultMaxDataSize;
-    while ( int opt = getopt_long(argc, argv, ":vha:p:i:s:e", loOptions, &iOptionIndex ) )
+    while ( int opt = getopt_long(argc, argv, ":vha:p:Pi:s:e", loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
             
@@ -283,6 +297,9 @@ int main(int argc, char** argv)
             break;
         case 'p':
             uPort = strtoul(optarg, NULL, 0);
+            break;
+        case 'P':
+            printOnlySummary = true;
             break;
         case 's':
             uMaxDataSize = strtoul(optarg, NULL, 0);
@@ -311,6 +328,7 @@ int main(int argc, char** argv)
     argc -= optind;
     argv += optind;  
           
+    signal( SIGINT, sigHandler );
     if (argc >= 1 )
       sInterfaceIp = argv[0];    
     
@@ -320,34 +338,43 @@ int main(int argc, char** argv)
       printf( "bldServerTest:main(): bldServerSlim is not initialzed successfully\n" );
       return 1;
     }
-            
+
     std::vector<unsigned char> vcFetchBuffer( uDefaultMaxDataSize );
     Pds::EvrDatagram* dgram = (Pds::EvrDatagram*)&vcFetchBuffer[0];
-        
+
     printf( "Beginning Multicast Server Testing. Press Ctrl-C to Exit...\n" );        
-    
+
     while (1) // Pds::ConsoleIO::kbhit(NULL) == 0 )
     {       
-        unsigned int iRecvDataSize = 0;
-        int iFail = bldServer.fetch(uDefaultMaxDataSize, &vcFetchBuffer[0], iRecvDataSize);
-        if ( iFail != 0 )
-        {
-          printf( "bldServerTest:main(): bldServer.fetch() failed. Error Code = %d\n", iFail );
-          return 2;
-        }
-        
+      unsigned int iRecvDataSize = 0;
+      int iFail = bldServer.fetch(uDefaultMaxDataSize, &vcFetchBuffer[0], iRecvDataSize);
+      if ( iFail != 0 )
+      {
+        printf( "bldServerTest:main(): bldServer.fetch() failed. Error Code = %d\n", iFail );
+        return 2;
+      }
 
-        if (evrGapHunt)
-        {
-          bldServer.lastEVR(dgram->evr);
-        }
-        else
-        {
+      dataTotal += iRecvDataSize;
+
+      if (evrGapHunt)
+      {
+        bldServer.lastEVR(dgram->evr);
+      }
+      else
+      {
+        if (printOnlySummary) {
+          if (!(++packetCount%564000LL)) printSummary();
+        } else {
           printData( vcFetchBuffer, iRecvDataSize );
         }
+      }
     }
-
     return 0;
+}
+
+void printSummary() {
+  printf("packetCount(%llu), eventCount(%llu), fileSize(%llu MB)\n",
+      packetCount, packetCount / 564LL, dataTotal / 1000000LL);
 }
 
 void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize )
@@ -375,15 +402,16 @@ void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize )
     }
       
     uFiducialPrev = uFiducialCurr;
+    
+    printf("Dumping Data (Data Size = %d):\n", iDataSize);
+    for (int i=0; i< iDataSize; i++)
+    {
+        if ( pcData[i] >= 32 && pcData[i] <= 126 )
+            printf( "%c", pcData[i] );
+        else
+            printf( "[%02d: %02X]", i, (unsigned int) pcData[i] );
+    }
+    printf("\n");
     iCount = (iCount+1) % 1000;
 
-    //printf("Dumping Data (Data Size = %d):\n", iDataSize);
-//    for (int i=0; i< iDataSize; i++)
-//    {
-////        if ( pcData[i] >= 32 && pcData[i] <= 126 )
-////            printf( "%c", pcData[i] );
-////        else
-//            printf( "[%02d: %02X]", i, (unsigned int) pcData[i] );           
-//    }
-    //printf("\n");
 }
