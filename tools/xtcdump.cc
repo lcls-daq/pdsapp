@@ -133,6 +133,8 @@ int main(int argc, char* argv[]) {
     if (dg.seq.service()==TransitionId::L1Accept) {
       if (l1timestamp && l1clk == dg.seq.clock())
 	l1timestamp = 0;
+    }
+    else {
       if (trtimestamp && trclk == dg.seq.clock())
 	trtimestamp = 0;
     }

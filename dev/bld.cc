@@ -137,7 +137,7 @@ namespace Pds {
 	  Node node(Level::Reporter, 0);
 	  node.fixup(StreamPorts::bld(i).address(),Ether());
 	  Ins ins( node.ip(), StreamPorts::bld(0).portId());
-	  BldServer* srv = new BldServer(ins, node.procInfo(), NetBufferDepth);
+	  BldServer* srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), NetBufferDepth);
 	  inlet.add_input(srv);
 	  srv->server().join(ins, ip);
 	  printf("Bld::allocated assign bld  fragment %d  %x/%d\n",
@@ -265,14 +265,14 @@ namespace Pds {
 	  const Xtc& xtc1 = *reinterpret_cast<const Xtc*>(xtc.payload());
 	  const EvrDataType& evrd = *reinterpret_cast<const EvrDataType*>(xtc1.payload());
 
-	  if (nprint++%119 == 0) {
-	    printf("== nfifo %d\n",evrd.numFifoEvents());
-	    for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
-	      const EvrDataType::FIFOEvent& fe = evrd.fifoEvent(i);
-	      printf("  %d : %08x/%08x : %d\n", 
-		     i, fe.TimestampHigh, fe.TimestampLow, fe.EventCode);
-	    }
-	  }
+// 	  if (nprint++%119 == 0) {
+// 	    printf("== nfifo %d\n",evrd.numFifoEvents());
+// 	    for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
+// 	      const EvrDataType::FIFOEvent& fe = evrd.fifoEvent(i);
+// 	      printf("  %d : %08x/%08x : %d\n", 
+// 		     i, fe.TimestampHigh, fe.TimestampLow, fe.EventCode);
+// 	    }
+// 	  }
 
 	  for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
 	    const EvrDataType::FIFOEvent& fe = evrd.fifoEvent(i);
