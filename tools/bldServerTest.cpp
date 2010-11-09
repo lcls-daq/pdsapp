@@ -236,7 +236,7 @@ static void showUsage()
       "   -h|--help                           Show Usage\n"
       "   -a|--address   <Ip Address>         Set the multicast address to be listened to. Default: %s\n"
       "   -p|--port      <Port>               Set the port to be listened to. Default: %u\n"
-      "   -P|--Print                          Print only an occasional summary of received packets\n"
+      "   -P|--PGPtest                        PGP card test with occasional summary of received packets\n"
       "   -s|--size      <Buffer Size>        Set the max data size for allocating buffer. Default: %u\n"
       "   -e|--evrGapHunt                     Watch for and print out message if a gap is seen in EVR packets\n"
       "   -i|--interface <Interface Name/IP>  Set the network interface for receiving multicast. Use ether IP address (xxx.xx.xx.xx) or name (eth0, eth1,...)\n"
@@ -252,8 +252,15 @@ static void showVersion()
     printf( "Version:  bldServerTest  Ver %s\n", sBldServerTestVersion );
 }
 
+// block of variables used only for PGP card test
+enum {MagicNumber=0, QuadNumber=1, FrameCount=2, MAGIC=0xFEEDFACE, PacketsPerSegment=141};
+unsigned lastFrameNumber       = 0;
+unsigned lostPackets           = 0;
+unsigned lostSegments          = 0;
+unsigned lostEvents            = 0;
 long long unsigned packetCount = 0LL;
-long long unsigned dataTotal = 0LL;
+long long unsigned dataTotal   = 0LL;
+bool     packetError           = false;
 
 void sigHandler( int signal ) {
   psignal( signal, "Signal received: ");
@@ -264,7 +271,7 @@ void sigHandler( int signal ) {
 int main(int argc, char** argv)
 {
     bool evrGapHunt = false;
-    bool printOnlySummary = false;
+    bool PGPcardTestSummary = false;
     int iOptionIndex = 0;
     struct option loOptions[] = 
     {
@@ -272,7 +279,7 @@ int main(int argc, char** argv)
        {"help",     0, 0, 'h'},
        {"address",  1, 0, 'a'},
        {"port",     1, 0, 'p'},
-       {"Print",    0, 0, 'P'},
+       {"PGPtest",  0, 0, 'P'},
        {"size",     1, 0, 's'},
        {"interface",1, 0, 'i'},
        {"evrGapHunt", 0, 0, 'e'},
@@ -299,7 +306,7 @@ int main(int argc, char** argv)
             uPort = strtoul(optarg, NULL, 0);
             break;
         case 'P':
-            printOnlySummary = true;
+            PGPcardTestSummary = true;
             break;
         case 's':
             uMaxDataSize = strtoul(optarg, NULL, 0);
@@ -342,6 +349,10 @@ int main(int argc, char** argv)
     std::vector<unsigned char> vcFetchBuffer( uDefaultMaxDataSize );
     Pds::EvrDatagram* dgram = (Pds::EvrDatagram*)&vcFetchBuffer[0];
 
+    uint32_t* wp = (uint32_t*)dgram;
+    unsigned pcount       = 0;
+    unsigned segmentMask  = 0;
+
     printf( "Beginning Multicast Server Testing. Press Ctrl-C to Exit...\n" );        
 
     while (1) // Pds::ConsoleIO::kbhit(NULL) == 0 )
@@ -355,6 +366,9 @@ int main(int argc, char** argv)
       }
 
       dataTotal += iRecvDataSize;
+      ++packetCount;
+      ++pcount;
+      packetError = false;
 
       if (evrGapHunt)
       {
@@ -362,8 +376,61 @@ int main(int argc, char** argv)
       }
       else
       {
-        if (printOnlySummary) {
-          if (!(++packetCount%564000LL)) printSummary();
+        if (PGPcardTestSummary) {
+          if (wp[MagicNumber] == MAGIC) {
+            if (pcount != PacketsPerSegment) {
+              if (pcount < PacketsPerSegment) {
+                if (pcount > 1) {
+                  lostPackets += PacketsPerSegment - pcount;
+                  printf("lost packets %u\n", PacketsPerSegment - pcount);
+                  packetError = true;
+                }
+              } else {
+                if (unsigned remainder = pcount % PacketsPerSegment) {
+                  lostPackets += PacketsPerSegment - remainder;
+                  printf("lost packets %u\n", PacketsPerSegment - remainder);
+                  packetError = true;
+                }
+              }
+            }
+            pcount = 0;
+            if (wp[FrameCount] != lastFrameNumber) {
+              if (wp[FrameCount] < lastFrameNumber) {
+                // starting over
+                packetCount = 0LL;
+                pcount = 0;
+                lastFrameNumber = 0;
+                lostPackets = 0;
+                lostSegments = 0;
+                printf("restarting\n");
+                packetError = true;
+              } else {
+                if (segmentMask != 0xf) {
+                  for (unsigned i = 1; i< 0x10; i<<=1) {
+                    if (!(segmentMask & i)) lostSegments += 1;
+                  }
+                  printf("segmentMask(0x%x)\n", segmentMask);
+                  packetError = true;
+                }
+                if (wp[FrameCount] - lastFrameNumber > 1) {
+                  unsigned lost = wp[FrameCount] - lastFrameNumber - 1;
+                  lostEvents += lost;
+                  printf("lost %u event%s %u ", lost, lost > 1 ? "s" : "", lastFrameNumber + 1);
+                  if (lost > 1) printf("... %u", lastFrameNumber + lost);
+                  printf("\n");
+                  packetError = true;
+                }
+              }
+              segmentMask = 0;
+              lastFrameNumber = wp[FrameCount];
+              if (!(lastFrameNumber%1000)) {
+                printSummary();
+                packetError = false;
+              }
+            }
+            segmentMask |= 1 << wp[QuadNumber];
+            if (packetError) printSummary();
+          }
         } else {
           printData( vcFetchBuffer, iRecvDataSize );
         }
@@ -373,8 +440,8 @@ int main(int argc, char** argv)
 }
 
 void printSummary() {
-  printf("packetCount(%llu), eventCount(%llu), fileSize(%llu MB)\n",
-      packetCount, packetCount / 564LL, dataTotal / 1000000LL);
+  printf("packetCount(%llu), eventCount(%u), lostPackets(%u), lostSegments(%u), lostEvents(%u)\n",
+      packetCount, lastFrameNumber, lostPackets, lostSegments, lostEvents);
 }
 
 void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize )
