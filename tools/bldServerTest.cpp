@@ -406,10 +406,12 @@ int main(int argc, char** argv)
                 packetError = true;
               } else {
                 if (segmentMask != 0xf) {
+                  unsigned thistime = 0;
                   for (unsigned i = 1; i< 0x10; i<<=1) {
-                    if (!(segmentMask & i)) lostSegments += 1;
+                    if (!(segmentMask & i)) thistime += 1;
                   }
-                  printf("segmentMask(0x%x)\n", segmentMask);
+                  lostSegments += thistime;
+                  printf("lost segments(%u), segmentMask(0x%x)\n", thistime, segmentMask);
                   packetError = true;
                 }
                 if (wp[FrameCount] - lastFrameNumber > 1) {
