@@ -129,7 +129,7 @@ bool Device::_check_config(const TableEntry* entry, const string& path, const st
 	    perror(tpath.c_str());
 	    printf("Failed to open file, recreating.\n");
 	    outofdate=true;
-	    fclose(f_path);
+	    fclose(f_link);
 	    continue;
 	  }
 	  char* bufflink = new char[s.st_size];

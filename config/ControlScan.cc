@@ -217,28 +217,28 @@ void ControlScan::read(const char* ifile)
     int len = fread(dbuf, 1, sstat.st_size, f);
     if (len != sstat.st_size) {
       printf("Read %d/%ld bytes from %s\n",len,sstat.st_size,buff);
-      return;
-    }
-
-    const ControlConfigType& cfg = 
-      *reinterpret_cast<const ControlConfigType*>(dbuf);
-
-    int npts = len/cfg.size();
-    printf("cfg size %d/%d (%d)\n",cfg.size(),len,npts);
-    _steps->setText(QString::number(npts-1));
-    
-    if (cfg.uses_duration()) {
-      _acqB->button(Duration)->setChecked(true);
-      double s = double(cfg.duration().seconds()) +
-	1.e-9 *  double(cfg.duration().nanoseconds());
-      _time_value->setText(QString::number(s));
     }
     else {
-      _acqB->button(Events  )->setChecked(true);
-      _events_value->setText(QString::number(cfg.events()));
-    }
+      const ControlConfigType& cfg = 
+        *reinterpret_cast<const ControlConfigType*>(dbuf);
 
-    _pv->read(dbuf, len);
+      int npts = len/cfg.size();
+      printf("cfg size %d/%d (%d)\n",cfg.size(),len,npts);
+      _steps->setText(QString::number(npts-1));
+    
+      if (cfg.uses_duration()) {
+        _acqB->button(Duration)->setChecked(true);
+        double s = double(cfg.duration().seconds()) +
+          1.e-9 *  double(cfg.duration().nanoseconds());
+        _time_value->setText(QString::number(s));
+      }
+      else {
+        _acqB->button(Events  )->setChecked(true);
+        _events_value->setText(QString::number(cfg.events()));
+      }
+
+      _pv->read(dbuf, len);
+    }
     delete[] dbuf;
 
     fclose(f);
@@ -280,12 +280,11 @@ void ControlScan::read(const char* ifile)
 	int len = fread(dbuf, 1, sstat.st_size, f);
 	if (len != sstat.st_size) {
 	  printf("Read %d/%ld bytes from %s\n",len,sstat.st_size,buff);
-	  return;
 	}
-      
-	_evr->read(dbuf, len);
+        else {
+          _evr->read(dbuf, len);
+        }
 	delete[] dbuf;
-      
 	fclose(f);
       }
     }
