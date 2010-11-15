@@ -9,7 +9,8 @@ using namespace Pds_ConfigDb;
 
 static const float baseDef = 2.5;
 static const float baseLo  = 0.0;
-static const float baseHi  = 3.3;
+//static const float baseHi  = 3.3;
+static const float baseHi  = 10; // inline baseline correction can produce output > 3.3
 static const float scaleDef = 1.0;
 static const float scaleLo  = -1.e20; 
 static const float scaleHi  =  1.e20; 

@@ -8,6 +8,13 @@ from stat import *
 
 from distutils import dir_util
 
+AmoEndstation = 23
+SxrEndstation = 12
+XppEndstation = 22
+CxiEndstation = 24
+XcsEndstation = 25
+MecEndstation = 26
+
 #
 #  class to inspect configuration database
 #

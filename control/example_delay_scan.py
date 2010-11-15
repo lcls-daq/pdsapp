@@ -8,6 +8,40 @@ import Evr
 
 from optparse import OptionParser
 
+#
+#  Generate a configuration with incremented delays for each cycle
+#
+def replaceEvrConfig(cdb, oldkey, newkey, cycles):
+
+    oldxtc = cdb.xtcpath(oldkey,Evr.DetInfo,Evr.TypeId)
+    evr = Evr.ConfigV4()
+    evr.read(oldxtc)
+
+    newxtc = cdb.remove_xtc(newkey,Evr.DetInfo,Evr.TypeId)
+    
+    delay_offset = 0
+    delay_step   = 100.e-9
+    f = open(newxtc,'w')
+    for cycle in range(cycles):
+        evr.pulses[0].delay = int(delay_offset + cycle*delay_step*119e6)
+        evr.write(f)
+    f.close()
+
+#
+#  Generate a configuration with a changed exposure time
+#
+def replacePrincetonConfig(cdb, oldkey, newkey, exposure_time):
+
+    oldxtc = cdb.xtcpath(oldkey,Princeton.DetInfo(ConfigDb.XppEndstation),Princeton.TypeId)
+    prncton = Princeton.ConfigV1(oldxtc)
+
+    newxtc = cdb.remove_xtc(newkey,Princeton.DetInfo(ConfigDb.XppEndstation),Princeton.TypeId)
+    
+    prncton.exposureTime = exposure_time
+    prncton.write(f)
+    f.close()
+
+    
 if __name__ == "__main__":
     import sys
 
@@ -28,7 +62,7 @@ if __name__ == "__main__":
     s.connect((options.host,options.port))
 
 #
-#  First, get the current configuration key in use and set the value to be used
+#  First, get the current configuration key in use
 #
     cdb = ConfigDb.Db()
     cdb.recv_path(s)
@@ -37,21 +71,15 @@ if __name__ == "__main__":
 #
 #  Generate a new key with different EVR pulse delays for each cycle
 #
-    evr = Evr.ConfigV4()
-    evr.read(cdb.xtcpath(key.value,Evr.DetInfo,Evr.TypeId))
-    
     newkey = cdb.copy_key(key.value)
-    newxtc = cdb.remove_xtc(newkey,Evr.DetInfo,Evr.TypeId)
     print 'Generated key ',newkey
-    
-    delay_offset = 0
-    delay_step   = 100.e-9
-    f = open(newxtc,'w')
-    for cycle in range(options.cycles):
-        evr.pulses[0].delay = int(delay_offset + cycle*delay_step*119e6)
-        evr.write(f)
-    f.close()
 
+    replaceEvrConfig      (cdb, key.value, newkey, options.cycles)
+#    replacePrincetonConfig(cdb, key.value, newkey, 2.5)
+    
+#
+#  Inform the DAQ to use the new key
+#
     key.set(newkey)
 
 #
@@ -69,6 +97,12 @@ if __name__ == "__main__":
     result = DaqScan.DAQStatus(s)
     print "Configured."
 
+#
+#  Wait for the user to declare 'ready'
+#    Setting up monitoring displays for example
+#  
+    ready = raw_input('--Hit Enter when Ready-->')
+
     for cycle in range(options.cycles):
         data = DaqScan.DAQData()
         data.setevents(options.events)
@@ -81,5 +115,11 @@ if __name__ == "__main__":
         result = DaqScan.DAQStatus(s)  # wait for enabled , then enable the EVR sequence
 
         result = DaqScan.DAQStatus(s)  # wait for disabled, then disable the EVR sequence
+
+#
+#  Wait for the user to declare 'done'
+#    Saving monitoring displays for example
+#
+    ready = raw_input('--Hit Enter when Done-->')
             
     s.close()

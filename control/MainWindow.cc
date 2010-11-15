@@ -105,8 +105,8 @@ namespace Pds {
       if (tr->id()==TransitionId::BeginRun) {
 	if (tr->size() == sizeof(Transition)) {  // No RunInfo
 	  char fname[256];
-	  sprintf(fname, "e%d-r%04d-sNN-cNN.xtc", 
-		  0, tr->env().value());
+	  sprintf(fname, "e%d/e%d-r%04d-sNN-cNN.xtc", 
+		  0, 0, tr->env().value());
 	  _log.appendText(QString("%1: Not recording. Transient data file: %2\n")
 			  .arg(QTime::currentTime().toString("hh:mm:ss"))
 			  .arg(fname));
@@ -114,8 +114,8 @@ namespace Pds {
 	else {
           RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
 	  char fname[256];
-	  sprintf(fname, "e%d-r%04d-s00-c00.xtc", 
-		  rinfo.experiment(), rinfo.run());
+	  sprintf(fname, "e%d/e%d-r%04d-s00-c00.xtc", 
+		  rinfo.experiment(), rinfo.experiment(), rinfo.run());
 	  _experiment = rinfo.experiment();
 	  _log.appendText(QString("%1: Recording run %2. Transient data file: %3\n")
 			  .arg(QTime::currentTime().toString("hh:mm:ss"))
