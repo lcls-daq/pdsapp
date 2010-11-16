@@ -59,13 +59,15 @@ namespace Pds {
       if (CheckType(EBeam))           extent += SizeType(EBeam);
       if (CheckType(PhaseCavity))     extent += SizeType(PhaseCavity);
       if (CheckType(FEEGasDetEnergy)) extent += SizeType(FEEGasDetEnergy);
+      if (CheckType(Ipimb))           extent += SizeType(Ipimb);	  
       if (extent) {
-	_configtc.extent += extent;
-	_config_payload = new char[extent];
-	char* p = _config_payload;
-	if (CheckType(EBeam))           AddType(EBeam);
-	if (CheckType(PhaseCavity))     AddType(PhaseCavity);
-	if (CheckType(FEEGasDetEnergy)) AddType(FEEGasDetEnergy);
+        _configtc.extent += extent;
+        _config_payload = new char[extent];
+        char* p = _config_payload;
+        if (CheckType(EBeam))           AddType(EBeam);
+        if (CheckType(PhaseCavity))     AddType(PhaseCavity);
+        if (CheckType(FEEGasDetEnergy)) AddType(FEEGasDetEnergy);
+        if (CheckType(Ipimb)) AddType(Ipimb);	
       }
 #undef CheckType
 #undef SizeType
