@@ -3,6 +3,7 @@
 libnames    := bldIpimblib
 
 libsrcs_bldIpimblib := BldIpimbStream.cc  ToBldEventWire.cc EvrBldManager.cc EvrBldServer.cc
+libincs_bldIpimblib := evgr
 tgtnames    := bldIpimb
 
 
