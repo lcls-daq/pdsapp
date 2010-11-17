@@ -8,7 +8,8 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <signal.h>
-
+#include <unistd.h>
+#include <time.h>
 #include "pds/service/NetServer.hh"
 #include "pds/service/Ins.hh"
 #include "pds/xtc/EvrDatagram.hh"
@@ -431,7 +432,12 @@ int main(int argc, char** argv)
               }
             }
             segmentMask |= 1 << wp[QuadNumber];
-            if (packetError) printSummary();
+            if (packetError) {
+              time_t mytime;
+              mytime = time(NULL);
+              printf(ctime(&mytime));
+              printSummary();
+            }
           }
         } else {
           printData( vcFetchBuffer, iRecvDataSize );
