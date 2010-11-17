@@ -10,6 +10,7 @@ namespace Pds { class Sequence; }
 
 namespace PdsCas {
   class Handler;
+  class EvtHandler;
   class ShmClient : public Pds::XtcMonitorClient,
 		    private Pds::XtcIterator {
   public:
@@ -22,6 +23,7 @@ namespace PdsCas {
     static const char* options();
   public:
     void insert(Handler*);
+    void insert(EvtHandler*);
     int  start ();
   public:
     int processDgram(Pds::Dgram*);
@@ -32,6 +34,8 @@ namespace PdsCas {
   private:
     typedef std::list<Handler*> HList;
     HList       _handlers;
+    typedef std::list<EvtHandler*> EList;
+    EList       _ehandlers;
     const char* _partitionTag;
     unsigned    _index;
     double      _rate;

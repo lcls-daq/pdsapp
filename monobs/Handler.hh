@@ -36,6 +36,18 @@ namespace PdsCas {
     Pds::TypeId::Type    _data_type;
     Pds::TypeId::Type    _config_type;
   };
+
+  class EvtHandler {
+  public:
+    virtual ~EvtHandler() {}
+  public:
+    virtual void   _configure(const Pds::ClockTime& t) = 0;
+    virtual void   _event    (const Pds::ClockTime& t) = 0;
+    virtual void   _damaged  () = 0;
+  public:
+    virtual void         initialize() = 0;
+    virtual void         update_pv () = 0;
+  };
 };
 
 #endif

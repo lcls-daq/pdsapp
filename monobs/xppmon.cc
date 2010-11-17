@@ -1,6 +1,7 @@
 #include "pdsapp/monobs/ShmClient.hh"
 #include "pdsapp/monobs/XppIpm.hh"
 #include "pdsapp/monobs/XppPim.hh"
+#include "pdsapp/monobs/CspadMon.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 
 using namespace PdsCas;
@@ -75,6 +76,11 @@ int main(int argc, char* argv[])
 	case Pds::DetInfo::XppSb3Ipm:
 	  client.insert(new XppIpm(pvbase,detid));
 	  break;
+        case Pds::DetInfo::XppGon:
+          CspadMon::monitor(client, 
+                            Pds::DetInfo(0, Pds::DetInfo::Detector(detid), 0, 
+                                         Pds::DetInfo::Cspad,0));
+          break;
 	default:
 	  fprintf(stderr,"Error in lookup of detector index %d\n",detid);
 	  break;
@@ -86,6 +92,7 @@ int main(int argc, char* argv[])
 
   delete[] pvbase;
   delete[] line;
+
 
   fprintf(stderr, "client returned: %d\n", client.start());
 }

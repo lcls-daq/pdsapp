@@ -1,7 +1,7 @@
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames := monobs monshm monshmserver sxrmon xppmon
+tgtnames := monobs monshm monshmserver sxrmon xppmon cspadmon
 else
-tgtnames := monobs monshm monshmserver offlineobs sxrmon xppmon
+tgtnames := monobs monshm monshmserver offlineobs sxrmon xppmon cspadmon
 endif
 
 libnames := 
@@ -39,9 +39,17 @@ tgtlibs_sxrmon += epics/ca epics/Com
 tgtslib_sxrmon := $(USRLIBDIR)/rt
 tgtincs_sxrmon := epics/include epics/include/os/Linux
 
-tgtsrcs_xppmon := xppmon.cc XppIpm.cc XppPim.cc $(tgtsrcs_common)
+tgtsrcs_xppmon := xppmon.cc CspadMon.cc XppIpm.cc XppPim.cc $(tgtsrcs_common)
 tgtlibs_xppmon := pdsdata/xtcdata pdsdata/ipimbdata pdsdata/appdata
+tgtlibs_xppmon += pdsdata/evrdata pdsdata/cspaddata
 tgtlibs_xppmon += pds/service
 tgtlibs_xppmon += epics/ca epics/Com
 tgtslib_xppmon := $(USRLIBDIR)/rt
 tgtincs_xppmon := epics/include epics/include/os/Linux
+
+tgtsrcs_cspadmon := cspadmon.cc CspadMon.cc $(tgtsrcs_common)
+tgtlibs_cspadmon := pdsdata/xtcdata pdsdata/cspaddata pdsdata/evrdata pdsdata/appdata
+tgtlibs_cspadmon += pds/service
+tgtlibs_cspadmon += epics/ca epics/Com
+tgtslib_cspadmon := $(USRLIBDIR)/rt
+tgtincs_cspadmon := epics/include epics/include/os/Linux

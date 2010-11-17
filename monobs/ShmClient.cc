@@ -75,7 +75,9 @@ ShmClient::~ShmClient()
 {
   _timer->task()->call(new DestroyClient);
   delete _timer;
-  for(std::list<Handler*>::iterator it = _handlers.begin(); it != _handlers.end(); it++)
+  for(HList::iterator it = _handlers.begin(); it != _handlers.end(); it++)
+    delete (*it);
+  for(EList::iterator it = _ehandlers.begin(); it != _ehandlers.end(); it++)
     delete (*it);
 }
 
@@ -110,10 +112,28 @@ void ShmClient::insert(Handler* a)
   _handlers.push_back(a); 
 }
 
+void ShmClient::insert(EvtHandler* a) 
+{
+  _ehandlers.push_back(a); 
+}
+
 int ShmClient::processDgram(Pds::Dgram* dg)
 {
   _seq = &dg->seq;
   iterate(&dg->xtc); 
+
+  for(EList::iterator it = _ehandlers.begin(); it != _ehandlers.end(); it++) {
+    EvtHandler* h = *it;
+    if (_seq->isEvent()) {
+      if (dg->xtc.damage.value())
+        h->_damaged();
+      else
+        h->_event(_seq->clock());
+    }
+    else if (_seq->service()==Pds::TransitionId::Configure)
+      h->_configure(_seq->clock());
+  }
+
   return 0;
 }
 
@@ -145,7 +165,7 @@ int ShmClient::process(Pds::Xtc* xtc)
         }
 	else
 	  continue;
-        return 1;
+        //        return 1;
       }
     }
   }
@@ -156,11 +176,15 @@ void ShmClient::initialize()
 {
   for(HList::iterator it = _handlers.begin(); it != _handlers.end(); it++)
     (*it)->initialize();
+  for(EList::iterator it = _ehandlers.begin(); it != _ehandlers.end(); it++)
+    (*it)->initialize();
 }
 
 void ShmClient::update()
 {
   for(HList::iterator it = _handlers.begin(); it != _handlers.end(); it++)
+    (*it)->update_pv();
+  for(EList::iterator it = _ehandlers.begin(); it != _ehandlers.end(); it++)
     (*it)->update_pv();
 
   ca_flush_io();
