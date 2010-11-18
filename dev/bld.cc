@@ -67,7 +67,7 @@ namespace Pds {
         if (CheckType(EBeam))           AddType(EBeam);
         if (CheckType(PhaseCavity))     AddType(PhaseCavity);
         if (CheckType(FEEGasDetEnergy)) AddType(FEEGasDetEnergy);
-        if (CheckType(Ipimb)) AddType(Ipimb);	
+        if (CheckType(Ipimb))           AddType(Ipimb);	
       }
 #undef CheckType
 #undef SizeType
