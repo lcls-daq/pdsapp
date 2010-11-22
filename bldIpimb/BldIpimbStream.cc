@@ -70,7 +70,7 @@ BldIpimbStream::BldIpimbStream(unsigned short port, const Src& src, char* ipimbC
   _wire    (0)
 {
   sprintf(_msg.dbpath,ipimbConfigDb);  
-  _msg.key = 0x1a;   //find a way to locate last saved run-key and then use it 
+  _msg.key = 0x706;   //find a way to locate last saved run-key and then use it 
 
   _socket = ::socket(AF_INET, SOCK_STREAM, 0);
   if (_socket<0)

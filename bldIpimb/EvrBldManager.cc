@@ -17,10 +17,9 @@
 #include "pdsdata/bld/bldData.hh"
 #include "pds/service/GenericPoolW.hh"
 
-#define PULSE_DELAY           0.000769992   
-#define PULSE_WIDTH           100.0e-9     
-#define BLD_HDR_SOURCE2_BASE  (uint32_t) Pds::BldInfo::Ipimb
-#define BLD_HDR_CONTAINS      (uint32_t) Pds::TypeId::Id_Ipimb
+#define PULSE_DELAY           0.000668   
+#define PULSE_WIDTH           5e-06      
+#define BLD_HDR_CONTAINS      (uint32_t) Pds::TypeId::Id_SharedIpimb
 
 using namespace Pds;
 
@@ -68,26 +67,26 @@ class EvrBldL1Action : public Action, public XtcIterator {
 public:
   enum {Stop, Continue};
   EvrBldL1Action(EvrBldManager* evrBldMgr, CfgClientNfs** cfgIpimb, IpimbConfigType* ipimbConfig, 
-                 unsigned nIpimbBoards,unsigned boardPayloadSize,unsigned* interfaceOffset):
+                 unsigned nIpimbBoards,unsigned boardPayloadSize,unsigned* bldIdMap):
                  _evrBldMgr(evrBldMgr), _pool((nIpimbBoards*boardPayloadSize)+sizeof(InDatagram),10), 
                  _boardPayloadSize(boardPayloadSize),_cfgIpimb(cfgIpimb),_ipimbConfig(ipimbConfig),
-                 _interfaceOffset(interfaceOffset),_nIpimbBoards(nIpimbBoards), _nIpimbData(0),_nEvrData(0) {
+                 _bldIdMap(bldIdMap),_nIpimbBoards(nIpimbBoards), _nIpimbData(0),_nEvrData(0) {
 					 
     unsigned payloadSize = _boardPayloadSize*_nIpimbBoards;
     _payload = new char [payloadSize];
     memset((void*) _payload,0,payloadSize);
-    for (unsigned i=0; i<BLD_IPIMB_DEVICES; i++) 
+    for (unsigned i=0; i<16; i++) 
       _bldHeader[i] = 0;
     for (unsigned i=0; i<_nIpimbBoards; i++)
-      _bldHeader[i] = new BldHeader((BLD_HDR_SOURCE2_BASE+ *(_interfaceOffset+i)),BLD_HDR_CONTAINS,sizeof(BldDataIpimb));	
+      _bldHeader[i] = new BldHeader((uint32_t)*(_bldIdMap+i),BLD_HDR_CONTAINS,sizeof(BldDataIpimb));	
   }
   
   Transition* fire(Transition* tr) { return tr; }
 
   InDatagram* fire(InDatagram* in) {
     _datagram = new(&_pool)CDatagram(*in);
-	Datagram& dg = in->datagram();
-    _nIpimbData	= 0; _nEvrData = 0;
+    Datagram& dg = in->datagram();
+    _nIpimbData = 0; _nEvrData = 0;  _nIpmFexData=0;
 	
     if(dg.xtc.contains.id() == TypeId::Id_Xtc) {  
       iterate(& dg.xtc);
@@ -98,8 +97,11 @@ public:
 	
     if(_nIpimbData != _nIpimbBoards)
       printf("*** EvrBldL1Action::fire(In): Received %u boards data segments. Expected %u \n",_nIpimbData,_nIpimbBoards);
+    if(_nIpmFexData != _nIpimbBoards)
+      printf("*** EvrBldL1Action::fire(In): Received %u IpmFexData data segments. Expected %u \n",_nIpmFexData,_nIpimbBoards);
     if(_nEvrData != 1)	
-      printf("*** EvrBldL1Action::fire(In): Received %u contributions from EVR. Expected: 1 \n",_nEvrData);	
+      printf("*** EvrBldL1Action::fire(In): Received %u contributions from EVR. Expected: 1 \n",_nEvrData);
+
 	  
     for(unsigned i=0; i < _nIpimbBoards; i++) {
 	  Xtc* ipimbXtc = reinterpret_cast<Pds::Xtc*>(_payload + i*_boardPayloadSize);	
@@ -123,18 +125,26 @@ public:
       for(i=0; i < _nIpimbBoards; i++) {
         if (xtc->src.phy() == (*_cfgIpimb[i]).src().phy()) {  //find match of Detector & Device
           char* p = _payload+(i*_boardPayloadSize);	
-          Xtc& ipimbXtc = *new(p) Xtc(TypeId(TypeId::Id_Ipimb,(uint32_t)BldDataIpimb::version), xtc->src);
+          Xtc& ipimbXtc = *new(p) Xtc(TypeId(TypeId::Id_SharedIpimb,(uint32_t)BldDataIpimb::version), xtc->src);
           ipimbXtc.extent = _boardPayloadSize;
           _bldHeader[i]->setDamage(0);  //set damage for individual board based on data
           memcpy(p+sizeof(Xtc),(char*)_bldHeader[i], sizeof(BldHeader));
           memcpy(p+sizeof(Xtc)+sizeof(BldHeader) ,(char*) xtc->payload(), xtc->sizeofPayload());
           memcpy(p+sizeof(Xtc)+sizeof(BldHeader)+sizeof(IpimbDataType),(char*) &_ipimbConfig[i], sizeof(IpimbConfigType));	
-          memcpy(p+sizeof(Xtc)+sizeof(BldHeader)+sizeof(IpimbDataType)+sizeof(IpimbConfigType),
-          (char*) reinterpret_cast<Pds::DetInfo*>(&(xtc->src)), sizeof(Pds::DetInfo));
           _nIpimbData++;				 
         }
       }
-    } else	
+    } else if(xtc->contains.id() == TypeId::Id_IpmFex)  {
+      unsigned i=0;
+      for(i=0; i < _nIpimbBoards; i++) {
+        if (xtc->src.phy() == (*_cfgIpimb[i]).src().phy()) {  //find match of Detector & Device
+          char* p = _payload+(i*_boardPayloadSize);	
+          memcpy(p+sizeof(Xtc)+sizeof(BldHeader)+sizeof(IpimbDataType)+sizeof(IpimbConfigType),
+                         (char*) xtc->payload(), xtc->sizeofPayload());
+          _nIpmFexData++;				 
+        }
+      }
+    }else	
       printf("*** EvrBldL1Action::process(): Unknown XTC Type xtcType=%s \n",Pds::TypeId::name(xtc->contains.id()));
 
     return Continue;
@@ -144,16 +154,17 @@ private:
   EvrBldManager* _evrBldMgr;
   GenericPoolW  _pool;
   CDatagram* _datagram;
-  BldHeader* _bldHeader[BLD_IPIMB_DEVICES];
+  BldHeader* _bldHeader[16];
   unsigned  _boardPayloadSize;
   char* _payload;
   unsigned _payloadIndex;
   CfgClientNfs** _cfgIpimb;
   IpimbConfigType* _ipimbConfig;
-  unsigned* _interfaceOffset;	
+  unsigned* _bldIdMap;	
   unsigned _nIpimbBoards;
   unsigned _nIpimbData;
-  unsigned _nEvrData; 	
+  unsigned _nEvrData;
+  unsigned _nIpmFexData; 	
 };
 
 class EvrBldEnableAction : public Action {
@@ -285,9 +296,13 @@ void EvrBldManager::handleEvrIrq() {
       timespec ts;
       clock_gettime(CLOCK_REALTIME, &ts); 
       long long unsigned nSecCurr = (long long unsigned ) ( (ts.tv_sec* 1.0e9) + ts.tv_nsec );
-      if((_evtCounter % 1200) == 0) 
-        printf("Received IrqFlags = 0x%x Fiducial %06x  Event code %03d  Timestamp %d Tdiff= %f events = %u  \n",
+      if((_evtCounter % 1200) == 0) {
+        time_t currentTime; time ( &currentTime );
+        char dateTime[100]; sprintf(dateTime,ctime(&currentTime));
+        for(unsigned i=0; dateTime[i] != '\n'; i++) printf("%c",dateTime[i]);  //Print Date & Time
+        printf(":: Received IrqFlags = 0x%x Fiducial %06x  Event code %03d  Timestamp %d Tdiff= %f events = %u  \n",
                 flags,fe.TimestampHigh, fe.EventCode, fe.TimestampLow,((double)(nSecCurr - nSecPrev)/1.0e6),_evtCounter);
+      }
       ClockTime ctime(ts.tv_sec, ts.tv_nsec);
       TimeStamp stamp(fe.TimestampLow, fe.TimestampHigh, _evtCounter);
       Sequence seq(Sequence::Event, TransitionId::L1Accept, ctime, stamp);
@@ -304,7 +319,7 @@ void EvrBldManager::handleEvrIrq() {
     _er.IrqHandled(fdEr); 
 }
 
-void EvrBldManager::configure() {
+void EvrBldManager::configure() { 
  
   printf("Configuring Evr\n");   
   _er.Reset();

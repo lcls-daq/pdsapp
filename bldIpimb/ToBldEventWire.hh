@@ -16,7 +16,7 @@ namespace Pds {
   class ToBldEventWire : public OutletWire {
   public:
     ToBldEventWire(Outlet& outlet,int interface, int maxbuf,Ins& destination,
-                   unsigned nServers, unsigned* interfaceOffset);
+                   unsigned nServers, unsigned* bldIdMap);
     ~ToBldEventWire();
 
     virtual Transition* forward(Transition* tr);
@@ -38,7 +38,7 @@ namespace Pds {
     Client       _clientPostman;
     Ins          _bcast;
     Ins&         _destination;
-    unsigned*    _interfaceOffset; 
+    unsigned*    _bldIdMap; 
     unsigned     _nServers;
     unsigned     _nBldMcast;	
     unsigned     _count;	 	

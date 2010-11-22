@@ -15,11 +15,11 @@
 using namespace Pds;
 
 ToBldEventWire::ToBldEventWire(Outlet& outlet, int interface, int maxbuf,Ins& destination,
-                               unsigned nServers, unsigned* interfaceOffset) :
+                               unsigned nServers, unsigned* bldIdMap) :
   OutletWire(outlet),
   _clientPostman(sizeof(OutletWireHeader), Mtu::Size, Ins(interface), 1 + maxbuf / Mtu::Size),
   _destination(destination),
-  _interfaceOffset(interfaceOffset),
+  _bldIdMap(bldIdMap),
   _nServers(nServers),  
   _nBldMcast(0),_count(0)
 {
@@ -45,14 +45,15 @@ InDatagram* ToBldEventWire::forward(InDatagram* in)
     Xtc* xtc = (Xtc*) dg.xtc.payload();
     _nBldMcast = 0;	
     for(unsigned i=0;((i<_nServers) && (remaining>0));i++) {
-      if(xtc->contains.id() == TypeId::Id_Ipimb) {
+      if(xtc->contains.id() == TypeId::Id_SharedIpimb) {
         //*((unsigned*)xtc->payload()) = ++_count; 
-        Ins dest(_destination.address()+*(_interfaceOffset+i),_destination.portId());
+        Ins dest(_destination.address()+*(_bldIdMap+i),_destination.portId());
         result = _clientPostman.send((char*) 0, (char*)xtc->payload(), xtc->sizeofPayload(), dest);
         if (result) _log(in->datagram(), result);		
         _nBldMcast++;
-      } else 
-        printf("*** ToBldEventWire::forward(In): Expected Xtc: Id_Ipimb. Received =%s \n",Pds::TypeId::name(xtc->contains.id()));
+      } else {
+        printf("*** ToBldEventWire::forward(In): Expected Xtc: Id_SharedIpimb. Received =%s \n",Pds::TypeId::name(xtc->contains.id()));
+      }
       remaining -= xtc->sizeofPayload()+ sizeof(Xtc);
       xtc = xtc->next();
     }

@@ -28,34 +28,33 @@
 #include "pds/config/IpimbDataType.hh"
 #include "pds/utility/SegWireSettings.hh"
 #include "pds/utility/InletWire.hh"
+#include "pds/utility/StreamPorts.hh"
 
 #include "pds/ipimb/IpimbManager.hh"
 #include "pds/ipimb/IpimbServer.hh"
 #include "pds/ipimb/IpimbFex.hh"
+#include "pds/ipimb/LusiDiagFex.hh"
 #include "pds/ipimb/IpimBoard.hh"
 #include "evgr/evr/evr.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
 
-//pdsdata/xtc/BldInfo.hh & .cc  [enum for Ipimb0 .. Ipimb4] in .hh & names  in .cc
-//Id_Ipimb in TypeId .hh and .cc
-// Think about #include "IdleControlMsg.hh"  in BldStream
+//pdsdata/xtc/BldInfo.hh & .cc  [enum for Ipimb0 .. Ipimb4] in .hh & names  in .cc  --done
+//Id_SharedIpimb in TypeId .hh and .cc   --done
+// class BldDataIpimb in bldData.hh and cc   --done
 // _msg.key = 0xc;   find a way to locate last saved run-key and then use it  (in BldStream())
-// class BldDataIpimb in bldData.hh and cc
 //pdsapp/packages add target bldIpimb
 //xtcreader.cc as well
-//change in bld.cc   
+//change in bld.cc
 
 
-
-#define IPIMB_BLD_MCAST_ADDRESS_BASE (int)(239<<24 | 255<<16 | 24<<8 | (uint8_t) Pds::BldInfo::Ipimb)   
-#define IPIMB_BLD_MCAST_PORT    (unsigned short) 10148
 #define IPIMB_BLD_MAX_DATASIZE  512
-#define DEFAULT_EVENT_OPCODE    45 
-#define IPIMB_CONFIG_DB         "/reg/lab2/home/wilfred/configIpimb/keys"
+#define DEFAULT_EVENT_OPCODE    140 
+#define IPIMB_CONFIG_DB         "/reg/g/pcds/dist/pds/sharedIpimb/ConfigDB_NH2-SB1-IPM-01/keys"
+#define IPIMB_PORTMAP           "/reg/g/pcds/dist/pds/sharedIpimb/IpimbPortMap_NH2-SB1-IPM-01.txt"
 
 using namespace Pds;
 
-static EvrBldManager* evrBldMgr = NULL;
+static EvrBldManager* evrBldMgr = NULL; 
 
 void signalHandler(int sigNo)
 {
@@ -84,12 +83,11 @@ unsigned parse_interface(char* iarg)
       printf("Cannot get IP address for network interface %s.\n",iarg);
       exit(1);
     }
-    printf("Using interface %s (%d.%d.%d.%d)\n",
-	   iarg,
-	   (interface>>24)&0xff,
-	   (interface>>16)&0xff,
-	   (interface>> 8)&0xff,
-	   (interface>> 0)&0xff);
+    printf("Using interface %s (%d.%d.%d.%d)\n", iarg,
+           (interface>>24)&0xff,
+           (interface>>16)&0xff,
+           (interface>> 8)&0xff,
+           (interface>> 0)&0xff);
     close(skt);
   }
   else {
@@ -101,6 +99,32 @@ unsigned parse_interface(char* iarg)
 }
 
 
+static void showUsage()
+{
+    printf( "Usage:  bldIpimb [-f <ipimbPortMapFile>] [-c <Ipimb Config DB>] [-i <Interface Name/Ip>] [-o <opcode>] [-h] \n" 
+      " Options:\n"
+      "   -h                        : Show Usage\n"
+      "   -o <EVR Opcode>           : Set the Event Code to listen to. Default = 140. \n"
+      "   -i <Interface Name/IP>    : Set the network interface for tranmitting multicast e.g. eth0, eth1 etc. \n"
+      "   -d <DetInfo/bldId>        : Det Info for IPIMB Configuration OR provide Portmap File with -f option. \n"
+      "   -c <Config DB Path>       : Path for IPIMB Config DB. \n"
+      "   -p <Control Port>         : Control Port for Remote Configuration over Cds Interface. \n"
+      "   -b <Baseline Substraction>: Base Substrcation for IPIMB \n"
+      "   -r <EVR Id>               : EVR Id e.g. 'a', 'b' etc. Default = 'a' \n"
+      "   -f <IPIMB Portmap File>   : Set IPIMB Portmap file to get Detinfo and Bld Id details Default \n");
+    
+}
+
+static char* addr = new char[100];
+char* getBldAddrBase()  
+{ 
+  unsigned mcastBaseAddr = StreamPorts::bld(0).address();
+  sprintf(addr,"%d.%d.%d",(mcastBaseAddr>>24)&0xff,
+          (mcastBaseAddr>>16)&0xff, (mcastBaseAddr>> 8)&0xff);
+  return addr;
+}
+
+
 int main(int argc, char** argv) {
 
   unsigned controlPort = 1100; 
@@ -109,6 +133,7 @@ int main(int argc, char** argv) {
   unsigned opcode = DEFAULT_EVENT_OPCODE; 
   char evrdev[16];  
   char evrid = 'a';
+  unsigned bldId = (unsigned) Pds::BldInfo::Nh2Sb1Ipm01;
   
   int detector   = DetInfo::NoDetector;
   int detectorId = 0;
@@ -123,7 +148,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "o:i:d:c:p:b:r:f:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "o:i:d:c:p:b:r:f:h?")) != EOF ) {
     switch(c) {
     case 'o':
       opcode = strtoul(optarg, NULL, 0);
@@ -139,6 +164,7 @@ int main(int argc, char** argv) {
       detector   = (DetInfo::Detector)strtoul(optarg, &endPtr, 0);
       detectorId = strtoul(endPtr+1, &endPtr, 0);
       deviceId   = strtoul(endPtr+1, &endPtr, 0);
+      bldId      = strtoul(endPtr+1, &endPtr, 0);
       break;
     case 'c':
       sprintf(ipimbConfigDb,optarg);
@@ -160,13 +186,21 @@ int main(int argc, char** argv) {
         printf("failed to open ipimb config file: %s\n", optarg); 
         return 1;
       }
-      break;	  
+      break;
+    case 'h':
+    case '?':
+      showUsage();
+      return 1;
     }
   }
 
   sprintf(evrdev,"/dev/er%c3",evrid);
-  printf("### Using evr %s and opcode = %u \n",evrdev, opcode);  
-  
+  printf("Using evr %s and opcode = %u \n",evrdev, opcode);
+ 
+  if (bldId >= 255) {
+    printf("Invalid Bld Multicast Address: (%s.%d) -Exiting Program \n",getBldAddrBase(),bldId);
+    return 1;
+  }	
  
   // IPIMB Server
   int polarity = 0;
@@ -178,22 +212,26 @@ int main(int argc, char** argv) {
   }
 
   int polarities[16];
-  unsigned* interfaceOffset = new unsigned[BLD_IPIMB_DEVICES];  
+  unsigned* bldIdMap = new unsigned[16];  
   if (fp) {
     char* tmp = NULL;
     size_t sz = 0;
     nboards = 0;
     while (getline(&tmp, &sz, fp)>0) {
       if (tmp[0] != '#') {
-	sscanf(tmp,"%d %d %d %s %d",&detector, &detectorId, &deviceId, port, &polarity);
-	portInfo[nboards][0] = detector;
-	portInfo[nboards][1] = detectorId;
-	portInfo[nboards][2] = deviceId;
-	strcpy(portName[nboards], port);
-	polarities[nboards] = polarity;
-	*(interfaceOffset+nboards) = nboards;
-	nboards++;
-      }
+        sscanf(tmp,"%d %d %d %s %d %d",&detector, &detectorId, &deviceId, port, &polarity, &bldId);
+        if (bldId >= 255) {
+          printf("Invalid Bld Multicast Address: (%s.%d) for Boar BoardNo: %u Exiting Program \n",getBldAddrBase(),bldId,nboards);
+          return 1;
+        }	
+        portInfo[nboards][0] = detector;
+        portInfo[nboards][1] = detectorId;
+        portInfo[nboards][2] = deviceId;
+        strcpy(portName[nboards], port);
+        polarities[nboards] = polarity;
+        *(bldIdMap+nboards) = bldId;
+        nboards++;
+      }  
     }
     printf("Have found %d uncommented lines in config file, will use that many boards\n", nboards);
     rewind(fp);
@@ -209,9 +247,10 @@ int main(int argc, char** argv) {
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detector, detectorId, DetInfo::Ipimb, deviceId);
       cfgService[i] = new CfgClientNfs(detInfo);
       ipimbServer[i] = new IpimbServer(detInfo);
+      *bldIdMap = bldId;
       portName[i][0] = '\0';
     } else {
-      detector = portInfo[i][0]; 
+      detector = portInfo[i][0];  
       detectorId = portInfo[i][1];
       deviceId = portInfo[i][2];
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detector, detectorId, DetInfo::Ipimb, deviceId);
@@ -221,11 +260,12 @@ int main(int argc, char** argv) {
   }
   if (fp) {
     for (unsigned i=0; i<nServers; i++) {
-      printf("Using config file info: detector %d, detector id %d, device id %d, port %s, polarity %d\n", 
-             portInfo[i][0], portInfo[i][1], portInfo[i][2], portName[i], polarities[i]);
+      printf("Using config file info: detector %d, detector id %d, device id %d, port %s, polarity %d multicast addr:(%s.%d)\n", 
+             portInfo[i][0], portInfo[i][1], portInfo[i][2], portName[i], polarities[i],getBldAddrBase(),*(bldIdMap+i));
     }
     fclose(fp);
-  }
+  } else 
+    printf("Using BLD Multicast Addr:(%s.%d)\n",getBldAddrBase(),*bldIdMap);
   
   // EVR Server 
   int evrDetid = 0;
@@ -239,16 +279,18 @@ int main(int argc, char** argv) {
   BldIpimbStream* bldIpimbStream = new BldIpimbStream(controlPort, idleSrc, ipimbConfigDb);
 
   unsigned maxpayload = IPIMB_BLD_MAX_DATASIZE;
-  Ins insDestination(IPIMB_BLD_MCAST_ADDRESS_BASE, IPIMB_BLD_MCAST_PORT);
-  ToBldEventWire* outlet = new ToBldEventWire(*bldIpimbStream->outlet(),interface,maxpayload,insDestination,nServers,interfaceOffset);
+  Ins insDestination = StreamPorts::bld(0); 
+  ToBldEventWire* outlet = new ToBldEventWire(*bldIpimbStream->outlet(),interface,maxpayload,insDestination,nServers,bldIdMap);
 
   // EVR & IPIMB Mgr Appliances and Stream Connections
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
-  evrBldMgr = new EvrBldManager(erInfo, opcode, evrBldServer,cfgService,nServers,interfaceOffset); 
-  IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, baselineSubtraction, polarities, *new IpimbFex);
-  ipimbMgr.appliance().connect(bldIpimbStream->inlet());
+  evrBldMgr = new EvrBldManager(erInfo, opcode, evrBldServer,cfgService,nServers,bldIdMap);  
+//IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, baselineSubtraction, polarities, *new IpimbFex);
+  IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, baselineSubtraction, polarities, *new LusiDiagFex);
+//  ipimbMgr.appliance().connect(bldIpimbStream->inlet());
   evrBldMgr->appliance().connect(bldIpimbStream->inlet());
-
+  ipimbMgr.appliance().connect(bldIpimbStream->inlet());
+  
   // create the inlet wire/event builder
   const int MaxSize = 0x100000;
   const int ebdepth = 4;

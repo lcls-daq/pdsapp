@@ -20,8 +20,6 @@
 #include "pds/config/CfgClientNfs.hh"
 #include "pds/config/IpimbDataType.hh"
 
-#define BLD_IPIMB_DEVICES     5
-
 namespace Pds {
 
   class Fsm;
@@ -33,7 +31,7 @@ public:
 
   EvrBldManager(EvgrBoardInfo<Evr>& erInfo, unsigned opcode, 
                 EvrBldServer& evrBldServer,CfgClientNfs** cfgIpimb, 
-                unsigned nIpimbServers,unsigned* interfaceOffset);
+                unsigned nIpimbServers,unsigned* bldIdMap);
   ~EvrBldManager() { }
   void configure();
   void start();
