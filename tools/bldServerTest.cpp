@@ -333,6 +333,17 @@ int main(int argc, char** argv)
         }
     }
 
+    time_t currentTime;
+	time ( &currentTime );
+
+    printf(" Wills Time : %s \r",ctime(&currentTime));
+    printf(" Wills Asc  : %s \r",asctime(localtime(&currentTime)));
+	char dateTime[100];
+	sprintf(dateTime,ctime(&currentTime));
+	for(unsigned i=0; dateTime[i] != '\n'; i++)
+	  printf("%c",dateTime[i]);
+
+	
     argc -= optind;
     argv += optind;  
           

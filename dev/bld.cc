@@ -47,27 +47,26 @@ namespace Pds {
 		 unsigned m) : _configtc(TypeId(TypeId::Id_Xtc,1), src),
 			       _config_payload(0)
     {
-#define CheckType(t) (m & (1<<BldInfo::t))
-#define SizeType(t) (sizeof(Xtc) + sizeof(BldData##t))
-#define AddType(t) {							\
-	Xtc& xtc = *new(p) Xtc(TypeId(TypeId::Id_##t,(uint32_t)BldData##t::version), \
-			       BldInfo(0,BldInfo::t));			\
-	xtc.extent = SizeType(t);					\
-	p += xtc.extent;						\
+#define CheckType(bldType)  (m & (1<<BldInfo::bldType))
+#define SizeType(dataType)  (sizeof(Xtc) + sizeof(dataType))
+#define AddType(bldType,idType,dataType) {                                                                       \
+        Xtc& xtc = *new(p) Xtc(TypeId(TypeId::idType,(uint32_t)dataType::version), BldInfo(0,BldInfo::bldType)); \
+        xtc.extent = SizeType(dataType);                                                                         \
+        p += xtc.extent;                                                                                         \
       }
       unsigned extent = 0;
-      if (CheckType(EBeam))           extent += SizeType(EBeam);
-      if (CheckType(PhaseCavity))     extent += SizeType(PhaseCavity);
-      if (CheckType(FEEGasDetEnergy)) extent += SizeType(FEEGasDetEnergy);
-      if (CheckType(Ipimb))           extent += SizeType(Ipimb);	  
+      if (CheckType(EBeam))           extent += SizeType(BldDataEBeam);
+      if (CheckType(PhaseCavity))     extent += SizeType(BldDataPhaseCavity);
+      if (CheckType(FEEGasDetEnergy)) extent += SizeType(BldDataFEEGasDetEnergy);
+      if (CheckType(Nh2Sb1Ipm01))     extent += SizeType(BldDataIpimb);	  
       if (extent) {
         _configtc.extent += extent;
         _config_payload = new char[extent];
         char* p = _config_payload;
-        if (CheckType(EBeam))           AddType(EBeam);
-        if (CheckType(PhaseCavity))     AddType(PhaseCavity);
-        if (CheckType(FEEGasDetEnergy)) AddType(FEEGasDetEnergy);
-        if (CheckType(Ipimb))           AddType(Ipimb);	
+        if (CheckType(EBeam))           AddType(EBeam,           Id_EBeam,           BldDataEBeam);
+        if (CheckType(PhaseCavity))     AddType(PhaseCavity,     Id_PhaseCavity,     BldDataPhaseCavity);
+        if (CheckType(FEEGasDetEnergy)) AddType(FEEGasDetEnergy, Id_FEEGasDetEnergy, BldDataFEEGasDetEnergy );
+        if (CheckType(Nh2Sb1Ipm01))     AddType(Nh2Sb1Ipm01,     Id_SharedIpimb,     BldDataIpimb);	
       }
 #undef CheckType
 #undef SizeType
@@ -260,7 +259,7 @@ namespace Pds {
       //    Search for FIFO Event with current pulseId and beam present code
       //
       if (_evrServer) {
-	if (serverId.hasBitSet(_evrServer->id())) {  // EVR just added
+	if (serverId.hasBitSet(_evrServer->id())) {  // EVR just added 
 	  Datagram* dg = event->datagram();
 	  uint32_t timestamp = dg->seq.stamp().fiducials();
 	  const Xtc& xtc  = *reinterpret_cast<const Xtc*>(_evrServer->payload());
