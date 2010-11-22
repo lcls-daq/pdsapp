@@ -328,22 +328,12 @@ int main(int argc, char** argv)
         default:            
         case 'h':               /* Print usage */
             showUsage();
-            return 0;
+            return 0; 
             
         }
     }
 
-    time_t currentTime;
-	time ( &currentTime );
 
-    printf(" Wills Time : %s \r",ctime(&currentTime));
-    printf(" Wills Asc  : %s \r",asctime(localtime(&currentTime)));
-	char dateTime[100];
-	sprintf(dateTime,ctime(&currentTime));
-	for(unsigned i=0; dateTime[i] != '\n'; i++)
-	  printf("%c",dateTime[i]);
-
-	
     argc -= optind;
     argv += optind;  
           
