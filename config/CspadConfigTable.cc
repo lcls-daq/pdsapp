@@ -62,7 +62,9 @@ namespace Pds_ConfigDb
       unsigned qmask = 0;
       for(unsigned i=0; i<4; i++)
 	if (rmask&(0xff<<(8*i))) qmask |= (1<<i);
-      unsigned amask = (rmask&0xfcfcfcfc) ? 0xf : 1;
+      //  amask==1 sparsification is disabled in RCE
+      //      unsigned amask = (rmask&0xfcfcfcfc) ? 0xf : 1;
+      unsigned amask = 0xf;
 
       *new (p) CsPadConfigType( _runDelay .value,
 				_eventCode.value,
