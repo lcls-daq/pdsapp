@@ -70,7 +70,8 @@ public:
                  unsigned nIpimbBoards,unsigned boardPayloadSize,unsigned* bldIdMap):
                  _evrBldMgr(evrBldMgr), _pool((nIpimbBoards*boardPayloadSize)+sizeof(InDatagram),10), 
                  _boardPayloadSize(boardPayloadSize),_cfgIpimb(cfgIpimb),_ipimbConfig(ipimbConfig),
-                 _bldIdMap(bldIdMap),_nIpimbBoards(nIpimbBoards), _nIpimbData(0),_nEvrData(0) {
+                 _bldIdMap(bldIdMap),_nIpimbBoards(nIpimbBoards), _nIpimbData(0),_nEvrData(0),
+                 _nprints(50),_damage(0),_evrDataFound(0) {
 					 
     unsigned payloadSize = _boardPayloadSize*_nIpimbBoards;
     _payload = new char [payloadSize];
@@ -86,25 +87,41 @@ public:
   InDatagram* fire(InDatagram* in) {
     _datagram = new(&_pool)CDatagram(*in);
     Datagram& dg = in->datagram();
-    _nIpimbData = 0; _nEvrData = 0;  _nIpmFexData=0;
+    _damage = dg.xtc.damage.value();
+    _nIpimbData = 0; _nEvrData = 0;  _nIpmFexData=0; _evrDataFound = 1;
 	
     if(dg.xtc.contains.id() == TypeId::Id_Xtc) {  
       iterate(& dg.xtc);
+      /*if((_nEvrData == 0) || (_damage != 0)) {  //debug 
+        for(unsigned i=0; i < _nIpimbBoards; i++) {
+          _bldHeader[i]->setDamage(0x4000);  
+          char* p = _payload+(i*_boardPayloadSize);
+          memcpy(p+sizeof(Xtc),(char*)_bldHeader[i], sizeof(BldHeader));
+	    }
+      } else  {
+        _evrDataFound = _nEvrData;
+        for(unsigned i=0; i < _nIpimbBoards; i++) 
+          _bldHeader[i]->setDamage(0x0000); 
+        iterate(& dg.xtc);
+      } */
     } else {
       printf("*** EvrBldL1Action::fire(In): Id_Xtc does not exist in L1 Dg \n");
       return in;
     }
-	
-    /* if(_nIpimbData != _nIpimbBoards)
-      printf("*** EvrBldL1Action::fire(In): Received %u boards data segments. Expected %u \n",_nIpimbData,_nIpimbBoards);
-    if(_nIpmFexData != _nIpimbBoards)
-      printf("*** EvrBldL1Action::fire(In): Received %u IpmFexData data segments. Expected %u \n",_nIpmFexData,_nIpimbBoards);
-    if(_nEvrData != 1)	
-      printf("*** EvrBldL1Action::fire(In): Received %u contributions from EVR. Expected: 1 \n",_nEvrData);
-    */
-    if (( _nIpimbData != _nIpimbBoards) || (_nIpmFexData != _nIpimbBoards) || (_nEvrData != 1))
-      printf("*** EvrBldL1Action: ipimb.fex.evr: %2x.%2x.%2x \n",_nIpimbData,_nIpmFexData,_nEvrData);
-	  
+ 
+    if(_damage) {   
+      for(unsigned i=0; i < _nIpimbBoards; i++) {
+        _bldHeader[i]->setDamage(0x4000);  
+        char* p = _payload+(i*_boardPayloadSize);
+        memcpy(p+sizeof(Xtc),(char*)_bldHeader[i], sizeof(BldHeader));
+	  }
+    }
+
+    if ( (( _nIpimbData != _nIpimbBoards) || (_nIpmFexData != _nIpimbBoards) || (_nEvrData != 1)) && (_nprints != 0) ) {
+      printf("*** EvrBldL1Action: damage/ ipimb.fex.evr: 0x%x / %2x.%2x.%2x \n",_damage,_nIpimbData,_nIpmFexData,_nEvrData);
+      _nprints--;
+    }
+
     for(unsigned i=0; i < _nIpimbBoards; i++) {
 	  Xtc* ipimbXtc = reinterpret_cast<Pds::Xtc*>(_payload + i*_boardPayloadSize);	
 	  _datagram->insert(*ipimbXtc, (void*) ipimbXtc->payload());
@@ -116,27 +133,30 @@ public:
   
   int process(Xtc* xtc) {
 
-    if(xtc->contains.id() == TypeId::Id_EvrData) { 		
+    if ((xtc->contains.id() == TypeId::Id_EvrData)) { // && (_evrDataFound == 0)) { 		
       EvrDatagram* evrDatagram =  (EvrDatagram*) xtc->payload();
       for (unsigned i=0; i< _nIpimbBoards; i++) 
         _bldHeader[i]->timeStamp(evrDatagram->seq.clock().seconds(),evrDatagram->seq.clock().nanoseconds(),evrDatagram->seq.stamp().fiducials());
       _nEvrData++;		
       // printf("*** EvrBldL1Action : process : Id_EvrData  fid = %x \n",evrDatagram->seq.stamp().fiducials());
-    } else if(xtc->contains.id() == TypeId::Id_IpimbData)  {
+    } else if((xtc->contains.id() == TypeId::Id_IpimbData) && (_evrDataFound != 0)) {
       unsigned i=0;
       for(i=0; i < _nIpimbBoards; i++) {
         if (xtc->src.phy() == (*_cfgIpimb[i]).src().phy()) {  //find match of Detector & Device
           char* p = _payload+(i*_boardPayloadSize);	
           Xtc& ipimbXtc = *new(p) Xtc(TypeId(TypeId::Id_SharedIpimb,(uint32_t)BldDataIpimb::version), xtc->src);
           ipimbXtc.extent = _boardPayloadSize;
-          _bldHeader[i]->setDamage(0);  //set damage for individual board based on data
+          if (_damage) 
+            _bldHeader[i]->setDamage(0x4000);  //set damage for individual board based on data
+          else 
+            _bldHeader[i]->setDamage(0x0000);
           memcpy(p+sizeof(Xtc),(char*)_bldHeader[i], sizeof(BldHeader));
           memcpy(p+sizeof(Xtc)+sizeof(BldHeader) ,(char*) xtc->payload(), xtc->sizeofPayload());
           memcpy(p+sizeof(Xtc)+sizeof(BldHeader)+sizeof(IpimbDataType),(char*) &_ipimbConfig[i], sizeof(IpimbConfigType));	
           _nIpimbData++;				 
         }
       }
-    } else if(xtc->contains.id() == TypeId::Id_IpmFex)  {
+    } else if((xtc->contains.id() == TypeId::Id_IpmFex) && (_evrDataFound != 0))  {
       unsigned i=0;
       for(i=0; i < _nIpimbBoards; i++) {
         if (xtc->src.phy() == (*_cfgIpimb[i]).src().phy()) {  //find match of Detector & Device
@@ -167,7 +187,10 @@ private:
   unsigned _nIpimbBoards;
   unsigned _nIpimbData;
   unsigned _nEvrData;
-  unsigned _nIpmFexData; 	
+  unsigned _nIpmFexData; 
+  unsigned _nprints;
+  unsigned _damage;
+  unsigned _evrDataFound;
 };
 
 class EvrBldEnableAction : public Action {
