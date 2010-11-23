@@ -11,6 +11,7 @@
 #include "ToBldEventWire.hh"
 #include "EvrBldServer.hh"
 #include "EvrBldManager.hh"
+#include "BldClient.hh"
 
 #include "pds/xtc/XtcType.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -33,24 +34,19 @@
 #include "pds/ipimb/IpimbManager.hh"
 #include "pds/ipimb/IpimbServer.hh"
 #include "pds/ipimb/IpimbFex.hh"
-#include "pds/ipimb/LusiDiagFex.hh"
+#include "pds/ipimb/LusiDiagFex.hh" 
 #include "pds/ipimb/IpimBoard.hh"
 #include "evgr/evr/evr.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
 
-//pdsdata/xtc/BldInfo.hh & .cc  [enum for Ipimb0 .. Ipimb4] in .hh & names  in .cc  --done
-//Id_SharedIpimb in TypeId .hh and .cc   --done
-// class BldDataIpimb in bldData.hh and cc   --done
-// _msg.key = 0xc;   find a way to locate last saved run-key and then use it  (in BldStream())
-//pdsapp/packages add target bldIpimb
-//xtcreader.cc as well
-//change in bld.cc
-
+#include "pdsapp/config/Path.hh"
+#include "pdsapp/config/Experiment.hh"
+#include "pdsapp/config/Table.hh"
 
 #define IPIMB_BLD_MAX_DATASIZE  512
 #define DEFAULT_EVENT_OPCODE    140 
-#define IPIMB_CONFIG_DB         "/reg/g/pcds/dist/pds/sharedIpimb/ConfigDB_NH2-SB1-IPM-01/keys"
-#define IPIMB_PORTMAP           "/reg/g/pcds/dist/pds/sharedIpimb/IpimbPortMap_NH2-SB1-IPM-01.txt"
+#define IPIMB_CONFIG_DB         "/reg/g/pcds/dist/pds/sharedIpimb/configdb"
+#define IPIMB_PORTMAP_FILE      "/reg/g/pcds/dist/pds/sharedIpimb/bldIpimbPortmap_NH2-SB1-IPM-01.txt"
 
 using namespace Pds;
 
@@ -105,7 +101,7 @@ static void showUsage()
       " Options:\n"
       "   -h                        : Show Usage\n"
       "   -o <EVR Opcode>           : Set the Event Code to listen to. Default = 140. \n"
-      "   -i <Interface Name/IP>    : Set the network interface for tranmitting multicast e.g. eth0, eth1 etc. \n"
+      "   -i <Interface Name/IP>    : Set the network interface for transmitting multicast e.g. eth0, eth1 etc. \n"
       "   -d <DetInfo/bldId>        : Det Info for IPIMB Configuration OR provide Portmap File with -f option. \n"
       "   -c <Config DB Path>       : Path for IPIMB Config DB. \n"
       "   -p <Control Port>         : Control Port for Remote Configuration over Cds Interface. \n"
@@ -127,8 +123,8 @@ char* getBldAddrBase()
 
 int main(int argc, char** argv) {
 
-  unsigned controlPort = 1100; 
-  int interface   = 0x7f000001;
+  unsigned controlPort = 5729; //1100; 
+  int interface   = parse_interface("eth1");
  
   unsigned opcode = DEFAULT_EVENT_OPCODE; 
   char evrdev[16];  
@@ -181,9 +177,9 @@ int main(int argc, char** argv) {
     case 'f':
       fp = fopen(optarg,"r");
       if (fp) 
-        printf("Have opened configuration file %s\n", optarg);
+        printf("Have opened portmap config file %s\n", optarg);
       else {
-        printf("failed to open ipimb config file: %s\n", optarg); 
+        printf("Failed to open portmap config file: %s\n", optarg); 
         return 1;
       }
       break;
@@ -200,7 +196,18 @@ int main(int argc, char** argv) {
   if (bldId >= 255) {
     printf("Invalid Bld Multicast Address: (%s.%d) -Exiting Program \n",getBldAddrBase(),bldId);
     return 1;
-  }	
+  }
+
+  if(fp == NULL) {
+    char portMapFile [] = IPIMB_PORTMAP_FILE;  
+    fp = fopen(portMapFile,"r");
+    if (fp) 
+      printf("Have opened portmap configuration file %s\n", portMapFile);
+    else {
+      printf("Failed to open ipimb portmap file: %s\n", portMapFile); 
+      return 1;
+    }
+  }
  
   // IPIMB Server
   int polarity = 0;
@@ -274,9 +281,20 @@ int main(int argc, char** argv) {
   DetInfo evrDetInfo(evrNode.pid(), DetInfo::NoDetector, evrDetid, DetInfo::Evr, evrDevid);
   EvrBldServer& evrBldServer = *new EvrBldServer(evrDetInfo);    
   
+  // Setup ConfigDB and Run Key 
+  //const char* dbpath = IPIMB_CONFIG_DB;
+  /* Pds_ConfigDb::Experiment expt((const Pds_ConfigDb::Path&)Pds_ConfigDb::Path(std::string(ipimbConfigDb)));
+  expt.read();
+  std::string runtype("BLD");
+  const Pds_ConfigDb::TableEntry* entry = expt.table().get_top_entry(runtype);
+  int runKey = atoi(entry->key().c_str());
+  */
+  int runKey = 2;
+    
   // Setup the Bld Idle stream
   ProcInfo idleSrc(Level::Segment,0,0);
-  BldIpimbStream* bldIpimbStream = new BldIpimbStream(controlPort, idleSrc, ipimbConfigDb);
+  BldIpimbStream* bldIpimbStream = new BldIpimbStream(controlPort, idleSrc, ipimbConfigDb, runKey);
+  printf("$$$ Using ConfigDb: [%s] and RunKey: [%d] \n", ipimbConfigDb,runKey); 
 
   unsigned maxpayload = IPIMB_BLD_MAX_DATASIZE;
   Ins insDestination = StreamPorts::bld(0); 
@@ -285,9 +303,8 @@ int main(int argc, char** argv) {
   // EVR & IPIMB Mgr Appliances and Stream Connections
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
   evrBldMgr = new EvrBldManager(erInfo, opcode, evrBldServer,cfgService,nServers,bldIdMap);  
-//IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, baselineSubtraction, polarities, *new IpimbFex);
+  //IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, baselineSubtraction, polarities, *new IpimbFex);
   IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, baselineSubtraction, polarities, *new LusiDiagFex);
-//  ipimbMgr.appliance().connect(bldIpimbStream->inlet());
   evrBldMgr->appliance().connect(bldIpimbStream->inlet());
   ipimbMgr.appliance().connect(bldIpimbStream->inlet());
   

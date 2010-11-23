@@ -4,6 +4,7 @@
 #include <sys/uio.h>
 #include "pds/utility/OutletWire.hh"
 #include "pds/utility/ToNetEb.hh"
+#include "BldClient.hh"
 #include "pds/utility/OutletWireInsList.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pds/xtc/XtcType.hh"
@@ -12,6 +13,7 @@ namespace Pds {
 
   class Outlet;
   class Datagram;
+  class BldClient;
 
   class ToBldEventWire : public OutletWire {
   public:
@@ -35,7 +37,7 @@ namespace Pds {
     
   private:
     OutletWireInsList  _nodes;
-    Client       _clientPostman;
+    BldClient    _clientPostman;
     Ins          _bcast;
     Ins&         _destination;
     unsigned*    _bldIdMap; 

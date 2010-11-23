@@ -60,7 +60,7 @@ using namespace Pds;
 
 static const int MaxSize = sizeof(Allocate);
 
-BldIpimbStream::BldIpimbStream(unsigned short port, const Src& src, char* ipimbConfigDb) :
+BldIpimbStream::BldIpimbStream(unsigned short port, const Src& src, char* ipimbConfigDb, int runKey) :
   Stream   (0),
   _task    (new Task(TaskObject("BldIpimbStream"))),
   _pool    (MaxSize, 8),
@@ -69,8 +69,8 @@ BldIpimbStream::BldIpimbStream(unsigned short port, const Src& src, char* ipimbC
   _sem     (Semaphore::FULL),
   _wire    (0)
 {
-  sprintf(_msg.dbpath,ipimbConfigDb);  
-  _msg.key = 0x706;   //find a way to locate last saved run-key and then use it 
+  sprintf(_msg.dbpath,"%s/keys",ipimbConfigDb);  
+  _msg.key = runKey;    
 
   _socket = ::socket(AF_INET, SOCK_STREAM, 0);
   if (_socket<0)
@@ -92,7 +92,6 @@ BldIpimbStream::BldIpimbStream(unsigned short port, const Src& src, char* ipimbC
 
 BldIpimbStream::~BldIpimbStream()
 {
-  //if(_wire) delete _wire;
   _task->destroy();
 }
 
@@ -159,16 +158,16 @@ void BldIpimbStream::control()
     else {
       Sockaddr name;
       socklen_t len = name.sizeofName();
-	  printf("### Before Accept \n");
+	  printf("$$$ Before Accept \n");
       int s = ::accept(_socket,name.name(),&len);
-	  printf("### After Accept \n");	  
+	  printf("$$$ After Accept \n");	  
       if (s<0)
         printf("Accept failed\n");
       else {
         printf("new connection %d from %x/%d\n",s,name.get().address(), name.get().portId());	
         while (::read(s, &_msg, sizeof(_msg))==sizeof(_msg)) {
           _sem.take();
-          printf("$$$ *** new config Data \n\n\n");
+          printf("$$$ new config Data @: [%s] runKey:(%d)\n\n\n", _msg.dbpath, _msg.key);
           disable();
           sleep(1);
           enable();

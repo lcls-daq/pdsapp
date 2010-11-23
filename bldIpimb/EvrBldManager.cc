@@ -90,18 +90,20 @@ public:
 	
     if(dg.xtc.contains.id() == TypeId::Id_Xtc) {  
       iterate(& dg.xtc);
-	} else {
+    } else {
       printf("*** EvrBldL1Action::fire(In): Id_Xtc does not exist in L1 Dg \n");
       return in;
-	}
+    }
 	
-    if(_nIpimbData != _nIpimbBoards)
+    /* if(_nIpimbData != _nIpimbBoards)
       printf("*** EvrBldL1Action::fire(In): Received %u boards data segments. Expected %u \n",_nIpimbData,_nIpimbBoards);
     if(_nIpmFexData != _nIpimbBoards)
       printf("*** EvrBldL1Action::fire(In): Received %u IpmFexData data segments. Expected %u \n",_nIpmFexData,_nIpimbBoards);
     if(_nEvrData != 1)	
       printf("*** EvrBldL1Action::fire(In): Received %u contributions from EVR. Expected: 1 \n",_nEvrData);
-
+    */
+    if (( _nIpimbData != _nIpimbBoards) || (_nIpmFexData != _nIpimbBoards) || (_nEvrData != 1))
+      printf("*** EvrBldL1Action: ipimb.fex.evr: %2x.%2x.%2x \n",_nIpimbData,_nIpmFexData,_nEvrData);
 	  
     for(unsigned i=0; i < _nIpimbBoards; i++) {
 	  Xtc* ipimbXtc = reinterpret_cast<Pds::Xtc*>(_payload + i*_boardPayloadSize);	
@@ -144,8 +146,9 @@ public:
           _nIpmFexData++;				 
         }
       }
-    }else	
-      printf("*** EvrBldL1Action::process(): Unknown XTC Type xtcType=%s \n",Pds::TypeId::name(xtc->contains.id()));
+    }else {
+      // printf("*** EvrBldL1Action::process(): Unknown XTC Type xtcType=%s \n",Pds::TypeId::name(xtc->contains.id()));
+    }
 
     return Continue;
   }  

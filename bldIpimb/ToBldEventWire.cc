@@ -17,13 +17,14 @@ using namespace Pds;
 ToBldEventWire::ToBldEventWire(Outlet& outlet, int interface, int maxbuf,Ins& destination,
                                unsigned nServers, unsigned* bldIdMap) :
   OutletWire(outlet),
-  _clientPostman(sizeof(OutletWireHeader), Mtu::Size, Ins(interface), 1 + maxbuf / Mtu::Size),
+  _clientPostman(sizeof(OutletWireHeader), Mtu::Size, Ins(interface), 1 + maxbuf / Mtu::Size, (char) 32),
   _destination(destination),
   _bldIdMap(bldIdMap),
   _nServers(nServers),  
   _nBldMcast(0),_count(0)
 {
-
+ // if (setsockopt(_clientPostman._socket, IPPROTO_IP, IP_MULTICAST_TTL, (char*)&ucTTL, sizeof(ucTTL)) < 0)
+  //  printf("*** Error: ToEventWire(): setsockopt- set TTL failed: %s\n", strerror(_clientPostman.error()));
 }
 
 ToBldEventWire::~ToBldEventWire() {}

@@ -17,7 +17,7 @@ namespace Pds {
 
   class BldIpimbStream : public Stream {
   public:
-    BldIpimbStream(unsigned short port, const Src& src, char* ipimbConfigDb);
+    BldIpimbStream(unsigned short port, const Src& src, char* ipimbConfigDb, int runKey);
     ~BldIpimbStream();
   public:
     Appliance& main();  // appliance to attach to mainstream
