@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
+#include <string.h>
+#include <time.h>
 
 static void *thread_signals(void*)
 {
@@ -20,6 +22,21 @@ static void *thread_signals(void*)
 }
 
 using namespace Pds;
+
+class MyTimeStamp : public Appliance {
+public:
+  Transition* transitions(Transition* in) { return in; }
+  InDatagram* events     (InDatagram* in) { 
+    timespec tp;
+    clock_gettime(CLOCK_REALTIME, &tp);
+    unsigned pulseId = -1;
+    ClockTime clocktime(tp.tv_sec, tp.tv_nsec);
+    TimeStamp timestamp(0, pulseId, 0);
+    in->datagram().seq = Sequence(Sequence::Event, in->datagram().seq.service(), clocktime, timestamp);
+    return in;
+  }
+};
+
 
 int main(int argc, char** argv) {
 
@@ -81,6 +98,10 @@ int main(int argc, char** argv) {
 				    idleSrc);
   ShmOutlet* outlet = new ShmOutlet(*idle->outlet(),
 				    shmtag, shmbuffersize, shmbuffers, shmclients);
+
+  //  Add an appliance to set the event time
+  (new MyTimeStamp)->connect(idle->inlet());
+
   PimManager& icamman = *new PimManager(src, grabberId);
   icamman.appliance().connect(idle->inlet());
   icamman.attach_camera();
