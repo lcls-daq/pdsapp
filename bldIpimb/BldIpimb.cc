@@ -123,7 +123,7 @@ char* getBldAddrBase()
 
 int main(int argc, char** argv) {
 
-  unsigned controlPort = 5729; //1100; 
+  unsigned controlPort = 5727; //1100; 
   int interface   = parse_interface("eth1");
  
   unsigned opcode = DEFAULT_EVENT_OPCODE; 

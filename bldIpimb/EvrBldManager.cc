@@ -92,30 +92,25 @@ public:
 	
     if(dg.xtc.contains.id() == TypeId::Id_Xtc) {  
       iterate(& dg.xtc);
-      /*if((_nEvrData == 0) || (_damage != 0)) {  //debug 
-        for(unsigned i=0; i < _nIpimbBoards; i++) {
-          _bldHeader[i]->setDamage(0x4000);  
-          char* p = _payload+(i*_boardPayloadSize);
-          memcpy(p+sizeof(Xtc),(char*)_bldHeader[i], sizeof(BldHeader));
-	    }
-      } else  {
-        _evrDataFound = _nEvrData;
-        for(unsigned i=0; i < _nIpimbBoards; i++) 
-          _bldHeader[i]->setDamage(0x0000); 
-        iterate(& dg.xtc);
-      } */
     } else {
       printf("*** EvrBldL1Action::fire(In): Id_Xtc does not exist in L1 Dg \n");
       return in;
     }
  
-    if(_damage) {   
+    if ((_damage) || (_nEvrData != 1)) {   
       for(unsigned i=0; i < _nIpimbBoards; i++) {
         _bldHeader[i]->setDamage(0x4000);  
         char* p = _payload+(i*_boardPayloadSize);
         memcpy(p+sizeof(Xtc),(char*)_bldHeader[i], sizeof(BldHeader));
 	  }
+    } else {
+      for(unsigned i=0; i < _nIpimbBoards; i++) {
+        _bldHeader[i]->setDamage(0x0000);  
+        char* p = _payload+(i*_boardPayloadSize);
+        memcpy(p+sizeof(Xtc),(char*)_bldHeader[i], sizeof(BldHeader));
+      }
     }
+	
 
     if ( (( _nIpimbData != _nIpimbBoards) || (_nIpmFexData != _nIpimbBoards) || (_nEvrData != 1)) && (_nprints != 0) ) {
       printf("*** EvrBldL1Action: damage/ ipimb.fex.evr: 0x%x / %2x.%2x.%2x \n",_damage,_nIpimbData,_nIpmFexData,_nEvrData);
@@ -146,11 +141,11 @@ public:
           char* p = _payload+(i*_boardPayloadSize);	
           Xtc& ipimbXtc = *new(p) Xtc(TypeId(TypeId::Id_SharedIpimb,(uint32_t)BldDataIpimb::version), xtc->src);
           ipimbXtc.extent = _boardPayloadSize;
-          if (_damage) 
+          /*if (_damage) 
             _bldHeader[i]->setDamage(0x4000);  //set damage for individual board based on data
           else 
             _bldHeader[i]->setDamage(0x0000);
-          memcpy(p+sizeof(Xtc),(char*)_bldHeader[i], sizeof(BldHeader));
+          memcpy(p+sizeof(Xtc),(char*)_bldHeader[i], sizeof(BldHeader)); */
           memcpy(p+sizeof(Xtc)+sizeof(BldHeader) ,(char*) xtc->payload(), xtc->sizeofPayload());
           memcpy(p+sizeof(Xtc)+sizeof(BldHeader)+sizeof(IpimbDataType),(char*) &_ipimbConfig[i], sizeof(IpimbConfigType));	
           _nIpimbData++;				 
