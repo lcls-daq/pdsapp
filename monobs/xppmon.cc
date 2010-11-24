@@ -1,8 +1,10 @@
 #include "pdsapp/monobs/ShmClient.hh"
+#include "pdsapp/monobs/BldIpm.hh"
 #include "pdsapp/monobs/XppIpm.hh"
 #include "pdsapp/monobs/XppPim.hh"
 #include "pdsapp/monobs/CspadMon.hh"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/BldInfo.hh"
 
 using namespace PdsCas;
 
@@ -66,6 +68,9 @@ int main(int argc, char* argv[])
       }
       else {
 	switch(detid) {
+        case -Pds::BldInfo::Nh2Sb1Ipm01:
+          client.insert(new BldIpm(pvbase,-detid));
+          break;
 	case Pds::DetInfo::XppMonPim:
 	case Pds::DetInfo::XppSb3Pim:
 	case Pds::DetInfo::XppSb4Pim:
