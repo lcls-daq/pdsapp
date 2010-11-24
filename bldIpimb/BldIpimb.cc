@@ -282,14 +282,11 @@ int main(int argc, char** argv) {
   EvrBldServer& evrBldServer = *new EvrBldServer(evrDetInfo);    
   
   // Setup ConfigDB and Run Key 
-  //const char* dbpath = IPIMB_CONFIG_DB;
-  /* Pds_ConfigDb::Experiment expt((const Pds_ConfigDb::Path&)Pds_ConfigDb::Path(std::string(ipimbConfigDb)));
+  Pds_ConfigDb::Experiment expt((const Pds_ConfigDb::Path&)Pds_ConfigDb::Path(std::string(ipimbConfigDb)));
   expt.read();
   std::string runtype("BLD");
   const Pds_ConfigDb::TableEntry* entry = expt.table().get_top_entry(runtype);
   int runKey = atoi(entry->key().c_str());
-  */
-  int runKey = 2;
     
   // Setup the Bld Idle stream
   ProcInfo idleSrc(Level::Segment,0,0);
