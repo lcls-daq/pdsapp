@@ -1,6 +1,7 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evgr xtcwriter pnccd xtctruncate pnccdreader
+#tgtnames    := evgr xtcwriter pnccd xtctruncate pnccdreader
+tgtnames    := evgr pnccd xtctruncate pnccdreader
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
