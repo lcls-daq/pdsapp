@@ -83,7 +83,7 @@ void EvrIOChannel::remove_info() {
   int i = _detnames->currentIndex();
   if (i >= 0) {
     _detnames->removeItem(i);
-    while(i < _ninfo) {
+    while(i < int(_ninfo)) {
       _detinfo[i] = _detinfo[i+1];
       i++;
     }

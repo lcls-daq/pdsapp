@@ -82,6 +82,7 @@ void NumericInt<T>::flush()
     case Hex:	  v = QString::number(value,16); break;
     default:      v = QString::number(double(value)*scale); break;
   }
+
   if (allowEdit())
     _input->setText(v);
   else

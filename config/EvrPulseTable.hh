@@ -2,6 +2,7 @@
 #define PdsConfigDb_EvrPulseTable_hh
 
 #include "pdsapp/config/Parameters.hh"
+#include "pds/config/EvrConfigType.hh"
 
 #include <QtCore/QObject>
 
@@ -16,36 +17,38 @@ namespace Pds_ConfigDb
 
   class EvrPulseTable : public Parameter {
   public:
-    enum    { MaxEventCodes = 32 };
     enum    { MaxPulses = 12 };
-    enum    { MaxOutputs = 10 };
-    EvrPulseTable(const EvrConfigP& c);
+    EvrPulseTable(unsigned id);
     ~EvrPulseTable();
   public:
-    void insert(Pds::LinkedList<Parameter>& pList);
-    int  pull  (const void* from);
-    int  push  (void* to) const;
-    int  dataSize() const;
-    bool validate();
+    void     pull  (const EvrConfigType&);
+    //  validate() updates pulses, outputs accessors
+    bool validate(unsigned ncodes, 
+                  const EvrConfigType::EventCodeType* codes,
+                  int delay_offset,
+                  unsigned, EvrConfigType::PulseType*,
+                  unsigned, EvrConfigType::OutputMapType*);
+
+    unsigned npulses () const;
+    unsigned noutputs() const;
   public:
-    QLayout* initialize(QWidget* parent);
+    QLayout* initialize(QWidget*);
     void     flush     ();
     void     update    ();
     void     enable    (bool);
   public:
     void     update_enable    (int);
-    void     update_terminator(int);
     void     update_output    (int);
-    void     update_eventcode ();
   public:
-    const EvrConfigP&          _cfg;
-    QrLabel*                   _outputs[MaxOutputs];
+    unsigned                   _id;
+    QrLabel*                   _outputs[EvrConfigType::EvrOutputs];
     Pulse*                     _pulses [MaxPulses];
     QButtonGroup*              _enable_group;
-    QButtonGroup*              _terminator_group;
     QButtonGroup*              _outputs_group;
     Pds::LinkedList<Parameter> _pList;
     EvrPulseTableQ*            _qlink;
+    unsigned                   _npulses;
+    unsigned                   _noutputs;
   };
 
   class EvrPulseTableQ : public QObject {
@@ -55,9 +58,7 @@ namespace Pds_ConfigDb
 		   QWidget*);
   public slots:
     void     update_enable    (int);
-    void     update_terminator(int);
     void     update_output    (int);
-    void     update_eventcode ();
   private:
     EvrPulseTable& _table;
   };

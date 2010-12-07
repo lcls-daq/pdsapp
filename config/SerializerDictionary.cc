@@ -5,6 +5,7 @@
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/EvrIOConfig.hh"
 #include "pdsapp/config/EvrConfigP.hh"
+#include "pdsapp/config/EvrConfig_V4.hh"
 #include "pdsapp/config/EvrConfig_V3.hh"
 #include "pdsapp/config/EvrConfig_V2.hh"
 #include "pdsapp/config/EvrConfig_V1.hh"
@@ -41,6 +42,7 @@
 #include "pds/config/FrameFexConfigType.hh"
 #include "pds/config/ControlConfigType.hh"
 #include "pds/config/CsPadConfigType.hh"
+#include "pdsapp/config/PdsDefs.hh"
 
 using namespace Pds_ConfigDb;
 
@@ -78,6 +80,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_CsPadConfigType     ,new CspadConfig);  
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,4)   , new EvrConfig_V4);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,3)   , new EvrConfig_V3);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2)   , new EvrConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,1)   , new EvrConfig_V1);

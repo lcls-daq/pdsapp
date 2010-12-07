@@ -125,6 +125,8 @@ namespace Pds_ConfigDb {
     void     flush ();
     void     enable(bool);
   public:
+    QWidget* widget();
+  public:
     enum { MaxSize=128 };
     char value[MaxSize];
     QLineEdit* _input;

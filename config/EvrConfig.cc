@@ -98,7 +98,10 @@ namespace Pds_ConfigDb
       EvrConfigType & tc = *new (to) EvrConfigType(
               _neventcodes.value, eventcodes,
               _npulses.value,     pc, 
-              _noutputs.value,    mo);
+              _noutputs.value,    mo,
+              EvrConfigType::SeqConfigType(EvrConfigType::SeqConfigType::Disable,
+                                           EvrConfigType::SeqConfigType::Disable,
+                                           0, 0, 0));
 
       delete[] eventcodes;
       delete[] pc;

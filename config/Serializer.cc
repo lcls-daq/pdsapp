@@ -19,6 +19,7 @@ void Serializer::initialize(QWidget* parent, QBoxLayout* layout)
 
 void Serializer::flush ()
 {
+
   Parameter* p = pList.forward();
   while( p != pList.empty() ) {
     p->flush();

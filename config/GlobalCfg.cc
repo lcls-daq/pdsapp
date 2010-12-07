@@ -17,9 +17,6 @@ static char* _buffer = new char[0x100000];
 static char* _next;
 static char* _btype[PdsDefs::NumberOf+1];
 
-static Pds::TypeId::Type _types[] = { Pds::TypeId::Id_EvrIOConfig, 
-				      Pds::TypeId::Any };
-
 static void _clearAll()
 {
   memset(_btype,0,sizeof(_btype));
@@ -51,13 +48,13 @@ static void _loadType(const Pds::TypeId& id,
 
 const char* GlobalCfg::name() { return globalAlias; }
 
-bool GlobalCfg::contains(Pds::TypeId type)
+bool GlobalCfg::contains(const UTypeName& utype)
 {
-  Pds::TypeId::Type t = type.id();
-  for(unsigned i=0; _types[i] != Pds::TypeId::Any; i++)
-    if ( t == _types[i] )
-      return true;
-  return false;
+  const unsigned _types = 
+    (1<<PdsDefs::EvrIO);
+
+  PdsDefs::ConfigType t = PdsDefs::configType(*PdsDefs::typeId(utype));
+  return (_types & (1<<t));
 }
 
 void GlobalCfg::cache(const Path& path, Device* device)

@@ -148,7 +148,7 @@ void Reconfig_Ui::change_component()
   string path = _expt.path().data_path("",stype);
   QString qchoice;
   const TableEntry* entry;
-  if (GlobalCfg::contains(*PdsDefs::typeId(stype))) {
+  if (GlobalCfg::contains(stype)) {
     entry = _device()->table().get_top_entry(string(GlobalCfg::name()));
   }
   else {

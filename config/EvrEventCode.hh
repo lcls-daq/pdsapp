@@ -15,8 +15,10 @@ namespace Pds_ConfigDb {
     int  push(void* to);
   private:
     NumericInt<unsigned>          _code;
+    TextParameter                 _desc;
     Enumerated<Enums::Bool>       _isReadout;
-    Enumerated<Enums::Bool>       _isTerminator;
+    Enumerated<Enums::Bool>       _isCommand;
+    Enumerated<Enums::Bool>       _isLatch;
     NumericInt<unsigned>          _reportDelay;
     NumericInt<unsigned>          _reportWidth;    
     NumericInt<unsigned>          _maskTrigger;

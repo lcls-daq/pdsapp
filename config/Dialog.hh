@@ -6,6 +6,7 @@
 #include <vector>
 
 class QComboBox;
+class QShowEvent;
 
 namespace Pds_ConfigDb {
 
@@ -30,6 +31,7 @@ namespace Pds_ConfigDb {
     ~Dialog();
   public:
     const QString& file() const { return _file; }
+    void  showEvent(QShowEvent*);
   public slots:
     void replace  ();
     void append   ();

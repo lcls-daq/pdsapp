@@ -65,3 +65,10 @@ void     TextParameter::enable(bool v)
 {
   _input->setReadOnly(!(allowEdit() && v));
 }
+
+QWidget* TextParameter::widget() 
+{
+  return allowEdit() ? 
+    static_cast<QWidget*>(_input) : 
+    static_cast<QWidget*>(_display); 
+}

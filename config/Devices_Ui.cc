@@ -330,7 +330,7 @@ void Devices_Ui::add_component(const QString& type)
   string det(qPrintable(item->text()));
 
   string cfg;
-  if (GlobalCfg::contains(*PdsDefs::typeId(stype))) {  // create the global alias
+  if (GlobalCfg::contains(stype)) {  // create the global alias
     cfg = string(GlobalCfg::name());
     if (_expt.device(det)->table().get_top_entry(cfg) == 0)
       _expt.device(det)->table().new_top_entry(cfg);

@@ -25,7 +25,9 @@ namespace Pds_ConfigDb {
 
   class PdsDefs {
   public:
-    enum ConfigType { FrameFex, Opal1k, TM6740, Evr, EvrIO, Acq, 
+    enum ConfigType { FrameFex, Opal1k, TM6740, Evr, EvrIO, 
+                      //		      Sequencer,
+                      Acq, 
 		      Ipimb, IpmDiode, PimDiode, PimImage, 
 		      Encoder, pnCCD, RunControl, Princeton, Fccd, Cspad, NumberOf };
 

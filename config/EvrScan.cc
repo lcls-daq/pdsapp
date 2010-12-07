@@ -88,7 +88,8 @@ int EvrScan::write(unsigned step, unsigned nsteps, char* buff) const
   
   EvrConfigType* c   = new(buff) EvrConfigType(cfg.neventcodes(), &cfg.eventcode (0),
 					       cfg.npulses    (), &cfg.pulse     (0),
-					       cfg.noutputs   (), &cfg.output_map(0));
+					       cfg.noutputs   (), &cfg.output_map(0),
+                                               cfg.seq_config ());
   
   
   return c->size();
