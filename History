@@ -1,3 +1,5 @@
+2010-Dec-06 weaver	Tag V02-10-00.  Added configuration GUI panels for new EVR configuration type (ConfigV5).
+			Added sequencer control to control_gui.
 2010-Nov-02 caf         Tag V02-08-05.
 2010-Sep-13 weaver	Tag V02-08-00.	Transient data filenames (eventp) reported by control_gui.
 			Transient data filenames match recorded data filenames when recording.

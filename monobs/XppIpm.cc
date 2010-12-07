@@ -1,5 +1,6 @@
 #include "pdsapp/monobs/XppIpm.hh"
-#include "pdsapp/monobs/PVWriter.hh"
+
+#include "pds/epicstools/PVWriter.hh"
 
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -9,6 +10,7 @@
 #include <stdio.h>
 
 using namespace PdsCas;
+using Pds_Epics::PVWriter;
 
 XppIpm::XppIpm(const char* pvbase, int detid) :
   Handler(Pds::DetInfo(-1,

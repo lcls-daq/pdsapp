@@ -1,5 +1,6 @@
 #include "pdsapp/monobs/XppPim.hh"
-#include "pdsapp/monobs/PVWriter.hh"
+
+#include "pds/epicstools/PVWriter.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/lusi/DiodeFexConfigV1.hh"
@@ -9,6 +10,7 @@
 #include <stdio.h>
 
 using namespace PdsCas;
+using Pds_Epics::PVWriter;
 
 XppPim::XppPim(const char* pvbase, int detid) :
   Handler(Pds::DetInfo(-1,

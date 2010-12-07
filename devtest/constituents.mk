@@ -18,7 +18,7 @@ tgtlibs_evgrd := pdsdata/xtcdata pdsdata/evrdata evgr/evg evgr/evr pds/service p
 tgtslib_evgrd := /usr/lib/rt
 
 tgtsrcs_xtcwriter := xtcwriter.cc
-tgtlibs_xtcwriter := pdsdata/xtcdata pds/service
+tgtlibs_xtcwriter := pdsdata/xtcdata pdsdata/acqdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility
 tgtslib_xtcwriter := /usr/lib/rt
 
 tgtsrcs_pnccdreader := pnccdreader.cc

@@ -70,11 +70,12 @@ namespace Pds {
 
   class MySeqServer : public EvrServer, private Routine {
     public:
-    MySeqServer(unsigned platform, 
-        int      fd) :
+    MySeqServer(unsigned   platform, 
+                int        fd,
+                InletWire& inlet) :
           EvrServer(StreamPorts::event(platform,Level::Segment),
-              DetInfo(-1UL,DetInfo::NoDetector,0,DetInfo::Evr,0),
-              4),
+                    DetInfo(-1UL,DetInfo::NoDetector,0,DetInfo::Evr,0),
+                    inlet, 4),
               _task(new Task(TaskObject("segtest_evr",127))),
               _outlet(sizeof(EvrDatagram),0, Ins(Route::interface())),
               _go(false),
@@ -446,6 +447,7 @@ namespace Pds {
           StreamParams::StreamType s,
           int interface)
       {
+        _inlet = &wire;
         wire.add_input(_server);
       }
 
@@ -468,7 +470,7 @@ namespace Pds {
         fsm->callback(TransitionId::EndRun     , new EndRunAction);
         fsm->callback(TransitionId::Disable    , new DisableAction);
         fsm->connect(frmk->inlet());
-        mySeqServerGlobal  = new MySeqServer(_platform, pipefd[1]);
+        mySeqServerGlobal  = new MySeqServer(_platform, pipefd[1], *_inlet);
       }
       void failed(Reason reason)
       {
@@ -501,6 +503,7 @@ namespace Pds {
       MyL1Server* _server;
       MyFEX*      _fex;
       std::list<Src> _sources;
+      InletWire*  _inlet;
   };
 }
 

@@ -4,9 +4,9 @@
 #include "pdsapp/monobs/Handler.hh"
 #include "pds/service/Semaphore.hh"
 
-namespace PdsCas {
-  class PVWriter;
+namespace Pds_Epics { class PVWriter; }
 
+namespace PdsCas {
   class BldIpm : public Handler {
   public:
     enum { NDIODES=4 };
@@ -23,10 +23,10 @@ namespace PdsCas {
     enum { PVNAMELEN=32 };
     char _pvName[PVNAMELEN];
     bool _initialized;
-    PVWriter*  _valu_writer[NDIODES];
-    PVWriter*  _sum_writer;
-    PVWriter*  _xpos_writer;
-    PVWriter*  _ypos_writer;
+    Pds_Epics::PVWriter*  _valu_writer[NDIODES];
+    Pds_Epics::PVWriter*  _sum_writer;
+    Pds_Epics::PVWriter*  _xpos_writer;
+    Pds_Epics::PVWriter*  _ypos_writer;
   };
 };
 

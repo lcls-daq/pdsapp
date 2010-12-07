@@ -20,10 +20,11 @@ int main(int argc, char** argv)
   const char* dbpath    = "none";
   const char* offlinerc = (char *)NULL;
   const char* experiment = (char *)NULL;
+  unsigned    sequencer_id = 0;
   unsigned key=0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:b:P:D:L:E:")) != -1) {
+  while ((c = getopt(argc, argv, "p:b:P:D:L:E:S:")) != -1) {
     char* endPtr;
     switch (c) {
     case 'b':
@@ -48,6 +49,9 @@ int main(int argc, char** argv)
     case 'E':
       experiment = optarg;
       break;
+    case 'S':
+      sequencer_id = strtoul(optarg, &endPtr, 0);
+      break;
     }
   }
   if ((platform==-1UL || !partition || !dbpath) ||
@@ -65,7 +69,8 @@ int main(int argc, char** argv)
 				      partition,
 				      dbpath,
 				      offlinerc,
-				      experiment);
+				      experiment,
+                                      sequencer_id);
   window->show();
   app.exec();
 

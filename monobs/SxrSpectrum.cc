@@ -1,6 +1,6 @@
 #include "pdsapp/monobs/SxrSpectrum.hh"
-#include "pdsapp/monobs/PVWriter.hh"
-#include "pdsapp/monobs/PVMonitor.hh"
+#include "pds/epicstools/PVWriter.hh"
+#include "pds/epicstools/PVMonitor.hh"
 
 #include "pds/camera/FrameType.hh"
 
@@ -10,6 +10,8 @@
 #include <stdio.h>
 
 using namespace PdsCas;
+using Pds_Epics::PVWriter;
+using Pds_Epics::PVMonitor;
 
 //
 //  Need to add monitors for conversion inputs 

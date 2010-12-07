@@ -95,6 +95,6 @@ tgtlibs_rceProxy := $(commonlibs) pdsdata/pnccddata pds/rceProxy
 tgtslib_rceProxy := /usr/lib/rt
 
 tgtsrcs_princeton := princeton.cc
-#tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcamtest
-tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcam
+tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcamtest
+#tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcam
 tgtslib_princeton := /usr/lib/rt dl pthread

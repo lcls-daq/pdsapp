@@ -31,11 +31,13 @@ tgtslib_offlineobs := $(USRLIBDIR)/rt
 tgtincs_offlineobs := offlinedb/include offlineclient
 tgtincs_offlineobs += epics/include epics/include/os/Linux
 
-tgtsrcs_common := Handler.cc ShmClient.cc EpicsCA.cc 
+tgtsrcs_common := Handler.cc ShmClient.cc
+tgtlibs_common := pds/epicstools epics/ca epics/Com
+
 tgtsrcs_sxrmon := sxrmon.cc SxrSpectrum.cc $(tgtsrcs_common)
 tgtlibs_sxrmon := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/appdata
 tgtlibs_sxrmon += pds/service
-tgtlibs_sxrmon += epics/ca epics/Com
+tgtlibs_sxrmon += $(tgtlibs_common)
 tgtslib_sxrmon := $(USRLIBDIR)/rt
 tgtincs_sxrmon := epics/include epics/include/os/Linux
 
@@ -43,13 +45,13 @@ tgtsrcs_xppmon := xppmon.cc CspadMon.cc BldIpm.cc XppIpm.cc XppPim.cc $(tgtsrcs_
 tgtlibs_xppmon := pdsdata/xtcdata pdsdata/ipimbdata pdsdata/appdata
 tgtlibs_xppmon += pdsdata/evrdata pdsdata/cspaddata
 tgtlibs_xppmon += pds/service
-tgtlibs_xppmon += epics/ca epics/Com
+tgtlibs_xppmon += $(tgtlibs_common)
 tgtslib_xppmon := $(USRLIBDIR)/rt
 tgtincs_xppmon := epics/include epics/include/os/Linux
 
 tgtsrcs_cspadmon := cspadmon.cc CspadMon.cc $(tgtsrcs_common)
 tgtlibs_cspadmon := pdsdata/xtcdata pdsdata/cspaddata pdsdata/evrdata pdsdata/appdata
 tgtlibs_cspadmon += pds/service
-tgtlibs_cspadmon += epics/ca epics/Com
+tgtlibs_cspadmon += $(tgtlibs_common)
 tgtslib_cspadmon := $(USRLIBDIR)/rt
 tgtincs_cspadmon := epics/include epics/include/os/Linux

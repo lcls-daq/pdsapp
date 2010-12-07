@@ -4,9 +4,9 @@
 #include "pdsapp/monobs/Handler.hh"
 #include "pds/service/Semaphore.hh"
 
-namespace PdsCas {
-  class PVWriter;
+namespace Pds_Epics { class PVWriter; }
 
+namespace PdsCas {
   class XppPim : public Handler {
   public:
     XppPim(const char* pvbase, int detid);
@@ -22,7 +22,7 @@ namespace PdsCas {
     enum { PVNAMELEN=32 };
     char _pvName[PVNAMELEN];
     bool _initialized;
-    PVWriter*  _valu_writer;
+    Pds_Epics::PVWriter*  _valu_writer;
   };
 };
 

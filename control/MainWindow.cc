@@ -156,7 +156,8 @@ MainWindow::MainWindow(unsigned          platform,
 		       const char*       partition,
 		       const char*       db_path,
 		       const char*       offlinerc,
-		       const char*       experiment) :
+		       const char*       experiment,
+                       unsigned          sequencer_id) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
   _control  (new QualifiedControl(platform, *_controlcb, new ControlTimeout(*this))),
@@ -201,7 +202,7 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(new FileReport(*_log));
   _controlcb->add_appliance(state);
   _controlcb->add_appliance(new SeqAppliance(*_control, *state, *_config,
-  					     *_pvmanager));
+  					     *_pvmanager, sequencer_id));
   _controlcb->add_appliance(new RemoteSeqApp(*_control, *state,*_pvmanager,
 					     _config->src()));
   _control->attach();

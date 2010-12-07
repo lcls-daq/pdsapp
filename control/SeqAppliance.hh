@@ -11,13 +11,15 @@ namespace Pds {
   class StateSelect;
   class CfgClientNfs;
   class PVManager;
+  class EventSequencer;
   
   class SeqAppliance : public Appliance {
   public:
     SeqAppliance(PartitionControl& control,
 		 StateSelect&      manual,
 		 CfgClientNfs&     config,
-		 PVManager&        pvmanager);
+		 PVManager&        pvmanager,
+                 unsigned          sequencer_id);
     ~SeqAppliance();
   public:
     virtual Transition* transitions(Transition*);
@@ -33,6 +35,8 @@ namespace Pds {
     char*              _end_config;
     bool               _done;
     PVManager&         _pvmanager;
+    unsigned           _sequencer_id;
+    EventSequencer*    _sequencer;
   };
 };
 

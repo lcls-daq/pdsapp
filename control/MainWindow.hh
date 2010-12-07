@@ -26,7 +26,8 @@ namespace Pds {
 	       const char*       partition,
 	       const char*       dbpath,
 	       const char*       offlinerc,
-	       const char*       experiment);
+	       const char*       experiment,
+               unsigned          sequencer_id);
     ~MainWindow();
 
     // Unix signal handlers.

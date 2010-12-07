@@ -16,6 +16,7 @@ namespace Pds {
 
   class Appliance;
   class Task;
+  class InletWire;
 
   class IdleStream : public Stream {
   public:
@@ -23,6 +24,7 @@ namespace Pds {
     ~IdleStream();
   public:
     Appliance& main();  // appliance to attach to mainstream
+    void       set_inlet_wire(InletWire*);
   public:
     void       control();
     void       start  ();
@@ -43,6 +45,7 @@ namespace Pds {
     unsigned      _ip;
     Appliance*    _main;
     Semaphore     _sem;
+    InletWire*    _wire;
   };
 };
 

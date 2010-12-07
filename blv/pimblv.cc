@@ -114,6 +114,7 @@ int main(int argc, char** argv) {
   iwire->connect();
   //  attach the server
   iwire->add_input(&icamman.server());
+  idle->set_inlet_wire(iwire);
   idle->start();
 
   task->mainLoop();

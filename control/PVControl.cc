@@ -1,71 +1,66 @@
-#include "PVControl.hh"
-
+#include "pdsapp/control/PVControl.hh"
 #include "pdsapp/control/PVRunnable.hh"
-#include "pdsapp/control/EpicsCA.hh"
+
+#include "pds/epicstools/EpicsCA.hh"
 
 #include "pdsdata/control/PVControl.hh"
 
 #include "db_access.h"
 
-#define handle_type(ctype, stype, dtype) case ctype:	\
-  { struct stype* ival = (struct stype*)dbr;		\
-    dtype* inp  = &ival->value;				\
-    dtype* outp = (dtype*)_pvdata;			\
-    for(int k=0; k<nelem; k++) *outp++ = *inp++;	  \
-    outp = (dtype*)_pvdata;					  \
-    for(std::list<PvType>::const_iterator it = _channels.begin(); \
-        it != _channels.end(); it++) { 				  \
-      int idx = it->index();						\
-      if (idx<0) idx=0;							\
+#define handle_type(ctype, stype, dtype) case ctype:                    \
+  { struct stype* ival = (struct stype*)dbr;                            \
+    dtype* inp  = &ival->value;                                         \
+    dtype* outp = (dtype*)_pvdata;                                      \
+    for(int k=0; k<nelem; k++) *outp++ = *inp++;                        \
+    outp = (dtype*)_pvdata;                                             \
+    for(std::list<PvType>::const_iterator it = _channels.begin();       \
+        it != _channels.end(); it++) {                                  \
+      int idx = it->index();                                            \
+      if (idx<0) idx=0;                                                 \
       printf("handle_type %s idx %d val %g\n",#ctype,it->index(),it->value()); \
-      outp[idx] = dtype(it->value());				\
-    }								  \
+      outp[idx] = dtype(it->value());                                   \
+    }                                                                   \
   }
 
 typedef Pds::ControlData::PVControl PvType;
 
 namespace Pds {
 
-  class ControlCA : public EpicsCA {
+  class ControlCA : public Pds_Epics::EpicsCA {
   public:
     ControlCA(PVControl& control,
 	      const std::list<PvType>& channels) :
-      EpicsCA(channels.front().name(),false),
-      _control(control), _channels(channels),
-      _connected(false), _runnable(false), _pvdata(0)
+      Pds_Epics::EpicsCA(channels.front().name(),0),
+      _control (control),
+      _channels(channels),
+      _runnable(false)
     {
     }
-    virtual ~ControlCA() { printf("Deleting %p\n",_pvdata); if (_pvdata) delete[] _pvdata; }
+    virtual ~ControlCA() {}
   public:
     void connected   (bool c)
     {
-      _connected = c;
+      Pds_Epics::EpicsCA::connected(c);
       if (_runnable) {
-	_runnable=false;
-	_control.channel_changed();
+        _runnable=false;
+        _control.channel_changed();
       }
     }
-    void  getData     (const void* dbr)  
+    void  getData     (const void* dbr) 
     {
+      Pds_Epics::EpicsCA::getData(dbr);
       int nelem = _channel.nelements();
-      if (!_pvdata) {
-	int sz = dbr_size_n(_channel.type(),nelem);
-	_pvdata = new char[sz];
-	printf("pvdata allocated @ %p sz %d\n",_pvdata,sz);
-      }
-
       switch(_channel.type()) {
-	handle_type(DBR_TIME_SHORT , dbr_time_short , dbr_short_t ) break;
-	handle_type(DBR_TIME_FLOAT , dbr_time_float , dbr_float_t ) break;
-	handle_type(DBR_TIME_ENUM  , dbr_time_enum  , dbr_enum_t  ) break;
-	handle_type(DBR_TIME_LONG  , dbr_time_long  , dbr_long_t  ) break;
-	handle_type(DBR_TIME_DOUBLE, dbr_time_double, dbr_double_t) break;
+        handle_type(DBR_TIME_SHORT , dbr_time_short , dbr_short_t ) break;
+        handle_type(DBR_TIME_FLOAT , dbr_time_float , dbr_float_t ) break;
+        handle_type(DBR_TIME_ENUM  , dbr_time_enum  , dbr_enum_t  ) break;
+        handle_type(DBR_TIME_LONG  , dbr_time_long  , dbr_long_t  ) break;
+        handle_type(DBR_TIME_DOUBLE, dbr_time_double, dbr_double_t) break;
       default: printf("Unknown type %d\n", int(_channel.type())); break;
       }
-      
     }
-    void* putData     () { printf("putData called\n"); return _pvdata; }
-    void  putStatus   (bool s) { 
+    void  putStatus   (bool s) 
+    { 
       if (s!=_runnable) { 
 	_runnable=s; 
 	_control.channel_changed(); 
@@ -76,11 +71,8 @@ namespace Pds {
   private:
     PVControl& _control;
     std::list<PvType> _channels;
-    bool _connected;
     bool _runnable;
-    char* _pvdata;
   };
-
 };
 
 using namespace Pds;

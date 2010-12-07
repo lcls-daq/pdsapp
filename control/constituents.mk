@@ -4,6 +4,7 @@ tgtnames := catest
 else
 qtincdir  := qt/include
 tgtnames := control_gui catest
+#tgtnames := control_gui 
 endif
 
 tgtsrcs_control_gui := control.cc 
@@ -23,9 +24,11 @@ tgtsrcs_control_gui += RemoteSeqApp.cc
 tgtsrcs_control_gui += PVManager.cc
 tgtsrcs_control_gui += PVMonitor.cc
 tgtsrcs_control_gui += PVControl.cc
-tgtsrcs_control_gui += EpicsCA.cc
+#tgtsrcs_control_gui += EpicsCA.cc
+tgtsrcs_control_gui += EventSequencer.cc
 tgtlibs_control_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata
-tgtlibs_control_gui += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/client pds/offlineclient pds/config pds/management
+tgtlibs_control_gui += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/client pds/offlineclient pds/config pds/management pds/epicstools
+tgtlibs_control_gui += pds/epicstools
 tgtlibs_control_gui += pdsapp/configdb
 tgtlibs_control_gui += qt/QtGui qt/QtCore
 tgtlibs_control_gui += epics/ca epics/Com
@@ -35,9 +38,10 @@ tgtincs_control_gui := $(qtincdir)
 tgtincs_control_gui += epics/include epics/include/os/Linux
 tgtincs_control_gui += offlinedb/include
 
-tgtsrcs_catest := catest.cc PVMonitor.cc EpicsCA.cc
+tgtsrcs_catest := catest.cc PVMonitor.cc
 tgtslib_catest := $(USRLIBDIR)/rt
 tgtincs_catest := epics/include epics/include/os/Linux
 tgtlibs_catest := epics/ca epics/Com
 tgtlibs_catest += pdsdata/controldata pdsdata/xtcdata
 tgtlibs_catest += pds/service pds/mon pds/vmon pds/collection pds/xtc pds/utility pds/config
+tgtlibs_catest += pds/epicstools

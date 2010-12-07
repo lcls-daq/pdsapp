@@ -1,9 +1,11 @@
-#include "PVMonitor.hh"
-
+#include "pdsapp/control/PVMonitor.hh"
 #include "pdsapp/control/PVRunnable.hh"
-#include "pdsapp/control/EpicsCA.hh"
+
+#include "pds/epicstools/EpicsCA.hh"
+#include "pds/epicstools/PVMonitorCb.hh"
 
 #include "pdsdata/control/PVMonitor.hh"
+
 
 #include "db_access.h"
 
@@ -16,44 +18,29 @@ typedef Pds::ControlData::PVMonitor PvType;
 
 namespace Pds {
 
-  class MonitorCA : public EpicsCA {
+  class MonitorCA : public Pds_Epics::EpicsCA,
+                    public Pds_Epics::PVMonitorCb {
   public:
     MonitorCA(PVMonitor& monitor,
 	      const std::list<PvType>& channels) :
-      EpicsCA(channels.front().name(),true),
-      _monitor(monitor), _channels(channels), 
-      _connected(false), _runnable(false) 
+      Pds_Epics::EpicsCA(channels.front().name(),this),
+      _monitor (monitor ), 
+      _channels(channels), 
+      _runnable(false   ) 
     {
     }
     virtual ~MonitorCA() {}
   public:
-    void connected   (bool c)
+    void updated()
     {
-      _connected = c;
-      if (_runnable) {
-	_runnable=false;
-	_monitor.channel_changed();
-      }
-    }
-    void getData (const void* dbr) 
-    {
-      int nelem = _channel.nelements();
-      double* value = new double[nelem];
-      switch(_channel.type()) {
-	handle_type(DBR_TIME_SHORT , dbr_time_short , dbr_short_t ) break;
-	handle_type(DBR_TIME_FLOAT , dbr_time_float , dbr_float_t ) break;
-	handle_type(DBR_TIME_ENUM  , dbr_time_enum  , dbr_enum_t  ) break;
-	handle_type(DBR_TIME_LONG  , dbr_time_long  , dbr_long_t  ) break;
-	handle_type(DBR_TIME_DOUBLE, dbr_time_double, dbr_double_t) break;
-      default: printf("Unknown type %d\n", int(_channel.type())); break;
-      }
+      double* value = (double*)data();
       bool runnable = true;
       for(std::list<PvType>::const_iterator iter = _channels.begin();
 	  iter != _channels.end(); iter++) {
 	int idx = iter->index();
 	if (idx <0) idx=0;
 	printf("monitor[%d] %g < %g < %g\n", 
-	       iter->index(),
+	       iter->index  (),
 	       iter->loValue(),
 	       value[idx],
 	       iter->hiValue());
@@ -64,16 +51,12 @@ namespace Pds {
 	_runnable=runnable;
 	_monitor.channel_changed();
       }
-      delete[] value;
     }
-    void* putData() { return 0; }
-    void putStatus(bool) {}
   public:
     bool runnable() const { return _runnable; }
   private:
     PVMonitor& _monitor;
     std::list<PvType> _channels;
-    bool _connected;
     bool _runnable;
   };
 

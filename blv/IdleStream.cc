@@ -1,6 +1,7 @@
 #include "pdsapp/blv/IdleStream.hh"
 
 #include "pds/utility/Appliance.hh"
+#include "pds/utility/InletWire.hh"
 #include "pds/utility/Transition.hh"
 #include "pds/xtc/CDatagram.hh"
 #include "pds/xtc/XtcType.hh"
@@ -61,7 +62,8 @@ IdleStream::IdleStream(unsigned short port,
   _pool    (MaxSize, 8),
   _src     (src),
   _main    (new IdleApp(*this)),
-  _sem     (Semaphore::FULL)
+  _sem     (Semaphore::FULL),
+  _wire    (0)
 {
   _socket = ::socket(AF_INET, SOCK_STREAM, 0);
   if (_socket<0)
@@ -118,12 +120,17 @@ void IdleStream::disable()
 
 void IdleStream::transition(const Transition& tr)
 {
-  inlet()->post(new(&_pool) Transition(tr));
+  if (_wire)
+    _wire  ->post(*new(&_pool) Transition(tr));
+  else
+    inlet()->post(new(&_pool) Transition(tr));
   if (tr.id()!=TransitionId::Unmap)
     inlet()->post(new(&_pool) CDatagram(Datagram(tr,_xtcType,_src)));
 }
 
 Appliance& IdleStream::main() { return *_main; }
+
+void IdleStream::set_inlet_wire(InletWire* wire) { _wire=wire; }
 
 void IdleStream::start()
 {

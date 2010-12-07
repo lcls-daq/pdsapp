@@ -1,5 +1,6 @@
 #include "pdsapp/monobs/BldIpm.hh"
-#include "pdsapp/monobs/PVWriter.hh"
+
+#include "pds/epicstools/PVWriter.hh"
 
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/BldInfo.hh"
@@ -10,6 +11,8 @@
 #include <stdio.h>
 
 using namespace PdsCas;
+
+using Pds_Epics::PVWriter;
 
 BldIpm::BldIpm(const char* pvbase, int bldid) :
   Handler(Pds::BldInfo(-1,BldInfo::Type(bldid)),

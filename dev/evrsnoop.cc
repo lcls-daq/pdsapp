@@ -75,14 +75,10 @@ extern "C" {
   void evrsa_sig_handler(int parm)
   {
     Evr& er = erInfoGlobal->board();
-    int flags = er.GetIrqFlags();
-    if (flags & EVR_IRQFLAG_EVENT)
-      {
-        FIFOEvent fe;
-        er.GetFIFOEvent(&fe);
-        printf("Received Fiducial %06x  Event code %03d  Timestamp %d\n", fe.TimestampHigh, fe.EventCode, fe.TimestampLow);
-        er.ClearIrqFlags(EVR_IRQFLAG_EVENT);
-      }
+    FIFOEvent fe;
+    while( !er.GetFIFOEvent(&fe) ) {
+      printf("Received Fiducial %06x  Event code %03d  Timestamp %d\n", fe.TimestampHigh, fe.EventCode, fe.TimestampLow);
+    }
     int fdEr = erInfoGlobal->filedes();
     er.IrqHandled(fdEr);
   }

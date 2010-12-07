@@ -1,4 +1,5 @@
 #include "SeqAppliance.hh"
+#include "pdsapp/control/EventSequencer.hh"
 #include "pdsapp/control/PVManager.hh"
 #include "pdsapp/control/StateSelect.hh"
 #include "pds/management/PartitionControl.hh"
@@ -22,7 +23,8 @@ using namespace Pds;
 SeqAppliance::SeqAppliance(PartitionControl& control,
 			   StateSelect&      manual,
 			   CfgClientNfs&     config,
-			   PVManager&        pvmanager ) :
+			   PVManager&        pvmanager,
+                           unsigned          sequencer_id) :
   _control      (control),
   _manual       (manual),
   _config       (config),
@@ -30,7 +32,9 @@ SeqAppliance::SeqAppliance(PartitionControl& control,
   _config_buffer(new char[MaxConfigSize]),
   _cur_config   (0),
   _end_config   (0),
-  _pvmanager    (pvmanager)
+  _pvmanager    (pvmanager),
+  _sequencer_id (sequencer_id),
+  _sequencer    (0)
 {
 }
 
@@ -46,17 +50,34 @@ Transition* SeqAppliance::transitions(Transition* tr)
 
   switch(tr->id()) {
   case TransitionId::Map:
-    //  EPICS thread initialization
-    SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), 
-	     "PVDisplay calling ca_context_create" );
-    _config.initialize(reinterpret_cast<const Allocate&>(*tr).allocation());
-    break;
+    { 
+      const Allocation& alloc = reinterpret_cast<const Allocate&>(*tr).allocation();
+      _config.initialize(alloc);
+
+      //  EPICS thread initialization
+      SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), 
+               "PVDisplay calling ca_context_create" );
+      if (_sequencer_id) {
+        _sequencer = new EventSequencer(_sequencer_id);
+        _sequencer->initialize(alloc);
+        _control.set_sequencer(_sequencer);
+      }
+    } break;
   case TransitionId::Unmap:
+    if (_sequencer)
+      delete _sequencer;
     //  EPICS thread cleanup
     ca_context_destroy();
     break;
   case TransitionId::Configure:
     {
+      Damage damage(0);
+      if (_sequencer)
+        damage.increase(_sequencer->configure(*tr).value());
+
+      //
+      //  Enable control configuration
+      //
       int len = _config.fetch(*tr, _controlConfigType, _config_buffer, MaxConfigSize);
       if (len <= 0) {
 	printf("SeqAppliance: failed to retrieve configuration.  Applying default.\n");
@@ -71,7 +92,9 @@ Transition* SeqAppliance::transitions(Transition* tr)
 	       _cur_config, _cur_config->size(), len);
 
       _configtc.extent = sizeof(Xtc) + _cur_config->size();
+      _configtc.damage = damage;
       _control.set_transition_payload(TransitionId::Configure,&_configtc,_cur_config);
+
     }
   case TransitionId::BeginCalibCycle:
     //  apply the configuration
