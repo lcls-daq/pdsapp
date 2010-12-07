@@ -17,6 +17,7 @@ static const unsigned DefaultHi =74;
 static const unsigned MaxUserCodes      = Pds_ConfigDb::EvrEventCodeTable::MaxCodes;
 static const unsigned MinUserCodes      = 8;
 static const unsigned MaxGlobalCodes    = 4;
+static const unsigned StartUserCodes    = 67;
 
 static void showLayoutItem(QLayoutItem* item, bool show);
 
@@ -72,7 +73,9 @@ void EvrEventCodeTable::insert(Pds::LinkedList<Parameter>& pList)
 
 void EvrEventCodeTable::pull(const EvrConfigType& cfg) 
 {
-  _range_lo.value = cfg.eventcode(0).code();
+  int userseq = (cfg.eventcode(0).code()-StartUserCodes)/MinUserCodes;
+  if (userseq < 0) userseq=0;
+  _range_lo.value = userseq*MinUserCodes+StartUserCodes;
 
   for(unsigned i=0; i<MaxUserCodes; i++)
     _seq_code[i].set_enable(false);
