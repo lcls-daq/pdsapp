@@ -15,12 +15,11 @@ class QButtonGroup;
 class QStackedWidget;
 
 namespace Pds_ConfigDb {
-  class FixedConfig;
   class DetailConfig;
   class EvrEventCodeTable;
 
   class SequencerConfig : public Parameter {
-    enum { Fixed, Detail, External };
+    enum { Detail, External };
   public:
     SequencerConfig(const EvrEventCodeTable&);
     ~SequencerConfig();
@@ -36,7 +35,6 @@ namespace Pds_ConfigDb {
   private:
     const EvrEventCodeTable& _code_table;
     QButtonGroup*      _mode;
-    FixedConfig*       _fixed;
     DetailConfig*      _detail;
     QStackedWidget*    _stack;
     char*              _config_buffer;

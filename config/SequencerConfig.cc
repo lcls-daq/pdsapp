@@ -51,31 +51,6 @@ static int getInputValue(QWidget* w)
 namespace Pds_ConfigDb {
 
 
-  //
-  //  Fixed rate selection
-  //
-  class FixedConfig : public QWidget {
-  public:
-    FixedConfig(const EvrEventCodeTable& t) :
-      _code_table (t),
-      _readoutRate("Readout Rate", SeqConfigType::r120Hz, rateList)
-    { setLayout(_readoutRate.initialize(this)); }
-  public:
-    void update() { _readoutRate.update(); }
-    void flush () { _readoutRate.flush (); }
-    void push(void* to) const {
-      SeqConfigType::Source rate = _readoutRate.value;
-      SeqEntryType entry( _code_table.code_lookup(0),
-			  fiducials[rate] );
-      new(to) SeqConfigType( SeqConfigType::r0_5Hz,
-			     rate, 1, 0, &entry);
-    }
-  private:
-    const EvrEventCodeTable&          _code_table;
-    Enumerated<SeqConfigType::Source> _readoutRate;
-  };
-
-
   class DetailConfig : public QWidget {
   public:
     DetailConfig(const EvrEventCodeTable& t) :
@@ -148,25 +123,20 @@ SequencerConfig::~SequencerConfig()
 QLayout* SequencerConfig::initialize(QWidget*) {
   QHBoxLayout* hl = new QHBoxLayout;
   { QVBoxLayout* vl = new QVBoxLayout;
-    QRadioButton* fixed   = new QRadioButton("Fixed Rate");
     QRadioButton* detail  = new QRadioButton("Details");
     QRadioButton* disable = new QRadioButton("External");
-    fixed  ->setEnabled(Parameter::allowEdit());
     detail ->setEnabled(Parameter::allowEdit());
     disable->setEnabled(Parameter::allowEdit());
     _mode = new QButtonGroup;
-    _mode->addButton(fixed  ,Fixed);
     _mode->addButton(detail ,Detail);
     _mode->addButton(disable,External);
     vl->addStretch();
-    vl->addWidget(fixed);
     vl->addWidget(detail);
     vl->addWidget(disable);
     vl->addStretch();
     hl->addLayout(vl); }
   hl->addStretch();
   { _stack = new QStackedWidget;
-    _stack->addWidget(_fixed  = new FixedConfig (_code_table));
     _stack->addWidget(_detail = new DetailConfig(_code_table));
     _stack->addWidget(new QLabel("Sequencer configured externally"));
     hl->addWidget(_stack);
@@ -176,9 +146,9 @@ QLayout* SequencerConfig::initialize(QWidget*) {
   return hl;
 }
 
-void     SequencerConfig::update    () { _fixed->update(); _detail->update(); }
+void     SequencerConfig::update    () { _detail->update(); }
 
-void     SequencerConfig::flush     () { _fixed->flush (); _detail->flush (); }
+void     SequencerConfig::flush     () { _detail->flush (); }
 
 void     SequencerConfig::enable    (bool) {}
 
@@ -206,7 +176,6 @@ bool SequencerConfig::validate() {
 
   unsigned nentries;
   switch(_mode->checkedId()) {
-  case Fixed : nentries=1; break;
   case Detail: nentries=_detail->length(); break;
   case External: 
   default: nentries=0; break;
@@ -217,7 +186,6 @@ bool SequencerConfig::validate() {
              +nentries*sizeof(Pds::EvrData::SequencerEntry)];
 
   switch(_mode->checkedId()) {
-  case Fixed   : _fixed ->push(_config_buffer); break;
   case Detail  : _detail->push(_config_buffer); break;
   case External: // Disabled
     new(_config_buffer) SeqConfigType( SeqConfigType::Disable,
