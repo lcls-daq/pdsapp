@@ -54,7 +54,7 @@ void EvrStandAloneManager::configure() {
   for(unsigned i=0; i<npulses; i++) {
     printf("Configuring pulse %d  eventcode %d  delay %d  width %d  output %d\n",
            i, pulse[i].eventcode, pulse[i].delay, pulse[i].width, pulse[i].output);
-    _er.SetPulseMap(ram, pulse[i].eventcode, 0, -1, -1);
+    _er.SetPulseMap(ram, pulse[i].eventcode, i, -1, -1);
     _er.SetPulseProperties(i, 0, 0, 0, 1, 1);
     _er.SetPulseParams(i,1,pulse[i].delay,pulse[i].width);
     _er.SetUnivOutMap( pulse[i].output, i);
