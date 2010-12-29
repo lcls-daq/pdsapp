@@ -2,10 +2,30 @@
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evr evrstandalone evrsnoop acq opal1k epicsArch rceProxy encoder bld princeton ipimb lusidiag tm6740 pimimage fccd
+tgtnames    := 	evr \
+		evrstandalone \
+		evrsnoop \
+		acq \
+		opal1k \
+		epicsArch \
+		rceProxy \
+		encoder \
+		bld \
+		princeton \
+		ipimb \
+		lusidiag \
+		tm6740 \
+		pimimage \
+		fccd \
+		cspad
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
+
+tgtsrcs_cspad := cspad.cc
+tgtincs_cspad := csPad
+tgtlibs_cspad := $(commonlibs) pdsdata/cspaddata pds/csPad pds/pgp
+tgtslib_cspad := /usr/lib/rt
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
