@@ -10,7 +10,6 @@
 #include <stdio.h>
 
 using namespace PdsCas;
-using Pds_Epics::PVWriter;
 
 XppPim::XppPim(const char* pvbase, int detid) :
   Handler(Pds::DetInfo(-1,

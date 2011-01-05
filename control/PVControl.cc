@@ -26,6 +26,10 @@ typedef Pds::ControlData::PVControl PvType;
 
 namespace Pds {
 
+  //
+  //  Class that issues the channel access 'get' and 'put' following
+  //  a successful (asynchronous) connection.
+  //
   class ControlCA : public Pds_Epics::EpicsCA {
   public:
     ControlCA(PVControl& control,
@@ -45,10 +49,15 @@ namespace Pds {
         _runnable=false;
         _control.channel_changed();
       }
+      if (c)
+        _channel.get();
     }
     void  getData     (const void* dbr) 
     {
+      //  Read the array
       Pds_Epics::EpicsCA::getData(dbr);
+
+      //  Overwrite the elements we control
       int nelem = _channel.nelements();
       switch(_channel.type()) {
         handle_type(DBR_TIME_SHORT , dbr_time_short , dbr_short_t ) break;
@@ -58,9 +67,14 @@ namespace Pds {
         handle_type(DBR_TIME_DOUBLE, dbr_time_double, dbr_double_t) break;
       default: printf("Unknown type %d\n", int(_channel.type())); break;
       }
+
+      //  Flush the new values
+      _channel.put_cb();
+      ca_flush_io();
     }
     void  putStatus   (bool s) 
     { 
+      printf("PVControl::putStatus %c\n",s ?'t':'f');
       if (s!=_runnable) { 
 	_runnable=s; 
 	_control.channel_changed(); 

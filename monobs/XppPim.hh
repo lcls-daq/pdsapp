@@ -2,9 +2,10 @@
 #define PdsCas_XppPim_hh
 
 #include "pdsapp/monobs/Handler.hh"
+#include "pds/epicstools/PVWriter.hh"
 #include "pds/service/Semaphore.hh"
 
-namespace Pds_Epics { class PVWriter; }
+using Pds_Epics::PVWriter;
 
 namespace PdsCas {
   class XppPim : public Handler {
@@ -22,7 +23,7 @@ namespace PdsCas {
     enum { PVNAMELEN=32 };
     char _pvName[PVNAMELEN];
     bool _initialized;
-    Pds_Epics::PVWriter*  _valu_writer;
+    PVWriter*  _valu_writer;
   };
 };
 

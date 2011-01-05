@@ -2,13 +2,13 @@
 #define PdsCas_SxrSpectrum_hh
 
 #include "pdsapp/monobs/Handler.hh"
+#include "pds/epicstools/PVWriter.hh"
+#include "pds/epicstools/PVMonitor.hh"
 #include "pds/epicstools/PVMonitorCb.hh"
 #include "pds/service/Semaphore.hh"
 
-namespace Pds_Epics { 
-  class PVWriter; 
-  class PVMonitor;
-}
+using Pds_Epics::PVWriter;
+using Pds_Epics::PVMonitor;
 
 namespace PdsCas {
   class SxrSpectrum : public Handler,
@@ -26,6 +26,8 @@ namespace PdsCas {
     virtual void    update_pv ();
   public:
     virtual void    updated   ();
+  private:
+    void _update_pv ();
   private:
     const char* _pvName;
     enum { MaxPixels=1024 };

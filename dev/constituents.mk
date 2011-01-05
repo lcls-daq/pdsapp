@@ -16,8 +16,8 @@ tgtnames    := 	evr \
 		lusidiag \
 		tm6740 \
 		pimimage \
-		fccd \
-		cspad
+		fccd
+#		cspad
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 

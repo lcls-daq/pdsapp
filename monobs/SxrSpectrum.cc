@@ -1,6 +1,4 @@
 #include "pdsapp/monobs/SxrSpectrum.hh"
-#include "pds/epicstools/PVWriter.hh"
-#include "pds/epicstools/PVMonitor.hh"
 
 #include "pds/camera/FrameType.hh"
 
@@ -157,11 +155,15 @@ void   SxrSpectrum::_event    (const void* payload, const Pds::ClockTime& t)
   }
   _nev++;
   _sem.give();
+
+  _update_pv();
 }
 
 void   SxrSpectrum::_damaged  () {}
 
-void    SxrSpectrum::update_pv() 
+void    SxrSpectrum::update_pv() {}
+
+void    SxrSpectrum::_update_pv() 
 {
   double* v = reinterpret_cast<double*>(_valu_writer->data());
   if (!v) {
