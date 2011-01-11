@@ -3,9 +3,9 @@
 
 import struct
 
-DetInfo = '14000a00'
+DetInfo = '20000a00'
 
-TypeId  = '0001001d'
+TypeId  = '0002001d'
 
 class DigitalPotsCfg:
     def __init__(self):

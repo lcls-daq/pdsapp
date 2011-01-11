@@ -114,8 +114,7 @@ void Pds::Seg::attached( SetOfStreams& streams )
           _platform);
       
    Stream* frmk = streams.stream(StreamParams::FrameWork);
-   CspadManager& cspadMgr = * new CspadManager( _cspadServer,
-                                                      _cfg );
+   CspadManager& cspadMgr = * new CspadManager( _cspadServer );
    cspadMgr.appliance().connect( frmk->inlet() );
 }
 
@@ -151,10 +150,12 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: cspad [-h] [-d <detector>] [-i <deviceID>] -p <platform>\n"
+  printf( "Usage: cspad [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] -p <platform>\n"
       "    -h      Show usage\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
       "    -i      Set device id             [Default: 0]\n"
+      "    -m      Set config mask           [Default: 0]\n"
+      "    -D      Set debug value           [Default: 0]\n"
       "    -p      Set platform id           [required]\n"
       "            NB, if you can't remember the detector names\n"
       "            just make up something and it'll list them\n"
@@ -167,10 +168,11 @@ int main( int argc, char** argv )
   int                 deviceId            = 0;
   unsigned            platform            = 0;
   unsigned            mask                = 0;
+  unsigned            debug               = 0;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:D:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -199,6 +201,9 @@ int main( int argc, char** argv )
             break;
          case 'm':
            mask = strtoul(optarg, NULL, 0);
+           break;
+         case 'D':
+           debug = strtoul(optarg, NULL, 0);
            break;
          case 'h':
            printUsage(argv[0]);
@@ -232,6 +237,7 @@ int main( int argc, char** argv )
                     deviceId );
    cfgService = new CfgClientNfs(detInfo);
    cspadServer = new CspadServer(detInfo, mask);
+   cspadServer->debug(debug);
 
    MySegWire settings(cspadServer);
 
