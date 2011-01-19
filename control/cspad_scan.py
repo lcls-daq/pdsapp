@@ -31,6 +31,13 @@ if __name__ == "__main__":
 
     s.connect((options.host,options.port))
 
+    print 'host', options.host
+    print 'port', options.port
+    print 'parameter', options.parameter
+    print 'range', options.range
+    print 'steps', options.steps
+    print 'events', options.events
+    
 #
 #  First, get the current configuration key in use and set the value to be used
 #
