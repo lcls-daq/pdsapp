@@ -176,10 +176,23 @@ void NumericFloat<T>::enable(bool v)
 }
 
 template <class T>
-Enumerated<T>::Enumerated(const char* label, T val, const char** strlist) :
+Enumerated<T>::Enumerated(const char* label, T val,
+                          const char** strlist) :
   Parameter(label),
   value (val),
-  labels(strlist)
+  labels(strlist),
+  values(0)
+{
+}
+
+template <class T>
+Enumerated<T>::Enumerated(const char* label, T val, 
+                          const char** strlist,
+                          const T*     vallist) :
+  Parameter(label),
+  value (val),
+  labels(strlist),
+  values(vallist)
 {
 }
 
@@ -197,8 +210,13 @@ QLayout* Enumerated<T>::initialize(QWidget* parent)
   if (allowEdit()) {
     layout->addWidget(_input = new QComboBox(parent));
     int k=0;
-    while( labels[k] )
-      _input->addItem(labels[k++]);
+    while( labels[k] ) {
+      if (values) 
+        _input->addItem(labels[k],values[k]);
+      else
+        _input->addItem(labels[k]);
+      k++;
+    }
     flush();
   }
   else {
@@ -214,16 +232,31 @@ template <class T>
 void Enumerated<T>::update()
 {
   if (allowEdit())
-    value = (T)_input->currentIndex();
+    if (values)
+      value = (T)_input->itemData(_input->currentIndex()).toInt();
+    else
+      value = (T)_input->currentIndex();
 }
 
 template <class T>
 void Enumerated<T>::flush()
 {
-  if (allowEdit())
-    _input->setCurrentIndex(value);
-  else
-    _display->setText(labels[value]);
+  if (allowEdit()) {
+    if (values)
+      _input->setCurrentIndex(_input->findData(value));
+    else
+      _input->setCurrentIndex(value);
+  }
+  else {
+    if (values)
+      for(unsigned i=0; labels[i]; i++)
+        if (values[i]==value) {
+          _display->setText(labels[i]);
+          break;
+        }
+    else
+      _display->setText(labels[value]);
+  }
 }
 
 template <class T>

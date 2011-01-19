@@ -102,6 +102,7 @@ namespace Pds_ConfigDb {
   class Enumerated : public Parameter {
   public:
     Enumerated(const char* label, T val, const char** strlist);
+    Enumerated(const char* label, T val, const char** strlist, const T* vals);
     ~Enumerated();
 
     QLayout* initialize(QWidget*);
@@ -113,6 +114,7 @@ namespace Pds_ConfigDb {
     const char** labels;
     QComboBox*   _input;
     QLabel*      _display;
+    const T*     values;
   };
 
   class TextParameter : public Parameter {

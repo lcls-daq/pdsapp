@@ -44,7 +44,7 @@ if __name__ == "__main__":
     data.setevents(0)
     data.addcontrol(DaqScan.ControlPV('EXAMPLEPV1',0))
     data.addcontrol(DaqScan.ControlPV('EXAMPLEPV2',0))
-    data.addmonitor(DaqScan.MonitorPV('BEAM:LCLS:ELEC:Q',options.qbeam,1.))
+#    data.addmonitor(DaqScan.MonitorPV('BEAM:LCLS:ELEC:Q',options.qbeam,1.))
     data.send(s)
 #
 #  Wait for the DAQ to declare 'configured'
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         data.setevents(options.events)
         data.addcontrol(DaqScan.ControlPV('EXAMPLEPV1',cycle))
         data.addcontrol(DaqScan.ControlPV('EXAMPLEPV2',100-cycle))
-        data.addmonitor(DaqScan.MonitorPV('BEAM:LCLS:ELEC:Q',options.qbeam,1.))
+#        data.addmonitor(DaqScan.MonitorPV('BEAM:LCLS:ELEC:Q',options.qbeam,1.))
 
         print "Cycle ", cycle
         data.send(s)

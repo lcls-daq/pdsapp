@@ -51,7 +51,8 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case Evr          : type = &_evrConfigType;       break;
   case EvrIO        : type = &_evrIOConfigType;     break;
     //  case Sequencer    : type = &_seqConfigType;       break;
-  case Acq          : type = &_acqConfigType;       break;
+  case AcqADC       : type = &_acqConfigType;       break;
+  case AcqTDC       : type = &_acqTdcConfigType;    break;
   case Opal1k       : type = &_opal1kConfigType;    break;
   case Fccd         : type = &_fccdConfigType;      break;
   case TM6740       : type = &_tm6740ConfigType;    break;
@@ -78,6 +79,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_evrIOConfigType);
   //  test(_seqConfigType);
   test(_acqConfigType);
+  test(_acqTdcConfigType);
   test(_ipimbConfigType);
   test(_ipmFexConfigType);
   test(_diodeFexConfigType);
@@ -106,6 +108,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_evrIOConfigType);
   //  test(_seqConfigType);
   test(_acqConfigType);
+  test(_acqTdcConfigType);
   test(_ipimbConfigType);
   test(_ipmFexConfigType);
   test(_diodeFexConfigType);

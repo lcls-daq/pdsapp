@@ -175,6 +175,7 @@ namespace Pds_ConfigDb
         p += _evr[i]->push(p);
       }
       p += (new(p) EvrIOConfigType(Pds::EvrData::OutputMap::UnivIO, 0, 0))->size();
+      printf("EvrIOConfig push %d bytes\n",p - reinterpret_cast<char*>(to));
       return p - reinterpret_cast<char*>(to);
     }
 
@@ -189,7 +190,7 @@ namespace Pds_ConfigDb
   public:
     QLayout* initialize(QWidget* parent) 
     {
-      _nevr  = 0;
+      _nevr  = 1;
       _qlink = new EvrIOConfigQ(*this, parent);
 
       QVBoxLayout* l = new QVBoxLayout;

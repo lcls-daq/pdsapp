@@ -10,6 +10,7 @@
 #include "pdsapp/config/EvrConfig_V2.hh"
 #include "pdsapp/config/EvrConfig_V1.hh"
 #include "pdsapp/config/AcqConfig.hh"
+#include "pdsapp/config/AcqTdcConfig.hh"
 #include "pdsapp/config/IpimbConfig.hh"
 #include "pdsapp/config/IpmFexConfig.hh"
 #include "pdsapp/config/DiodeFexConfig.hh"
@@ -64,6 +65,7 @@ SerializerDictionary::SerializerDictionary()
 {
   enroll(_encoderConfigType   ,new EncoderConfig);
   enroll(_acqConfigType       ,new AcqConfig);
+  enroll(_acqTdcConfigType    ,new AcqTdcConfig);
   enroll(_evrConfigType       ,new EvrConfigP);
   enroll(_evrIOConfigType     ,new EvrIOConfig);
   enroll(_opal1kConfigType    ,new Opal1kConfig);

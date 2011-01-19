@@ -59,6 +59,7 @@ libsrcs_configdb += DiodeFexConfig.cc
 libsrcs_configdb += PimImageConfig.cc
 libsrcs_configdb += EncoderConfig.cc
 libsrcs_configdb += AcqConfig.cc
+libsrcs_configdb += AcqTdcConfig.cc
 libsrcs_configdb += Parameters.cc
 libsrcs_configdb += BitCount.cc
 libsrcs_configdb += templates.cc
