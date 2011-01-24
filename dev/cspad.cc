@@ -15,6 +15,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <signal.h>
+#include <new>
 
 namespace Pds
 {
@@ -81,14 +83,31 @@ Pds::MySegWire::MySegWire( CspadServer* cspadServer )
    _sources.push_back(cspadServer->client());
 }
 
+static Pds::InletWire* myWire = 0;
+
 void Pds::MySegWire::connect( InletWire& wire,
                               StreamParams::StreamType s,
                               int interface )
 {
    printf("Adding input of server, fd %d\n", _cspadServer->fd() );
    wire.add_input( _cspadServer );
+   myWire = &wire;
 }
 
+void sigHandler( int signal ) {
+  Pds::CspadServer* server = Pds::CspadServer::instance();
+  psignal( signal, "Signal received by CspadServer");
+  if (server != 0) {
+    if (myWire != 0) {
+      myWire->remove_input(server);
+    }
+    server->disable();
+    server->dumpFrontEnd();
+    server->die();
+  }
+  printf("Signal handler pulling the plug\n");
+  ::exit(signal);
+}
 
 Pds::Seg::Seg( Task* task,
                unsigned platform,
@@ -156,6 +175,15 @@ void printUsage(char* s) {
       "    -i      Set device id             [Default: 0]\n"
       "    -m      Set config mask           [Default: 0]\n"
       "    -D      Set debug value           [Default: 0]\n"
+      "                bit 00          label every fetch\n"
+      "                bit 01          label more, offest and count calls\n"
+      "                bit 02          fill in fetch details\n"
+      "                bit 03          label CspadL1Action::fire\n"
+      "                bit 04          print out FE config read only registers after config or record\n"
+      "                bit 05          label CspadServer enable and disable\n"
+      "                bit 08          turn on printing of FE concentrator status on\n"
+      "                bit 09          turn on printing of FE quad status\n"
+      "                "
       "    -p      Set platform id           [required]\n"
       "            NB, if you can't remember the detector names\n"
       "            just make up something and it'll list them\n"
@@ -169,6 +197,7 @@ int main( int argc, char** argv )
   unsigned            platform            = 0;
   unsigned            mask                = 0;
   unsigned            debug               = 0;
+  ::signal( SIGINT, sigHandler );
 
    extern char* optarg;
    int c;
