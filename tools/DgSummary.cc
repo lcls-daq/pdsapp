@@ -77,21 +77,20 @@ DgSummary::~DgSummary() { delete _bld; }
 Transition* DgSummary::transitions(Transition* tr) { return tr; }
 
 InDatagram* DgSummary::events     (InDatagram* dg) { 
-  if (dg->datagram().seq.service()==TransitionId::L1Accept) {
-    _out = new(&_dgpool) SummaryDg(dg->datagram());
-    if (dg->datagram().xtc.damage.value()) {
-      InDatagramIterator* it = dg->iterator(&_itpool);
-      iterate(dg->datagram().xtc, it);
-      delete it;
-    }
-    return _out;
-  }
-  else if (dg->datagram().seq.service()==TransitionId::Configure) {
+
+  if (dg->datagram().seq.service()==TransitionId::Configure) {
     InDatagramIterator* it = dg->iterator(&_itpool);
     _bld->discover(dg->datagram().xtc, it);
     delete it;
   }
-  return dg;
+
+  _out = new(&_dgpool) SummaryDg(dg->datagram());
+  if (dg->datagram().xtc.damage.value()) {
+    InDatagramIterator* it = dg->iterator(&_itpool);
+    iterate(dg->datagram().xtc, it);
+    delete it;
+  }
+  return _out;
 }
 
 int DgSummary::process(const Xtc& xtc, InDatagramIterator* iter)
