@@ -4,6 +4,7 @@
 #include <QtGui/QGroupBox>
 #include <QtGui/QCheckBox>
 #include <QtCore/QList>
+#include <QtCore/QString>
 
 #include "pds/collection/Node.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -26,6 +27,8 @@ namespace Pds {
     const Node&    node () const { return _node; }
     const DetInfo& det  () const { return _det; }
     bool           ready() const { return _ready; }
+  public:  // persistence
+    QString plabel() const;
   public:
     bool operator==(const NodeSelect&) const;
   private:
@@ -54,10 +57,11 @@ namespace Pds {
     NodeGroup*     freeze  ();
     bool           ready   () const;
   private:
-    QButtonGroup* _buttons;
+    QButtonGroup*  _buttons;
     QList<NodeSelect> _nodes;
-    QPalette*     _ready;
-    QPalette*     _notready;
+    QList<QString> _persist;
+    QPalette*      _ready;
+    QPalette*      _notready;
   };
 
 };

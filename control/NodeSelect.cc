@@ -16,6 +16,27 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent) :
   _ready    (new QPalette(Qt::green)),
   _notready(new QPalette(Qt::red))
 {
+  //  Read persistent selected nodes
+  char* buff = new char[256];
+  sprintf(buff,".%s",qPrintable(title()));
+  FILE* f = fopen(buff,"r");
+  if (f) {
+    printf("Opened %s\n",buff);
+    char* lptr=buff;
+    unsigned linesz;
+    while(getline(&lptr,&linesz,f)!=-1) {
+      QString p(lptr);
+      p.chop(1);  // remove new-line
+      _persist.push_back(p);
+      printf("Persist %s\n",qPrintable(p));
+    }
+    fclose(f);
+  }
+  else {
+    printf("Failed to open %s\n",buff);
+  }
+  delete[] buff;
+
   _buttons->setExclusive(false);
   setLayout(new QVBoxLayout(this)); 
   connect(this, SIGNAL(node_added(int)), 
@@ -47,7 +68,8 @@ void NodeGroup::add_node(int index)
 { 
   const NodeSelect& node = _nodes[index];
   QCheckBox* button = new QCheckBox(node.label(),this);
-  button->setCheckState(Qt::Checked);  // default to include
+  printf("Add node %s\n",qPrintable(node.plabel()));
+  button->setCheckState(_persist.contains(node.plabel()) ? Qt::Checked : Qt::Unchecked);
   button->setPalette( node.ready() ? *_ready : *_notready );
   _buttons->addButton(button,index); 
   QObject::connect(button, SIGNAL(clicked()), this, SIGNAL(list_changed()));
@@ -73,17 +95,35 @@ void NodeGroup::replace_node(int index)
 
 QList<Node> NodeGroup::selected() 
 {
+  _persist.clear();
   QList<Node> nodes;
   QList<QAbstractButton*> buttons = _buttons->buttons();
   foreach(QAbstractButton* b, buttons) {
     if (b->isChecked()) {
       int id = _buttons->id(b);
+      _persist.push_back(_nodes[id].plabel());
       if (_nodes[id].det().device()==DetInfo::Evr)
 	nodes.push_front(_nodes[id].node());
       else
 	nodes.push_back (_nodes[id].node());
     }
   }
+
+  //  Write persistent selected nodes
+  char* buff = new char[64];
+  sprintf(buff,".%s",qPrintable(title()));
+  FILE* f = fopen(buff,"w");
+  if (f) {
+    foreach(QString p, _persist) {
+      fprintf(f,"%s\n",qPrintable(p));
+    }
+    fclose(f);
+  }
+  else {
+    printf("Failed to open %s\n",buff);
+  }
+  delete[] buff;
+
   return nodes;
 }
 
@@ -193,5 +233,12 @@ NodeSelect::~NodeSelect()
 {
 }
 
-bool NodeSelect::operator==(const NodeSelect& n) const { return n._node == _node; }
+bool NodeSelect::operator==(const NodeSelect& n) const 
+{
+  return n._node == _node; 
+}
 
+QString NodeSelect::plabel() const
+{
+  return _label.mid(0,_label.lastIndexOf(':'));
+}
