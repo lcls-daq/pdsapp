@@ -27,7 +27,7 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent) :
     while(getline(&lptr,&linesz,f)!=-1) {
       QString p(lptr);
       p.chop(1);  // remove new-line
-      _persist.push_back(p);
+      _persist.push_back(p.replace('\t','\n'));
       printf("Persist %s\n",qPrintable(p));
     }
     fclose(f);
@@ -101,7 +101,7 @@ QList<Node> NodeGroup::selected()
   foreach(QAbstractButton* b, buttons) {
     if (b->isChecked()) {
       int id = _buttons->id(b);
-      _persist.push_back(_nodes[id].plabel());
+      _persist.push_back(_nodes[id].plabel().replace('\n','\t'));
       if (_nodes[id].det().device()==DetInfo::Evr)
 	nodes.push_front(_nodes[id].node());
       else
