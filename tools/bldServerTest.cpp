@@ -457,37 +457,42 @@ void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize )
 {
     const unsigned char* pcData       = (const unsigned char*) &vcBuffer[0];    
     
-    static int uFiducialPrev = -1;
-    int        uFiducialCurr = 0x1ffff & *(unsigned int*)&pcData[12];
+    static int iFiducialPrev     = -1;
+    static int iFiducialDiffPrev = -1;
+    int        iFiducialCurr     = 0x1ffff & *(unsigned int*)&pcData[12];
 
     static unsigned int iCount = 0;
     
-    if ( uFiducialPrev != -1 && uFiducialCurr > 3 && uFiducialCurr != uFiducialPrev + 3 )
+    if ( iFiducialPrev != -1 && iFiducialCurr > 3 )
     {
-      printf( "** Fiducial Prev 0x%x Curr 0x%x Diff 0x%x\n", uFiducialPrev, uFiducialCurr,
-        uFiducialCurr - uFiducialPrev );
+      int iFiducialDiffCurr = iFiducialCurr - iFiducialPrev;
+      
+      if ( iFiducialDiffCurr != iFiducialDiffPrev )      
+        printf( "** Fiducial Prev 0x%x Curr 0x%x Diff 0x%x\n", iFiducialPrev, iFiducialCurr,
+          iFiducialDiffCurr );
+          
+      iFiducialDiffPrev = iFiducialDiffCurr;
       fflush(NULL);
       fsync(1);
     }
     else if ( iCount == 0 )
     {
-      printf( "Fiducial Prev 0x%x Curr 0x%x Diff 0x%x\n", uFiducialPrev, uFiducialCurr,
-        uFiducialCurr - uFiducialPrev );
+      printf( "Fiducial Prev 0x%x Curr 0x%x\n", iFiducialPrev, iFiducialCurr);
       fflush(NULL);
       fsync(1);
     }
       
-    uFiducialPrev = uFiducialCurr;
+    iFiducialPrev = iFiducialCurr;
     
-    printf("Dumping Data (Data Size = %d):\n", iDataSize);
-    for (int i=0; i< iDataSize; i++)
-    {
-        if ( pcData[i] >= 32 && pcData[i] <= 126 )
-            printf( "%c", pcData[i] );
-        else
-            printf( "[%02d: %02X]", i, (unsigned int) pcData[i] );
-    }
-    printf("\n");
+    //printf("Dumping Data (Data Size = %d):\n", iDataSize);
+    //for (int i=0; i< iDataSize; i++)
+    //{
+    //    if ( pcData[i] >= 32 && pcData[i] <= 126 )
+    //        printf( "%c", pcData[i] );
+    //    else
+    //        printf( "[%02d: %02X]", i, (unsigned int) pcData[i] );
+    //}
+    //printf("\n");
     iCount = (iCount+1) % 1000;
 
 }

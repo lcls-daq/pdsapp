@@ -251,7 +251,7 @@ int main(int argc, char** argv) {
   char evrdev[16];
   sprintf(evrdev,"/dev/er%c3",*evrid);
   printf("Using evr %s\n",evrdev);
-  printf("Press Ctrl + C to exit thr program...\n" );
+  printf("Press Ctrl + C to exit the program...\n" );
 
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
   pEvrStandAloneManager = new EvrStandAloneManager(erInfo, opcodes);
