@@ -47,6 +47,7 @@ libsrcs_configdb += SequencerConfig.cc SequencerConfig_moc.cc
 libsrcs_configdb += CspadConfigTable_V1.cc 
 libsrcs_configdb += CspadConfig_V1.cc
 libsrcs_configdb += CspadSector.cc
+libsrcs_configdb += CspadGainMap.cc CspadGainMap_moc.cc
 libsrcs_configdb += CspadConfigTable.cc CspadConfigTable_moc.cc
 libsrcs_configdb += CspadConfig.cc
 libsrcs_configdb += ControlConfig.cc

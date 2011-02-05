@@ -10,6 +10,7 @@ class QButtonGroup;
 namespace Pds_ConfigDb
 {
   class CspadConfig;
+  class CspadGainMap;
   class GlobalP;
   class QuadP;
 
@@ -33,6 +34,7 @@ namespace Pds_ConfigDb
     Pds::LinkedList<Parameter> _pList;
     GlobalP*                   _globalP;
     QuadP*                     _quadP[4];
+    CspadGainMap*              _gainMap;
   };
 
   class CspadConfigTableQ : public QObject {

@@ -1,5 +1,6 @@
 #include "pdsapp/config/CspadConfigTable.hh"
 #include "pdsapp/config/CspadSector.hh"
+#include "pdsapp/config/CspadGainMap.hh"
 #include "pdsdata/cspad/ElementV1.hh"
 #include "pds/config/CsPadConfigType.hh"
 
@@ -159,9 +160,7 @@ namespace Pds_ConfigDb
       _compBias2       ( NULL, 0xc8, 0, 0xff, Decimal),
       _iss2            ( NULL, 0x3c, 0, 0xff, Decimal),
       _iss5            ( NULL, 0x25, 0, 0xff, Decimal),
-      _analogPrst      ( NULL, 0xfc, 0, 0xff, Decimal),
-      // gain map field
-      _gainMapValue    ( NULL, 1, 0, 1, Decimal)
+      _analogPrst      ( NULL, 0xfc, 0, 0xff, Decimal)
     {
     }
   public:
@@ -171,7 +170,7 @@ namespace Pds_ConfigDb
     void reset () 
     {
     }
-    void pull   (const Pds::CsPad::ConfigV1QuadReg& p) 
+    void pull   (const Pds::CsPad::ConfigV1QuadReg& p, Pds::CsPad::CsPadGainMapCfg* gm) 
     {
       for(int i=0; i<4; i++) {
 	_shiftSelect.value[i] = p.shiftSelect()[i];
@@ -201,9 +200,9 @@ namespace Pds_ConfigDb
       _iss2       .value = pots[44];
       _iss5       .value = pots[64];
 
-      _gainMapValue.value = *reinterpret_cast<const uint8_t*>(p.gm()->map()) ? 1 : 0;
+      memcpy(gm, p.gm(), sizeof(*p.gm()));
     }
-    void push   (Pds::CsPad::ConfigV1QuadReg* p) 
+    void push   (Pds::CsPad::ConfigV1QuadReg* p, Pds::CsPad::CsPadGainMapCfg* gm) 
     {
       *new(p) Pds::CsPad::ConfigV1QuadReg(_shiftSelect     .value,
 					  _edgeSelect      .value,
@@ -247,7 +246,7 @@ namespace Pds_ConfigDb
       for(uint8_t* end = pots+16; pots<end; pots++)
 	*pots = _iss5.value;
 
-      memset(p->gm(), _gainMapValue.value ? 0xff : 0, sizeof(*p->gm()));
+      memcpy(p->gm(), gm, sizeof(*p->gm()));
     }
   public:
     static void layoutHeader(QGridLayout* layout)
@@ -284,8 +283,6 @@ namespace Pds_ConfigDb
       ADDP("Iss2");
       ADDP("Iss5");
       ADDP("Analog Prst");
-      layout->addWidget(new QLabel("GainMap Fields"), row++, 1, 1, 4, ::Qt::AlignHCenter);
-      ADDP("Value");
 #undef ADDP
     }
 
@@ -319,7 +316,6 @@ namespace Pds_ConfigDb
       ADDP(_iss5);
       ADDP(_analogPrst);
       row++;
-      ADDP(_gainMapValue);
 #undef ADDP      
     }
 
@@ -348,7 +344,6 @@ namespace Pds_ConfigDb
       ADDP(_iss2);
       ADDP(_iss5);
       ADDP(_analogPrst);
-      ADDP(_gainMapValue);
 #undef ADDP
     }
 
@@ -377,8 +372,6 @@ namespace Pds_ConfigDb
     NumericInt<uint8_t> _iss2;
     NumericInt<uint8_t> _iss5;
     NumericInt<uint8_t> _analogPrst;
-      // gain map field
-    NumericInt<uint8_t> _gainMapValue;
   };
 };
 
@@ -389,6 +382,7 @@ CspadConfigTable::CspadConfigTable(const CspadConfig& c) :
   _cfg(c)
 {
   _globalP = new GlobalP;
+  _gainMap = new CspadGainMap;
   for(unsigned q=0; q<4; q++)
     _quadP[q] = new QuadP;
 }
@@ -402,6 +396,7 @@ void CspadConfigTable::insert(Pds::LinkedList<Parameter>& pList)
   pList.insert(this);
   
   _globalP->insert(_pList);
+  _gainMap->insert(_pList);
   for(unsigned q=0; q<4; q++)
     _quadP[q]->insert(_pList);
 }
@@ -411,7 +406,8 @@ int CspadConfigTable::pull(const void* from) {
 
   _globalP->pull(tc);
   for(unsigned q=0; q<4; q++)
-    _quadP[q]->pull(tc.quads()[q]);
+    _quadP[q]->pull(tc.quads()[q],_gainMap->quad(q));
+  _gainMap->flush();
 
   return sizeof(tc);
 }
@@ -420,9 +416,8 @@ int CspadConfigTable::push(void* to) const {
 
   CsPadConfigType& tc = *reinterpret_cast<CsPadConfigType*>(to);
   _globalP->push(&tc);
-
   for(unsigned q=0; q<4; q++)
-    _quadP[q]->push(&(tc.quads()[q]));
+    _quadP[q]->push(&(tc.quads()[q]),_gainMap->quad(q));
 
   return sizeof(tc);
 }
@@ -448,6 +443,10 @@ QLayout* CspadConfigTable::initialize(QWidget* parent)
     for(unsigned q=0; q<4; q++)
       _quadP[q]->initialize(parent,ql,q);
     layout->addLayout(ql); }
+  layout->addSpacing(40);
+  { QVBoxLayout* gl = new QVBoxLayout;
+    _gainMap->initialize(parent,gl);
+    layout->addLayout(gl); }
 
   return layout;
 }
