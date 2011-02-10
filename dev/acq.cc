@@ -159,15 +159,19 @@ int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
   unsigned detid = -1UL;
+  unsigned devid = 0;
   unsigned platform = -1UL;
   bool multi_instruments_only = true;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:tC")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:d:p:tC")) != EOF ) {
     switch(c) {
     case 'i':
       detid  = strtoul(optarg, NULL, 0);
+      break;
+    case 'd':
+      devid  = strtoul(optarg, NULL, 0);
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
@@ -198,13 +202,13 @@ int main(int argc, char** argv) {
 		      AcqFinder::MultiInstrumentsOnly :
 		      AcqFinder::All);
   for(int i=0; i<acqFinder.numD1Instruments();i++) {
-    DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::Acqiris, i);
+    DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::Acqiris, i+devid);
     AcqServer* srv = new AcqServer(detInfo,_acqDataType);
     servers   .push_back(srv);
     D1Managers.push_back(new AcqD1Manager(acqFinder.D1Id(i),*srv,*new CfgClientNfs(detInfo)));
   }
   for(int i=0; i<acqFinder.numT3Instruments();i++) {
-    DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::AcqTDC, i);
+    DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::AcqTDC, i+devid);
     AcqServer* srv = new AcqServer(detInfo,_acqTdcDataType);
     servers   .push_back(srv);
     T3Managers.push_back(new AcqT3Manager(acqFinder.T3Id(i),*srv,*new CfgClientNfs(detInfo)));

@@ -232,7 +232,10 @@ void Dialog::write()
     fclose(output);
   }
   else {
-    printf("Error opening %s : %s\n",buff,strerror(errno));
+    char msg[256];
+    sprintf(msg,"Error opening %s : %s",buff,strerror(errno));
+    printf("%s\n",msg);
+    QMessageBox::critical(this,"Save Error",msg);
   }
   delete[] buff;
   accept();
