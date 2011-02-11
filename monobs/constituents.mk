@@ -1,7 +1,7 @@
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
 tgtnames := monobs monshm monshmserver sxrmon xppmon cspadmon
 else
-tgtnames := monobs monshm monshmserver offlineobs sxrmon xppmon cspadmon
+tgtnames := monobs monshm monshmserver offlineobs sxrmon xppmon cspadmon alive_mon
 endif
 
 libnames := 
@@ -36,8 +36,8 @@ tgtlibs_common := pds/epicstools epics/ca epics/Com
 #tgtsrcs_common := Handler.cc ShmClient.cc EpicsCA.cc
 #tgtlibs_common := pds/epicstools epics/ca epics/Com
 
-tgtsrcs_sxrmon := sxrmon.cc SxrSpectrum.cc $(tgtsrcs_common)
-tgtlibs_sxrmon := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/appdata
+tgtsrcs_sxrmon := sxrmon.cc SxrSpectrum.cc IpimbHandler.cc $(tgtsrcs_common)
+tgtlibs_sxrmon := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/ipimbdata pdsdata/appdata
 tgtlibs_sxrmon += pds/service
 tgtlibs_sxrmon += $(tgtlibs_common)
 tgtslib_sxrmon := $(USRLIBDIR)/rt
@@ -57,3 +57,8 @@ tgtlibs_cspadmon += pds/service
 tgtlibs_cspadmon += $(tgtlibs_common)
 tgtslib_cspadmon := $(USRLIBDIR)/rt
 tgtincs_cspadmon := epics/include epics/include/os/Linux
+
+tgtsrcs_alive_mon := alive_mon.cc
+tgtlibs_alive_mon := pdsdata/xtcdata pdsdata/appdata
+tgtlibs_alive_mon += pds/service
+tgtslib_alive_mon := $(USRLIBDIR)/rt

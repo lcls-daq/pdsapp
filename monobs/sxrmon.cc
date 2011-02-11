@@ -1,5 +1,7 @@
 #include "pdsapp/monobs/ShmClient.hh"
 #include "pdsapp/monobs/SxrSpectrum.hh"
+#include "pdsapp/monobs/IpimbHandler.hh"
+#include "pdsdata/xtc/DetInfo.hh"
 
 using namespace PdsCas;
 
@@ -47,5 +49,9 @@ int main(int argc, char* argv[])
   }
   
   client.insert(new SxrSpectrum(pvName,detinfo));
+  client.insert(new IpimbHandler("SXR:USR:DAQ",
+                                 Pds::DetInfo(-1, 
+                                              Pds::DetInfo::SxrBeamline, 0,
+                                              Pds::DetInfo::Ipimb,1)));
   fprintf(stderr, "client returned: %d\n", client.start());
 }
