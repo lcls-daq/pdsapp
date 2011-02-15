@@ -24,6 +24,8 @@ if __name__ == "__main__":
                       help="run N parameter steps", metavar="N")
     parser.add_option("-e","--events",dest="events",type="int",default=105,
                       help="record N events/cycle", metavar="N")
+    parser.add_option("-l","--limit",dest="limit",type="int",default=10000,
+                      help="limit number of configs to less than number of steps", metavar="N")
     
     (options, args) = parser.parse_args()
         
@@ -37,6 +39,9 @@ if __name__ == "__main__":
     print 'range', options.range
     print 'steps', options.steps
     print 'events', options.events
+    if options.steps<options.limit : options.limit = options.steps
+    else : print 'Warning, range will be covered in ', options.limit, \
+         ' but will still do ', options.steps, ' steps with wrapping'
     
 #
 #  First, get the current configuration key in use and set the value to be used
@@ -57,16 +62,16 @@ if __name__ == "__main__":
     newxtc = cdb.remove_xtc(newkey,Cspad.DetInfo,Cspad.TypeId)
 
     f = open(newxtc,'w')
-    value = options.range[0]
-    step  = (options.range[1]-options.range[0])/options.steps
-    for cycle in range(options.steps+1):
+    extent = options.range[1]-options.range[0]
+    for cycle in range(options.limit+1):
+        value = ((cycle*extent)/options.limit) + options.range[0]
         if options.parameter=='runDelay':
             cspad.runDelay = value
         elif options.parameter=='intTime':
             for q in range(4):
                 cspad.quads[q].intTime=value
+#        print cycle, " ", options.parameter, " ", value
         cspad.write(f)
-        value = value + step
     f.close()
 
 #
@@ -97,21 +102,21 @@ if __name__ == "__main__":
 #  
     ready = raw_input('--Hit Enter when Ready-->')
 
-    value = options.range[0]
-    step  = (options.range[1]-options.range[0])/options.steps
-    for cycle in range(options.steps+1):
+    lastStep = 0
+    if options.limit==options.steps : lastStep = 1
+
+    for cycle in range(options.steps+lastStep):
         data = DaqScan.DAQData()
         data.setevents(options.events)
+        value = (((cycle%(options.limit+1))*extent)/options.limit) + options.range[0]
         data.addcontrol(DaqScan.ControlPV(options.parameter,value))
 
-        print "Cycle ", cycle
+        print "Cycle ", cycle, " ", options.parameter, " value ", value
         data.send(s)
 
         result = DaqScan.DAQStatus(s)  # wait for enabled , then enable the EVR sequence
 
         result = DaqScan.DAQStatus(s)  # wait for disabled, then disable the EVR sequence
-
-        value = value + step
         
 #
 #  Wait for the user to declare 'done'
