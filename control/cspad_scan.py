@@ -40,8 +40,8 @@ if __name__ == "__main__":
     print 'steps', options.steps
     print 'events', options.events
     if options.steps<options.limit : options.limit = options.steps
-    else : print 'Warning, range will be covered in ', options.limit, \
-         ' but will still do ', options.steps, ' steps with wrapping'
+    else : print 'Warning, range will be covered in', options.limit, \
+         'but will still do', options.steps, 'steps with wrapping'
     
 #
 #  First, get the current configuration key in use and set the value to be used
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         value = (((cycle%(options.limit+1))*extent)/options.limit) + options.range[0]
         data.addcontrol(DaqScan.ControlPV(options.parameter,value))
 
-        print "Cycle ", cycle, " ", options.parameter, " value ", value
+        print "Cycle", cycle, "-", options.parameter, "=", value
         data.send(s)
 
         result = DaqScan.DAQStatus(s)  # wait for enabled , then enable the EVR sequence
