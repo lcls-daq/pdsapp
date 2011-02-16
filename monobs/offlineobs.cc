@@ -7,7 +7,6 @@
 #include "pds/offlineclient/OfflineClient.hh"
 #include "OfflineAppliance.hh"
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -104,13 +103,18 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (platform == -1UL || !partition || !experiment_name || !offlinerc) {
+  if (platform == -1UL || !partition || !offlinerc) {
     fprintf(stderr, "Missing parameters!\n");
     usage(argv[0]);
     return 1;
   }
 
-  offlineclient = new OfflineClient(offlinerc, partition, experiment_name);
+  if (!experiment_name) {
+    offlineclient = new OfflineClient(offlinerc, partition);
+  }
+  else {
+    offlineclient = new OfflineClient(offlinerc, partition, experiment_name);
+  }
 
   app = new OfflineAppliance(offlineclient, parm_list_file);
   if (app) {

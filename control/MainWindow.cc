@@ -173,11 +173,15 @@ MainWindow::MainWindow(unsigned          platform,
 
   if (offlinerc) {
     // offline database
-    _offlineclient = new OfflineClient(offlinerc, partition, experiment);
+    if (experiment) {
+      _offlineclient = new OfflineClient(offlinerc, partition, experiment);
+    }
+    else {
+      _offlineclient = new OfflineClient(offlinerc, partition);
+    }
     _runallocator = new MySqlRunAllocator(_offlineclient);
     experiment_number = _offlineclient->GetExperimentNumber();
     _control->set_experiment(experiment_number);
-    printf("MainWindow(): GetExperimentNumber() returned %u\n", experiment_number);
   } else {
     _runallocator = new RunAllocator;
     // NULL offline database
