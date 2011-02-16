@@ -241,7 +241,7 @@ InDatagram* RemoteSeqApp::events     (InDatagram* dg)
       }
     }
     else if (id==TransitionId::Enable ||
-	     id==TransitionId::Disable)
+	     id==TransitionId::EndCalibCycle)
       ::write(_socket,&id,sizeof(id));
   }
   return dg;
