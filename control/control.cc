@@ -54,10 +54,9 @@ int main(int argc, char** argv)
       break;
     }
   }
-  if ((platform==-1UL || !partition || !dbpath) ||
-      (offlinerc && !experiment) || (!offlinerc && experiment)) {
+  if ((platform==-1UL || !partition || !dbpath) || (!offlinerc && experiment)) {
     printf("usage: %s -p <platform> -P <partition_description> -D <db name> [-b <bld>]\n"
-           "             [-L <offlinerc> -E <experiment_name>]\n", argv[0]);
+           "             [-L <offlinerc>] [-E <experiment_name>]\n", argv[0]);
     return 0;
   }
 
