@@ -82,8 +82,10 @@ namespace Pds {
     Occurrence* occurrences(Occurrence* occ)
     { if (occ->id()==OccurrenceId::UserMessage)
 	_w.insert_message(static_cast<UserMessage*>(occ)->msg());
-      else if (occ->id()==OccurrenceId::ClearReadout) 
-        _w.insert_message("Detector out-of-order.\nShutdown and Select/Allocate.\n");
+      else if (occ->id()==OccurrenceId::ClearReadout) {
+        _w.insert_message("Detector out-of-order.\n  Shutting down.\n  Allocate/Run to continue");
+        _w.require_shutdown();
+      }
       return occ; 
     }
   private:
@@ -147,6 +149,20 @@ namespace Pds {
     unsigned    _experiment;
   };
 
+  class ShutdownTest : public Appliance {
+  public:
+    ShutdownTest(QualifiedControl& c) : _c(c) {}
+    ~ShutdownTest() {}
+  public:
+    Transition* transitions(Transition* tr) 
+    { if (tr->id()==TransitionId::Unmap)
+        _c.enable(PartitionControl::Mapped,true);
+      return tr; }
+    InDatagram* events     (InDatagram* dg) { return dg; }
+  private:
+    QualifiedControl& _c;
+  };
+
 };
 
 using namespace Pds;
@@ -202,6 +218,7 @@ MainWindow::MainWindow(unsigned          platform,
   //  the order matters
   _controlcb->add_appliance(run);    // must be first
   //  _controlcb->add_appliance(new Decoder(Level::Control));
+  _controlcb->add_appliance(new ShutdownTest(*_control));
   _controlcb->add_appliance(new ControlDamage(*this));
   _controlcb->add_appliance(new FileReport(*_log));
   _controlcb->add_appliance(state);
@@ -308,8 +325,9 @@ void MainWindow::transition_damaged(const InDatagram& dg)
 
 
   if (dg.datagram().xtc.damage.value() & (1<<Pds::Damage::UserDefined)) {
-    msg += QString("\n  Need to restart DAQ");
+    msg += QString("\n  Shutting down.\n  Fix and Allocate again.");
     emit message_received(msg,true);
+    require_shutdown();
   }
   else
     emit message_received(msg,false);
@@ -341,6 +359,14 @@ void MainWindow::handle_message(const QString& msg, bool critical)
     QMessageBox::critical(this, "DAQ Control Error", msg);
 }
 
+void MainWindow::require_shutdown()
+{
+  //  _control->enable(PartitionControl::Mapped,false);
+  //
+  //  Perform a shutdown
+  //
+  _control->set_target_state(PartitionControl::Unmapped);
+}
 
 //
 // In the slot functions connected to the QSocket::activated signals,

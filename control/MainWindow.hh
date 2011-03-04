@@ -48,6 +48,7 @@ namespace Pds {
     void transition_damaged(const InDatagram&);
     void insert_message(const char*);
     void platform_error();
+    void require_shutdown();
   private:
     friend class ControlTimeout;
     CCallback*        _controlcb;
