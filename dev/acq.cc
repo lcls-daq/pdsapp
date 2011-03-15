@@ -8,6 +8,7 @@
 #include "pds/utility/SegWireSettings.hh"
 #include "pds/utility/InletWire.hh"
 #include "pds/service/VmonSourceId.hh"
+#include "pds/service/Semaphore.hh"
 #include "pds/service/Task.hh"
 #include "pds/client/Fsm.hh"
 #include "pds/client/Action.hh"
@@ -201,17 +202,18 @@ int main(int argc, char** argv) {
   AcqFinder acqFinder(multi_instruments_only ? 
 		      AcqFinder::MultiInstrumentsOnly :
 		      AcqFinder::All);
+  Semaphore sem(Semaphore::FULL);
   for(int i=0; i<acqFinder.numD1Instruments();i++) {
     DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::Acqiris, i+devid);
     AcqServer* srv = new AcqServer(detInfo,_acqDataType);
     servers   .push_back(srv);
-    D1Managers.push_back(new AcqD1Manager(acqFinder.D1Id(i),*srv,*new CfgClientNfs(detInfo)));
+    D1Managers.push_back(new AcqD1Manager(acqFinder.D1Id(i),*srv,*new CfgClientNfs(detInfo),sem));
   }
   for(int i=0; i<acqFinder.numT3Instruments();i++) {
     DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::AcqTDC, i+devid);
     AcqServer* srv = new AcqServer(detInfo,_acqTdcDataType);
     servers   .push_back(srv);
-    T3Managers.push_back(new AcqT3Manager(acqFinder.T3Id(i),*srv,*new CfgClientNfs(detInfo)));
+    T3Managers.push_back(new AcqT3Manager(acqFinder.T3Id(i),*srv,*new CfgClientNfs(detInfo),sem));
   }
   
   Task* task = new Task(Task::MakeThisATask);
