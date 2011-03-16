@@ -19,6 +19,10 @@ public:
 
 private:
   int _openOutputFile(bool verbose);
+  int _postDataFileError();
+  int _writeOutputFile(const void *ptr, size_t size, size_t nmemb);
+  int _flushOutputFile();
+  int _closeOutputFile();
   int _renameOutputFile(bool verbose);
   int _renameOutputFile(int run, bool verbose);
   int _renameFile(char *oldName, char *newName, bool verbose);
@@ -34,6 +38,7 @@ private:
   unsigned int _sliceID;
   unsigned _beginrunerr;
   bool     _path_error;
+  bool     _write_error;
   enum { SizeofName=512 };
   char     _fname[SizeofName];
   char     _fnamerunning[SizeofName];

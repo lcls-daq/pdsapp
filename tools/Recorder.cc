@@ -42,11 +42,12 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) :
   _sliceID (sliceID),
   _beginrunerr(0),
   _path_error(false),
+  _write_error(false),
   _chunk(0),
   _chunkSize(chunkSize),
   _experiment(0),
   _run(0),
-  _occPool(new GenericPool(sizeof(DataFileOpened),4))
+  _occPool(new GenericPool(sizeof(DataFileOpened),5))
 {
   struct stat st;
 
@@ -94,40 +95,57 @@ InDatagram* Recorder::events(InDatagram* in) {
       in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
       _beginrunerr=0;
     }
+    _write_error=false;
   default:  // write this transition
     if (_f) {
       struct stat st;
-      fwrite(&(in->datagram()),sizeof(in->datagram()),1,_f);
-      { struct iovec iov;
+      if (_writeOutputFile(&(in->datagram()),sizeof(in->datagram()),1) != 0) {
+        // error
+        in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
+      } else {
+        struct iovec iov;
         int rv;
         int remaining = in->datagram().xtc.sizeofPayload();
         while(remaining) {
           int isize = iter->read(&iov,1,remaining);
-          fwrite(iov.iov_base,iov.iov_len,1,_f);
+          if (_writeOutputFile(iov.iov_base,iov.iov_len,1) != 0) {
+            // error
+            in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
+            break;
+          }
           remaining -= isize;
         }
         if ((rv = fstat(fileno(_f), &st)) != 0) {
           perror("fstat");
+          // error
+          in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
         }
         if ((0 == rv) && ((uint64_t)st.st_size >= _chunkSize)) {
           // chunking: close the current output file and open the next one
           ++_chunk;     // should _chunk have an upper limit?
-          fclose(_f);
+          if (_closeOutputFile() != 0) {
+            // error
+            in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
+          }
           if (_openOutputFile(true) != 0) {
             in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
           }
         }
         else {
           // flush the current output file
-          fflush(_f);
+          if (_flushOutputFile() != 0) {
+            // error
+            in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
+          }
         }
       }
     }
     break;
   }
   if (in->datagram().seq.service()==TransitionId::EndRun) {
-    if (_f) {
-      fclose(_f);
+    if (_f && (_closeOutputFile() != 0)) {
+      // error
+      in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
     }
     _f = 0;
   }
@@ -179,9 +197,11 @@ Transition* Recorder::transitions(Transition* tr) {
           _beginrunerr++;
         }
         else {
-          fwrite(_config, sizeof(Datagram) + 
-             reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1,
-             _f);
+          if (_writeOutputFile(_config, sizeof(Datagram) + 
+              reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1) != 0) {
+            // error
+            _beginrunerr++;
+          }
         }
       }
     }
@@ -239,3 +259,85 @@ int Recorder::_openOutputFile(bool verbose) {
   return rv;
 }
 
+//
+// Recorder::_postDataFileError -
+//
+// RETURNS: 0
+//
+int Recorder::_postDataFileError()
+{
+  // use flag to avoid flood of occurrences
+  if (!_write_error) {
+    _write_error = true;
+    post(new(_occPool) DataFileError(_experiment,_run,_sliceID,_chunk));
+  }
+  return (0);
+}
+
+//
+// Recorder::_writeOutputFile - write output file
+//
+// RETURNS: 0 on success, otherwise -1.
+//
+int Recorder::_writeOutputFile(const void *ptr, size_t size, size_t nmemb) {
+  int rv = -1;
+
+  if (_f) {
+    if (fwrite(ptr, size, nmemb, _f) == nmemb) {
+      // success
+      rv = 0;
+    } else {
+      // error
+      perror("fwrite");
+      _postDataFileError();
+    }
+  }
+
+  return (rv);
+}
+
+//
+// Recorder::_flushOutputFile - flush output file
+//
+// RETURNS: 0 on success, otherwise -1.
+//
+
+int Recorder::_flushOutputFile() {
+  int rv = -1;
+
+  if (_f) {
+    if (fflush(_f) == 0) {
+      // success
+      rv = 0;
+    } else {
+      // error
+      perror("fflush");
+      _postDataFileError();
+    }
+  }
+
+  return (rv);
+}
+
+//
+// Recorder::_closeOutputFile - close output file
+//
+// RETURNS: 0 on success, otherwise -1.
+//
+
+int Recorder::_closeOutputFile() {
+  int rv = -1;
+
+  if (_f) {
+    if (fclose(_f) == 0) {
+      // success
+      rv = 0;
+    } else {
+      // error
+      perror("fclose");
+      _postDataFileError();
+    }
+  }
+
+  return (rv);
+}

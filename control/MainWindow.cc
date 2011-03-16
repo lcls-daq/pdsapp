@@ -28,6 +28,7 @@
 #include <QtCore/QTime>
 
 #include <stdlib.h>
+#include <string.h>
 
 // forward declaration
 static int setup_unix_signal_handlers();
@@ -85,6 +86,14 @@ namespace Pds {
       else if (occ->id()==OccurrenceId::ClearReadout) {
         _w.insert_message("Detector out-of-order.\n  Shutting down.\n  Allocate/Run to continue");
         _w.require_shutdown();
+      } else if (occ->id() == OccurrenceId::DataFileError) {
+        char msg[256];
+        const DataFileError& dfe = *static_cast<const DataFileError*>(occ);
+        snprintf(msg, sizeof(msg), "Error writing e%d-r%04d-s%02d-c%02d.xtc.\n"
+                "  Shutting down.\n  Fix and Allocate again.",
+                dfe.expt, dfe.run, dfe.stream, dfe.chunk);
+        _w.insert_message(msg);
+        _w.require_shutdown();
       }
       return occ; 
     }
@@ -133,13 +142,13 @@ namespace Pds {
     Occurrence* occurrences(Occurrence* occ) 
     {
       if (occ->id() == OccurrenceId::DataFileOpened) {
-	const DataFileOpened& dfo = *static_cast<const DataFileOpened*>(occ);
-	char fname[256];
-	sprintf(fname, "e%d-r%04d-s%02d-c%02d.xtc", 
-		dfo.expt, dfo.run, dfo.stream, dfo.chunk);
-	_log.appendText(QString("%1: Opened data file %2")
-			.arg(QTime::currentTime().toString("hh:mm:ss"))
-			.arg(fname));
+        char fname[256];
+        const DataFileOpened& dfo = *static_cast<const DataFileOpened*>(occ);
+        sprintf(fname, "e%d-r%04d-s%02d-c%02d.xtc", 
+                dfo.expt, dfo.run, dfo.stream, dfo.chunk);
+                _log.appendText(QString("%1: Opened data file %2")
+                .arg(QTime::currentTime().toString("hh:mm:ss"))
+                .arg(fname));
       }
       return occ; 
     }
