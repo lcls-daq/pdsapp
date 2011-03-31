@@ -100,6 +100,7 @@ private:
 	    CsPad::ElementIterator iter(cfg, *xtc);
 
 	    // Copy the xtc header
+            uint32_t* pwrite = _pwrite;
 	    xtc->contains = TypeId(TypeId::Id_CspadElement,CsPad::ElementV2::Version);
 	    _write(xtc, sizeof(Xtc));
 
@@ -119,6 +120,8 @@ private:
 	      //  Copy the quadrant trailer
 	      _write(reinterpret_cast<const uint16_t*>(end+1)-2,2*sizeof(uint16_t));
 	    }
+            //  Update the extent of the container
+            reinterpret_cast<Xtc*>(pwrite)->extent = (_pwrite-pwrite)*sizeof(uint32_t);
 	    return;
 	  }
       }
