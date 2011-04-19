@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   unsigned detid = -1UL;
   unsigned cpuid = -1UL;
-  unsigned platform = 0;
+  unsigned platform = -1UL;
   unsigned nboards = 1;
   int baselineSubtraction = 1;
   FILE *fp = NULL;
@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
     rewind(fp);
   }
 
-  if ((!platform) || ((detid == -1UL) && !fp)) {
+  if ((platform == -1UL) || ((detid == -1UL) && !fp)) {
     printf("Platform and detid or DetInfo file required\n");
     printf("Usage: %s -i <detid> | -f <fileName> -p <platform> [-a <arp process id>]\n", argv[0]);
     return 0;
