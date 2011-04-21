@@ -1,0 +1,4 @@
+Requires the following environment:
+
+setenv PYTHONPATH (path to pycdb.so -> ./build/pdsapp/lib/x86_64-linux/libpycdb.so)
+setenv LD_LIBRARY_PATH /reg/g/pcds/package/python-2.5.2/lib:./build/pdsdata/lib/x86_64-linux:./build/pdsapp/lib/x86_64-linux
