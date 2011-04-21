@@ -245,7 +245,7 @@ bool Experiment::update_key(const TableEntry& entry)
     kpath = _path.key_path(string("[0-9]*"));
     glob_t g;
     glob(kpath.c_str(),0,0,&g);
-    sprintf(buff,"%08x",g.gl_pathc);
+    sprintf(buff,"%08x",unsigned(g.gl_pathc));
     globfree(&g);
     string key(buff);
     TableEntry te = TableEntry(entry.name(),key,entry.entries());

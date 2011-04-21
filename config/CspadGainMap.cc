@@ -202,7 +202,7 @@ void CspadGainMap::import_()
   FILE* f = fopen(qPrintable(file),"r");
   if (f) {
     char* line = new char[16*1024];
-    unsigned line_sz = 16*1024;
+    size_t line_sz = 16*1024;
     char* lptr;
     for(unsigned q=0; q<4; q++) {
       for(unsigned s=0; s<16; s++) {

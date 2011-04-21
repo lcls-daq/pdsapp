@@ -245,7 +245,7 @@ bool Device::update_key(const string& config, const string& path)
   if (outofdate) {
     glob_t g;
     glob(keypath(path,"[0-9]*").c_str(),0,0,&g);
-    sprintf(buff,"%08x",g.gl_pathc);
+    sprintf(buff,"%08x",unsigned(g.gl_pathc));
     globfree(&g);
     string key = string(buff);
     string kpath = keypath(path,key);

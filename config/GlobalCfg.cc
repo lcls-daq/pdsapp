@@ -4,8 +4,6 @@
 #include "pdsapp/config/Path.hh"
 #include "pdsapp/config/PdsDefs.hh"
 
-#include <QtCore/QString>
-
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -24,7 +22,7 @@ static void _clearAll()
 }
 
 static void _loadType(const Pds::TypeId& id,
-		      const QString& file)
+                      const char* file)
 {
   //
   //  This is incomplete
@@ -32,13 +30,13 @@ static void _loadType(const Pds::TypeId& id,
   unsigned i = PdsDefs::configType(id);
   if (i == PdsDefs::NumberOf) return;
 
-  FILE* f = fopen(qPrintable(file),"r");
+  FILE* f = fopen(file,"r");
   if (f) {
     size_t sz = fread(_next, 1, 0x7ffffff, f);
     if (sz < 0) 
-      printf("GlobalCfg error reading %s\n",qPrintable(file));
+      printf("GlobalCfg error reading %s\n",file);
     else {
-      printf("GlobalCfg read %d bytes from %s\n",sz,qPrintable(file));
+      printf("GlobalCfg read %d bytes from %s\n",sz,file);
       _btype[i] = _next;
       _next += sz;
     }
@@ -68,10 +66,8 @@ void GlobalCfg::cache(const Path& path, Device* device)
 	iter!=entry->entries().end(); iter++) {
       UTypeName stype(iter->name());
       string spath(path.data_path("",stype));
-      QString qfile = QString("%1/%2")
-	.arg(spath.c_str())
-	.arg(iter->entry().c_str());
-      _loadType(*PdsDefs::typeId(stype),qfile);
+      string qfile = spath + "/" + iter->entry();
+      _loadType(*PdsDefs::typeId(stype),qfile.c_str());
     }
   }
 }

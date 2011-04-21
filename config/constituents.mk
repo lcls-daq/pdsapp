@@ -1,70 +1,71 @@
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-qtincdir  := qt/include64
+qtincdir  := qt/include_64
 else
 qtincdir  := qt/include
 endif
 
-libnames       := configdb
-libsrcs_configdb := Path.cc \
-        Table.cc \
-        Device.cc \
-        DeviceEntry.cc \
-        Experiment.cc \
-        PdsDefs.cc
-libsrcs_configdb += ControlScan.cc ControlScan_moc.cc
-libsrcs_configdb += PvScan.cc PvScan_moc.cc
-libsrcs_configdb += EvrScan.cc EvrScan_moc.cc
-libsrcs_configdb += Reconfig_Ui.cc Reconfig_Ui_moc.cc
-libsrcs_configdb += Dialog.cc     Dialog_moc.cc 
-libsrcs_configdb += SubDialog.cc    SubDialog_moc.cc 
-libsrcs_configdb += Validators.cc     Validators_moc.cc 
-libsrcs_configdb += ParameterSet.cc   ParameterSet_moc.cc
-libsrcs_configdb += QrLabel.cc   QrLabel_moc.cc
+libnames       := configdb configdbg
+libsrcs_configdb := Path.cc
+libsrcs_configdb += Table.cc
+libsrcs_configdb += Device.cc
+libsrcs_configdb += DeviceEntry.cc
+libsrcs_configdb += Experiment.cc
 libsrcs_configdb += GlobalCfg.cc
-libsrcs_configdb += SerializerDictionary.cc
-libsrcs_configdb += ExpertDictionary.cc
-libsrcs_configdb += Serializer.cc
-libsrcs_configdb += Opal1kConfig.cc
-libsrcs_configdb += FccdConfig.cc
-libsrcs_configdb += pnCCDConfig.cc
-libsrcs_configdb += princetonConfig.cc
-libsrcs_configdb += TM6740Config.cc
-libsrcs_configdb += TM6740ConfigV1.cc
-libsrcs_configdb += FrameFexConfig.cc
-libsrcs_configdb += EvrOutputMap.cc EvrPulseConfig.cc EvrPulseConfig_V1.cc EvrEventCodeV3.cc EvrEventCode.cc
-libsrcs_configdb += EvrIOChannel.cc EvrIOChannel_moc.cc
-libsrcs_configdb += EvrIOConfig.cc EvrIOConfig_moc.cc
-libsrcs_configdb += PolarityButton.cc
-libsrcs_configdb += EvrPulseTable_V4.cc EvrPulseTable_V4_moc.cc
-libsrcs_configdb += EventcodeTiming.cc
-libsrcs_configdb += EvrPulseTable.cc EvrPulseTable_moc.cc
-libsrcs_configdb += EvrEventDesc.cc EvrEventDesc_moc.cc
-libsrcs_configdb += EvrSeqEventDesc.cc
-libsrcs_configdb += EvrGlbEventDesc.cc
-libsrcs_configdb += EvrEventCodeTable.cc EvrEventCodeTable_moc.cc
-libsrcs_configdb += EvrConfig.cc EvrConfigP.cc EvrConfig_V4.cc EvrConfig_V3.cc EvrConfig_V2.cc EvrConfig_V1.cc
-libsrcs_configdb += SequencerConfig.cc SequencerConfig_moc.cc
-libsrcs_configdb += CspadConfigTable_V1.cc 
-libsrcs_configdb += CspadConfig_V1.cc
-libsrcs_configdb += CspadSector.cc
-libsrcs_configdb += CspadGainMap.cc CspadGainMap_moc.cc
-libsrcs_configdb += CspadConfigTable.cc CspadConfigTable_moc.cc
-libsrcs_configdb += CspadConfig.cc
-libsrcs_configdb += ControlConfig.cc
-libsrcs_configdb += IpimbConfig.cc
-libsrcs_configdb += DiodeFexItem.cc
-libsrcs_configdb += IpmFexTable.cc
-libsrcs_configdb += IpmFexConfig.cc
-libsrcs_configdb += DiodeFexTable.cc
-libsrcs_configdb += DiodeFexConfig.cc
-libsrcs_configdb += PimImageConfig.cc
-libsrcs_configdb += EncoderConfig.cc
-libsrcs_configdb += AcqConfig.cc
-libsrcs_configdb += AcqTdcConfig.cc
-libsrcs_configdb += Parameters.cc
-libsrcs_configdb += BitCount.cc
-libsrcs_configdb += templates.cc
-libincs_configdb := $(qtincdir)
+libsrcs_configdb += PdsDefs.cc
+
+libsrcs_configdbg := ControlScan.cc ControlScan_moc.cc
+libsrcs_configdbg += PvScan.cc PvScan_moc.cc
+libsrcs_configdbg += EvrScan.cc EvrScan_moc.cc
+libsrcs_configdbg += Reconfig_Ui.cc Reconfig_Ui_moc.cc
+libsrcs_configdbg += Dialog.cc     Dialog_moc.cc 
+libsrcs_configdbg += SubDialog.cc    SubDialog_moc.cc 
+libsrcs_configdbg += Validators.cc     Validators_moc.cc 
+libsrcs_configdbg += ParameterSet.cc   ParameterSet_moc.cc
+libsrcs_configdbg += QrLabel.cc   QrLabel_moc.cc
+libsrcs_configdbg += SerializerDictionary.cc
+libsrcs_configdbg += ExpertDictionary.cc
+libsrcs_configdbg += Serializer.cc
+libsrcs_configdbg += Opal1kConfig.cc
+libsrcs_configdbg += FccdConfig.cc
+libsrcs_configdbg += pnCCDConfig.cc
+libsrcs_configdbg += princetonConfig.cc
+libsrcs_configdbg += TM6740Config.cc
+libsrcs_configdbg += TM6740ConfigV1.cc
+libsrcs_configdbg += FrameFexConfig.cc
+libsrcs_configdbg += EvrOutputMap.cc EvrPulseConfig.cc EvrPulseConfig_V1.cc EvrEventCodeV3.cc EvrEventCode.cc
+libsrcs_configdbg += EvrIOChannel.cc EvrIOChannel_moc.cc
+libsrcs_configdbg += EvrIOConfig.cc EvrIOConfig_moc.cc
+libsrcs_configdbg += PolarityButton.cc
+libsrcs_configdbg += EvrPulseTable_V4.cc EvrPulseTable_V4_moc.cc
+libsrcs_configdbg += EventcodeTiming.cc
+libsrcs_configdbg += EvrPulseTable.cc EvrPulseTable_moc.cc
+libsrcs_configdbg += EvrEventDesc.cc EvrEventDesc_moc.cc
+libsrcs_configdbg += EvrSeqEventDesc.cc
+libsrcs_configdbg += EvrGlbEventDesc.cc
+libsrcs_configdbg += EvrEventCodeTable.cc EvrEventCodeTable_moc.cc
+libsrcs_configdbg += EvrConfig.cc EvrConfigP.cc EvrConfig_V4.cc EvrConfig_V3.cc EvrConfig_V2.cc EvrConfig_V1.cc
+libsrcs_configdbg += SequencerConfig.cc SequencerConfig_moc.cc
+libsrcs_configdbg += CspadConfigTable_V1.cc 
+libsrcs_configdbg += CspadConfig_V1.cc
+libsrcs_configdbg += CspadSector.cc
+libsrcs_configdbg += CspadGainMap.cc CspadGainMap_moc.cc
+libsrcs_configdbg += CspadConfigTable.cc CspadConfigTable_moc.cc
+libsrcs_configdbg += CspadConfig.cc
+libsrcs_configdbg += ControlConfig.cc
+libsrcs_configdbg += IpimbConfig.cc
+libsrcs_configdbg += DiodeFexItem.cc
+libsrcs_configdbg += IpmFexTable.cc
+libsrcs_configdbg += IpmFexConfig.cc
+libsrcs_configdbg += DiodeFexTable.cc
+libsrcs_configdbg += DiodeFexConfig.cc
+libsrcs_configdbg += PimImageConfig.cc
+libsrcs_configdbg += EncoderConfig.cc
+libsrcs_configdbg += AcqConfig.cc
+libsrcs_configdbg += AcqTdcConfig.cc
+libsrcs_configdbg += Parameters.cc
+libsrcs_configdbg += BitCount.cc
+libsrcs_configdbg += templates.cc
+libincs_configdbg := $(qtincdir)
 
 tgtnames       := configdb
 tgtnames       += configdb_gui
@@ -76,9 +77,10 @@ tgtnames       += configdb_list
 datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata
 
 tgtsrcs_configdb := configdb.cc
-tgtincs_configdb := $(qtincdir)
+#tgtincs_configdb := $(qtincdir)
 tgtlibs_configdb := $(datalibs)
 tgtlibs_configdb += pdsapp/configdb
+#tgtlibs_configdb += pdsapp/configdbg
 tgtlibs_configdb += qt/QtGui qt/QtCore
 tgtslib_configdb := $(USRLIBDIR)/rt
 
@@ -94,6 +96,7 @@ tgtincs_configdb_gui := $(qtincdir)
 tgtlibs_configdb_gui := $(datalibs)
 tgtlibs_configdb_gui += qt/QtGui qt/QtCore
 tgtlibs_configdb_gui += pdsapp/configdb
+tgtlibs_configdb_gui += pdsapp/configdbg
 tgtslib_configdb_gui := $(USRLIBDIR)/rt
 
 tgtsrcs_configdb_list := configdb_list.cc
@@ -102,6 +105,7 @@ tgtincs_configdb_list := $(qtincdir)
 tgtlibs_configdb_list := $(datalibs)
 tgtlibs_configdb_list += qt/QtGui qt/QtCore
 tgtlibs_configdb_list += pdsapp/configdb
+tgtlibs_configdb_list += pdsapp/configdbg
 tgtslib_configdb_list := $(USRLIBDIR)/rt
 
 tgtsrcs_create_scan := create_scan_config.cc
@@ -109,4 +113,5 @@ tgtincs_create_scan := $(qtincdir)
 tgtlibs_create_scan := $(datalibs)
 tgtlibs_create_scan += qt/QtGui qt/QtCore
 tgtlibs_create_scan += pdsapp/configdb
+tgtlibs_create_scan += pdsapp/configdbg
 tgtslib_create_scan := $(USRLIBDIR)/rt
