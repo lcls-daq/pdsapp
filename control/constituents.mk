@@ -1,5 +1,5 @@
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-qtincdir  := qt/include64
+qtincdir  := qt/include_64
 tgtnames := catest
 else
 qtincdir  := qt/include
@@ -30,6 +30,7 @@ tgtlibs_control_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pds
 tgtlibs_control_gui += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/client pds/offlineclient pds/config pds/management pds/epicstools
 tgtlibs_control_gui += pds/epicstools
 tgtlibs_control_gui += pdsapp/configdb
+tgtlibs_control_gui += pdsapp/configdbg
 tgtlibs_control_gui += qt/QtGui qt/QtCore
 tgtlibs_control_gui += epics/ca epics/Com
 tgtlibs_control_gui += offlinedb/mysqlclient offlinedb/offlinedb
