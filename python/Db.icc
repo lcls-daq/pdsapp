@@ -1,0 +1,395 @@
+#include "pdsapp/config/PdsDefs.hh"
+#include "pdsapp/config/Path.hh"
+#include "pdsapp/config/Experiment.hh"
+
+#include <string>
+#include <vector>
+#include <sstream>
+#include <fstream>
+#include <iomanip>
+
+#include <glob.h>
+
+using std::vector;
+using std::string;
+using std::ostringstream;
+using std::hex;
+using std::setw;
+using std::ifstream;
+using std::ofstream;
+
+using namespace Pds_ConfigDb;
+
+//
+//  pdsdb class methods
+//
+static void      pdsdb_dealloc(pdsdb* self);
+static PyObject* pdsdb_new    (PyTypeObject* type, PyObject* args, PyObject* kwds);
+static int       pdsdb_init   (pdsdb* self, PyObject* args, PyObject* kwds);
+static PyObject* pdsdb_get    (PyObject* self, PyObject* args, PyObject* kwds);
+static PyObject* pdsdb_set    (PyObject* self, PyObject* args, PyObject* kwds);
+static PyObject* pdsdb_commit (PyObject* self, PyObject* args, PyObject* kwds);
+static PyObject* pdsdb_clone  (PyObject* self, PyObject* args, PyObject* kwds);
+static PyObject* pdsdb_sub    (PyObject* self, PyObject* args, PyObject* kwds);
+
+static PyMethodDef pdsdb_methods[] = {
+  {"get"       , (PyCFunction)pdsdb_get   , METH_KEYWORDS, "Return the xtc data"},
+  {"set"       , (PyCFunction)pdsdb_set   , METH_KEYWORDS, "Insert the xtc data"},
+  {"substitute", (PyCFunction)pdsdb_sub   , METH_KEYWORDS, "Replace the xtc data"},
+  {"commit"    , (PyCFunction)pdsdb_commit, METH_NOARGS  , "Commit changes and update db"},
+  {"clone"     , (PyCFunction)pdsdb_clone , METH_VARARGS , "Clone a key"},
+  {NULL},
+};
+
+//
+//  Register pdsdb members
+//
+static PyMemberDef pdsdb_members[] = {
+  {NULL} 
+};
+
+static PyTypeObject pdsdb_type = {
+  PyObject_HEAD_INIT(NULL)
+    0,                         /* ob_size */
+    "pycdb.Db",                /* tp_name */
+    sizeof(pdsdb),             /* tp_basicsize */
+    0,                         /* tp_itemsize */
+    (destructor)pdsdb_dealloc, /*tp_dealloc*/
+    0,                         /*tp_print*/
+    0,                         /*tp_getattr*/
+    0,                         /*tp_setattr*/
+    0,                         /*tp_compare*/
+    0,                         /*tp_repr*/
+    0,                         /*tp_as_number*/
+    0,                         /*tp_as_sequence*/
+    0,                         /*tp_as_mapping*/
+    0,                         /*tp_hash */
+    0,                         /*tp_call*/
+    0,                         /*tp_str*/
+    0,                         /*tp_getattro*/
+    0,                         /*tp_setattro*/
+    0,                         /*tp_as_buffer*/
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /*tp_flags*/
+    "pycdb Db objects",        /* tp_doc */
+    0,		               /* tp_traverse */
+    0,		               /* tp_clear */
+    0,		               /* tp_richcompare */
+    0,		               /* tp_weaklistoffset */
+    0,		               /* tp_iter */
+    0,		               /* tp_iternext */
+    pdsdb_methods,             /* tp_methods */
+    pdsdb_members,             /* tp_members */
+    0,                         /* tp_getset */
+    0,                         /* tp_base */
+    0,                         /* tp_dict */
+    0,                         /* tp_descr_get */
+    0,                         /* tp_descr_set */
+    0,                         /* tp_dictoffset */
+    (initproc)pdsdb_init,      /* tp_init */
+    0,                         /* tp_alloc */
+    pdsdb_new,                 /* tp_new */
+};
+    
+//
+//  pdsdb class functions
+//
+
+void pdsdb_dealloc(pdsdb* self)
+{
+  if (self->expt) {
+    delete self->expt;
+    delete self->path;
+  }
+
+  self->ob_type->tp_free((PyObject*)self);
+}
+
+PyObject* pdsdb_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
+{
+  pdsdb* self;
+
+  self = (pdsdb*)type->tp_alloc(type,0);
+  if (self != NULL) {
+    self->expt = 0;
+    self->path = 0;
+  }
+
+  return (PyObject*)self;
+}
+
+int pdsdb_init(pdsdb* self, PyObject* args, PyObject* kwds)
+{
+  int sts;
+
+  { char* kwlist[] = {"path",NULL};
+    const char *path = 0;
+    sts = PyArg_ParseTupleAndKeywords(args,kwds,"s",kwlist,
+                                      &path);
+    if (sts) {
+      self->path = new Path(path);
+      self->expt = new Experiment(*self->path);
+      self->expt->read();
+      return 0;
+    }
+  }
+  return -1;
+}
+
+//
+//  Return a configuration object of type <type> from <src> associated with <key>
+//
+PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  PyObject* result = PyTuple_New(0);
+
+  pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+
+  char* kwlist[] = {"key","phy","level","typeid",NULL};
+  const unsigned Default(0xffffffff);
+  unsigned key   (Default);
+  unsigned phy   (Default);
+  unsigned level (Default);
+  unsigned typid (Default);
+  int sts = PyArg_ParseTupleAndKeywords(args,kwds,"I|III",kwlist,
+                                        &key,&level,&phy,&typid);
+
+  if (sts==0) {
+    char* kwlist2[] = {"alias","phy","level","typid",NULL};
+    const char* alias=0;
+    sts = PyArg_ParseTupleAndKeywords(args,kwds,"s|III",kwlist2,
+                                      &alias,&level,&phy,&typid);
+
+    if (sts==0) {
+      return result;
+    }
+
+    const TableEntry* entry = self->expt->table().get_top_entry(alias);
+    if (entry)
+      key = strtoul(entry->key().c_str(),NULL,16);
+
+    printf("key %s = 0x%x\n",alias,key);
+  }
+
+  if (key==Default) {
+    return result;
+  }
+
+  char kname[256];
+  sprintf(kname,"%08x/[0-9]*",key);
+
+  //  Match source
+  vector<string> devices;
+  string kpath = self->path->key_path(kname);
+  glob_t g;
+  glob(kpath.c_str(),0,0,&g);
+
+  for(unsigned k=0; k<g.gl_pathc; k++) {
+    const char* src = basename(g.gl_pathv[k]);
+    unsigned    dev = strtoul(src,NULL,16);
+    if ((level==Pds::Level::Source && phy==dev) ||
+        (level==dev) ||
+        (level==Default && phy==Default)) {
+
+      Pds::Src info = Pds::Src(Pds::Level::Type(level));
+      if (level==Pds::Level::Source)
+        *new((void*)&info) 
+          Pds::DetInfo(0, 
+                       Pds::DetInfo::Detector((dev>>24)&0xff), (dev>>16)&0xff,
+                       Pds::DetInfo::Device  ((dev>> 8)&0xff), (dev>> 0)&0xff);
+        
+      string kpath = string(g.gl_pathv[k]) + "/*";
+      glob_t gk;
+      glob(kpath.c_str(),0,0,&gk);
+      for(unsigned m=0; m<gk.gl_pathc; m++) {
+        unsigned typ = strtoul(basename(gk.gl_pathv[m]),NULL,16);
+        //  Match type
+        if (typid==Default || typid==typ) {
+          int i = PyTuple_Size(result);
+          _PyTuple_Resize(&result, i+1);
+
+          PyObject* o;
+          Pds::TypeId contains(Pds::TypeId::Type(typ&0xffff),
+                               typ>>16);
+          switch(contains.id()) {
+          case Pds::TypeId::Id_DiodeFexConfig:
+            o = _PyObject_New(&pds_DiodeFexConfig_type);
+            break;
+          default:
+            o = _PyObject_New(&pds_Xtc_type);
+            break;
+          }
+          pdsxtc_read(o, info, contains, gk.gl_pathv[m]);
+          PyTuple_SetItem(result,i,o);
+        }
+      }
+      globfree(&gk);
+    }
+  }
+  globfree(&g);
+
+  return result;
+}
+
+
+//
+//  Insert a configuration object of type <type> from <src> associated with <key>
+//
+PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+
+  char* alias = 0;
+  PyObject* o;
+  int sts = PyArg_ParseTuple(args,"sO",&alias,&o);
+
+  if (sts==0) {
+    printf("Parse failed\n");
+    return NULL;
+  }
+
+  if (o->ob_type->tp_new!=pdsxtc_new) {
+    printf("TypeCheck failed\n");
+    return NULL;
+  }
+
+  pdsxtc* xtc = (pdsxtc*)o;
+
+  //
+  //  Lookup device entry matching the xtc Src field
+  //
+  Device* dev = 0;
+  for(list<Device>::iterator it=self->expt->devices().begin(); 
+      it!=self->expt->devices().end(); it++) {
+    const list<DeviceEntry>& slist = it->src_list();
+    for(list<DeviceEntry>::const_iterator sit = slist.begin();
+        sit != slist.end(); sit++) {
+      if (*sit == xtc->src) {
+        dev = &(*it);
+        break;
+      }
+    }
+  }
+    
+  if (dev==0) {
+    printf("Device lookup failed\n");
+    return NULL;
+  }
+
+  //
+  //  Lookup the configuration set for this alias
+  //
+  string name(alias);
+  const TableEntry* entry = self->expt->table().get_top_entry(name);
+
+  const UTypeName stype = PdsDefs::utypeName(xtc->contains);
+
+  for(list<FileEntry>::const_iterator iter=entry->entries().begin();
+      iter!=entry->entries().end(); iter++) {
+    if (iter->name() == dev->name()) {
+      const TableEntry* dentry = dev->table().get_top_entry(iter->entry());
+      for(list<FileEntry>::const_iterator it=dentry->entries().begin();
+          it!=dentry->entries().end(); it++) {
+        if (it->name()==stype) {
+          // make the change
+          string xpath = dev->xtcpath(self->path->base(),
+                                      stype, it->entry());
+          FILE* xfile = fopen(xpath.c_str(),"w");
+          fwrite(xtc->payload, xtc->extent, 1, xfile);
+          fclose(xfile);
+  	  Py_INCREF(Py_None);
+          return Py_None;
+        }
+      }
+    }
+  }
+
+  return NULL;
+}
+
+
+//
+//  Substitute a configuration xtc for the particular key <key>
+//
+PyObject* pdsdb_sub(PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+
+  unsigned key = 0;
+  PyObject* o;
+  int sts = PyArg_ParseTuple(args,"IO",&key,&o);
+
+  if (sts==0) {
+    printf("Parse failed\n");
+    return NULL;
+  }
+
+  if (o->ob_type->tp_new!=pdsxtc_new) {
+    printf("TypeCheck failed\n");
+    return NULL;
+  }
+
+  pdsxtc* xtc = (pdsxtc*)o;
+
+  size_t buffsz = 256;
+  char buff[buffsz];
+
+  string devdir  = self->path->key_path(key);
+  string devpath = devdir + "/" + DeviceEntry(xtc->src).path();
+  sprintf(buff,"/%08x",xtc->contains.value());
+  string xtcpath = devpath + buff;
+
+  sts = readlink(devpath.c_str(), buff, buffsz);
+  if (sts > 0) {
+    buff[sts] = 0;
+    string tgtpath = devdir + "/" + string(buff);
+
+    unlink(devpath.c_str());
+
+    sprintf(buff,"cp -rf %s %s",tgtpath.c_str(),devpath.c_str());
+    printf("%s\n",buff);
+    if (system(buff))
+      return NULL;
+
+    unlink(xtcpath.c_str());
+  }
+
+  FILE* xfile = fopen(xtcpath.c_str(),"w");
+  fwrite(xtc->payload, xtc->extent, 1, xfile);
+  fclose(xfile);
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+PyObject* pdsdb_commit (PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+  self->expt->update_keys();
+  self->expt->write();
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+PyObject* pdsdb_clone  (PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+
+  unsigned key = 0;
+  int sts = PyArg_ParseTuple(args,"I",&key);
+
+  if (sts==0) {
+    printf("Parse failed\n");
+    return NULL;
+  }
+
+  unsigned newkey = self->expt->next_key();
+  string olddir = self->path->key_path(key);
+  string newdir = self->path->key_path(newkey);
+
+  ostringstream o;
+  o << "cp -rf " << olddir << ' ' << newdir;
+  if (system(o.str().c_str())!=0)
+    return NULL;
+
+  return PyLong_FromLong(newkey);
+}

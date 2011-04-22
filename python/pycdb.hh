@@ -3,6 +3,11 @@
 
 #include "pdsdata/xtc/Xtc.hh"
 
+namespace Pds_ConfigDb {
+  class Path;
+  class Experiment; 
+};
+
 typedef struct {
   PyObject_HEAD
   Pds_ConfigDb::Path*       path;

@@ -54,7 +54,8 @@ PyObject* pds_DiodeFexConfig_set_base    (PyObject*   self, PyObject* args)
     unsigned n = Pds::Lusi::DiodeFexConfigV1::NRANGES;
     for(unsigned i=0; i<n; i++)
       v1->base[i] = PyFloat_AsDouble(PyList_GetItem(values,i));
-    return self;
+    Py_INCREF(Py_None);
+    return Py_None;
   }
 
   //  Throw an exception
@@ -95,7 +96,8 @@ PyObject* pds_DiodeFexConfig_set_scale   (PyObject*   self, PyObject* args)
     unsigned n = Pds::Lusi::DiodeFexConfigV1::NRANGES;
     for(unsigned i=0; i<n; i++)
       v1->scale[i] = PyFloat_AsDouble(PyList_GetItem(values,i));
-    return self;
+    Py_INCREF(Py_None);
+    return Py_None;
   }
 
   //  Throw an exception
