@@ -17,15 +17,27 @@ tgtnames    := 	evr \
 		tm6740 \
 		pimimage \
 		fccd     \
-		cspad
+		cspad    #\
+		xamps
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
 
+#tgtsrcs_xamps := xamps.cc
+#tgtincs_xamps := xamps
+#tgtlibs_xamps := $(commonlibs) pdsdata/cspaddata pds/xamps pds/pgp
+#tgtslib_xamps := /usr/lib/rt
+#CPPFLAGS += -fno-strict-aliasing
+#CPPFLAGS += -fopenmp
+#DEFINES += -fopenmp
+
 tgtsrcs_cspad := cspad.cc
-tgtincs_cspad := csPad
-tgtlibs_cspad := $(commonlibs) pdsdata/cspaddata pds/csPad pds/pgp
+tgtincs_cspad := cspad
+tgtlibs_cspad := $(commonlibs) pdsdata/cspaddata pds/cspad pds/pgp
 tgtslib_cspad := /usr/lib/rt
+CPPFLAGS += -fno-strict-aliasing
+CPPFLAGS += -fopenmp
+DEFINES += -fopenmp
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris

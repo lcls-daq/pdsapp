@@ -76,7 +76,7 @@ namespace PdsCas {
   public:
     void   _configure(const void* payload, const Pds::ClockTime& t) 
     {
-      _config = *reinterpret_cast<const Pds::CsPad::ConfigV2*>(payload);
+      _config = *reinterpret_cast<const CsPadConfigType*>(payload);
       _loadConstants(); 
     }
     void   _event    (const void* payload, const Pds::ClockTime& t) 
@@ -182,7 +182,7 @@ namespace PdsCas {
     char              _pedFile  [64];
     bool              _validConstants;
     const void*       _payload;
-    Pds::CsPad::ConfigV2 _config;
+    CsPadConfigType _config;
   };
 
   class CspadEHandler : public EvtHandler {

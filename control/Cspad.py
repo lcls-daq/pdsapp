@@ -5,7 +5,7 @@ import struct
 
 DetInfo = '20000a00'
 
-TypeId  = '0002001d'
+TypeId  = '0003001d'
 
 class DigitalPotsCfg:
     def __init__(self):
@@ -217,3 +217,92 @@ class ConfigV2:
         
     def fmt(self):
         return '<12I'
+
+
+class ProtectionSystemThreshold:
+    def __init__(self):
+        self.adcThreshold = 0
+        self.pixelCountThreshold = 0
+
+    def read(self,f):
+        (self.adcThreshold, \
+         self.pixelCountThreshold) \
+        = struct.unpack('<2I',f.read(struct.calcsize('<2I')))
+
+    def write(self,f):
+        f.write(struct.pack('<2I',
+                            self.adcThreshold,
+                            self.pixelCountThreshold))
+        
+
+class ConfigV3:
+    def __init__(self):
+        self.concentratorVersion = 0
+        self.runDelay = 0
+        self.eventCode = 0
+        self.protectionThresholds = []
+        for i in range(4):
+            self.protectionThresholds.append(ProtectionSystemThreshold())
+        self.protectionEnable = 0
+        self.inactiveRunMode = 0
+        self.activeRunMode = 0
+        self.testDataIndex = 0
+        self.payloadPerQuad = 0
+        self.badAsicMask0 = 0
+        self.badAsicMask1 = 0
+        self.asicMask = 0
+        self.quadMask = 0
+        self.roiMask = 0
+        self.quads = []
+        for i in range(4):
+            self.quads.append(QuadV1())
+
+    def read(self,name):
+        f = open(name,'r')
+
+        (self.concentratorVersion, \
+         self.runDelay, self.eventCode) \
+        = struct.unpack('<3I',f.read(struct.calcsize('<3I')))
+
+        for i in range(4):
+            self.protectionThresholds.append(ProtectionSystemThreshold().read(f))
+
+        (self.protectionEnable, \
+	 self.inactiveRunMode, self.activeRunMode, \
+         self.testDataIndex, self.payloadPerQuad, self.badAsicMask0, self.badAsicMask1, \
+         self.asicMask, self.quadMask, self.roiMask) \
+        = struct.unpack('<10I',f.read(struct.calcsize('<10I')))
+
+        print self.eventCode, self.asicMask, self.quadMask, self.roiMask
+        
+        self.quads = []
+        for i in range(4):
+            self.quads.append(QuadV1().read(f))
+            
+        f.close()
+
+    def write(self,f):
+#        f.write(struct.pack(self.fmt(),
+#                            self.concentratorVersion,
+#                            self.runDelay, self.eventCode,
+#                            self.protectionThresholds[0:4],
+#                            self.protectionEnable,
+#                            self.inactiveRunMode, self.activeRunMode,
+#                            self.testDataIndex, self.payloadPerQuad, self.badAsicMask0, self.badAsicMask1,
+#                            self.asicMask, self.quadMask, self.roiMask))
+        f.write(struct.pack('<3I',
+                            self.concentratorVersion,
+                            self.runDelay, self.eventCode))
+
+        for i in range(4):
+            self.protectionThresholds[i].write(f)
+
+        f.write(struct.pack('<10I',
+                            self.protectionEnable,
+                            self.inactiveRunMode, self.activeRunMode,
+                            self.testDataIndex, self.payloadPerQuad, self.badAsicMask0, self.badAsicMask1,
+                            self.asicMask, self.quadMask, self.roiMask))
+
+        for i in range(4):
+            self.quads[i].write(f)
+        

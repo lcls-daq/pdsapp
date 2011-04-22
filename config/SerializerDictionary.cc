@@ -25,6 +25,7 @@
 #include "pdsapp/config/FrameFexConfig.hh"
 #include "pdsapp/config/ControlConfig.hh"
 #include "pdsapp/config/CspadConfig_V1.hh"
+#include "pdsapp/config/CspadConfig_V2.hh"
 #include "pdsapp/config/CspadConfig.hh"
 
 #include "pds/config/EvrConfigType.hh"
@@ -81,6 +82,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_pimImageConfigType  ,new PimImageConfig);  
   enroll(_CsPadConfigType     ,new CspadConfig);  
   //  retired
+  enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,2) , new CspadConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,4)   , new EvrConfig_V4);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,3)   , new EvrConfig_V3);

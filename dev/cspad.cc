@@ -8,8 +8,8 @@
 #include "pds/utility/SegWireSettings.hh"
 #include "pds/utility/InletWire.hh"
 #include "pds/service/Task.hh"
-#include "pds/csPad/CspadManager.hh"
-#include "pds/csPad/CspadServer.hh"
+#include "pds/cspad/CspadManager.hh"
+#include "pds/cspad/CspadServer.hh"
 #include "pds/config/CfgClientNfs.hh"
 
 #include <unistd.h>

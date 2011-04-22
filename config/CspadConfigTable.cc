@@ -30,7 +30,16 @@ namespace Pds_ConfigDb
       _activeRunMode   ( "Activ Run Mode", Pds::CsPad::RunAndSendTriggeredByTTL, RunModeText),
       _testDataIndex   ( "Test Data Indx", 4, 0, 7, Decimal ),
       _badAsicMask     ( "Bad ASIC Mask (hex)" , 0, 0, -1ULL, Hex),
-      _sectors         ( "Sector Mask (hex)"   , 0xffffffff, 0, 0xffffffff, Hex)
+      _sectors         ( "Sector Mask (hex)"   , 0xffffffff, 0, 0xffffffff, Hex),
+    _protEnable        ("Protection Enable",  0,    0, 1,      Decimal),
+    _protQ0AdcThr      ("ADC Threshold quad 0",  67,   0, 0x3fff, Decimal),
+    _protQ0PixelThr    ("Pixel Count Threshold quad 0",  1200, 0, 574564,  Decimal),
+    _protQ1AdcThr      ("ADC Threshold quad 1",  65,   0, 0x3fff, Decimal),
+    _protQ1PixelThr    ("Pixel Count Threshold quad 1",  1200, 0, 574564,  Decimal),
+    _protQ2AdcThr      ("ADC Threshold quad 2",  54,   0, 0x3fff, Decimal),
+    _protQ2PixelThr    ("Pixel Count Threshold quad 2",  1200, 0, 574564,  Decimal),
+    _protQ3AdcThr      ("ADC Threshold quad 3",  300,  0, 0x3fff, Decimal),
+    _protQ3PixelThr    ("Pixel Count Threshold quad 3",  1200, 0, 574564,  Decimal)
     {}
   public:
     void enable(bool v) 
@@ -45,6 +54,15 @@ namespace Pds_ConfigDb
       _testDataIndex  .value = 4;
       _badAsicMask    .value = 0;
       _sectors        .value = 0xffffffff;
+      _protEnable     .value = 0;
+      _protQ0AdcThr  .value = 67;
+      _protQ0PixelThr .value = 1200;
+      _protQ1AdcThr  .value = 65;
+      _protQ1PixelThr .value = 1200;
+      _protQ2AdcThr  .value = 54;
+      _protQ2PixelThr .value = 1200;
+      _protQ3AdcThr  .value = 300;
+      _protQ3PixelThr .value = 1200;
     }
     void pull   (const CsPadConfigType& p)
     {
@@ -55,6 +73,15 @@ namespace Pds_ConfigDb
       _testDataIndex  .value = p.tdi();
       _badAsicMask    .value = (uint64_t(p.badAsicMask1())<<32) | p.badAsicMask0();
       _sectors        .value = p.roiMask(0) | (p.roiMask(1)<<8) | (p.roiMask(2)<<16) | (p.roiMask(3)<<24);
+      _protEnable     .value = p.protectionEnable();
+      _protQ0AdcThr   .value = p.protectionThresholds()[0].adcThreshold;
+      _protQ0PixelThr .value = p.protectionThresholds()[0].pixelCountThreshold;
+      _protQ1AdcThr   .value = p.protectionThresholds()[1].adcThreshold;
+      _protQ1PixelThr .value = p.protectionThresholds()[1].pixelCountThreshold;
+      _protQ2AdcThr   .value = p.protectionThresholds()[2].adcThreshold;
+      _protQ2PixelThr .value = p.protectionThresholds()[2].pixelCountThreshold;
+      _protQ3AdcThr   .value = p.protectionThresholds()[3].adcThreshold;
+      _protQ3PixelThr .value = p.protectionThresholds()[3].pixelCountThreshold;
       update_readout();
     }
     void push   (CsPadConfigType* p) 
@@ -79,6 +106,15 @@ namespace Pds_ConfigDb
 				amask,
 				qmask,
 				rmask );
+      p->protectionEnable(_protEnable.value);
+      p->protectionThresholds()[0].adcThreshold = _protQ0AdcThr.value;
+      p->protectionThresholds()[0].pixelCountThreshold = _protQ0PixelThr.value;
+      p->protectionThresholds()[1].adcThreshold = _protQ1AdcThr.value;
+      p->protectionThresholds()[1].pixelCountThreshold = _protQ1PixelThr.value;
+      p->protectionThresholds()[2].adcThreshold = _protQ2AdcThr.value;
+      p->protectionThresholds()[2].pixelCountThreshold = _protQ2PixelThr.value;
+      p->protectionThresholds()[3].adcThreshold = _protQ3AdcThr.value;
+      p->protectionThresholds()[3].pixelCountThreshold = _protQ3PixelThr.value;
     }
   public:
     void initialize(QWidget* parent, QVBoxLayout* layout)
@@ -90,6 +126,16 @@ namespace Pds_ConfigDb
       layout->addLayout(_testDataIndex  .initialize(parent));
       layout->addLayout(_badAsicMask    .initialize(parent));
       layout->addLayout(_sectors        .initialize(parent));
+      layout->addLayout(_protEnable     .initialize(parent));
+      layout->addLayout(_protQ0AdcThr  .initialize(parent));
+      layout->addLayout(_protQ0PixelThr .initialize(parent));
+      layout->addLayout(_protQ1AdcThr  .initialize(parent));
+      layout->addLayout(_protQ1PixelThr .initialize(parent));
+      layout->addLayout(_protQ2AdcThr  .initialize(parent));
+      layout->addLayout(_protQ2PixelThr .initialize(parent));
+      layout->addLayout(_protQ3AdcThr  .initialize(parent));
+      layout->addLayout(_protQ3PixelThr .initialize(parent));
+
 
       QGridLayout* gl = new QGridLayout;
       gl->addWidget(_roiCanvas[0] = new CspadSector(*_sectors._input,0),0,0,::Qt::AlignBottom|::Qt::AlignRight);
@@ -113,7 +159,16 @@ namespace Pds_ConfigDb
       pList.insert(&_testDataIndex);
       pList.insert(&_badAsicMask);
       pList.insert(&_sectors);
-    }
+      pList.insert(&_protEnable);
+      pList.insert(&_protQ0AdcThr);
+      pList.insert(&_protQ0PixelThr);
+      pList.insert(&_protQ1AdcThr);
+      pList.insert(&_protQ1PixelThr);
+      pList.insert(&_protQ2AdcThr);
+      pList.insert(&_protQ2PixelThr);
+      pList.insert(&_protQ3AdcThr);
+      pList.insert(&_protQ3PixelThr);
+   }
 
     void update_readout() {
       unsigned m = _sectors.value;
@@ -129,6 +184,15 @@ namespace Pds_ConfigDb
     NumericInt<unsigned>             _testDataIndex;
     NumericInt<uint64_t>             _badAsicMask;
     NumericInt<unsigned>             _sectors;
+    NumericInt<unsigned>             _protEnable;
+    NumericInt<unsigned>             _protQ0AdcThr;
+    NumericInt<unsigned>             _protQ0PixelThr;
+    NumericInt<unsigned>             _protQ1AdcThr;
+    NumericInt<unsigned>             _protQ1PixelThr;
+    NumericInt<unsigned>             _protQ2AdcThr;
+    NumericInt<unsigned>             _protQ2PixelThr;
+    NumericInt<unsigned>             _protQ3AdcThr;
+    NumericInt<unsigned>             _protQ3PixelThr;
     CspadSector*                     _roiCanvas[4];
     CspadConfigTableQ*               _qlink;
   };
