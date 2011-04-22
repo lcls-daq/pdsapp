@@ -11,6 +11,7 @@ libsrcs_configdb += Device.cc
 libsrcs_configdb += DeviceEntry.cc
 libsrcs_configdb += Experiment.cc
 libsrcs_configdb += GlobalCfg.cc
+
 libsrcs_configdb += PdsDefs.cc
 
 libsrcs_configdbg := ControlScan.cc ControlScan_moc.cc
@@ -47,6 +48,8 @@ libsrcs_configdbg += EvrConfig.cc EvrConfigP.cc EvrConfig_V4.cc EvrConfig_V3.cc 
 libsrcs_configdbg += SequencerConfig.cc SequencerConfig_moc.cc
 libsrcs_configdbg += CspadConfigTable_V1.cc 
 libsrcs_configdbg += CspadConfig_V1.cc
+libsrcs_configdbg += CspadConfigTable_V2.cc 
+libsrcs_configdbg += CspadConfig_V2.cc CspadConfigTable_V2_moc.cc
 libsrcs_configdbg += CspadSector.cc
 libsrcs_configdbg += CspadGainMap.cc CspadGainMap_moc.cc
 libsrcs_configdbg += CspadConfigTable.cc CspadConfigTable_moc.cc
