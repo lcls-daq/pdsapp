@@ -1297,4 +1297,22 @@ void printROI(int iNumRoi, rgn_type* roi)
   }
 }
 
-}                               // namespace PICAM
+} // namespace PICAM
+
+// To avoid pvcam.so crappy dependency on firewire raw1394 shared library
+extern "C" {
+
+void raw1394_arm_register() {}
+void raw1394_new_handle_on_port() {}
+void raw1394_new_handle() {}
+void raw1394_get_nodecount() {}
+void raw1394_arm_get_buf() {}
+void raw1394_arm_unregister() {}
+void raw1394_destroy_handle() {}
+void raw1394_read() {}
+void raw1394_write() {}
+void raw1394_get_port_info() {}
+void raw1394_get_fd() {}
+void raw1394_loop_iterate() {}
+
+}
