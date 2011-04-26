@@ -14,7 +14,8 @@ namespace Pds_ConfigDb {
     DeviceEntry(const Pds::Src& id);
     DeviceEntry(const string& id);
   public:
-    string   id () const;
+    string   id  () const;
+    string   path() const;
   };
 
 };

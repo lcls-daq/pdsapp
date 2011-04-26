@@ -242,11 +242,7 @@ bool Experiment::update_key(const TableEntry& entry)
   }
   
   if (invalid) {
-    kpath = _path.key_path(string("[0-9]*"));
-    glob_t g;
-    glob(kpath.c_str(),0,0,&g);
-    sprintf(buff,"%08x",unsigned(g.gl_pathc));
-    globfree(&g);
+    sprintf(buff,"%08x",next_key());
     string key(buff);
     TableEntry te = TableEntry(entry.name(),key,entry.entries());
     kpath = _path.key_path(key);
@@ -267,6 +263,16 @@ bool Experiment::update_key(const TableEntry& entry)
   }
 
   return invalid;
+}
+
+unsigned Experiment::next_key() const
+{
+  string kpath = _path.key_path(string("[0-9]*"));
+  glob_t g;
+  glob(kpath.c_str(),0,0,&g);
+  unsigned key = unsigned(g.gl_pathc);
+  globfree(&g);
+  return key;
 }
 
 void Experiment::update_keys()

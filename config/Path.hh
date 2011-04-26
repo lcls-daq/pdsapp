@@ -23,8 +23,12 @@ namespace Pds_ConfigDb {
     string data_path(const string& device, const UTypeName& type) const;
     string desc_path(const string& device, const UTypeName& type) const;
     list<string> xtc_files(const string& device, const UTypeName& type) const;
+    //  Device key
     string key_path (const string& device, const string& key ) const;
+    string key_path (const string& device, unsigned key ) const;
+    //  Global key
     string key_path (const string& key) const;
+    string key_path (unsigned key) const;
 
     bool   is_valid() const;
     void   create();

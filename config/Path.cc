@@ -2,8 +2,15 @@
 #include "pdsapp/config/PdsDefs.hh"
 
 #include <sys/stat.h>
+#include <iomanip>
+#include <sstream>
 
 static const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
+
+using std::ostringstream;
+using std::hex;
+using std::setw;
+using std::setfill;
 
 using namespace Pds_ConfigDb;
 
@@ -48,8 +55,24 @@ bool Path::is_valid() const
 string Path::key_path(const string& device, const string& key) const
 { return _path+"/xtc/"+device+"/"+key; }
 
+string Path::key_path(const string& device, unsigned key) const
+{ 
+  ostringstream o; 
+  o << _path << "/xtc/" << device 
+    << hex << setw(8) << setfill('0') << key;
+  return o.str(); 
+}
+
 string Path::key_path(const string& key) const
 { return _path+"/keys/"+key; }
+
+string Path::key_path(unsigned key) const
+{ 
+  ostringstream o; 
+  o << _path << "/keys/"
+    << hex << setw(8) << setfill('0') << key;
+  return o.str(); 
+}
 
 string Path::data_path(const string& device,
 		       const UTypeName& type) const

@@ -38,3 +38,14 @@ string DeviceEntry::id() const
   o << std::hex << setfill('0') << setw(8) << _log << '.' << setw(8) << _phy;
   return o.str();
 }
+
+string DeviceEntry::path() const
+{
+  ostringstream o;
+  if (level()!=Pds::Level::Source)
+    o << std::hex << level();
+  else
+    o << std::hex << setfill('0') << setw(8) << _phy;
+  return o.str();
+}
+

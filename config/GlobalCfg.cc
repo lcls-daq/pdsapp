@@ -36,7 +36,7 @@ static void _loadType(const Pds::TypeId& id,
     if (sz < 0) 
       printf("GlobalCfg error reading %s\n",file);
     else {
-      printf("GlobalCfg read %d bytes from %s\n",sz,file);
+      printf("GlobalCfg read %d bytes from %s\n",int(sz),file);
       _btype[i] = _next;
       _next += sz;
     }

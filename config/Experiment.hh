@@ -40,6 +40,7 @@ namespace Pds_ConfigDb {
     void dump() const;
   public:
     bool update_key(const TableEntry&);
+    unsigned next_key() const;
   private:
     Path _path;
     Table  _table;
