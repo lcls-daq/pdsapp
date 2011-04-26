@@ -144,30 +144,52 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
 
   pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
 
-  char* kwlist[] = {"key","phy","level","typeid",NULL};
   const unsigned Default(0xffffffff);
   unsigned key   (Default);
   unsigned phy   (Default);
   unsigned level (Default);
   unsigned typid (Default);
-  int sts = PyArg_ParseTupleAndKeywords(args,kwds,"I|III",kwlist,
-                                        &key,&level,&phy,&typid);
+  const char* alias = 0;
 
-  if (sts==0) {
-    char* kwlist2[] = {"alias","phy","level","typid",NULL};
-    const char* alias=0;
-    sts = PyArg_ParseTupleAndKeywords(args,kwds,"s|III",kwlist2,
-                                      &alias,&level,&phy,&typid);
+  while(1) {
+    { char* kwlist[] = {"key"  ,"src"  ,"typeid", NULL };
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"I|II",kwlist,
+                                       &key  ,&phy  ,&typid) != 0)
+        break; }
 
-    if (sts==0) {
-      return result;
-    }
+    { char* kwlist[] = {"key"  ,"level","typeid", NULL };
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"I|II",kwlist,
+                                       &key  ,&level,&typid) != 0)
+        break; }
 
+    { char* kwlist[] = {"key"  ,"typeid", NULL };
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"I|I",kwlist,
+                                       &key  ,&typid) != 0)
+        break; }
+
+    { char* kwlist[] = {"alias","src"  ,"typeid", NULL };
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"s|II",kwlist,
+                                       &alias,&phy  ,&typid) != 0)
+        break; }
+
+    { char* kwlist[] = {"alias","level","typeid", NULL };
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"s|II",kwlist,
+                                       &alias,&level,&typid) != 0)
+        break; }
+
+    { char* kwlist[] = {"alias","typeid", NULL };
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"s|I",kwlist,
+                                       &alias,&typid) != 0)
+        break; }
+
+    return result;
+  }
+
+  if (key==Default) {
     const TableEntry* entry = self->expt->table().get_top_entry(alias);
-    if (entry)
+    if (entry) {
       key = strtoul(entry->key().c_str(),NULL,16);
-
-    printf("key %s = 0x%x\n",alias,key);
+    }
   }
 
   if (key==Default) {
@@ -186,12 +208,12 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
   for(unsigned k=0; k<g.gl_pathc; k++) {
     const char* src = basename(g.gl_pathv[k]);
     unsigned    dev = strtoul(src,NULL,16);
-    if ((level==Pds::Level::Source && phy==dev) ||
-        (level==dev) ||
+    if ((level==Default && phy==dev) ||
+        (level==dev && phy==Default) ||
         (level==Default && phy==Default)) {
 
       Pds::Src info = Pds::Src(Pds::Level::Type(level));
-      if (level==Pds::Level::Source)
+      if (strlen(src)>2)
         *new((void*)&info) 
           Pds::DetInfo(0, 
                        Pds::DetInfo::Detector((dev>>24)&0xff), (dev>>16)&0xff,
@@ -213,6 +235,9 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
           switch(contains.id()) {
           case Pds::TypeId::Id_DiodeFexConfig:
             o = _PyObject_New(&pds_DiodeFexConfig_type);
+            break;
+          case Pds::TypeId::Id_CspadConfig:
+            o = _PyObject_New(&pds_CspadConfig_type);
             break;
           default:
             o = _PyObject_New(&pds_Xtc_type);
@@ -351,6 +376,10 @@ PyObject* pdsdb_sub(PyObject* self_o, PyObject* args, PyObject* kwds)
       return NULL;
 
     unlink(xtcpath.c_str());
+  }
+  else {
+    printf("link %s not found (%d)\n",devpath.c_str(),sts);
+    return NULL;
   }
 
   FILE* xfile = fopen(xtcpath.c_str(),"w");

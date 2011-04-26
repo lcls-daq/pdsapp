@@ -1,0 +1,296 @@
+//
+//  pds_CspadConfig class methods
+//
+static PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args);
+static PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args);
+
+static PyMethodDef pds_CspadConfig_methods[] = {
+  {"get"   , (PyCFunction)pds_CspadConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"set"   , (PyCFunction)pds_CspadConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {NULL},
+};
+
+DefineXtcType(CspadConfig) ;
+
+  
+#include "pdsdata/cspad/ConfigV1.hh"
+#include "pdsdata/cspad/ConfigV2.hh"
+#include <new>
+
+using namespace Pds::CsPad;
+
+//
+//  Return a dictionary of configuration data
+//
+#define SetMember(name) PyDict_SetItemString(o,#name,PyLong_FromLong(cfg->name()))
+
+static PyObject* get_quad(const ConfigV1QuadReg* cfg)
+{
+  PyObject* o = PyDict_New();
+  
+  { PyObject* l = PyList_New(TwoByTwosPerQuad);
+    for(unsigned i=0; i<TwoByTwosPerQuad; i++)
+      PyList_SetItem(l,i,PyLong_FromLong(cfg->shiftSelect()[i]));
+    PyDict_SetItemString(o,"shiftSelect",l); }
+
+  { PyObject* l = PyList_New(TwoByTwosPerQuad);
+    for(unsigned i=0; i<TwoByTwosPerQuad; i++)
+      PyList_SetItem(l,i,PyLong_FromLong(cfg->edgeSelect()[i]));
+    PyDict_SetItemString(o,"edgeSelect",l); }
+
+  SetMember(readClkSet);
+  SetMember(readClkHold);
+  SetMember(dataMode);
+  SetMember(prstSel);
+  SetMember(acqDelay);
+  SetMember(intTime);
+  SetMember(digDelay);
+  SetMember(ampIdle);
+  SetMember(injTotal);
+  SetMember(rowColShiftPer);
+
+  PyDict_SetItemString(o,"shiftTest",PyLong_FromLong(cfg->ro().shiftTest));
+  PyDict_SetItemString(o,"version"  ,PyLong_FromLong(cfg->ro().version));
+
+  { PyObject* l = PyList_New(PotsPerQuad);
+    for(unsigned i=0; i<PotsPerQuad; i++)
+      PyList_SetItem(l,i,PyLong_FromLong(cfg->dp().value(i)));
+    PyDict_SetItemString(o,"pots",l); }
+
+  { PyObject* columns = PyList_New(ColumnsPerASIC);
+    for(unsigned i=0; i<ColumnsPerASIC; i++) {
+      PyObject* row = PyList_New(MaxRowsPerASIC);
+      for(unsigned j=0; j<MaxRowsPerASIC; j++)
+        PyList_SetItem(row,j,PyLong_FromLong((*cfg->gm()->map())[i][j]));
+      PyList_SetItem(columns,i,row); 
+    }
+    PyDict_SetItemString(o,"gain",columns); }
+
+  return o;
+}
+
+PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==1) {
+    const Pds::CsPad::ConfigV1* cfg = 
+      reinterpret_cast<const Pds::CsPad::ConfigV1*>(xtc->payload);
+
+    PyObject* o = PyDict_New();
+    SetMember(concentratorVersion);
+    SetMember(runDelay);
+    SetMember(eventCode);
+    SetMember(inactiveRunMode);
+    SetMember(activeRunMode);
+    SetMember(tdi);
+    SetMember(payloadSize);
+    SetMember(badAsicMask0);
+    SetMember(badAsicMask1);
+    SetMember(asicMask);
+    SetMember(quadMask);
+
+    printf("Retrieving quads\n");
+
+    { PyObject* l = PyList_New(MaxQuadsPerSensor);
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+        PyList_SetItem(l,i,get_quad(&cfg->quads()[i]));
+      PyDict_SetItemString(o,"quads",l); }
+
+    return o;
+  }
+  else if (xtc->contains.version()==2) {
+    const ConfigV2* cfg = 
+      reinterpret_cast<const ConfigV2*>(xtc->payload);
+
+    PyObject* o = PyDict_New();
+    SetMember(concentratorVersion);
+    SetMember(runDelay);
+    SetMember(eventCode);
+    SetMember(inactiveRunMode);
+    SetMember(activeRunMode);
+    SetMember(tdi);
+    SetMember(payloadSize);
+    SetMember(badAsicMask0);
+    SetMember(badAsicMask1);
+    SetMember(asicMask);
+    SetMember(quadMask);
+
+    { PyObject* l = PyList_New(MaxQuadsPerSensor);
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+        PyList_SetItem(l,i,PyLong_FromLong(cfg->roiMask(i)));
+      PyDict_SetItemString(o,"roiMask",l); }
+
+    { PyObject* l = PyList_New(MaxQuadsPerSensor);
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+        PyList_SetItem(l,i,get_quad(&cfg->quads()[i]));
+      PyDict_SetItemString(o,"quads",l); }
+
+    return o;
+  }
+
+  //  Throw an exception
+  return NULL;
+}
+#undef SetMember
+
+//
+//  Retrieve configuration data from a Python Dictionary
+//
+#define SetMember(name)                          \
+  unsigned name;                                 \
+  { PyObject* i = PyDict_GetItemString(o,#name); \
+    if (i)  name = PyLong_AsLong(i);             \
+    else    name = cfg->name(); }
+
+static bool set_quad(ConfigV1QuadReg* cfg,
+                     PyObject* o)
+{
+  uint32_t shiftSelect[TwoByTwosPerQuad];
+  { PyObject* l = PyDict_GetItemString(o,"shiftSelect");
+    if (l) {
+      for(unsigned i=0; i<TwoByTwosPerQuad; i++)
+        shiftSelect[i] = PyLong_AsLong(PyList_GetItem(l,i));
+    }
+    else {
+      for(unsigned i=0; i<TwoByTwosPerQuad; i++)
+        shiftSelect[i] = cfg->shiftSelect()[i];
+    }
+  }
+
+  uint32_t edgeSelect[TwoByTwosPerQuad];
+  { PyObject* l = PyDict_GetItemString(o,"edgeSelect");
+    if (l) {
+      for(unsigned i=0; i<TwoByTwosPerQuad; i++)
+        edgeSelect[i] = PyLong_AsLong(PyList_GetItem(l,i));
+    }
+    else {
+      for(unsigned i=0; i<TwoByTwosPerQuad; i++)
+        edgeSelect[i] = cfg->edgeSelect()[i];
+    }
+  }
+
+  SetMember(readClkSet);
+  SetMember(readClkHold);
+  SetMember(dataMode);
+  SetMember(prstSel);
+  SetMember(acqDelay);
+  SetMember(intTime);
+  SetMember(digDelay);
+  SetMember(ampIdle);
+  SetMember(injTotal);
+  SetMember(rowColShiftPer);
+
+  PyObject* l;
+  if ((l = PyDict_GetItemString(o,"pots")))
+    for(unsigned i=0; i<PotsPerQuad; i++)
+      cfg->dp().pots[i] = PyLong_AsLong(PyList_GetItem(l,i));
+
+  if ((l = PyDict_GetItemString(o,"gain")))
+    for(unsigned i=0; i<ColumnsPerASIC; i++) {
+      PyObject* row = PyList_GetItem(l,i);
+      for(unsigned j=0; j<MaxRowsPerASIC; j++)
+        (*cfg->gm()->map())[i][j] = PyLong_AsLong(PyList_GetItem(row,j));
+    }
+
+  return true;
+}
+
+PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
+{
+  PyObject* o = 0;
+  if (PyArg_ParseTuple(args,"O",&o)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==1) {
+    ConfigV1* cfg = 
+      reinterpret_cast<ConfigV1*>(xtc->payload);
+
+    SetMember(runDelay);
+    SetMember(eventCode);
+    SetMember(inactiveRunMode);
+    SetMember(activeRunMode);
+    SetMember(tdi);
+    SetMember(payloadSize);
+    SetMember(badAsicMask0);
+    SetMember(badAsicMask1);
+    SetMember(asicMask);
+    SetMember(quadMask);
+  
+    new(xtc->payload) ConfigV1(runDelay, 
+                               eventCode,
+                               inactiveRunMode,
+                               activeRunMode,
+                               tdi,
+                               payloadSize, 
+                               badAsicMask0,
+                               badAsicMask1,
+                               asicMask,
+                               quadMask);
+    
+    PyObject* i = PyDict_GetItemString(o,"quads");
+    if (i) {
+      for(unsigned q=0; q<PyList_Size(i); q++)
+        if (!set_quad(&cfg->quads()[q],PyList_GetItem(i,q))) {
+          Py_DECREF(o);
+          return NULL;
+        }
+    }
+
+  }
+  else if (xtc->contains.version()==2) {
+    ConfigV2* cfg = 
+      reinterpret_cast<ConfigV2*>(xtc->payload);
+
+    SetMember(runDelay);
+    SetMember(eventCode);
+    SetMember(inactiveRunMode);
+    SetMember(activeRunMode);
+    SetMember(tdi);
+    SetMember(payloadSize);
+    SetMember(badAsicMask0);
+    SetMember(badAsicMask1);
+    SetMember(asicMask);
+    SetMember(quadMask);
+
+    unsigned roiMask = 0;
+    PyObject* l = PyDict_GetItemString(o,"roiMask");
+    if (l) {
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+        roiMask |= PyLong_AsLong(PyList_GetItem(l,i)) << (i*ASICsPerQuad/2);
+    }
+    else {
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+        roiMask |= cfg->roiMask(i)<<(i*ASICsPerQuad/2);
+    }
+
+    new(xtc->payload) ConfigV2(runDelay, 
+                               eventCode,
+                               inactiveRunMode,
+                               activeRunMode,
+                               tdi,
+                               payloadSize, 
+                               badAsicMask0,
+                               badAsicMask1,
+                               asicMask,
+                               quadMask,
+                               roiMask);
+    
+    PyObject* i = PyDict_GetItemString(o,"quads");
+    if (i) {
+      for(unsigned q=0; q<PyList_Size(i); q++)
+        if (!set_quad(&cfg->quads()[q],PyList_GetItem(i,q))) {
+          Py_DECREF(o);
+          return NULL;
+        }
+    }
+  }
+  else {
+    Py_DECREF(o);
+    return NULL;
+  }
+
+  Py_DECREF(o);
+  Py_INCREF(Py_None);
+  return Py_None;
+}

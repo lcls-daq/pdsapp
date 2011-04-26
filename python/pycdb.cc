@@ -11,6 +11,7 @@
 
 #include "pdsapp/python/Xtc.icc"
 #include "pdsapp/python/DiodeFexConfig.icc"
+#include "pdsapp/python/CspadConfig.icc"
 #include "pdsapp/python/Db.icc"
 
 //
@@ -28,17 +29,17 @@ static PyMethodDef PycdbMethods[] = {
 PyMODINIT_FUNC
 initpycdb(void)
 {
-  if (PyType_Ready(&pdsdb_type) < 0) {
+  if (PyType_Ready(&pdsdb_type) < 0)
     return; 
-  }
 
-  if (PyType_Ready(&pds_Xtc_type) < 0) {
+  if (PyType_Ready(&pds_Xtc_type) < 0)
     return; 
-  }
 
-  if (PyType_Ready(&pds_DiodeFexConfig_type) < 0) {
+  if (PyType_Ready(&pds_DiodeFexConfig_type) < 0)
     return; 
-  }
+
+  if (PyType_Ready(&pds_CspadConfig_type) < 0)
+    return; 
 
   PyObject *m = Py_InitModule("pycdb", PycdbMethods);
   if (m == NULL)
@@ -52,4 +53,7 @@ initpycdb(void)
 
   Py_INCREF(&pds_DiodeFexConfig_type);
   PyModule_AddObject(m, "DiodeFexConfig", (PyObject*)&pds_DiodeFexConfig_type);
+
+  Py_INCREF(&pds_CspadConfig_type);
+  PyModule_AddObject(m, "CspadConfig", (PyObject*)&pds_CspadConfig_type);
 }

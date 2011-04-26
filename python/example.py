@@ -1,7 +1,7 @@
 import pycdb
 
 x = pycdb.Db("/reg/neh/home/weaver/configdb/xpp")
-y = x.get("BEAM",1,0x0f010800)[1]
+y = x.get(alias="BEAM",src=0x0f010800)[1]
 y.get_base()
 y.get_scale()
 y.set_scale([2,1,1])
@@ -12,3 +12,6 @@ x.substitute(z,y)
 
 x.set(y)
 x.commit()
+
+y = x.get(alias="BEAM",src=0x14000a00)
+y[0].get()
