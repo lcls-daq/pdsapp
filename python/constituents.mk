@@ -1,4 +1,4 @@
-libnames := pycdb
+libnames := pycdb pydaq
 
 libsrcs_pycdb := pycdb.cc
 libincs_pycdb := python/include/python2.5
@@ -11,3 +11,8 @@ liblibs_pycdb += pdsdata/controldata pdsdata/epics
 liblibs_pycdb += pdsdata/cspaddata pdsdata/lusidata
 liblibs_pycdb += pdsapp/configdb
 libslib_pycdb := $(USRLIBDIR)/rt
+
+libsrcs_pydaq := pydaq.cc
+libincs_pydaq := python/include/python2.5
+liblibs_pydaq += pdsdata/xtcdata pdsdata/controldata
+libslib_pydaq := $(USRLIBDIR)/rt
