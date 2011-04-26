@@ -140,8 +140,6 @@ int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
     if (PyArg_ParseTupleAndKeywords(args,kwds,"si",kwlist,
                                     &host,&platform)) {
 
-      printf("Parsed host %s\n",host ? host : "(NULL)");
-
       hostent* entries = gethostbyname(host);
       if (entries) {
         addr = htonl(*(in_addr_t*)entries->h_addr_list[0]);
@@ -158,8 +156,6 @@ int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
 
   PyErr_Clear();
 
-  printf("Parsed addr %08x  platform %d\n",addr,platform);
-
   int s = ::socket(AF_INET, SOCK_STREAM, 0);
   if (s < 0)
     return -1;
@@ -174,15 +170,11 @@ int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
   if (::connect(s, (sockaddr*)&sa, sizeof(sa)) < 0)
     return -1;
 
-  printf("connected with socket %d\n",s);
-
   self->socket = s;
 
   uint32_t len;
   if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
     return -1;
-
-  printf("dbpath len %d\n",len);
 
   char buff[256];
   if (::recv(s, buff, len, MSG_WAITALL) != len)
@@ -190,13 +182,9 @@ int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
   buff[len] = 0;
   *strrchr(buff,'/') = 0;
 
-  printf("dbpath %s\n",buff);
-
   uint32_t key;
   if (::recv(s, &key, sizeof(key), MSG_WAITALL) < 0)
     return -1;
-
-  printf("dbkey %x\n",key);
 
   self->socket = s;
   strcpy(self->dbpath,buff);
