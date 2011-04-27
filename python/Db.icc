@@ -140,9 +140,9 @@ int pdsdb_init(pdsdb* self, PyObject* args, PyObject* kwds)
 //
 PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
 {
-  PyObject* result = PyTuple_New(0);
-
   pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+
+  PyObject* result = PyTuple_New(0);
 
   const unsigned Default(0xffffffff);
   unsigned key   (Default);
@@ -182,8 +182,12 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
                                        &alias,&typid) != 0)
         break; }
 
+    PyErr_Clear();
+
     return result;
   }
+
+  PyErr_Clear();
 
   if (key==Default) {
     const TableEntry* entry = self->expt->table().get_top_entry(alias);
@@ -257,7 +261,7 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
 
 
 //
-//  Insert a configuration object of type <type> from <src> associated with <key>
+//  Insert a configuration object of type <type> from <src> associated with <alias>
 //
 PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
 {

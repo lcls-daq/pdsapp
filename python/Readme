@@ -1,5 +1,99 @@
 Requires the following environment:
 
-setenv PYTHONPATH (path to pycdb.so -> ./build/pdsapp/lib/x86_64-linux/libpycdb.so)
-setenv DAQREL /reg/neh/home/weaver/release
+setenv DAQREL /reg/neh/home/weaver/release (for example)
+setenv PYTHONPATH ${DAQREL} (path to pycdb.so -> ./build/pdsapp/lib/x86_64-linux/libpycdb.so 
+			     and similarly pydaq.so)
 setenv LD_LIBRARY_PATH /reg/g/pcds/package/python-2.5.2/lib:${DAQREL}/build/pdsdata/lib/x86_64-linux:${DAQREL}/build/pdsapp/lib/x86_64-linux
+
+
+--- pydaq module ---
+
+class pydaq.Control(host, platform=0)
+
+	Arguments:
+		'host'     : host name or IP address (dotted-string notation or integer)
+		'platform' : DAQ platform number (subdivision of readout hardware)
+
+	Function:
+		Initializes the interface for controlling the data acquisition system remotely.
+		Creates a connection with the local control and queries the configuration
+		database and current key in use.
+
+Members:
+
+	Control.dbpath() 
+		Returns path to configuration database
+
+	Control.dbkey()
+		Returns current key in use
+
+	Control.configure(record=<Bool>,
+			  key=<Integer>, 
+			  events=<Integer> or duration=[seconds,nanoseconds],
+			  controls=[(name,value)], 
+			  monitors=[(name,lo_range,hi_range)])
+		Configures control to use database key (default to current key) either:
+		  (1) collecting a fixed number of events on each cycle (when events=<Integer>
+		      is specified) or
+		  (2) collection events for a fixed duration (when duration=[seconds,nanoseconds]
+		      is specified).  
+		The list of variables controlled (optional) in the scan and 
+		the list of variables to be monitored (optional) during acquisition
+		are specified.
+		The option to record can also be set.  If it is omitted, then the value from
+		the local control is used.
+
+	Control.begin(events=<Integer> or duration=[seconds,nanoseconds],
+		      controls=[(name,value)],)
+		      monitors=[(name,lo_range,hi_range)])
+		Begins acquisition for the specified settings of control variables (if specified).
+		Actual control of these variables is the responsibility of the remote application.  
+		Monitor variables (optional) are enforced during acquisition.  Omitted values 
+		default to those specified most recently (or in the 'configure' method).
+
+	Control.end()
+		Waits for the end of acquisition signalled from the local host control.
+
+	Control.experiment()
+		Returns experiment number of run, if recorded.  
+		Only valid after acquisition is complete.
+
+	Control.runnumber()
+		Returns run number, if recorded.  
+		Only valid after acquisition is complete.
+
+
+--- pycdb module ---
+
+class pycdb.Db(path)
+
+	Initializes access to the configuration database residing at 'path'.
+
+Members:
+
+	get(key=<Integer> or alias=<string>, 
+	    src=<Integer> or level=<Integer>, typeid=<Integer>) or
+	get(key=<Integer> or alias=<string>, 
+	    typeid=<Integer>)
+		Returns a tuple of configuration datum which satisfies the
+		search criteria.  The search criteria is composed of either
+		a particular database key number (integer) or alias name 
+		(for example, "BEAM"), an integer detector id 'src' or level
+		(for example, 0=control), and an integer typeid 
+		(for example, 0x00050008 = Evr configuration version 5).
+		The Python type of each returned object	is specific to the
+		datum returned { pycdb.DiodeFexConfig, pycdb.CspadConfig, ... }.
+
+	set(alias, datum)
+		Inserts the configuration 'datum' into the database for the
+		global entry 'alias' (for example, "BEAM").
+
+	commit()
+		Updates all current run keys with the data inserted via calls to 'set'.
+
+	clone(key)
+		Returns a new database key created as a copy of the existing key 'key'.
+		The returned key is suitable for modifying via calls to 'substitute'.
+
+	substitute(key, datum)
+		Insert the configuration 'datum' only for the given database 'key'.
