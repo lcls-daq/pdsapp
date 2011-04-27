@@ -28,7 +28,10 @@ namespace Pds {
     bool control_enabled() const;
     void enable_control();
     void disable_control();
+    bool record_state() const;
+    void set_record_state(bool);
   signals:
+    void remote_record(bool);
     void state_changed(QString);
     void configured   (bool);
   public slots:

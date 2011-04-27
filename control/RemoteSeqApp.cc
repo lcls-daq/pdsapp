@@ -21,6 +21,10 @@
 static const int MaxConfigSize = 0x100000;
 static const int Control_Port  = 10130;
 
+static const unsigned RecordSetMask = 0x20000;
+static const unsigned RecordValMask = 0x10000;
+static const unsigned DbKeyMask     = 0x0ffff;
+
 using namespace Pds;
 
 RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
@@ -35,6 +39,7 @@ RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
   _cfgmon_buffer(new char[MaxConfigSize]),
   _task         (new Task(TaskObject("remseq"))),
   _port         (Control_Port + control.header().platform()),
+  _last_run     (0,0),
   _socket       (-1)
 {
   _task->call(this);
@@ -136,6 +141,9 @@ void RemoteSeqApp::routine()
 	  printf("RemoteSeqApp accepted connection from %x/%d\n",
 		 name.get().address(), name.get().portId());
 
+          //  Cache the recording state
+          bool lrecord = _manual.record_state();
+
 	  _manual.disable_control();
 
 	  //  First, send the current configdb and run key
@@ -146,24 +154,27 @@ void RemoteSeqApp::routine()
 	  unsigned old_key = _control.get_transition_env(TransitionId::Configure);
 	  ::write(_socket,&old_key,sizeof(old_key));
 
-	  //  Receive the requested run key
-	  unsigned new_key;
-	  int len = ::recv(_socket, &new_key, sizeof(new_key), MSG_WAITALL);
-	  if (len != sizeof(new_key)) {
+	  //  Receive the requested run key and recording option
+	  uint32_t options;
+	  int len = ::recv(_socket, &options, sizeof(options), MSG_WAITALL);
+	  if (len != sizeof(options)) {
 	    if (errno==0)
 	      printf("RemoteSeqApp: remote end closed\n");
 	    else
-	      printf("RemoteSeqApp failed to read new_key(%d/%d) : %s\n",
-		     len,sizeof(new_key),strerror(errno));
+	      printf("RemoteSeqApp failed to read options(%d/%d) : %s\n",
+		     len,sizeof(options),strerror(errno));
 	  }
 
 	  //  Reconfigure with the initial settings
 	  else if (readTransition()) {
-	    _control.set_transition_env    (TransitionId::Configure,new_key);
+	    _control.set_transition_env    (TransitionId::Configure,options & DbKeyMask);
 	    _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
 
 	    _wait_for_configure = true;
 	    _control.reconfigure();
+
+            if (options & RecordSetMask)
+              _manual.set_record_state( options & RecordValMask );
 
 	    while(1) {
 	      if (!readTransition())  break;
@@ -196,6 +207,7 @@ void RemoteSeqApp::routine()
 	  _control.set_target_state(PartitionControl::Configured);
 	  _control.reconfigure();
 	  
+          _manual.set_record_state(lrecord);
 	}
 	printf("RemoteSeqApp::routine listen failed : %s\n",
 	       strerror(errno));
@@ -207,7 +219,13 @@ void RemoteSeqApp::routine()
 
 Transition* RemoteSeqApp::transitions(Transition* tr) 
 { 
-  if (tr->id()==TransitionId::BeginCalibCycle)
+  if (tr->id()==TransitionId::BeginRun) {
+    if (tr->size() == sizeof(Transition))
+      _last_run = RunInfo(0,0);
+    else
+      _last_run = *reinterpret_cast<RunInfo*>(tr);
+  }
+  else if (tr->id()==TransitionId::BeginCalibCycle)
     _pvmanager.configure(*reinterpret_cast<ControlConfigType*>(_cfgmon_buffer));
   else if (tr->id()==TransitionId::EndCalibCycle)
     _pvmanager.unconfigure();
@@ -229,20 +247,21 @@ Occurrence* RemoteSeqApp::occurrences(Occurrence* occ)
 InDatagram* RemoteSeqApp::events     (InDatagram* dg) 
 { 
   if (_socket >= 0) {
-    int id = dg->datagram().seq.service();
+    int id   = dg->datagram().seq.service();
+    int info = _last_run.run() | (_last_run.experiment()<<16);
     if (dg->datagram().xtc.damage.value()!=0) {
-      id = -id;
-      ::write(_socket,&id,sizeof(id));
+      info = -id;
+      ::write(_socket,&info,sizeof(info));
     }
     else if (_wait_for_configure) {
       if (id==TransitionId::Configure) {
-	::write(_socket,&id,sizeof(id));
+	::write(_socket,&info,sizeof(info));
 	_wait_for_configure = false;
       }
     }
     else if (id==TransitionId::Enable ||
 	     id==TransitionId::EndCalibCycle)
-      ::write(_socket,&id,sizeof(id));
+      ::write(_socket,&info,sizeof(info));
   }
   return dg;
 }

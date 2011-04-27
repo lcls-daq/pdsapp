@@ -48,8 +48,10 @@ StateSelect::StateSelect(QWidget* parent,
   _record->setFont(font);
   _record->setAutoFillBackground(true);
 
-  QObject::connect(_record, SIGNAL(clicked(bool)), 
+  QObject::connect(_record, SIGNAL(toggled(bool)), 
 		   this, SLOT(set_record(bool)));
+  QObject::connect(this, SIGNAL(remote_record(bool)),
+                   _record, SLOT(setChecked(bool)));
   QObject::connect(this, SIGNAL(state_changed(QString)),
 		   this, SLOT(populate(QString)));
   QObject::connect(_select, SIGNAL(activated(const QString&)), 
@@ -69,6 +71,8 @@ StateSelect::~StateSelect()
 bool StateSelect::control_enabled() const { return _select->isEnabled(); }
 void StateSelect::enable_control () { _select->setEnabled(true ); }
 void StateSelect::disable_control() { _select->setEnabled(false); }
+bool StateSelect::record_state() const { return _record->isChecked(); }
+void StateSelect::set_record_state(bool r) { emit remote_record(r); }
 
 void StateSelect::populate(QString label)
 {

@@ -39,6 +39,7 @@ namespace Pds {
     bool               _done;
     Task*              _task;
     unsigned short     _port;
+    RunInfo            _last_run;
     volatile int       _socket;
     volatile bool      _wait_for_configure;
   };
