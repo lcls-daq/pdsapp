@@ -19,12 +19,19 @@ using Pds::ControlData::PVMonitor;
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <string.h>
+#include <sstream>
+using std::ostringstream;
 
 #include <list>
 using std::list;
 
 static const int MaxPathSize   = 0x100;
 static const int MaxConfigSize = 0x100000;
+static const int Control_Port  = 10130;
+
+static const unsigned RecordSetMask = 0x20000;
+static const unsigned RecordValMask = 0x10000;
+static const unsigned DbKeyMask     = 0x0ffff;
 
 //
 //  pdsdaq class methods
@@ -34,16 +41,20 @@ static PyObject* pdsdaq_new    (PyTypeObject* type, PyObject* args, PyObject* kw
 static int       pdsdaq_init   (pdsdaq* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_dbpath   (PyObject* self);
 static PyObject* pdsdaq_dbkey    (PyObject* self);
+static PyObject* pdsdaq_runnum   (PyObject* self);
+static PyObject* pdsdaq_expt     (PyObject* self);
 static PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_end      (PyObject* self);
 
 static PyMethodDef pdsdaq_methods[] = {
-  {"dbpath"   , (PyCFunction)pdsdaq_dbpath   , METH_NOARGS  , "Get database path"},
-  {"dbkey"    , (PyCFunction)pdsdaq_dbkey    , METH_NOARGS  , "Get database key"},
-  {"configure", (PyCFunction)pdsdaq_configure, METH_KEYWORDS, "Configure the scan"},
-  {"begin"    , (PyCFunction)pdsdaq_begin    , METH_KEYWORDS, "Configure the cycle"},
-  {"end"      , (PyCFunction)pdsdaq_end      , METH_NOARGS  , "Wait for the cycle end"},
+  {"dbpath"    , (PyCFunction)pdsdaq_dbpath   , METH_NOARGS  , "Get database path"},
+  {"dbkey"     , (PyCFunction)pdsdaq_dbkey    , METH_NOARGS  , "Get database key"},
+  {"runnumber" , (PyCFunction)pdsdaq_runnum   , METH_NOARGS  , "Get run number"},
+  {"experiment", (PyCFunction)pdsdaq_expt     , METH_NOARGS  , "Get experiment number"},
+  {"configure" , (PyCFunction)pdsdaq_configure, METH_KEYWORDS, "Configure the scan"},
+  {"begin"     , (PyCFunction)pdsdaq_begin    , METH_KEYWORDS, "Configure the cycle"},
+  {"end"       , (PyCFunction)pdsdaq_end      , METH_NOARGS  , "Wait for the cycle end"},
   {NULL},
 };
 
@@ -120,10 +131,11 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
 
   self = (pdsdaq*)type->tp_alloc(type,0);
   if (self != NULL) {
-    self->socket = -1;
-    self->dbpath = new char[MaxPathSize];
-    self->dbkey  = 0;
-    self->buffer = new char[MaxConfigSize];
+    self->socket  = -1;
+    self->dbpath  = new char[MaxPathSize];
+    self->dbkey   = 0;
+    self->buffer  = new char[MaxConfigSize];
+    self->runinfo = 0;
   }
 
   return (PyObject*)self;
@@ -134,10 +146,10 @@ int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
   char* kwlist[] = {"host","platform",NULL};
   unsigned    addr  = 0;
   const char* host  = 0;
-  int         platform = -1;
+  unsigned    platform = 0;
 
   while(1) {
-    if (PyArg_ParseTupleAndKeywords(args,kwds,"si",kwlist,
+    if (PyArg_ParseTupleAndKeywords(args,kwds,"s|I",kwlist,
                                     &host,&platform)) {
 
       hostent* entries = gethostbyname(host);
@@ -146,7 +158,7 @@ int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
         break;
       }
     }
-    if (PyArg_ParseTupleAndKeywords(args,kwds,"Ii",kwlist,
+    if (PyArg_ParseTupleAndKeywords(args,kwds,"I|i",kwlist,
                                     &addr,&platform)) {
       break;
     }
@@ -160,12 +172,10 @@ int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
   if (s < 0)
     return -1;
 
-  static const int PortBase = 10130;
-
   sockaddr_in sa;
   sa.sin_family = AF_INET;
   sa.sin_addr.s_addr = htonl(addr);
-  sa.sin_port        = htons(PortBase+platform);
+  sa.sin_port        = htons(Control_Port+platform);
 
   if (::connect(s, (sockaddr*)&sa, sizeof(sa)) < 0)
     return -1;
@@ -204,44 +214,77 @@ PyObject* pdsdaq_dbkey    (PyObject* self)
   return PyLong_FromLong(daq->dbkey);
 }
 
+PyObject* pdsdaq_runnum   (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  return PyLong_FromLong(daq->runinfo & 0xffff);
+}
+
+PyObject* pdsdaq_expt     (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  return PyLong_FromLong(daq->runinfo >> 16);
+}
+
+static bool ParseInt(PyObject* obj, int& var, const char* name)
+{
+  if (PyInt_Check(obj))
+    var = PyInt_AsLong(obj);
+  else if (PyLong_Check(obj))
+    var = PyLong_AsLong(obj);
+  else {
+    ostringstream o;
+    o << name << " is not of type Int";
+    PyErr_SetString(PyExc_TypeError,o.str().c_str());
+    return false;
+  }
+  return true;
+}
+
 PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
 {
   pdsdaq*   daq      = (pdsdaq*)self;
-  int       key      = -1;
+  int       key      = daq->dbkey;
   int       events   = -1;
+  PyObject* record   = 0;
   PyObject* duration = 0;
   PyObject* controls = 0;
   PyObject* monitors = 0;
 
-  while(1) {
-    { char* kwlist[] = {"key","events"  ,"controls","monitors",NULL};
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"ii|OO",kwlist,
-                                       &key, &events, &controls, &monitors) )
-        break; }
-    { char* kwlist[] = {"key","duration","controls","monitors",NULL};
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"iO|OO",kwlist,
-                                       &key, &duration, &controls, &monitors) )
-        break; }
-
-    key = daq->dbkey;
-
-    { char* kwlist[] = {"events"  ,"controls","monitors",NULL};
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"i|OO",kwlist,
-                                       &events, &controls, &monitors) )
-        break; }
-    { char* kwlist[] = {"duration","controls","monitors",NULL};
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"O|OO",kwlist,
-                                       &duration, &controls, &monitors) )
-        break; }
-
-    return NULL;
+  PyObject* keys = PyDict_Keys  (kwds);
+  PyObject* vals = PyDict_Values(kwds);
+  for(int i=0; i<PyList_Size(keys); i++) {
+    const char* name = PyString_AsString(PyList_GetItem(keys,i));
+    PyObject* obj = PyList_GetItem(vals,i);
+    if (strcmp("key"     ,name)==0) {
+      if (!ParseInt (obj,key   ,"key"   )) return NULL;
+    }
+    else if (strcmp("events"  ,name)==0) {
+      if (!ParseInt (obj,events,"events")) return NULL;
+    }
+    else if (strcmp("record"  ,name)==0)  record  =obj;
+    else if (strcmp("duration",name)==0)  duration=obj;
+    else if (strcmp("controls",name)==0)  controls=obj;
+    else if (strcmp("monitors",name)==0)  monitors=obj;
+    else {
+      ostringstream o;
+      o << name << " is not a valid keyword";
+      PyErr_SetString(PyExc_TypeError,o.str().c_str());
+      return NULL;
+    }
   }
 
-  PyErr_Clear();
+  daq->dbkey    = (key & DbKeyMask);
 
-  daq->dbkey    = key;
-  int32_t ikey(key);
-  ::write(daq->socket, &ikey, sizeof(ikey));
+  uint32_t urecord = 0;
+  if (record) {
+    urecord |= RecordSetMask;
+    if (record==Py_True)
+      urecord |= RecordValMask;
+  }
+
+  uint32_t ukey = daq->dbkey | urecord;
+  ::write(daq->socket, &ukey, sizeof(ukey));
 
   list<PVControl> clist;
   if (controls)
@@ -321,7 +364,9 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
         }
       } while (++it!= clist.end());
       if (it == clist.end()) {
-        printf("Control %s not present in Configure\n",name);
+        ostringstream o;
+        o << "Control " << name << " not present in Configure";
+        PyErr_SetString(PyExc_TypeError,o.str().c_str());
         return NULL;
       }
     }
@@ -344,7 +389,9 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
         }
       } while (++it!= mlist.end());
       if (it == mlist.end()) {
-        printf("Monitor %s not present in Configure\n",name);
+        ostringstream o;
+        o << "Monitor " << name << " not present in Configure";
+        PyErr_SetString(PyExc_TypeError,o.str().c_str());
         return NULL;
       }
     }
@@ -374,10 +421,16 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
 PyObject* pdsdaq_end      (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
-  int32_t result;
+  int32_t result = -1;
   if (::recv(daq->socket,&result,sizeof(result),MSG_WAITALL) < 0 ||
-      result < 0)
+      result < 0) {
+    ostringstream o;
+    o << "Remote DAQ failed transition " << -result;
+    PyErr_SetString(PyExc_RuntimeError,o.str().c_str());
     return NULL;
+  }
+
+  daq->runinfo = result;
 
   Py_INCREF(Py_None);
   return Py_None;

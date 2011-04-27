@@ -97,3 +97,9 @@ Members:
 
 	substitute(key, datum)
 		Insert the configuration 'datum' only for the given database 'key'.
+
+---
+
+Example usage is found in:
+	example_longscan.py
+	cspad_scan.py

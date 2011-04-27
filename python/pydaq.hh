@@ -10,6 +10,7 @@ typedef struct {
   char*   dbpath;
   int32_t dbkey;
   char*   buffer;
+  int32_t runinfo;
 } pdsdaq;
 
 #endif
