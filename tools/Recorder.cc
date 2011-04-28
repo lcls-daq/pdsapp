@@ -43,6 +43,7 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) :
   _beginrunerr(0),
   _path_error(false),
   _write_error(false),
+  _chunk_requested(false),
   _chunk(0),
   _chunkSize(chunkSize),
   _experiment(0),
@@ -91,11 +92,13 @@ InDatagram* Recorder::events(InDatagram* in) {
     iter->copy(_config+sizeof(Datagram), in->datagram().xtc.sizeofPayload());
     break;
   case TransitionId::BeginRun:
+  case TransitionId::Enable:
     if (_beginrunerr) {
       in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
       _beginrunerr=0;
     }
     _write_error=false;
+    _chunk_requested=false;
   default:  // write this transition
     if (_f) {
       struct stat st;
@@ -120,23 +123,15 @@ InDatagram* Recorder::events(InDatagram* in) {
           // error
           in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
         }
+
         if ((0 == rv) && ((uint64_t)st.st_size >= _chunkSize)) {
-          // chunking: close the current output file and open the next one
-          ++_chunk;     // should _chunk have an upper limit?
-          if (_closeOutputFile() != 0) {
-            // error
-            in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
-          }
-          if (_openOutputFile(true) != 0) {
-            in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
-          }
+          _requestChunk();
         }
-        else {
-          // flush the current output file
-          if (_flushOutputFile() != 0) {
-            // error
-            in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
-          }
+
+        // flush the current output file
+        if (_flushOutputFile() != 0) {
+          // error
+          in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
         }
       }
     }
@@ -155,6 +150,7 @@ InDatagram* Recorder::events(InDatagram* in) {
 }
 
 Transition* Recorder::transitions(Transition* tr) {
+  struct stat st;
   if (tr->id()==TransitionId::Map) {
     const Allocation& alloc = reinterpret_cast<const Allocate*>(tr)->allocation();
 
@@ -166,7 +162,7 @@ Transition* Recorder::transitions(Transition* tr) {
       }
     }
   }
-  if (tr->id()==TransitionId::BeginRun) {
+  else if (tr->id()==TransitionId::BeginRun) {
     if (tr->size() == sizeof(Transition)) {  // No RunInfo
       _f = 0;
       printf("No RunInfo.  Not recording.\n");
@@ -204,6 +200,19 @@ Transition* Recorder::transitions(Transition* tr) {
           }
         }
       }
+    }
+  }
+  else if (_f && tr->id()==TransitionId::Enable &&
+           fstat(fileno(_f), &st) == 0 && 
+           ((uint64_t)st.st_size >= _chunkSize/2)) {
+    // chunking: close the current output file and open the next one
+    ++_chunk;     // should _chunk have an upper limit?
+    if (_closeOutputFile() != 0) {
+      // error
+      _beginrunerr++;
+    }
+    if (_openOutputFile(true) != 0) {
+      _beginrunerr++;
     }
   }
   return tr;
@@ -340,4 +349,25 @@ int Recorder::_closeOutputFile() {
   }
 
   return (rv);
+}
+
+//
+// Recorder::_requestChunk - request a transition to allow 
+//    file close and open of a new chunk
+//
+// RETURNS: 0 on success, otherwise -1.
+//
+
+int Recorder::_requestChunk() {
+  int rv = -1;
+
+  if (!_chunk_requested) {
+    _chunk_requested = true;
+    Occurrence* occ = new(_occPool) Occurrence(OccurrenceId::RequestPause);
+    if (occ) {
+      post(occ);
+      rv = 0;
+    }        
+  }
+  return rv;
 }

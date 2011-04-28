@@ -26,6 +26,7 @@ private:
   int _renameOutputFile(bool verbose);
   int _renameOutputFile(int run, bool verbose);
   int _renameFile(char *oldName, char *newName, bool verbose);
+  int _requestChunk();
 
   FILE* _f;
   Pool* _pool;
@@ -39,6 +40,7 @@ private:
   unsigned _beginrunerr;
   bool     _path_error;
   bool     _write_error;
+  bool     _chunk_requested;
   enum { SizeofName=512 };
   char     _fname[SizeofName];
   char     _fnamerunning[SizeofName];
