@@ -1,0 +1,49 @@
+//
+//  pds_pycdb_help
+//
+static PyObject* pds_pycdb_help(PyObject* self_o, PyObject* args);
+
+#include <string>
+#include "pdsdata/lusi/IpmFexConfigV1.hh"
+#include "pdsdata/lusi/DiodeFexConfigV1.hh"
+
+PyObject* pds_pycdb_help(PyObject* self_o, PyObject* args)
+{
+
+  const char* deviceName = 0;
+
+  if (PyArg_ParseTuple(args,"s",&deviceName)==0)
+    return NULL;  
+
+  printf("****************  \n");
+
+  if (!strcmp (deviceName,"IpmFex")) {
+    printf("IpmFexConfig: \n"
+            "Python Calls: \n"
+            "get() : returns device configuration as a Python Dictionary Object \n"
+            "set() : write Python Dictionary Object to device configuration \n"
+            "Members in Dictionary Object : \n");
+
+    unsigned channels = Pds::Lusi::IpmFexConfigV1::NCHANNELS;
+    unsigned ranges  = Pds::Lusi::DiodeFexConfigV1::NRANGES;
+    char nameStr[30];	
+    for(unsigned i=0; i<channels; i++) {
+      for(unsigned j=0; j<ranges; j++) {
+        sprintf(nameStr,"Channel%d:Base%d",i,j);
+        printf ("['%s']  \t DataType: float \n",nameStr);	  
+        sprintf(nameStr,"Channel%d:Scale%d",i,j);
+        printf ("['%s']  \t DataType: float \n",nameStr);	  
+	
+      }
+    }
+
+  }
+  else
+    printf("Device not specified as an argument. e.g. \"Ipimb\" \n");
+
+  printf("****************  \n");
+  return Py_None;
+}
+
+
+
