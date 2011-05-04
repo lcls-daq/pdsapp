@@ -240,8 +240,17 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
           case Pds::TypeId::Id_DiodeFexConfig:
             o = _PyObject_New(&pds_DiodeFexConfig_type);
             break;
+          case Pds::TypeId::Id_IpmFexConfig:
+            o = _PyObject_New(&pds_IpmFexConfig_type);
+            break;	
+          case Pds::TypeId::Id_IpimbConfig:
+            o = _PyObject_New(&pds_IpimbConfig_type);
+            break;			
           case Pds::TypeId::Id_CspadConfig:
             o = _PyObject_New(&pds_CspadConfig_type);
+            break;
+          case Pds::TypeId::Id_PrincetonConfig:
+            o = _PyObject_New(&pds_PrincetonConfig_type);
             break;
           default:
             o = _PyObject_New(&pds_Xtc_type);
