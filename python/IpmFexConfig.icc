@@ -1,0 +1,93 @@
+//
+//  pds_IpmFexConfig class methods
+//
+static PyObject* pds_IpmFexConfig_get    (PyObject*   self, PyObject* args);
+static PyObject* pds_IpmFexConfig_set    (PyObject*   self, PyObject* args);
+
+
+static PyMethodDef pds_IpmFexConfig_methods[] = {
+  {"get"   , (PyCFunction)pds_IpmFexConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"set"   , (PyCFunction)pds_IpmFexConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {NULL},
+};
+
+DefineXtcType(IpmFexConfig) ;
+
+#include "pdsdata/lusi/IpmFexConfigV1.hh"
+#include "pdsdata/lusi/DiodeFexConfigV1.hh"
+
+//  Return a dictionary of configuration data
+#define SetDictMember(name,value) PyDict_SetItemString(o,name,PyFloat_FromDouble((double) value))
+
+PyObject* pds_IpmFexConfig_get (PyObject*   self, PyObject* args) 
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();  
+  if (xtc->contains.version()==1) {
+    const Pds::Lusi::IpmFexConfigV1* v1 = 
+      reinterpret_cast<const Pds::Lusi::IpmFexConfigV1*>(xtc->payload);
+    unsigned channels = Pds::Lusi::IpmFexConfigV1::NCHANNELS;
+    unsigned ranges  = Pds::Lusi::DiodeFexConfigV1::NRANGES;
+    char nameStr[30];	
+    for(unsigned i=0; i<channels; i++) {
+      for(unsigned j=0; j<ranges; j++) {
+        sprintf(nameStr,"Channel%d:Base%d",i,j);	  
+        SetDictMember(nameStr,v1->diode[i].base[j]);
+        sprintf(nameStr,"Channel%d:Scale%d",i,j);	  
+        SetDictMember(nameStr,v1->diode[i].scale[j]);		
+      }
+    }
+    SetDictMember("Xscale",v1->xscale);	
+    SetDictMember("Yscale",v1->yscale);	
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported IpmFexConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+#undef SetDictMember
+
+
+//  Retrieve configuration data from a Python Dictionary
+#define SetDictMember(name,configData)                 \
+  { PyObject* data = PyDict_GetItemString(o,name);     \
+    if (data)  configData = PyFloat_AsDouble(data);  }
+
+PyObject* pds_IpmFexConfig_set    (PyObject*   self, PyObject* args)
+{
+  PyObject* o = PyDict_New();  
+  if (PyArg_ParseTuple(args,"O",&o)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==1) {
+    Pds::Lusi::IpmFexConfigV1* v1 = 
+      reinterpret_cast<Pds::Lusi::IpmFexConfigV1*>(xtc->payload);
+    unsigned channels = Pds::Lusi::IpmFexConfigV1::NCHANNELS;
+    unsigned ranges  = Pds::Lusi::DiodeFexConfigV1::NRANGES;
+    char nameStr[30];	
+    for(unsigned i=0; i<channels; i++) {
+      for(unsigned j=0; j<ranges; j++) {
+        sprintf(nameStr,"Channel%d:Base%d",i,j);
+        SetDictMember(nameStr,v1->diode[i].base[j]);
+        sprintf(nameStr,"Channel%d:Scale%d",i,j);	  
+        SetDictMember(nameStr,v1->diode[i].scale[j]);		
+      }
+    }
+    SetDictMember("Xscale",v1->xscale);	
+    SetDictMember("Yscale",v1->yscale);
+    return Py_None;
+  }
+  else {
+    Py_DECREF(o);
+    printf("set(): Unsupported IpmFexConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+
+#undef SetDictMember
+
