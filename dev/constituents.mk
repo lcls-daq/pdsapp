@@ -36,8 +36,8 @@ tgtincs_cspad := cspad
 tgtlibs_cspad := $(commonlibs) pdsdata/cspaddata pds/cspad pds/pgp
 tgtslib_cspad := /usr/lib/rt
 CPPFLAGS += -fno-strict-aliasing
-CPPFLAGS += -fopenmp
-DEFINES += -fopenmp
+#CPPFLAGS += -fopenmp
+#DEFINES += -fopenmp
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
