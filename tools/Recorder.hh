@@ -1,9 +1,11 @@
 #ifndef PDS_RECORDER
 #define PDS_RECORDER
 
-#include "pds/utility/Appliance.hh"
-#include "pdsdata/xtc/Src.hh"
 #include <stdint.h>
+
+#include "pdsdata/xtc/Src.hh"
+#include "pdsdata/index/IndexList.hh"
+#include "pds/utility/Appliance.hh"
 
 namespace Pds {
 
@@ -49,6 +51,8 @@ private:
   int      _experiment;
   int      _run;
   GenericPool* _occPool;
+  Index::IndexList _indexList;
+  char     _indexfname[SizeofName];
 };
 
 }

@@ -1,10 +1,10 @@
 #include "Recorder.hh"
 #include "PnccdShuffle.hh"
 #include "CspadShuffle.hh"
+#include "pdsdata/index/XtcIterL1Accept.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/collection/Node.hh"
 #include "pds/service/GenericPool.hh"
-
 #include "pds/utility/Occurrence.hh"
 
 #include <stdio.h>
@@ -72,6 +72,8 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) :
   mode_t newmask = S_IWOTH;
   mode_t oldmask = umask(newmask);
   printf("Changed umask from %o to %o\n",oldmask,newmask);
+  
+  memset( _indexfname, 0, sizeof(_indexfname) );
 }
 
 InDatagram* Recorder::events(InDatagram* in) {
@@ -102,6 +104,8 @@ InDatagram* Recorder::events(InDatagram* in) {
   default:  // write this transition
     if (_f) {
       struct stat st;
+      
+      long long int lliOffset = lseek64( fileno(_f), 0, SEEK_CUR);
       if (_writeOutputFile(&(in->datagram()),sizeof(in->datagram()),1) != 0) {
         // error
         in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
@@ -124,6 +128,30 @@ InDatagram* Recorder::events(InDatagram* in) {
           in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
         }
 
+        if ( _indexfname[0] != 0 )
+        {
+          if (in->datagram().seq.service() == TransitionId::L1Accept)
+          {
+            bool bInvalidNodeData = false;
+            _indexList.startNewNode( (const Pds::Dgram&) in->datagram(), lliOffset, bInvalidNodeData);
+            
+            if ( !bInvalidNodeData )
+            {            
+              Index::XtcIterL1Accept iterL1Accept(&(in->datagram().xtc), 0,
+                lliOffset + sizeof(Xtc) + sizeof(in->datagram()) - sizeof(in->datagram().xtc),
+                _indexList);           
+              iterL1Accept.iterate();
+                    
+              bool bPrintNode = false;
+              _indexList.finishNode(bPrintNode);
+            }
+          } // if (in->datagram().seq.service() == TransitionId::L1Accept)  
+          else if (in->datagram().seq.service() == TransitionId::BeginCalibCycle)
+          {
+            _indexList.addCalibCycle(lliOffset);
+          }          
+        } // if ( _indexfname[0] != 0 )
+        
         if ((0 == rv) && ((uint64_t)st.st_size >= _chunkSize)) {
           _requestChunk();
         }
@@ -265,6 +293,12 @@ int Recorder::_openOutputFile(bool verbose) {
       printf("Error opening file %s : %s\n",_fnamerunning,strerror(errno));
     }
   }
+  
+  _indexList.reset();
+  _indexList.setXtcFilename(_fname);
+  sprintf(_indexfname,"%s/e%d/e%d-r%04d-s%02d-c%02d.idx",
+    _path, _experiment, _experiment, _run, _sliceID, _chunk); 
+  
   return rv;
 }
 
@@ -341,6 +375,28 @@ int Recorder::_closeOutputFile() {
     if (fclose(_f) == 0) {
       // success
       rv = 0;
+      
+      /*
+       * generate index file
+       */
+      if ( _indexfname[0] != 0 )
+      {
+        _indexList.finishList();  
+        
+        printf( "Writing index file %s\n", _indexfname );          
+        int fdIndex = open(_indexfname, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH ); //!! debug
+        if ( fdIndex == -1 )
+          printf( "Recorder::_closeOutputFile(): Open index file %s failed (%s)\n", _indexfname, strerror(errno) );
+        else {
+          _indexList.writeToFile(fdIndex);    
+          ::close(fdIndex);
+          
+          int iVerbose = 1;
+          _indexList.printList(iVerbose);          
+        }  
+        _indexfname[0] = 0;
+      }
+      
     } else {
       // error
       perror("fclose");
