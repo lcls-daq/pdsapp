@@ -16,11 +16,11 @@ commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmo
 liblibs_tools := pdsdata/cspaddata pdsdata/pnccddata
 
 tgtsrcs_event := event.cc
-tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools
+tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/index pdsdata/evrdata
 tgtslib_event := $(USRLIBDIR)/rt
 
 tgtsrcs_eventp := eventp.cc ParasiticRecorder.cc
-tgtlibs_eventp := $(liblibs_tools) $(commonlibs) pdsapp/tools
+tgtlibs_eventp := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/index pdsdata/evrdata
 tgtslib_eventp := $(USRLIBDIR)/rt
 
 tgtsrcs_segtest := segtest.cc
@@ -64,11 +64,11 @@ tgtlibs_bldServerTest := pds/service
 tgtslib_bldServerTest := $(USRLIBDIR)/rt
 
 tgtsrcs_bldMonitor := bldMonitor.cc bldMonitor.hh 
-tgtlibs_bldMonitor := $(liblibs_tools) $(commonlibs) pdsapp/tools
+tgtlibs_bldMonitor := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/index pdsdata/evrdata
 tgtslib_bldMonitor := $(USRLIBDIR)/rt
 
 tgtsrcs_observertest := observertest.cc
-tgtlibs_observertest := $(liblibs_tools) $(commonlibs) pdsapp/tools
+tgtlibs_observertest := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/index pdsdata/evrdata
 tgtslib_observertest := $(USRLIBDIR)/rt
 
 tgtsrcs_xtcdump := xtcdump.cc

@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <memory.h>
 
 #include "evgr/evr/evr.hh"
@@ -13,18 +14,27 @@ static EvgrBoardInfo<Evr> *erInfoGlobal;
 
 class EvrStandAloneManager {
 public:
-  EvrStandAloneManager(EvgrBoardInfo<Evr>& erInfo, char opcodes[]);
+  EvrStandAloneManager(EvgrBoardInfo<Evr>& erInfo, char opcodes[], int iMaxEvents = -1);
   void configure();
   void start();
   void stop();
+  void pause();
+  void resume();
+  
+  void onEventHandler();
 private:
   Evr& _er;
-  char *pOpcodes;
+  char *_pOpcodes;
+  int  _iMaxEvents;
+  int  _iNumEventsProcessed;
 };
 
-void EvrStandAloneManager::start() {
-  unsigned ram=0;
-  _er.MapRamEnable(ram,1);
+void EvrStandAloneManager::start() { 
+  _er.IrqEnable(EVR_IRQ_MASTER_ENABLE | EVR_IRQFLAG_EVENT);
+  _er.EnableFIFO(1);
+  _er.Enable(1);  
+  
+  _iNumEventsProcessed = 0;
 };
 
 void EvrStandAloneManager::stop() { 
@@ -33,9 +43,20 @@ void EvrStandAloneManager::stop() {
   _er.EnableFIFO(0);  
 }
 
+void EvrStandAloneManager::pause() {
+  unsigned ram=1;
+  _er.MapRamEnable(ram,1);
+}
+
+void EvrStandAloneManager::resume() {
+  unsigned ram=0;
+  _er.MapRamEnable(ram,1);
+  _iNumEventsProcessed = 0;
+}
+
 void EvrStandAloneManager::configure() {
   printf("Configuring evr\n");
-  //_er.Reset();
+  _er.Reset();
 
   //int pulse = 0; int presc = 1; int enable = 1;
   //int polarity=0;  int map_reset_ena=0; int map_set_ena=0; int map_trigger_ena=1;
@@ -54,38 +75,69 @@ void EvrStandAloneManager::configure() {
   
   for ( int opcode=0; opcode<=255; opcode++ )
   {
-    if ( pOpcodes[opcode] == 0 )
+    if ( _pOpcodes[opcode] == 0 )
       continue;
       
     int enable = 1;
     _er.SetFIFOEvent(ram, opcode, enable);
     //int trig=0; int set=-1; int clear=-1;
     //_er.SetPulseMap(ram, opcode, trig, set, clear);
-  }
-      
-  // setup map ram
-  _er.MapRamEnable(ram,0);
-  
-  _er.IrqEnable(EVR_IRQ_MASTER_ENABLE | EVR_IRQFLAG_EVENT);
-  _er.EnableFIFO(1);
-  _er.Enable(1);
+  }      
 }
+
+void EvrStandAloneManager::onEventHandler()
+{
+  ++_iNumEventsProcessed;
+  if ( _iMaxEvents < 0 ) 
+    return;
+    
+  if (_iNumEventsProcessed == _iMaxEvents)
+  {
+    printf("Processed events %d == Max events %d. Pausing Evr...\n",
+      _iNumEventsProcessed, _iMaxEvents);
+    pause();
+  }
+}
+
+static EvrStandAloneManager*  pEvrStandAloneManager = NULL;
+static bool                   bProgramStop          = false;
 
 extern "C" {
   void evrsa_sig_handler(int parm)
   {
     Evr& er = erInfoGlobal->board();
     FIFOEvent fe;
-    while( !er.GetFIFOEvent(&fe) ) {
-      printf("Received Fiducial %06x  Event code %03d  Timestamp %d\n", fe.TimestampHigh, fe.EventCode, fe.TimestampLow);
+
+    static unsigned int uFiducialPrev = 0;
+    
+    while( !er.GetFIFOEvent(&fe) ) {      
+
+      printf( "Received Fiducial %06x  Event code %03d  Timestamp %d\n", fe.TimestampHigh, fe.EventCode, fe.TimestampLow );          
+
+      if ( fe.EventCode == 40 )
+      {
+        unsigned int uFiducialCur  = fe.TimestampHigh;        
+        if ( uFiducialPrev != 0 )
+        {        
+          const int iFiducialWrapAroundDiffMin = 65536; 
+          if ( (uFiducialCur <= uFiducialPrev && uFiducialPrev < uFiducialCur+iFiducialWrapAroundDiffMin) || 
+            uFiducialCur > uFiducialPrev + 360 )
+          {
+            printf( "## evrsa_sig_handler(): seq 0x%x followed 0x%x\n", uFiducialCur, uFiducialPrev );
+            //printf( "Received Fiducial %06x  Event code %03d  Timestamp %d\n", fe.TimestampHigh, fe.EventCode, fe.TimestampLow );          
+          }
+        }
+        uFiducialPrev = uFiducialCur;               
+      }      
+      pEvrStandAloneManager->onEventHandler();    
     }
     int fdEr = erInfoGlobal->filedes();
-    er.IrqHandled(fdEr);
+    er.IrqHandled(fdEr);        
   }
 }
 
-EvrStandAloneManager::EvrStandAloneManager(EvgrBoardInfo<Evr> &erInfo, char opcodes[]) :
-  _er(erInfo.board()), pOpcodes(opcodes)
+EvrStandAloneManager::EvrStandAloneManager(EvgrBoardInfo<Evr> &erInfo, char opcodes[], int iMaxEvents) :
+  _er(erInfo.board()), _pOpcodes(opcodes), _iMaxEvents(iMaxEvents)
 {
   configure();
 
@@ -93,19 +145,21 @@ EvrStandAloneManager::EvrStandAloneManager(EvgrBoardInfo<Evr> &erInfo, char opco
   _er.IrqAssignHandler(erInfo.filedes(), &evrsa_sig_handler);
   
   start();  
+  resume();
 }
-
-static EvrStandAloneManager*  pEvrStandAloneManager = NULL;
-static bool                   bProgramStop          = false;
 
 void evrStandAloneSignalHandler( int iSignalNo )
 {
   printf( "\nevrStandAloneSignalHandler(): signal %d received.\n", iSignalNo );  
   
-  //if ( pEvrStandAloneManager ) 
-  //  pEvrStandAloneManager->stop();
-    
-  bProgramStop = true;
+  EvrStandAloneManager* pManager = pEvrStandAloneManager;
+  if ( pEvrStandAloneManager != NULL )
+  {
+    pEvrStandAloneManager = NULL;    
+    delete pManager;
+  }
+  
+  exit(0);
 }
 
 /*
@@ -196,11 +250,12 @@ void selectOpcodes( char opcodes[256], char* strSelection )
 
 void showUsage()
 {
-  printf( "Usage:  evrstandalone  [-h] [-r <a/b/c/d>] [-o <event list>]"
+  printf( "Usage:  evrstandalone  [-h] [-r <a/b/c/d>] [-n <max event num>] [-o <event list>]"
     "  Options:\n"
-    "    -h               Show usage\n"
-    "    -r <a/b/c/d>     Use evr device a/b/c/d\n"
-    "    -o <event list>  Select event codes\n"
+    "    -h                   Show usage\n"
+    "    -r <a/b/c/d>         Use evr device a/b/c/d\n"
+    "    -n <max event num>   Force evr to pause for every N events. -1 = Unlimited\n"
+    "    -o <event list>      Select event codes\n"
     " ------------------------------------------------\n"
     " Event List Examples:\n"
     "   -o 1,2,3,4    ->  Select opcodes 1,2,3 and 4\n"
@@ -212,16 +267,20 @@ void showUsage()
 int main(int argc, char** argv) {
 
   extern char* optarg;
-  char* evrid=0;
+  char* evrid       = 0;
+  int   iMaxEvents  = -1;
+
   char  opcodes[256];
-  
   memset( opcodes, 0, 256 );
-  
+   
   int c;
-  while ( (c=getopt( argc, argv, "r:o:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "r:n:o:h")) != EOF ) {
     switch(c) {
     case 'r':
       evrid  = optarg;
+      break;
+    case 'n':
+      iMaxEvents = strtol(optarg, NULL, 0);
       break;
     case 'o':
       selectOpcodes( opcodes, optarg );
@@ -251,17 +310,61 @@ int main(int argc, char** argv) {
   char evrdev[16];
   sprintf(evrdev,"/dev/er%c3",*evrid);
   printf("Using evr %s\n",evrdev);
-  printf("Press Ctrl + C to exit the program...\n" );
+
+  if ( iMaxEvents >= 0 )
+    printf("Max events = %d\n", iMaxEvents);
+  
+  printf(
+    "Press Ctrl + C to exit the program,\n" 
+    "Or enter either one of the following characters + <Enter>:\n" 
+    "  s: start , t: stop , p: pause , r: resume , c: configure , q: quit\n"
+    );
 
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
-  pEvrStandAloneManager = new EvrStandAloneManager(erInfo, opcodes);
+  pEvrStandAloneManager = new EvrStandAloneManager(erInfo, opcodes, iMaxEvents);
   
   do
   {
-    pause(); // wait for any signal  
+    int iChar = getchar();
+    if ( iChar == 's' )
+    {
+      printf("\nStopping Evr...\n");
+      pEvrStandAloneManager->stop();
+    }
+    else if ( iChar == 't' )
+    {
+      printf("\nStarting Evr...\n");
+      pEvrStandAloneManager->start();
+    }    
+    else if ( iChar == 'p' )
+    {
+      printf("\nPausing Evr...\n");
+      pEvrStandAloneManager->pause();
+    }    
+    else if ( iChar == 'r' )
+    {
+      printf("\nResuming Evr...\n");
+      pEvrStandAloneManager->resume();
+    }    
+    else if ( iChar == 'c' )
+    {
+      pEvrStandAloneManager->configure();
+    }    
+    else if ( iChar == 'q' )
+    {
+      printf("\nQuit the program...\n");
+      bProgramStop = true;
+    }    
+    
+    //pause(); // wait for any signal  
   }
   while ( ! bProgramStop );
   
-  delete pEvrStandAloneManager;
+  EvrStandAloneManager* pManager = pEvrStandAloneManager;
+  if ( pEvrStandAloneManager != NULL )
+  {
+    pEvrStandAloneManager = NULL;    
+    delete pManager;
+  }
   return 0;
 }
