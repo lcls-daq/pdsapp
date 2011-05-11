@@ -1,8 +1,7 @@
 Requires the following environment:
 
 setenv DAQREL /reg/neh/home/weaver/release (for example)
-setenv PYTHONPATH ${DAQREL} (path to pycdb.so -> ./build/pdsapp/lib/x86_64-linux/libpycdb.so 
-			     and similarly pydaq.so)
+setenv PYTHONPATH ${DAQREL}/build/pdsapp/lib/x86_64-linux
 setenv LD_LIBRARY_PATH /reg/g/pcds/package/python-2.5.2/lib:${DAQREL}/build/pdsdata/lib/x86_64-linux:${DAQREL}/build/pdsapp/lib/x86_64-linux
 
 

@@ -17,4 +17,18 @@ include $(RELEASE_DIR)/make/share/premake.mk
 else
 include constituents.mk
 include $(RELEASE_DIR)/make/sw/package.mk
+
+#
+#  Special rules for creating python C++ extension libraries
+#
+userall: $(libdir)/pycdb.so $(libdir)/pydaq.so
+
+userclean:
+	$(quiet)$(RM) $(libdir)/pycdb.so $(libdir)/pydaq.so
+
+# Libraries
+$(libdir)/py%.$(LIBEXTNS):
+	@echo "[LD] Build python library $*"
+	$(quiet)ln -s libpy$*.$(LIBEXTNS) $@
+
 endif
