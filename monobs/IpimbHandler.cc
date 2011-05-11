@@ -2,7 +2,7 @@
 
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/ipimb/DataV1.hh"
+#include "pdsdata/ipimb/DataV2.hh"
 
 #include <string.h>
 #include <stdio.h>
@@ -47,8 +47,8 @@ void IpimbHandler::_event    (const void* payload, const Pds::ClockTime& t)
 {
   if (!_initialized) return;
 
-  const Pds::Ipimb::DataV1& data =
-    *reinterpret_cast<const Pds::Ipimb::DataV1*>(payload);
+  const Pds::Ipimb::DataV2& data =
+    *reinterpret_cast<const Pds::Ipimb::DataV2*>(payload);
 
   *reinterpret_cast<double*>(_valu_writer[0]->data()) = data.channel0Volts();
   *reinterpret_cast<double*>(_valu_writer[1]->data()) = data.channel1Volts();

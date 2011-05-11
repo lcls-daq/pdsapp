@@ -11,18 +11,16 @@ using namespace Pds_ConfigDb;
 
 namespace Pds_ConfigDb {
   
-  enum CapacitorValue {c_1pF, c_100pF, c_10nF};
-  static const char* cap_range[] = { "1 pF", "100 pF", "10 nF", NULL };
-
   class IpimbConfig::Private_Data {
   public:
-    Private_Data() :
+    typedef IpimbConfigType::CapacitorValue CapacitorValue;
+    Private_Data() :      
       //      _triggerCounter("Foo ", 1, 1, 4),
       //      _serialID("Foo ", 1, 1, 4),
-      _chargeAmpRange0("Channel 0 feedback capacitor (pF) ", c_1pF, cap_range),
-      _chargeAmpRange1("Channel 1 feedback capacitor (pF) ", c_1pF, cap_range),
-      _chargeAmpRange2("Channel 2 feedback capacitor (pF) ", c_1pF, cap_range),
-      _chargeAmpRange3("Channel 3 feedback capacitor (pF) ", c_1pF, cap_range),
+      _chargeAmpRange0("Channel 0 feedback capacitor (pF) ", IpimbConfigType::c_1pF, IpimbConfigType::cap_range),
+      _chargeAmpRange1("Channel 1 feedback capacitor (pF) ", IpimbConfigType::c_1pF, IpimbConfigType::cap_range),
+      _chargeAmpRange2("Channel 2 feedback capacitor (pF) ", IpimbConfigType::c_1pF, IpimbConfigType::cap_range),
+      _chargeAmpRange3("Channel 3 feedback capacitor (pF) ", IpimbConfigType::c_1pF, IpimbConfigType::cap_range),
       //      _calibrationRange("Calibration cap (pF) ", 1, 1, 10000),
       _resetLength("Acquisition window (ns) ", 1000000, 1, 0xfffff),
       _resetDelay("Reset delay (ns) ", 0xfff, 0, 0xfff),
@@ -33,7 +31,7 @@ namespace Pds_ConfigDb {
       //      _errors("Foo ", 1, 1, 4),
       //      _calStrobeLength("Calibration strobe length ", 0, 0, 0),
       _trigDelay("Sampling delay (ns) ", 89000, 0, 0x7fff8),
-      _chargeAmpRange(0) {}
+      _chargeAmpRange(0) {printf("in PrivateData: 1pF is %d\n", (int)IpimbConfigType::c_1pF);}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
       //      pList.insert(&_triggerCounter);
@@ -60,14 +58,11 @@ namespace Pds_ConfigDb {
       //      _serialID.value = ipimbConf.serialID();
       //      _chargeAmpRange.value = ipimbConf.chargeAmpRange();
       _chargeAmpRange = ipimbConf.chargeAmpRange();
-      for (int chan=0; chan<4; chan++) {
-	unsigned i=0;
-	while(((_chargeAmpRange>>(2*chan))&0x3) != i && ++i<c_10nF);
-	if (chan==0) {_chargeAmpRange0.value = CapacitorValue(i);}
-	if (chan==1) {_chargeAmpRange1.value = CapacitorValue(i);}
-	if (chan==2) {_chargeAmpRange2.value = CapacitorValue(i);}
-	if (chan==3) {_chargeAmpRange3.value = CapacitorValue(i);}
-      }
+      _chargeAmpRange0.value = (CapacitorValue)(_chargeAmpRange & 0xf);
+      _chargeAmpRange1.value = (CapacitorValue)((_chargeAmpRange>>4) & 0xf);
+      _chargeAmpRange2.value = (CapacitorValue)((_chargeAmpRange>>8) & 0xf);
+      _chargeAmpRange3.value = (CapacitorValue)((_chargeAmpRange>>12) & 0xf);
+      printf("in pull, have 0x%x => %d, %d, %d, %d\n", _chargeAmpRange, _chargeAmpRange0.value,_chargeAmpRange1.value,_chargeAmpRange2.value,_chargeAmpRange3.value);
       //      _calibrationRange.value = ipimbConf.calibrationRange();
       _resetLength.value = ipimbConf.resetLength();
       _resetDelay.value = ipimbConf.resetDelay();
@@ -78,6 +73,8 @@ namespace Pds_ConfigDb {
       //      _errors.value = ipimbConf.errors();
       //      _calStrobeLength.value = ipimbConf.calStrobeLength();
       _trigDelay.value  = ipimbConf.trigDelay();
+      _trigPsDelay = ipimbConf.trigPsDelay();
+      _adcDelay = ipimbConf.adcDelay();
       return sizeof(IpimbConfigType);
     }
 
@@ -90,20 +87,24 @@ namespace Pds_ConfigDb {
                                0., //_calibrationVoltage.value,
                                _diodeBias.value,
                                0, //_calStrobeLength.value,
-                               _trigDelay.value
+                               _trigDelay.value,
+			       0,
+			       0
                                );
       return sizeof(IpimbConfigType);
     }
 
     int dataSize() const { return sizeof(IpimbConfigType); }
     void updateChargeAmpRange() {
-      _chargeAmpRange = (_chargeAmpRange0.value&0x3) + 
-	((_chargeAmpRange1.value&0x3)<<2) + 
-	((_chargeAmpRange2.value&0x3)<<4) +  
-	((_chargeAmpRange3.value&0x3)<<6);
+      _chargeAmpRange = (_chargeAmpRange0.value&0xf) + 
+	((_chargeAmpRange1.value&0xf)<<4) + 
+	((_chargeAmpRange2.value&0xf)<<8) +  
+	((_chargeAmpRange3.value&0xf)<<12);
+      printf("in updateCAR have 0x%x => %d, %d, %d, %d\n", _chargeAmpRange, _chargeAmpRange0.value,_chargeAmpRange1.value,_chargeAmpRange2.value,_chargeAmpRange3.value);
     }
 
   public:
+    //    typedef IpimbConfigType::CapacitorValue CapacitorValue;
     //    NumericInt<uint64_t> _triggerCounter;
     //    NumericInt<uint64_t> _serialID;
     Enumerated<CapacitorValue> _chargeAmpRange0;
@@ -122,6 +123,8 @@ namespace Pds_ConfigDb {
     //    NumericInt<uint16_t> _calStrobeLength;
     NumericInt<uint32_t> _trigDelay;
     uint16_t _chargeAmpRange;
+    uint32_t _trigPsDelay;
+    uint32_t _adcDelay;
   };
 };
 
