@@ -22,9 +22,9 @@ DefineXtcType(IpimbConfig) ;
   { if (isFloat)                                                                               \
       PyDict_SetItemString(o,#name,PyFloat_FromDouble(cfg->name()));                         \
     else if (isLongLong)                                                                       \
-      PyDict_SetItemString(o,#name,PyLong_FromUnsignedLongLong((unsigned long)cfgV2->name())); \
+      PyDict_SetItemString(o,#name,PyLong_FromUnsignedLongLong((unsigned long)cfg->name())); \
     else                                                                                       \
-      PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfgV2->name())); }
+      PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfg->name())); }
 
 
 PyObject* pds_IpimbConfig_get (PyObject*   self, PyObject* args) 
@@ -115,7 +115,7 @@ PyObject* pds_IpimbConfig_set    (PyObject*   self, PyObject* args)
     SetDictMember(diodeBias);
     SetDictMember(calStrobeLength);
     SetDictMember(trigDelay);
-    new(xtc->payload) Pds::Ipimb::ConfigV2((uint16_t) chargeAmpRange,
+    new(xtc->payload) Pds::Ipimb::ConfigV1((uint16_t) chargeAmpRange,
                       (uint16_t) calibrationRange,
                       (uint32_t) resetLength,
                       (uint16_t) resetDelay,
@@ -141,7 +141,7 @@ PyObject* pds_IpimbConfig_set    (PyObject*   self, PyObject* args)
     SetDictMember(calStrobeLength);
     SetDictMember(trigDelay);
     SetDictMember(trigPsDelay);
-    SetDictMember(acqDelay);
+    SetDictMember(adcDelay);
     new(xtc->payload) Pds::Ipimb::ConfigV2((uint16_t) chargeAmpRange,
                       (uint16_t) calibrationRange,
                       (uint32_t) resetLength,
@@ -152,7 +152,7 @@ PyObject* pds_IpimbConfig_set    (PyObject*   self, PyObject* args)
                       (uint16_t) calStrobeLength,
                       (uint32_t) trigDelay,
                       (uint32_t) trigPsDelay,
-                      (uint32_t) acqDelay); 
+                      (uint32_t) adcDelay); 
     Py_DECREF(o);
     return Py_None;
   }
