@@ -8,20 +8,19 @@ namespace Pds_ConfigDb
 {
   class DiodeFexTable : public Parameter {
   public:
-    DiodeFexTable();
+    DiodeFexTable(unsigned n);
     ~DiodeFexTable();
   public:
     void insert(Pds::LinkedList<Parameter>& pList);
-    int  pull  (void* from);
-    int  push  (void* to);
-    int dataSize() const;
+    void  pull  (float*, float*);
+    void  push  (float*, float*);
   public:
     QLayout* initialize(QWidget* parent);
     void     flush     ();
     void     update    ();
     void     enable    (bool);
   public:
-    DiodeFexItem*              _diode;
+    DiodeFexItem               _diode;
     Pds::LinkedList<Parameter> _pList;
   };
 };

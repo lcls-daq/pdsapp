@@ -11,8 +11,11 @@
 #include "pdsapp/config/EvrConfig_V1.hh"
 #include "pdsapp/config/AcqConfig.hh"
 #include "pdsapp/config/AcqTdcConfig.hh"
+#include "pdsapp/config/IpimbConfig_V1.hh"
 #include "pdsapp/config/IpimbConfig.hh"
+#include "pdsapp/config/IpmFexConfig_V1.hh"
 #include "pdsapp/config/IpmFexConfig.hh"
+#include "pdsapp/config/DiodeFexConfig_V1.hh"
 #include "pdsapp/config/DiodeFexConfig.hh"
 #include "pdsapp/config/PimImageConfig.hh"
 #include "pdsapp/config/EncoderConfig.hh"
@@ -46,6 +49,8 @@
 #include "pds/config/CsPadConfigType.hh"
 #include "pdsapp/config/PdsDefs.hh"
 
+#include "pdsdata/lusi/DiodeFexConfigV1.hh"
+
 using namespace Pds_ConfigDb;
 
 SerializerDEntry::SerializerDEntry(const Pds::TypeId& t,
@@ -77,7 +82,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_controlConfigType   ,new ControlConfig);
   enroll(_princetonConfigType ,new princetonConfig);  
   enroll(_ipimbConfigType     ,new IpimbConfig);  
-  enroll(_ipmFexConfigType    ,new IpmFexConfig);  
+  enroll(_ipmFexConfigType    ,new IpmFexConfig);
   enroll(_diodeFexConfigType  ,new DiodeFexConfig);  
   enroll(_pimImageConfigType  ,new PimImageConfig);  
   enroll(_CsPadConfigType     ,new CspadConfig);  
@@ -89,6 +94,9 @@ SerializerDictionary::SerializerDictionary()
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2)   , new EvrConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,1)   , new EvrConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_TM6740Config,1), new TM6740ConfigV1);  
+  enroll(Pds::TypeId(Pds::TypeId::Id_IpimbConfig,1) , new IpimbConfig_V1);  
+  enroll(Pds::TypeId(Pds::TypeId::Id_IpmFexConfig,1), new IpmFexConfig_V1);
+  enroll(Pds::TypeId(Pds::TypeId::Id_DiodeFexConfig,1), new DiodeFexConfig_V1);  
 }
 
 SerializerDictionary::~SerializerDictionary()
@@ -114,3 +122,4 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
       return iter->serializer;
   return 0;
 }
+

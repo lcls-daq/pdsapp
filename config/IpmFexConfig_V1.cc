@@ -1,26 +1,25 @@
-#include "pdsapp/config/IpmFexConfig.hh"
+#include "pdsapp/config/IpmFexConfig_V1.hh"
 #include "pdsapp/config/IpmFexTable.hh"
 
-#include "pds/config/DiodeFexConfigType.hh"
-#include "pds/config/IpmFexConfigType.hh"
+#include "pdsdata/lusi/DiodeFexConfigV1.hh"
+#include "pdsdata/lusi/IpmFexConfigV1.hh"
 
 #include <new>
 
-typedef DiodeFexConfigType T;
-typedef IpmFexConfigType   U;
+typedef Pds::Lusi::DiodeFexConfigV1 T;
+typedef Pds::Lusi::IpmFexConfigV1   U;
 
-static const int NRANGES = 8;
 static const int NCHAN = 4;
 
 using namespace Pds_ConfigDb;
 
-IpmFexConfig::IpmFexConfig():
-  Serializer("Ipm_Fex"), _table(new IpmFexTable(NRANGES))
+IpmFexConfig_V1::IpmFexConfig_V1():
+  Serializer("Ipm_Fex"), _table(new IpmFexTable(T::NRANGES))
 {
   _table->insert(pList);
 }
 
-int IpmFexConfig::readParameters(void *from)
+int IpmFexConfig_V1::readParameters(void *from)
 {
   U& c = *new(from) U;
   for(int i=0; i<NCHAN; i++)
@@ -30,7 +29,7 @@ int IpmFexConfig::readParameters(void *from)
   return sizeof(U);
 }
 
-int IpmFexConfig::writeParameters(void *to)
+int IpmFexConfig_V1::writeParameters(void *to)
 {
   T darray[NCHAN];
   for(int i=0; i<NCHAN; i++)
@@ -39,7 +38,7 @@ int IpmFexConfig::writeParameters(void *to)
   return sizeof(U);
 }
 
-int IpmFexConfig::dataSize() const
+int IpmFexConfig_V1::dataSize() const
 {
   return sizeof(U);
 }

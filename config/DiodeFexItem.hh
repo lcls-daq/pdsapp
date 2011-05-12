@@ -6,27 +6,23 @@
 class QWidget;
 class QGridLayout;
 
-namespace Pds { namespace Lusi { class DiodeFexConfigV1; } }
-
 namespace Pds_ConfigDb {
 
   class DiodeFexItem {
   public:
-    DiodeFexItem();
+    DiodeFexItem(unsigned);
     ~DiodeFexItem();
   public:
-    void set (const Pds::Lusi::DiodeFexConfigV1& c);
+    void set (float* _base, float* _scale);
+    void get (float* _base, float* _scale);
     void initialize(QWidget* parent,
                     QGridLayout* layout,
                     int row, int column);
     void insert(Pds::LinkedList<Parameter>& pList);
   public:
-    NumericFloat<float> base0;
-    NumericFloat<float> base1;
-    NumericFloat<float> base2;
-    NumericFloat<float> scale0;
-    NumericFloat<float> scale1;
-    NumericFloat<float> scale2;
+    unsigned             nranges;
+    NumericFloat<float>* base;
+    NumericFloat<float>* scale;
   };
 
 };

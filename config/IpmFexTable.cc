@@ -2,8 +2,6 @@
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
-#include "pds/config/IpmFexConfigType.hh"
-#include "pdsdata/lusi/DiodeFexConfigV1.hh"
 
 #include <QtGui/QGridLayout>
 #include <QtGui/QLabel>
@@ -12,17 +10,15 @@
 
 using namespace Pds_ConfigDb;
 
-static const int NCHAN = Pds::Lusi::IpmFexConfigV1::NCHANNELS;
-
 using namespace Pds_ConfigDb;
 
-IpmFexTable::IpmFexTable() :
+IpmFexTable::IpmFexTable(unsigned n) :
   Parameter(NULL),
   _xscale("Horizontal Scale (um) ", 10, -1.e8, 1.e8),
   _yscale("Vertical Scale (um) ", 10, -1.e8, 1.e8)
 {
   for(int i=0; i<MaxDiodes; i++)
-    _diodes[i] = new DiodeFexItem;
+    _diodes[i] = new DiodeFexItem(n);
 }
 
 IpmFexTable::~IpmFexTable() {}
@@ -36,51 +32,31 @@ void IpmFexTable::insert(Pds::LinkedList<Parameter>& pList) {
   _pList.insert(&_yscale);
 }
 
-int IpmFexTable::pull(void* from) { // pull "from xtc"
-  IpmFexConfigType& c = *new(from) IpmFexConfigType;
-  for(int i=0; i<NCHAN; i++) 
-    _diodes[i]->set(c.diode[i]);
-  _xscale.value = c.xscale;
-  _yscale.value = c.yscale;
-  return sizeof(IpmFexConfigType);
-}
+float IpmFexTable::xscale() const { return _xscale.value; }
+float IpmFexTable::yscale() const { return _yscale.value; }
+void IpmFexTable::get(int ch, float* b, float* s) const { _diodes[ch]->get(b,s);}
 
-int IpmFexTable::push(void* to) {
-  Pds::Lusi::DiodeFexConfigV1 darray[NCHAN];
-  for(int i=0; i<NCHAN; i++) {
-    darray[i].base[0] = _diodes[i]->base0.value;
-    darray[i].base[1] = _diodes[i]->base1.value;
-    darray[i].base[2] = _diodes[i]->base2.value;
-    darray[i].scale[0] = _diodes[i]->scale0.value;
-    darray[i].scale[1] = _diodes[i]->scale1.value;
-    darray[i].scale[2] = _diodes[i]->scale2.value;
-  }
-  *new(to) IpmFexConfigType(darray,
-			    _xscale.value,
-			    _yscale.value);
-  return sizeof(IpmFexConfigType);
-}
-
-int IpmFexTable::dataSize() const { return sizeof(IpmFexConfigType); }
+void IpmFexTable::xscale(float v) { _xscale.value=v; }
+void IpmFexTable::yscale(float v) { _yscale.value=v; }
+void IpmFexTable::set(int ch, float* b, float* s){ _diodes[ch]->set(b,s);}
 
 QLayout* IpmFexTable::initialize(QWidget* parent)
 {
   Qt::Alignment align = Qt::AlignBottom | Qt::AlignHCenter;
   QGridLayout* layout = new QGridLayout;
-  int row=0, column=1;
-  layout->addWidget(new QLabel("Base0 (V)"), row, column++, align);
-  layout->addWidget(new QLabel("Base1 (V)"), row, column++, align);
-  layout->addWidget(new QLabel("Base2 (V)"), row, column++, align);
-  layout->addWidget(new QLabel("Scale0"), row, column++, align);
-  layout->addWidget(new QLabel("Scale1"), row, column++, align);
-  layout->addWidget(new QLabel("Scale2"), row, column++, align);
-  for(int i=0; i<MaxDiodes; i++) {
-    row++;
-    layout->addWidget(new QLabel(QString("Channel %1").arg(i)), row, 0, align);
-    _diodes[i]->initialize(parent, layout, row, 1);
+  int row=1, column=0;
+  for(unsigned i=0; i<_diodes[0]->nranges; i++)
+    layout->addWidget(new QLabel(QString("Base%1 (V)").arg(i)), row++, column, align);
+  for(unsigned i=0; i<_diodes[0]->nranges; i++)
+    layout->addWidget(new QLabel(QString("Scale%1").arg(i)), row++, column, align);
+  column=1;
+  for(unsigned i=0; i<MaxDiodes; i++) {
+    layout->addWidget(new QLabel(QString("Channel %1").arg(i)), 0, column, align);
+    _diodes[i]->initialize(parent, layout, 1, column);
+    column++;
   }
-  layout->addLayout(_xscale.initialize(parent), ++row, 0, 1, 3);
-  layout->addLayout(_yscale.initialize(parent), ++row, 0, 1, 3);
+  layout->addLayout(_xscale.initialize(parent), row++, 0, 1, 3);
+  layout->addLayout(_yscale.initialize(parent), row++, 0, 1, 3);
   return layout;
 }
 

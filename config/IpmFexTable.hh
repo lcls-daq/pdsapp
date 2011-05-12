@@ -6,16 +6,21 @@
 
 namespace Pds_ConfigDb
 {
+  class DiodeFexItem;
+
   class IpmFexTable : public Parameter {
     enum {MaxDiodes = 4};
   public:
-    IpmFexTable();
+    IpmFexTable(unsigned);
     ~IpmFexTable();
   public:
     void insert(Pds::LinkedList<Parameter>& pList);
-    int  pull  (void* from);
-    int  push  (void* to);
-    int dataSize() const;
+    float xscale() const;
+    float yscale() const;
+    void  get   (int, float*, float*) const;
+    void xscale(float);
+    void yscale(float);
+    void  set   (int, float*, float*);
   public:
     QLayout* initialize(QWidget* parent);
     void     flush     ();

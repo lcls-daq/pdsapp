@@ -117,6 +117,9 @@ QWidget* NumericInt<T>::widget()
 
 
 template <class T>
+NumericFloat<T>::NumericFloat() {}
+
+template <class T>
 NumericFloat<T>::NumericFloat(const char* label, T val, T vlo, T vhi) :
   Parameter(label),
   value(val) 
@@ -128,6 +131,16 @@ NumericFloat<T>::NumericFloat(const char* label, T val, T vlo, T vhi) :
 template <class T>
 NumericFloat<T>::~NumericFloat() 
 {
+}
+
+template <class T>
+NumericFloat<T>& NumericFloat<T>::operator=(const NumericFloat<T>& c)
+{
+  _label   = c._label;
+  value    = c.value;
+  range[0] = c.range[0];
+  range[1] = c.range[1];
+  return *this;
 }
 
 template <class T>

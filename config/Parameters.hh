@@ -26,6 +26,7 @@ namespace Pds_ConfigDb {
 
   class Parameter : public Pds::LinkedList<Parameter> {
   public:
+    Parameter() : _label(0) {}
     Parameter(const char* label) : _label(label) {}
     virtual ~Parameter() {}
 
@@ -84,8 +85,11 @@ namespace Pds_ConfigDb {
   template <class T>
   class NumericFloat : public Parameter {
   public:
+    NumericFloat();
     NumericFloat(const char* label, T val, T vlo, T vhi);
     ~NumericFloat();
+
+    NumericFloat& operator=(const NumericFloat&);
 
     QLayout* initialize(QWidget*);
     void     update();

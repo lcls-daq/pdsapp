@@ -3,7 +3,6 @@
 #include "pds/epicstools/PVWriter.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/lusi/DiodeFexConfigV1.hh"
 #include "pdsdata/lusi/DiodeFexV1.hh"
 
 #include <string.h>

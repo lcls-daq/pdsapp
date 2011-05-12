@@ -12,6 +12,7 @@ static PyMethodDef pds_IpimbConfig_methods[] = {
 
 DefineXtcType(IpimbConfig) ;
 
+#include "pdsdata/ipimb/ConfigV1.hh"
 #include "pdsdata/ipimb/ConfigV2.hh"
 #include <new>
 
@@ -19,7 +20,7 @@ DefineXtcType(IpimbConfig) ;
 //  Return a dictionary of configuration data
 #define SetDictMember(name,isFloat,isLongLong)                                                 \
   { if (isFloat)                                                                               \
-      PyDict_SetItemString(o,#name,PyFloat_FromDouble(cfgV2->name()));                         \
+      PyDict_SetItemString(o,#name,PyFloat_FromDouble(cfg->name()));                         \
     else if (isLongLong)                                                                       \
       PyDict_SetItemString(o,#name,PyLong_FromUnsignedLongLong((unsigned long)cfgV2->name())); \
     else                                                                                       \
@@ -31,8 +32,8 @@ PyObject* pds_IpimbConfig_get (PyObject*   self, PyObject* args)
   pdsxtc* xtc = (pdsxtc*)self;
   PyObject* o = PyDict_New();  
   if (xtc->contains.version()==1) { 
-    const Pds::Ipimb::ConfigV2* cfgV2 = 
-      reinterpret_cast<const Pds::Ipimb::ConfigV2*>(xtc->payload);
+    const Pds::Ipimb::ConfigV1* cfg = 
+      reinterpret_cast<const Pds::Ipimb::ConfigV1*>(xtc->payload);
 
     SetDictMember(triggerCounter,false,true);
     SetDictMember(serialID,false,true);
@@ -50,6 +51,28 @@ PyObject* pds_IpimbConfig_get (PyObject*   self, PyObject* args)
 
     return o;
   }
+  else if (xtc->contains.version()==2) {
+    const Pds::Ipimb::ConfigV2* cfg = 
+      reinterpret_cast<const Pds::Ipimb::ConfigV2*>(xtc->payload);
+
+    SetDictMember(triggerCounter,false,true);
+    SetDictMember(serialID,false,true);
+    SetDictMember(chargeAmpRange,false,false);
+    SetDictMember(calibrationRange,false,false); 
+    SetDictMember(resetLength,false,false);
+    SetDictMember(resetDelay,false,false);
+    SetDictMember(chargeAmpRefVoltage,true,false);
+    SetDictMember(calibrationVoltage,true,false);
+    SetDictMember(diodeBias,true,false);
+    SetDictMember(status,false,false);
+    SetDictMember(errors,false,false);
+    SetDictMember(calStrobeLength,false,false);
+    SetDictMember(trigDelay,false,false);
+    SetDictMember(trigPsDelay,false,false);
+    SetDictMember(adcDelay,false,false);
+
+    return o;
+  }	
   else {
     Py_DECREF(o);
     printf("get(): Unsupported IpimbConfig Version= %u \n",xtc->contains.version());
@@ -69,7 +92,7 @@ PyObject* pds_IpimbConfig_get (PyObject*   self, PyObject* args)
       else if (PyInt_CheckExact(i)) name = (double) PyInt_AsLong(i); \
       else  name = (double) PyLong_AsUnsignedLongLong(i);            \
     }                                                                \
-    else name = (double) cfgV2->name();  }              
+    else name = (double) cfg->name();  }              
 
 
 PyObject* pds_IpimbConfig_set    (PyObject*   self, PyObject* args)
@@ -80,7 +103,32 @@ PyObject* pds_IpimbConfig_set    (PyObject*   self, PyObject* args)
 
   pdsxtc* xtc = (pdsxtc*)self;
   if (xtc->contains.version()==1) { 
-    const Pds::Ipimb::ConfigV2* cfgV2 = 
+    const Pds::Ipimb::ConfigV1* cfg = 
+      reinterpret_cast<const Pds::Ipimb::ConfigV1*>(xtc->payload);
+
+    SetDictMember(chargeAmpRange);
+    SetDictMember(calibrationRange);
+    SetDictMember(resetLength);
+    SetDictMember(resetDelay);
+    SetDictMember(chargeAmpRefVoltage);
+    SetDictMember(calibrationVoltage);
+    SetDictMember(diodeBias);
+    SetDictMember(calStrobeLength);
+    SetDictMember(trigDelay);
+    new(xtc->payload) Pds::Ipimb::ConfigV2((uint16_t) chargeAmpRange,
+                      (uint16_t) calibrationRange,
+                      (uint32_t) resetLength,
+                      (uint16_t) resetDelay,
+                      (float) chargeAmpRefVoltage,
+                      (float) calibrationVoltage,
+                      (float) diodeBias,
+                      (uint16_t) calStrobeLength,
+                      (uint32_t) trigDelay);
+    Py_DECREF(o);
+    return Py_None;
+  }
+  else if (xtc->contains.version()==2) { 
+    const Pds::Ipimb::ConfigV2* cfg = 
       reinterpret_cast<const Pds::Ipimb::ConfigV2*>(xtc->payload);
 
     SetDictMember(chargeAmpRange);

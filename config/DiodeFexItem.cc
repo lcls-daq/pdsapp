@@ -1,7 +1,6 @@
 #include "DiodeFexItem.hh"
 
 #include "pdsapp/config/ParameterSet.hh"
-#include "pdsdata/lusi/DiodeFexConfigV1.hh"
 
 #include <QtGui/QGridLayout>
 
@@ -15,47 +14,54 @@ static const float scaleDef = 1.0;
 static const float scaleLo  = -1.e20; 
 static const float scaleHi  =  1.e20; 
 
-DiodeFexItem::DiodeFexItem() :
-  base0 (NULL, baseDef, baseLo, baseHi),
-  base1 (NULL, baseDef, baseLo, baseHi),
-  base2 (NULL, baseDef, baseLo, baseHi),
-  scale0(NULL, scaleDef, scaleLo, scaleHi),
-  scale1(NULL, scaleDef, scaleLo, scaleHi),
-  scale2(NULL, scaleDef, scaleLo, scaleHi)
-{}
-
-DiodeFexItem::~DiodeFexItem() {}
-
-
-void DiodeFexItem::set (const Pds::Lusi::DiodeFexConfigV1& c)
+DiodeFexItem::DiodeFexItem(unsigned n) : nranges(n)
 {
-  base0.value = c.base[0];
-  base1.value = c.base[1];
-  base2.value = c.base[2];
-  scale0.value = c.scale[0];
-  scale1.value = c.scale[1];
-  scale2.value = c.scale[2];
+  base  = new NumericFloat<float>[n];
+  scale = new NumericFloat<float>[n];
+  for(unsigned i=0; i<n; i++) {
+    base [i] = NumericFloat<float>(NULL, baseDef , baseLo , baseHi );
+    scale[i] = NumericFloat<float>(NULL, scaleDef, scaleLo, scaleHi);
+  }
+}
+
+DiodeFexItem::~DiodeFexItem() 
+{
+  delete[] base;
+  delete[] scale;
+}
+
+
+void DiodeFexItem::set (float* b, float* s)
+{
+  for(unsigned i=0; i<nranges; i++) {
+    base [i].value = b[i];
+    scale[i].value = s[i];
+  }
+}
+
+void DiodeFexItem::get (float* b, float* s)
+{
+  for(unsigned i=0; i<nranges; i++) {
+    b[i] = base [i].value;
+    s[i] = scale[i].value;
+  }
 }
 
 void DiodeFexItem::initialize(QWidget* parent,
-			      QGridLayout* layout,
-			      int row, int column)
+                                 QGridLayout* layout,
+                                 int row, int column)
 {
-  layout->addLayout(base0.initialize(parent), row, column++, Qt::AlignCenter);
-  layout->addLayout(base1.initialize(parent), row, column++, Qt::AlignCenter);
-  layout->addLayout(base2.initialize(parent), row, column++, Qt::AlignCenter);
-  layout->addLayout(scale0.initialize(parent), row, column++, Qt::AlignCenter);
-  layout->addLayout(scale1.initialize(parent), row, column++, Qt::AlignCenter);
-  layout->addLayout(scale2.initialize(parent), row, column++, Qt::AlignCenter);
+  for(unsigned i=0; i<nranges; i++)
+    layout->addLayout(base [i].initialize(parent), row++, column, Qt::AlignCenter);
+  for(unsigned i=0; i<nranges; i++)
+    layout->addLayout(scale[i].initialize(parent), row++, column, Qt::AlignCenter);
 }
 
 void DiodeFexItem::insert(Pds::LinkedList<Parameter>& pList) {
-  pList.insert(&base0);
-  pList.insert(&base1);
-  pList.insert(&base2);
-  pList.insert(&scale0);
-  pList.insert(&scale1);
-  pList.insert(&scale2);
+  for(unsigned i=0; i<nranges; i++) {
+    pList.insert(&base [i]);
+    pList.insert(&scale[i]);
+  }
 }
 
 #include "Parameters.icc"

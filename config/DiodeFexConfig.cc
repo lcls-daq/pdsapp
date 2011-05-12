@@ -1,23 +1,38 @@
 #include "pdsapp/config/DiodeFexConfig.hh"
 #include "pdsapp/config/DiodeFexTable.hh"
 
+#include "pds/config/DiodeFexConfigType.hh"
+
+#include <new>
+
 using namespace Pds_ConfigDb;
+
+typedef DiodeFexConfigType T;
+
+// limit to 8 ranges
+static const int NRANGES=8;
 
 DiodeFexConfig::DiodeFexConfig() : 
   Serializer("DiodeFexConfig"),
-  _table( new DiodeFexTable )
+  _table( new DiodeFexTable(NRANGES) ) 
 {
   _table->insert(pList);
 }
 
 int DiodeFexConfig::readParameters (void* from) {
-  return _table->pull(from);
+  T& c = *new(from) T;
+  _table->pull(c.base,c.scale);
+  return sizeof(c);
 }
 
 int  DiodeFexConfig::writeParameters(void* to) {
-  return _table->push(to);
+  float b[T::NRANGES];
+  float s[T::NRANGES];
+  _table->push(b,s);
+  *new(to) T(b,s);
+  return sizeof(T);
 }
 
 int  DiodeFexConfig::dataSize() const {
-  return _table->dataSize();
+  return sizeof(T);
 }
