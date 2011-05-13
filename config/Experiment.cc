@@ -191,7 +191,7 @@ bool Experiment::update_key(const TableEntry& entry)
       iter != entry.entries().end(); iter++)
     if (device(iter->name())->update_key(iter->entry(),_path.base())) {
       changed++;
-      printf("%s/%s changed\n",iter->name().c_str(),iter->entry().c_str());
+      //      printf("%s/%s changed\n",iter->name().c_str(),iter->entry().c_str());
     }
 
   mode_t mode = _fmode;

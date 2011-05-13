@@ -148,13 +148,13 @@ bool Device::_check_config(const TableEntry* entry, const string& path, const st
 	  }
 	}
 	else {
-	  printf("No %s link\n",tlinkpath.c_str());
+          //	  printf("No %s link\n",tlinkpath.c_str());
 	  outofdate=true;
 	}
       }
     }
     else {
-      printf("No %s path\n",tpath.c_str());
+      //      printf("No %s path\n",tpath.c_str());
       outofdate=true;
     }
   }

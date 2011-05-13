@@ -504,5 +504,6 @@ PyObject* pdsdb_evolve(PyObject* self_o, PyObject* args, PyObject* kwds)
   oxtc->contains = contains;
   oxtc->extent   = extent;
   oxtc->payload  = new char[extent];
+  memset(oxtc->payload, 0, extent);
   return o;
 }
