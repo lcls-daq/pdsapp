@@ -15,6 +15,7 @@ DefineXtcType(CspadConfig) ;
   
 #include "pdsdata/cspad/ConfigV1.hh"
 #include "pdsdata/cspad/ConfigV2.hh"
+#include "pdsdata/cspad/ConfigV3.hh"
 #include <new>
 
 using namespace Pds::CsPad;
@@ -72,7 +73,7 @@ static PyObject* get_quad(const ConfigV1QuadReg* cfg)
 PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
-  if (xtc->contains.version()==1) {
+  if(xtc->contains.version()==1) {
     const Pds::CsPad::ConfigV1* cfg = 
       reinterpret_cast<const Pds::CsPad::ConfigV1*>(xtc->payload);
 
@@ -127,7 +128,49 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
 
     return o;
   }
+  else if (xtc->contains.version()==3) {
+    const ConfigV3* cfg = 
+      reinterpret_cast<const ConfigV3*>(xtc->payload);
 
+    PyObject* o = PyDict_New();
+    SetMember(concentratorVersion);
+    SetMember(runDelay);
+    SetMember(eventCode);
+    SetMember(inactiveRunMode);
+    SetMember(activeRunMode);
+    SetMember(tdi);
+    SetMember(payloadSize);
+    SetMember(badAsicMask0);
+    SetMember(badAsicMask1);
+    SetMember(asicMask);
+    SetMember(quadMask);
+
+    { PyObject* l = PyList_New(MaxQuadsPerSensor);
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+        PyList_SetItem(l,i,PyLong_FromLong(cfg->roiMask(i)));
+      PyDict_SetItemString(o,"roiMask",l); }
+
+    { PyObject* l = PyList_New(MaxQuadsPerSensor);
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+        PyList_SetItem(l,i,get_quad(&cfg->quads()[i]));
+      PyDict_SetItemString(o,"quads",l); }
+
+    { PyObject* l = PyList_New(MaxQuadsPerSensor);
+      const Pds::CsPad::ProtectionSystemThreshold* pst = cfg->protectionThresholds();
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++) {
+	PyObject* p = PyDict_New();
+        PyDict_SetItemString(p,"adcThreshold",
+                             PyLong_FromLong(pst[i].adcThreshold));
+        PyDict_SetItemString(p,"pixelCountThreshold",
+                             PyLong_FromLong(pst[i].pixelCountThreshold));
+        PyList_SetItem(l,i,p); 
+      }
+      PyDict_SetItemString(o,"protectionEnable",
+                           PyLong_FromLong(cfg->protectionEnable()));
+      PyDict_SetItemString(o,"protectionSystem",l); }
+
+    return o;
+  }
   //  Throw an exception
   return NULL;
 }
@@ -284,6 +327,67 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
           return NULL;
         }
     }
+  }
+  else if (xtc->contains.version()==3) {
+    ConfigV3* cfg = 
+      reinterpret_cast<ConfigV3*>(xtc->payload);
+
+    SetMember(runDelay);
+    SetMember(eventCode);
+    SetMember(inactiveRunMode);
+    SetMember(activeRunMode);
+    SetMember(tdi);
+    SetMember(payloadSize);
+    SetMember(badAsicMask0);
+    SetMember(badAsicMask1);
+    SetMember(asicMask);
+    SetMember(quadMask);
+
+    unsigned roiMask = 0;
+    PyObject* l = PyDict_GetItemString(o,"roiMask");
+    if (l) {
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+        roiMask |= PyLong_AsLong(PyList_GetItem(l,i)) << (i*ASICsPerQuad/2);
+    }
+    else {
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+        roiMask |= cfg->roiMask(i)<<(i*ASICsPerQuad/2);
+    }
+
+    new(xtc->payload) ConfigV3(runDelay, 
+                               eventCode,
+                               inactiveRunMode,
+                               activeRunMode,
+                               tdi,
+                               payloadSize, 
+                               badAsicMask0,
+                               badAsicMask1,
+                               asicMask,
+                               quadMask,
+                               roiMask);
+    
+    PyObject* i = PyDict_GetItemString(o,"quads");
+    if (i) {
+      for(unsigned q=0; q<PyList_Size(i); q++)
+        if (!set_quad(&cfg->quads()[q],PyList_GetItem(i,q))) {
+          Py_DECREF(o);
+          return NULL;
+        }
+    }
+
+    PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
+    if (pst) {
+      for(unsigned q=0; q<PyList_Size(i); q++) {
+        PyObject* it = PyList_GetItem(pst,q);
+        if ((i=PyDict_GetItemString(it,"adcThreshold")))
+          cfg->protectionThresholds()[q].adcThreshold = PyLong_AsLong(i);
+        if ((i=PyDict_GetItemString(it,"pixelCountThreshold")))
+          cfg->protectionThresholds()[q].pixelCountThreshold = PyLong_AsLong(i);
+      }
+    }    
+
+    if((i=PyDict_GetItemString(o,"protectionEnable")))
+      cfg->protectionEnable(PyLong_AsLong(i));
   }
   else {
     Py_DECREF(o);

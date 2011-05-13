@@ -31,6 +31,7 @@ static PyObject* pdsdb_set    (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_commit (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_clone  (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_sub    (PyObject* self, PyObject* args, PyObject* kwds);
+static PyObject* pdsdb_evolve (PyObject* self, PyObject* args, PyObject* kwds);
 
 static PyMethodDef pdsdb_methods[] = {
   {"get"       , (PyCFunction)pdsdb_get   , METH_KEYWORDS, "Return the xtc data"},
@@ -38,6 +39,7 @@ static PyMethodDef pdsdb_methods[] = {
   {"substitute", (PyCFunction)pdsdb_sub   , METH_KEYWORDS, "Replace the xtc data"},
   {"commit"    , (PyCFunction)pdsdb_commit, METH_NOARGS  , "Commit changes and update db"},
   {"clone"     , (PyCFunction)pdsdb_clone , METH_VARARGS , "Clone a key"},
+  {"evolve"    , (PyCFunction)pdsdb_evolve, METH_VARARGS , "Upgrade xtc container to another version"},
   {NULL},
 };
 
@@ -194,6 +196,8 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
     if (entry) {
       key = strtoul(entry->key().c_str(),NULL,16);
     }
+    else
+      printf("alias lookup for %s failed\n",alias);
   }
 
   if (key==Default) {
@@ -229,12 +233,14 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
       for(unsigned m=0; m<gk.gl_pathc; m++) {
         unsigned typ = strtoul(basename(gk.gl_pathv[m]),NULL,16);
         //  Match type
-        if (typid==Default || typid==typ) {
+        if (typid==Default || 
+	    typid==typ ||
+            typid==(typ&0xffff)) {
           int i = PyTuple_Size(result);
           _PyTuple_Resize(&result, i+1);
 
           PyObject* o;
-          Pds::TypeId contains(Pds::TypeId::Type(typ&0xffff),
+	  Pds::TypeId contains(Pds::TypeId::Type(typ&0xffff),
                                typ>>16);
           switch(contains.id()) {
           case Pds::TypeId::Id_DiodeFexConfig:
@@ -434,4 +440,69 @@ PyObject* pdsdb_clone  (PyObject* self_o, PyObject* args, PyObject* kwds)
     return NULL;
 
   return PyLong_FromLong(newkey);
+}
+
+//
+//  Change the container tag on an xtc object
+//
+PyObject* pdsdb_evolve(PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  unsigned typid = 0;
+  PyObject* o;
+  int sts = PyArg_ParseTuple(args,"IO",&typid,&o);
+
+  if (sts==0) {
+    printf("Parse failed\n");
+    return NULL;
+  }
+
+  if (o->ob_type->tp_new!=pdsxtc_new) {
+    printf("TypeCheck failed\n");
+    return NULL;
+  }
+
+  pdsxtc* xtc = (pdsxtc*)o;
+
+  Pds::TypeId contains(Pds::TypeId::Type(typid&0xffff), typid>>16);
+  if (contains.version()==0)
+    contains = Pds::TypeId(xtc->contains.id(), typid&0xffff);
+
+  unsigned extent;
+  switch(contains.id()) {
+  case Pds::TypeId::Id_DiodeFexConfig:
+    o = _PyObject_New(&pds_DiodeFexConfig_type);
+    extent = (contains.version()==1) ? 
+      sizeof(Pds::Lusi::DiodeFexConfigV1) :
+      sizeof(Pds::Lusi::DiodeFexConfigV2);
+    break;
+  case Pds::TypeId::Id_IpmFexConfig:
+    o = _PyObject_New(&pds_IpmFexConfig_type);
+    extent = (contains.version()==1) ? 
+      sizeof(Pds::Lusi::IpmFexConfigV1) :
+      sizeof(Pds::Lusi::IpmFexConfigV2);
+    break;	
+  case Pds::TypeId::Id_IpimbConfig:
+    o = _PyObject_New(&pds_IpimbConfig_type);
+    extent = (contains.version()==1) ? 
+      sizeof(Pds::Ipimb::ConfigV1) :
+      sizeof(Pds::Ipimb::ConfigV2);
+    break;			
+  case Pds::TypeId::Id_CspadConfig:
+    o = _PyObject_New(&pds_CspadConfig_type);
+    switch(contains.version()) {
+    case 1 : extent = sizeof(Pds::CsPad::ConfigV1); break;
+    case 2 : extent = sizeof(Pds::CsPad::ConfigV2); break;
+    default: extent = sizeof(Pds::CsPad::ConfigV3); break;
+    }
+    break;
+  default:
+    return NULL;
+  }
+
+  pdsxtc* oxtc = (pdsxtc*)o;
+  oxtc->src      = xtc->src;
+  oxtc->contains = contains;
+  oxtc->extent   = extent;
+  oxtc->payload  = new char[extent];
+  return o;
 }

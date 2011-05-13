@@ -1,16 +1,12 @@
 //
 //  pds_DiodeFexConfig class methods
 //
-static PyObject* pds_DiodeFexConfig_get_base    (PyObject*   self, PyObject* args);
-static PyObject* pds_DiodeFexConfig_set_base    (PyObject*   self, PyObject* args);
-static PyObject* pds_DiodeFexConfig_get_scale   (PyObject*   self, PyObject* args);
-static PyObject* pds_DiodeFexConfig_set_scale   (PyObject*   self, PyObject* args);
+static PyObject* pds_DiodeFexConfig_get    (PyObject*   self, PyObject* args);
+static PyObject* pds_DiodeFexConfig_set    (PyObject*   self, PyObject* args);
 
 static PyMethodDef pds_DiodeFexConfig_methods[] = {
-  {"get_base"   , (PyCFunction)pds_DiodeFexConfig_get_base   , METH_NOARGS , "Output the base values"},
-  {"set_base"   , (PyCFunction)pds_DiodeFexConfig_set_base   , METH_VARARGS, "Input the base values"},
-  {"get_scale"  , (PyCFunction)pds_DiodeFexConfig_get_scale  , METH_NOARGS , "Output the scale values"},
-  {"set_scale"  , (PyCFunction)pds_DiodeFexConfig_set_scale  , METH_VARARGS, "Input the scale values"},
+  {"get"   , (PyCFunction)pds_DiodeFexConfig_get   , METH_NOARGS , "Output the configuration"},
+  {"set"   , (PyCFunction)pds_DiodeFexConfig_set   , METH_VARARGS, "Input the configuration"},
   {NULL},
 };
 
@@ -18,33 +14,52 @@ DefineXtcType(DiodeFexConfig)
 
 
 #include "pdsdata/lusi/DiodeFexConfigV1.hh"
+#include "pdsdata/lusi/DiodeFexConfigV2.hh"
 
-//
-//  Return a list of base values
-//
-PyObject* pds_DiodeFexConfig_get_base    (PyObject*   self, PyObject* args)
+PyObject* pds_DiodeFexConfig_get    (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();  
   if (xtc->contains.version()==1) {
     const Pds::Lusi::DiodeFexConfigV1* v1 = 
       reinterpret_cast<const Pds::Lusi::DiodeFexConfigV1*>(xtc->payload);
     unsigned n = Pds::Lusi::DiodeFexConfigV1::NRANGES;
-    PyObject* o = PyList_New(n);
-    for(unsigned i=0; i<n; i++)
-      PyList_SetItem(o,i,PyFloat_FromDouble(v1->base[i]));
+    { PyObject* l = PyList_New(n);
+      for(unsigned j=0; j<n; j++)
+        PyList_SetItem(l,j,PyFloat_FromDouble(v1->base[j]));
+      PyDict_SetItemString(o,"base",l); }
+    { PyObject* l = PyList_New(n);
+      for(unsigned j=0; j<n; j++)
+        PyList_SetItem(l,j,PyFloat_FromDouble(v1->scale[j]));
+      PyDict_SetItemString(o,"scale",l); }
+    return o;
+  }
+  else if (xtc->contains.version()==2) {
+    PyObject* o = PyDict_New();  
+    const Pds::Lusi::DiodeFexConfigV2* v1 = 
+      reinterpret_cast<const Pds::Lusi::DiodeFexConfigV2*>(xtc->payload);
+//    unsigned n = Pds::Lusi::DiodeFexConfigV2::NRANGES;
+    unsigned n = 8;
+    { PyObject* l = PyList_New(n);
+      for(unsigned j=0; j<n; j++)
+        PyList_SetItem(l,j,PyFloat_FromDouble(v1->base[j]));
+      PyDict_SetItemString(o,"base",l); }
+    { PyObject* l = PyList_New(n);
+      for(unsigned j=0; j<n; j++)
+        PyList_SetItem(l,j,PyFloat_FromDouble(v1->scale[j]));
+      PyDict_SetItemString(o,"scale",l); }
     return o;
   }
 
+  Py_DECREF(o);
   //  Throw an exception
   return NULL;
 }
 
-PyObject* pds_DiodeFexConfig_set_base    (PyObject*   self, PyObject* args)
+PyObject* pds_DiodeFexConfig_set    (PyObject*   self, PyObject* args)
 {
-  PyObject* values = 0;
-  int sts = PyArg_ParseTuple(args,"O",&values);
-
-  if (sts==0)
+  PyObject* o;
+  if (PyArg_ParseTuple(args,"O",&o)==0)
     return NULL;
 
   pdsxtc* xtc = (pdsxtc*)self;
@@ -52,54 +67,51 @@ PyObject* pds_DiodeFexConfig_set_base    (PyObject*   self, PyObject* args)
     Pds::Lusi::DiodeFexConfigV1* v1 = 
       reinterpret_cast<Pds::Lusi::DiodeFexConfigV1*>(xtc->payload);
     unsigned n = Pds::Lusi::DiodeFexConfigV1::NRANGES;
-    for(unsigned i=0; i<n; i++)
-      v1->base[i] = PyFloat_AsDouble(PyList_GetItem(values,i));
-    Py_INCREF(Py_None);
+    { PyObject* i = PyDict_GetItemString(o,"base");
+      if (i)
+        for(unsigned j=0; j<n; j++) {
+          PyObject* it = PyList_GetItem(i,j);
+	  if (it)
+  	    v1->base[j] = PyFloat_AsDouble(it);
+        } }
+    { PyObject* i = PyDict_GetItemString(o,"scale");
+      if (i)
+        for(unsigned j=0; j<n; j++) {
+          PyObject* it = PyList_GetItem(i,j);
+	  if (it)
+  	    v1->scale[j] = PyFloat_AsDouble(it);
+        } }
+    Py_DECREF(o);
+    return Py_None;
+  }
+  else if (xtc->contains.version()==2) {
+    Pds::Lusi::DiodeFexConfigV2* v1 = 
+      reinterpret_cast<Pds::Lusi::DiodeFexConfigV2*>(xtc->payload);
+//    unsigned n = Pds::Lusi::DiodeFexConfigV2::NRANGES;
+    unsigned n = 8;
+    { PyObject* i = PyDict_GetItemString(o,"base");
+      if (i)
+        for(unsigned j=0; j<n; j++) {
+          PyObject* it = PyList_GetItem(i,j);
+	  if (it)
+  	    v1->base[j] = PyFloat_AsDouble(it);
+        } }
+    { PyObject* i = PyDict_GetItemString(o,"scale");
+      if (i)
+        for(unsigned j=0; j<n; j++) {
+          PyObject* it = PyList_GetItem(i,j);
+	  if (it)
+  	    v1->scale[j] = PyFloat_AsDouble(it);
+        } }
+
+    PyErr_Clear();
+
+    Py_DECREF(o);
     return Py_None;
   }
 
+  Py_DECREF(o);
   //  Throw an exception
   return NULL;
 }
 
-//
-//  Return a list of scale values
-//
-PyObject* pds_DiodeFexConfig_get_scale   (PyObject*   self, PyObject* args)
-{
-  pdsxtc* xtc = (pdsxtc*)self;
-  if (xtc->contains.version()==1) {
-    const Pds::Lusi::DiodeFexConfigV1* v1 = 
-      reinterpret_cast<const Pds::Lusi::DiodeFexConfigV1*>(xtc->payload);
-    unsigned n = Pds::Lusi::DiodeFexConfigV1::NRANGES;
-    PyObject* o = PyList_New(n);
-    for(unsigned i=0; i<n; i++)
-      PyList_SetItem(o,i,PyFloat_FromDouble(v1->scale[i]));
-    return o;
-  }
-  //  Throw an exception
-  return NULL;
-}
-
-PyObject* pds_DiodeFexConfig_set_scale   (PyObject*   self, PyObject* args)
-{
-  PyObject* values = 0;
-  int sts = PyArg_ParseTuple(args,"O",&values);
-
-  if (sts==0)
-    return NULL;
-
-  pdsxtc* xtc = (pdsxtc*)self;
-  if (xtc->contains.version()==1) {
-    Pds::Lusi::DiodeFexConfigV1* v1 = 
-      reinterpret_cast<Pds::Lusi::DiodeFexConfigV1*>(xtc->payload);
-    unsigned n = Pds::Lusi::DiodeFexConfigV1::NRANGES;
-    for(unsigned i=0; i<n; i++)
-      v1->scale[i] = PyFloat_AsDouble(PyList_GetItem(values,i));
-    Py_INCREF(Py_None);
-    return Py_None;
-  }
-
-  //  Throw an exception
-  return NULL;
-}
