@@ -58,11 +58,10 @@ namespace Pds_ConfigDb {
       //      _serialID.value = ipimbConf.serialID();
       //      _chargeAmpRange.value = ipimbConf.chargeAmpRange();
       _chargeAmpRange = ipimbConf.chargeAmpRange();
-      _chargeAmpRange0.value = (CapacitorValue)(_chargeAmpRange & 0xf);
-      _chargeAmpRange1.value = (CapacitorValue)((_chargeAmpRange>>4) & 0xf);
-      _chargeAmpRange2.value = (CapacitorValue)((_chargeAmpRange>>8) & 0xf);
-      _chargeAmpRange3.value = (CapacitorValue)((_chargeAmpRange>>12) & 0xf);
-      printf("in pull, have 0x%x => %d, %d, %d, %d\n", _chargeAmpRange, _chargeAmpRange0.value,_chargeAmpRange1.value,_chargeAmpRange2.value,_chargeAmpRange3.value);
+      _chargeAmpRange0.value = (CapacitorValue)(std::min(_chargeAmpRange & 0xf, (int)IpimbConfigType::expert));
+      _chargeAmpRange1.value = (CapacitorValue)(std::min((_chargeAmpRange>>4) & 0xf, (int)IpimbConfigType::expert));
+      _chargeAmpRange2.value = (CapacitorValue)(std::min((_chargeAmpRange>>8) & 0xf, (int)IpimbConfigType::expert));
+      _chargeAmpRange3.value = (CapacitorValue)(std::min((_chargeAmpRange>>12) & 0xf, (int)IpimbConfigType::expert));
       //      _calibrationRange.value = ipimbConf.calibrationRange();
       _resetLength.value = ipimbConf.resetLength();
       _resetDelay.value = ipimbConf.resetDelay();
@@ -100,7 +99,6 @@ namespace Pds_ConfigDb {
 	((_chargeAmpRange1.value&0xf)<<4) + 
 	((_chargeAmpRange2.value&0xf)<<8) +  
 	((_chargeAmpRange3.value&0xf)<<12);
-      printf("in updateCAR have 0x%x => %d, %d, %d, %d\n", _chargeAmpRange, _chargeAmpRange0.value,_chargeAmpRange1.value,_chargeAmpRange2.value,_chargeAmpRange3.value);
     }
 
   public:

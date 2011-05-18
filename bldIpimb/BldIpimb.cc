@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
     if (!fp) {
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detector, detectorId, DetInfo::Ipimb, deviceId);
       cfgService[i] = new CfgClientNfs(detInfo);
-      ipimbServer[i] = new IpimbServer(detInfo);
+      ipimbServer[i] = new IpimbServer(detInfo, false);
       *bldIdMap = bldId;
       portName[i][0] = '\0';
     } else {
@@ -262,7 +262,7 @@ int main(int argc, char** argv) {
       deviceId = portInfo[i][2];
       DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detector, detectorId, DetInfo::Ipimb, deviceId);
       cfgService[i] = new CfgClientNfs(detInfo);
-	  ipimbServer[i] = new IpimbServer(detInfo);
+      ipimbServer[i] = new IpimbServer(detInfo, false);
     }
   }
   if (fp) {
