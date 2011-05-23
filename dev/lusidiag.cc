@@ -144,13 +144,14 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   int s;
-  while ( (s=getopt( argc, argv, "a:o:i:c:p:n:b:f:C")) != EOF ) {
+  while ( (s=getopt( argc, argv, "a:i:c:p:n:b:f:o")) != EOF ) {
     switch(s) {
       case 'a':
       arp = new Arp(optarg);
       break;
     case 'o':
       c01 = true;
+      break;
     case 'i':
       detid  = strtoul(optarg, NULL, 0);
       break;
