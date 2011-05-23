@@ -30,7 +30,7 @@ namespace Pds_ConfigDb {
       //      _status("Foo ", 1, 1, 4),
       //      _errors("Foo ", 1, 1, 4),
       //      _calStrobeLength("Calibration strobe length ", 0, 0, 0),
-      _trigDelay("Sampling delay (ns) ", 89000, 0, 0x7fff8),
+      _trigDelay("Sampling delay (ns) ", 191000, 0, 0x7fff8),
       _chargeAmpRange(0) {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
