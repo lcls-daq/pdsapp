@@ -17,8 +17,8 @@ tgtnames    := 	evr \
 		tm6740 \
 		pimimage \
 		fccd     \
-		cspad    #\
-		xamps
+		cspad \
+		simcam
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
@@ -130,3 +130,7 @@ tgtsrcs_princeton := princeton.cc
 #tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcamtest
 tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcam
 tgtslib_princeton := /usr/lib/rt dl pthread
+
+tgtsrcs_simcam := simcam.cc 
+tgtlibs_simcam := $(commonlibs) pdsdata/pulnixdata pdsdata/camdata
+tgtslib_simcam := pthread rt
