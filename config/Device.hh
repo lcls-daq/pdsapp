@@ -22,8 +22,12 @@ namespace Pds_ConfigDb {
 	    const list<DeviceEntry>& src_list );
   public:
     const string& name() const { return _name; }
+
+    //  Table of {device alias, key, {config_type,filename}}
     const Table&  table() const { return _table; }
     Table& table() { return _table; }
+
+    //  List of Pds::Src entries
     const list<DeviceEntry>& src_list() const { return _src_list; }
     list<DeviceEntry>& src_list() { return _src_list; }
   public:
