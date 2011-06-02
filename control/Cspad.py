@@ -3,7 +3,8 @@
 
 import struct
 
-DetInfo = '20000a00'
+DetInfo1 = '20000a00'
+DetInfo2 = '24000a00'
 
 TypeId  = '0003001d'
 

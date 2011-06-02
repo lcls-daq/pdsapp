@@ -30,6 +30,7 @@
 #include "pdsapp/config/CspadConfig_V1.hh"
 #include "pdsapp/config/CspadConfig_V2.hh"
 #include "pdsapp/config/CspadConfig.hh"
+#include "pdsapp/config/XampsConfig.hh"
 
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/EvrIOConfigType.hh"
@@ -47,6 +48,7 @@
 #include "pds/config/FrameFexConfigType.hh"
 #include "pds/config/ControlConfigType.hh"
 #include "pds/config/CsPadConfigType.hh"
+#include "pds/config/XampsConfigType.hh"
 #include "pdsapp/config/PdsDefs.hh"
 
 #include "pdsdata/lusi/DiodeFexConfigV1.hh"
@@ -85,7 +87,8 @@ SerializerDictionary::SerializerDictionary()
   enroll(_ipmFexConfigType    ,new IpmFexConfig);
   enroll(_diodeFexConfigType  ,new DiodeFexConfig);  
   enroll(_pimImageConfigType  ,new PimImageConfig);  
-  enroll(_CsPadConfigType     ,new CspadConfig);  
+  enroll(_CsPadConfigType     ,new CspadConfig);
+  enroll(_XampsConfigType     ,new XampsConfig);
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,2) , new CspadConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  

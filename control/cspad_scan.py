@@ -57,9 +57,26 @@ if __name__ == "__main__":
     print 'Generated key ',newkey
 
     cspad = Cspad.ConfigV3()
-    cspad.read(cdb.xtcpath(key.value,Cspad.DetInfo,Cspad.TypeId))
+    cspad.read(cdb.xtcpath(key.value,Cspad.DetInfo1,Cspad.TypeId))
 
-    newxtc = cdb.remove_xtc(newkey,Cspad.DetInfo,Cspad.TypeId)
+    newxtc = cdb.remove_xtc(newkey,Cspad.DetInfo1,Cspad.TypeId)
+
+    f = open(newxtc,'w')
+    extent = options.range[1]-options.range[0]
+    for cycle in range(options.limit+1):
+        value = ((cycle*extent)/options.limit) + options.range[0]
+        if options.parameter=='runDelay':
+            cspad.runDelay = value
+        elif options.parameter=='intTime':
+            for q in range(4):
+                cspad.quads[q].intTime=value
+#        print cycle, " ", options.parameter, " ", value
+        cspad.write(f)
+    f.close()
+
+    cspad.read(cdb.xtcpath(key.value,Cspad.DetInfo2,Cspad.TypeId))
+
+    newxtc = cdb.remove_xtc(newkey,Cspad.DetInfo2,Cspad.TypeId)
 
     f = open(newxtc,'w')
     extent = options.range[1]-options.range[0]
