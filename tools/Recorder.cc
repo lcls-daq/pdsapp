@@ -105,7 +105,7 @@ InDatagram* Recorder::events(InDatagram* in) {
     if (_f) {
       struct stat st;
       
-      long long int lliOffset = lseek64( fileno(_f), 0, SEEK_CUR);
+      int64_t i64Offset = lseek64( fileno(_f), 0, SEEK_CUR);
       if (_writeOutputFile(&(in->datagram()),sizeof(in->datagram()),1) != 0) {
         // error
         in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
@@ -133,12 +133,12 @@ InDatagram* Recorder::events(InDatagram* in) {
           if (in->datagram().seq.service() == TransitionId::L1Accept)
           {
             bool bInvalidNodeData = false;
-            _indexList.startNewNode( (const Pds::Dgram&) in->datagram(), lliOffset, bInvalidNodeData);
+            _indexList.startNewNode( (const Pds::Dgram&) in->datagram(), i64Offset, bInvalidNodeData);
             
             if ( !bInvalidNodeData )
             {            
               Index::XtcIterL1Accept iterL1Accept(&(in->datagram().xtc), 0,
-                lliOffset + sizeof(Xtc) + sizeof(in->datagram()) - sizeof(in->datagram().xtc),
+                i64Offset + sizeof(Xtc) + sizeof(in->datagram()) - sizeof(in->datagram().xtc),
                 _indexList);           
               iterL1Accept.iterate();
                     
@@ -148,7 +148,7 @@ InDatagram* Recorder::events(InDatagram* in) {
           } // if (in->datagram().seq.service() == TransitionId::L1Accept)  
           else if (in->datagram().seq.service() == TransitionId::BeginCalibCycle)
           {
-            _indexList.addCalibCycle(lliOffset);
+            _indexList.addCalibCycle(i64Offset, in->datagram().seq.clock().seconds(), in->datagram().seq.clock().nanoseconds() );
           }          
         } // if ( _indexfname[0] != 0 )
         

@@ -317,7 +317,7 @@ int main(int argc, char** argv) {
   printf(
     "Press Ctrl + C to exit the program,\n" 
     "Or enter either one of the following characters + <Enter>:\n" 
-    "  s: start , t: stop , p: pause , r: resume , c: configure , q: quit\n"
+    "  s: stop , t: start , p: pause , r: resume , c: configure , q: quit\n"
     );
 
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);

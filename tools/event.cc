@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     if (arp->error()) {
       char message[128];
       sprintf(message, "failed to create Arp for `%s': %s", 
-	      options.arpsuidprocess, strerror(arp->error()));
+        options.arpsuidprocess, strerror(arp->error()));
       printf("%s: %s\n", argv[0], message);
       delete arp;
       return 0;
@@ -27,8 +27,8 @@ int main(int argc, char** argv) {
   Task* task = new Task(Task::MakeThisATask);
   EventTest* test = new EventTest(task, options, arp);
   EventLevel* event = new EventLevel(options.platform,
-				     *test,
-				     arp);
+             *test,
+             arp);
 
   if (test->attach(event)) {
     task->mainLoop();
