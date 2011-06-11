@@ -17,17 +17,18 @@ tgtnames    := 	evr \
 		tm6740 \
 		pimimage \
 		fccd     \
-		cspad \
+		cspad    \
+		xamps    \
 		simcam
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
 
-#tgtsrcs_xamps := xamps.cc
-#tgtincs_xamps := xamps
-#tgtlibs_xamps := $(commonlibs) pdsdata/cspaddata pds/xamps pds/pgp
-#tgtslib_xamps := /usr/lib/rt
-#CPPFLAGS += -fno-strict-aliasing
+tgtsrcs_xamps := xamps.cc
+tgtincs_xamps := xamps
+tgtlibs_xamps := $(commonlibs) pdsdata/xampsdata pds/xamps pds/pgp
+tgtslib_xamps := /usr/lib/rt
+CPPFLAGS += -fno-strict-aliasing
 #CPPFLAGS += -fopenmp
 #DEFINES += -fopenmp
 
