@@ -126,7 +126,7 @@ namespace Pds_ConfigDb {
               XampsConfigType::defaultValue((XampsConfigType::Registers) i),
               XampsConfigType::rangeLow((XampsConfigType::Registers) i),
               XampsConfigType::rangeHigh((XampsConfigType::Registers) i),
-              Hex
+              Decimal
           );
         }
         for (uint32_t i=0; i<XampsConfigType::NumberOfASICs; i++) {
