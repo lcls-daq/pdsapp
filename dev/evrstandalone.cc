@@ -113,6 +113,7 @@ int main(int argc, char** argv) {
     case 'p':
       pulse[npulses].eventcode = strtoul(optarg  ,&endptr,0);
       pulse[npulses].delay     = strtoul(endptr+1,&endptr,0);
+      if (pulse[npulses].delay > 1131) pulse[npulses].delay     -= 1131;
       pulse[npulses].width     = strtoul(endptr+1,&endptr,0);
       pulse[npulses].output    = strtoul(endptr+1,&endptr,0);
       npulses++;

@@ -29,7 +29,7 @@ namespace Pds_ConfigDb {
               XampsChannel::defaultValue((XampsChannel::ChannelBitFields) i),
               XampsChannel::rangeLow((XampsChannel::ChannelBitFields) i),
               XampsChannel::rangeHigh((XampsChannel::ChannelBitFields) i),
-              Hex
+              Decimal
           );
         };
       }
@@ -70,7 +70,7 @@ namespace Pds_ConfigDb {
               XampsASIC::defaultValue((XampsASIC::ASIC_Entries) i),
               XampsASIC::rangeLow((XampsASIC::ASIC_Entries) i),
               XampsASIC::rangeHigh((XampsASIC::ASIC_Entries) i),
-              Hex
+              Decimal
           );
         }
         for (uint32_t i=0; i<XampsASIC::NumberOfChannels; i++) {
