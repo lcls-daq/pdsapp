@@ -25,11 +25,16 @@ namespace Pds_ConfigDb {
   public:
     void launch(int);
     void membersChanged();
+    int  index() { return _index; }
+    void name(char* n);
   public:
     Pds::LinkedList<Parameter>* _array;
     ParameterCount&             _count;
     QComboBox*                  _box;
     ParameterSetQ*              _qset;
+  protected:
+    int                         _index;
+    char                        _name[84];
   };
 
   class ParameterSetQ : public QObject {

@@ -1,6 +1,9 @@
 #include "pdsapp/config/Serializer.hh"
 
 #include <QtGui/QBoxLayout>
+#include <QtGui/QWidget>
+#include <QtCore/QString>
+#include <new>
 
 using namespace Pds_ConfigDb;
 
@@ -15,6 +18,7 @@ void Serializer::initialize(QWidget* parent, QBoxLayout* layout)
     layout->addLayout(p->initialize(parent));
     p = p->forward();
   }
+  parent->setWindowTitle(_name);
 }
 
 void Serializer::flush ()
@@ -36,3 +40,8 @@ void Serializer::update()
 }
 
 void Serializer::setPath(const Path& p) { path = &p; }
+
+void Serializer::name(char* n)
+{
+  _name = *new  QString(n);
+}

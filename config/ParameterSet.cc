@@ -7,6 +7,8 @@
 #include <QtGui/QLabel>
 #include <QtGui/QLineEdit>
 #include <QtGui/QComboBox>
+#include <QtCore/QString>
+#include <string.h>
 
 using namespace Pds_ConfigDb;
 
@@ -16,8 +18,11 @@ ParameterSet::ParameterSet(const char* label,
   Parameter(label),
   _array   (array),
   _count   (count),
-  _qset    (new ParameterSetQ(*this))
-{}
+  _qset    (new ParameterSetQ(*this)),
+  _index   (0)
+{
+  strcpy(_name, "");
+}
 
 ParameterSet::~ParameterSet()
 {}
@@ -37,11 +42,21 @@ QLayout* ParameterSet::initialize(QWidget* parent)
   return layout;                                     
 }
 
+void ParameterSet::name(char* n) {
+  strncpy(_name, n, 80);
+}
+
 void ParameterSet::launch(int index)
 {
   SubDialog* d = new SubDialog(_box,
 			       _array[index]);
+  char foo[strlen(_name)+20];
+  sprintf(foo, "%s %d", _name, index);
+  QString* title = new QString(foo);
+  d->setWindowTitle(*title);
+  _index = index;
   d->exec();
+  delete title;
   delete d;
 }
 

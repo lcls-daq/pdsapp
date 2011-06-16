@@ -2,6 +2,7 @@
 #define Pds_Serializer_hh
 
 #include "pdsapp/config/Parameters.hh"
+#include <QtCore/QString>
 
 class QBoxLayout;
 class QWidget;
@@ -22,10 +23,12 @@ namespace Pds_ConfigDb {
     void flush ();
     void update();
     void setPath(const Path&);
+    void name(char*);
   protected:
     const char*                label;
     Pds::LinkedList<Parameter> pList;
     const Path*                path;
+    QString                    _name;
   };
 
 };
