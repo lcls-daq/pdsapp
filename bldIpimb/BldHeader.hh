@@ -10,12 +10,13 @@ namespace Pds {
 class BldHeader {
   public:
     BldHeader() {}  
-    BldHeader(unsigned source2, unsigned contains, unsigned payloadSize) {
+    BldHeader(unsigned source2, unsigned contains, unsigned version, unsigned payloadSize) {
       _sec   = 0;  _nSec   = 0; _mbz_1  = 0;
       _fidId = 0;  _mbz_2  = 0; _damage_1 = 0; 	_damage_2 = 0;  
       _source1_1  = 0x06000000; _source1_2  = 0x06000000;    //Pds::Level::Reporter according to "pdsdata/xtc/Level.hh" 
-      _source2_1  = source2;    _source2_2  = source2; 
-      _contains_1 = contains;   _contains_2 = contains; 
+      _source2_1  = source2;    _source2_2  = source2;
+      _contains_1 = (version << 16) | contains;
+      _contains_2 = _contains_1; 
       _extent_1   = BLD_HEADER_SIZE - EXTENT_OFFSET  + payloadSize;
       _extent_2   = _extent_1;
  

@@ -17,9 +17,11 @@
 #include "pdsdata/bld/bldData.hh"
 #include "pds/service/GenericPoolW.hh"
 
-#define PULSE_DELAY           0.000668   
+//#define PULSE_DELAY           0.000668
+#define PULSE_DELAY           0.000651822   
 #define PULSE_WIDTH           5e-06      
 #define BLD_HDR_CONTAINS      (uint32_t) Pds::TypeId::Id_SharedIpimb
+#define VERSION               1
 
 using namespace Pds;
 
@@ -79,7 +81,7 @@ public:
     for (unsigned i=0; i<16; i++) 
       _bldHeader[i] = 0;
     for (unsigned i=0; i<_nIpimbBoards; i++)
-      _bldHeader[i] = new BldHeader((uint32_t)*(_bldIdMap+i),BLD_HDR_CONTAINS,sizeof(BldDataIpimb));	
+      _bldHeader[i] = new BldHeader((uint32_t)*(_bldIdMap+i),BLD_HDR_CONTAINS,(unsigned)VERSION,sizeof(BldDataIpimb));	
   }
   
   Transition* fire(Transition* tr) { return tr; }
