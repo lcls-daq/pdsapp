@@ -7,6 +7,9 @@
 #include <QtGui/QButtonGroup>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QPalette>
+#include <errno.h>
+
+#define NODE_BUFF_SIZE  256
 
 using namespace Pds;
 
@@ -17,32 +20,36 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent) :
   _notready(new QPalette(Qt::red))
 {
   //  Read persistent selected nodes
-  char* buff = new char[256];
-  sprintf(buff,".%s",qPrintable(title()));
-  FILE* f = fopen(buff,"r");
-  if (f) {
-    printf("Opened %s\n",buff);
-    char* lptr=buff;
-    unsigned linesz;
-    while(getline(&lptr,&linesz,f)!=-1) {
-      QString p(lptr);
-      p.chop(1);  // remove new-line
-      _persist.push_back(p.replace('\t','\n'));
-      printf("Persist %s\n",qPrintable(p));
+  char *buff = (char *)malloc(NODE_BUFF_SIZE);  // use malloc w/ getline
+  if (buff == (char *)NULL) {
+    printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, NODE_BUFF_SIZE, errno);
+  } else {
+    snprintf(buff, NODE_BUFF_SIZE-1, ".%s", qPrintable(title()));
+    FILE* f = fopen(buff,"r");
+    if (f) {
+      printf("Opened %s\n",buff);
+      char* lptr=buff;
+      unsigned linesz = NODE_BUFF_SIZE;         // initialize for getline
+      while(getline(&lptr,&linesz,f)!=-1) {
+        QString p(lptr);
+        p.chop(1);  // remove new-line
+        _persist.push_back(p.replace('\t','\n'));
+        printf("Persist %s\n",qPrintable(p));
+      }
+      fclose(f);
     }
-    fclose(f);
-  }
-  else {
-    printf("Failed to open %s\n",buff);
-  }
-  delete[] buff;
+    else {
+      printf("Failed to open %s\n", buff);
+    }
+    free(buff);
 
-  _buttons->setExclusive(false);
-  setLayout(new QVBoxLayout(this)); 
-  connect(this, SIGNAL(node_added(int)), 
-	  this, SLOT(add_node(int)));
-  connect(this, SIGNAL(node_replaced(int)), 
-	  this, SLOT(replace_node(int)));
+    _buttons->setExclusive(false);
+    setLayout(new QVBoxLayout(this)); 
+    connect(this, SIGNAL(node_added(int)), 
+            this, SLOT(add_node(int)));
+    connect(this, SIGNAL(node_replaced(int)), 
+            this, SLOT(replace_node(int)));
+  }
 }
 
 NodeGroup::~NodeGroup() 
@@ -103,15 +110,15 @@ QList<Node> NodeGroup::selected()
       int id = _buttons->id(b);
       _persist.push_back(_nodes[id].plabel().replace('\n','\t'));
       if (_nodes[id].det().device()==DetInfo::Evr)
-	nodes.push_front(_nodes[id].node());
+        nodes.push_front(_nodes[id].node());
       else
-	nodes.push_back (_nodes[id].node());
+        nodes.push_back (_nodes[id].node());
     }
   }
 
   //  Write persistent selected nodes
-  char* buff = new char[64];
-  sprintf(buff,".%s",qPrintable(title()));
+  char buff[64];
+  snprintf(buff, sizeof(buff)-1, ".%s", qPrintable(title()));
   FILE* f = fopen(buff,"w");
   if (f) {
     foreach(QString p, _persist) {
@@ -120,9 +127,8 @@ QList<Node> NodeGroup::selected()
     fclose(f);
   }
   else {
-    printf("Failed to open %s\n",buff);
+    printf("Failed to open %s\n", buff);
   }
-  delete[] buff;
 
   return nodes;
 }
@@ -135,9 +141,9 @@ QList<DetInfo> NodeGroup::detectors()
     if (b->isChecked()) {
       int id = _buttons->id(b);
       if (_nodes[id].det().device()==DetInfo::Evr)
-	dets.push_front(_nodes[id].det());
+        dets.push_front(_nodes[id].det());
       else
-	dets.push_back (_nodes[id].det());
+        dets.push_back (_nodes[id].det());
     }
   }
   return dets;
@@ -151,7 +157,7 @@ NodeGroup* NodeGroup::freeze()
     QList<QAbstractButton*> buttons = _buttons->buttons();
     foreach(QAbstractButton* b, buttons) {
       if (b->isChecked())
-	g->addNode(_nodes[_buttons->id(b)]);
+        g->addNode(_nodes[_buttons->id(b)]);
     }
   }
 
