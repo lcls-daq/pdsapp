@@ -7,9 +7,31 @@
 
 #include <new>
 
-using namespace Pds_ConfigDb;
-
 namespace Pds_ConfigDb {
+
+  void XampsChannelSet::copyClicked() {
+    dialog->exec();
+  }
+
+  QWidget* XampsChannelSet::insertWidgetAtLaunch(int ind) {
+    dialog = new XampsCopyChannelDialog(ind);
+    dialog->context(myAsic, config);
+    copyButton = new QPushButton(tr("&Copy this Channel"));
+    QObject::connect(copyButton, SIGNAL(clicked()), this, SLOT(copyClicked()));
+    return copyButton;
+  }
+
+  void XampsAsicSet::copyClicked() {
+    dialog->exec();
+  }
+
+  QWidget* XampsAsicSet::insertWidgetAtLaunch(int ind) {
+    dialog = new XampsCopyAsicDialog(ind);
+    dialog->context(config);
+    copyButton = new QPushButton(tr("&Copy this ASIC"));
+    QObject::connect(copyButton, SIGNAL(clicked()), this, SLOT(copyClicked()));
+    return copyButton;
+  }
 
   XampsChannelData::XampsChannelData() {
     for (uint32_t i=0; i<XampsChannel::NumberOfChannelBitFields; i++) {
@@ -45,9 +67,10 @@ namespace Pds_ConfigDb {
     return sizeof(XampsChannel);
   }
 
-  XampsASICdata::XampsASICdata()  :
+  XampsASICdata::XampsASICdata(XampsConfig* c, int index)  :
             _count(XampsASIC::NumberOfChannels),
-            _channelSet("Channels", _channelArgs, _count) {
+            _channelSet("Channels", _channelArgs, _count),
+            _config(c) {
     for (uint32_t i=0; i<XampsASIC::NumberOfASIC_Entries; i++){
       _reg[i] = new NumericInt<uint32_t>(
           XampsASIC::name((XampsASIC::ASIC_Entries) i),
@@ -62,6 +85,8 @@ namespace Pds_ConfigDb {
       _channel[i]->insert(_channelArgs[i]);
     }
     _channelSet.name("Channel:");
+    _channelSet.config = _config;
+    _channelSet.myAsic = index;
   }
 
   void XampsASICdata::insert(Pds::LinkedList<Parameter>& pList) {
@@ -109,10 +134,11 @@ namespace Pds_ConfigDb {
     }
     pList.insert(&_asicSet);
     for (uint32_t i=0; i<XampsConfigType::NumberOfASICs; i++) {
-      _asic[i] = new XampsASICdata();
+      _asic[i] = new XampsASICdata(this, i);
       _asic[i]->insert(_asicArgs[i]);
     }
     _asicSet.name("ASIC:");
+    _asicSet.config = this;
     name("XAMPS Configuration");
   }
 

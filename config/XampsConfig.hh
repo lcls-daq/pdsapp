@@ -6,8 +6,60 @@
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 #include "pdsapp/config/BitCount.hh"
+#include "pdsapp/config/XampsCopyChannelDialog.hh"
+#include "pdsapp/config/XampsCopyAsicDialog.hh"
+
+#include <QtGui/QPushButton>
+#include <QtCore/QObject>
 
 namespace Pds_ConfigDb {
+
+  class XampsChannelSet : public QObject, public ParameterSet {
+    Q_OBJECT
+    public:
+    XampsChannelSet(const char* l, Pds::LinkedList<Parameter>* a, ParameterCount& c) :
+      QObject(), ParameterSet(l, a, c), copyButton(0), dialog(0) {}
+    virtual ~XampsChannelSet() {
+      if (copyButton) delete copyButton;
+      if (dialog) delete dialog;
+    }
+
+    public:
+    QWidget* insertWidgetAtLaunch(int);
+
+    public:
+    QWidget* copyButton;
+    XampsCopyChannelDialog *dialog;
+    XampsConfig*   config;
+    int            myAsic;
+
+    private slots:
+    void     copyClicked();
+  };
+
+  class XampsAsicSet : public QObject, public ParameterSet {
+    Q_OBJECT
+    public:
+    XampsAsicSet(const char* l, Pds::LinkedList<Parameter>* a, ParameterCount& c) :
+      QObject(), ParameterSet(l, a, c), copyButton(0), dialog(0) {}
+    virtual ~XampsAsicSet() {
+      if (copyButton) delete copyButton;
+      if (dialog) delete dialog;
+    }
+
+    public:
+    QWidget* insertWidgetAtLaunch(int);
+
+    public:
+    QWidget* copyButton;
+    XampsCopyAsicDialog *dialog;
+    XampsConfig*   config;
+
+    private slots:
+    void     copyClicked();
+  };
+
+
 
   class SimpleCount : public ParameterCount {
     public:
@@ -31,7 +83,7 @@ namespace Pds_ConfigDb {
 
   class XampsASICdata {
     public:
-      XampsASICdata();
+      XampsASICdata(XampsConfig*, int);
       ~XampsASICdata() {};
       void insert(Pds::LinkedList<Parameter>&);
       int pull(void*);
@@ -41,7 +93,8 @@ namespace Pds_ConfigDb {
       SimpleCount                _count;
       XampsChannelData*          _channel[XampsASIC::NumberOfChannels];
       Pds::LinkedList<Parameter> _channelArgs[XampsASIC::NumberOfChannels];
-      ParameterSet               _channelSet;
+      XampsChannelSet            _channelSet;
+      XampsConfig*               _config;
   };
 
   class XampsConfig : public Serializer {
@@ -57,7 +110,7 @@ namespace Pds_ConfigDb {
     SimpleCount                _count;
     XampsASICdata*             _asic[XampsConfigType::NumberOfASICs];
     Pds::LinkedList<Parameter> _asicArgs[XampsConfigType::NumberOfASICs];
-    ParameterSet               _asicSet;
+    XampsAsicSet               _asicSet;
   };
 
 };

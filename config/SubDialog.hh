@@ -15,7 +15,7 @@ namespace Pds_ConfigDb {
     Q_OBJECT
   public:
     SubDialog(QWidget* parent,
-	      Pds::LinkedList<Parameter>& pList);
+	      Pds::LinkedList<Parameter>& pList, QWidget* t = 0);
     ~SubDialog();
   public slots:
     void _return();

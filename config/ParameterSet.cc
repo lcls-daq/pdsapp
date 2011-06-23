@@ -48,8 +48,9 @@ void ParameterSet::name(char* n) {
 
 void ParameterSet::launch(int index)
 {
+  QWidget*  tbi = insertWidgetAtLaunch(index);
   SubDialog* d = new SubDialog(_box,
-			       _array[index]);
+			       _array[index], tbi);
   char foo[strlen(_name)+20];
   sprintf(foo, "%s %d", _name, index);
   QString* title = new QString(foo);

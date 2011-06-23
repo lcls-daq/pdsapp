@@ -10,7 +10,7 @@
 using namespace Pds_ConfigDb;
 
 SubDialog::SubDialog(QWidget* parent,
-		     Pds::LinkedList<Parameter>& pList) :
+		     Pds::LinkedList<Parameter>& pList, QWidget* tbi) :
   QDialog(parent),
   _pList (pList)
 {
@@ -20,6 +20,7 @@ SubDialog::SubDialog(QWidget* parent,
     layout->addLayout(p->initialize(this));
     p = p->forward();
   }
+  if (tbi) layout->addWidget(tbi);
   QPushButton* bReturn = new QPushButton("Return",this);
   layout->addWidget(bReturn);
   connect(bReturn, SIGNAL(clicked()), this, SLOT(_return()));

@@ -10,13 +10,14 @@ class QComboBox;
 namespace Pds_ConfigDb {
   class ParameterCount;
   class ParameterSetQ;
+  class SubDialog;
 
   class ParameterSet : public Parameter  {
   public:
     ParameterSet(const char* label, 
 		 Pds::LinkedList<Parameter>* array,
 		 ParameterCount& count);
-    ~ParameterSet();
+    virtual ~ParameterSet();
 
     QLayout* initialize(QWidget*);
     void     update();
@@ -27,6 +28,7 @@ namespace Pds_ConfigDb {
     void membersChanged();
     int  index() { return _index; }
     void name(char* n);
+    virtual QWidget* insertWidgetAtLaunch(int) { return 0;}
   public:
     Pds::LinkedList<Parameter>* _array;
     ParameterCount&             _count;
