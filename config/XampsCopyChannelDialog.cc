@@ -100,6 +100,7 @@ namespace Pds_ConfigDb {
       }
     }
     emit accepted();
+    emit done(0);
   }
 
   void XampsCopyChannelDialog::selectAllClicked()
