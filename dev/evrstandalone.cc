@@ -93,10 +93,11 @@ EvrStandAloneManager::EvrStandAloneManager(EvgrBoardInfo<Evr> &erInfo) :
 }
 
 void usage(const char* p) {
-  printf("Usage: %s -r <evr a/b> -p <eventcode,delay,width,output> [-p ...]\n",p);
+  printf("Usage: %s -r <evr a/b> -p <eventcode,delay,width,output> [-p ...] -k\n",p);
   printf("\teventcode : [40=120Hz, 41=60Hz, ..]\n");
   printf("\tdelay,width in 119MHz ticks [1=8.4ns, 2=16.8ns, ..]\n");
   printf("\toutput : connector number [0=Univ0,..]\n");
+  printf("\t-k makes the program immortal\n");
 }
 
 int main(int argc, char** argv) {
@@ -104,9 +105,13 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* evrid=0;
   char* endptr;
+  bool keepAlive = false;
   int c;
-  while ( (c=getopt( argc, argv, "r:p:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "r:p:kh")) != EOF ) {
     switch(c) {
+    case 'k':
+      keepAlive = true;
+      break;
     case 'r':
       evrid  = optarg;
       break;
@@ -133,5 +138,8 @@ int main(int argc, char** argv) {
 
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
   new EvrStandAloneManager(erInfo);
+  while (keepAlive) {
+    sleep(10);
+  }
   return 0;
 }
