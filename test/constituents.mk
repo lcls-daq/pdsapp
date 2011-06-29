@@ -9,4 +9,5 @@ commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmo
 
 tgtsrcs_princetonCameraTest := princetonCameraTest.cc
 tgtlibs_princetonCameraTest := pvcam/pvcam
+#tgtlibs_princetonCameraTest := pvcam/pvcamtest
 tgtslib_princetonCameraTest := dl pthread rt

@@ -294,9 +294,15 @@ int Recorder::_openOutputFile(bool verbose) {
     }
   }
   
+  /*
+   * Initialize/Reset the index list 
+   */
+  sprintf(_indexfname,"%s/e%d/index", _path,_experiment);
+  local_mkdir(_indexfname);
+  
   _indexList.reset();
-  _indexList.setXtcFilename(_fname);
-  sprintf(_indexfname,"%s/e%d/e%d-r%04d-s%02d-c%02d.idx",
+  _indexList.setXtcFilename(_fname);   
+  sprintf(_indexfname,"%s/e%d/index/e%d-r%04d-s%02d-c%02d.idx",
     _path, _experiment, _experiment, _run, _sliceID, _chunk); 
   
   return rv;
@@ -391,7 +397,7 @@ int Recorder::_closeOutputFile() {
           _indexList.writeToFile(fdIndex);    
           ::close(fdIndex);
           
-          int iVerbose = 1;
+          int iVerbose = 0;
           _indexList.printList(iVerbose);          
         }  
         _indexfname[0] = 0;
