@@ -117,7 +117,7 @@ SequencerConfig::SequencerConfig(const EvrEventCodeTable& table) :
 SequencerConfig::~SequencerConfig()
 {
   if (_config_buffer)
-    delete _config_buffer;
+    delete[] _config_buffer;
 }
 
 QLayout* SequencerConfig::initialize(QWidget*) {
@@ -172,7 +172,7 @@ bool SequencerConfig::validate() {
       return false;
 
   if (_config_buffer)
-    delete _config_buffer;
+    delete[] _config_buffer;
 
   unsigned nentries;
   switch(_mode->checkedId()) {
