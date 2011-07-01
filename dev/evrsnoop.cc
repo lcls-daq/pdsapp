@@ -309,6 +309,7 @@ int main(int argc, char** argv) {
   
   char evrdev[16];
   sprintf(evrdev,"/dev/er%c3",*evrid);
+  //sprintf(evrdev,"/dev/pcie_evr"); // for testing the new PCIe EVR board
   printf("Using evr %s\n",evrdev);
 
   if ( iMaxEvents >= 0 )
