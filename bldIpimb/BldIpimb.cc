@@ -124,12 +124,12 @@ char* getBldAddrBase()
 int main(int argc, char** argv) {
 
   unsigned controlPort = 5727; //1100; 
-  int interface   = parse_interface("eth1");
+  int interface   = 0; 
  
   unsigned opcode = DEFAULT_EVENT_OPCODE; 
   char evrdev[16];  
   char evrid = 'a';
-  unsigned bldId = (unsigned) Pds::BldInfo::Nh2Sb1Ipm01;
+  unsigned bldId = (unsigned) Pds::BldInfo::Nh2Sb1Ipm01; 
   
   int detector   = DetInfo::NoDetector;
   int detectorId = 0;
@@ -197,6 +197,9 @@ int main(int argc, char** argv) {
     printf("Invalid Bld Multicast Address: (%s.%d) -Exiting Program \n",getBldAddrBase(),bldId);
     return 1;
   }
+  
+  if(interface == 0)
+    interface = parse_interface("eth0"); // Default interface- eth0
 
   if(fp == NULL) {
     char portMapFile [] = IPIMB_PORTMAP_FILE;  
