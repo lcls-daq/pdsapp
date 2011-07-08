@@ -289,7 +289,7 @@ int main(int argc, char** argv) {
   expt.read();
   std::string runtype("BLD");
   const Pds_ConfigDb::TableEntry* entry = expt.table().get_top_entry(runtype);
-  int runKey = atoi(entry->key().c_str());
+  int runKey = strtoul(entry->key().c_str(),NULL,16);
     
   // Setup the Bld Idle stream
   ProcInfo idleSrc(Level::Segment,0,0);
