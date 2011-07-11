@@ -59,6 +59,14 @@ namespace Pds {
       if (CheckType(PhaseCavity))     extent += SizeType(BldDataPhaseCavity);
       if (CheckType(FEEGasDetEnergy)) extent += SizeType(BldDataFEEGasDetEnergy);
       if (CheckType(Nh2Sb1Ipm01))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(HxxUm6Imb01))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(HxxUm6Imb02))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(HfxDg2Imb01))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(HfxDg2Imb02))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(XcsDg3Imb03))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(XcsDg3Imb04))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(HfxDg3Imb01))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(HfxDg3Imb02))     extent += SizeType(BldDataIpimb);	  
       if (extent) {
         _configtc.extent += extent;
         _config_payload = new char[extent];
@@ -67,6 +75,14 @@ namespace Pds {
         if (CheckType(PhaseCavity))     AddType(PhaseCavity,     Id_PhaseCavity,     BldDataPhaseCavity);
         if (CheckType(FEEGasDetEnergy)) AddType(FEEGasDetEnergy, Id_FEEGasDetEnergy, BldDataFEEGasDetEnergy );
         if (CheckType(Nh2Sb1Ipm01))     AddType(Nh2Sb1Ipm01,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(HxxUm6Imb01))     AddType(HxxUm6Imb01,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(HxxUm6Imb02))     AddType(HxxUm6Imb02,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(HfxDg2Imb01))     AddType(HfxDg2Imb01,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(HfxDg2Imb02))     AddType(HfxDg2Imb02,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(XcsDg3Imb03))     AddType(XcsDg3Imb03,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(XcsDg3Imb04))     AddType(XcsDg3Imb04,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(HfxDg3Imb01))     AddType(HfxDg3Imb01,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(HfxDg3Imb02))     AddType(HfxDg3Imb02,     Id_SharedIpimb,     BldDataIpimb);	
       }
 #undef CheckType
 #undef SizeType

@@ -6,11 +6,14 @@ using std::string;
 
 typedef struct {
   PyObject_HEAD
-  int     socket;
-  char*   dbpath;
-  int32_t dbkey;
-  char*   buffer;
-  int32_t runinfo;
+  unsigned addr;
+  unsigned platform;
+  int      socket;
+  int      state;
+  char*    dbpath;
+  int32_t  dbkey;
+  char*    buffer;
+  int32_t  runinfo;
 } pdsdaq;
 
 #endif

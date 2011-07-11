@@ -33,6 +33,8 @@ static const unsigned RecordSetMask = 0x20000;
 static const unsigned RecordValMask = 0x10000;
 static const unsigned DbKeyMask     = 0x0ffff;
 
+enum PydaqState { Disconnected, Connected, Configured, Running };
+
 //
 //  pdsdaq class methods
 //
@@ -43,9 +45,12 @@ static PyObject* pdsdaq_dbpath   (PyObject* self);
 static PyObject* pdsdaq_dbkey    (PyObject* self);
 static PyObject* pdsdaq_runnum   (PyObject* self);
 static PyObject* pdsdaq_expt     (PyObject* self);
+static PyObject* pdsdaq_disconnect(PyObject* self);
+static PyObject* pdsdaq_connect  (PyObject* self);
 static PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_end      (PyObject* self);
+static PyObject* pdsdaq_rcv      (PyObject* self);
 
 static PyMethodDef pdsdaq_methods[] = {
   {"dbpath"    , (PyCFunction)pdsdaq_dbpath   , METH_NOARGS  , "Get database path"},
@@ -131,11 +136,14 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
 
   self = (pdsdaq*)type->tp_alloc(type,0);
   if (self != NULL) {
-    self->socket  = -1;
-    self->dbpath  = new char[MaxPathSize];
-    self->dbkey   = 0;
-    self->buffer  = new char[MaxConfigSize];
-    self->runinfo = 0;
+    self->addr     = 0;
+    self->platform = 0;
+    self->socket   = -1;
+    self->state    = Disconnected;
+    self->dbpath   = new char[MaxPathSize];
+    self->dbkey    = 0;
+    self->buffer   = new char[MaxConfigSize];
+    self->runinfo  = 0;
   }
 
   return (PyObject*)self;
@@ -168,38 +176,76 @@ int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
 
   PyErr_Clear();
 
+  self->addr     = addr;
+  self->platform = platform;
+  self->socket   = -1;
+  return 0;
+}
+
+PyObject* pdsdaq_disconnect(PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  if (daq->socket >= 0) {
+    ::close(daq->socket);
+    daq->socket = -1;
+  }
+  daq->state = Disconnected;
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+PyObject* pdsdaq_connect(PyObject* self)
+{
+  Py_DECREF(pdsdaq_disconnect(self));
+
+  pdsdaq* daq = (pdsdaq*)self;
+
   int s = ::socket(AF_INET, SOCK_STREAM, 0);
   if (s < 0)
-    return -1;
+    return NULL;
 
   sockaddr_in sa;
   sa.sin_family = AF_INET;
-  sa.sin_addr.s_addr = htonl(addr);
-  sa.sin_port        = htons(Control_Port+platform);
+  sa.sin_addr.s_addr = htonl(daq->addr);
+  sa.sin_port        = htons(Control_Port+daq->platform);
 
-  if (::connect(s, (sockaddr*)&sa, sizeof(sa)) < 0)
-    return -1;
+  if (::connect(s, (sockaddr*)&sa, sizeof(sa)) < 0) {
+    ::close(s);
+    PyErr_SetString(PyExc_RuntimeError,"Connect failed");
+    return NULL;
+  }
 
-  self->socket = s;
+  daq->socket = s;
 
-  uint32_t len;
-  if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
-    return -1;
+  while(1) {
+    uint32_t len;
+    if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
+      break;
 
-  char buff[256];
-  if (::recv(s, buff, len, MSG_WAITALL) != len)
-    return -1;
-  buff[len] = 0;
-  *strrchr(buff,'/') = 0;
+    char buff[256];
+    if (::recv(s, buff, len, MSG_WAITALL) != len)
+      break;
+    buff[len] = 0;
+    *strrchr(buff,'/') = 0;
 
-  uint32_t key;
-  if (::recv(s, &key, sizeof(key), MSG_WAITALL) < 0)
-    return -1;
+    uint32_t key;
+    if (::recv(s, &key, sizeof(key), MSG_WAITALL) < 0)
+      break;
 
-  self->socket = s;
-  strcpy(self->dbpath,buff);
-  self->dbkey  = key;
-  return 0;
+    strcpy(daq->dbpath,buff);
+    daq->dbkey  = key;
+
+    daq->state  = Connected;
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+
+  Py_DECREF(pdsdaq_disconnect(self));
+  PyErr_SetString(PyExc_RuntimeError,"Initial query failed");
+  return NULL;
+
 }
 
 PyObject* pdsdaq_dbpath   (PyObject* self)
@@ -244,6 +290,14 @@ static bool ParseInt(PyObject* obj, int& var, const char* name)
 PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
 {
   pdsdaq*   daq      = (pdsdaq*)self;
+
+  if (daq->state != Connected) {
+    Py_DECREF(pdsdaq_disconnect(self));
+    PyObject* o = pdsdaq_connect(self);
+    if (o == NULL) return o;
+    Py_DECREF(o);
+  }
+
   int       key      = daq->dbkey;
   int       events   = -1;
   PyObject* record   = 0;
@@ -314,14 +368,28 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
     cfg = new (daq->buffer) ControlConfigType(clist,mlist,events);
   }
 
+  daq->state = Configured;
+
   ::write(daq->socket,daq->buffer,cfg->size());
 
-  return pdsdaq_end(self);
+  return pdsdaq_rcv(self);
 }
 
 PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
 {
   pdsdaq*   daq      = (pdsdaq*)self;
+
+  if (daq->state == Running) {
+    PyObject* o = pdsdaq_end(self);
+    if (o == NULL) return o;
+    Py_DECREF(o);
+  }
+
+  if (daq->state != Configured) {
+    PyErr_SetString(PyExc_RuntimeError,"Not configured");
+    return NULL;
+  }
+
   int       events   = -1;
   PyObject* duration = 0;
   PyObject* controls = 0;
@@ -415,18 +483,32 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
 
   ::write(daq->socket,daq->buffer,cfg->size());
 
-  return pdsdaq_end(self);
+  daq->state = Running;
+  return pdsdaq_rcv(self);
 }
 
 PyObject* pdsdaq_end      (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  if (daq->state != Running) {
+    PyErr_SetString(PyExc_RuntimeError,"Not running(begin)");
+    return NULL;
+  }
+
+  daq->state = Configured;
+  return pdsdaq_rcv(self);
+}
+
+PyObject* pdsdaq_rcv      (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
   int32_t result = -1;
   if (::recv(daq->socket,&result,sizeof(result),MSG_WAITALL) < 0 ||
       result < 0) {
     ostringstream o;
-    o << "Remote DAQ failed transition " << -result;
+    o << "Remote DAQ failed transition " << -result << "... disconnecting.";
     PyErr_SetString(PyExc_RuntimeError,o.str().c_str());
+    Py_DECREF(pdsdaq_disconnect(self));
     return NULL;
   }
 
