@@ -49,7 +49,6 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) :
   _experiment(0),
   _run(0),
   _occPool(new GenericPool(sizeof(DataFileOpened),5))
-  _f((FILE *)0)
 {
   struct stat st;
 
@@ -231,7 +230,7 @@ Transition* Recorder::transitions(Transition* tr) {
       }
     }
   }
-  else if (_f && tr->id()==TransitionId::Enable &&
+  else if (tr->id()==TransitionId::Enable && _f &&
            fstat(fileno(_f), &st) == 0 && 
            ((uint64_t)st.st_size >= _chunkSize/2)) {
     // chunking: close the current output file and open the next one
