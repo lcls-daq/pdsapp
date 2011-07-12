@@ -49,6 +49,7 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) :
   _experiment(0),
   _run(0),
   _occPool(new GenericPool(sizeof(DataFileOpened),5))
+  _f((FILE *)0)
 {
   struct stat st;
 
