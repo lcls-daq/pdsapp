@@ -198,6 +198,7 @@ int main( int argc, char** argv )
   unsigned            mask                = 0;
   unsigned            debug               = 0;
   ::signal( SIGINT, sigHandler );
+  bool                platformMissing     = true;
 
    extern char* optarg;
    int c;
@@ -224,6 +225,7 @@ int main( int argc, char** argv )
            break;
          case 'p':
            platform = strtoul(optarg, NULL, 0);
+           platformMissing = false;
            break;
          case 'i':
            deviceId = strtoul(optarg, NULL, 0);
@@ -246,7 +248,7 @@ int main( int argc, char** argv )
       }
    }
 
-   if( !platform ) {
+   if( platformMissing ) {
       printf( "Error: Platform required\n" );
       printUsage(argv[0]);
       return 0;
