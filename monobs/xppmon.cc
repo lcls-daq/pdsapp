@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
   //float  chbase[4];
 
   size_t line_sz = 256;
-  char*  line = new char[line_sz];
+  char*  line = (char *)malloc(line_sz);
 
   while(getline(&line, &line_sz, f) != -1) {
     if (line[0]!='#') {
@@ -96,7 +96,9 @@ int main(int argc, char* argv[])
   }
 
   delete[] pvbase;
-  delete[] line;
+  if (line) {
+    free(line);
+  }
 
 
   fprintf(stderr, "client returned: %d\n", client.start());
