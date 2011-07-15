@@ -21,20 +21,10 @@ namespace Pds {
   public:
     IdleApp(IdleStream& s) : _stream(s) {}
   public:
-    Transition* transitions(Transition* tr) { 
-      if (tr->id()==TransitionId::Map) {
-	_stream._sem.take();
-	_stream.disable();
-      }
-      else if (tr->id()==TransitionId::Unmap) {
-	post(tr);
-	_stream.enable();
-	_stream._sem.give();
-	return (Transition*)DontDelete;
-      }
-      return tr; 
-    }
+    Transition* transitions(Transition* tr) { return tr; }
     InDatagram* events     (InDatagram* dg) { 
+      if (dg->seq.service()!=TransitionId::L1Accept)
+        _stream._sem.give(); 
       return dg; 
     }
   private:
@@ -56,7 +46,9 @@ using namespace Pds;
 static const int MaxSize = sizeof(Allocate);
 
 IdleStream::IdleStream(unsigned short port,
-		       const Src&     src) :
+		       const Src&     src,
+                       const char*    dbpath,
+                       unsigned       dbkey) :
   Stream   (0),
   _task    (new Task(TaskObject("idlestr"))),
   _pool    (MaxSize, 8),
@@ -65,6 +57,13 @@ IdleStream::IdleStream(unsigned short port,
   _sem     (Semaphore::FULL),
   _wire    (0)
 {
+  _main->connect(inlet());
+
+  if (dbpath) {
+    sprintf(_msg.dbpath,"%s/keys",dbpath);  
+    _msg.key = dbkey;    
+  }
+
   _socket = ::socket(AF_INET, SOCK_STREAM, 0);
   if (_socket<0)
     printf("IdleStream socket failed : %s\n",strerror(errno));
@@ -120,15 +119,22 @@ void IdleStream::disable()
 
 void IdleStream::transition(const Transition& tr)
 {
-  if (_wire)
+  _sem.take();
+  if (_wire) {
     _wire  ->post(*new(&_pool) Transition(tr));
-  else
+    if (tr.id()!=TransitionId::Unmap)
+      _wire->post(*new(&_pool) CDatagram(Datagram(tr,_xtcType,_src)));
+    else
+      _sem.give();
+  }
+  else {
     inlet()->post(new(&_pool) Transition(tr));
-  if (tr.id()!=TransitionId::Unmap)
-    inlet()->post(new(&_pool) CDatagram(Datagram(tr,_xtcType,_src)));
+    if (tr.id()!=TransitionId::Unmap)
+      inlet()->post(new(&_pool) CDatagram(Datagram(tr,_xtcType,_src)));
+    else
+      _sem.give();
+  }
 }
-
-Appliance& IdleStream::main() { return *_main; }
 
 void IdleStream::set_inlet_wire(InletWire* wire) { _wire=wire; }
 
@@ -154,10 +160,8 @@ void IdleStream::control()
 	       s, name.get().address(), name.get().portId());
 	
 	while (::read(s, &_msg, sizeof(_msg))==sizeof(_msg)) {
-	  _sem.take();
 	  disable();
 	  enable();
-	  _sem.give();
 	}
 	::close(s);
       }

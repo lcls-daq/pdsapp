@@ -1,3 +1,6 @@
+//
+//  How to put valid BLD in the configure return datagram?
+//
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/management/EventStreams.hh"
@@ -27,6 +30,11 @@
 #include "pds/vmon/VmonEb.hh"
 #include "pds/xtc/XtcType.hh"
 #include "pdsdata/bld/bldData.hh"
+// Bld from XRT cameras
+#include "pds/config/TM6740ConfigType.hh"
+#include "pds/config/PimImageConfigType.hh"
+#include "pds/config/FrameFexConfigType.hh"
+#include "pdsdata/camera/FrameV1.hh"
 
 #include "pds/config/EvrConfigType.hh"
 
@@ -35,6 +43,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+static const unsigned MAX_EVENT_SIZE = 4*1024*1024;
 static const unsigned NetBufferDepth = 32;
 
 namespace Pds {
@@ -54,6 +63,17 @@ namespace Pds {
         xtc.extent = SizeType(dataType);                                                                         \
         p += xtc.extent;                                                                                         \
       }
+#define SizeCamType         (sizeof(Xtc)*3 + sizeof(TM6740ConfigType) + sizeof(FrameFexConfigType) + sizeof(PimImageConfigType))
+#define AddCamXtc(bldType,idType,dataType) {                            \
+        Xtc& xtc = *new(p) Xtc(idType, BldInfo(0,BldInfo::bldType));    \
+        xtc.extent += sizeof(dataType);                                 \
+        p += xtc.extent;                                                \
+      }
+#define AddCamType(bldType) {                                           \
+        AddCamXtc(bldType,_tm6740ConfigType  ,TM6740ConfigType);        \
+        AddCamXtc(bldType,_frameFexConfigType,FrameFexConfigType);      \
+        AddCamXtc(bldType,_pimImageConfigType,PimImageConfigType);      \
+      }
       unsigned extent = 0;
       if (CheckType(EBeam))           extent += SizeType(BldDataEBeam);
       if (CheckType(PhaseCavity))     extent += SizeType(BldDataPhaseCavity);
@@ -67,6 +87,11 @@ namespace Pds {
       if (CheckType(XcsDg3Imb04))     extent += SizeType(BldDataIpimb);	  
       if (CheckType(HfxDg3Imb01))     extent += SizeType(BldDataIpimb);	  
       if (CheckType(HfxDg3Imb02))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(HxxDg1Cam  ))     extent += SizeCamType;
+      if (CheckType(HfxDg2Cam  ))     extent += SizeCamType;
+      if (CheckType(HfxDg3Cam  ))     extent += SizeCamType;
+      if (CheckType(XcsDg3Cam  ))     extent += SizeCamType;
+      if (CheckType(HfxMonCam  ))     extent += SizeCamType;
       if (extent) {
         _configtc.extent += extent;
         _config_payload = new char[extent];
@@ -83,6 +108,11 @@ namespace Pds {
         if (CheckType(XcsDg3Imb04))     AddType(XcsDg3Imb04,     Id_SharedIpimb,     BldDataIpimb);	
         if (CheckType(HfxDg3Imb01))     AddType(HfxDg3Imb01,     Id_SharedIpimb,     BldDataIpimb);	
         if (CheckType(HfxDg3Imb02))     AddType(HfxDg3Imb02,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(HxxDg1Cam  ))     AddCamType(HxxDg1Cam);
+        if (CheckType(HfxDg2Cam  ))     AddCamType(HfxDg2Cam);
+        if (CheckType(HfxDg3Cam  ))     AddCamType(HfxDg3Cam);
+        if (CheckType(XcsDg3Cam  ))     AddCamType(XcsDg3Cam);
+        if (CheckType(HfxMonCam  ))     AddCamType(HfxMonCam);
       }
 #undef CheckType
 #undef SizeType
@@ -154,7 +184,7 @@ namespace Pds {
 	  Node node(Level::Reporter, 0);
 	  node.fixup(StreamPorts::bld(i).address(),Ether());
 	  Ins ins( node.ip(), StreamPorts::bld(0).portId());
-	  BldServer* srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), NetBufferDepth);
+	  BldServer* srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
 	  inlet.add_input(srv);
 	  srv->server().join(ins, ip);
 	  printf("Bld::allocated assign bld  fragment %d  %x/%d\n",
@@ -269,7 +299,6 @@ namespace Pds {
   private:
     IsComplete   _is_complete( EbEventBase* event, const EbBitMask& serverId)
     {
-      static int nprint=0;
       //
       //  Check for special case of readout event without beam => no BLD expected
       //    Search for FIFO Event with current pulseId and beam present code
@@ -282,6 +311,7 @@ namespace Pds {
 	  const Xtc& xtc1 = *reinterpret_cast<const Xtc*>(xtc.payload());
 	  const EvrDataType& evrd = *reinterpret_cast<const EvrDataType*>(xtc1.payload());
 
+//           static int nprint=0;
 // 	  if (nprint++%119 == 0) {
 // 	    printf("== nfifo %d\n",evrd.numFifoEvents());
 // 	    for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
@@ -310,7 +340,7 @@ namespace Pds {
     BldStreams(PartitionMember& m) :
       WiredStreams(VmonSourceId(m.header().level(), m.header().ip()))
     {
-      unsigned max_size = 128*1024;
+      unsigned max_size = MAX_EVENT_SIZE;
       unsigned net_buf_depth = 16;
       unsigned eb_depth = 8;
 

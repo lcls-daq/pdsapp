@@ -20,7 +20,8 @@ namespace Pds {
 
   class IdleStream : public Stream {
   public:
-    IdleStream(unsigned short port, const Src& src);
+    IdleStream(unsigned short port, const Src& src,
+               const char* dbpath=0, unsigned dbkey=0);
     ~IdleStream();
   public:
     Appliance& main();  // appliance to attach to mainstream

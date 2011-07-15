@@ -1,6 +1,6 @@
 # IPIMB BLD
 
-libnames    := bldIpimblib
+#libnames    := bldIpimblib
 
 libsrcs_bldIpimblib := BldIpimbStream.cc  ToBldEventWire.cc EvrBldManager.cc EvrBldServer.cc
 libincs_bldIpimblib := evgr
@@ -18,8 +18,10 @@ ARCHCODE=32
 #endif
 
 tgtsrcs_bldIpimb := BldIpimb.cc
+tgtsrcs_bldIpimb += $(libsrcs_bldIpimblib)
 tgtincs_bldIpimb := evgr
-tgtlibs_bldIpimb := $(commonlibs) $(datalibs) evgr/evr evgr/evg pds/evgr pds/ipimb pdsapp/configdb pdsapp/bldIpimblib
+tgtlibs_bldIpimb := $(commonlibs) $(datalibs) evgr/evr evgr/evg pds/evgr pds/ipimb pdsapp/configdb
+#tgtlibs_bldIpimb := $(commonlibs) $(datalibs) evgr/evr evgr/evg pds/evgr pds/ipimb pdsapp/configdb pdsapp/bldIpimblib
 tgtlibs_bldIpimb += qt/QtGui qt/QtCore
 tgtslib_bldIpimb := /usr/lib/rt
 
