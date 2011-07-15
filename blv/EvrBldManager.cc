@@ -111,8 +111,19 @@ void EvrBldManager::stop() {
 }
 
 void EvrBldManager::enable() {
+  printf("### FLAGS : FIFO_FULL(%x), EVENT(%x)\n",EVR_IRQFLAG_FIFOFULL, EVR_IRQFLAG_EVENT);
+
+  int flags;
+  flags = _er.GetIrqFlags();
+  printf("### Get IRQ Flags 0x%x\n",flags);
+
+  //  _er.ClearIrqFlags(EVR_IRQ_MASTER_ENABLE | EVR_IRQFLAG_EVENT | EVR_IRQFLAG_FIFOFULL);
   _er.ClearIrqFlags(EVR_IRQ_MASTER_ENABLE | EVR_IRQFLAG_EVENT);
   _er.ClearFIFO();
+
+  flags = _er.GetIrqFlags();
+  printf("### Get IRQ Flags 0x%x\n",flags);
+
   int test = _er.IrqEnable(EVR_IRQ_MASTER_ENABLE | EVR_IRQFLAG_EVENT);
   printf("### Enabled EVR IRQ Flags 0x%x\n",test);
   _er.EnableFIFO(1);
@@ -131,15 +142,14 @@ void EvrBldManager::handleEvrIrq() {
 
   int flags = _er.GetIrqFlags();
   if (flags & EVR_IRQFLAG_EVENT) {
+
     _er.ClearIrqFlags(EVR_IRQFLAG_EVENT);
-    if(flags & EVR_IRQFLAG_FIFOFULL) {
-      printf("*** Received: EVENT & FIFO_FULL IRQ FLAG : 0x%x \n",flags);
-      _er.ClearIrqFlags(EVR_IRQFLAG_FIFOFULL);	  
-    }
+
     FIFOEvent fe;
-    _er.GetFIFOEvent(&fe);
- 
+    unsigned n=0;
+    while( !_er.GetFIFOEvent(&fe))
     {
+      n++;
       timespec ts;
       clock_gettime(CLOCK_REALTIME, &ts); 
       ClockTime ctime(ts.tv_sec, ts.tv_nsec);
@@ -148,6 +158,13 @@ void EvrBldManager::handleEvrIrq() {
       EvrDatagram datagram(seq, _evtCounter++);	
       _evrBldServer.sendEvrEvent(&datagram);  //write to EVR server fd here
     } 
+
+    if(flags & EVR_IRQFLAG_FIFOFULL) {
+      printf("*** Received: EVENT & FIFO_FULL IRQ FLAG : 0x%x : %d events in FIFO [%d]\n",
+             flags,n,_evtCounter);
+      _er.ClearIrqFlags(EVR_IRQFLAG_FIFOFULL);	  
+    }
+
   } else { 
     printf("*** Spurious interrupt, IRQ flags = 0x%x \n",flags);  
   } 
@@ -250,6 +267,12 @@ void EvrBldManager::configure(Transition* tr)
              eventCode.maskSet(),
              eventCode.maskClear());
     }
+
+  _er.IrqEnable(0);
+  _er.Enable(0);
+  _er.EnableFIFO(0);
+  _er.ClearFIFO();
+  _er.ClearIrqFlags(0xffffffff);
 
   unsigned dummyram = 1;
   _er.MapRamEnable(dummyram, 1);
