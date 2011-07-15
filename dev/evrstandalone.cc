@@ -6,6 +6,8 @@
 
 #include "evgr/evr/evr.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
+#include "pdsapp/config/EventcodeTiming.hh"
+#include "pdsapp/config/EventcodeTiming.cc"
 
 using namespace Pds;
 
@@ -20,7 +22,7 @@ public:
 };
 
 const unsigned MAX_PULSES = 10;
-unsigned    npulses;
+unsigned    npulses = 0;
 PulseParams pulse[MAX_PULSES];
 
 //
@@ -100,6 +102,8 @@ void usage(const char* p) {
   printf("\t-k makes the program immortal\n");
 }
 
+class Pds_ConfigDb::EventcodeTiming;
+
 int main(int argc, char** argv) {
 
   extern char* optarg;
@@ -107,6 +111,9 @@ int main(int argc, char** argv) {
   char* endptr;
   bool keepAlive = false;
   int c;
+  unsigned ticks;
+  int delta;
+  unsigned udelta;
   while ( (c=getopt( argc, argv, "r:p:kh")) != EOF ) {
     switch(c) {
     case 'k':
@@ -117,8 +124,11 @@ int main(int argc, char** argv) {
       break;
     case 'p':
       pulse[npulses].eventcode = strtoul(optarg  ,&endptr,0);
+      ticks = Pds_ConfigDb::EventcodeTiming::timeslot(pulse[npulses].eventcode);
+      delta = ticks - Pds_ConfigDb::EventcodeTiming::timeslot(140);
+      udelta = abs(delta);
       pulse[npulses].delay     = strtoul(endptr+1,&endptr,0);
-      if (pulse[npulses].delay > 1131) pulse[npulses].delay     -= 1131;
+      if (pulse[npulses].delay>udelta) pulse[npulses].delay -= delta;
       pulse[npulses].width     = strtoul(endptr+1,&endptr,0);
       pulse[npulses].output    = strtoul(endptr+1,&endptr,0);
       npulses++;
@@ -135,6 +145,13 @@ int main(int argc, char** argv) {
   char evrdev[16];
   sprintf(evrdev,"/dev/er%c3",*evrid);
   printf("Using evr %s\n",evrdev);
+//  for (unsigned code=0; code<255; code++) {
+//    unsigned ticks = Pds_ConfigDb::EventcodeTiming::timeslot(code);
+//    long double ns = (long double)8.4 / 1000.0;
+//    if (ticks) {
+//      printf("Event code %u: delta %d ticks or %Lf microseconds\n", code, ticks, ns*ticks);
+//    }
+//  }
 
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
   new EvrStandAloneManager(erInfo);
