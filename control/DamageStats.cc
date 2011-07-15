@@ -12,6 +12,11 @@
 
 using namespace Pds;
 
+static inline bool matches(const Src& a, const Src& b)
+{
+  return a.level()==b.level() && a.phy()==b.phy();
+}
+
 DamageStats::DamageStats(PartitionSelect& partition) :
   QWidget(0),
   _partition(partition)
@@ -71,7 +76,7 @@ int DamageStats::increment(InDatagramIterator* iter, int extent)
     extent  -= sizeof(info);
     int i=0;
     while( i<segm.size() ) {
-      if (segm.at(i)==info) {
+      if (matches(segm.at(i),info)) {
 	_counts.at(i)->increment();
 	break;
       }
