@@ -26,20 +26,10 @@ namespace Pds {
   public:
     IdleApp(BldIpimbStream& s) : _stream(s) {}
   public:
-    Transition* transitions(Transition* tr) { 
-      if (tr->id()==TransitionId::Map) {
-	_stream._sem.take();
-	_stream.disable();
-      }
-      else if (tr->id()==TransitionId::Unmap) {
-	post(tr);
-	_stream.enable();
-	_stream._sem.give();
-	return (Transition*)DontDelete;
-      }
-      return tr; 
-    }
+    Transition* transitions(Transition* tr) { return tr; }
     InDatagram* events     (InDatagram* dg) { 
+      if (dg->seq.service()!=TransitionId::L1Accept)
+        _stream._sem.give(); 
       return dg; 
     }
   private:
@@ -58,7 +48,7 @@ namespace Pds {
 
 using namespace Pds;
 
-static const int MaxSize = sizeof(Allocate);
+static const int MaxSize = (int)1e6; 
 
 BldIpimbStream::BldIpimbStream(unsigned short port, const Src& src, char* ipimbConfigDb, int runKey) :
   Stream   (0),
@@ -69,6 +59,8 @@ BldIpimbStream::BldIpimbStream(unsigned short port, const Src& src, char* ipimbC
   _sem     (Semaphore::FULL),
   _wire    (0)
 {
+  _main->connect(inlet()); 
+
   sprintf(_msg.dbpath,"%s/keys",ipimbConfigDb);  
   _msg.key = runKey;    
 
@@ -98,8 +90,6 @@ BldIpimbStream::~BldIpimbStream()
 void BldIpimbStream::enable()
 {
   printf("BldIpimbStream::enable() begin\n");
-  timespec delayT;
-  delayT.tv_sec = 0; delayT.tv_nsec= (long int) 100e6;       
   
   Allocation allocatn("shared",_msg.dbpath,0);
   Node fake;
@@ -107,7 +97,6 @@ void BldIpimbStream::enable()
   allocatn.add(Node(Level::Segment,0)); 
   
   transition(Allocate  (allocatn));
-  nanosleep(&delayT, NULL);
   transition(Transition(TransitionId::Configure      , _msg.key));
   transition(Transition(TransitionId::BeginRun       , Env(0)));
   transition(Transition(TransitionId::BeginCalibCycle, Env(0)));
@@ -118,28 +107,30 @@ void BldIpimbStream::enable()
 void BldIpimbStream::disable()
 {
   printf("BldIpimbStream::disable() begin\n");
-  timespec delayT;
-  delayT.tv_sec = 0; delayT.tv_nsec= (long int) 100e6;   
 
   transition(Transition(TransitionId::Disable      , Env(0)));
   transition(Transition(TransitionId::EndCalibCycle, Env(0)));
   transition(Transition(TransitionId::EndRun       , Env(0)));
   transition(Transition(TransitionId::Unconfigure  , Env(0)));
-  nanosleep(&delayT, NULL);
   transition(Transition(TransitionId::Unmap        , Env(0)));
   printf("BldIpimbStream::disable() complete\n");
 }
 
 void BldIpimbStream::transition(const Transition& tr)
-{ 
+{
+  _sem.take(); 
   if (_wire) {
     _wire->post(*new(&_pool) Transition(tr));
     if (tr.id()!=TransitionId::Unmap)
       _wire->post(*new(&_pool) CDatagram(Datagram(tr,_xtcType,_src)));
+    else
+      _sem.give();
   } else {
     inlet()->post(new(&_pool) Transition(tr));
     if (tr.id()!=TransitionId::Unmap)
       inlet()->post(new(&_pool) CDatagram(Datagram(tr,_xtcType,_src)));	
+    else
+      _sem.give();
   }
 }
 
@@ -166,12 +157,10 @@ void BldIpimbStream::control()
       else {
         printf("new connection %d from %x/%d\n",s,name.get().address(), name.get().portId());	
         while (::read(s, &_msg, sizeof(_msg))==sizeof(_msg)) {
-          _sem.take();
           printf("$$$ new config Data @: [%s] runKey:(%d)\n\n\n", _msg.dbpath, _msg.key);
           disable();
           sleep(1);
           enable();
-          _sem.give();
         }
         ::close(s);
       }
