@@ -56,7 +56,7 @@ static void signalHandler(int sigNo)
 using namespace Pds;
 
 void usage(const char* p) {
-  printf("Usage: %s -r <evr a/b> -i <multicast interface> -d <configdb path> -p <control port> -c <cam parameters> [-d ...]\n",p);
+  printf("Usage: %s -r <evr a/b> -i <multicast interface> -d <configdb path> -p <control port> -w <wait_ms> -c <cam parameters> [-d ...]\n",p);
   printf("\t\"cam parameters\" : bld_id, detector, detector_id, device_id, grabber_id\n");
 }
 
@@ -100,11 +100,12 @@ int main(int argc, char** argv) {
   const char* dbpath(0);
   unsigned controlPort=1100;
   std::list<CamParams> cam_list;
+  unsigned wait_us=0;
 
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "i:r:c:p:d:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:r:c:p:d:w:")) != EOF ) {
     switch(c) {
     case 'i':
       interface = parse_network(optarg);
@@ -117,6 +118,9 @@ int main(int argc, char** argv) {
       break;
     case 'd':
       dbpath = optarg;
+      break;
+    case 'w':
+      wait_us = strtoul(optarg, NULL, 0);
       break;
     case 'c':
       CamParams cam;
@@ -181,7 +185,8 @@ int main(int argc, char** argv) {
 
   ToBldEventWire* outlet = new ToBldEventWire(*idle->outlet(), 
                                               interface,
-                                              bldmap);
+                                              bldmap,
+                                              wait_us);
 
   //  create the inlet wire/event builder
   const int MaxSize = 0x100000;

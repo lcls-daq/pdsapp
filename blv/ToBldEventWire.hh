@@ -7,10 +7,11 @@
 
 #include "pds/utility/ToNetEb.hh"
 #include "pds/service/GenericPool.hh"
+#include "pds/service/Task.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
-#include "pds/xtc/CDatagram.hh"
+#include "pdsdata/xtc/Sequence.hh"
 #include "pds/xtc/XtcType.hh"
 
 #include <map>
@@ -28,7 +29,8 @@ namespace Pds {
   public:
     ToBldEventWire(Outlet& outlet,
                    int interface, 
-                   const std::map<unsigned,BldInfo>& map);
+                   const std::map<unsigned,BldInfo>& map,
+                   unsigned wait_us);
     ~ToBldEventWire();
 
     virtual Transition* forward(Transition* tr);
@@ -57,7 +59,9 @@ namespace Pds {
     const std::map<unsigned,BldInfo>& _bldmap;
     std::map<unsigned,Xtc*>           _xtcmap;
     GenericPool                       _pool;
-    CDatagram*                        _dg;
+    Sequence                          _seq;
+    unsigned                          _wait_us;
+    Task*                             _task;
   };
 }
 

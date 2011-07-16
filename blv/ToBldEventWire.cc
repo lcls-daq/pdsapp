@@ -13,6 +13,7 @@
 #include "pds/xtc/CDatagram.hh"
 #include "pds/xtc/EvrDatagram.hh"
 #include "pds/service/Ins.hh"
+#include "pds/service/Routine.hh"
 #include "pdsdata/xtc/TypeId.hh"
 
 #include "pds/config/TM6740ConfigType.hh"
@@ -20,6 +21,28 @@
 #include "pdsdata/camera/FrameV1.hh"
 
 using namespace Pds;
+
+class Carrier : public Routine {
+public: 
+  Carrier(CDatagram* dg, const Ins& dst, ToNetEb& postman, unsigned wait_us) :
+    _dg(dg), _dst(dst), _postman(postman), _wait_us(wait_us) 
+  {}
+  ~Carrier() { delete _dg; }
+public:
+  void routine() {
+    timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1000*_wait_us;
+    nanosleep(&ts,0);
+    _postman.send(_dg, _dst);
+    delete this;
+  }
+private:
+  CDatagram* _dg;
+  Ins        _dst;
+  ToNetEb&   _postman;
+  unsigned   _wait_us;
+};
 
 class SeqFinder : public XtcIterator {
 public:
@@ -51,12 +74,14 @@ static const unsigned _extent         =
 
 ToBldEventWire::ToBldEventWire(Outlet& outlet, 
                                int interface, 
-                               const std::map<unsigned,BldInfo>& map) :
+                               const std::map<unsigned,BldInfo>& map,
+                               unsigned wait_us) :
   OutletWire(outlet),
-  _postman(interface, Mtu::Size, 1 + (map.size()*_extent+sizeof(Datagram)) / Mtu::Size),
+  _postman(interface, Mtu::Size, 1 + 4*(map.size()*_extent+sizeof(Datagram)) / Mtu::Size),
   _bldmap (map),
-  _pool   (_extent + sizeof(CDatagram),1),
-  _dg     (new(&_pool) CDatagram(_xtcType, BldInfo()))
+  _pool   (_extent*map.size() + sizeof(CDatagram),16),
+  _wait_us(wait_us),
+  _task   (new Task(TaskObject("carrier")))
 {
 
   for(std::map<unsigned,BldInfo>::const_iterator it=_bldmap.begin(); it!=_bldmap.end(); it++) {
@@ -88,7 +113,7 @@ InDatagram* ToBldEventWire::forward(InDatagram* in)
   if (in->datagram().seq.service() == TransitionId::L1Accept) {
     SeqFinder finder(&in->datagram().xtc);
     finder.iterate();
-    _dg->seq = finder.seq;
+    _seq = finder.seq;
   }
 
   if (in->datagram().seq.service() == TransitionId::Configure ||
@@ -139,10 +164,13 @@ void ToBldEventWire::_cache(const Xtc* inxtc,
 void ToBldEventWire::_send(const Xtc* inxtc,
                            const Camera::FrameV1& frame)
 {
+  Transition tr(TransitionId::L1Accept,Transition::Record,_seq,Env(0));
+  CDatagram* dg = new(&_pool) CDatagram(Datagram(tr,_xtcType,Src()));
+
   Xtc* xtc = _xtcmap[inxtc->src.phy()];
-  memcpy(&_dg->xtc, xtc, xtc->extent);
+  memcpy(&dg->xtc, xtc, xtc->extent);
   {
-    Xtc* nxtc = (Xtc*)_dg->xtc.alloc(inxtc->extent);
+    Xtc* nxtc = (Xtc*)dg->xtc.alloc(inxtc->extent);
     memcpy(nxtc, inxtc, inxtc->extent);
     nxtc->src = xtc->src;
   }
@@ -150,7 +178,7 @@ void ToBldEventWire::_send(const Xtc* inxtc,
   unsigned id = _bldmap.find(inxtc->src.phy())->second.type();
   Ins dst(StreamPorts::bld(id));
 
-  _postman.send(_dg, dst);
+  _task->call(new Carrier(dg, dst, _postman, _wait_us));
 }
 
 void ToBldEventWire::bind(NamedConnection, const Ins& ins) 
