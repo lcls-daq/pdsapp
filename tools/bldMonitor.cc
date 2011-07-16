@@ -15,7 +15,7 @@
 #include "pds/xtc/ZcpDatagramIterator.hh"
 
 static const int netbufdepth=8;
-static const int MaxSize = 1024;
+static const int MaxSize = 1024*1024;
 static Pds::Allocation* _allocation;
 static Pds::ProcInfo _srcobs(Pds::Level::Observer,0,0);
 
