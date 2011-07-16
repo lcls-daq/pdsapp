@@ -201,8 +201,8 @@ void CspadGainMap::import_()
 
   FILE* f = fopen(qPrintable(file),"r");
   if (f) {
-    char* line = new char[16*1024];
     size_t line_sz = 16*1024;
+    char* line = (char *)malloc(line_sz);
     char* lptr;
     for(unsigned q=0; q<4; q++) {
       for(unsigned s=0; s<16; s++) {
@@ -213,7 +213,9 @@ void CspadGainMap::import_()
             if (getline(&lptr,&line_sz,f)==-1) {
               printf("Encountered EOF at quad %d section %d column %d\n",
                      q,s,c);
-              delete[] line;
+              if (line) {
+                free(line);
+              }
               fclose(f);
               return;
             }
@@ -226,7 +228,9 @@ void CspadGainMap::import_()
         }
       }
     }
-    delete[] line;
+    if (line) {
+      free(line);
+    }
     fclose(f);
 
     _display->update_map(_quad[_q]->gainMap(), _q, _s);
