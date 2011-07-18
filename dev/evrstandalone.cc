@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
   unsigned ticks;
   int delta;
   unsigned udelta;
-  while ( (c=getopt( argc, argv, "r:p:kh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "r:p:khT")) != EOF ) {
     switch(c) {
     case 'k':
       keepAlive = true;
@@ -133,6 +133,17 @@ int main(int argc, char** argv) {
       pulse[npulses].output    = strtoul(endptr+1,&endptr,0);
       npulses++;
       break;
+    case 'T':
+      printf("Event code\tticks\tmicroseconds\n");
+      for (unsigned code=0; code<255; code++) {
+        unsigned ticks = Pds_ConfigDb::EventcodeTiming::timeslot(code);
+        long double ns = (long double)8.4 / 1000.0;
+        if (ticks) {
+          printf("%8u\t%d\t%7.3Lf\n", code, ticks, ns*ticks);
+        }
+      }
+      return 0;
+      break;
     case 'h':
       usage(argv[0]);
       exit(1);
@@ -145,13 +156,6 @@ int main(int argc, char** argv) {
   char evrdev[16];
   sprintf(evrdev,"/dev/er%c3",*evrid);
   printf("Using evr %s\n",evrdev);
-//  for (unsigned code=0; code<255; code++) {
-//    unsigned ticks = Pds_ConfigDb::EventcodeTiming::timeslot(code);
-//    long double ns = (long double)8.4 / 1000.0;
-//    if (ticks) {
-//      printf("Event code %u: delta %d ticks or %Lf microseconds\n", code, ticks, ns*ticks);
-//    }
-//  }
 
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
   new EvrStandAloneManager(erInfo);
