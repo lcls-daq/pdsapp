@@ -547,6 +547,7 @@ int main(int argc, char** argv) {
   int      size2    = 1024;
   unsigned detid = 0;
   unsigned platform = 0;
+  bool noPlatform = true;
 
   extern char* optarg;
   int c;
@@ -554,6 +555,7 @@ int main(int argc, char** argv) {
     switch(c) {
       case 'T':
         resTest();
+        return 0;
         break;
       case 'i':
         detid  = strtoul(optarg, NULL, 0);
@@ -563,6 +565,7 @@ int main(int argc, char** argv) {
         break;
       case 'p':
         platform = strtoul(optarg, NULL, 0);
+        noPlatform = false;
         break;
       case 'r':
         rateInCPS = strtoul(optarg, NULL, 0);
@@ -582,7 +585,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (!platform) {
+  if (noPlatform) {
     printf("%s: platform required\n",argv[0]);
     _print_help(argv[0]);
     return 0;
