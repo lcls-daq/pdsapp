@@ -92,6 +92,8 @@ namespace Pds {
       if (CheckType(HfxDg3Cam  ))     extent += SizeCamType;
       if (CheckType(XcsDg3Cam  ))     extent += SizeCamType;
       if (CheckType(HfxMonCam  ))     extent += SizeCamType;
+      if (CheckType(HfxMonImb01))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(HfxMonImb02))     extent += SizeType(BldDataIpimb);	  
       if (extent) {
         _configtc.extent += extent;
         _config_payload = new char[extent];
@@ -113,6 +115,8 @@ namespace Pds {
         if (CheckType(HfxDg3Cam  ))     AddCamType(HfxDg3Cam);
         if (CheckType(XcsDg3Cam  ))     AddCamType(XcsDg3Cam);
         if (CheckType(HfxMonCam  ))     AddCamType(HfxMonCam);
+        if (CheckType(HfxMonImb01))     AddType(HfxMonImb01,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(HfxMonImb02))     AddType(HfxMonImb02,     Id_SharedIpimb,     BldDataIpimb);	
       }
 #undef CheckType
 #undef SizeType
