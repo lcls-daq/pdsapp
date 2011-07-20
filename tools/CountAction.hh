@@ -26,15 +26,17 @@ public:
   virtual InDatagram* events(InDatagram* in) 
   {
     const Datagram& dg = in->datagram();
-    if (_seq.stamp() >= dg.seq.stamp()) 
-      printf("%x/%x was out of order. Last was %x/%x. Size %i\n",
-	     dg.seq.stamp().fiducials(), dg.seq.stamp().ticks(), 
-             _seq.stamp().fiducials(), _seq.stamp().ticks(), 
-             dg.xtc.sizeofPayload());
-    _seq = dg.seq;
-    if (!(++_counter%1000)){
-      printf ("nevents      = %d\n", _counter);
-      printf ("current size = %d\n\n", dg.xtc.sizeofPayload());
+    if (dg.seq.isEvent()) {
+      if (_seq.stamp() >= dg.seq.stamp()) 
+        printf("%x/%x was out of order. Last was %x/%x. Size %i\n",
+               dg.seq.stamp().fiducials(), dg.seq.stamp().ticks(), 
+               _seq.stamp().fiducials(), _seq.stamp().ticks(), 
+               dg.xtc.sizeofPayload());
+      _seq = dg.seq;
+      if (!(++_counter%1000)){
+        printf ("nevents      = %d\n", _counter);
+        printf ("current size = %d\n\n", dg.xtc.sizeofPayload());
+      }
     }
     return in;
   }

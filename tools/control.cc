@@ -150,7 +150,8 @@ int main(int argc, char** argv)
 	      control.set_partition(partition,
 				    dbpath, 
 				    platformcb.nodes(),
-				    platformcb.nnodes());
+				    platformcb.nnodes(),
+                                    0);
 	    }
 	    else
 	      printf(" partition already mapped\n");
