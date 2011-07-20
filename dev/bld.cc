@@ -52,10 +52,20 @@ namespace Pds {
 
   class BldConfigApp : public Appliance {
   public:
-    BldConfigApp(const Src& src,
-		 unsigned m) : _configtc(TypeId(TypeId::Id_Xtc,1), src),
-			       _config_payload(0)
-    {
+    BldConfigApp(const Src& src) :
+      _configtc       (TypeId(TypeId::Id_Xtc,1), src),
+      _config_payload (0) {}
+    ~BldConfigApp() { if (_config_payload) delete[] _config_payload; }
+  public:
+    InDatagram* events     (InDatagram* dg) {
+      if (dg->datagram().seq.service()==TransitionId::Configure)
+	dg->insert(_configtc, _config_payload);
+      return dg; 
+    }
+    Transition* transitions(Transition* tr) {
+      if (tr->id()==TransitionId::Map) {
+        const Allocation& alloc = reinterpret_cast<const Allocate*>(tr)->allocation(); 
+        unsigned m = alloc.bld_mask();
 #define CheckType(bldType)  (m & (1<<BldInfo::bldType))
 #define SizeType(dataType)  (sizeof(Xtc) + sizeof(dataType))
 #define AddType(bldType,idType,dataType) {                                                                       \
@@ -94,10 +104,10 @@ namespace Pds {
       if (CheckType(HfxMonCam  ))     extent += SizeCamType;
       if (CheckType(HfxMonImb01))     extent += SizeType(BldDataIpimb);	  
       if (CheckType(HfxMonImb02))     extent += SizeType(BldDataIpimb);	  
+      _configtc.extent = sizeof(Xtc)+extent;
       if (extent) {
-        _configtc.extent += extent;
-        _config_payload = new char[extent];
-        char* p = _config_payload;
+        if (_config_payload) delete[] _config_payload;
+        char* p = _config_payload = new char[extent];
         if (CheckType(EBeam))           AddType(EBeam,           Id_EBeam,           BldDataEBeam);
         if (CheckType(PhaseCavity))     AddType(PhaseCavity,     Id_PhaseCavity,     BldDataPhaseCavity);
         if (CheckType(FEEGasDetEnergy)) AddType(FEEGasDetEnergy, Id_FEEGasDetEnergy, BldDataFEEGasDetEnergy );
@@ -121,18 +131,12 @@ namespace Pds {
 #undef CheckType
 #undef SizeType
 #undef AddType
+      }
+      return tr; 
     }
-    ~BldConfigApp() { if (_config_payload) delete[] _config_payload; }
-  public:
-    InDatagram* events     (InDatagram* dg) 
-    { if (dg->datagram().seq.service()==TransitionId::Configure)
-	dg->insert(_configtc, _config_payload);
-      return dg; }
-    Transition* transitions(Transition* tr) { return tr; }
   private:
-    unsigned _mask;
-    Xtc   _configtc;
-    char* _config_payload;
+    Xtc      _configtc;
+    char*    _config_payload;
   };
 
   class BldDbg : public Appliance {
@@ -168,42 +172,30 @@ namespace Pds {
 		unsigned   platform,
 		unsigned   mask) :
       _task    (task),
-      _platform(platform),
-      _mask    (mask)
+      _platform(platform)
     {
       Node node(Level::Source,platform);
       _sources.push_back(DetInfo(node.pid(), 
 				 DetInfo::BldEb, 0,
 				 DetInfo::NoDevice, 0));
+      for(unsigned i=0; i<BldInfo::NumberOf; i++)
+        if ( (1<<i)&mask ) 
+          _sources.push_back(BldInfo(node.pid(),(BldInfo::Type)i));
     }
 
     virtual ~BldCallback() { _task->destroy(); }
 
   public:    
     // Implements SegWireSettings
-    void connect (InletWire& inlet, StreamParams::StreamType s, int ip) 
-    {
-      for(int i=0; i<BldInfo::NumberOf; i++) {
-	if (_mask & (1<<i)) {
-	  Node node(Level::Reporter, 0);
-	  node.fixup(StreamPorts::bld(i).address(),Ether());
-	  Ins ins( node.ip(), StreamPorts::bld(0).portId());
-	  BldServer* srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
-	  inlet.add_input(srv);
-	  srv->server().join(ins, ip);
-	  printf("Bld::allocated assign bld  fragment %d  %x/%d\n",
-		 srv->id(),ins.address(),srv->server().portId());
-	}
-      } 
-    }
+    void connect (InletWire& inlet, StreamParams::StreamType s, int ip) {}
     const std::list<Src>& sources() const { return _sources; }
-
   private:
     // Implements EventCallback
     void attached(SetOfStreams& streams) 
     { 
-      (new BldDbg(static_cast<EbBase*>(streams.wire())))->connect(streams.stream()->inlet()); 
-      (new BldConfigApp(_sources.front(),_mask))->connect(streams.stream()->inlet()); 
+      Inlet* inlet = streams.stream()->inlet();
+      (new BldDbg(static_cast<EbBase*>(streams.wire())))->connect(inlet);
+      (new BldConfigApp(_sources.front()))->connect(inlet);
     }
     void failed(Reason reason)
     {
@@ -232,7 +224,6 @@ namespace Pds {
   private:
     Task*          _task;
     unsigned       _platform;
-    unsigned       _mask;
     std::list<Src> _sources;
   };
 
@@ -414,8 +405,9 @@ namespace Pds {
     void allocated(const Allocation& alloc, unsigned index) {
       //  add segment level EVR
       unsigned partition = alloc.partitionid();
-      unsigned nnodes   = alloc.nnodes();
-      InletWire & inlet = *_streams->wire(StreamParams::FrameWork);
+      unsigned nnodes    = alloc.nnodes();
+      unsigned bldmask   = alloc.bld_mask();
+      InletWire & inlet  = *_streams->wire(StreamParams::FrameWork);
 
       for (unsigned n = 0; n < nnodes; n++) {
 	const Node & node = *alloc.node(n);
@@ -431,9 +423,24 @@ namespace Pds {
 	  _evrServer->server().join(mcastIns, Ins(header().ip()));
 
 	  inlet.add_input(_evrServer);
+          _inputs.push_back(_evrServer);
 	  break;
 	}
       }
+
+      for(int i=0; i<BldInfo::NumberOf; i++) {
+	if (bldmask & (1<<i)) {
+	  Node node(Level::Reporter, 0);
+	  node.fixup(StreamPorts::bld(i).address(),Ether());
+	  Ins ins( node.ip(), StreamPorts::bld(0).portId());
+	  BldServer* srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
+	  inlet.add_input(srv);
+          _inputs.push_back(srv);
+	  srv->server().join(ins, header().ip());
+	  printf("Bld::allocated assign bld  fragment %d  %x/%d\n",
+		 srv->id(),ins.address(),srv->server().portId());
+	}
+      } 
 
       unsigned vectorid = 0;
 
@@ -456,18 +463,25 @@ namespace Pds {
       owire->bind(OutletWire::Bcast, StreamPorts::bcast(partition, 
 							Level::Event,
 							index));
-      
     }
     void dissolved() {
-      NullServer* esrv = _evrServer;
       _evrServer = 0;
-      static_cast <InletWireServer*>(_streams->wire())->remove_input(esrv);
+      for(std::list<Server*>::iterator it=_inputs.begin(); it!=_inputs.end(); it++)
+        static_cast <InletWireServer*>(_streams->wire())->remove_input(*it);
+      _inputs.clear();
+
       static_cast <InletWireServer*>(_streams->wire())->remove_outputs();
     }
+  private:
+    std::list<Server*> _inputs;
   };
 }
 
 using namespace Pds;
+
+void usage(const char* p) {
+  printf("Usage: %s -p <platform> [-m <mask>]\n",p);
+}
 
 int main(int argc, char** argv) {
 
@@ -487,12 +501,13 @@ int main(int argc, char** argv) {
       mask = strtoul(optarg, NULL, 0);
       break;
     default:
-      break;
+      usage(argv[0]);
+      return 0;
     } 
  }
 
   if (platform==NO_PLATFORM) {
-    printf("%s: -p <platform> required\n",argv[0]);
+    usage(argv[0]);
     return 0;
   }
 
