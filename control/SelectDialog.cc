@@ -4,7 +4,6 @@
 #include "pds/management/PartitionControl.hh"
 #include "pds/collection/PingReply.hh"
 #include "pds/utility/StreamPorts.hh"
-#include "pdsdata/xtc/BldInfo.hh"
 
 using namespace Pds;
 
@@ -18,7 +17,7 @@ SelectDialog::SelectDialog(QWidget* parent,
   QVBoxLayout* layout = new QVBoxLayout(this);
   layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this));
   layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this));
-  //  layout->addWidget(_rptbox = new NodeGroup("Reporting Nodes",this));
+  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this));
 
   _acceptb = new QPushButton("Ok",this);
   QPushButton* rejectb = new QPushButton("Cancel",this);
@@ -44,9 +43,18 @@ SelectDialog::~SelectDialog()
 void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
   switch(hdr.level()) {
   case Level::Control : _control = hdr; break;
-  case Level::Segment : _segbox->addNode(NodeSelect(hdr, msg)); break;
+  case Level::Segment : 
+    { _segbox->addNode(NodeSelect(hdr, msg));
+      for(unsigned i=0; i<msg.nsources(); i++) {
+        if (msg.source(i).level()==Level::Reporter) {
+          const BldInfo& bld = static_cast<const BldInfo&>(msg.source(i));
+          Node h(hdr);
+          h.fixup(StreamPorts::bld(bld.type()).address(),h.ether());
+          _rptbox->addNode(NodeSelect(h,bld));
+        }
+      }
+      break; }
   case Level::Event   : _evtbox->addNode(NodeSelect(hdr, msg)); break;
-    //  case Level::Reporter: _rptbox->addNode(NodeSelect(hdr)); break;
   default: break;
   }
 }
@@ -57,6 +65,8 @@ const QList<DetInfo >& SelectDialog::detectors() const { return _detinfo; }
 
 const QList<ProcInfo>& SelectDialog::segments () const { return _seginfo; }
 
+const QList<BldInfo >& SelectDialog::reporters() const { return _rptinfo; }
+
 QWidget* SelectDialog::display() {
   QWidget* d = new QWidget((QWidget*)0);
   d->setAttribute(Qt::WA_DeleteOnClose,false);
@@ -64,7 +74,7 @@ QWidget* SelectDialog::display() {
   QVBoxLayout* layout = new QVBoxLayout(d);
   layout->addWidget(_segbox->freeze()); 
   layout->addWidget(_evtbox->freeze()); 
-  //  layout->addWidget(_rptbox->freeze()); 
+  layout->addWidget(_rptbox->freeze()); 
   d->setLayout(layout);
   return d;
 }
@@ -74,12 +84,14 @@ void SelectDialog::select() {
   _selected << _control;
   _selected << _segbox->selected();
   _selected << _evtbox->selected();
-  //  _selected << _rptbox->selected();
+  _rptbox->selected();
 
   _detinfo << _segbox->detectors();
   foreach(Node n, _segbox->selected()) {
     _seginfo  << n.procInfo();
   }
+
+  _rptinfo = _rptbox->reporters();
 
   accept();
 }

@@ -44,8 +44,8 @@ DamageStats::DamageStats(PartitionSelect& partition) :
       bldProcess = proc.processId();
   }
   if (bldProcess) {
-    for(int i=0; i<BldInfo::NumberOf; i++) {
-      BldInfo info(0,(BldInfo::Type)i);
+    for(int i=0; i<_partition.reporters().size(); i++) {
+      const BldInfo& info = _partition.reporters().at(i);
       l->addWidget(new QLabel(BldInfo::name(info)),row,0,Qt::AlignRight);
       QCounter* cnt = new QCounter;
       l->addWidget(cnt->widget(),row,1,Qt::AlignRight);

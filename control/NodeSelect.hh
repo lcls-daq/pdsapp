@@ -8,6 +8,7 @@
 
 #include "pds/collection/Node.hh"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/BldInfo.hh"
 
 class QButtonGroup;
 class QPalette;
@@ -20,12 +21,14 @@ namespace Pds {
     NodeSelect(const Node& node);
     NodeSelect(const Node& node, const PingReply& msg);
     NodeSelect(const Node& node, const char* desc);
+    NodeSelect(const Node& node, const BldInfo& info);
     NodeSelect(const NodeSelect&);
     ~NodeSelect();
   public:
     const QString& label() const { return _label; }
     const Node&    node () const { return _node; }
-    const DetInfo& det  () const { return _det; }
+    const DetInfo& det  () const { return static_cast<const DetInfo&>(_src); }
+    const BldInfo& bld  () const { return static_cast<const BldInfo&>(_src); }
     bool           ready() const { return _ready; }
   public:  // persistence
     QString plabel() const;
@@ -33,7 +36,7 @@ namespace Pds {
     bool operator==(const NodeSelect&) const;
   private:
     Node    _node;
-    DetInfo _det;
+    Src     _src;
     QString _label;
     bool    _ready;
   };
@@ -54,6 +57,7 @@ namespace Pds {
     void addNode(const NodeSelect&);
     QList<Node>    selected();
     QList<DetInfo> detectors();
+    QList<BldInfo> reporters();
     NodeGroup*     freeze  ();
     bool           ready   () const;
   private:

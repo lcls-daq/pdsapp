@@ -5,6 +5,7 @@
 #include <QtCore/QList>
 
 #include "pds/collection/Node.hh"
+#include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
 
@@ -25,6 +26,7 @@ namespace Pds {
   public:
     const QList<DetInfo >& detectors() const;
     const QList<ProcInfo>& segments () const;
+    const QList<BldInfo >& reporters() const;
   public slots:
     void select_dialog();
     void display      ();
@@ -39,6 +41,7 @@ namespace Pds {
     Node _nodes[MAX_NODES];
     QList<DetInfo > _detectors;
     QList<ProcInfo> _segments;
+    QList<BldInfo > _reporters;
     QPushButton*    _selectb;
   };
 };

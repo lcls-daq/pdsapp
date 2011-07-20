@@ -149,6 +149,19 @@ QList<DetInfo> NodeGroup::detectors()
   return dets;
 }
 
+QList<BldInfo> NodeGroup::reporters() 
+{
+  QList<BldInfo> dets;
+  QList<QAbstractButton*> buttons = _buttons->buttons();
+  foreach(QAbstractButton* b, buttons) {
+    if (b->isChecked()) {
+      int id = _buttons->id(b);
+      dets.push_back(_nodes[id].bld());
+    }
+  }
+  return dets;
+}
+
 NodeGroup* NodeGroup::freeze()
 {
   NodeGroup* g = new NodeGroup(title(),(QWidget*)0);
@@ -196,16 +209,19 @@ NodeSelect::NodeSelect(const Node& node, const PingReply& msg) :
   _ready   (msg.ready())
 {
   if (msg.nsources()) {
-    {
-      const DetInfo& src = static_cast<const DetInfo&>(msg.source(0));
-      _label  = QString("%1/%2").arg(DetInfo::name(src.detector())).arg(src.detId());
-      _label += QString("/%1/%2").arg(DetInfo::name(src.device  ())).arg(src.devId());
-      _det    = src;
-    }
-    for(unsigned i=1; i<msg.nsources(); i++) {
-      const DetInfo& src = static_cast<const DetInfo&>(msg.source(i));
-      _label += QString("\n%1/%2").arg(DetInfo::name(src.detector())).arg(src.detId());
-      _label += QString("/%1/%2").arg(DetInfo::name(src.device  ())).arg(src.devId());
+    bool found=false;
+    for(unsigned i=0; i<msg.nsources(); i++) {
+      if (msg.source(i).level()==Level::Source) {
+        const DetInfo& src = static_cast<const DetInfo&>(msg.source(i));
+        if (!found) {
+          found=true;
+          _src    = msg.source(i);
+          _label  = QString("%1/%2").arg(DetInfo::name(src.detector())).arg(src.detId());
+        }
+        else
+          _label += QString("\n%1/%2").arg(DetInfo::name(src.detector())).arg(src.detId());
+        _label += QString("/%1/%2").arg(DetInfo::name(src.device  ())).arg(src.devId());
+      }
     }
   }
   else 
@@ -227,9 +243,17 @@ NodeSelect::NodeSelect(const Node& node, const char* desc) :
   _label += QString(" : %1").arg(node.pid());
 }
 
+NodeSelect::NodeSelect(const Node& node, const BldInfo& info) :
+  _node  (node),
+  _src   (info),
+  _label (BldInfo::name(info)),
+  _ready (true)
+{
+}
+
 NodeSelect::NodeSelect(const NodeSelect& s) :
   _node (s._node),
-  _det  (s._det ),
+  _src  (s._src ),
   _label(s._label),
   _ready(s._ready)
 {

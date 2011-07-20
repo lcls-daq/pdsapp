@@ -78,8 +78,14 @@ void PartitionSelect::select_dialog()
 
     _detectors = dialog->detectors();
     _segments  = dialog->segments ();
+    _reporters = dialog->reporters();
 
-    _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes);
+    unsigned bld_mask = 0 ;
+    foreach(BldInfo n, _reporters) {
+      bld_mask |= 1<<n.type();
+    }
+
+    _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes, bld_mask);
     _pcontrol.set_target_state(PartitionControl::Configured);
 
     _display = dialog->display();
@@ -104,3 +110,5 @@ void PartitionSelect::change_state(QString s)
 const QList<DetInfo >& PartitionSelect::detectors() const { return _detectors; }
 
 const QList<ProcInfo>& PartitionSelect::segments () const { return _segments ; }
+
+const QList<BldInfo >& PartitionSelect::reporters() const { return _reporters ; }

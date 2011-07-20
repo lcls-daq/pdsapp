@@ -6,6 +6,7 @@
 
 #include "pds/collection/Node.hh"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/BldInfo.hh"
 #include <QtCore/QList>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -27,7 +28,8 @@ namespace Pds {
     const QList<Node    >& selected()  const;
     const QList<DetInfo >& detectors() const;
     const QList<ProcInfo>& segments () const;
-    QWidget*              display ();
+    const QList<BldInfo >& reporters() const;
+    QWidget*               display ();
   public slots:
     void select();
     void check_ready();
@@ -40,10 +42,11 @@ namespace Pds {
     Node _recorders[MAX_NODES];
     NodeGroup* _segbox;
     NodeGroup* _evtbox;
-    //    NodeGroup* _rptbox;
+    NodeGroup* _rptbox;
     QList<Node>    _selected;
     QList<DetInfo > _detinfo;
     QList<ProcInfo> _seginfo;
+    QList<BldInfo > _rptinfo;
     QPushButton*   _acceptb;
   };
 };
