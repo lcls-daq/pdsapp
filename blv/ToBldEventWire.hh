@@ -14,7 +14,6 @@
 #include "pdsdata/xtc/Sequence.hh"
 #include "pds/xtc/XtcType.hh"
 
-#include <map>
 
 namespace Pds {
 
@@ -27,10 +26,11 @@ namespace Pds {
   class ToBldEventWire : public OutletWire,
                          public XtcIterator {
   public:
-    ToBldEventWire(Outlet& outlet,
-                   int interface, 
-                   const std::map<unsigned,BldInfo>& map,
-                   unsigned wait_us);
+    ToBldEventWire(Outlet&        outlet,
+                   int            interface, 
+                   int            write_fd,
+                   const BldInfo& bld,
+                   unsigned       wait_us);
     ~ToBldEventWire();
 
     virtual Transition* forward(Transition* tr);
@@ -56,8 +56,9 @@ namespace Pds {
                 const Camera::FrameV1&);
   private:
     ToNetEb                           _postman;
-    const std::map<unsigned,BldInfo>& _bldmap;
-    std::map<unsigned,Xtc*>           _xtcmap;
+    const BldInfo&                    _bld;
+    int                               _write_fd;
+    Xtc*                              _xtc;
     GenericPool                       _pool;
     Sequence                          _seq;
     unsigned                          _wait_us;

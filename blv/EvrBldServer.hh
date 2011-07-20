@@ -6,6 +6,7 @@
 #include "pds/utility/EbEventKey.hh"
 #include "pds/xtc/Datagram.hh"
 #include "pds/xtc/EvrDatagram.hh"
+#include "pds/mon/THist.hh"
 
 namespace Pds {
 
@@ -14,9 +15,8 @@ namespace Pds {
 
   class EvrBldServer : public EbServer, public EbCountSrv {
   public:
-    EvrBldServer(const Src& client);
+    EvrBldServer(const Src& client, int read_fd);
     ~EvrBldServer() {}    
-    int  sendEvrEvent(EvrDatagram* evrDatagram);
   public:
     //  Eb interface
     void        dump    (int detail)   const;
@@ -38,10 +38,12 @@ namespace Pds {
   public:
     unsigned count() const;
   private:
-    int        _pipefd[2];
-    Xtc        _xtc;
-    unsigned   _count;
+    Xtc          _xtc;
+    unsigned     _count;
     EvrDatagram* _evrDatagram;   	
+    timespec     _tfetch;
+    THist        _hinput;
+    THist        _hfetch;
   };
 }
 #endif

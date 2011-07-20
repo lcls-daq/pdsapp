@@ -8,6 +8,7 @@
 #include <memory.h>
 #include <time.h>
 #include <stdlib.h>
+#include <list>
 
 #include "evgr/evr/evr.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
@@ -17,7 +18,7 @@
 #include "pds/client/Fsm.hh"
 
 #include "pds/config/CfgClientNfs.hh"
-#include "pdsapp/blv/EvrBldServer.hh"
+#include "pds/mon/THist.hh"
 
 namespace Pds {
 
@@ -26,8 +27,9 @@ namespace Pds {
 
 class EvrBldManager {
 public:
-  EvrBldManager(const DetInfo& src,
-                const char* evrid);
+  EvrBldManager(const DetInfo&        src,
+                const char*           evrid,
+                const std::list<int>& write_fd);
   ~EvrBldManager();
   void allocate (Transition*);
   void configure(Transition*);
@@ -37,18 +39,20 @@ public:
   void disable();
   void reset();
   void handleEvrIrq();
-  EvrBldServer& server() { return _evrBldServer; }
   Appliance& appliance() { return _fsm; }
 
 
 private:
   EvgrBoardInfo<Evr>  _erInfo;
   Evr&                _er;
-  EvrBldServer        _evrBldServer;
+  std::list<int>      _write_fd;
   CfgClientNfs        _cfg;
   unsigned            _evtCounter;
   Fsm                 _fsm;
   char*               _configBuffer;
+
+  timespec            _tsignal;
+  THist               _hsignal;
 };
 
 }

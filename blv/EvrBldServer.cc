@@ -8,21 +8,22 @@
 #include <string.h>
 #include <errno.h>
 
+//#define DBUG
+
 using namespace Pds;
 
-EvrBldServer::EvrBldServer(const Src& client) :
-  _xtc(TypeId(TypeId::Id_EvrData,0),client)  
+EvrBldServer::EvrBldServer(const Src& client,
+                           int        read_fd) :
+  _xtc     (TypeId(TypeId::Id_EvrData,0),client),
+  _hinput  ("EvrInput"),
+  _hfetch  ("EvrFetch")
 {
-  if (::pipe(_pipefd))
-    printf("*** EvrBldServer() Pipe Create Error : %s\n", strerror(errno));
-  fd(_pipefd[0]);
-  _evrDatagram = (EvrDatagram*) new char[sizeof(EvrDatagram)];  
-}
+#ifdef DBUG
+  _tfetch.tv_sec = _tfetch.tv_nsec = 0;
+#endif
 
-int EvrBldServer::sendEvrEvent(EvrDatagram* evrDatagram)
-{
-  ::write(_pipefd[1],(char*)evrDatagram,sizeof(EvrDatagram));
-  return 0;
+  fd(read_fd);
+  _evrDatagram = (EvrDatagram*) new char[sizeof(EvrDatagram)];  
 }
 
 //Eb Interface
@@ -71,17 +72,35 @@ int EvrBldServer::pend(int flag)
 
 int EvrBldServer::fetch(char* payload, int flags)
 {	
-  int length = ::read(_pipefd[0],(char*)_evrDatagram,sizeof(EvrDatagram));
+#ifdef DBUG
+  timespec ts;
+  clock_gettime(CLOCK_REALTIME,&ts);
+  if (_tfetch.tv_sec)
+    _hinput.accumulate(ts,_tfetch);
+  _tfetch = ts;
+#endif
+
+  int length = ::read(fd(),(char*)_evrDatagram,sizeof(EvrDatagram));
   if(length != sizeof(EvrDatagram)) printf("*** EvrBldServer::fetch() : EvrDatagram not received in full \n");
-  _count = _evrDatagram->evr;
-  //  printf("In EvrBldServer::fetch() cnt = %u fid Id = %x  tick = %d \n",
-  //         _count, _evrDatagram->seq.stamp().fiducials(), _evrDatagram->seq.stamp().ticks() );
+  _count = _evrDatagram->evr; 
+#ifdef DBUG
+  printf("In EvrBldServer::fetch() [%p] cnt = %u fid Id = %x  tick = %d \n",
+         payload, _count, _evrDatagram->seq.stamp().fiducials(), _evrDatagram->seq.stamp().ticks() );
+#endif
   int payloadSize = sizeof(EvrDatagram);	
   _xtc.extent = payloadSize+sizeof(Xtc);
   memcpy(payload, &_xtc, sizeof(Xtc));
   memcpy(payload+sizeof(Xtc), (char*)_evrDatagram, sizeof(EvrDatagram));
-  return payloadSize+sizeof(Xtc);
 
+#ifdef DBUG
+  clock_gettime(CLOCK_REALTIME,&ts);
+  _hfetch.accumulate(ts,_tfetch);
+
+  _hinput.print(_count+1);
+  _hfetch.print(_count+1);
+#endif
+
+  return payloadSize+sizeof(Xtc);
 }
 
 int EvrBldServer::fetch(ZcpFragment& zf, int flags)

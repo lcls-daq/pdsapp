@@ -1,7 +1,9 @@
 #include "pdsapp/blv/ToBldEventWire.hh"
 
 #include <errno.h>
+#include <unistd.h>
 #include <new>
+
 #include "pds/utility/Mtu.hh"
 #include "pds/utility/Transition.hh"
 #include "pds/utility/Occurrence.hh"
@@ -19,6 +21,8 @@
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/PimImageConfigType.hh"
 #include "pdsdata/camera/FrameV1.hh"
+
+//#define DBUG
 
 using namespace Pds;
 
@@ -46,7 +50,7 @@ private:
 
 class SeqFinder : public XtcIterator {
 public:
-  SeqFinder(Xtc* xtc) : XtcIterator(xtc) {}
+  SeqFinder(Xtc* xtc) : XtcIterator(xtc) { memset(&seq, 0, sizeof(seq)); }
 public:
   int process(Xtc* xtc) {
     if (xtc->contains.id()==TypeId::Id_EvrData)
@@ -72,39 +76,46 @@ static const unsigned _extent         =
   2*Pulnix::TM6740ConfigV2::Row_Pixels*Pulnix::TM6740ConfigV2::Column_Pixels;
 
 
-ToBldEventWire::ToBldEventWire(Outlet& outlet, 
-                               int interface, 
-                               const std::map<unsigned,BldInfo>& map,
-                               unsigned wait_us) :
+ToBldEventWire::ToBldEventWire(Outlet&        outlet, 
+                               int            interface, 
+                               int            write_fd,
+                               const BldInfo& bld,
+                               unsigned       wait_us) :
   OutletWire(outlet),
-  _postman(interface, Mtu::Size, 1 + 4*(map.size()*_extent+sizeof(Datagram)) / Mtu::Size),
-  _bldmap (map),
-  _pool   (_extent*map.size() + sizeof(CDatagram),16),
-  _wait_us(wait_us),
-  _task   (new Task(TaskObject("carrier")))
+  _postman  (interface, Mtu::Size, 1 + 4*(_extent+sizeof(Datagram)) / Mtu::Size),
+  _bld      (bld),
+  _write_fd (write_fd),
+  _pool     (_extent + sizeof(CDatagram),16),
+  _wait_us  (wait_us),
+  _task     (new Task(TaskObject("carrier")))
 {
-
-  for(std::map<unsigned,BldInfo>::const_iterator it=_bldmap.begin(); it!=_bldmap.end(); it++) {
-
-    Xtc* xtc = new(new char[_extent]) Xtc(_xtcType,it->second);
-    {
-      Xtc* nxtc = new (xtc->next()) Xtc(_tm6740ConfigType,it->second);
-      nxtc->extent += sizeof(TM6740ConfigType);
-      xtc->extent += nxtc->extent; 
-    }
-    {
-      Xtc* nxtc = new (xtc->next()) Xtc(_pimImageConfigType,it->second);
-      nxtc->extent += sizeof(PimImageConfigType);
-      xtc->extent += nxtc->extent; 
-    }
-
-    _xtcmap[it->first] = xtc;
+  Xtc* xtc = new(new char[_extent]) Xtc(_xtcType,bld);
+  {
+    Xtc* nxtc = new (xtc->next()) Xtc(_tm6740ConfigType,bld);
+    nxtc->extent += sizeof(TM6740ConfigType);
+    xtc->extent += nxtc->extent; 
   }
+  {
+    Xtc* nxtc = new (xtc->next()) Xtc(_pimImageConfigType,bld);
+    nxtc->extent += sizeof(PimImageConfigType);
+    xtc->extent += nxtc->extent; 
+  }
+  _xtc = xtc;
 }
 
 ToBldEventWire::~ToBldEventWire() {}
 
-Transition* ToBldEventWire::forward(Transition* tr) { return 0; }
+Transition* ToBldEventWire::forward(Transition* tr) 
+{
+#ifdef DBUG
+  printf("ToBldEventWire::tr %08x.%08x [%p : %d]\n",
+         reinterpret_cast<const uint32_t*>(&tr->sequence().stamp())[0],
+         reinterpret_cast<const uint32_t*>(&tr->sequence().stamp())[1],
+         this, _write_fd);
+#endif
+  ::write(_write_fd, tr, tr->size());
+  return 0; 
+}
 
 Occurrence* ToBldEventWire::forward(Occurrence* tr) { return 0; }
 
@@ -114,11 +125,32 @@ InDatagram* ToBldEventWire::forward(InDatagram* in)
     SeqFinder finder(&in->datagram().xtc);
     finder.iterate();
     _seq = finder.seq;
+#ifdef DBUG
+    printf("ToBldEventWire::ev [%p] %08x.%08x [%p : %d]\n",
+           in,
+           reinterpret_cast<const uint32_t*>(&_seq.stamp())[0],
+           reinterpret_cast<const uint32_t*>(&_seq.stamp())[1],
+           this, _write_fd);
+#endif    
   }
 
   if (in->datagram().seq.service() == TransitionId::Configure ||
       in->datagram().seq.service() == TransitionId::L1Accept)
     iterate(&in->datagram().xtc);
+
+  if (in->datagram().seq.service() != TransitionId::L1Accept) {
+    Transition tr(in->datagram().seq.service(),
+                  Transition::Record,
+                  in->datagram().seq,
+                  in->datagram().env);
+#ifdef DBUG
+    printf("ToBldEventWire::ev %08x.%08x [%p : %d]\n",
+           reinterpret_cast<const uint32_t*>(&tr.sequence().stamp())[0],
+           reinterpret_cast<const uint32_t*>(&tr.sequence().stamp())[1],
+           this, _write_fd);
+#endif
+    ::write(_write_fd, (char*)&tr, tr.size());
+  }
 
   return 0;
 }
@@ -150,35 +182,35 @@ int ToBldEventWire::process(Xtc* xtc)
 void ToBldEventWire::_cache(const Xtc* inxtc,
                             const Pulnix::TM6740ConfigV2& cfg)
 {
-  Xtc* xtc = _xtcmap[inxtc->src.phy()];
+  Xtc* xtc = _xtc;
   memcpy((char*)xtc + _pulnix_offset, &cfg, sizeof(cfg));
 }
 
 void ToBldEventWire::_cache(const Xtc* inxtc,
                             const Lusi::PimImageConfigV1& cfg)
 {
-  Xtc* xtc = _xtcmap[inxtc->src.phy()];
+  Xtc* xtc = _xtc;
   memcpy((char*)xtc + _lusi_offset, &cfg, sizeof(cfg));
 }
 
 void ToBldEventWire::_send(const Xtc* inxtc,
                            const Camera::FrameV1& frame)
 {
-  Transition tr(TransitionId::L1Accept,Transition::Record,_seq,Env(0));
-  CDatagram* dg = new(&_pool) CDatagram(Datagram(tr,_xtcType,Src()));
+  if (_seq.stamp().ticks()) {
+    Transition tr(TransitionId::L1Accept,Transition::Record,_seq,Env(0));
+    CDatagram* dg = new(&_pool) CDatagram(Datagram(tr,_xtcType,Src()));
 
-  Xtc* xtc = _xtcmap[inxtc->src.phy()];
-  memcpy(&dg->xtc, xtc, xtc->extent);
-  {
-    Xtc* nxtc = (Xtc*)dg->xtc.alloc(inxtc->extent);
-    memcpy(nxtc, inxtc, inxtc->extent);
-    nxtc->src = xtc->src;
+    Xtc* xtc = _xtc;
+    memcpy(&dg->xtc, xtc, xtc->extent);
+    {
+      Xtc* nxtc = (Xtc*)dg->xtc.alloc(inxtc->extent);
+      memcpy(nxtc, inxtc, inxtc->extent);
+      nxtc->src = xtc->src;
+    }
+    Ins dst(StreamPorts::bld(_bld.type()));
+
+    _task->call(new Carrier(dg, dst, _postman, _wait_us));
   }
-
-  unsigned id = _bldmap.find(inxtc->src.phy())->second.type();
-  Ins dst(StreamPorts::bld(id));
-
-  _task->call(new Carrier(dg, dst, _postman, _wait_us));
 }
 
 void ToBldEventWire::bind(NamedConnection, const Ins& ins) 

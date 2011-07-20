@@ -10,6 +10,8 @@
 
 #include <string>
 
+//#define DBUG
+
 using namespace Pds;
 
 static EvrBldManager* evrBldMgrGlobal = NULL;
@@ -75,15 +77,21 @@ private:
 };
 
 
-EvrBldManager::EvrBldManager(const DetInfo& src, 
-                             const char* evr_id) :
+EvrBldManager::EvrBldManager(const DetInfo&        src, 
+                             const char*           evr_id,
+                             const std::list<int>& write_fd) :
   _erInfo      ((std::string("/dev/er")+evr_id[0]+'3').c_str()),
   _er          (_erInfo.board()), 
-  _evrBldServer(src),
+  _write_fd    (write_fd),
   _cfg         (src),
   _evtCounter  (0),
-  _configBuffer(new char[0x10000])
+  _configBuffer(new char[0x10000]),
+  _hsignal     ("EvrSignal")
 {
+#ifdef DBUG
+  _tsignal.tv_sec = _tsignal.tv_nsec = 0;
+#endif
+
   _er.IrqAssignHandler(_erInfo.filedes(), &evrsa_sig_handler);  
   evrBldMgrGlobal = this;
   
@@ -140,6 +148,14 @@ void EvrBldManager::reset() { _evtCounter = 0; }
 
 void EvrBldManager::handleEvrIrq() {
 
+#ifdef DBUG
+  timespec ts;
+  clock_gettime(CLOCK_REALTIME,&ts);
+  if (_tsignal.tv_sec)
+    _hsignal.accumulate(ts,_tsignal);
+  _tsignal = ts;
+#endif
+
   int flags = _er.GetIrqFlags();
   if (flags & EVR_IRQFLAG_EVENT) {
 
@@ -156,7 +172,18 @@ void EvrBldManager::handleEvrIrq() {
       TimeStamp stamp(fe.TimestampLow, fe.TimestampHigh, _evtCounter);
       Sequence seq(Sequence::Event, TransitionId::L1Accept, ctime, stamp);
       EvrDatagram datagram(seq, _evtCounter++);	
-      _evrBldServer.sendEvrEvent(&datagram);  //write to EVR server fd here
+      for(std::list<int>::const_iterator it=_write_fd.begin(); it!=_write_fd.end(); it++) {
+#ifdef DBUG
+        printf("EvrBldMgr::handle %08x.%08x to %d\n",
+               reinterpret_cast<const uint32_t*>(&seq.stamp())[0],
+               reinterpret_cast<const uint32_t*>(&seq.stamp())[1],
+               *it);
+#endif
+        ::write(*it, (char*)&datagram, sizeof(EvrDatagram));
+      }
+#ifdef DBUG
+      _hsignal.print(_evtCounter);
+#endif
     } 
 
     if(flags & EVR_IRQFLAG_FIFOFULL) {
