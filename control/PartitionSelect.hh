@@ -32,6 +32,8 @@ namespace Pds {
     void display      ();
     void change_state(QString);
   private:
+    bool _validate(unsigned);
+  private:
     PartitionControl&  _pcontrol;
     const char*        _pt_name;
     char               _db_path[128];

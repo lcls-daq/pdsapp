@@ -85,8 +85,10 @@ void PartitionSelect::select_dialog()
       bld_mask |= 1<<n.type();
     }
 
-    _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes, bld_mask);
-    _pcontrol.set_target_state(PartitionControl::Configured);
+    if (_validate(bld_mask)) {
+      _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes, bld_mask);
+      _pcontrol.set_target_state(PartitionControl::Configured);
+    }
 
     _display = dialog->display();
     if (show)
@@ -112,3 +114,51 @@ const QList<DetInfo >& PartitionSelect::detectors() const { return _detectors; }
 const QList<ProcInfo>& PartitionSelect::segments () const { return _segments ; }
 
 const QList<BldInfo >& PartitionSelect::reporters() const { return _reporters ; }
+
+bool PartitionSelect::_validate(unsigned bld_mask) 
+{
+  bool lEvent  =false;
+  for(unsigned i=0; i<_nnodes; i++) {
+    lEvent   |= (_nodes[i].level()==Level::Event);
+  }
+
+  bool lEvr    =false;
+  bool lBld    =false;
+  foreach(DetInfo info, _detectors) {
+    lEvr     |= (info.device  ()==DetInfo::Evr);
+    lBld     |= (info.detector()==DetInfo::BldEb);
+  }
+
+  bool lError  =false;
+  bool lWarning=false;
+
+  QString errorMsg;
+  if (!lEvent) {
+    lError = true;
+    errorMsg += "No Processing Node selected.\n";
+  }
+
+  if (!lEvr) {
+    lError = true;
+    errorMsg += "No EVR selected.\n";
+  }
+
+  QString warnMsg;
+  if (!lBld && bld_mask) {
+    lWarning = true;
+    warnMsg += "Beamline Data selected but not BldEb.\n";
+  }
+
+  if (lError) {
+    QMessageBox::critical(this, "Partition Select Error", errorMsg);
+  }
+  else if (lWarning) {
+    if (QMessageBox::warning(this, "Partition Select Warning", warnMsg,
+                             QMessageBox::Ok | QMessageBox::Abort) ==
+        QMessageBox::Abort) {
+      lError = true;
+    }
+  }
+
+  return !lError;
+}
