@@ -27,7 +27,9 @@ namespace Pds_ConfigDb {
       Parameter(NULL), 
       _nevr(0),
       _pulse_buffer (new char[EvrConfigType::MaxPulses*sizeof(EvrConfigType::PulseType)]),
-      _output_buffer(new char[MaxEVRs*EvrConfigType::EvrOutputs*sizeof(EvrConfigType::OutputMapType)])
+      _output_buffer(new char[MaxEVRs*EvrConfigType::EvrOutputs*sizeof(EvrConfigType::OutputMapType)]),
+      _npulses      (0),
+      _noutputs     (0)
     {
       for(unsigned i=0; i<MaxEVRs; i++)
         _evr[i] = new EvrPulseTable(i);
@@ -225,6 +227,7 @@ namespace Pds_ConfigDb {
         _seq_config ->result().size();
     }
     bool validate() {
+
       bool v = _code_table   ->validate();
       v = v && _pulse_table  ->validate(_code_table->ncodes(),
                                         _code_table->codes ());

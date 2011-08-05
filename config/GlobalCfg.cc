@@ -11,7 +11,9 @@ using namespace Pds_ConfigDb;
 
 static const char* globalAlias = "_GLOBAL_";
 
-static char* _buffer = new char[0x100000];
+static const int bsize = 0x100000;
+static char* _buffer = new char[bsize];
+static char* _buffer_end = _buffer+bsize;
 static char* _next;
 static char* _btype[PdsDefs::NumberOf+1];
 
@@ -32,7 +34,7 @@ static void _loadType(const Pds::TypeId& id,
 
   FILE* f = fopen(file,"r");
   if (f) {
-    size_t sz = fread(_next, 1, 0x7ffffff, f);
+    size_t sz = fread(_next, 1, _buffer_end-_next, f);
     if (sz < 0) 
       printf("GlobalCfg error reading %s\n",file);
     else {

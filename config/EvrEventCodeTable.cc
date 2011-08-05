@@ -80,6 +80,9 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
   for(unsigned i=0; i<MaxUserCodes; i++)
     _seq_code[i].set_enable(false);
 
+  for(unsigned i=0; i<MaxGlobalCodes; i++)
+    _glb_code[i].set_enable(false);
+
   unsigned max_seq = cfg.eventcode(0).code();
   unsigned nglb=0;
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
