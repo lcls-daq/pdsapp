@@ -11,6 +11,7 @@
 #include "pds/cspad/CspadManager.hh"
 #include "pds/cspad/CspadServer.hh"
 #include "pds/config/CfgClientNfs.hh"
+#include "pdsdata/cspad/ElementV1.hh"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -181,9 +182,11 @@ void printUsage(char* s) {
       "                bit 03          label CspadL1Action::fire\n"
       "                bit 04          print out FE config read only registers after config or record\n"
       "                bit 05          label CspadServer enable and disable\n"
+      "                bit 06          print out (acqcount - frameNumber) for every L1Accept\n"
       "                bit 08          turn on printing of FE concentrator status on\n"
       "                bit 09          turn on printing of FE quad status\n"
-      "                "
+      "                bit 10          print out time dumping front end took\n"
+      "    -x      Cspad 2x2 data type not full Cspad\n"
       "    -p      Set platform id           [required]\n"
       "            NB, if you can't remember the detector names\n"
       "            just make up something and it'll list them\n"
@@ -193,6 +196,7 @@ void printUsage(char* s) {
 int main( int argc, char** argv )
 {
   DetInfo::Detector   detector            = DetInfo::XppGon;
+  TypeId::Type        type                = TypeId::Id_CspadElement;
   int                 deviceId            = 0;
   unsigned            platform            = 0;
   unsigned            mask                = 0;
@@ -202,7 +206,7 @@ int main( int argc, char** argv )
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:D:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:D:x" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -223,6 +227,9 @@ int main( int argc, char** argv )
              return 0;
            }
            break;
+         case 'x':
+           type = TypeId::ID_Cspad2x2Element;
+         break;
          case 'p':
            platform = strtoul(optarg, NULL, 0);
            platformMissing = false;
@@ -266,8 +273,11 @@ int main( int argc, char** argv )
                     0,
                     DetInfo::Cspad,
                     deviceId );
+
+   TypeId typeId( type, Pds::CsPad::ElementV1::Version );
+
    cfgService = new CfgClientNfs(detInfo);
-   cspadServer = new CspadServer(detInfo, mask);
+   cspadServer = new CspadServer(detInfo, typeId, mask);
    cspadServer->debug(debug);
 
    MySegWire settings(cspadServer);
