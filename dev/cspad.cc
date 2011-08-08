@@ -186,7 +186,7 @@ void printUsage(char* s) {
       "                bit 08          turn on printing of FE concentrator status on\n"
       "                bit 09          turn on printing of FE quad status\n"
       "                bit 10          print out time dumping front end took\n"
-      "    -x      Cspad 2x2 data type not full Cspad\n"
+      "    -x      Cspad2x2Element data type not CspadElement\n"
       "    -p      Set platform id           [required]\n"
       "            NB, if you can't remember the detector names\n"
       "            just make up something and it'll list them\n"
