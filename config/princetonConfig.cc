@@ -19,7 +19,8 @@ namespace Pds_ConfigDb {
       // Note: Here the min exposure time need to set 9.99e-4 to allow user to input 1e-3, due to floating points imprecision
       _f32ExposureTime      ("Exposure time (sec)", 1e-3, 9.99e-4, 120),
       _f32CoolingTemp       ("Cooling Temp (C)",    25,   -50,  25),      
-      _u32ReadoutSpeedIndex ("Readout Speed",       1,    0,    5),
+      _u16GainIndex 		("Gain Index",          3,    0,    5),
+      _u16ReadoutSpeedIndex ("Readout Speed",       1,    0,    5),
       _u16ReadoutEventCode  ("Readout Event Code",  1,    1,    255)
     {}
 
@@ -32,7 +33,8 @@ namespace Pds_ConfigDb {
       pList.insert(&_uBinY);
       pList.insert(&_f32ExposureTime);
       pList.insert(&_f32CoolingTemp);
-      pList.insert(&_u32ReadoutSpeedIndex);
+      pList.insert(&_u16GainIndex);
+      pList.insert(&_u16ReadoutSpeedIndex);
       pList.insert(&_u16ReadoutEventCode);
     }
 
@@ -46,7 +48,8 @@ namespace Pds_ConfigDb {
       _uBinY                .value = tc.binY    ();
       _f32ExposureTime      .value = tc.exposureTime();
       _f32CoolingTemp       .value = tc.coolingTemp ();
-      _u32ReadoutSpeedIndex .value = tc.readoutSpeedIndex();
+	  _u16GainIndex			.value = tc.gainIndex();
+      _u16ReadoutSpeedIndex .value = tc.readoutSpeedIndex();
       _u16ReadoutEventCode  .value = tc.readoutEventCode();
       return tc.size();
     }
@@ -61,7 +64,8 @@ namespace Pds_ConfigDb {
         _uBinY                .value,
         _f32ExposureTime      .value,
         _f32CoolingTemp       .value,
-        _u32ReadoutSpeedIndex .value,
+        _u16GainIndex 		  .value,
+        _u16ReadoutSpeedIndex .value,
         _u16ReadoutEventCode  .value
       );
       return tc.size();
@@ -80,7 +84,8 @@ namespace Pds_ConfigDb {
     NumericInt<uint32_t>    _uBinY;    
     NumericFloat<float>     _f32ExposureTime;    
     NumericFloat<float>     _f32CoolingTemp;        
-    NumericInt<uint32_t>    _u32ReadoutSpeedIndex;        
+    NumericInt<uint16_t>    _u16GainIndex;        
+    NumericInt<uint16_t>    _u16ReadoutSpeedIndex;        
     NumericInt<uint16_t>    _u16ReadoutEventCode;
   };
 };
