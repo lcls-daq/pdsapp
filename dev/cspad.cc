@@ -196,6 +196,7 @@ void printUsage(char* s) {
 int main( int argc, char** argv )
 {
   DetInfo::Detector   detector            = DetInfo::XppGon;
+  DetInfo::Device     device              = DetInfo::Cspad;
   TypeId::Type        type                = TypeId::Id_CspadElement;
   int                 deviceId            = 0;
   unsigned            platform            = 0;
@@ -229,6 +230,7 @@ int main( int argc, char** argv )
            break;
          case 'x':
            type = TypeId::Id_Cspad2x2Element;
+           device = DetInfo::Cspad2x2;
          break;
          case 'p':
            platform = strtoul(optarg, NULL, 0);
@@ -271,7 +273,7 @@ int main( int argc, char** argv )
    DetInfo detInfo( node.pid(),
                     (Pds::DetInfo::Detector) detector,
                     0,
-                    DetInfo::Cspad,
+                    device,
                     deviceId );
 
    TypeId typeId( type, Pds::CsPad::ElementV1::Version );
@@ -297,8 +299,8 @@ int main( int argc, char** argv )
 
    if (seg->didYouFail()) printf("So, goodbye cruel world!\n ");
    else  {
-     printf("entering cspad task main loop, \n\tDetector: %s\n\tDeviceId: %d\n\tPlatform: %u\n",
-         DetInfo::name((DetInfo::Detector)detector), deviceId, platform);
+     printf("entering cspad task main loop, \n\tDetector: %s\n\tDevice: %s\n\tPlatform: %u\n",
+         DetInfo::name((DetInfo::Detector)detector), DetInfo::name(device), platform);
      task->mainLoop();
      printf("exiting cspad task main loop\n");
    }
