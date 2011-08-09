@@ -228,7 +228,7 @@ int main( int argc, char** argv )
            }
            break;
          case 'x':
-           type = TypeId::ID_Cspad2x2Element;
+           type = TypeId::Id_Cspad2x2Element;
          break;
          case 'p':
            platform = strtoul(optarg, NULL, 0);
