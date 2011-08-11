@@ -378,31 +378,34 @@ int Recorder::_closeOutputFile() {
   int rv = -1;
 
   if (_f) {
+    
+    /*
+     * generate index file
+     * 
+     * Note: index file is generated before xtc file is closed,
+     *   so it is okay for data mover to transfer it
+     */
+    if ( _indexfname[0] != 0 )
+    {
+      _indexList.finishList();  
+      
+      printf( "Writing index file %s\n", _indexfname );          
+      int fdIndex = open(_indexfname, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH ); //!! debug
+      if ( fdIndex == -1 )
+        printf( "Recorder::_closeOutputFile(): Open index file %s failed (%s)\n", _indexfname, strerror(errno) );
+      else {
+        _indexList.writeToFile(fdIndex);    
+        ::close(fdIndex);
+        
+        int iVerbose = 0;
+        _indexList.printList(iVerbose);          
+      }  
+      _indexfname[0] = 0;
+    }    
+    
     if (fclose(_f) == 0) {
       // success
-      rv = 0;
-      
-      /*
-       * generate index file
-       */
-      if ( _indexfname[0] != 0 )
-      {
-        _indexList.finishList();  
-        
-        printf( "Writing index file %s\n", _indexfname );          
-        int fdIndex = open(_indexfname, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH ); //!! debug
-        if ( fdIndex == -1 )
-          printf( "Recorder::_closeOutputFile(): Open index file %s failed (%s)\n", _indexfname, strerror(errno) );
-        else {
-          _indexList.writeToFile(fdIndex);    
-          ::close(fdIndex);
-          
-          int iVerbose = 0;
-          _indexList.printList(iVerbose);          
-        }  
-        _indexfname[0] = 0;
-      }
-      
+      rv = 0;           
     } else {
       // error
       perror("fclose");
