@@ -31,7 +31,6 @@ namespace Pds_ConfigDb
         _testDataIndex   ( "Test Data Indx", 4, 0, 7, Decimal ),
         _badAsicMask     ( "Bad ASIC Mask (hex)" , 0, 0, -1ULL, Hex),
         _sectors         ( "Sector Mask (hex)"   , 0xffffffff, 0, 0xffffffff, Hex),
-        _protEnable        ("Protection Enable",  0,    0, 1,      Decimal),
         _protQ0AdcThr      ("ADC Threshold quad 0",  67,   0, 0x3fff, Decimal),
         _protQ0PixelThr    ("Pixel Count Threshold quad 0",  1200, 0, 574564,  Decimal),
         _protQ1AdcThr      ("ADC Threshold quad 1",  65,   0, 0x3fff, Decimal),
@@ -54,7 +53,6 @@ namespace Pds_ConfigDb
         _testDataIndex  .value = 4;
         _badAsicMask    .value = 0;
         _sectors        .value = 0xffffffff;
-        _protEnable     .value = 0;
         _protQ0AdcThr  .value = 67;
         _protQ0PixelThr .value = 1200;
         _protQ1AdcThr  .value = 65;
@@ -73,7 +71,6 @@ namespace Pds_ConfigDb
         _testDataIndex  .value = p.tdi();
         _badAsicMask    .value = (uint64_t(p.badAsicMask1())<<32) | p.badAsicMask0();
         _sectors        .value = p.roiMask(0) | (p.roiMask(1)<<8) | (p.roiMask(2)<<16) | (p.roiMask(3)<<24);
-        _protEnable     .value = p.protectionEnable();
         _protQ0AdcThr   .value = p.protectionThresholds()[0].adcThreshold;
         _protQ0PixelThr .value = p.protectionThresholds()[0].pixelCountThreshold;
         _protQ1AdcThr   .value = p.protectionThresholds()[1].adcThreshold;
@@ -105,7 +102,7 @@ namespace Pds_ConfigDb
             amask,
             qmask,
             rmask );
-        p->protectionEnable(_protEnable.value);
+        p->protectionEnable(1);
         p->protectionThresholds()[0].adcThreshold = _protQ0AdcThr.value;
         p->protectionThresholds()[0].pixelCountThreshold = _protQ0PixelThr.value;
         p->protectionThresholds()[1].adcThreshold = _protQ1AdcThr.value;
@@ -123,9 +120,6 @@ namespace Pds_ConfigDb
         layout->addLayout(_inactiveRunMode.initialize(parent));
         layout->addLayout(_activeRunMode  .initialize(parent));
         layout->addLayout(_testDataIndex  .initialize(parent));
-        layout->addLayout(_badAsicMask    .initialize(parent));
-        layout->addLayout(_sectors        .initialize(parent));
-        layout->addLayout(_protEnable     .initialize(parent));
         layout->addLayout(_protQ0AdcThr  .initialize(parent));
         layout->addLayout(_protQ0PixelThr .initialize(parent));
         layout->addLayout(_protQ1AdcThr  .initialize(parent));
@@ -134,6 +128,8 @@ namespace Pds_ConfigDb
         layout->addLayout(_protQ2PixelThr .initialize(parent));
         layout->addLayout(_protQ3AdcThr  .initialize(parent));
         layout->addLayout(_protQ3PixelThr .initialize(parent));
+        layout->addLayout(_badAsicMask    .initialize(parent));
+        layout->addLayout(_sectors        .initialize(parent));
 
 
         QGridLayout* gl = new QGridLayout;
@@ -158,7 +154,6 @@ namespace Pds_ConfigDb
         pList.insert(&_testDataIndex);
         pList.insert(&_badAsicMask);
         pList.insert(&_sectors);
-        pList.insert(&_protEnable);
         pList.insert(&_protQ0AdcThr);
         pList.insert(&_protQ0PixelThr);
         pList.insert(&_protQ1AdcThr);
@@ -183,7 +178,6 @@ namespace Pds_ConfigDb
       NumericInt<unsigned>             _testDataIndex;
       NumericInt<uint64_t>             _badAsicMask;
       NumericInt<unsigned>             _sectors;
-      NumericInt<unsigned>             _protEnable;
       NumericInt<unsigned>             _protQ0AdcThr;
       NumericInt<unsigned>             _protQ0PixelThr;
       NumericInt<unsigned>             _protQ1AdcThr;
