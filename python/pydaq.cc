@@ -53,13 +53,15 @@ static PyObject* pdsdaq_end      (PyObject* self);
 static PyObject* pdsdaq_rcv      (PyObject* self);
 
 static PyMethodDef pdsdaq_methods[] = {
-  {"dbpath"    , (PyCFunction)pdsdaq_dbpath   , METH_NOARGS  , "Get database path"},
-  {"dbkey"     , (PyCFunction)pdsdaq_dbkey    , METH_NOARGS  , "Get database key"},
-  {"runnumber" , (PyCFunction)pdsdaq_runnum   , METH_NOARGS  , "Get run number"},
-  {"experiment", (PyCFunction)pdsdaq_expt     , METH_NOARGS  , "Get experiment number"},
-  {"configure" , (PyCFunction)pdsdaq_configure, METH_KEYWORDS, "Configure the scan"},
-  {"begin"     , (PyCFunction)pdsdaq_begin    , METH_KEYWORDS, "Configure the cycle"},
-  {"end"       , (PyCFunction)pdsdaq_end      , METH_NOARGS  , "Wait for the cycle end"},
+  {"dbpath"    , (PyCFunction)pdsdaq_dbpath    , METH_NOARGS  , "Get database path"},
+  {"dbkey"     , (PyCFunction)pdsdaq_dbkey     , METH_NOARGS  , "Get database key"},
+  {"runnumber" , (PyCFunction)pdsdaq_runnum    , METH_NOARGS  , "Get run number"},
+  {"experiment", (PyCFunction)pdsdaq_expt      , METH_NOARGS  , "Get experiment number"},
+  {"configure" , (PyCFunction)pdsdaq_configure , METH_KEYWORDS, "Configure the scan"},
+  {"begin"     , (PyCFunction)pdsdaq_begin     , METH_KEYWORDS, "Configure the cycle"},
+  {"end"       , (PyCFunction)pdsdaq_end       , METH_NOARGS  , "Wait for the cycle end"},
+  {"connect"   , (PyCFunction)pdsdaq_connect   , METH_NOARGS  , "Connect to control"},
+  {"disconnect", (PyCFunction)pdsdaq_disconnect, METH_NOARGS  , "Disconnect from control"},
   {NULL},
 };
 
@@ -93,12 +95,12 @@ static PyTypeObject pdsdaq_type = {
     0,                          /*tp_as_buffer*/
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /*tp_flags*/
     "pydaq Control objects",    /* tp_doc */
-    0,		                /* tp_traverse */
-    0,		                /* tp_clear */
-    0,		                /* tp_richcompare */
-    0,		                /* tp_weaklistoffset */
-    0,		                /* tp_iter */
-    0,		                /* tp_iternext */
+    0,                    /* tp_traverse */
+    0,                    /* tp_clear */
+    0,                    /* tp_richcompare */
+    0,                    /* tp_weaklistoffset */
+    0,                    /* tp_iter */
+    0,                    /* tp_iternext */
     pdsdaq_methods,             /* tp_methods */
     pdsdaq_members,             /* tp_members */
     0,                          /* tp_getset */
