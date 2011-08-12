@@ -302,7 +302,7 @@ int Recorder::_openOutputFile(bool verbose) {
   
   _indexList.reset();
   _indexList.setXtcFilename(_fname);   
-  sprintf(_indexfname,"%s/e%d/index/e%d-r%04d-s%02d-c%02d.idx",
+  sprintf(_indexfname,"%s/e%d/index/e%d-r%04d-s%02d-c%02d.xtc.idx",
     _path, _experiment, _experiment, _run, _sliceID, _chunk); 
   
   return rv;

@@ -467,9 +467,11 @@ void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize )
     {
       int iFiducialDiffCurr = iFiducialCurr - iFiducialPrev;
       
-      if ( iFiducialDiffCurr != iFiducialDiffPrev )      
-        printf( "** Fiducial Prev 0x%x Curr 0x%x Diff 0x%x\n", iFiducialPrev, iFiducialCurr,
-          iFiducialDiffCurr );
+      //if ( iFiducialDiffCurr != iFiducialDiffPrev )      
+        //printf( "** Fiducial Prev 0x%x Curr 0x%x Diff 0x%x\n", iFiducialPrev, iFiducialCurr,
+          //iFiducialDiffCurr );
+      printf( "** Fiducial Prev 0x%x Curr 0x%x Diff 0x%x\n", iFiducialPrev, iFiducialCurr,
+        iFiducialDiffCurr );
           
       iFiducialDiffPrev = iFiducialDiffCurr;
       fflush(NULL);
