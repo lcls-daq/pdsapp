@@ -9,6 +9,7 @@
 #include <QtGui/QGridLayout>
 #include <QtGui/QLabel>
 #include <QtGui/QLineEdit>
+#include <QtGui/QCheckBox>
 
 static const int PolarityGroup = 100;
 
@@ -38,7 +39,8 @@ namespace Pds_ConfigDb
         _protQ2AdcThr      ("ADC Threshold quad 2",  54,   0, 0x3fff, Decimal),
         _protQ2PixelThr    ("Pixel Count Threshold quad 2",  1200, 0, 574564,  Decimal),
         _protQ3AdcThr      ("ADC Threshold quad 3",  300,  0, 0x3fff, Decimal),
-        _protQ3PixelThr    ("Pixel Count Threshold quad 3",  1200, 0, 574564,  Decimal)
+        _protQ3PixelThr    ("Pixel Count Threshold quad 3",  1200, 0, 574564,  Decimal),
+        _beamFinderCheckBox(0)
       {}
     public:
       void enable(bool v)
@@ -61,6 +63,7 @@ namespace Pds_ConfigDb
         _protQ2PixelThr .value = 1200;
         _protQ3AdcThr  .value = 300;
         _protQ3PixelThr .value = 1200;
+        if (_beamFinderCheckBox) _beamFinderCheckBox->setCheckState((Qt::CheckState)0);
       }
       void pull   (const CsPadConfigType& p)
       {
@@ -71,6 +74,11 @@ namespace Pds_ConfigDb
         _testDataIndex  .value = p.tdi();
         _badAsicMask    .value = (uint64_t(p.badAsicMask1())<<32) | p.badAsicMask0();
         _sectors        .value = p.roiMask(0) | (p.roiMask(1)<<8) | (p.roiMask(2)<<16) | (p.roiMask(3)<<24);
+        if (p.payloadSize() < sizeof(Pds::CsPad::ElementV1) + 4 + Columns*Rows*sizeof(uint16_t)*8) {
+          _beamFinderCheckBox->setCheckState((Qt::CheckState)2);
+        } else {
+          _beamFinderCheckBox->setCheckState((Qt::CheckState)0);
+        }
         _protQ0AdcThr   .value = p.protectionThresholds()[0].adcThreshold;
         _protQ0PixelThr .value = p.protectionThresholds()[0].pixelCountThreshold;
         _protQ1AdcThr   .value = p.protectionThresholds()[1].adcThreshold;
@@ -87,7 +95,6 @@ namespace Pds_ConfigDb
         unsigned qmask = 0;
         for(unsigned i=0; i<4; i++)
           if (rmask&(0xff<<(8*i))) qmask |= (1<<i);
-        //  amask==1 sparsification is disabled in RCE, but not in the pgpcard segment level.
         unsigned amask = (rmask&0xfcfcfcfc) ? 0xf : 1;
 
         *new (p) CsPadConfigType( _runDelay .value,
@@ -96,7 +103,7 @@ namespace Pds_ConfigDb
             _activeRunMode  .value,
             _testDataIndex  .value,
             sizeof(Pds::CsPad::ElementV1) + 4 + Columns*Rows*sizeof(uint16_t)*
-            ( amask==1 ? 4 : 16 ),
+            ( _beamFinderCheckBox->checkState() ? 4 : 16 ),
             _badAsicMask    .value & 0xffffffff,
             _badAsicMask    .value >> 32,
             amask,
@@ -131,6 +138,8 @@ namespace Pds_ConfigDb
         layout->addLayout(_badAsicMask    .initialize(parent));
         layout->addLayout(_sectors        .initialize(parent));
 
+        _beamFinderCheckBox = new QCheckBox("Beam Finder", parent);
+        layout->addWidget(_beamFinderCheckBox);
 
         QGridLayout* gl = new QGridLayout;
         gl->addWidget(_roiCanvas[0] = new CspadSector(*_sectors._input,0),0,0,::Qt::AlignBottom|::Qt::AlignRight);
@@ -188,6 +197,7 @@ namespace Pds_ConfigDb
       NumericInt<unsigned>             _protQ3PixelThr;
       CspadSector*                     _roiCanvas[4];
       CspadConfigTableQ*               _qlink;
+      QCheckBox*                       _beamFinderCheckBox;
   };
 
 
