@@ -158,7 +158,7 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
     { PyObject* l = PyList_New(MaxQuadsPerSensor);
       const Pds::CsPad::ProtectionSystemThreshold* pst = cfg->protectionThresholds();
       for(unsigned i=0; i<MaxQuadsPerSensor; i++) {
-	PyObject* p = PyDict_New();
+  PyObject* p = PyDict_New();
         PyDict_SetItemString(p,"adcThreshold",
                              PyLong_FromLong(pst[i].adcThreshold));
         PyDict_SetItemString(p,"pixelCountThreshold",
@@ -390,11 +390,9 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
       cfg->protectionEnable(PyLong_AsLong(i));
   }
   else {
-    Py_DECREF(o);
     return NULL;
   }
 
-  Py_DECREF(o);
   Py_INCREF(Py_None);
   return Py_None;
 }

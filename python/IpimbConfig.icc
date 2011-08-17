@@ -72,7 +72,7 @@ PyObject* pds_IpimbConfig_get (PyObject*   self, PyObject* args)
     SetDictMember(adcDelay,false,false);
 
     return o;
-  }	
+  } 
   else {
     Py_DECREF(o);
     printf("get(): Unsupported IpimbConfig Version= %u \n",xtc->contains.version());
@@ -124,7 +124,6 @@ PyObject* pds_IpimbConfig_set    (PyObject*   self, PyObject* args)
                       (float) diodeBias,
                       (uint16_t) calStrobeLength,
                       (uint32_t) trigDelay);
-    Py_DECREF(o);
     return Py_None;
   }
   else if (xtc->contains.version()==2) { 
@@ -153,11 +152,9 @@ PyObject* pds_IpimbConfig_set    (PyObject*   self, PyObject* args)
                       (uint32_t) trigDelay,
                       (uint32_t) trigPsDelay,
                       (uint32_t) adcDelay); 
-    Py_DECREF(o);
     return Py_None;
   }
   else {
-    Py_DECREF(o);
     printf("set(): Unsupported IpimbConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception
   }

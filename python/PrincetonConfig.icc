@@ -122,7 +122,6 @@ PyObject* pds_PrincetonConfig_set    (PyObject*   self, PyObject* args)
                       (uint32_t) readoutSpeedIndex,
                       (uint16_t) readoutEventCode,
                       (uint16_t) delayMode); 
-    Py_DECREF(o);
     return Py_None;
   }
   else if (xtc->contains.version()==2) { 
@@ -153,11 +152,9 @@ PyObject* pds_PrincetonConfig_set    (PyObject*   self, PyObject* args)
                       (uint16_t) readoutSpeedIndex,
                       (uint16_t) readoutEventCode,
                       (uint16_t) delayMode); 
-    Py_DECREF(o);
     return Py_None;
   }
   else {
-    Py_DECREF(o);
     printf("set(): Unsupported PrincetonConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception
   }

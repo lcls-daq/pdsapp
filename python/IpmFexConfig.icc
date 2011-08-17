@@ -30,17 +30,17 @@ PyObject* pds_IpmFexConfig_get (PyObject*   self, PyObject* args)
     unsigned ranges  = Pds::Lusi::DiodeFexConfigV1::NRANGES;
     { PyObject* chs = PyList_New(channels);
       for(unsigned j=0; j<channels; j++) {
-	const Pds::Lusi::DiodeFexConfigV1& d = v1->diode[j];
-	PyObject* ch = PyDict_New();
+  const Pds::Lusi::DiodeFexConfigV1& d = v1->diode[j];
+  PyObject* ch = PyDict_New();
         { PyObject* b = PyList_New(ranges);
           for(unsigned k=0; k<ranges; k++) 
             PyList_SetItem(b,k,PyFloat_FromDouble(d.base[k]));
-	  PyDict_SetItemString(ch,"base",b); }
+    PyDict_SetItemString(ch,"base",b); }
         { PyObject* b = PyList_New(ranges);
           for(unsigned k=0; k<ranges; k++) 
             PyList_SetItem(b,k,PyFloat_FromDouble(d.scale[k]));
-	  PyDict_SetItemString(ch,"scale",b); }
-	PyList_SetItem(chs,j,ch);
+    PyDict_SetItemString(ch,"scale",b); }
+  PyList_SetItem(chs,j,ch);
       }
       PyDict_SetItemString(o,"diodes",chs); }
     PyDict_SetItemString(o,"xscale",PyFloat_FromDouble(v1->xscale));
@@ -55,17 +55,17 @@ PyObject* pds_IpmFexConfig_get (PyObject*   self, PyObject* args)
     unsigned ranges  = 8;
     { PyObject* chs = PyList_New(channels);
       for(unsigned j=0; j<channels; j++) {
-	const Pds::Lusi::DiodeFexConfigV2& d = v1->diode[j];
-	PyObject* ch = PyDict_New();
+  const Pds::Lusi::DiodeFexConfigV2& d = v1->diode[j];
+  PyObject* ch = PyDict_New();
         { PyObject* b = PyList_New(ranges);
           for(unsigned k=0; k<ranges; k++) 
             PyList_SetItem(b,k,PyFloat_FromDouble(d.base[k]));
-	  PyDict_SetItemString(ch,"base",b); }
+    PyDict_SetItemString(ch,"base",b); }
         { PyObject* b = PyList_New(ranges);
           for(unsigned k=0; k<ranges; k++) 
             PyList_SetItem(b,k,PyFloat_FromDouble(d.scale[k]));
-	  PyDict_SetItemString(ch,"scale",b); }
-	PyList_SetItem(chs,j,ch);
+    PyDict_SetItemString(ch,"scale",b); }
+  PyList_SetItem(chs,j,ch);
       }
       PyDict_SetItemString(o,"diodes",chs); }
     PyDict_SetItemString(o,"xscale",PyFloat_FromDouble(v1->xscale));
@@ -111,15 +111,15 @@ PyObject* pds_IpmFexConfig_set    (PyObject*   self, PyObject* args)
         if (i)
           for(unsigned k=0; k<ranges; k++) {
             PyObject* it = PyList_GetItem(i,k);
-  	    if (it)
-  	      d.base[k] = PyFloat_AsDouble(it);
+        if (it)
+          d.base[k] = PyFloat_AsDouble(it);
         } }
       { PyObject* i = PyDict_GetItemString(ch,"scale");
         if (i)
           for(unsigned k=0; k<ranges; k++) {
             PyObject* it = PyList_GetItem(i,k);
-  	    if (it)
-  	      d.scale[k] = PyFloat_AsDouble(it);
+        if (it)
+          d.scale[k] = PyFloat_AsDouble(it);
         } }
       }
     }
@@ -129,7 +129,6 @@ PyObject* pds_IpmFexConfig_set    (PyObject*   self, PyObject* args)
     if ((chs=PyDict_GetItemString(o,"yscale")))
       v1->yscale = PyFloat_AsDouble(chs);
 
-    Py_DECREF(o);
     return Py_None;
   }
   else if (xtc->contains.version()==2) {
@@ -148,15 +147,15 @@ PyObject* pds_IpmFexConfig_set    (PyObject*   self, PyObject* args)
         if (i)
           for(unsigned k=0; k<ranges; k++) {
             PyObject* it = PyList_GetItem(i,k);
-  	    if (it)
-  	      d.base[k] = PyFloat_AsDouble(it);
+        if (it)
+          d.base[k] = PyFloat_AsDouble(it);
         } }
       { PyObject* i = PyDict_GetItemString(ch,"scale");
         if (i)
           for(unsigned k=0; k<ranges; k++) {
             PyObject* it = PyList_GetItem(i,k);
-  	    if (it)
-  	      d.scale[k] = PyFloat_AsDouble(it);
+        if (it)
+          d.scale[k] = PyFloat_AsDouble(it);
         } }
       }
     }
@@ -166,11 +165,9 @@ PyObject* pds_IpmFexConfig_set    (PyObject*   self, PyObject* args)
     if ((chs=PyDict_GetItemString(o,"yscale")))
       v1->yscale = PyFloat_AsDouble(chs);
 
-    Py_DECREF(o);
     return Py_None;
   }
   else {
-    Py_DECREF(o);
     printf("set(): Unsupported IpmFexConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception
   }
