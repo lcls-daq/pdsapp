@@ -59,7 +59,7 @@ StateSelect::StateSelect(QWidget* parent,
 
   _record->setPalette(*_green);
   _record->setEnabled(true);
-  _record->setChecked(false);
+  _record->setChecked(true);
 }
 
 StateSelect::~StateSelect()
