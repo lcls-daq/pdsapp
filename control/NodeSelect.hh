@@ -29,6 +29,7 @@ namespace Pds {
     const Node&    node () const { return _node; }
     const DetInfo& det  () const { return static_cast<const DetInfo&>(_src); }
     const BldInfo& bld  () const { return static_cast<const BldInfo&>(_src); }
+    const Src&     src  () const { return _src; }
     bool           ready() const { return _ready; }
   public:  // persistence
     QString plabel() const;
@@ -64,6 +65,7 @@ namespace Pds {
     QButtonGroup*  _buttons;
     QList<NodeSelect> _nodes;
     QList<QString> _persist;
+    QList<int>     _order;
     QPalette*      _ready;
     QPalette*      _notready;
   };

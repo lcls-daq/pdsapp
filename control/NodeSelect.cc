@@ -1,6 +1,7 @@
 #include "NodeSelect.hh"
 
 #include "pds/collection/PingReply.hh"
+#include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 
 #include <QtCore/QString>
@@ -12,6 +13,30 @@
 #define NODE_BUFF_SIZE  256
 
 using namespace Pds;
+
+static QList<int> _bldOrder = 
+  QList<int>() << BldInfo::EBeam
+	       << BldInfo::PhaseCavity
+	       << BldInfo::FEEGasDetEnergy
+	       << BldInfo::Nh2Sb1Ipm01
+	       << BldInfo::HxxUm6Imb01
+	       << BldInfo::HxxUm6Imb02                           
+	       << BldInfo::HxxDg1Cam
+	       << BldInfo::HfxDg2Imb01
+	       << BldInfo::HfxDg2Imb02
+	       << BldInfo::HfxDg2Cam
+	       << BldInfo::HfxMonImb01
+	       << BldInfo::HfxMonImb02
+	       << BldInfo::HfxMonCam
+	       << BldInfo::HfxDg3Imb01
+	       << BldInfo::HfxDg3Imb02
+	       << BldInfo::HfxDg3Cam
+	       << BldInfo::XcsDg3Imb03
+	       << BldInfo::XcsDg3Imb04
+	       << BldInfo::XcsDg3Cam
+	       << BldInfo::XcsDg3Cam
+	       << BldInfo::NumberOf;
+
 
 NodeGroup::NodeGroup(const QString& label, QWidget* parent) :
   QGroupBox(label, parent),
@@ -82,9 +107,20 @@ void NodeGroup::add_node(int index)
   QObject::connect(button, SIGNAL(clicked()), this, SIGNAL(list_changed()));
 
   QBoxLayout* l = static_cast<QBoxLayout*>(layout());
-  for(index = 0; index < l->count(); index++)
-    if (node.label() < static_cast<QCheckBox*>(l->itemAt(index)->widget())->text())
-      break;
+  if (node.src().level()==Level::Reporter) {
+    int order = _bldOrder.indexOf(node.src().phy());
+    for(index = 0; index < l->count(); index++) {
+      if (order < _order[index])
+        break;
+    }
+    _order.insert(index,order);
+  }
+  else {
+    for(index = 0; index < l->count(); index++) {
+      if (node.label() < static_cast<QCheckBox*>(l->itemAt(index)->widget())->text())
+        break;
+    }
+  }
   l->insertWidget(index,button); 
   
   emit list_changed();

@@ -22,6 +22,8 @@ static const char* _Next_Cycle    = "NEXT CYCLE";
 static const char* _End_Running   = "END RUNNING";
 static const char* _Shutdown      = "SHUTDOWN";
 static const char* _NoChange      = "NO CHANGE";
+static const char* YES_STR = "DO_RECORD";
+static const char* NO_STR  = "DO_NOT_RECORD";
 
 StateSelect::StateSelect(QWidget* parent,
 			 PartitionControl& control) :
@@ -48,6 +50,24 @@ StateSelect::StateSelect(QWidget* parent,
   _record->setFont(font);
   _record->setAutoFillBackground(true);
 
+  bool do_record=false;
+  {
+    const int BUFF_SIZE=64;
+    char* buff = (char*)malloc(BUFF_SIZE);
+    sprintf(buff,".%s",qPrintable(title()));
+    FILE* f = fopen(buff,"r");
+    if (f) {
+      unsigned linesz = BUFF_SIZE;
+      if (getline(&buff,&linesz,f)!=-1)
+	do_record = strncmp(buff,YES_STR,sizeof(YES_STR))==0;
+      fclose(f);
+    }
+    free(buff);
+  }
+  _record->setEnabled(true);
+  _record->setChecked(do_record);
+  set_record(do_record);
+
   QObject::connect(_record, SIGNAL(toggled(bool)), 
 		   this, SLOT(set_record(bool)));
   QObject::connect(this, SIGNAL(remote_record(bool)),
@@ -56,10 +76,6 @@ StateSelect::StateSelect(QWidget* parent,
 		   this, SLOT(populate(QString)));
   QObject::connect(_select, SIGNAL(activated(const QString&)), 
 		   this, SLOT(selected(const QString&)));
-
-  _record->setPalette(*_green);
-  _record->setEnabled(true);
-  _record->setChecked(true);
 }
 
 StateSelect::~StateSelect()
@@ -148,6 +164,16 @@ void StateSelect::set_record(bool r)
 {
   _record->setPalette(r ? *_green : *_yellow);
   _control.use_run_info(r);
+
+  const int BUFF_SIZE=64;
+  char* buff = (char*)malloc(BUFF_SIZE);
+  sprintf(buff,".%s",qPrintable(title()));
+  FILE* f = fopen(buff,"w");
+  if (f) {
+    fprintf(f,"%s", r ? YES_STR : NO_STR);
+    fclose(f);
+  }
+  free(buff);
 }
 
 Transition* StateSelect::transitions(Transition* tr) 
