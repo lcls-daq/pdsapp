@@ -29,6 +29,9 @@ namespace Pds {
     void configured  (bool);
     void enable_scan (bool);
   private:
+    void _readSettings ();
+    void _writeSettings();
+  private:
     PartitionControl&          _pcontrol;
     Pds_ConfigDb::Experiment   _expt;
     Pds_ConfigDb::Reconfig_Ui* _reconfig;

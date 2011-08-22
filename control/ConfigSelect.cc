@@ -10,6 +10,8 @@
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QPushButton>
 
+#include <errno.h>
+
 using namespace Pds;
 using Pds_ConfigDb::Experiment;
 using Pds_ConfigDb::Table;
@@ -60,7 +62,10 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   set_run_type(_runType->currentText());
 
   bScan->setCheckable(true);
-  bScan->setChecked  (_scanIsActive=false);
+
+  _readSettings();
+
+  bScan->setChecked  (_scanIsActive);
 }
 
 ConfigSelect::~ConfigSelect() 
@@ -124,6 +129,7 @@ void ConfigSelect::read_db()
 void ConfigSelect::configured(bool v)
 {
   _runType->setEnabled(!v);
+  _writeSettings();
 }
 
 void ConfigSelect::enable_scan(bool l)
@@ -131,4 +137,55 @@ void ConfigSelect::enable_scan(bool l)
   _scan->setVisible(l);
   _scanIsActive = l;
   if (!l) update();  // refresh the run key from "Type"
+}
+
+void ConfigSelect::_writeSettings()
+{
+  char buff[64];
+  snprintf(buff, sizeof(buff)-1, ".%s", qPrintable(title()));
+  FILE* f = fopen(buff,"w");
+  if (f) {
+    fprintf(f,"%s\n",qPrintable(_runType->currentText()));
+    fprintf(f,"%s\n",_scanIsActive ? "scan":"no_scan");
+    fclose(f);
+  }
+  else {
+    printf("Failed to open %s\n", buff);
+  }
+}
+
+static const unsigned SETTINGS_SIZE = 64;
+
+void ConfigSelect::_readSettings()
+{
+  _scanIsActive=false;
+
+  char *buff = (char *)malloc(SETTINGS_SIZE);  // use malloc w/ getline
+  if (buff == (char *)NULL) {
+    printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, SETTINGS_SIZE, errno);
+  } else {
+    snprintf(buff, SETTINGS_SIZE-1, ".%s", qPrintable(title()));
+    FILE* f = fopen(buff,"r");
+    if (f) {
+      printf("Opened %s\n",buff);
+      char* lptr=buff;
+      unsigned linesz = SETTINGS_SIZE;         // initialize for getline
+      if (getline(&lptr,&linesz,f)!=-1) {
+        QString p(lptr);
+        p.chop(1);  // remove new-line
+        int index = _runType->findText(p);
+        if (index >= 0)
+          _runType->setCurrentIndex(index);
+      }
+      if (getline(&lptr,&linesz,f)!=-1 &&
+          strcmp(lptr,"scan")==0)
+        _scanIsActive = true;
+
+      fclose(f);
+    }
+    else {
+      printf("Failed to open %s\n", buff);
+    }
+    free(buff);
+  }
 }
