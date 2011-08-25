@@ -124,6 +124,7 @@ PyObject* pds_IpimbConfig_set    (PyObject*   self, PyObject* args)
                       (float) diodeBias,
                       (uint16_t) calStrobeLength,
                       (uint32_t) trigDelay);
+    Py_INCREF(Py_None);
     return Py_None;
   }
   else if (xtc->contains.version()==2) { 
@@ -152,6 +153,7 @@ PyObject* pds_IpimbConfig_set    (PyObject*   self, PyObject* args)
                       (uint32_t) trigDelay,
                       (uint32_t) trigPsDelay,
                       (uint32_t) adcDelay); 
+    Py_INCREF(Py_None);
     return Py_None;
   }
   else {

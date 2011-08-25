@@ -81,7 +81,7 @@ PyObject* pds_DiodeFexConfig_set    (PyObject*   self, PyObject* args)
 	  if (it)
   	    v1->scale[j] = PyFloat_AsDouble(it);
         } }
-    Py_DECREF(o);
+    Py_INCREF(Py_None);
     return Py_None;
   }
   else if (xtc->contains.version()==2) {
@@ -106,11 +106,10 @@ PyObject* pds_DiodeFexConfig_set    (PyObject*   self, PyObject* args)
 
     PyErr_Clear();
 
-    Py_DECREF(o);
+    Py_INCREF(Py_None);
     return Py_None;
   }
 
-  Py_DECREF(o);
   //  Throw an exception
   return NULL;
 }

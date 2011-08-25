@@ -129,6 +129,7 @@ PyObject* pds_IpmFexConfig_set    (PyObject*   self, PyObject* args)
     if ((chs=PyDict_GetItemString(o,"yscale")))
       v1->yscale = PyFloat_AsDouble(chs);
 
+    Py_INCREF(Py_None);
     return Py_None;
   }
   else if (xtc->contains.version()==2) {
@@ -165,6 +166,7 @@ PyObject* pds_IpmFexConfig_set    (PyObject*   self, PyObject* args)
     if ((chs=PyDict_GetItemString(o,"yscale")))
       v1->yscale = PyFloat_AsDouble(chs);
 
+    Py_INCREF(Py_None);
     return Py_None;
   }
   else {
