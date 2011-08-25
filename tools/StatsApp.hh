@@ -68,6 +68,7 @@ public:
 
   Transition* transitions(Transition* in) {
     _seq = 0;
+    _nPrint = 10;
     switch( in->id() ) {
     case TransitionId::Map:
       {
@@ -121,10 +122,11 @@ public:
       return in;
     }
 
-    static const unsigned rollover = 2;
-    if ((_seq > dg.seq.stamp().fiducials()) && (dg.seq.stamp().fiducials()>rollover)) {
+    static const unsigned rollover = 360;
+    if ((_seq > dg.seq.stamp().fiducials()) && (dg.seq.stamp().fiducials()>rollover) && _nPrint) {
       printf("seq %08x followed %08x\n",dg.seq.stamp().fiducials(), _seq);
-    }
+      _nPrint--;
+   }
     _seq = dg.seq.stamp().fiducials();
 
     InDatagramIterator* iter = in->iterator(&_pool);
@@ -159,6 +161,7 @@ private:
   LinkedList<NodeStats> _list;
   GenericPool _pool;
   unsigned _seq;
+  unsigned _nPrint;
 };
 
 #endif

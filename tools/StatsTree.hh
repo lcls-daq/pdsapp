@@ -105,6 +105,7 @@ class StatsTree : public Appliance {
 
     Transition* transitions(Transition* in) {
       _seq = 0;
+      _nPrint = 10;
       switch( in->id() ) {
         case TransitionId::Unmap:
           while(_list.forward() != _list.empty())
@@ -140,9 +141,10 @@ class StatsTree : public Appliance {
         return in;
       }
 
-      static const unsigned rollover = 2;
-      if ((_seq > dg.seq.stamp().fiducials()) && (dg.seq.stamp().fiducials()>rollover)) {
+      static const unsigned rollover = 360;
+      if ((_seq > dg.seq.stamp().fiducials()) && (dg.seq.stamp().fiducials()>rollover) && _nPrint) {
         printf("seq %08x followed %08x\n",dg.seq.stamp().fiducials(), _seq);
+        _nPrint--;
       }
       _seq = dg.seq.stamp().fiducials();
 
@@ -169,6 +171,7 @@ class StatsTree : public Appliance {
     LinkedList<StatsT::NodeStats> _list;
     GenericPool _pool;
     unsigned _seq;
+    unsigned _nPrint;
 };
 
 #endif

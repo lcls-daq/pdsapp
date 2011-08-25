@@ -25,7 +25,15 @@ namespace Pds {
     void routine() 
     { 
       char pathname[128];
-      sprintf(pathname,"%s/e*/*.{xtc*,idx*}",_path);
+      sprintf(pathname,"%s/e*/*.xtc*",_path);
+      remove(pathname);
+      sprintf(pathname,"%s/e*/index/*.idx*",_path);
+      remove(pathname);
+      delete this;
+    }
+  private:
+    void remove(const char* pathname)
+    {
       glob_t g;
       glob(pathname,0,0,&g);
       printf("Found %d files in path %s\n",g.gl_pathc,pathname);
@@ -45,7 +53,6 @@ namespace Pds {
 	}
       }
       globfree(&g);
-      delete this;
     }
   private:
     const char* _path;
