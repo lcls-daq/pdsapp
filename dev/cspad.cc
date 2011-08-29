@@ -99,10 +99,14 @@ void sigHandler( int signal ) {
   Pds::CspadServer* server = Pds::CspadServer::instance();
   psignal( signal, "Signal received by CspadServer");
   if (server != 0) {
-    if (myWire != 0) {
-      myWire->remove_input(server);
-    }
+    printf("server still exists\n");
+//    if (myWire != 0) {
+//      myWire->remove_input(server);
+//    }
+//    printf("myWire removed input\nserver ");
+    server->ignoreFetch(true);
     server->disable();
+    printf("disabled\n");
     server->dumpFrontEnd();
     server->die();
   }
