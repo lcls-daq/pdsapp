@@ -522,6 +522,16 @@ int ImageCapture::setupROI(rgn_type& region)
   region.p2 = iHeight - 1;
   region.pbin = 1;
 
+  /*
+  //!! for debug only
+  region.sbin = 4;
+  region.pbin = 4;
+  region.s1 = 0;
+  region.p1 = 0;
+  region.s2 = 256 - 1;
+  region.p2 = 256 - 1;
+  */
+
   return 0;
 }
 
