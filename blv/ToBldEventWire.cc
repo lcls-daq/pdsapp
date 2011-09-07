@@ -18,9 +18,9 @@
 #include "pds/service/Routine.hh"
 #include "pdsdata/xtc/TypeId.hh"
 
-#include "pds/config/TM6740ConfigType.hh"
-#include "pds/config/PimImageConfigType.hh"
-#include "pdsdata/camera/FrameV1.hh"
+#include "pdsdata/bld/bldData.hh"
+
+static const Pds::TypeId inType(Pds::TypeId::Id_SharedPim, Pds::BldDataPimV1::version);
 
 //#define DBUG
 
@@ -61,20 +61,8 @@ public:
   Sequence seq;
 };
 
-// start of Camera Config data
-static const unsigned _pulnix_offset  = 2*sizeof(Xtc);
-
-// start of PIM display data
-static const unsigned _lusi_offset    = _pulnix_offset  + sizeof(TM6740ConfigType) + sizeof(Xtc);
-
-// start of frame xtc header
-static const unsigned _payload_offset = _lusi_offset    + sizeof(PimImageConfigType);
-
-// maximum size
-static const unsigned _extent         = 
-  _payload_offset + sizeof(Xtc) + sizeof(Camera::FrameV1) + 
-  2*Pulnix::TM6740ConfigV2::Row_Pixels*Pulnix::TM6740ConfigV2::Column_Pixels;
-
+static const unsigned extent = sizeof(Pds::BldDataPimV1) +
+  Pds::Pulnix::TM6740ConfigV2::Row_Pixels*Pds::Pulnix::TM6740ConfigV2::Column_Pixels*2;
 
 ToBldEventWire::ToBldEventWire(Outlet&        outlet, 
                                int            interface, 
@@ -82,25 +70,13 @@ ToBldEventWire::ToBldEventWire(Outlet&        outlet,
                                const BldInfo& bld,
                                unsigned       wait_us) :
   OutletWire(outlet),
-  _postman  (interface, Mtu::Size, 1 + 4*(_extent+sizeof(Datagram)) / Mtu::Size),
+  _postman  (interface, Mtu::Size, 1 + 4*(extent+sizeof(Datagram)) / Mtu::Size),
   _bld      (bld),
   _write_fd (write_fd),
-  _pool     (_extent + sizeof(CDatagram),16),
+  _pool     (extent + sizeof(CDatagram),16),
   _wait_us  (wait_us),
   _task     (new Task(TaskObject("carrier")))
 {
-  Xtc* xtc = new(new char[_extent]) Xtc(_xtcType,bld);
-  {
-    Xtc* nxtc = new (xtc->next()) Xtc(_tm6740ConfigType,bld);
-    nxtc->extent += sizeof(TM6740ConfigType);
-    xtc->extent += nxtc->extent; 
-  }
-  {
-    Xtc* nxtc = new (xtc->next()) Xtc(_pimImageConfigType,bld);
-    nxtc->extent += sizeof(PimImageConfigType);
-    xtc->extent += nxtc->extent; 
-  }
-  _xtc = xtc;
 }
 
 ToBldEventWire::~ToBldEventWire() {}
@@ -162,10 +138,10 @@ int ToBldEventWire::process(Xtc* xtc)
     iterate(xtc);
     break;
   case TypeId::Id_TM6740Config:
-    _cache(xtc,*reinterpret_cast<const Pulnix::TM6740ConfigV2*>(xtc->payload()));
+    _camConfig = *reinterpret_cast<const Pulnix::TM6740ConfigV2*>(xtc->payload());
     break;
   case TypeId::Id_PimImageConfig:
-    _cache(xtc,*reinterpret_cast<const Lusi::PimImageConfigV1*>(xtc->payload()));
+    _pimConfig = *reinterpret_cast<const Lusi::PimImageConfigV1*>(xtc->payload());
     break;
   case TypeId::Id_Frame:
     _send(xtc,*reinterpret_cast<const Camera::FrameV1*>(xtc->payload()));
@@ -176,37 +152,18 @@ int ToBldEventWire::process(Xtc* xtc)
   return 1;
 }
 
-//
-//  What about damage?
-//
-void ToBldEventWire::_cache(const Xtc* inxtc,
-                            const Pulnix::TM6740ConfigV2& cfg)
-{
-  Xtc* xtc = _xtc;
-  memcpy((char*)xtc + _pulnix_offset, &cfg, sizeof(cfg));
-}
-
-void ToBldEventWire::_cache(const Xtc* inxtc,
-                            const Lusi::PimImageConfigV1& cfg)
-{
-  Xtc* xtc = _xtc;
-  memcpy((char*)xtc + _lusi_offset, &cfg, sizeof(cfg));
-}
-
 void ToBldEventWire::_send(const Xtc* inxtc,
                            const Camera::FrameV1& frame)
 {
   if (_seq.stamp().ticks()) {
     Transition tr(TransitionId::L1Accept,Transition::Record,_seq,Env(0));
-    CDatagram* dg = new(&_pool) CDatagram(Datagram(tr,_xtcType,Src()));
+    CDatagram* dg = new(&_pool) CDatagram(Datagram(tr,inType,_bld));
 
-    Xtc* xtc = _xtc;
-    memcpy(&dg->xtc, xtc, xtc->extent);
-    {
-      Xtc* nxtc = (Xtc*)dg->xtc.alloc(inxtc->extent);
-      memcpy(nxtc, inxtc, inxtc->extent);
-      nxtc->src = xtc->src;
-    }
+    memcpy(dg->xtc.alloc(sizeof(_camConfig)),&_camConfig,sizeof(_camConfig));
+    memcpy(dg->xtc.alloc(sizeof(_pimConfig)),&_pimConfig,sizeof(_pimConfig));
+    unsigned frame_size = sizeof(frame) + frame.data_size();
+    memcpy(dg->xtc.alloc(frame_size),&frame,frame_size);
+
     Ins dst(StreamPorts::bld(_bld.type()));
 
     _task->call(new Carrier(dg, dst, _postman, _wait_us));

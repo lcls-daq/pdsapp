@@ -315,11 +315,7 @@ int Recorder::_openOutputFile(bool verbose) {
 //
 int Recorder::_postDataFileError()
 {
-  // use flag to avoid flood of occurrences
-  if (!_write_error) {
-    _write_error = true;
-    post(new(_occPool) DataFileError(_experiment,_run,_sliceID,_chunk));
-  }
+  post(new(_occPool) DataFileError(_experiment,_run,_sliceID,_chunk));
   return (0);
 }
 
@@ -335,8 +331,10 @@ int Recorder::_writeOutputFile(const void *ptr, size_t size, size_t nmemb) {
     if (fwrite(ptr, size, nmemb, _f) == nmemb) {
       // success
       rv = 0;
-    } else {
+    } else if (!_write_error) {
       // error
+      // use flag to avoid flood of occurrences
+      _write_error = true;
       perror("fwrite");
       _postDataFileError();
     }
