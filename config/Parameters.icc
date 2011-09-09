@@ -244,11 +244,12 @@ QLayout* Enumerated<T>::initialize(QWidget* parent)
 template <class T>
 void Enumerated<T>::update()
 {
-  if (allowEdit())
+  if (allowEdit()) {
     if (values)
       value = (T)_input->itemData(_input->currentIndex()).toInt();
     else
       value = (T)_input->currentIndex();
+  }	
 }
 
 template <class T>
@@ -261,12 +262,13 @@ void Enumerated<T>::flush()
       _input->setCurrentIndex(value);
   }
   else {
-    if (values)
+    if (values) {
       for(unsigned i=0; labels[i]; i++)
         if (values[i]==value) {
           _display->setText(labels[i]);
           break;
         }
+    }
     else
       _display->setText(labels[value]);
   }
