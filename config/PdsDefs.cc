@@ -17,6 +17,7 @@
 #include "pds/config/EncoderConfigType.hh"
 #include "pds/config/CsPadConfigType.hh"
 #include "pds/config/XampsConfigType.hh"
+#include "pds/config/FexampConfigType.hh"
 //#include "pds/config/SeqConfigType.hh"
 
 #include <sstream>
@@ -67,6 +68,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case RunControl   : type = &_controlConfigType;   break;
   case Cspad        : type = &_CsPadConfigType;     break;
   case Xamps        : type = &_XampsConfigType;     break;
+  case Fexamp       : type = &_FexampConfigType;    break;
   default: 
     printf("PdsDefs::typeId id %d not found\n",unsigned(id));
     break;
@@ -96,6 +98,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_princetonConfigType);    
   test(_CsPadConfigType);
   test(_XampsConfigType);
+  test(_FexampConfigType);
 #undef test
   //  database-only types
   //  if (name==_eventCodeSetName) return &_eventCodeSetType;
@@ -126,6 +129,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_princetonConfigType);
   test(_CsPadConfigType);
   test(_XampsConfigType);
+  test(_FexampConfigType);
 #undef test
   //  database-only types
   //  if (name==_eventCodeSetName) return &_eventCodeSetType;

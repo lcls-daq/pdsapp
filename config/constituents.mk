@@ -57,6 +57,9 @@ libsrcs_configdbg += CspadConfig.cc
 libsrcs_configdbg += XampsConfig.cc XampsConfig_moc.cc
 libsrcs_configdbg += XampsCopyChannelDialog.cc XampsCopyChannelDialog_moc.cc
 libsrcs_configdbg += XampsCopyAsicDialog.cc XampsCopyAsicDialog_moc.cc
+libsrcs_configdbg += FexampConfig.cc FexampConfig_moc.cc
+libsrcs_configdbg += FexampCopyChannelDialog.cc FexampCopyChannelDialog_moc.cc
+libsrcs_configdbg += FexampCopyAsicDialog.cc FexampCopyAsicDialog_moc.cc
 libsrcs_configdbg += ControlConfig.cc
 libsrcs_configdbg += IpimbConfig.cc IpimbConfig_V1.cc
 libsrcs_configdbg += DiodeFexItem.cc
@@ -80,7 +83,7 @@ tgtnames       += configdb_list
 
 # executable python modules: configdb_gui.py
 
-datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata
 
 tgtsrcs_configdb := configdb.cc
 #tgtincs_configdb := $(qtincdir)
