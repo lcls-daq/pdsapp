@@ -19,6 +19,7 @@ tgtnames    :=  evr \
     fccd     \
     cspad    \
     xamps    \
+    gsc16ai  \
     simcam
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
@@ -135,3 +136,8 @@ tgtslib_princeton := /usr/lib/rt dl pthread
 tgtsrcs_simcam := simcam.cc 
 tgtlibs_simcam := $(commonlibs) pdsdata/pulnixdata pdsdata/camdata
 tgtslib_simcam := pthread rt
+
+tgtsrcs_gsc16ai := gsc16ai.cc
+tgtlibs_gsc16ai := $(commonlibs) pdsdata/gsc16aidata pds/gsc16ai pdsdata/camdata
+tgtslib_gsc16ai := /usr/lib/rt
+
