@@ -1,3 +1,4 @@
+2011-Oct-03 caf		Added Gsc16ai detector.
 2011-Mar-31 weaver	Fixed CspadShuffle recording of ElementV2 extent.
 2011-Jan-17 weaver	Tag V02-10-03.  Added configuration GUI panels for Acqiris TDC.
 2010-Dec-06 weaver	Tag V02-10-00.  Added configuration GUI panels for new EVR configuration type (ConfigV5).
