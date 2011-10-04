@@ -16,24 +16,27 @@ namespace Pds_ConfigDb {
         "channels 0-5",  "channels 0-6",  "channels 0-7",  "channels 0-8",  "channels 0-9",
         "channels 0-10", "channels 0-11", "channels 0-12", "channels 0-13", "channels 0-14",
         "channels 0-15", NULL };
+  static const char* autoCalib_to_name[] = { "Disabled", "Enabled", NULL };
 
-//class Gsc16aiConfig::Private_Data {
   class Gsc16aiConfig::Private_Data {
   public:
     Private_Data() :
       _voltageRange   ("Voltage Range", Pds::Gsc16ai::ConfigV1::VoltageRange_10V, voltageRange_to_name),
-      _channelSelect  ("Input Channels", 0, channelSelect_to_name)
+      _channelSelect  ("Input Channels", 0, channelSelect_to_name),
+      _autocalibEnable("Autocalibration", Enums::True, autoCalib_to_name)
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
       pList.insert(&_voltageRange);
       pList.insert(&_channelSelect);
+      pList.insert(&_autocalibEnable);
     }
 
     int pull(void* from) {
       Gsc16aiConfigType& tc = *new(from) Gsc16aiConfigType;
       _voltageRange.value = (Pds::Gsc16ai::ConfigV1::VoltageRange)tc.voltageRange();
       _channelSelect.value = (Pds::Gsc16ai::ConfigV1::VoltageRange)tc.lastChan();
+      _autocalibEnable.value = tc.autocalibEnable() ? Enums::True : Enums::False;
       return tc.size();
     }
 
@@ -41,7 +44,8 @@ namespace Pds_ConfigDb {
       Gsc16aiConfigType& tc = *new(to) Gsc16aiConfigType(
         _voltageRange.value,
         Pds::Gsc16ai::ConfigV1::LowestChannel,
-        _channelSelect.value
+        _channelSelect.value,
+        _autocalibEnable.value
       );
       return tc.size();
     }
@@ -53,6 +57,7 @@ namespace Pds_ConfigDb {
   public:
     Enumerated<Pds::Gsc16ai::ConfigV1::VoltageRange> _voltageRange;
     Enumerated<int> _channelSelect;
+    Enumerated<Enums::Bool> _autocalibEnable;
   };
 };
 
