@@ -51,8 +51,7 @@ void EventTest::attached(SetOfStreams& streams)
   (new DgSummary)->connect(frmk->inlet());
 
   if (_options.outfile) {
-    //    (new Recorder(_options.outfile, _options.sliceID, _options.chunkSize))->connect(frmk->inlet());
-    (new RecorderQ(_options.outfile, _options.sliceID, _options.chunkSize))->connect(frmk->inlet());
+    (new RecorderQ(_options.outfile, _options.sliceID, _options.chunkSize, _options.delayXfer))->connect(frmk->inlet());
   }
 
   switch (_options.mode) {

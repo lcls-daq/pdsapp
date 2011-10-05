@@ -14,6 +14,7 @@ namespace Pds {
   class RecorderQ : public Recorder {
   public:
     RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, 
+              bool delay_xfer=false,
 	      bool dont_queue=false);
     ~RecorderQ() {}
   public:

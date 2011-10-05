@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define DELAY_XFER
     
 using namespace Pds;
 
@@ -35,7 +36,7 @@ static void local_mkdir (const char * path)
   }
 }
 
-Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) : 
+Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer) : 
   Appliance(), 
   _pool    (new GenericPool(sizeof(ZcpDatagramIterator),1)),
   _node    (0),
@@ -46,6 +47,7 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize) :
   _chunk_requested(false),
   _chunk(0),
   _chunkSize(chunkSize),
+  _delay_xfer(delay_xfer),
   _experiment(0),
   _run(0),
   _occPool(new GenericPool(sizeof(DataFileOpened),5))
@@ -276,9 +278,11 @@ int Recorder::_openOutputFile(bool verbose) {
       perror(_fnamerunning);
       return rv;
     }
-    if ( (rv = rename(_fnamerunning, _fname)) ) {
-      perror(_fname);
-      return rv;
+    if (!_delay_xfer) {
+      if ( (rv = rename(_fnamerunning, _fname)) ) {
+        perror(_fname);
+        return rv;
+      }
     }
     //    rv = 0;
     //  Set disk buffering as a multiple of RAID stripe size (256kB)
@@ -400,7 +404,11 @@ int Recorder::_closeOutputFile() {
       }  
       _indexfname[0] = 0;
     }    
-    
+    if (_delay_xfer) {
+      if ( (rv = rename(_fnamerunning, _fname)) ) {
+        perror(_fname);
+      }
+    }
     if (fclose(_f) == 0) {
       // success
       rv = 0;           

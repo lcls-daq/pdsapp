@@ -18,7 +18,8 @@ EventOptions::EventOptions() :
   arpsuidprocess(0),
   outfile(0),
   mode(Counter),
-  chunkSize(DefaultChunkSize)
+  chunkSize(DefaultChunkSize),
+  delayXfer(false)
 {
 }
 
@@ -29,10 +30,11 @@ EventOptions::EventOptions(int argc, char** argv) :
   arpsuidprocess(0),
   outfile(0),
   mode(Counter),
-  chunkSize(DefaultChunkSize)
+  chunkSize(DefaultChunkSize),
+  delayXfer(false)
 {
   int c;
-  while ((c = getopt(argc, argv, "f:p:b:a:s:c:ed")) != -1) {
+  while ((c = getopt(argc, argv, "f:p:b:a:s:c:edD")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -60,6 +62,9 @@ EventOptions::EventOptions(int argc, char** argv) :
     case 'd':
       mode = Display;
       break;
+    case 'D':
+      delayXfer = true;
+      break;
     case 'c':
       errno = 0;
       chunkSize = strtoull(optarg, &endPtr, 0);
@@ -75,6 +80,7 @@ int EventOptions::validate(const char* arg0) const
     printf("Usage: %s -p <platform>\n"
 	   "options: -e decodes each transition (no FSM is connected)\n"
 	   "         -d displays transition summaries and eb statistics\n"
+	   "         -D delay transfer to offline until file is closed\n"
 	   "         -b <buffer_size>\n"
            "         -a <arp_suid_executable>\n"
            "         -f <outputfilename>\n"

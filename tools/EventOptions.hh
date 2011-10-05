@@ -21,6 +21,7 @@ public:
   enum Mode {Counter, Decoder, Display};
   Mode mode;
   uint64_t chunkSize;
+  bool     delayXfer;
 }; 
 }
 

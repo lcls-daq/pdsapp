@@ -13,7 +13,7 @@ class GenericPool;
 
 class Recorder : public Appliance {
 public:
-  Recorder(const char* fname, unsigned int sliceID, uint64_t chunkSize);
+  Recorder(const char* fname, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer);
   ~Recorder() {}
   virtual Transition* transitions(Transition*);
   virtual InDatagram* occurrences(InDatagram* in);
@@ -48,6 +48,7 @@ private:
   char     _fnamerunning[SizeofName];
   unsigned int _chunk;
   uint64_t _chunkSize;
+  bool     _delay_xfer;
   int      _experiment;
   int      _run;
   GenericPool* _occPool;
