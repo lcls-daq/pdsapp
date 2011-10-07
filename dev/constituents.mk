@@ -19,11 +19,20 @@ tgtnames    :=  evr \
     fccd     \
     cspad    \
     xamps    \
+    fexamp   \
     gsc16ai  \
     simcam
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
+
+tgtsrcs_fexamp := fexamp.cc
+tgtincs_fexamp := fexamp
+tgtlibs_fexamp := $(commonlibs) pdsdata/fexampdata pds/fexamp pds/pgp
+tgtslib_fexamp := /usr/lib/rt
+CPPFLAGS += -fno-strict-aliasing
+#CPPFLAGS += -fopenmp
+#DEFINES += -fopenmp
 
 tgtsrcs_xamps := xamps.cc
 tgtincs_xamps := xamps
