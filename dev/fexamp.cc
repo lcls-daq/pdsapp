@@ -194,6 +194,7 @@ int main( int argc, char** argv )
   DetInfo::Detector   detector            = DetInfo::XppEndstation;
   int                 deviceId            = 0;
   unsigned            platform            = 0;
+  bool                platformEntered     = false;
   unsigned            mask                = 0;
   unsigned            debug               = 0;
   ::signal( SIGINT, sigHandler );
@@ -223,6 +224,7 @@ int main( int argc, char** argv )
            break;
          case 'p':
            platform = strtoul(optarg, NULL, 0);
+           platformEntered = true;
            break;
          case 'i':
            deviceId = strtoul(optarg, NULL, 0);
@@ -245,7 +247,7 @@ int main( int argc, char** argv )
       }
    }
 
-   if( !platform ) {
+   if( !platformEntered ) {
       printf( "Error: Platform required\n" );
       printUsage(argv[0]);
       return 0;
