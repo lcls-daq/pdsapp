@@ -117,6 +117,7 @@ void EvrScan::read(const char* dbuf, int len)
   connect(_pulse_id, SIGNAL(activated(int)), this, SLOT(set_pulse(int)));
 
   _pulse_id->setCurrentIndex(0);
+  printf("EvrScan::read npulses %u\n",cfg.npulses());
 }
 
 
@@ -124,6 +125,7 @@ void EvrScan::set_pulse(int index)
 {
   const EvrConfigType& cfg = *reinterpret_cast<const EvrConfigType*>(_buff);
   const Pds::EvrData::PulseConfigV3& pulse = cfg.pulse(index);
+  printf("EvrScan::set_pulse %d\n", index);
 
   double scale = double(pulse.prescale())/119.e6;
   _width   ->setText(QString::number(double(pulse.width())*scale));
