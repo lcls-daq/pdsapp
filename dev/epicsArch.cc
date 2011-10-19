@@ -164,7 +164,7 @@ static void showVersion()
 
 int main(int argc, char** argv) 
 {
-    const char*         strOptions  = ":vhi:d:p:f:";
+    const char*         strOptions  = ":vhi:d:p:f:u:";
     const struct option loOptions[] = 
     {
        {"ver",      0, 0, 'v'},
@@ -173,6 +173,7 @@ int main(int argc, char** argv)
        {"interval", 1, 0, 'i'},
        {"platform", 1, 0, 'p'},
        {"file",     1, 0, 'f'},
+       {"unit",     0, 0, 'u'},
        {0,          0, 0,  0  }
     };    
     
@@ -180,7 +181,8 @@ int main(int argc, char** argv)
     float   fMinTriggerInterval = 1.0f;
     string  sFnConfig;
     int     iDebugLevel         = 0;
-    
+    int     iUnit               = 0;
+
     int     iOptionIndex        = 0;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
     {
@@ -202,6 +204,9 @@ int main(int argc, char** argv)
             break;
         case 'f':
             sFnConfig = optarg;
+            break;
+        case 'u':
+            iUnit = strtoul(optarg, NULL, 0);
             break;
         case '?':               /* Terse output mode */
             printf( "epicsArch:main(): Unknown option: %c\n", optopt );
@@ -232,8 +237,8 @@ int main(int argc, char** argv)
         showUsage();
         return 2;
     }
-        
-    const DetInfo& detInfo = EpicsXtcSettings::detInfo;
+
+    const DetInfo detInfo( getpid(), Pds::DetInfo::EpicsArch, 0, DetInfo::NoDevice, iUnit);    
 
     Task* task = new Task(Task::MakeThisATask);
 
