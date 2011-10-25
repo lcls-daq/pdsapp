@@ -38,18 +38,19 @@ static QList<int> _bldOrder =
 	       << BldInfo::NumberOf;
 
 
-NodeGroup::NodeGroup(const QString& label, QWidget* parent) :
+NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform) :
   QGroupBox(label, parent),
   _buttons(new QButtonGroup(parent)),
   _ready    (new QPalette(Qt::green)),
-  _notready(new QPalette(Qt::red))
+  _notready(new QPalette(Qt::red)),
+  _platform(platform)
 {
   //  Read persistent selected nodes
   char *buff = (char *)malloc(NODE_BUFF_SIZE);  // use malloc w/ getline
   if (buff == (char *)NULL) {
     printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, NODE_BUFF_SIZE, errno);
   } else {
-    snprintf(buff, NODE_BUFF_SIZE-1, ".%s", qPrintable(title()));
+    snprintf(buff, NODE_BUFF_SIZE-1, ".%s for platform %u", qPrintable(title()), _platform);
     FILE* f = fopen(buff,"r");
     if (f) {
       printf("Opened %s\n",buff);
@@ -154,7 +155,7 @@ QList<Node> NodeGroup::selected()
 
   //  Write persistent selected nodes
   char buff[64];
-  snprintf(buff, sizeof(buff)-1, ".%s", qPrintable(title()));
+  snprintf(buff, sizeof(buff)-1, ".%s for platform %u", qPrintable(title()), _platform);
   FILE* f = fopen(buff,"w");
   if (f) {
     foreach(QString p, _persist) {
@@ -200,7 +201,7 @@ QList<BldInfo> NodeGroup::reporters()
 
 NodeGroup* NodeGroup::freeze()
 {
-  NodeGroup* g = new NodeGroup(title(),(QWidget*)0);
+  NodeGroup* g = new NodeGroup(title(),(QWidget*)0, 0);
 
   {
     QList<QAbstractButton*> buttons = _buttons->buttons();

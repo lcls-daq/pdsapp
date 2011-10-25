@@ -142,7 +142,7 @@ void ConfigSelect::enable_scan(bool l)
 void ConfigSelect::_writeSettings()
 {
   char buff[64];
-  snprintf(buff, sizeof(buff)-1, ".%s", qPrintable(title()));
+  snprintf(buff, sizeof(buff)-1, ".%s for platform %u", qPrintable(title()), _pcontrol.header().platform());
   FILE* f = fopen(buff,"w");
   if (f) {
     fprintf(f,"%s\n",qPrintable(_runType->currentText()));
@@ -164,7 +164,7 @@ void ConfigSelect::_readSettings()
   if (buff == (char *)NULL) {
     printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, SETTINGS_SIZE, errno);
   } else {
-    snprintf(buff, SETTINGS_SIZE-1, ".%s", qPrintable(title()));
+    snprintf(buff, SETTINGS_SIZE-1, ".%s for platform %u", qPrintable(title()), _pcontrol.header().platform());
     FILE* f = fopen(buff,"r");
     if (f) {
       printf("Opened %s\n",buff);

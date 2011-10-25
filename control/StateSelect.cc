@@ -54,7 +54,7 @@ StateSelect::StateSelect(QWidget* parent,
   {
     const int BUFF_SIZE=64;
     char* buff = (char*)malloc(BUFF_SIZE);
-    sprintf(buff,".%s",qPrintable(title()));
+    sprintf(buff,".%s for platform %u",qPrintable(title()), _control.header().platform());
     FILE* f = fopen(buff,"r");
     if (f) {
       unsigned linesz = BUFF_SIZE;
@@ -167,7 +167,7 @@ void StateSelect::set_record(bool r)
 
   const int BUFF_SIZE=64;
   char* buff = (char*)malloc(BUFF_SIZE);
-  sprintf(buff,".%s",qPrintable(title()));
+  sprintf(buff,".%s for platform %u",qPrintable(title()), _control.header().platform());
   FILE* f = fopen(buff,"w");
   if (f) {
     fprintf(f,"%s", r ? YES_STR : NO_STR);

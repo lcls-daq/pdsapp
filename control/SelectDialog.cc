@@ -15,9 +15,9 @@ SelectDialog::SelectDialog(QWidget* parent,
   setWindowTitle("Partition Selection");
 
   QVBoxLayout* layout = new QVBoxLayout(this);
-  layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this));
-  layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this));
-  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this));
+  layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, _pcontrol.header().platform()));
+  layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this, _pcontrol.header().platform()));
+  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this, _pcontrol.header().platform()));
 
   _acceptb = new QPushButton("Ok",this);
   QPushButton* rejectb = new QPushButton("Cancel",this);

@@ -86,12 +86,13 @@ namespace Pds_ConfigDb {
 
   void FexampCopyChannelDialog::copyClicked()
   {
-    FexampChannelData* src = _config->_asic[myAsic]->_channel[index];
+    FexampASICdata& a = *_config->_asic[myAsic];
+    FexampChannelData* src = a._channel[index];
     unsigned cb = 0;
     for (int i=0; i<numberOfChannels; i++) {
       if (i != index) {
         if (channelCheckBox[cb]->checkState() == Qt::Checked) {
-          FexampChannelData* dest = _config->_asic[myAsic]->_channel[i];
+          FexampChannelData* dest = a._channel[i];
           for (int j=0; j<FexampChannel::NumberOfChannelBitFields; j++) {
             dest->_reg[j]->value = src->_reg[j]->value;
           }

@@ -45,7 +45,7 @@ namespace Pds {
   class NodeGroup : public QGroupBox {
     Q_OBJECT
   public:
-    NodeGroup(const QString& label, QWidget* parent);
+    NodeGroup(const QString& label, QWidget* parent, unsigned platform);
     ~NodeGroup();
   public slots:
     void add_node    (int);
@@ -68,6 +68,7 @@ namespace Pds {
     QList<int>     _order;
     QPalette*      _ready;
     QPalette*      _notready;
+    unsigned       _platform;
   };
 
 };
