@@ -19,6 +19,7 @@
 #include "pdsapp/config/DiodeFexConfig.hh"
 #include "pdsapp/config/PimImageConfig.hh"
 #include "pdsapp/config/EncoderConfig.hh"
+#include "pdsapp/config/EncoderConfig_V1.hh"
 #include "pdsapp/config/Opal1kConfig.hh"
 #include "pdsapp/config/FccdConfig.hh"
 #include "pdsapp/config/TM6740Config.hh"
@@ -98,6 +99,7 @@ SerializerDictionary::SerializerDictionary()
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,2) , new CspadConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  
+  enroll(Pds::TypeId(Pds::TypeId::Id_EncoderConfig,1),new EncoderConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,4)   , new EvrConfig_V4);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,3)   , new EvrConfig_V3);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2)   , new EvrConfig_V2);
