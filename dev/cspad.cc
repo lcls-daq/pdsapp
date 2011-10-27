@@ -59,7 +59,8 @@ class Pds::Seg
         CfgClientNfs* cfgService,
         SegWireSettings& settings,
         Arp* arp,
-        CspadServer* cspadServer );
+        CspadServer* cspadServer,
+        unsigned pgpcard );
 
    virtual ~Seg();
    bool didYouFail() { return _failed; }
@@ -70,11 +71,12 @@ class Pds::Seg
    void failed( Reason reason );
    void dissolved( const Node& who );
 
-   Task* _task;
-   unsigned _platform;
+   Task*         _task;
+   unsigned      _platform;
    CfgClientNfs* _cfg;
-   CspadServer* _cspadServer;
-   bool         _failed;
+   CspadServer*  _cspadServer;
+   unsigned      _pgpcard;
+   bool          _failed;
 };
 
 
@@ -119,11 +121,13 @@ Pds::Seg::Seg( Task* task,
                CfgClientNfs* cfgService,
                SegWireSettings& settings,
                Arp* arp,
-               CspadServer* cspadServer )
+               CspadServer* cspadServer,
+               unsigned pgpcard )
    : _task(task),
      _platform(platform),
      _cfg   (cfgService),
      _cspadServer(cspadServer),
+     _pgpcard(pgpcard),
      _failed(false)
 {}
 
@@ -138,7 +142,7 @@ void Pds::Seg::attached( SetOfStreams& streams )
           _platform);
       
    Stream* frmk = streams.stream(StreamParams::FrameWork);
-   CspadManager& cspadMgr = * new CspadManager( _cspadServer );
+   CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard );
    cspadMgr.appliance().connect( frmk->inlet() );
 }
 
@@ -174,11 +178,12 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: cspad [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] -p <platform>\n"
+  printf( "Usage: cspad [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> -p <platform>\n"
       "    -h      Show usage\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
       "    -i      Set device id             [Default: 0]\n"
       "    -m      Set config mask           [Default: 0]\n"
+      "    -P      Set pgpcard index number  [Default: 0]\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -205,13 +210,14 @@ int main( int argc, char** argv )
   int                 deviceId            = 0;
   unsigned            platform            = 0;
   unsigned            mask                = 0;
+  unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
   ::signal( SIGINT, sigHandler );
   bool                platformMissing     = true;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:D:x" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:D:xP:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -245,6 +251,9 @@ int main( int argc, char** argv )
             break;
          case 'm':
            mask = strtoul(optarg, NULL, 0);
+           break;
+         case 'P':
+           pgpcard = strtoul(optarg, NULL, 0);
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
@@ -293,7 +302,8 @@ int main( int argc, char** argv )
                        cfgService,
                        settings,
                        0,
-                       cspadServer );
+                       cspadServer,
+                       pgpcard);
 
    SegmentLevel* seglevel = new SegmentLevel( platform,
                                               settings,
