@@ -58,7 +58,8 @@ class Pds::Seg
         CfgClientNfs* cfgService,
         SegWireSettings& settings,
         Arp* arp,
-        FexampServer* fexampServer );
+        FexampServer* fexampServer,
+        unsigned pgpcard );
 
    virtual ~Seg();
    bool didYouFail() { return _failed; }
@@ -73,6 +74,7 @@ class Pds::Seg
    unsigned _platform;
    CfgClientNfs* _cfg;
    FexampServer* _fexampServer;
+   unsigned     _pgpcard;
    bool         _failed;
 };
 
@@ -114,11 +116,13 @@ Pds::Seg::Seg( Task* task,
                CfgClientNfs* cfgService,
                SegWireSettings& settings,
                Arp* arp,
-               FexampServer* fexampServer )
+               FexampServer* fexampServer,
+               unsigned pgpcard  )
    : _task(task),
      _platform(platform),
      _cfg   (cfgService),
      _fexampServer(fexampServer),
+     _pgpcard(pgpcard),
      _failed(false)
 {}
 
@@ -133,7 +137,7 @@ void Pds::Seg::attached( SetOfStreams& streams )
           _platform);
       
    Stream* frmk = streams.stream(StreamParams::FrameWork);
-   FexampManager& fexampMgr = * new FexampManager( _fexampServer );
+   FexampManager& fexampMgr = * new FexampManager( _fexampServer, _pgpcard );
    fexampMgr.appliance().connect( frmk->inlet() );
 }
 
@@ -169,11 +173,12 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: fexamp [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] -p <platform>\n"
+  printf( "Usage: fexamp [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> -p <platform>\n"
       "    -h      Show usage\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
       "    -m      Set config mask           [Default: 0]\n"
+      "    -P      Set pgpcard index number  [Default: 0]\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -196,12 +201,13 @@ int main( int argc, char** argv )
   unsigned            platform            = 0;
   bool                platformEntered     = false;
   unsigned            mask                = 0;
+  unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
   ::signal( SIGINT, sigHandler );
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:D:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:D:P:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -231,6 +237,9 @@ int main( int argc, char** argv )
             break;
          case 'm':
            mask = strtoul(optarg, NULL, 0);
+           break;
+         case 'P':
+           pgpcard = strtoul(optarg, NULL, 0);
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
@@ -284,7 +293,8 @@ int main( int argc, char** argv )
                        cfgService,
                        settings,
                        0,
-                       fexampServer );
+                       fexampServer,
+                       pgpcard );
 
    printf("making SegmentLevel\n");
    SegmentLevel* seglevel = new SegmentLevel( platform,
