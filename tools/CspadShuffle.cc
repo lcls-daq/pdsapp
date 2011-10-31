@@ -1,8 +1,8 @@
 #include "pdsapp/tools/CspadShuffle.hh"
 
-#include "pds/xtc/Datagram.hh"
 #include "pds/config/CsPadConfigType.hh"
 
+#include "pdsdata/xtc/Dgram.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
@@ -143,7 +143,7 @@ private:
   uint32_t*& _pwrite;
 };
 
-void CspadShuffle::shuffle(Datagram& dg) 
+void CspadShuffle::shuffle(Dgram& dg) 
 {
   if (dg.seq.service() == TransitionId::Configure) {
     _config.clear();

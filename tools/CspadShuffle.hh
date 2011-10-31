@@ -3,11 +3,11 @@
 
 namespace Pds {
 
-class Datagram;
+class Dgram;
 
 class CspadShuffle {
 public:
-  static void shuffle(Datagram& dg);
+  static void shuffle(Dgram& dg);
   //  static int  shuffle(void *in, void *out, unsigned int nelements);
 };
 

@@ -74,3 +74,13 @@ tgtslib_observertest := $(USRLIBDIR)/rt
 tgtsrcs_xtcdump := xtcdump.cc
 tgtlibs_xtcdump := $(commonlibs)
 tgtslib_xtcdump := $(USRLIBDIR)/rt
+
+
+
+libnames += padmon
+libsrcs_padmon := PadMonServer.cc CspadShuffle.cc
+
+tgtnames += padmonservertest
+tgtsrcs_padmonservertest := padmonservertest.cc
+tgtlibs_padmonservertest := pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata
+tgtslib_padmonservertest := $(USRLIBDIR)/rt
