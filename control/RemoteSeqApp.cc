@@ -219,16 +219,18 @@ void RemoteSeqApp::routine()
 
 Transition* RemoteSeqApp::transitions(Transition* tr) 
 { 
-  if (tr->id()==TransitionId::BeginRun) {
-    if (tr->size() == sizeof(Transition))
-      _last_run = RunInfo(0,0);
-    else
-      _last_run = *reinterpret_cast<RunInfo*>(tr);
+  if (_socket >= 0) {
+    if (tr->id()==TransitionId::BeginRun) {
+      if (tr->size() == sizeof(Transition))
+	_last_run = RunInfo(0,0);
+      else
+	_last_run = *reinterpret_cast<RunInfo*>(tr);
+    }
+    else if (tr->id()==TransitionId::BeginCalibCycle)
+      _pvmanager.configure(*reinterpret_cast<ControlConfigType*>(_cfgmon_buffer));
+    else if (tr->id()==TransitionId::EndCalibCycle)
+      _pvmanager.unconfigure();
   }
-  else if (tr->id()==TransitionId::BeginCalibCycle)
-    _pvmanager.configure(*reinterpret_cast<ControlConfigType*>(_cfgmon_buffer));
-  else if (tr->id()==TransitionId::EndCalibCycle)
-    _pvmanager.unconfigure();
 
   return tr;
 }
