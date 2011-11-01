@@ -31,15 +31,17 @@ static PyObject* pdsdb_set    (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_commit (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_clone  (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_sub    (PyObject* self, PyObject* args, PyObject* kwds);
+static PyObject* pdsdb_get_key(PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_evolve (PyObject* self, PyObject* args, PyObject* kwds);
 
 static PyMethodDef pdsdb_methods[] = {
-  {"get"       , (PyCFunction)pdsdb_get   , METH_KEYWORDS, "Return the xtc data"},
-  {"set"       , (PyCFunction)pdsdb_set   , METH_KEYWORDS, "Insert the xtc data"},
-  {"substitute", (PyCFunction)pdsdb_sub   , METH_KEYWORDS, "Replace the xtc data"},
-  {"commit"    , (PyCFunction)pdsdb_commit, METH_NOARGS  , "Commit changes and update db"},
-  {"clone"     , (PyCFunction)pdsdb_clone , METH_VARARGS , "Clone a key"},
-  {"evolve"    , (PyCFunction)pdsdb_evolve, METH_VARARGS , "Upgrade xtc container to another version"},
+  {"get"       , (PyCFunction)pdsdb_get    , METH_KEYWORDS, "Return the xtc data"},
+  {"set"       , (PyCFunction)pdsdb_set    , METH_KEYWORDS, "Insert the xtc data"},
+  {"substitute", (PyCFunction)pdsdb_sub    , METH_KEYWORDS, "Replace the xtc data"},
+  {"commit"    , (PyCFunction)pdsdb_commit , METH_NOARGS  , "Commit changes and update db"},
+  {"clone"     , (PyCFunction)pdsdb_clone  , METH_VARARGS , "Clone a key"},
+  {"get_key"   , (PyCFunction)pdsdb_get_key, METH_KEYWORDS, "Return the current key for an alias"},
+  {"evolve"    , (PyCFunction)pdsdb_evolve , METH_VARARGS , "Upgrade xtc container to another version"},
   {NULL},
 };
 
@@ -440,6 +442,28 @@ PyObject* pdsdb_clone  (PyObject* self_o, PyObject* args, PyObject* kwds)
     return NULL;
 
   return PyLong_FromLong(newkey);
+}
+
+PyObject* pdsdb_get_key(PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+  
+  const char* alias = 0;
+
+  if (PyArg_ParseTuple(args,"s",&alias)==0) {
+    return NULL;
+  }
+
+  self->expt->read();
+  int key = self->expt->current_key(string(alias));
+  if (key == -1) {
+    char buff[128];
+    sprintf(buff,"Failed to lookup key for alias %s",alias);
+    PyErr_SetString(PyExc_RuntimeError,buff);
+    return NULL;
+  }
+
+  return PyLong_FromLong(key);
 }
 
 //
