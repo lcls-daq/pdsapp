@@ -11,7 +11,6 @@ libsrcs_configdb += Device.cc
 libsrcs_configdb += DeviceEntry.cc
 libsrcs_configdb += Experiment.cc
 libsrcs_configdb += GlobalCfg.cc
-
 libsrcs_configdb += PdsDefs.cc
 
 libsrcs_configdbg := ControlScan.cc ControlScan_moc.cc

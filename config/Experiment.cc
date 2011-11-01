@@ -282,6 +282,12 @@ void Experiment::update_keys()
     update_key(*iter);
 }
 
+int Experiment::current_key(const string& alias) const
+{
+  const TableEntry* e = _table.get_top_entry(alias.c_str());
+  return e ? strtoul(e->key().c_str(),NULL,16) : -1;
+}
+
 void Experiment::dump() const
 {  
   cout << "Experiment " << endl;

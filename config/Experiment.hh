@@ -29,6 +29,7 @@ namespace Pds_ConfigDb {
     const list<Device>& devices() const { return _devices; }
     list<Device>& devices() { return _devices; }
     Device* device(const string&);
+    int  current_key(const string&) const;
   public:
     void add_device(const string&, const list<DeviceEntry>&);
     void import_data(const string& device,
