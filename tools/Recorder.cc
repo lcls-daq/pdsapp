@@ -76,6 +76,13 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
   printf("Changed umask from %o to %o\n",oldmask,newmask);
   
   memset( _indexfname, 0, sizeof(_indexfname) );
+
+  if (gethostname(_host_name, sizeof(_host_name))) {
+    // error
+    perror("gethostname");
+    strncpy(_host_name, "unknown", sizeof(_host_name)-1);
+  }
+  printf("Host name: %s\n", _host_name);
 }
 
 InDatagram* Recorder::events(InDatagram* in) {
@@ -290,7 +297,7 @@ int Recorder::_openOutputFile(bool verbose) {
     if (verbose) {
       printf("Opened %s\n",_fname);
     }
-    post(new(_occPool) DataFileOpened(_experiment,_run,_sliceID,_chunk));
+    post(new(_occPool) DataFileOpened(_experiment,_run,_sliceID,_chunk,_host_name,_fname));
   }
   else {
     if (verbose) {

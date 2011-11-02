@@ -54,6 +54,7 @@ private:
   GenericPool* _occPool;
   Index::IndexList _indexList;
   char     _indexfname[SizeofName];
+  char     _host_name[SizeofName];
 };
 
 }

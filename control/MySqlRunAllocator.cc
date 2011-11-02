@@ -26,7 +26,6 @@ unsigned MySqlRunAllocator::alloc() {
   }
 };
 
-int MySqlRunAllocator::reportOpenFile(int expt, int run, int stream, int chunk)
-{
-  return _offlineclient ? _offlineclient->reportOpenFile(expt,run,stream,chunk) : 0;
+int MySqlRunAllocator::reportOpenFile(int expt, int run, int stream, int chunk, std::string& host, std::string& fname) {
+  return _offlineclient ? _offlineclient->reportOpenFile(expt,run,stream,chunk,host,fname) : 0;
 }
