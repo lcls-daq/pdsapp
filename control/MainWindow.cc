@@ -144,8 +144,7 @@ namespace Pds {
       if (occ->id() == OccurrenceId::DataFileOpened) {
         char fname[256];
         const DataFileOpened& dfo = *static_cast<const DataFileOpened*>(occ);
-        sprintf(fname, "e%d-r%04d-s%02d-c%02d.xtc", 
-                dfo.expt, dfo.run, dfo.stream, dfo.chunk);
+        snprintf(fname, sizeof(fname), "%s:%s", dfo.host, dfo.path);
                 _log.appendText(QString("%1: Opened data file %2")
                 .arg(QTime::currentTime().toString("hh:mm:ss"))
                 .arg(fname));
