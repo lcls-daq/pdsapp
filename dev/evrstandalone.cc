@@ -16,6 +16,7 @@ static EvgrBoardInfo<Evr> *erInfoGlobal;
 class PulseParams {
 public:
   unsigned eventcode;
+  unsigned polarity;
   unsigned delay;
   unsigned width;
   unsigned output;
@@ -57,7 +58,7 @@ void EvrStandAloneManager::configure() {
     printf("Configuring pulse %d  eventcode %d  delay %d  width %d  output %d\n",
            i, pulse[i].eventcode, pulse[i].delay, pulse[i].width, pulse[i].output);
     _er.SetPulseMap(ram, pulse[i].eventcode, i, -1, -1);
-    _er.SetPulseProperties(i, 0, 0, 0, 1, 1);
+    _er.SetPulseProperties(i, pulse[i].polarity, 0, 0, 1, 1);
     _er.SetPulseParams(i,1,pulse[i].delay,pulse[i].width);
     _er.SetUnivOutMap( pulse[i].output, i);
   }
@@ -95,10 +96,11 @@ EvrStandAloneManager::EvrStandAloneManager(EvgrBoardInfo<Evr> &erInfo) :
 }
 
 void usage(const char* p) {
-  printf("Usage: %s -r <evr a/b> -p <eventcode,delay,width,output> [-p ...] -k\n",p);
+  printf("Usage: %s -r <evr a/b> -p <eventcode,delay,width,output[,polarity]> [-p ...] [-k]\n",p);
   printf("\teventcode : [40=120Hz, 41=60Hz, ..]\n");
   printf("\tdelay,width in 119MHz ticks [1=8.4ns, 2=16.8ns, ..]\n");
   printf("\toutput : connector number [0=Univ0,..]\n");
+  printf("\tpolarity : 0=pos(default) | 1=neg\n");
   printf("\t-k makes the program immortal\n");
 }
 
@@ -131,6 +133,11 @@ int main(int argc, char** argv) {
       if (pulse[npulses].delay>udelta) pulse[npulses].delay -= delta;
       pulse[npulses].width     = strtoul(endptr+1,&endptr,0);
       pulse[npulses].output    = strtoul(endptr+1,&endptr,0);
+      if (*endptr==',') {
+        pulse[npulses].polarity = strtoul(endptr+1,&endptr,0);
+      } else {
+        pulse[npulses].polarity = 0;
+      }
       npulses++;
       break;
     case 'T':
