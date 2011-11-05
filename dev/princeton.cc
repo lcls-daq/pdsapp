@@ -20,7 +20,6 @@
 #include "pds/client/Action.hh"
 #include "pds/config/CfgClientNfs.hh"
 #include "pds/princeton/PrincetonManager.hh"
-#include "pds/princeton/SegmentEventLevel.hh"
 
 using std::string;
 
@@ -280,10 +279,9 @@ int main(int argc, char** argv)
     SegWireSettingsPrinceton settings(detInfo);
     
     EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, iCamera, bInitTest, iDebugLevel);
-    //SegmentEventLevel       segEventlevel(iPlatform, settings, eventCallBackPrinceton, NULL);
-    SegmentLevel segEventlevel(iPlatform, settings, eventCallBackPrinceton, NULL); // !! for debug
+    SegmentLevel segmentLevel(iPlatform, settings, eventCallBackPrinceton, NULL); // !! for debug
     
-    segEventlevel.attach();    
+    segmentLevel.attach();    
     if ( eventCallBackPrinceton.IsAttached() )    
         task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)        
     }
