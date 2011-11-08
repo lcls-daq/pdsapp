@@ -13,6 +13,7 @@ namespace Pds {
     MySqlRunAllocator(OfflineClient*);
     unsigned alloc();
     int      reportOpenFile(int expt, int run, int stream, int chunk, std::string& host, std::string& fname);
+    int      reportDetectors(int expt, int run, std::vector<std::string>& names);
   private:
     OfflineClient* _offlineclient;
   };

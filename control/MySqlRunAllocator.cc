@@ -18,6 +18,9 @@ unsigned MySqlRunAllocator::alloc() {
       //      _w.log().append("Error: AllocateRunNumber failed in StateSelect\n");
       return (unsigned)Error;
     } else {
+      if (_offlineclient->BeginNewRun(runNumber)) {
+        printf("Error: BeginNewRun failed in StateSelect\n");
+      }
       return runNumber;
     }
   } else {
@@ -29,3 +32,8 @@ unsigned MySqlRunAllocator::alloc() {
 int MySqlRunAllocator::reportOpenFile(int expt, int run, int stream, int chunk, std::string& host, std::string& fname) {
   return _offlineclient ? _offlineclient->reportOpenFile(expt,run,stream,chunk,host,fname) : 0;
 }
+
+int MySqlRunAllocator::reportDetectors(int expt, int run, std::vector<std::string>& names) {
+  return _offlineclient ? _offlineclient->reportDetectors(expt,run,names) : 0;
+}
+

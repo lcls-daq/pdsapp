@@ -157,6 +157,47 @@ namespace Pds {
     unsigned    _experiment;
   };
 
+  class OfflineReport : public Appliance {
+  public:
+    OfflineReport(PartitionSelect& partition, RunAllocator& runallocator) :
+      _partition(partition),
+      _runallocator(runallocator),
+      _experiment(0),
+      _run(0)
+    {
+    }
+    ~OfflineReport() {}
+
+  public:
+    Transition* transitions(Transition* tr)
+    {
+      if ((tr->id()==TransitionId::BeginRun) &&
+          (tr->size() > sizeof(Transition))) {
+        // RunInfo
+        RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
+        _experiment = rinfo.experiment();
+        _run = rinfo.run();
+        const QList<DetInfo> detlist = _partition.detectors();
+        std::vector<std::string> names;
+        foreach (DetInfo dd, detlist) {
+          names.push_back(DetInfo::name(dd));
+        }
+        _runallocator.reportDetectors(_experiment, _run, names);
+      }
+    return tr;
+    }
+
+    InDatagram* events     (InDatagram* dg) { return dg; }
+
+    Occurrence* occurrences(Occurrence* occ) { return occ; }
+
+  private:
+    PartitionSelect& _partition;
+    RunAllocator& _runallocator;
+    unsigned    _experiment;
+    unsigned    _run;
+  };
+
   class ShutdownTest : public Appliance {
   public:
     ShutdownTest(QualifiedControl& c) : _c(c) {}
@@ -229,6 +270,9 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(new ShutdownTest(*_control));
   _controlcb->add_appliance(new ControlDamage(*this));
   _controlcb->add_appliance(new FileReport(*_log));
+  if (_offlineclient) {
+    _controlcb->add_appliance(new OfflineReport(*_partition, *_runallocator));
+  }
   _controlcb->add_appliance(state);
   _controlcb->add_appliance(new SeqAppliance(*_control, *state, *_config,
   					     *_pvmanager, sequencer_id));

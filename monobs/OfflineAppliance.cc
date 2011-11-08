@@ -90,12 +90,6 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
         // LogBook: begin transaction
         conn->beginTransaction();
 
-        // LogBook: begin run
-        now = LusiTime::Time::now();
-        conn->beginRun(_instrument_name,
-                       _experiment_name,
-                       _run_number, "DATA", now); // DATA/CALIB
-
         parm_list_size = (int) vsPvNameList.size();
         if (parm_list_size > 0) {
           // save metadata
