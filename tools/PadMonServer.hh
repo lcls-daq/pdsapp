@@ -9,6 +9,7 @@ namespace Pds {
   namespace CsPad  {
     class ConfigV3; 
     class ElementV1;
+    class MiniElementV1;
   };
   namespace Fexamp { 
     class ConfigV1;
@@ -25,10 +26,11 @@ namespace Pds {
     ~PadMonServer();
   public:
     void configure(const Pds::CsPad::ConfigV3&);
-    void event    (const Pds::CsPad::ElementV1&);
+    void event    (const Pds::CsPad::ElementV1&);     // CsPad
+    void event    (const Pds::CsPad::MiniElementV1&); // CsPad140k
   public:
     void configure(const Pds::Fexamp::ConfigV1&);
-    void event    (const Pds::Fexamp::ElementV1&);
+    void event    (const Pds::Fexamp::ElementV1&);    // Fexamp
   public:
     void unconfigure();
   private:

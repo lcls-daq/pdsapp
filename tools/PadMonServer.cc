@@ -6,6 +6,7 @@
 
 #include "pdsdata/cspad/ConfigV3.hh"
 #include "pdsdata/cspad/ElementV1.hh"
+#include "pdsdata/cspad/MiniElementV1.hh"
 
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -167,6 +168,19 @@ void PadMonServer::configure(const Pds::CsPad::ConfigV3& c)
 }
 
 void PadMonServer::event    (const Pds::CsPad::ElementV1& e)
+{
+  Dgram* dg = _srv->newDatagram();
+  insert(dg,
+         TransitionId::L1Accept, 
+         TypeId(TypeId::Id_Cspad2x2Element,1),
+         srcInfo[_t],
+         &e, 
+         payloadsize);
+  CspadShuffle::shuffle(*dg);
+  _srv->events(dg);
+}
+
+void PadMonServer::event    (const Pds::CsPad::MiniElementV1& e)
 {
   Dgram* dg = _srv->newDatagram();
   insert(dg,
