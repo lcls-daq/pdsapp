@@ -139,7 +139,12 @@ tgtslib_rceProxy := /usr/lib/rt
 
 tgtsrcs_princeton := princeton.cc
 #tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcamtest
-tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcam
+tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcam 
+tgtlibs_princeton += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/lusidata
+tgtlibs_princeton += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/princetondata pdsdata/controldata
+tgtlibs_princeton += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_princeton += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
+
 tgtslib_princeton := /usr/lib/rt dl pthread
 
 tgtsrcs_simcam := simcam.cc 

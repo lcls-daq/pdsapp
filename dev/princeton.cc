@@ -46,9 +46,11 @@ private:
 class EventCallBackPrinceton : public EventCallback 
 {
 public:
-    EventCallBackPrinceton(int iPlatform, CfgClientNfs& cfgService, int iCamera, bool bInitTest, int iDebugLevel) :
+    EventCallBackPrinceton(int iPlatform, CfgClientNfs& cfgService, int iCamera, bool bDelayMode, 
+      bool bInitTest, string sConfigDb, int iDebugLevel) :
       _iPlatform(iPlatform), _cfg(cfgService), _iCamera(iCamera), 
-      _bInitTest(bInitTest), _iDebugLevel(iDebugLevel),
+      _bDelayMode(bDelayMode), _bInitTest(bInitTest), _sConfigDb(sConfigDb),
+      _iDebugLevel(iDebugLevel),
       _bAttached(false), _princetonManager(NULL) 
     {
     }
@@ -78,7 +80,7 @@ private:
         
         try
         {            
-        _princetonManager = new PrincetonManager(_cfg, _iCamera, _bInitTest, _iDebugLevel);
+        _princetonManager = new PrincetonManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iDebugLevel);
         }
         catch ( PrincetonManagerException& eManager )
         {
@@ -122,7 +124,9 @@ private:
     int                 _iPlatform;
     CfgClientNfs&       _cfg;
     int                 _iCamera;
+    bool                _bDelayMode;
     bool                _bInitTest;
+    string              _sConfigDb;
     int                 _iDebugLevel;
     bool                _bAttached;
     PrincetonManager*   _princetonManager;    
@@ -137,8 +141,8 @@ using namespace Pds;
 
 static void showUsage()
 {
-    printf( "Usage:  princeton  [-v|--version] [-h|--help] [-c|--camera [0-9] ] "
-      "[-i|--id <id>] [-d|--delay] [-n|--init] "
+    printf( "Usage:  princeton  [-v|--version] [-h|--help] [-c|--camera <0-9> ] "
+      "[-i|--id <id>] [-d|--delay] [-n|--init] [-g|--config <db_path>] "
       "[-l|--debug <level>] [-i|--id <id>] -p|--platform <platform id>\n" 
       "  Options:\n"
       "    -v|--version                 Show file version.\n"
@@ -147,6 +151,7 @@ static void showUsage()
       "    -i|--id       <id>           Set ID. Format: Detector/DetectorId/DeviceId. (Default: NoDetector/0/0)\n"
       "    -d|--delay                   Use delay mode.\n"
       "    -n|--init                    Run a testing capture to avoid the initial delay.\n"
+      "    -g|--config <db_path>        Intial princeton camera based on the config db at <db_path>\n"
       "    -l|--debug    <level>        Set debug level. (Default: 0)\n"
       "    -p|--platform <platform id>  [*required*] Set platform id.\n"
     );
@@ -170,7 +175,7 @@ void princetonSignalIntHandler( int iSignalNo )
 
 int main(int argc, char** argv) 
 {
-    const char*   strOptions    = ":vhp:c:i:nl:";
+    const char*   strOptions    = ":vhp:c:i:dnl:g:";
     const struct option loOptions[]   = 
     {
        {"ver",      0, 0, 'v'},
@@ -178,7 +183,9 @@ int main(int argc, char** argv)
        {"platform", 1, 0, 'p'},
        {"camera",   1, 0, 'c'},
        {"id",       1, 0, 'i'},
+       {"delay",    0, 0, 'd'},
        {"init",     0, 0, 'n'},
+       {"config",   1, 0, 'g'},
        {"debug",    1, 0, 'l'},
        {0,          0, 0,  0 }
     };    
@@ -188,11 +195,12 @@ int main(int argc, char** argv)
     DetInfo::Detector detector      = DetInfo::NoDetector;
     int               iDetectorId   = 0;
     int               iDeviceId     = 0;
+    bool              bDelayMode    = false;
     bool              bInitTest     = false;
     int               iDebugLevel   = 0;
     int               iPlatform     = -1;
-    
-    
+    string            sConfigDb;
+        
     int               iOptionIndex  = 0;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
     {
@@ -217,11 +225,17 @@ int main(int argc, char** argv)
             if ( *pNextToken == 0 ) break;
             iDeviceId   = strtoul(pNextToken, &pNextToken, 0);
             break;            
+        case 'd':
+            bDelayMode = true;
+            break;            
         case 'n':
             bInitTest = true;
             break;            
         case 'l':
             iDebugLevel = strtoul(optarg, NULL, 0);
+            break;       
+        case 'g':
+            sConfigDb = optarg;
             break;       
         case '?':               /* Terse output mode */
             printf( "princeton:main(): Unknown option: %c\n", optopt );
@@ -261,24 +275,22 @@ int main(int argc, char** argv)
     
     try
     {   
-      
     printf("Settings:\n");
 
     printf("  Platform: %d  Camera: %d\n", iPlatform, iCamera);        
     
     const DetInfo detInfo( getpid(), detector, iDetectorId, DetInfo::Princeton, iDeviceId);    
-    printf("  DetInfo: %s\n", DetInfo::name(detInfo) );
-    
-    printf("  Init Test: %s  Debug Level: %d\n", (bInitTest?"Yes":"No"),
+    printf("  DetInfo: %s  ConfigDb: %s\n", DetInfo::name(detInfo), sConfigDb.c_str() );    
+    printf("  Delay Mode: %s  Init Test: %s  Debug Level: %d\n", (bDelayMode?"Yes":"No"), (bInitTest?"Yes":"No"),
       iDebugLevel);
-
+      
     Task* task = new Task(Task::MakeThisATask);
     taskMainThread = task;
 
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsPrinceton settings(detInfo);
     
-    EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, iCamera, bInitTest, iDebugLevel);
+    EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iDebugLevel);
     SegmentLevel segmentLevel(iPlatform, settings, eventCallBackPrinceton, NULL); // !! for debug
     
     segmentLevel.attach();    

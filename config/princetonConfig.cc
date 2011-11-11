@@ -18,8 +18,8 @@ namespace Pds_ConfigDb {
       _uBinY                ("Binning Y",           1,    1,    64),
       // Note: Here the min exposure time need to set 9.99e-4 to allow user to input 1e-3, due to floating points imprecision
       _f32ExposureTime      ("Exposure time (sec)", 1e-3, 9.99e-4, 120),
-      _f32CoolingTemp       ("Cooling Temp (C)",    25,   -50,  25),      
-      _u16GainIndex 		("Gain Index",          3,    0,    5),
+      _f32CoolingTemp       ("Cooling Temp (C)",    25,   -100,  25),      
+      _u16GainIndex     ("Gain Index",          3,    0,    5),
       _u16ReadoutSpeedIndex ("Readout Speed",       1,    0,    5),
       _u16ReadoutEventCode  ("Readout Event Code",  1,    1,    255)
     {}
@@ -48,7 +48,7 @@ namespace Pds_ConfigDb {
       _uBinY                .value = tc.binY    ();
       _f32ExposureTime      .value = tc.exposureTime();
       _f32CoolingTemp       .value = tc.coolingTemp ();
-	  _u16GainIndex			.value = tc.gainIndex();
+    _u16GainIndex     .value = tc.gainIndex();
       _u16ReadoutSpeedIndex .value = tc.readoutSpeedIndex();
       _u16ReadoutEventCode  .value = tc.readoutEventCode();
       return tc.size();
@@ -64,7 +64,7 @@ namespace Pds_ConfigDb {
         _uBinY                .value,
         _f32ExposureTime      .value,
         _f32CoolingTemp       .value,
-        _u16GainIndex 		  .value,
+        _u16GainIndex       .value,
         _u16ReadoutSpeedIndex .value,
         _u16ReadoutEventCode  .value
       );
