@@ -56,6 +56,7 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
     int parm_read_count = 0;
     int parm_save_count = 0;
     TPvList vsPvValueList;
+    TPvList vsPvDescriptionList;
     static TPvList vsPvNameList;  // initialized in first transition, then unchanged
 
     // retrieve run # that was allocated earlier
@@ -93,7 +94,7 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
         parm_list_size = (int) vsPvNameList.size();
         if (parm_list_size > 0) {
           // save metadata
-          parm_read_count = _readEpicsPv(vsPvNameList, vsPvValueList);
+          parm_read_count = _readEpicsPv(vsPvNameList, vsPvValueList, vsPvDescriptionList);
           if (parm_read_count != parm_list_size) {
             printf("Error: read %d of %d PVs\n", parm_read_count, parm_list_size);
           }
@@ -104,7 +105,8 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
             }
             if (_saveRunParameter(conn, _instrument_name,
                           _experiment_name, _run_number,
-                          vsPvNameList[iPv].c_str(), vsPvValueList[iPv].c_str(), "PV")) {
+                          vsPvNameList[iPv].c_str(), vsPvValueList[iPv].c_str(),
+                          vsPvDescriptionList[iPv].c_str())) {
               printf("Error: storing PV %s in LogBook failed\n", vsPvNameList[iPv].c_str());
             } else {
               ++parm_save_count;
@@ -303,7 +305,7 @@ int OfflineAppliance::_saveRunParameter(LogBook::Connection *conn, const char *i
 //
 // RETURNS: The number of PVs successfully read.
 //
-int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
+int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& pvValues, TPvList& pvDescriptions)
 {
   int status;
   int read_count = 0;
@@ -311,13 +313,29 @@ int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
 
   if (ca_current_context() == NULL) {
     // Initialize Channel Access
+    string description_suffix = ".DESC";
     status = ca_context_create(ca_disable_preemptive_callback);
     if (ECA_NORMAL == status) {
       // Create channels
       for (ix = 0; ix < (int)in.size(); ix ++) {
-        status = ca_create_channel(in[ix].c_str(), 0, 0, 0, &_channels[ix].id);
+        status = ca_create_channel(in[ix].c_str(), 0, 0, 0, &_channels[ix].value_channel);
         if (ECA_NORMAL == status) {
           _channels[ix].created = true;
+          // Create additional channel for DESC
+          string description_name = in[ix];
+          unsigned int uSuffixStart = description_name.find_last_of(".");
+          if (uSuffixStart == string::npos) {
+            description_name.append(description_suffix);
+          } else {
+            description_name.replace(uSuffixStart, 100, description_suffix);
+          }
+          status = ca_create_channel(description_name.c_str(), 0, 0, 0, &_channels[ix].description_channel);
+          if (ECA_NORMAL != status) {
+            // DESC field not found for this channel
+            printf("Warning: %s: problem establishing connection to %s.\n", __FUNCTION__, description_name.c_str());
+            _channels[ix].description_channel = 0;
+            _channels[ix].description[0] = '\0';  // empty string is default
+          }
         }
         else {
           SEVCHK(status, NULL);
@@ -339,20 +357,31 @@ int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
   if (ca_current_context() != NULL) {
     // Make get requests
     for (ix = 0; ix < (int)in.size(); ix ++) {
-      if ((_channels[ix].created) && (cs_conn == ca_state(_channels[ix].id))) {
+      if ((_channels[ix].created) && (cs_conn == ca_state(_channels[ix].value_channel))) {
         // channel is connected
-        status = ca_bget(_channels[ix].id, _channels[ix].value);
+        status = ca_bget(_channels[ix].value_channel, _channels[ix].value);
         if (ECA_NORMAL == status){
           ++read_count;   // increment count of PVs successfully read
+          if ((_channels[ix].description_channel) && (cs_conn == ca_state(_channels[ix].description_channel))) {
+            // DESC channel is connected
+            status = ca_bget(_channels[ix].description_channel, _channels[ix].description);
+            if (ECA_NORMAL != status) {
+              SEVCHK(status, NULL);
+              printf("Error in call to ca_bget() (DESC)\n");
+              _channels[ix].description[0] = '\0';  // empty string is default
+            }
+          }
         } else {
           SEVCHK(status, NULL);
-          printf("Error in call to ca_bget()");
+          printf("Error in call to ca_bget()\n");
           _channels[ix].value[0] = '\0';  // empty string is default
+          _channels[ix].description[0] = '\0';    // empty string is default
         }
       } else {
         // channel is not connected
         printf("Error: failed to connect PV %s\n", in[ix].c_str());
         _channels[ix].value[0] = '\0';    // empty string is default
+        _channels[ix].description[0] = '\0';    // empty string is default
       }
     }
 
@@ -372,14 +401,16 @@ int OfflineAppliance::_readEpicsPv(TPvList in, TPvList& out)
       read_count = 0;
     }
     for (ix = 0; ix < (int)in.size(); ix ++) {
-      out.push_back((read_count > 0) ? _channels[ix].value: "");
+      pvValues.push_back((read_count > 0) ? _channels[ix].value: "");
+      pvDescriptions.push_back((read_count > 0) ? _channels[ix].description: "");
     }
   }
   else {
     // EPICS not initialized
     // ...return array of empty strings
     for (ix = 0; ix < (int)in.size(); ix ++) {
-      out.push_back("");
+      pvValues.push_back("");
+      pvDescriptions.push_back("");
     }
   }
   return read_count;

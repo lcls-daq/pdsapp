@@ -33,9 +33,11 @@ namespace Pds {
     typedef std::vector<std::string> TPvList;
 
     typedef struct parm_channel {
-      chid         id;
+      chid         value_channel;
+      chid         description_channel;
       bool         created;
       dbr_string_t value;
+      dbr_string_t description;
     } parm_channel_t;
 
     static int _readConfigFile( const std::string& sFnConfig, TPvList& vsPvNameList );
@@ -47,7 +49,7 @@ namespace Pds {
                       const char *experiment, unsigned int run, const char *parmName,
                       const char *parmValue, const char *parmDescription);
 
-    int _readEpicsPv(TPvList in, TPvList& out);
+    int _readEpicsPv(TPvList in, TPvList& pvValues, TPvList& pvDescriptions);
 
     const char * _path;
     const char * _instrument_name;
