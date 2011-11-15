@@ -253,12 +253,30 @@ private:
   EvrBldManager* _evrBldMgr;  
 };
 
-EvrBldManager::EvrBldManager(EvgrBoardInfo<Evr> &erInfo, unsigned opcode, EvrBldServer& evrBldServer, 
+EvrBldManager::EvrBldManager(EvgrBoardInfo<Evr> &erInfo, const std::list<PulseParams>& pulses, EvrBldServer& evrBldServer, 
                              CfgClientNfs** cfgIpimb, unsigned nIpimbBoards, unsigned* interfaceOffset) :
-                             _er(erInfo.board()), _opcode(opcode),_evrBldServer(evrBldServer),
+                             _er(erInfo.board()), _pulses(pulses),_evrBldServer(evrBldServer),
                              _erInfo(&erInfo), _evtCounter(0),_fsm(*new Fsm),
                              _ipimbConfig(new IpimbConfigType[nIpimbBoards]) {
-								 
+
+  if (!_pulses.size()) {
+    //
+    //  Set a default configuration
+    //
+    const double tickspersec = 119.0e6;
+    PulseParams p;
+    p.eventcode = 140;
+    p.delay     = (unsigned)(PULSE_DELAY*tickspersec);
+    p.width     = (unsigned)(PULSE_WIDTH*tickspersec);
+    p.polarity  = PulseParams::Positive;
+    p.output    = 0;
+    _pulses.push_back(p);
+    p.output    = 1;
+    _pulses.push_back(p);
+    p.output    = 2;
+    _pulses.push_back(p);
+  }
+
   _er.IrqAssignHandler(erInfo.filedes(), &evrsa_sig_handler);  
   evrBldMgrGlobal = this;
   
@@ -313,7 +331,7 @@ void EvrBldManager::handleEvrIrq() {
     FIFOEvent fe;
     _er.GetFIFOEvent(&fe);
  
-    if ( fe.EventCode != _opcode ) 
+    if ( fe.EventCode != _pulses.front().eventcode ) 
       printf("*** Received Diff. Event code %03d @ evtCount = %u \n", fe.EventCode,_evtCounter);
     else {
       timespec ts;
@@ -356,23 +374,27 @@ void EvrBldManager::configure() {
   }    
 
   int ram = 0;  
-  unsigned opcode = _opcode;
   int pulse    = 0;   int presc = 1;  int enable = 1;
-  int polarity = 0;   int map_reset_ena=0;  int map_set_ena=0;  int map_trigger_ena=1;
-  _er.SetPulseProperties(pulse, polarity, map_reset_ena, map_set_ena, map_trigger_ena,enable);
+  int map_reset_ena=0;  int map_set_ena=0;  int map_trigger_ena=1;
+  for(std::list<PulseParams>::const_iterator it=_pulses.begin(); it!=_pulses.end(); it++, pulse++) {
+    _er.SetPulseProperties(pulse, 
+                           it->polarity==PulseParams::Positive ? 0 : 1, 
+                           map_reset_ena, map_set_ena, map_trigger_ena,enable);
 
-  const double tickspersec = 119.0e6;
-  int delay=(int)(PULSE_DELAY*tickspersec);
-  int width=(int)(PULSE_WIDTH*tickspersec);
-  _er.SetPulseParams(pulse,presc,delay,width);
+    _er.SetPulseParams(pulse,presc,it->delay,it->width);
 
-  _er.SetFPOutMap(0, pulse);
-  _er.SetFPOutMap(1, pulse);
-  _er.SetFPOutMap(2, pulse);
+    _er.SetFPOutMap(it->output, pulse);
+  }
+
+  int opcode = _pulses.front().eventcode;
+
   _er.SetFIFOEvent(ram, opcode, enable);   
   
-  int trig=0; int set=-1; int clear=-1;
-  _er.SetPulseMap(ram, opcode, trig, set, clear);
+  int set=-1; int clear=-1;
+  pulse  = 0;
+  for(std::list<PulseParams>::const_iterator it=_pulses.begin(); it!=_pulses.end(); it++, pulse++) {
+    _er.SetPulseMap(ram, opcode, pulse , set, clear);
+  }
   
   _er.IrqEnable(0);
   _er.Enable(0);

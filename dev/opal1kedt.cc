@@ -10,9 +10,9 @@
 #include "pds/service/Task.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pds/camera/PimManager.hh"
-#include "pds/camera/TM6740Camera.hh"
-#include "pds/camera/PicPortCL.hh"
+#include "pds/camera/Opal1kManager.hh"
+#include "pds/camera/Opal1kCamera.hh"
+#include "pds/camera/EdtPdvCL.hh"
 
 #include <signal.h>
 #include <unistd.h>
@@ -21,15 +21,9 @@
 
 static bool verbose = false;
 
-static Pds::CameraDriver* _driver(int id)
+static Pds::CameraDriver* _driver(int id) 
 {
-  return new PdsLeutron::PicPortCL(*new Pds::TM6740Camera, id);
-}
-
-static void *thread_signals(void*)
-{
-  while(1) sleep(100);
-  return 0;
+  return new Pds::EdtPdvCL(*new Pds::Opal1kCamera,0,id);
 }
 
 namespace Pds {
@@ -46,15 +40,15 @@ namespace Pds {
 	    unsigned              grabberId) :
       _task    (task),
       _platform(platform),
-      _camman  (new PimManager(src)),
+      _opal1k  (new Opal1kManager(src)),
       _grabberId(grabberId)
     {
-      _sources.push_back(src);
+      _sources.push_back(_opal1k->server().client());
     }
 
     virtual ~SegTest()
     {
-      delete _camman;
+      delete _opal1k;
       _task->destroy();
     }
 
@@ -64,9 +58,14 @@ namespace Pds {
 		  StreamParams::StreamType s,
 		  int interface)
     {
-      wire.add_input(&_camman->server());
+      wire.add_input(&_opal1k->server());
     }
-    const std::list<Src>& sources() const { return _sources; }
+
+    const std::list<Src>& sources() const
+    {
+      return _sources;
+    }
+
   private:
     // Implements EventCallback
     void attached(SetOfStreams& streams)
@@ -75,10 +74,10 @@ namespace Pds {
 	     _platform);
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
-      _camman->appliance().connect(frmk->inlet());
+      _opal1k->appliance().connect(frmk->inlet());
       //      (new Decoder)->connect(frmk->inlet());
 
-      _camman->attach(_driver(_grabberId));
+      _opal1k->attach(_driver(_grabberId));
     }
     void failed(Reason reason)
     {
@@ -102,7 +101,7 @@ namespace Pds {
       printf("SegTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
 	     who.platform(), username, who.pid(), ipname);
       
-      _camman->detach();
+      _opal1k->detach();
 
       delete this;
     }
@@ -110,7 +109,7 @@ namespace Pds {
   private:
     Task*          _task;
     unsigned       _platform;
-    TM6740Manager* _camman;
+    Opal1kManager* _opal1k;
     int            _grabberId;
     std::list<Src> _sources;
   };
@@ -121,7 +120,8 @@ using namespace Pds;
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  unsigned platform = -1UL;
+  const unsigned NO_PLATFORM = ~0;
+  unsigned platform = NO_PLATFORM;
   Arp* arp = 0;
 
   DetInfo::Detector det(DetInfo::NoDetector);
@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
       platform = strtoul(optarg, NULL, 0);
       break;
     case 'g':
-      grabberId = strtoul(optarg, &endPtr, 0);
+      grabberId = strtoul(optarg, NULL, 0);
       break;
     case 'v':
       verbose = true;
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (platform == -1UL) {
+  if (platform == NO_PLATFORM) {
     printf("%s: platform required\n",argv[0]);
     return 0;
   }
@@ -171,25 +171,17 @@ int main(int argc, char** argv) {
     }
   }
 
-  printf("Starting handler thread ...\n");
-  pthread_t h_thread_signals;
-  pthread_create(&h_thread_signals, NULL, thread_signals, 0);
-
-  //
-  // Block all signals from this thread (and daughters)
-  //
-  sigset_t sigset_full;
-  sigfillset(&sigset_full);
-  pthread_sigmask(SIG_BLOCK, &sigset_full, 0);
-
   Task* task = new Task(Task::MakeThisATask);
   Node node(Level::Source,platform);
+
   SegTest* segtest = new SegTest(task, 
 				 platform, 
 				 DetInfo(node.pid(), 
 					 det, detid, 
-					 DetInfo::TM6740, devid),
+					 DetInfo::Opal1000, devid),
 				 grabberId);
+
+  printf("Creating segment level ...\n");
   SegmentLevel* segment = new SegmentLevel(platform, 
 					   *segtest,
 					   *segtest, 

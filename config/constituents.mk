@@ -12,6 +12,7 @@ libsrcs_configdb += DeviceEntry.cc
 libsrcs_configdb += Experiment.cc
 libsrcs_configdb += GlobalCfg.cc
 libsrcs_configdb += PdsDefs.cc
+libsrcs_configdb += EventcodeTiming.cc
 
 libsrcs_configdbg := ControlScan.cc ControlScan_moc.cc
 libsrcs_configdbg += PvScan.cc PvScan_moc.cc
@@ -37,7 +38,6 @@ libsrcs_configdbg += EvrIOChannel.cc EvrIOChannel_moc.cc
 libsrcs_configdbg += EvrIOConfig.cc EvrIOConfig_moc.cc
 libsrcs_configdbg += PolarityButton.cc
 libsrcs_configdbg += EvrPulseTable_V4.cc EvrPulseTable_V4_moc.cc
-libsrcs_configdbg += EventcodeTiming.cc
 libsrcs_configdbg += EvrPulseTable.cc EvrPulseTable_moc.cc
 libsrcs_configdbg += EvrEventDesc.cc EvrEventDesc_moc.cc
 libsrcs_configdbg += EvrSeqEventDesc.cc

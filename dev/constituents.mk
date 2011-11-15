@@ -2,11 +2,15 @@
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    :=  evr \
+ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
+tgtnames := opal1kedt
+else
+tgtnames :=  evr \
     evrstandalone \
     evrsnoop \
     acq \
     opal1k \
+    opal1kedt \
     epicsArch \
     rceProxy \
     encoder \
@@ -22,6 +26,7 @@ tgtnames    :=  evr \
     fexamp   \
     gsc16ai  \
     simcam
+endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
@@ -97,15 +102,29 @@ tgtslib_evrsnoop := /usr/lib/rt
 ARCHCODE=32
 #endif
 
-leutron_libs := leutron/lvsds.34.${ARCHCODE}
+leutron_libs := pds/camleutron
+leutron_libs += leutron/lvsds.34.${ARCHCODE}
 leutron_libs += leutron/LvCamDat.34.${ARCHCODE}
 leutron_libs += leutron/LvSerialCommunication.34.${ARCHCODE}
+
+edt_libs := pds/camedt edt/pdv
 
 tgtsrcs_opal1k := opal1k.cc 
 tgtlibs_opal1k := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
 tgtlibs_opal1k += pds/camera
 tgtlibs_opal1k += $(leutron_libs)
 tgtincs_opal1k := leutron/include
+
+tgtsrcs_opal1kedt := opal1kedt.cc 
+#tgtlibs_opal1kedt := pdsdata/xtcdata pdsdata/appdata 
+tgtlibs_opal1kedt := pdsdata/xtcdata
+tgtlibs_opal1kedt += pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_opal1kedt += pds/service pds/collection pds/xtc pds/mon pds/vmon 
+tgtlibs_opal1kedt += pds/utility pds/management pds/client pds/config 
+tgtlibs_opal1kedt += pds/camera
+tgtlibs_opal1kedt += $(edt_libs)
+tgtslib_opal1kedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
+tgtincs_opal1kedt := edt/include
 
 tgtsrcs_tm6740 := tm6740.cc 
 tgtlibs_tm6740 := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata

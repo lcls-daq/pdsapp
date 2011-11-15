@@ -11,6 +11,8 @@
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pds/camera/FccdManager.hh"
+#include "pds/camera/FccdCamera.hh"
+#include "pds/camera/PicPortCL.hh"
 
 #include <signal.h>
 #include <unistd.h>
@@ -18,6 +20,11 @@
 #include <stdio.h>
 
 static bool verbose = false;
+
+static Pds::CameraDriver* _driver()
+{
+  return new PdsLeutron::PicPortCL(*new Pds::FccdCamera);
+}
 
 static void *thread_signals(void*)
 {
@@ -74,7 +81,7 @@ namespace Pds {
       _fccd->appliance().connect(frmk->inlet());
       //      (new Decoder)->connect(frmk->inlet());
 
-      _fccd->attach_camera();
+      _fccd->attach(_driver());
     }
     void failed(Reason reason)
     {
@@ -98,7 +105,7 @@ namespace Pds {
       printf("SegTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
 	     who.platform(), username, who.pid(), ipname);
       
-      _fccd->detach_camera();
+      _fccd->detach();
 
       delete this;
     }

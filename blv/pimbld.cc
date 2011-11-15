@@ -3,6 +3,8 @@
 #include "pdsapp/blv/PipeStream.hh"
 #include "pds/management/EventBuilder.hh"
 #include "pds/camera/PimManager.hh"
+#include "pds/camera/TM6740Camera.hh"
+#include "pds/camera/PicPortCL.hh"
 #include "pds/xtc/XtcType.hh"
 #include "pds/service/Task.hh"
 
@@ -33,6 +35,11 @@ public:
   unsigned grabber_id;
   unsigned wait_us;
 };
+
+static Pds::CameraDriver* _driver(int id)
+{
+  return new PdsLeutron::PicPortCL(*new TM6740Camera, id);
+}
 
 static void *thread_signals(void*)
 {
@@ -163,9 +170,9 @@ int main(int argc, char** argv) {
               DetInfo::TM6740, cam.device_id);
 
   if (cam.bld_id) {
-    PimManager* icamman = new PimManager(det, cam.grabber_id);
+    PimManager* icamman = new PimManager(det);
     icamman->appliance().connect(stream->inlet());
-    icamman->attach_camera();
+    icamman->attach(_driver(cam.grabber_id));
     iwire->add_input(&(icamman->server()));
   }
 

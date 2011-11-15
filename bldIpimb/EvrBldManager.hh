@@ -1,6 +1,7 @@
 #ifndef Pds_EvrBldManager_hh
 #define Pds_EvrBldManager_hh
 
+#include <list>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -25,11 +26,24 @@ namespace Pds {
   class Fsm;
   class Appliance;
   class Evr;
+
+  class PulseParams {
+  public:
+    enum Polarity { Positive, Negative };
+  public:
+    unsigned eventcode;
+    unsigned delay;
+    unsigned width;
+    unsigned output;
+    enum Polarity polarity;
+  };
+
   
 class EvrBldManager {
 public:
 
-  EvrBldManager(EvgrBoardInfo<Evr>& erInfo, unsigned opcode, 
+  EvrBldManager(EvgrBoardInfo<Evr>& erInfo, 
+                const std::list<PulseParams>& pulses,
                 EvrBldServer& evrBldServer,CfgClientNfs** cfgIpimb, 
                 unsigned nIpimbServers,unsigned* bldIdMap);
   ~EvrBldManager() { }
@@ -46,7 +60,7 @@ public:
 
 private:
   Evr&   _er;
-  unsigned _opcode;
+  std::list<PulseParams> _pulses;
   EvrBldServer& _evrBldServer;
   EvgrBoardInfo<Evr>*   _erInfo;
   unsigned _evtCounter;

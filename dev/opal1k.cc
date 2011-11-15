@@ -11,6 +11,8 @@
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pds/camera/Opal1kManager.hh"
+#include "pds/camera/Opal1kCamera.hh"
+#include "pds/camera/PicPortCL.hh"
 
 #include <signal.h>
 #include <unistd.h>
@@ -18,6 +20,11 @@
 #include <stdio.h>
 
 static bool verbose = false;
+
+static Pds::CameraDriver* _driver(int id) 
+{
+  return new PdsLeutron::PicPortCL(*new Pds::Opal1kCamera,id);
+}
 
 static void *thread_signals(void*)
 {
@@ -39,7 +46,8 @@ namespace Pds {
 	    unsigned              grabberId) :
       _task    (task),
       _platform(platform),
-      _opal1k  (new Opal1kManager(src, grabberId))
+      _opal1k  (new Opal1kManager(src)),
+      _grabberId(grabberId)
     {
       _sources.push_back(_opal1k->server().client());
     }
@@ -75,7 +83,7 @@ namespace Pds {
       _opal1k->appliance().connect(frmk->inlet());
       //      (new Decoder)->connect(frmk->inlet());
 
-      _opal1k->attach_camera();
+      _opal1k->attach(_driver(_grabberId));
     }
     void failed(Reason reason)
     {
@@ -99,7 +107,7 @@ namespace Pds {
       printf("SegTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
 	     who.platform(), username, who.pid(), ipname);
       
-      _opal1k->detach_camera();
+      _opal1k->detach();
 
       delete this;
     }
@@ -108,6 +116,7 @@ namespace Pds {
     Task*          _task;
     unsigned       _platform;
     Opal1kManager* _opal1k;
+    int            _grabberId;
     std::list<Src> _sources;
   };
 }

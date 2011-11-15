@@ -42,6 +42,7 @@
 #include "pdsapp/config/Path.hh"
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Table.hh"
+#include "pdsapp/config/EventcodeTiming.hh"
 
 #define IPIMB_BLD_MAX_DATASIZE  512
 #define DEFAULT_EVENT_OPCODE    140 
@@ -94,13 +95,12 @@ unsigned parse_interface(char* iarg)
   return interface;
 }
 
-
 static void showUsage()
 {
     printf( "Usage:  bldIpimb [-f <ipimbPortMapFile>] [-c <Ipimb Config DB>] [-i <Interface Name/Ip>] [-o <opcode>] [-h] \n" 
       " Options:\n"
       "   -h                        : Show Usage\n"
-      "   -o <EVR Opcode>           : Set the Event Code to listen to. Default = 140. \n"
+      "   -o <eventcode,polarity,delay,width,output> : Configure an EVR output, time in 119MHz clks. \n"
       "   -i <Interface Name/IP>    : Set the network interface for transmitting multicast e.g. eth0, eth1 etc. \n"
       "   -d <DetInfo/bldId>        : Det Info for IPIMB Configuration OR provide Portmap File with -f option. \n"
       "   -c <Config DB Path>       : Path for IPIMB Config DB. \n"
@@ -126,7 +126,8 @@ int main(int argc, char** argv) {
   unsigned controlPort = 5727; //1100; 
   int interface   = 0; 
  
-  unsigned opcode = DEFAULT_EVENT_OPCODE; 
+  std::list<PulseParams> pulses;
+
   char evrdev[16];  
   char evrid = 'a';
   unsigned bldId = (unsigned) Pds::BldInfo::Nh2Sb1Ipm01; 
@@ -147,10 +148,17 @@ int main(int argc, char** argv) {
   while ( (c=getopt( argc, argv, "o:i:d:c:p:b:r:f:h?")) != EOF ) {
     switch(c) {
     case 'o':
-      opcode = strtoul(optarg, NULL, 0);
-      if(opcode > 255) {
-        printf("main()::Invalid Opcode > 255 Selected \n");
-        return 1;
+      { PulseParams pulse;
+        pulse.eventcode = strtoul(optarg  ,&endPtr,0);
+        pulse.polarity  = (strtol (endPtr+1,&endPtr+1,0) > 0) ? PulseParams::Positive : PulseParams::Negative;
+        unsigned ticks = Pds_ConfigDb::EventcodeTiming::timeslot(pulse.eventcode);
+        unsigned delta = ticks - Pds_ConfigDb::EventcodeTiming::timeslot(140);
+        unsigned udelta = abs(delta);
+        pulse.delay     = strtoul(endPtr+1,&endPtr,0);
+        if (pulse.delay>udelta) pulse.delay -= delta;
+        pulse.width     = strtoul(endPtr+1,&endPtr,0);
+        pulse.output    = strtoul(endPtr+1,&endPtr,0);
+        pulses.push_back(pulse);
       }
       break;	  
     case 'i':
@@ -191,7 +199,7 @@ int main(int argc, char** argv) {
   }
 
   sprintf(evrdev,"/dev/er%c3",evrid);
-  printf("Using evr %s and opcode = %u \n",evrdev, opcode);
+  printf("Using evr %s\n",evrdev);
  
   if (bldId >= 255) {
     printf("Invalid Bld Multicast Address: (%s.%d) -Exiting Program \n",getBldAddrBase(),bldId);
@@ -302,7 +310,7 @@ int main(int argc, char** argv) {
 
   // EVR & IPIMB Mgr Appliances and Stream Connections
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
-  evrBldMgr = new EvrBldManager(erInfo, opcode, evrBldServer,cfgService,nServers,bldIdMap);  
+  evrBldMgr = new EvrBldManager(erInfo, pulses, evrBldServer,cfgService,nServers,bldIdMap);  
   //IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, baselineSubtraction, polarities, *new IpimbFex);
   IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, baselineSubtraction, polarities, *new LusiDiagFex);
   evrBldMgr->appliance().connect(bldIpimbStream->inlet());

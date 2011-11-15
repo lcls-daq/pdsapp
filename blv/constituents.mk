@@ -4,9 +4,15 @@
 
 #libsrcs_blv := ShmOutlet.cc IdleStream.cc
 
+ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
+tgtnames    := pimblvedt
+endif
+
+ifneq ($(findstring i386-linux,$(tgt_arch)),)
 tgtnames    := evrblv pimblv
 tgtnames    += evrbld pimbld
 tgtnames    += netfifo netfwd
+endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
@@ -18,9 +24,12 @@ commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility p
 ARCHCODE=32
 #endif
 
-leutron_libs := leutron/lvsds.34.${ARCHCODE}
+leutron_libs := pds/camleutron
+leutron_libs += leutron/lvsds.34.${ARCHCODE}
 leutron_libs += leutron/LvCamDat.34.${ARCHCODE}
 leutron_libs += leutron/LvSerialCommunication.34.${ARCHCODE}
+
+edt_libs := pds/camedt edt/pdv
 
 tgtsrcs_evrblv := evrblv.cc IdleStream.cc
 tgtincs_evrblv := evgr
@@ -34,6 +43,13 @@ tgtlibs_pimblv := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/puln
 tgtlibs_pimblv += pds/camera
 tgtlibs_pimblv += $(leutron_libs)
 tgtincs_pimblv := leutron/include
+
+tgtsrcs_pimblvedt := pimblvedt.cc ShmOutlet.cc IdleStream.cc 
+tgtlibs_pimblvedt := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_pimblvedt += pds/camera
+tgtlibs_pimblvedt += $(edt_libs)
+tgtslib_pimblvedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
+tgtincs_pimblvedt := edt/include
 
 tgtsrcs_evrbld := evrbld.cc EvrBldManager.cc IdleStream.cc PipeApp.cc
 tgtlibs_evrbld := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata

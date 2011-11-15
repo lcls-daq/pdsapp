@@ -11,6 +11,8 @@
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pds/camera/TM6740Manager.hh"
+#include "pds/camera/TM6740Camera.hh"
+#include "pds/camera/PicPortCL.hh"
 
 #include <signal.h>
 #include <unistd.h>
@@ -19,6 +21,10 @@
 
 static bool verbose = false;
 
+static Pds::CameraDriver* _driver(int id) 
+{
+  return new PdsLeutron::PicPortCL(*new Pds::TM6740Camera,id);
+}
 static void *thread_signals(void*)
 {
   while(1) sleep(100);
@@ -39,7 +45,8 @@ namespace Pds {
 	    unsigned              grabberId) :
       _task    (task),
       _platform(platform),
-      _camman  (new TM6740Manager(src, grabberId))
+      _camman  (new TM6740Manager(src)),
+      _grabberId(grabberId)
     {
       _sources.push_back(src);
     }
@@ -70,7 +77,7 @@ namespace Pds {
       _camman->appliance().connect(frmk->inlet());
       //      (new Decoder)->connect(frmk->inlet());
 
-      _camman->attach_camera();
+      _camman->attach(_driver(_grabberId));
     }
     void failed(Reason reason)
     {
@@ -94,7 +101,7 @@ namespace Pds {
       printf("SegTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
 	     who.platform(), username, who.pid(), ipname);
       
-      _camman->detach_camera();
+      _camman->detach();
 
       delete this;
     }
@@ -103,6 +110,7 @@ namespace Pds {
     Task*          _task;
     unsigned       _platform;
     TM6740Manager* _camman;
+    int            _grabberId;
     std::list<Src> _sources;
   };
 }
