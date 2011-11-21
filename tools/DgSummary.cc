@@ -42,6 +42,9 @@ namespace Pds {
 			     BldInfo::Type(i)));
     }
     const Src& src() const { return _src; }
+    const Src& src(const Src& input) const { 
+      return BldInfo(static_cast<const ProcInfo&>(_src).processId(),
+                     BldInfo::Type(input.phy())); }
   private:
     int process(const Xtc& xtc, InDatagramIterator* iter) {
       if (xtc.contains.id() == TypeId::Id_Xtc) {
@@ -108,7 +111,7 @@ int DgSummary::process(const Xtc& xtc, InDatagramIterator* iter)
       _out->append(xtc.src);
   }
   else if (xtc.damage.value() && xtc.src.level() == Level::Reporter)
-    _out->append(xtc.src);
+    _out->append(_bld->src(xtc.src));
   else if (xtc.src.level() == Level::Source)
     advance = -1;
   else if (xtc.contains.id() == TypeId::Id_Xtc)
