@@ -14,7 +14,8 @@ using namespace Pds;
 
 static inline bool matches(const Src& a, const Src& b)
 {
-  return a.level()==b.level() && a.phy()==b.phy();
+  //  return a.level()==b.level() && a.phy()==b.phy();
+  return a==b;
 }
 
 DamageStats::DamageStats(PartitionSelect& partition) :
@@ -57,6 +58,11 @@ DamageStats::DamageStats(PartitionSelect& partition) :
   setLayout(l);
 
   update_stats();
+  /*
+  printf("DamageStats list:\n");
+  for(int i=0; i<_segments.size(); i++)
+    printf("  [%08x.%08x]\n",_segments[i].log(),_segments[i].phy());
+  */
 }
 
 DamageStats::~DamageStats()
@@ -75,6 +81,9 @@ int DamageStats::increment(InDatagramIterator* iter, int extent)
     advance += iter->copy(&info, sizeof(info));
     extent  -= sizeof(info);
     int i=0;
+    /*
+    printf("incr [%08x.%08x]\n", info.log(),info.phy());
+    */
     while( i<segm.size() ) {
       if (matches(segm.at(i),info)) {
 	_counts.at(i)->increment();
@@ -83,8 +92,9 @@ int DamageStats::increment(InDatagramIterator* iter, int extent)
       i++;
     }
     if (i==segm.size() && _ndbgPrints) {
-      printf("DmgStats no match for proc %x/%d\n",
-	     info.ipAddr(), info.processId());
+      printf("DmgStats no match for proc %x/%d [%08x.%08x]\n",
+	     info.ipAddr(), info.processId(),
+             info.log(), info.phy());
       _ndbgPrints--;
     }
   }
