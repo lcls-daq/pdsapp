@@ -178,9 +178,11 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: cspad [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> -p <platform>\n"
+  printf( "Usage: cspad [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] -p <platform>\n"
       "    -h      Show usage\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
+      "            NB, if you can't remember the detector names\n"
+      "            just make up something and it'll list them\n"
       "    -i      Set device id             [Default: 0]\n"
       "    -m      Set config mask           [Default: 0]\n"
       "    -P      Set pgpcard index number  [Default: 0]\n"
@@ -196,9 +198,8 @@ void printUsage(char* s) {
       "                bit 09          turn on printing of FE quad status\n"
       "                bit 10          print out time dumping front end took\n"
       "    -x      Cspad2x2Element data type not CspadElement\n"
+      "    -r      set run time config file name\n"
       "    -p      Set platform id           [required]\n"
-      "            NB, if you can't remember the detector names\n"
-      "            just make up something and it'll list them\n"
   );
 }
 
@@ -213,11 +214,12 @@ int main( int argc, char** argv )
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
   ::signal( SIGINT, sigHandler );
+  char                runTimeConfigname[256] = {""};
   bool                platformMissing     = true;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:D:xP:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:D:xP:r:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -258,6 +260,9 @@ int main( int argc, char** argv )
          case 'D':
            debug = strtoul(optarg, NULL, 0);
            break;
+         case 'r':
+           strcpy(runTimeConfigname, optarg);
+           break;
          case 'h':
            printUsage(argv[0]);
            return 0;
@@ -294,6 +299,7 @@ int main( int argc, char** argv )
    cfgService = new CfgClientNfs(detInfo);
    cspadServer = new CspadServer(detInfo, typeId, mask);
    cspadServer->debug(debug);
+   cspadServer->runTimeConfigName(runTimeConfigname);
 
    MySegWire settings(cspadServer);
 
