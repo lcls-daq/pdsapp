@@ -167,7 +167,7 @@ void PadMonServer::configure(const Pds::CsPad::ConfigV3& c)
   _srv->events(insert(_srv->newDatagram(), TransitionId::Enable));
 }
 
-void PadMonServer::event    (const Pds::CsPad::ElementV1& e)
+void PadMonServer::event    (const Pds::CsPad::MiniElementV1& e)
 {
   Dgram* dg = _srv->newDatagram();
   insert(dg,
@@ -180,7 +180,7 @@ void PadMonServer::event    (const Pds::CsPad::ElementV1& e)
   _srv->events(dg);
 }
 
-void PadMonServer::event    (const Pds::CsPad::MiniElementV1& e)
+void PadMonServer::event    (const Pds::CsPad::ElementV1& e)
 {
   Dgram* dg = _srv->newDatagram();
   insert(dg,
