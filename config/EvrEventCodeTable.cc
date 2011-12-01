@@ -87,7 +87,7 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
     if (EvrGlbEventDesc::global_code(e.code())) {
       _glb_code[nglb++].pull(e);
     }
-    else if (e.code() > StartUserCodes) {
+    else if (e.code() >= StartUserCodes) {
       int useq = (e.code()-StartUserCodes)/MinUserCodes;
       if (userseq < 0) {
         userseq = useq;
