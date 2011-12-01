@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
     case 'o':
       { PulseParams pulse;
         pulse.eventcode = strtoul(optarg  ,&endPtr,0);
-        pulse.polarity  = (strtol (endPtr+1,&endPtr+1,0) > 0) ? PulseParams::Positive : PulseParams::Negative;
+        pulse.polarity  = (strtol (endPtr+1,&endPtr,0) > 0) ? PulseParams::Positive : PulseParams::Negative;
         unsigned ticks = Pds_ConfigDb::EventcodeTiming::timeslot(pulse.eventcode);
         unsigned delta = ticks - Pds_ConfigDb::EventcodeTiming::timeslot(140);
         unsigned udelta = abs(delta);
