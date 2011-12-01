@@ -40,7 +40,11 @@ ListUi::ListUi(const Path& path) :
   glob_t g;
   glob(kpath.c_str(),0,0,&g);
   for(unsigned k=0; k<g.gl_pathc; k++) {
-    *new QListWidgetItem(basename(g.gl_pathv[k]),_keylist);
+    struct stat s;
+    stat(g.gl_pathv[k],&s);
+    QString entry(basename(g.gl_pathv[k]));
+    entry += "  [" + QString(ctime(&s.st_mtime)).remove('\n') + "]";
+    *new QListWidgetItem(entry,_keylist);
   }
   globfree(&g);
 
@@ -60,7 +64,7 @@ void ListUi::update_device_list()
   _devices .clear();
   QListWidgetItem* item = _keylist->currentItem();
   if (item) {
-    string kname = string(qPrintable(item->text())) + "/[0-9]*";
+    string kname = string(qPrintable(item->text().split(' ')[0])) + "/[0-9]*";
     string kpath = _path.key_path(kname);
     glob_t g;
     glob(kpath.c_str(),0,0,&g);
@@ -119,6 +123,8 @@ void ListUi::view_xtc()
   QString qfile(_types[_xtclist->currentRow()].c_str());
 
   Dialog* d = new Dialog(_xtclist, *_dict.lookup(t), qpath, qpath, qfile);
-  d->exec();
-  delete d;
+  //  d->exec();
+  //  delete d;
+  d->setAttribute(::Qt::WA_DeleteOnClose, true);
+  d->show();
 }
