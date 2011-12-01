@@ -73,27 +73,35 @@ void EvrEventCodeTable::insert(Pds::LinkedList<Parameter>& pList)
 
 void EvrEventCodeTable::pull(const EvrConfigType& cfg) 
 {
-  int userseq = (cfg.eventcode(0).code()-StartUserCodes)/MinUserCodes;
-  if (userseq < 0) userseq=0;
-  _range_lo.value = userseq*MinUserCodes+StartUserCodes;
-
   for(unsigned i=0; i<MaxUserCodes; i++)
     _seq_code[i].set_enable(false);
 
   for(unsigned i=0; i<MaxGlobalCodes; i++)
     _glb_code[i].set_enable(false);
 
-  unsigned max_seq = cfg.eventcode(0).code();
+  int userseq = -1;
+  unsigned max_seq = 0;
   unsigned nglb=0;
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
     const EvrConfigType::EventCodeType& e = cfg.eventcode(i);
-    if (e.code()>46 && e.code()<140) {
+    if (EvrGlbEventDesc::global_code(e.code())) {
+      _glb_code[nglb++].pull(e);
+    }
+    else if (e.code() > StartUserCodes) {
+      int useq = (e.code()-StartUserCodes)/MinUserCodes;
+      if (userseq < 0) {
+        userseq = useq;
+        _range_lo.value = useq*MinUserCodes+StartUserCodes;
+      }
+      else if (useq != userseq) {
+        printf("Eventcode %d does not belong to user sequence (%d:%d) or global sequence\n",
+               e.code(), _range_lo.value, _range_lo.value+MinUserCodes);
+        continue;
+      }
       _seq_code[e.code()-_range_lo.value].pull(e);
       if (e.code() > max_seq)
         max_seq = e.code();
     }
-    else
-      _glb_code[nglb++].pull(e);
   }
 
   if (max_seq < _range_lo.value+MinUserCodes)

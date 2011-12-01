@@ -47,3 +47,8 @@ void EvrGlbEventDesc::set_code(unsigned n)
     if (QString(code_str[i]).split(' ')[0].toUInt()==n)
       _code->setCurrentIndex(i);
 }
+
+bool EvrGlbEventDesc::global_code(unsigned e)
+{
+  return (e>=40 && e<=46) || (e>=140 && e<=146) || (e==150) || (e==162);
+}

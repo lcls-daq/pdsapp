@@ -13,6 +13,8 @@ namespace Pds_ConfigDb {
     QWidget*       code_widget();
     unsigned       get_code() const;
     void set_code  (unsigned);
+  public:
+    static bool    global_code(unsigned);
   private:
     QComboBox* _code;
   };
