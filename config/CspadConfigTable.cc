@@ -10,12 +10,16 @@
 #include <QtGui/QLabel>
 #include <QtGui/QLineEdit>
 #include <QtGui/QCheckBox>
+#include <QtGui/QMessageBox>
 
 static const int PolarityGroup = 100;
 
 static const unsigned ASICS   = Pds::CsPad::ASICsPerQuad;
 static const unsigned Columns = Pds::CsPad::ColumnsPerASIC;
 static const unsigned Rows    = Pds::CsPad::MaxRowsPerASIC;
+
+//#define CHECKQUADMEMBER(a, b) _quadP[b]->_a.value != _quadP[0]->_a.value
+#define CHECKQUADMEMBER(a, b) for(unsigned q=1; q<4; q++) {if(_quadP[q]->a.value != _quadP[0]->a.value) {b++; break;}}
 
 namespace Pds_ConfigDb
 {
@@ -495,7 +499,40 @@ int CspadConfigTable::dataSize() const {
 
 bool CspadConfigTable::validate()
 {
-  return true;
+  unsigned inconsistentRows = 0;
+  CHECKQUADMEMBER(_readClkSet, inconsistentRows);
+  CHECKQUADMEMBER(_readClkHold, inconsistentRows);
+  CHECKQUADMEMBER(_dataMode, inconsistentRows);
+  CHECKQUADMEMBER(_prstSel, inconsistentRows);
+  CHECKQUADMEMBER(_acqDelay, inconsistentRows);
+  CHECKQUADMEMBER(_intTime, inconsistentRows);
+  CHECKQUADMEMBER(_digDelay, inconsistentRows);
+  CHECKQUADMEMBER(_ampIdle, inconsistentRows);
+  CHECKQUADMEMBER(_injTotal, inconsistentRows);
+  CHECKQUADMEMBER(_rowColShiftPer, inconsistentRows);
+  CHECKQUADMEMBER(_vref, inconsistentRows);
+  CHECKQUADMEMBER(_vinj, inconsistentRows);
+  CHECKQUADMEMBER(_rampCurrR1, inconsistentRows);
+  CHECKQUADMEMBER(_rampCurrR2, inconsistentRows);
+  CHECKQUADMEMBER(_rampVoltRef, inconsistentRows);
+  CHECKQUADMEMBER(_compBias1, inconsistentRows);
+  CHECKQUADMEMBER(_compBias2, inconsistentRows);
+  CHECKQUADMEMBER(_iss2, inconsistentRows);
+  CHECKQUADMEMBER(_iss5, inconsistentRows);
+  CHECKQUADMEMBER(_analogPrst, inconsistentRows);
+
+  if (inconsistentRows==0) return true;
+  QString msg = QString("Have found %1 inconsistent rows\n")
+    .arg(inconsistentRows);
+  switch (QMessageBox::warning(0,"Possible Input Error",msg, "override", "oops", 0, 0, 1))
+    {
+    case 0:
+      return true;
+    case 1:
+      return false;
+    }
+
+  return false;
 }
 
 QLayout* CspadConfigTable::initialize(QWidget* parent) 
