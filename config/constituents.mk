@@ -69,6 +69,7 @@ libsrcs_configdbg += DiodeFexConfig.cc DiodeFexConfig_V1.cc
 libsrcs_configdbg += PimImageConfig.cc
 libsrcs_configdbg += EncoderConfig.cc EncoderConfig_V1.cc
 libsrcs_configdbg += Gsc16aiConfig.cc
+libsrcs_configdbg += AcqChannelMask.cc AcqChannelMask_moc.cc
 libsrcs_configdbg += AcqConfig.cc
 libsrcs_configdbg += AcqTdcConfig.cc
 libsrcs_configdbg += Parameters.cc

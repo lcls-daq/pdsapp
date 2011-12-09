@@ -3,6 +3,7 @@
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 #include "pdsapp/config/BitCount.hh"
+#include "pdsapp/config/AcqChannelMask.hh"
 #include "pds/config/AcqConfigType.hh"
 
 #include <new>
@@ -143,7 +144,8 @@ namespace Pds_ConfigDb {
   public:
     Private_Data() :
       _nbrConvertersPerChannel("Number of Converters Per Channel",1,1,4),
-      _channelMask("Channel Mask [hex]",1,1,0xfffff,Hex),
+      //      _channelMask("Channel Mask [hex]",1,1,0xfffff,Hex),
+      _channelMask("Channel Mask [hex]",1),
       _nbrBanks("Number of Banks",1,1,1),
       _numChan(_channelMask),
       _vertSet("Vert Config", _vertArgs, _numChan)
@@ -195,7 +197,8 @@ namespace Pds_ConfigDb {
     int dataSize() const { return sizeof(AcqConfigType); }
   public:
     NumericInt<uint32_t> _nbrConvertersPerChannel;
-    NumericInt<uint32_t> _channelMask;
+    //    NumericInt<uint32_t> _channelMask;
+    AcqChannelMask _channelMask;
     NumericInt<uint32_t> _nbrBanks;
     BitCount _numChan;
     AcqTrig  _trig;
