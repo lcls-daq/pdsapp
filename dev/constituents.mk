@@ -3,7 +3,8 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames := opal1kedt
+tgtnames := opal1kedt phasics 
+
 else
 tgtnames :=  evr \
     evrstandalone \
@@ -32,8 +33,17 @@ endif
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
 
+
+tgtsrcs_phasics := phasics.cc
+tgtlibs_phasics := $(commonlibs) pds/camera pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/phasicsdata pds/phasics
+tgtlibs_phascis += libdc1394/raw1394
+tgtlibs_phasics += libdc1394/dc1394
+tgtslib_phasics := $(USRLIBDIR)/rt
+CPPFLAGS += -fno-strict-aliasing
+#CPPFLAGS += -fopenmp
+#DEFINES += -fopenmp
+
 tgtsrcs_fexamp := fexamp.cc
-tgtincs_fexamp := fexamp
 tgtlibs_fexamp := $(commonlibs) pdsdata/fexampdata pds/fexamp pds/pgp
 tgtslib_fexamp := /usr/lib/rt
 CPPFLAGS += -fno-strict-aliasing
@@ -41,7 +51,6 @@ CPPFLAGS += -fno-strict-aliasing
 #DEFINES += -fopenmp
 
 tgtsrcs_xamps := xamps.cc
-tgtincs_xamps := xamps
 tgtlibs_xamps := $(commonlibs) pdsdata/xampsdata pds/xamps pds/pgp
 tgtslib_xamps := /usr/lib/rt
 CPPFLAGS += -fno-strict-aliasing
@@ -49,7 +58,6 @@ CPPFLAGS += -fno-strict-aliasing
 #DEFINES += -fopenmp
 
 tgtsrcs_cspad := cspad.cc
-tgtincs_cspad := cspad
 tgtlibs_cspad := $(commonlibs) pdsdata/cspaddata pds/cspad pds/pgp
 tgtslib_cspad := /usr/lib/rt
 CPPFLAGS += -fno-strict-aliasing
