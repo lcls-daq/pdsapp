@@ -69,6 +69,7 @@ libsrcs_configdbg += DiodeFexConfig.cc DiodeFexConfig_V1.cc
 libsrcs_configdbg += PimImageConfig.cc
 libsrcs_configdbg += EncoderConfig.cc EncoderConfig_V1.cc
 libsrcs_configdbg += Gsc16aiConfig.cc
+libsrcs_configdbg += TimepixConfig.cc
 libsrcs_configdbg += AcqChannelMask.cc AcqChannelMask_moc.cc
 libsrcs_configdbg += AcqConfig.cc
 libsrcs_configdbg += AcqTdcConfig.cc
@@ -85,6 +86,7 @@ tgtnames       += configdb_list
 # executable python modules: configdb_gui.py
 
 datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata
+datalibs += pdsdata/timepixdata
 
 tgtsrcs_configdb := configdb.cc
 #tgtincs_configdb := $(qtincdir)

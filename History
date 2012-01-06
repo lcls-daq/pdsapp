@@ -1,3 +1,4 @@
+2012-Jan-05 caf		Added Timepix detector.
 2011-Nov-08 caf		Tag V03-00-01.
 2011-Nov-02 caf		Tag V03-00-00.  Added reporting of full pathname to db.  Now offlinedb-1.3.0 is required.
 2011-Oct-03 caf		Added Gsc16ai detector.

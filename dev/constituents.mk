@@ -25,6 +25,7 @@ tgtnames :=  evr \
     xamps    \
     fexamp   \
     gsc16ai  \
+    timepix  \
     simcam
 endif
 
@@ -161,7 +162,7 @@ tgtsrcs_princeton := princeton.cc
 tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcam 
 tgtlibs_princeton += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/lusidata
 tgtlibs_princeton += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/princetondata pdsdata/controldata
-tgtlibs_princeton += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_princeton += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/timepixdata
 tgtlibs_princeton += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
 
 tgtslib_princeton := /usr/lib/rt dl pthread
@@ -173,4 +174,9 @@ tgtslib_simcam := pthread rt
 tgtsrcs_gsc16ai := gsc16ai.cc
 tgtlibs_gsc16ai := $(commonlibs) pdsdata/gsc16aidata pds/gsc16ai pdsdata/camdata
 tgtslib_gsc16ai := /usr/lib/rt
+
+tgtsrcs_timepix := timepix.cc
+tgtlibs_timepix := $(commonlibs) pdsdata/timepixdata pds/timepix pdsdata/camdata relaxd/mpxhwrelaxd
+tgtslib_timepix := /usr/lib/rt
+tgtincs_timepix := relaxd/include/common relaxd/include/src
 
