@@ -7,9 +7,14 @@
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/cspad/ElementIterator.hh"
+#include "pdsdata/cspad/MiniElementV1.hh"
+#include "pds/epicstools/PVWriter.hh"
 
 #include <math.h>
 #include <string>
+
+using Pds_Epics::PVWriter;
+using Pds::CsPad::ElementIterator;
 
 static const unsigned MaxSections=32;
 static const unsigned BYKIK=162;
@@ -206,9 +211,176 @@ namespace PdsCas {
     CspadHandler& _cspad;
   };
 
+  class CspadTemp {
+  public:
+    CspadTemp ( ) {
+      // Constants
+      const double coeffA = -1.4141963e1;
+      const double coeffB =  4.4307830e3;
+      const double coeffC = -3.4078983e4;
+      const double coeffD = -8.8941929e6;
+      const double t25    = 10000.0;
+      const double k0     = 273.15;
+      const double vmax   = 3.3;
+      const double vref   = 2.5;
+      const double rdiv   = 20000;
+      
+      // Temp range
+      const double minTemp = -50;
+      const double maxTemp = 150;
+      const double incTemp = 0.01;
+      
+      double       temp;
+      double       tk;
+      double       res;
+      double       volt;
+      unsigned int idx;
+
+      temp = minTemp;
+      while ( temp < maxTemp ) {
+        tk = k0 + temp;
+        res = t25 * exp(coeffA+(coeffB/tk)+(coeffC/(tk*tk))+(coeffD/(tk*tk*tk)));      
+        volt = (res*vmax)/(rdiv+res);
+        idx = (int)((volt / vref) * (double)(adcCnt-1));
+        if ( idx < adcCnt ) tempTable[idx] = temp; 
+        temp += incTemp;
+      }
+    }
+
+    // Get Temperature from adc value, deg C
+    double getTemp (unsigned adcValue)
+    {
+      if ( adcValue < adcCnt) return(tempTable[adcValue]);
+      else return(0);
+    }
+  private:
+    enum { adcCnt = 4096 };
+    double tempTable[adcCnt];
+  };
+
+  static CspadTemp _cspad_temp;
+
+  class CspadTHandler : public Handler {
+  public:
+    enum { NTHERMS=16 };
+    CspadTHandler(const char* pvbase, const DetInfo& info) :
+      Handler(info, Pds::TypeId::Id_CspadElement, Pds::TypeId::Id_CspadConfig),
+      _initialized(false)
+    { 
+      strncpy(_pvName,pvbase,PVNAMELEN); 
+    }
+    ~CspadTHandler()
+    {
+      if (_initialized) {
+        for(unsigned i=0; i<NTHERMS; i++)
+          delete _valu_writer[i];
+      }
+    }
+  public:
+    void   _configure(const void* payload, const Pds::ClockTime& t) 
+    {
+      _cfg = *reinterpret_cast<const CsPadConfigType*>(payload);
+    }
+    void   _event    (const void* payload, const Pds::ClockTime& t)
+    {
+      if (!_initialized) return;
+
+      const Xtc* xtc = reinterpret_cast<const Xtc*>(payload)-1;
+      ElementIterator* iter = new ElementIterator(_cfg, *xtc);
+      const Pds::CsPad::ElementHeader* hdr;
+      while( (hdr=iter->next()) ) {
+	for(int a=0; a<4; a++) {
+          int i = 4*hdr->quad()+a;
+          *reinterpret_cast<double*>(_valu_writer[i]->data()) = 
+            _cspad_temp.getTemp(hdr->sb_temp(a));
+        }
+      }
+      delete iter;
+    }
+    void   _damaged  () {}
+  public:
+    void    initialize()
+    {
+      char buff[64];
+      for(unsigned i=0; i<NTHERMS; i++) {
+        sprintf(buff,"%s:QUAD%d:TEMP%d.VAL",_pvName,i/4,i%4);
+        printf("Initializing CspadT %s\n",buff);
+        _valu_writer[i] = new PVWriter(buff);
+      }
+      _initialized = true;
+    }
+    void    update_pv () 
+    {
+      for(unsigned i=0; i<NTHERMS; i++) 
+        _valu_writer[i]->put();
+    }
+  private:
+    enum { PVNAMELEN=32 };
+    char _pvName[PVNAMELEN];
+    bool _initialized;
+    PVWriter* _valu_writer[NTHERMS];
+    CsPadConfigType _cfg;
+  };
+
+  typedef Pds::CsPad::MiniElementV1 CspadMiniElement;
+
+  class CspadMiniTHandler : public Handler {
+  public:
+    enum { NTHERMS=4 };
+    CspadMiniTHandler(const char* pvbase, const DetInfo& info) :
+      Handler(info, Pds::TypeId::Id_Cspad2x2Element, Pds::TypeId::Id_CspadConfig),
+      _initialized(false)
+    { 
+      strncpy(_pvName,pvbase,PVNAMELEN); 
+    }
+    ~CspadMiniTHandler()
+    {
+      if (_initialized) {
+        for(unsigned i=0; i<NTHERMS; i++)
+          delete _valu_writer[i];
+      }
+    }
+  public:
+    void   _configure(const void* payload, const Pds::ClockTime& t) 
+    {
+      _cfg = *reinterpret_cast<const CsPadConfigType*>(payload);
+    }
+    void   _event    (const void* payload, const Pds::ClockTime& t)
+    {
+      if (!_initialized) return;
+
+      const CspadMiniElement& elem = *reinterpret_cast<const CspadMiniElement*>(payload);
+      for(int a=0; a<NTHERMS; a++)
+        *reinterpret_cast<double*>(_valu_writer[a]->data()) = 
+          _cspad_temp.getTemp(elem.sb_temp(a));
+    }
+    void   _damaged  () {}
+  public:
+    void    initialize()
+    {
+      char buff[64];
+      for(unsigned i=0; i<NTHERMS; i++) {
+        sprintf(buff,"%s:TEMP%d.VAL",_pvName,i%4);
+        _valu_writer[i] = new PVWriter(buff);
+      }
+      _initialized = true;
+    }
+    void    update_pv () 
+    {
+      for(unsigned i=0; i<NTHERMS; i++) 
+        _valu_writer[i]->put();
+    }
+  private:
+    enum { PVNAMELEN=32 };
+    char _pvName[PVNAMELEN];
+    bool _initialized;
+    PVWriter* _valu_writer[NTHERMS];
+    CsPadConfigType _cfg;
+  };
 };
 
-void PdsCas::CspadMon::monitor(ShmClient& client,
+void PdsCas::CspadMon::monitor(ShmClient&     client,
+                               const char*    pvbase,
                                const DetInfo& det)
 {
   EvrHandler* evr = new EvrHandler;
@@ -216,4 +388,6 @@ void PdsCas::CspadMon::monitor(ShmClient& client,
   client.insert(evr);
   client.insert(cspad);
   client.insert(new CspadEHandler(*evr,*cspad));
+  client.insert(new CspadTHandler(pvbase,det));
+  client.insert(new CspadMiniTHandler(pvbase,det));
 }

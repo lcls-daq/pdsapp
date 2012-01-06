@@ -42,9 +42,10 @@ int main(int argc, char* argv[])
     exit(1);
   }
 
-  CspadMon::monitor(client, Pds::DetInfo(0, 
-                                         Pds::DetInfo::Detector(det),0,
-                                         Pds::DetInfo::Cspad,0));
+  CspadMon::monitor(client, "userpv", 
+                    Pds::DetInfo(0, 
+                                 Pds::DetInfo::Detector(det),0,
+                                 Pds::DetInfo::Cspad,0));
   
   fprintf(stderr, "client returned: %d\n", client.start());
 }

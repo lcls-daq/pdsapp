@@ -83,6 +83,7 @@ int main(int argc, char* argv[])
 	  break;
         case Pds::DetInfo::XppGon:
           CspadMon::monitor(client, 
+                            pvbase,
                             Pds::DetInfo(0, Pds::DetInfo::Detector(detid), 0, 
                                          Pds::DetInfo::Cspad,0));
           break;

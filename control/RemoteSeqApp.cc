@@ -135,7 +135,11 @@ void RemoteSeqApp::routine()
       }
       else {
 	while(::listen(listener, 5) >= 0) {
-	  Sockaddr name;
+          if (_control.current_state()==PartitionControl::Unmapped) {
+            printf("RemoteSeqApp rejected connection while unmapped\n");
+          }
+          else {
+            Sockaddr name;
 	  unsigned length = name.sizeofName();
 	  _socket = accept(listener, name.name(), &length);
 	  printf("RemoteSeqApp accepted connection from %x/%d\n",
@@ -209,6 +213,7 @@ void RemoteSeqApp::routine()
 	  
           _manual.set_record_state(lrecord);
 	}
+        }
 	printf("RemoteSeqApp::routine listen failed : %s\n",
 	       strerror(errno));
 	close(listener);

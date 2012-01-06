@@ -7,7 +7,8 @@ namespace PdsCas {
   class ShmClient;
   class CspadMon {
   public:
-    static void monitor(ShmClient& client,
+    static void monitor(ShmClient&  client,
+                        const char* pvbase,
                         const Pds::DetInfo& info);
   };
 }

@@ -52,7 +52,7 @@ tgtslib_pimblvedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
 tgtincs_pimblvedt := edt/include
 
 tgtsrcs_evrbld := evrbld.cc EvrBldManager.cc IdleStream.cc PipeApp.cc
-tgtlibs_evrbld := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata
+tgtlibs_evrbld := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata pdsdata/phasicsdata
 tgtlibs_evrbld += pdsapp/configdb qt/QtGui qt/QtCore
 tgtlibs_evrbld += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/lusidata
 tgtlibs_evrbld += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/princetondata pdsdata/controldata
@@ -63,7 +63,7 @@ tgtlibs_evrbld += pds/evgr
 tgtincs_evrbld := evgr
 
 tgtsrcs_pimbld := pimbld.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
-tgtlibs_pimbld := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata
+tgtlibs_pimbld := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata pdsdata/phasicsdata
 tgtlibs_pimbld += pdsapp/configdb qt/QtGui qt/QtCore
 tgtlibs_pimbld += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/lusidata
 tgtlibs_pimbld += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/princetondata pdsdata/controldata
