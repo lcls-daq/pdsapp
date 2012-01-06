@@ -35,6 +35,7 @@
 #include "pdsapp/config/FexampConfig.hh"
 #include "pdsapp/config/Gsc16aiConfig.hh"
 #include "pdsapp/config/TimepixConfig.hh"
+#include "pdsapp/config/PhasicsConfig.hh"
 
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/EvrIOConfigType.hh"
@@ -56,6 +57,7 @@
 #include "pds/config/FexampConfigType.hh"
 #include "pds/config/Gsc16aiConfigType.hh"
 #include "pds/config/TimepixConfigType.hh"
+#include "pds/config/PhasicsConfigType.hh"
 #include "pdsapp/config/PdsDefs.hh"
 
 #include "pdsdata/lusi/DiodeFexConfigV1.hh"
@@ -99,6 +101,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_FexampConfigType    ,new FexampConfig);
   enroll(_gsc16aiConfigType   ,new Gsc16aiConfig);
   enroll(_timepixConfigType   ,new TimepixConfig);
+  enroll(_PhasicsConfigType   ,new PhasicsConfig);
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,2) , new CspadConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  

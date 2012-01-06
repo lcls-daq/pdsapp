@@ -59,6 +59,7 @@ libsrcs_configdbg += XampsCopyAsicDialog.cc XampsCopyAsicDialog_moc.cc
 libsrcs_configdbg += FexampConfig.cc FexampConfig_moc.cc
 libsrcs_configdbg += FexampCopyChannelDialog.cc FexampCopyChannelDialog_moc.cc
 libsrcs_configdbg += FexampCopyAsicDialog.cc FexampCopyAsicDialog_moc.cc
+libsrcs_configdbg += PhasicsConfig.cc PhasicsConfig_moc.cc
 libsrcs_configdbg += ControlConfig.cc
 libsrcs_configdbg += IpimbConfig.cc IpimbConfig_V1.cc
 libsrcs_configdbg += DiodeFexItem.cc
@@ -87,6 +88,7 @@ tgtnames       += configdb_list
 
 datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata
 datalibs += pdsdata/timepixdata
+datalibs += pdsdata/phasicsdata
 
 tgtsrcs_configdb := configdb.cc
 #tgtincs_configdb := $(qtincdir)

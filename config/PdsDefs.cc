@@ -20,6 +20,7 @@
 #include "pds/config/FexampConfigType.hh"
 #include "pds/config/Gsc16aiConfigType.hh"
 #include "pds/config/TimepixConfigType.hh"
+#include "pds/config/PhasicsConfigType.hh"
 //#include "pds/config/SeqConfigType.hh"
 
 #include <sstream>
@@ -73,6 +74,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case Fexamp       : type = &_FexampConfigType;    break;
   case Gsc16ai      : type = &_gsc16aiConfigType;   break;
   case Timepix      : type = &_timepixConfigType;   break;
+  case Phasics      : type = &_PhasicsConfigType;   break;
   default: 
     printf("PdsDefs::typeId id %d not found\n",unsigned(id));
     break;
@@ -105,6 +107,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_FexampConfigType);
   test(_gsc16aiConfigType);
   test(_timepixConfigType);
+  test(_PhasicsConfigType);
 #undef test
   //  database-only types
   //  if (name==_eventCodeSetName) return &_eventCodeSetType;
@@ -138,6 +141,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_FexampConfigType);
   test(_gsc16aiConfigType);
   test(_timepixConfigType);
+  test(_PhasicsConfigType);
 #undef test
   //  database-only types
   //  if (name==_eventCodeSetName) return &_eventCodeSetType;
