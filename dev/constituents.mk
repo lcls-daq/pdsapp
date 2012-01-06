@@ -36,7 +36,8 @@ commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility p
 
 tgtsrcs_phasics := phasics.cc
 tgtlibs_phasics := $(commonlibs) pds/camera pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/phasicsdata pds/phasics
-tgtlibs_phascis += libdc1394/raw1394
+tgtincs_phasics += libdc1394/include
+tgtlibs_phasics += libdc1394/raw1394
 tgtlibs_phasics += libdc1394/dc1394
 tgtslib_phasics := $(USRLIBDIR)/rt
 CPPFLAGS += -fno-strict-aliasing
