@@ -152,8 +152,14 @@ int main(int argc, char** argv) {
     case 'i':
       endPtr = optarg;
       det    = strtoul(endPtr, &endPtr, 0);
-      detid  = strtoul(endPtr, &endPtr, 0);
-      devid  = strtoul(endPtr, &endPtr, 0);
+      if (*endPtr == NULL) {
+        break;
+      }
+      detid  = strtoul(endPtr+1, &endPtr, 0);
+      if (*endPtr == NULL) {
+        break;
+      }
+      devid  = strtoul(endPtr+1, &endPtr, 0);
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
