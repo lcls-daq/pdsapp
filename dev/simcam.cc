@@ -152,11 +152,11 @@ int main(int argc, char** argv) {
     case 'i':
       endPtr = optarg;
       det    = strtoul(endPtr, &endPtr, 0);
-      if (*endPtr == NULL) {
+      if (*endPtr == '\0') {
         break;
       }
       detid  = strtoul(endPtr+1, &endPtr, 0);
-      if (*endPtr == NULL) {
+      if (*endPtr == '\0') {
         break;
       }
       devid  = strtoul(endPtr+1, &endPtr, 0);
