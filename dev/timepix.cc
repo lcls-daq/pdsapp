@@ -155,16 +155,24 @@ int main( int argc, char** argv )
    unsigned detid = -1UL;
    unsigned platform = -1UL;
    Arp* arp = 0;
+  unsigned moduleId = 0;
+  unsigned verbosity = 0;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "a:i:p:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "a:i:p:m:v" ) ) != EOF ) {
       switch(c) {
          case 'a':
             arp = new Arp(optarg);
             break;
          case 'i':
             detid  = strtoul(optarg, NULL, 0);
+            break;
+         case 'm':
+            moduleId  = strtoul(optarg, NULL, 0);
+            break;
+         case 'v':
+            ++verbosity;
             break;
          case 'p':
             platform = strtoul(optarg, NULL, 0);
@@ -174,7 +182,7 @@ int main( int argc, char** argv )
 
    if( (platform==-1UL) || ( detid == -1UL ) ) {
       printf( "Error: Platform and detid required\n" );
-      printf( "Usage: %s -i <detid> -p <platform> [-a <arp process id>]\n",
+      printf( "Usage: %s -i <detid> -p <platform> [-a <arp process id>] [-m <module id>] [-v]\n",
               argv[0] );
       return 0;
    }
@@ -206,7 +214,7 @@ int main( int argc, char** argv )
 
   cfgService = new CfgClientNfs(detInfo);
 
-  timepixServer = new TimepixServer(detInfo);
+  timepixServer = new TimepixServer(detInfo, moduleId, verbosity);
 
   MySegWire settings(timepixServer);
 
