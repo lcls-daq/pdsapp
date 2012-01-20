@@ -172,6 +172,7 @@ tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/pri
 tgtlibs_princeton += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/lusidata
 tgtlibs_princeton += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/princetondata pdsdata/controldata
 tgtlibs_princeton += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/timepixdata
+tgtlibs_princeton += pdsdata/phasicsdata
 tgtlibs_princeton += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
 
 tgtslib_princeton := /usr/lib/rt dl pthread

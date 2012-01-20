@@ -99,8 +99,10 @@ namespace Pds {
       if (CheckType(HfxDg3Imb02))     extent += SizeType(BldDataIpimb);	  
       if (CheckType(HxxDg1Cam  ))     extent += SizeCamType;
       if (CheckType(HfxDg2Cam  ))     extent += SizeCamType;
-      if (CheckType(HfxDg3Cam  ))     extent += SizeCamType;
-      if (CheckType(XcsDg3Cam  ))     extent += SizeCamType;
+      //      if (CheckType(HfxDg3Cam  ))     extent += SizeCamType;
+      //      if (CheckType(XcsDg3Cam  ))     extent += SizeCamType;
+      if (CheckType(HfxDg3Cam  ))     extent += SizeType(BldDataPimV1);
+      if (CheckType(XcsDg3Cam  ))     extent += SizeType(BldDataPimV1);
       if (CheckType(HfxMonCam  ))     extent += SizeCamType;
       if (CheckType(HfxMonImb01))     extent += SizeType(BldDataIpimb);	  
       if (CheckType(HfxMonImb02))     extent += SizeType(BldDataIpimb);	  
@@ -122,8 +124,10 @@ namespace Pds {
         if (CheckType(HfxDg3Imb02))     AddType(HfxDg3Imb02,     Id_SharedIpimb,     BldDataIpimb);	
         if (CheckType(HxxDg1Cam  ))     AddCamType(HxxDg1Cam);
         if (CheckType(HfxDg2Cam  ))     AddCamType(HfxDg2Cam);
-        if (CheckType(HfxDg3Cam  ))     AddCamType(HfxDg3Cam);
-        if (CheckType(XcsDg3Cam  ))     AddCamType(XcsDg3Cam);
+        //        if (CheckType(HfxDg3Cam  ))     AddCamType(HfxDg3Cam);
+        //        if (CheckType(XcsDg3Cam  ))     AddCamType(XcsDg3Cam);
+        if (CheckType(HfxDg3Cam  ))     AddType(HfxDg3Cam,       Id_SharedPim,       BldDataPimV1);
+        if (CheckType(XcsDg3Cam  ))     AddType(XcsDg3Cam,       Id_SharedPim,       BldDataPimV1);
         if (CheckType(HfxMonCam  ))     AddCamType(HfxMonCam);
         if (CheckType(HfxMonImb01))     AddType(HfxMonImb01,     Id_SharedIpimb,     BldDataIpimb);	
         if (CheckType(HfxMonImb02))     AddType(HfxMonImb02,     Id_SharedIpimb,     BldDataIpimb);	
