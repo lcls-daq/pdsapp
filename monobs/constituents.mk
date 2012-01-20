@@ -1,7 +1,7 @@
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames := monobs monshm monshmserver sxrmon xppmon cspadmon
+tgtnames := monobs monshm monshmserver sxrmon xppmon xcsmon cspadmon
 else
-tgtnames := monobs monshm monshmserver offlineobs sxrmon xppmon cspadmon alive_mon
+tgtnames := monobs monshm monshmserver offlineobs sxrmon xppmon xcsmon cspadmon alive_mon
 endif
 
 libnames := 
@@ -50,6 +50,14 @@ tgtlibs_xppmon += pds/service
 tgtlibs_xppmon += $(tgtlibs_common)
 tgtslib_xppmon := $(USRLIBDIR)/rt
 tgtincs_xppmon := epics/include epics/include/os/Linux
+
+tgtsrcs_xcsmon := xcsmon.cc CspadMon.cc $(tgtsrcs_common)
+tgtlibs_xcsmon := pdsdata/xtcdata pdsdata/appdata
+tgtlibs_xcsmon += pdsdata/evrdata pdsdata/cspaddata
+tgtlibs_xcsmon += pds/service
+tgtlibs_xcsmon += $(tgtlibs_common)
+tgtslib_xcsmon := $(USRLIBDIR)/rt
+tgtincs_xcsmon := epics/include epics/include/os/Linux
 
 tgtsrcs_cspadmon := cspadmon.cc CspadMon.cc $(tgtsrcs_common)
 tgtlibs_cspadmon := pdsdata/xtcdata pdsdata/cspaddata pdsdata/evrdata pdsdata/appdata

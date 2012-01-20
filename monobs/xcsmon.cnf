@@ -1,0 +1,8 @@
+# Comment
+# 
+#     Detector		PvBase
+#
+# [ Detector>0 : DetInfo::Detector 
+#   Detector<0 : BldInfo::Type ]
+#
+	25	XCS:USER:LAM:140K
