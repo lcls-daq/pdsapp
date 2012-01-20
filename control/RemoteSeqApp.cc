@@ -135,84 +135,86 @@ void RemoteSeqApp::routine()
       }
       else {
 	while(::listen(listener, 5) >= 0) {
-          if (_control.current_state()==PartitionControl::Unmapped) {
-            printf("RemoteSeqApp rejected connection while unmapped\n");
-          }
-          else {
-            Sockaddr name;
+          Sockaddr name;
 	  unsigned length = name.sizeofName();
 	  _socket = accept(listener, name.name(), &length);
-	  printf("RemoteSeqApp accepted connection from %x/%d\n",
-		 name.get().address(), name.get().portId());
+          if (_control.current_state()==PartitionControl::Unmapped) {
+            printf("RemoteSeqApp rejected connection while unmapped\n");
+            close(_socket);
+            _socket = -1;
+          }
+          else {
+            printf("RemoteSeqApp accepted connection from %x/%d\n",
+                   name.get().address(), name.get().portId());
 
-          //  Cache the recording state
-          bool lrecord = _manual.record_state();
+            //  Cache the recording state
+            bool lrecord = _manual.record_state();
 
-	  _manual.disable_control();
+            _manual.disable_control();
 
-	  //  First, send the current configdb and run key
-	  length = strlen(_control.partition().dbpath());
-	  ::write(_socket,&length,sizeof(length));
-	  ::write(_socket,_control.partition().dbpath(),length);
+            //  First, send the current configdb and run key
+            length = strlen(_control.partition().dbpath());
+            ::write(_socket,&length,sizeof(length));
+            ::write(_socket,_control.partition().dbpath(),length);
 
-	  unsigned old_key = _control.get_transition_env(TransitionId::Configure);
-	  ::write(_socket,&old_key,sizeof(old_key));
+            unsigned old_key = _control.get_transition_env(TransitionId::Configure);
+            ::write(_socket,&old_key,sizeof(old_key));
 
-	  //  Receive the requested run key and recording option
-	  uint32_t options;
-	  int len = ::recv(_socket, &options, sizeof(options), MSG_WAITALL);
-	  if (len != sizeof(options)) {
-	    if (errno==0)
-	      printf("RemoteSeqApp: remote end closed\n");
-	    else
-	      printf("RemoteSeqApp failed to read options(%d/%d) : %s\n",
-		     len,sizeof(options),strerror(errno));
-	  }
+            //  Receive the requested run key and recording option
+            uint32_t options;
+            int len = ::recv(_socket, &options, sizeof(options), MSG_WAITALL);
+            if (len != sizeof(options)) {
+              if (errno==0)
+                printf("RemoteSeqApp: remote end closed\n");
+              else
+                printf("RemoteSeqApp failed to read options(%d/%d) : %s\n",
+                       len,sizeof(options),strerror(errno));
+            }
 
-	  //  Reconfigure with the initial settings
-	  else if (readTransition()) {
-	    _control.set_transition_env    (TransitionId::Configure,options & DbKeyMask);
-	    _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
+            //  Reconfigure with the initial settings
+            else if (readTransition()) {
+              _control.set_transition_env    (TransitionId::Configure,options & DbKeyMask);
+              _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
 
-	    _wait_for_configure = true;
-	    _control.reconfigure();
+              _wait_for_configure = true;
+              _control.reconfigure();
 
-            if (options & RecordSetMask)
-              _manual.set_record_state( options & RecordValMask );
+              if (options & RecordSetMask)
+                _manual.set_record_state( options & RecordValMask );
 
-	    while(1) {
-	      if (!readTransition())  break;
-	      //	      _pvmanager.unconfigure();
-	      //	      _pvmanager.configure(*reinterpret_cast<ControlConfigType*>(_config_buffer));
-	      _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
-	      _control.set_transition_env(TransitionId::Enable, 
-					  config.uses_duration() ?
-					  EnableEnv(config.duration()).value() :
-					  EnableEnv(config.events()).value());
-	      _control.set_target_state(PartitionControl::Enabled);
-	    }
-	    //	    _pvmanager.unconfigure();
-	  }
+              while(1) {
+                if (!readTransition())  break;
+                //	      _pvmanager.unconfigure();
+                //	      _pvmanager.configure(*reinterpret_cast<ControlConfigType*>(_config_buffer));
+                _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
+                _control.set_transition_env(TransitionId::Enable, 
+                                            config.uses_duration() ?
+                                            EnableEnv(config.duration()).value() :
+                                            EnableEnv(config.events()).value());
+                _control.set_target_state(PartitionControl::Enabled);
+              }
+              //	    _pvmanager.unconfigure();
+            }
 
-	  close(_socket);
-	  _socket = -1;
+            close(_socket);
+            _socket = -1;
 
-	  //  replace the configuration with default running
-	  new(_config_buffer) ControlConfigType(Pds::ControlData::ConfigV1::Default);
-	  _configtc.extent = sizeof(Xtc) + config.size();
-	  _control.set_transition_env    (TransitionId::Configure,old_key);
-	  _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
-	  _control.set_transition_env    (TransitionId::Enable, 
-					  config.uses_duration() ?
-					  EnableEnv(config.duration()).value() :
-					  EnableEnv(config.events()).value());
+            //  replace the configuration with default running
+            new(_config_buffer) ControlConfigType(Pds::ControlData::ConfigV1::Default);
+            _configtc.extent = sizeof(Xtc) + config.size();
+            _control.set_transition_env    (TransitionId::Configure,old_key);
+            _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
+            _control.set_transition_env    (TransitionId::Enable, 
+                                            config.uses_duration() ?
+                                            EnableEnv(config.duration()).value() :
+                                            EnableEnv(config.events()).value());
 
-	  _manual.enable_control();
-	  _control.set_target_state(PartitionControl::Configured);
-	  _control.reconfigure();
+            _manual.enable_control();
+            _control.set_target_state(PartitionControl::Configured);
+            _control.reconfigure();
 	  
-          _manual.set_record_state(lrecord);
-	}
+            _manual.set_record_state(lrecord);
+          }
         }
 	printf("RemoteSeqApp::routine listen failed : %s\n",
 	       strerror(errno));
