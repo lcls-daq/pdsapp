@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <signal.h>
 
 namespace Pds
 {
@@ -147,8 +148,23 @@ void Pds::Seg::dissolved( const Node& who )
    delete this;
 }
 
-
 using namespace Pds;
+
+// static int    iSignalCaught   = 0;
+static Task*  readTask = NULL;
+static Task*  decodeTask = NULL;
+
+void timepixSignalIntHandler( int iSignalNo )
+{
+  printf( "\n%s: signal %d received. Stopping all activities\n", __FUNCTION__, iSignalNo );
+  // iSignalCaught = 1;
+
+  if (readTask != NULL)
+    readTask->destroy();
+
+  if (decodeTask != NULL)
+    decodeTask->destroy();
+}
 
 int main( int argc, char** argv )
 {
@@ -191,6 +207,17 @@ int main( int argc, char** argv )
       return 0;
    }
 
+  // Register signal handler
+  struct sigaction sigActionSettings;
+  sigemptyset(&sigActionSettings.sa_mask);
+  sigActionSettings.sa_handler = timepixSignalIntHandler;
+  sigActionSettings.sa_flags   = SA_RESTART;
+
+  if (sigaction(SIGINT, &sigActionSettings, 0) != 0 )
+    printf( "main(): Cannot register signal handler for SIGINT\n" );
+  if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 )
+    printf( "main(): Cannot register signal handler for SIGTERM\n" );
+
    if( arp )
    {
       if( arp->error() )
@@ -219,6 +246,8 @@ int main( int argc, char** argv )
   cfgService = new CfgClientNfs(detInfo);
 
   timepixServer = new TimepixServer(detInfo, moduleId, verbosity, debug);
+  readTask = timepixServer->readTask();
+  decodeTask = timepixServer->decodeTask();
 
   MySegWire settings(timepixServer);
 
