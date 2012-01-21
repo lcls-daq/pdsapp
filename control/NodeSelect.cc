@@ -27,6 +27,7 @@ static QList<int> _bldOrder =
 	       << BldInfo::HfxDg2Cam
 	       << BldInfo::HfxMonImb01
 	       << BldInfo::HfxMonImb02
+	       << BldInfo::HfxMonImb03
 	       << BldInfo::HfxMonCam
 	       << BldInfo::HfxDg3Imb01
 	       << BldInfo::HfxDg3Imb02
@@ -37,6 +38,27 @@ static QList<int> _bldOrder =
 	       << BldInfo::XcsDg3Cam
 	       << BldInfo::NumberOf;
 
+static FILE* open_pref(const char* title, unsigned platform, char* mode)
+{
+  const int BUFF_SIZE=256;
+  char* buff = new char[BUFF_SIZE];
+
+  char* home = getenv("HOME");
+  if (home) {
+    snprintf(buff, NODE_BUFF_SIZE-1, "%s/.%s for platform %u", home, title, platform);
+  }
+  else {
+    snprintf(buff, NODE_BUFF_SIZE-1, ".%s for platform %u", title, platform);
+  }
+  
+  FILE* f = fopen(buff,mode);
+  if (!f) {
+    printf("Failed to open %s\n", buff);
+  }
+  delete[] buff;
+
+  return f;
+}
 
 NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform) :
   QGroupBox(label, parent),
@@ -50,10 +72,9 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform) :
   if (buff == (char *)NULL) {
     printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, NODE_BUFF_SIZE, errno);
   } else {
-    snprintf(buff, NODE_BUFF_SIZE-1, ".%s for platform %u", qPrintable(title()), _platform);
-    FILE* f = fopen(buff,"r");
+
+    FILE* f = open_pref(qPrintable(title()), _platform, "r");
     if (f) {
-      printf("Opened %s\n",buff);
       char* lptr=buff;
       unsigned linesz = NODE_BUFF_SIZE;         // initialize for getline
       while(getline(&lptr,&linesz,f)!=-1) {
@@ -63,9 +84,6 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform) :
         printf("Persist %s\n",qPrintable(p));
       }
       fclose(f);
-    }
-    else {
-      printf("Failed to open %s\n", buff);
     }
     free(buff);
 
@@ -154,17 +172,12 @@ QList<Node> NodeGroup::selected()
   }
 
   //  Write persistent selected nodes
-  char buff[64];
-  snprintf(buff, sizeof(buff)-1, ".%s for platform %u", qPrintable(title()), _platform);
-  FILE* f = fopen(buff,"w");
+  FILE* f = open_pref(qPrintable(title()), _platform,"w");
   if (f) {
     foreach(QString p, _persist) {
       fprintf(f,"%s\n",qPrintable(p));
     }
     fclose(f);
-  }
-  else {
-    printf("Failed to open %s\n", buff);
   }
 
   return nodes;
