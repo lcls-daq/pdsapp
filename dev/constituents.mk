@@ -27,7 +27,8 @@ tgtnames :=  evr \
     fexamp   \
     gsc16ai  \
     timepix  \
-    simcam
+    simcam   \
+    cspad2x2
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
@@ -65,6 +66,13 @@ CPPFLAGS += -fno-strict-aliasing
 #CPPFLAGS += -fopenmp
 #DEFINES += -fopenmp
 
+tgtsrcs_cspad2x2 := cspad2x2.cc
+tgtlibs_cspad2x2 := $(commonlibs) pdsdata/cspad2x2data pds/cspad2x2 pds/pgp
+tgtslib_cspad2x2 := /usr/lib/rt
+CPPFLAGS += -fno-strict-aliasing
+#CPPFLAGS += -fopenmp
+#DEFINES += -fopenmp
+
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris
 tgtlibs_acq := $(commonlibs) pdsdata/acqdata pds/acqiris acqiris/AqDrv4
@@ -72,7 +80,7 @@ tgtslib_acq := /usr/lib/rt
 
 tgtsrcs_ipimb := ipimb.cc
 tgtincs_ipimb := ipimb
-tgtlibs_ipimb := $(commonlibs) pdsdata/ipimbdata pds/ipimb 
+tgtlibs_ipimb := $(commonlibs) pdsdata/ipimbdata pds/ipimb pdsdata/phasicsdata
 tgtslib_ipimb := /usr/lib/rt
 
 tgtsrcs_lusidiag := lusidiag.cc
@@ -169,7 +177,7 @@ tgtslib_rceProxy := /usr/lib/rt
 tgtsrcs_princeton := princeton.cc
 #tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcamtest
 tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcam 
-tgtlibs_princeton += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/lusidata
+tgtlibs_princeton += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/lusidata
 tgtlibs_princeton += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/princetondata pdsdata/controldata
 tgtlibs_princeton += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/timepixdata
 tgtlibs_princeton += pdsdata/phasicsdata

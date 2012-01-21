@@ -16,6 +16,7 @@ endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
+commonlibs  += pdsdata/cspad2x2data
 #commonlibs  += pdsapp/blv
 
 #ifeq ($(shell uname -m | egrep -c '(x86_|amd)64$$'),1)

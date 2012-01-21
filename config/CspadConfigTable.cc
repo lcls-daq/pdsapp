@@ -23,7 +23,7 @@ static const unsigned Rows    = Pds::CsPad::MaxRowsPerASIC;
 
 namespace Pds_ConfigDb
 {
-  static const char* RunModeText [] = { "NoRunning", "RunButDrop", "RunAndSendToRCE", "RunAndSendTriggeredByTTL", "ExternalTriggerSendToRCE", "ExternalTriggerDrop", NULL };
+  static const char* RunModeText [] = { "NoRunning", "RunButDrop", "RunAndSendToServer", "RunAndSendTriggeredByTTL", "ExternalTriggerSendToServer", "ExternalTriggerDrop", NULL };
   //  static const char* DataModeText[] = { "Normal", "ShiftTest", "TestData", "Reserved", NULL };
 
   class GlobalP {
@@ -275,7 +275,8 @@ namespace Pds_ConfigDb
       }
       void push   (Pds::CsPad::ConfigV1QuadReg* p, Pds::CsPad::CsPadGainMapCfg* gm)
       {
-        *new(p) Pds::CsPad::ConfigV1QuadReg(_shiftSelect     .value,
+        *new(p) Pds::CsPad::ConfigV1QuadReg(
+            _shiftSelect     .value,
             _edgeSelect      .value,
             _readClkSet      .value,
             _readClkHold     .value,
