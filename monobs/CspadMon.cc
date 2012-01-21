@@ -328,7 +328,7 @@ namespace PdsCas {
   public:
     enum { NTHERMS=4 };
     CspadMiniTHandler(const char* pvbase, const DetInfo& info) :
-      Handler(info, Pds::TypeId::Id_Cspad2x2Element, Pds::TypeId::Id_CspadConfig),
+      Handler(info, Pds::TypeId::Id_Cspad2x2Element, Pds::TypeId::Id_Cspad2x2Config),
       _initialized(false)
     { 
       strncpy(_pvName,pvbase,PVNAMELEN); 
