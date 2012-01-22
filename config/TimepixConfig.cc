@@ -211,7 +211,7 @@ namespace Pds_ConfigDb {
     int push(void* to) {
       TimepixConfigType& tc = *new(to) TimepixConfigType(
         _readoutSpeed.value,
-        Pds::Timepix::ConfigV1::TriggerMode_ExtPos,   // trigger mode: external/pos
+        Pds::Timepix::ConfigV1::TriggerMode_ExtNeg,   // trigger mode: external/neg
         0,                                            // shutter timeout: 0
         _dac0Ikrum.value,
         _dac0Disc.value,
