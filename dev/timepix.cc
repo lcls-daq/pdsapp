@@ -153,17 +153,17 @@ using namespace Pds;
 // static int    iSignalCaught   = 0;
 static Task*  readTask = NULL;
 static Task*  decodeTask = NULL;
+static TimepixServer* timepixServer;
 
 void timepixSignalIntHandler( int iSignalNo )
 {
   printf( "\n%s: signal %d received. Stopping all activities\n", __FUNCTION__, iSignalNo );
   // iSignalCaught = 1;
 
-  if (readTask != NULL)
-    readTask->destroy();
-
-  if (decodeTask != NULL)
-    decodeTask->destroy();
+  if (timepixServer) {
+    timepixServer->shutdown();
+    sleep(1);
+  }
 }
 
 int main( int argc, char** argv )
@@ -234,7 +234,6 @@ int main( int argc, char** argv )
 
    Task* task = new Task( Task::MakeThisATask );
   
-   TimepixServer* timepixServer;
    CfgClientNfs* cfgService;
 
    DetInfo detInfo( node.pid(),
