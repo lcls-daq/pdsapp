@@ -17,13 +17,20 @@ namespace Pds_ConfigDb {
     Private_Data() :
       _readoutSpeed   ("Chip readout speed", Pds::Timepix::ConfigV1::ReadoutSpeed_Fast,
                                              readoutSpeed_to_name),
+
+      // the following four values are frequently changed
+      _dac0ThlFine    ("DAC0 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
+      _dac1ThlFine    ("DAC1 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
+      _dac2ThlFine    ("DAC2 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
+      _dac3ThlFine    ("DAC3 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
+
+      // remaining values are NOT frequently changed
       _dac0Ikrum      ("DAC0 ikrum",        TIMEPIX_DAC_IKRUM_DEFAULT,      0, 255),
       _dac0Disc       ("DAC0 disc",         TIMEPIX_DAC_DISC_DEFAULT,       0, 255),
       _dac0Preamp     ("DAC0 preamp",       TIMEPIX_DAC_PREAMP_DEFAULT,     0, 255),
       _dac0BufAnalogA ("DAC0 buf analog A", TIMEPIX_DAC_BUFANALOGA_DEFAULT, 0, 255),
       _dac0BufAnalogB ("DAC0 buf analog B", TIMEPIX_DAC_BUFANALOGB_DEFAULT, 0, 255),
       _dac0Hist       ("DAC0 hist",         TIMEPIX_DAC_HIST_DEFAULT,       0, 255),
-      _dac0ThlFine    ("DAC0 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac0ThlCourse  ("DAC0 thl course",   TIMEPIX_DAC_THLCOURSE_DEFAULT,  0,  15),
       _dac0Vcas       ("DAC0 vcas",         TIMEPIX_DAC_VCAS_DEFAULT,       0, 255),
       _dac0Fbk        ("DAC0 fbk",          TIMEPIX_DAC_FBK_DEFAULT,        0, 255),
@@ -37,7 +44,6 @@ namespace Pds_ConfigDb {
       _dac1BufAnalogA ("DAC1 buf analog A", TIMEPIX_DAC_BUFANALOGA_DEFAULT, 0, 255),
       _dac1BufAnalogB ("DAC1 buf analog B", TIMEPIX_DAC_BUFANALOGB_DEFAULT, 0, 255),
       _dac1Hist       ("DAC1 hist",         TIMEPIX_DAC_HIST_DEFAULT,       0, 255),
-      _dac1ThlFine    ("DAC1 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac1ThlCourse  ("DAC1 thl course",   TIMEPIX_DAC_THLCOURSE_DEFAULT,  0,  15),
       _dac1Vcas       ("DAC1 vcas",         TIMEPIX_DAC_VCAS_DEFAULT,       0, 255),
       _dac1Fbk        ("DAC1 fbk",          TIMEPIX_DAC_FBK_DEFAULT,        0, 255),
@@ -51,7 +57,6 @@ namespace Pds_ConfigDb {
       _dac2BufAnalogA ("DAC2 buf analog A", TIMEPIX_DAC_BUFANALOGA_DEFAULT, 0, 255),
       _dac2BufAnalogB ("DAC2 buf analog B", TIMEPIX_DAC_BUFANALOGB_DEFAULT, 0, 255),
       _dac2Hist       ("DAC2 hist",         TIMEPIX_DAC_HIST_DEFAULT,       0, 255),
-      _dac2ThlFine    ("DAC2 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac2ThlCourse  ("DAC2 thl course",   TIMEPIX_DAC_THLCOURSE_DEFAULT,  0,  15),
       _dac2Vcas       ("DAC2 vcas",         TIMEPIX_DAC_VCAS_DEFAULT,       0, 255),
       _dac2Fbk        ("DAC2 fbk",          TIMEPIX_DAC_FBK_DEFAULT,        0, 255),
@@ -65,7 +70,6 @@ namespace Pds_ConfigDb {
       _dac3BufAnalogA ("DAC3 buf analog A", TIMEPIX_DAC_BUFANALOGA_DEFAULT, 0, 255),
       _dac3BufAnalogB ("DAC3 buf analog B", TIMEPIX_DAC_BUFANALOGB_DEFAULT, 0, 255),
       _dac3Hist       ("DAC3 hist",         TIMEPIX_DAC_HIST_DEFAULT,       0, 255),
-      _dac3ThlFine    ("DAC3 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac3ThlCourse  ("DAC3 thl course",   TIMEPIX_DAC_THLCOURSE_DEFAULT,  0,  15),
       _dac3Vcas       ("DAC3 vcas",         TIMEPIX_DAC_VCAS_DEFAULT,       0, 255),
       _dac3Fbk        ("DAC3 fbk",          TIMEPIX_DAC_FBK_DEFAULT,        0, 255),
@@ -77,13 +81,18 @@ namespace Pds_ConfigDb {
 
     void insert(Pds::LinkedList<Parameter>& pList) {
       pList.insert(&_readoutSpeed);
+      // the following four values are frequently changed
+      pList.insert(&_dac0ThlFine);
+      pList.insert(&_dac1ThlFine);
+      pList.insert(&_dac2ThlFine);
+      pList.insert(&_dac3ThlFine);
+      // remaining values are NOT frequently changed
       pList.insert(&_dac0Ikrum);
       pList.insert(&_dac0Disc);
       pList.insert(&_dac0Preamp);
       pList.insert(&_dac0BufAnalogA);
       pList.insert(&_dac0BufAnalogB);
       pList.insert(&_dac0Hist);
-      pList.insert(&_dac0ThlFine);
       pList.insert(&_dac0ThlCourse);
       pList.insert(&_dac0Vcas);
       pList.insert(&_dac0Fbk);
@@ -97,7 +106,6 @@ namespace Pds_ConfigDb {
       pList.insert(&_dac1BufAnalogA);
       pList.insert(&_dac1BufAnalogB);
       pList.insert(&_dac1Hist);
-      pList.insert(&_dac1ThlFine);
       pList.insert(&_dac1ThlCourse);
       pList.insert(&_dac1Vcas);
       pList.insert(&_dac1Fbk);
@@ -111,7 +119,6 @@ namespace Pds_ConfigDb {
       pList.insert(&_dac2BufAnalogA);
       pList.insert(&_dac2BufAnalogB);
       pList.insert(&_dac2Hist);
-      pList.insert(&_dac2ThlFine);
       pList.insert(&_dac2ThlCourse);
       pList.insert(&_dac2Vcas);
       pList.insert(&_dac2Fbk);
@@ -125,7 +132,6 @@ namespace Pds_ConfigDb {
       pList.insert(&_dac3BufAnalogA);
       pList.insert(&_dac3BufAnalogB);
       pList.insert(&_dac3Hist);
-      pList.insert(&_dac3ThlFine);
       pList.insert(&_dac3ThlCourse);
       pList.insert(&_dac3Vcas);
       pList.insert(&_dac3Fbk);
