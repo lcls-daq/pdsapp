@@ -11,12 +11,16 @@ namespace Pds_ConfigDb {
 
   // these must end in NULL
   static const char* readoutSpeed_to_name[] = { "62.5 MHz", "125 MHz", NULL };
+  static const char* timepixSpeed_to_name[] = { "100 MHz", "80 MHz", "40 MHz", "10 MHz", "2.5 MHz", NULL };
+
 
   class TimepixConfig::Private_Data {
   public:
     Private_Data() :
       _readoutSpeed   ("Chip readout speed", Pds::Timepix::ConfigV1::ReadoutSpeed_Fast,
                                              readoutSpeed_to_name),
+
+      _timepixSpeed   ("Timepix speed", 0 /* 100 MHz */, timepixSpeed_to_name),
 
       // the following four values are frequently changed
       _dac0ThlFine    ("DAC0 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
@@ -81,6 +85,7 @@ namespace Pds_ConfigDb {
 
     void insert(Pds::LinkedList<Parameter>& pList) {
       pList.insert(&_readoutSpeed);
+      pList.insert(&_timepixSpeed);
       // the following four values are frequently changed
       pList.insert(&_dac0ThlFine);
       pList.insert(&_dac1ThlFine);
@@ -147,6 +152,7 @@ namespace Pds_ConfigDb {
 //    tc.dump();
 
       _readoutSpeed.value = (Pds::Timepix::ConfigV1::ReadoutSpeed)tc.readoutSpeed();
+      _timepixSpeed.value = tc.shutterTimeout();  // timepix speed replaces shutter timeout
 //    _triggerMode.value = tc.triggerMode();
 //    _shutterTimeout.value = tc.shutterTimeout();
       _dac0Ikrum.value = tc.dac0Ikrum();
@@ -212,7 +218,7 @@ namespace Pds_ConfigDb {
       TimepixConfigType& tc = *new(to) TimepixConfigType(
         _readoutSpeed.value,
         Pds::Timepix::ConfigV1::TriggerMode_ExtNeg,   // trigger mode: external/neg
-        0,                                            // shutter timeout: 0
+        _timepixSpeed.value,    // timepix speed replaces shutter timeout
         _dac0Ikrum.value,
         _dac0Disc.value,
         _dac0Preamp.value,
@@ -282,6 +288,7 @@ namespace Pds_ConfigDb {
 
   public:
     Enumerated<Pds::Timepix::ConfigV1::ReadoutSpeed> _readoutSpeed;
+    Enumerated<int32_t> _timepixSpeed;
     NumericInt<int32_t> _dac0Ikrum;
     NumericInt<int32_t> _dac0Disc;
     NumericInt<int32_t> _dac0Preamp;
