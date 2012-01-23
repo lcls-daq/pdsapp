@@ -20,6 +20,8 @@
 #include <stdio.h>
 #include <signal.h>
 
+#include "mpxfilelogger.h"
+
 namespace Pds
 {
    class MySegWire;
@@ -174,10 +176,12 @@ int main( int argc, char** argv )
   unsigned moduleId = 0;
   unsigned verbosity = 0;
   unsigned debug = 0;
+  char *threshFileName = NULL;
+  char *logpath = NULL;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "a:i:p:m:vd:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "a:i:p:m:vd:T:o:" ) ) != EOF ) {
       switch(c) {
          case 'a':
             arp = new Arp(optarg);
@@ -197,15 +201,26 @@ int main( int argc, char** argv )
          case 'p':
             platform = strtoul(optarg, NULL, 0);
             break;
+         case 'T':
+            threshFileName = optarg;
+            break;
+         case 'o':
+            logpath = optarg;
+            break;
       }
    }
 
    if( (platform==-1UL) || ( detid == -1UL ) ) {
       printf( "Error: Platform and detid required\n" );
-      printf( "Usage: %s -i <detid> -p <platform> [-a <arp process id>] [-m <module id>] [-v] [-d <debug flags>]\n",
-              argv[0] );
+      printf( "Usage: %s -i <detid> -p <platform> [-a <arp process id>] [-m <module id>] [-v]\n"
+              "                   [-d <debug flags>] [-T <threshold file>] [-o <logpath>]\n", argv[0] );
       return 0;
    }
+
+  // default logging dictory for Timepix is /tmp
+  if (setenv(MPX_LOG_DIR_ENV_NAME, logpath ? logpath : "/tmp", 0)) {
+    perror("setenv");
+  }
 
   // Register signal handler
   struct sigaction sigActionSettings;
@@ -244,7 +259,7 @@ int main( int argc, char** argv )
 
   cfgService = new CfgClientNfs(detInfo);
 
-  timepixServer = new TimepixServer(detInfo, moduleId, verbosity, debug);
+  timepixServer = new TimepixServer(detInfo, moduleId, verbosity, debug, threshFileName);
   readTask = timepixServer->readTask();
   decodeTask = timepixServer->decodeTask();
 
