@@ -53,6 +53,7 @@ libsrcs_configdbg += CspadSector.cc
 libsrcs_configdbg += CspadGainMap.cc CspadGainMap_moc.cc
 libsrcs_configdbg += CspadConfigTable.cc CspadConfigTable_moc.cc
 libsrcs_configdbg += CspadConfig.cc
+libsrcs_configdbg += Cspad2x2Temp.cc
 libsrcs_configdbg += Cspad2x2Config.cc
 libsrcs_configdbg += Cspad2x2Sector.cc
 libsrcs_configdbg += Cspad2x2GainMap.cc Cspad2x2GainMap_moc.cc

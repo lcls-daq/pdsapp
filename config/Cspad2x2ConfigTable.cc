@@ -4,6 +4,7 @@
 #include "pdsdata/cspad2x2/ElementV1.hh"
 #include "pdsdata/cspad2x2/Detector.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
+#include "pdsapp/config/Cspad2x2Temp.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -12,6 +13,8 @@
 #include <QtGui/QLineEdit>
 #include <QtGui/QCheckBox>
 #include <QtGui/QMessageBox>
+
+#include <math.h>
 
 static const int PolarityGroup = 100;
 
@@ -148,7 +151,7 @@ namespace Pds_ConfigDb
         _kiConstant      ( NULL, 0, 0, 0xf, Decimal),
         _kdConstant      ( NULL, 0, 0, 0xf, Decimal),
         _humidThold      ( NULL, 0, 0, 0xfff, Decimal),
-        _setPoint        ( NULL, 2026, 0, 0xfff, Decimal),
+        _setPoint        ( NULL, 20, -12, 40, Decimal),
         // digital pots fields
         _vref            ( NULL, 0xba, 0, 0xff, Decimal),
         _vinj            ( NULL, 0xba, 0, 0xff, Decimal),
@@ -172,6 +175,7 @@ namespace Pds_ConfigDb
       }
       void pull   (const Pds::CsPad2x2::ConfigV1QuadReg& p, Pds::CsPad2x2::CsPad2x2GainMapCfg* gm)
       {
+        Cspad2x2Temp temp;
         for(int i=0; i<Pds::CsPad2x2::TwoByTwosPerQuad; i++) {
           _shiftSelect.value[i] = p.shiftSelect()[i];
           _edgeSelect .value[i] = p.edgeSelect()[i];
@@ -194,7 +198,8 @@ namespace Pds_ConfigDb
         _kiConstant      .value = p.kiConstant();
         _kdConstant      .value = p.kdConstant();
         _humidThold      .value = p.humidThold();
-        _setPoint        .value = p.setPoint();
+        temp.adcValue = p.setPoint();
+        _setPoint        .value = (int) nearbyint(temp.getTemp());
 
         const uint8_t* pots = &p.dp().pots[0];
         _vref.value        = pots[0];
@@ -213,6 +218,8 @@ namespace Pds_ConfigDb
       }
       void push   (Pds::CsPad2x2::ConfigV1QuadReg* p, Pds::CsPad2x2::CsPad2x2GainMapCfg* gm)
       {
+        Cspad2x2Temp temp;
+        uint32_t setPoint = temp.tempToAdc(_setPoint.value);
         *new(p) Pds::CsPad2x2::ConfigV1QuadReg(
             _shiftSelect     .value,
             _edgeSelect      .value,
@@ -234,7 +241,7 @@ namespace Pds_ConfigDb
             _kiConstant      .value,
             _kdConstant      .value,
             _humidThold      .value,
-            _setPoint        .value);
+            setPoint);
 
         uint8_t* pots = &p->dp().pots[0];
         *pots++ = _vref.value;
@@ -297,7 +304,7 @@ namespace Pds_ConfigDb
         ADDP("kiConstant");
         ADDP("kdConstant");
         ADDP("humidThold");
-        ADDP("setPoint");
+        ADDP("setPoint (deg C)");
         layout->addWidget(new QLabel("Digital Pots Fields"), row++, 1, 1, 4, ::Qt::AlignHCenter);
         ADDP("Vref");
         ADDP("Vin");
@@ -413,7 +420,7 @@ namespace Pds_ConfigDb
       NumericInt<uint32_t> _kiConstant;
       NumericInt<uint32_t> _kdConstant;
       NumericInt<uint32_t> _humidThold;
-      NumericInt<uint32_t> _setPoint;
+      NumericInt<int>      _setPoint;
       // digital pots fields
       NumericInt<uint8_t> _vref;
       NumericInt<uint8_t> _vinj;
