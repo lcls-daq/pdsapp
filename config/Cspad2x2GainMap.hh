@@ -33,7 +33,6 @@ namespace Pds_ConfigDb
   private:
     Quad2x2GainMap* _quad[1];
     SectionDisplay2x2* _display;
-    unsigned _q, _s;
   };
 }
 

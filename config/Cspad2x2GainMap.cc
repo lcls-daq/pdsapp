@@ -24,17 +24,7 @@
 
 static const unsigned COLS=Pds::CsPad2x2::ColumnsPerASIC; // 185
 static const unsigned ROWS=Pds::CsPad2x2::MaxRowsPerASIC; // 194
-static const int _length  = 62;
-static const int _width   = 30;
-static const int xo[] = { _length+8, _length+_width+10, 
-			  4, 4,
-			  _width+6, 4,
-			  _length+8, _length+8 };
-static const int yo[] = { _length+8, _length+8,
-			  _length+8, _length+_width+10,
-			  4, 4,
-			  4, _width+6 };
-static const int frame = 134;
+static const unsigned SPACE = 10;
 
 namespace Pds_ConfigDb {
 
@@ -44,43 +34,10 @@ namespace Pds_ConfigDb {
       _parent(parent), _quad(0),
       _gainMap(new Pds::CsPad2x2::CsPad2x2GainMapCfg) {
       setFrameStyle (QFrame::NoFrame);
-      update_sections(0);
     }
     ~Quad2x2GainMap() { delete _gainMap; }
   public:
     Pds::CsPad2x2::CsPad2x2GainMapCfg* gainMap() const { return _gainMap; }
-    void update_sections(unsigned rm)
-    {
-      QPixmap* image = new QPixmap(frame, frame);
-      
-      QRgb bg = QPalette().color(QPalette::Window).rgb();
-      image->fill(bg);
-      
-      QPainter painter(image);
-      for(unsigned j=0; j<2; j++) {
-        QRgb fg = (rm   &(1<<j)) ? qRgb(0,0,255) : bg;
-        painter.setBrush(QColor(fg));
-        painter.drawRect(xo[j],yo[j], _width, _length);
-      }
-      
-      QTransform transform(QTransform().rotate(0));
-      setPixmap(image->transformed(transform));
-    }
-    void mousePressEvent( QMouseEvent* e ) 
-    {
-      int x = e->x();
-      int y = e->y();
-      
-      for(unsigned j=0; j<2; j++) {
-        int dx = x-xo[j];
-        int dy = y-yo[j];
-        if (dx>0 && dy>0) {
-          if ((dx < _width ) && (dy < _length)) {
-            _parent.show_map(j);
-          }
-        }
-      }
-    }
   private:
     Cspad2x2GainMap& _parent;
     unsigned      _quad;
@@ -94,42 +51,40 @@ namespace Pds_ConfigDb {
       setFrameStyle(QFrame::NoFrame);
     }
   public:
-    void update_map(Pds::CsPad2x2::CsPad2x2GainMapCfg* map,
-                                unsigned section) 
+    void update_map(Pds::CsPad2x2::CsPad2x2GainMapCfg* map)
     {
       const unsigned SIZE = ROWS*2 + 8;
-      QPixmap* image = new QPixmap(SIZE,SIZE);
-      
-      QRgb bg = QPalette().color(QPalette::Window).rgb();
-      image->fill(bg);
+      QPixmap* pixmap = new QPixmap(COLS*2+8+SPACE,SIZE);
 
-      const unsigned col0=(SIZE-COLS)/2;
-      const unsigned row0= SIZE/2+1+ROWS;
-      const unsigned row1= SIZE/2-1;
-      unsigned asic0=(section<<1)+0;
-      unsigned asic1=(section<<1)+1;
-      QRgb fg;
-      QPainter painter(image);
-      for(unsigned col=0; col<COLS; col++) {
-        for(unsigned row=0; row<ROWS; row++) {
-          uint16_t v = (*map->map())[col][row];
-          fg = (v&(1<<(asic0))) ? qRgb(255,255,255) : qRgb(0,0,0);
-          painter.setPen(QColor(fg));
-          painter.drawPoint(col+col0,row0-row);
-          fg = (v&(1<<(asic1))) ? qRgb(255,255,255) : qRgb(0,0,0);
-          painter.setPen(QColor(fg));
-          painter.drawPoint(col+col0,row1-row);
+      QRgb bg = QPalette().color(QPalette::Window).rgb();
+      pixmap->fill(bg);
+
+      for (unsigned section=0; section < 2; section++) {
+        const unsigned col0 = 4 + section*(COLS + SPACE);
+        const unsigned row0 = SIZE/2+1+ROWS;
+        const unsigned row1 = SIZE/2-1;
+        unsigned       asic0 =(section<<1);
+        unsigned       asic1 =(section<<1)+1;
+        QRgb fg;
+        QPainter painter(pixmap);
+        for(unsigned col=0; col<COLS; col++) {
+          for(unsigned row=0; row<ROWS; row++) {
+            uint16_t v = (*map->map())[col][row];
+            fg = (v&(1<<(asic0))) ? qRgb(255,255,255) : qRgb(0,0,0);
+            painter.setPen(QColor(fg));
+            painter.drawPoint(col+col0,row0-row);
+            fg = (v&(1<<(asic1))) ? qRgb(255,255,255) : qRgb(0,0,0);
+            painter.setPen(QColor(fg));
+            painter.drawPoint(col+col0,row1-row);
+          }
         }
       }
-      
-      static const unsigned rotation[] = { 0, 1, 2, 1 };
-      unsigned rot = rotation[section>>1];
-      QTransform transform(QTransform().rotate(90*rot));
-      setPixmap(image->transformed(transform));
-      setFrameStyle(QFrame::NoFrame);
+
+      setPixmap(*pixmap);
+      setFrameStyle(QFrame::Raised /*NoFrame*/);
     }
   };
-};
+}
 
 using namespace Pds_ConfigDb;
 
@@ -153,9 +108,10 @@ void Cspad2x2GainMap::initialize(QWidget* parent, QVBoxLayout* layout)
   QPushButton* exportB = new QPushButton("Export Text File for 140K GainMap");
   l->addWidget(importB);
   l->addWidget(exportB);
-  QGridLayout* gl = new QGridLayout;
-  gl->addWidget(_quad[0] = new Quad2x2GainMap(*this),0,0,::Qt::AlignVCenter|::Qt::AlignHCenter);
-  l->addLayout(gl);
+//  QGridLayout* gl = new QGridLayout;
+//  gl->addWidget(_quad[0] = new Quad2x2GainMap(*this),0,0,::Qt::AlignVCenter|::Qt::AlignHCenter);
+//  l->addLayout(gl);
+  _quad[0] = new Quad2x2GainMap(*this);
   l->addWidget(_display = new SectionDisplay2x2);
   box->setLayout(l);
   layout->addWidget(box);
@@ -168,17 +124,12 @@ void Cspad2x2GainMap::initialize(QWidget* parent, QVBoxLayout* layout)
 
 void Cspad2x2GainMap::show_map(unsigned s)
 { 
-  _quad[0]->update_sections(3);
-
-  _q = 0;
-  _s = s;
-
-  _display->update_map(_quad[0]->gainMap(), _s);
+  _display->update_map(_quad[0]->gainMap());
 }
 
 void Cspad2x2GainMap::flush()
 {
-  _display->update_map(_quad[0]->gainMap(), _s);
+  _display->update_map(_quad[0]->gainMap());
 }
 
 void Cspad2x2GainMap::import_()
@@ -218,7 +169,7 @@ void Cspad2x2GainMap::import_()
       free(line);
     }
     fclose(f);
-    _display->update_map(_quad[0]->gainMap(), _s);
+    _display->update_map(_quad[0]->gainMap());
   }
   else {
     printf("Error opening %s\n",qPrintable(file));
