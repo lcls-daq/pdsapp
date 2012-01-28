@@ -7,6 +7,7 @@ Cspad2x2Config::Cspad2x2Config():
   Serializer("Cspad2x2_Config"), _table(new Cspad2x2ConfigTable(*this))
 {
   _table->insert(pList);
+  this->name("Cspad 140K Configuration");
 }
 
 int Cspad2x2Config::readParameters(void *from)
