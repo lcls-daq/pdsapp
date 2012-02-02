@@ -84,3 +84,11 @@ tgtnames += padmonservertest
 tgtsrcs_padmonservertest := padmonservertest.cc
 tgtlibs_padmonservertest := pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata
 tgtslib_padmonservertest := $(USRLIBDIR)/rt
+
+libnames += epicsmon
+libsrcs_epicsmon := EpicsMonServer.cc
+
+tgtnames += epicsmonservertest
+tgtsrcs_epicsmonservertest := epicsmonservertest.cc
+tgtlibs_epicsmonservertest := pdsapp/epicsmon pdsdata/xtcdata pdsdata/appdata pdsdata/epics
+tgtslib_epicsmonservertest := $(USRLIBDIR)/rt
