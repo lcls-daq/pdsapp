@@ -34,7 +34,7 @@ namespace Pds_ConfigDb
       _conn("IO Module", Pds::EvrData::OutputMap::UnivIO, connTypes)
     {
       for(int i=0; i<MaxOutputs; i++)
-	_channel[i] = new EvrIOChannel(i);
+  _channel[i] = new EvrIOChannel(i);
     }
   public:
     void insert(Pds::LinkedList<Parameter>& pList)
@@ -42,13 +42,13 @@ namespace Pds_ConfigDb
       pList.insert(this);
       
       for(int i=0; i<MaxOutputs; i++)
-	_channel[i]->insert(_pList);
+  _channel[i]->insert(_pList);
     }
 
     int pull(const EvrIOConfigType& tc) {
       _conn.value = tc.conn();
       for(unsigned i=0; i<tc.nchannels(); i++)
-  	_channel[i]->pull(tc.channel(i));
+    _channel[i]->pull(tc.channel(i));
       return tc.size();
     }
 
@@ -56,7 +56,7 @@ namespace Pds_ConfigDb
       EvrIOConfigType& tc = *reinterpret_cast<EvrIOConfigType*>(to);
       Pds::EvrData::IOChannel ch[MaxOutputs];
       for(int i=0; i<MaxOutputs; i++)
-	_channel[i]->push(ch[i]);
+  _channel[i]->push(ch[i]);
       *new(&tc) EvrIOConfigType(_conn.value, ch, MaxOutputs);
       return tc.size();
     }
@@ -88,7 +88,7 @@ namespace Pds_ConfigDb
       row++;
       column = 0;
       for(int i=0; i<MaxOutputs; i++, row++)
-	_channel[i]->layout(l,row);
+  _channel[i]->layout(l,row);
       layout->addLayout(l);
 
       return layout;
@@ -99,8 +99,8 @@ namespace Pds_ConfigDb
 
       Parameter* p = _pList.forward();
       while( p != _pList.empty() ) {
-	p->update();
-	p = p->forward();
+  p->update();
+  p = p->forward();
       }
     }
 
@@ -109,8 +109,8 @@ namespace Pds_ConfigDb
 
       Parameter* p = _pList.forward();
       while( p != _pList.empty() ) {
-	p->flush();
-	p = p->forward();
+  p->flush();
+  p = p->forward();
       }
     }
 
@@ -190,7 +190,7 @@ namespace Pds_ConfigDb
   public:
     QLayout* initialize(QWidget* parent) 
     {
-      _nevr  = 1;
+      _nevr  = 0;
       _qlink = new EvrIOConfigQ(*this, parent);
 
       QVBoxLayout* l = new QVBoxLayout;
@@ -214,7 +214,8 @@ namespace Pds_ConfigDb
           _tab->addTab(w,QString("EVR %1").arg(i));
           _tab->setTabEnabled(i,false);
         }
-        l->addWidget(_tab); }
+        l->addWidget(_tab); 
+        }
 
       return l;
     }
@@ -222,16 +223,16 @@ namespace Pds_ConfigDb
     void update() {
       Parameter* p = _pList.forward();
       while( p != _pList.empty() ) {
-	p->update();
-	p = p->forward();
+  p->update();
+  p = p->forward();
       }
     }
 
     void flush() {
       Parameter* p = _pList.forward();
       while( p != _pList.empty() ) {
-	p->flush();
-	p = p->forward();
+  p->flush();
+  p = p->forward();
       }
     } 
 
@@ -246,8 +247,10 @@ namespace Pds_ConfigDb
     }
 
     void remEvr() {
-      if (_nevr > 0) {
+      if (_nevr > 1) {
         _nevr--;
+        if (_tab->currentIndex() == (int) _nevr)
+          _tab->setCurrentIndex(_nevr-1);
         _tab->setTabEnabled(_nevr,false);
       }
     }

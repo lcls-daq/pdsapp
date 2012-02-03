@@ -392,14 +392,14 @@ int Recorder::_closeOutputFile() {
      * generate index file
      * 
      * Note: index file is generated before xtc file is closed,
-     *   so it is okay for data mover to transfer it
+     *   so it is ready for data mover to transfer it
      */
     if ( _indexfname[0] != 0 )
     {
       _indexList.finishList();  
       
       printf( "Writing index file %s\n", _indexfname );          
-      int fdIndex = open(_indexfname, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH ); //!! debug
+      int fdIndex = open(_indexfname, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
       if ( fdIndex == -1 )
         printf( "Recorder::_closeOutputFile(): Open index file %s failed (%s)\n", _indexfname, strerror(errno) );
       else {
