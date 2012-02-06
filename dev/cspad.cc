@@ -199,6 +199,9 @@ void printUsage(char* s) {
       "                bit 10          print out time dumping front end took\n"
       "    -x      Cspad2x2Element data type not CspadElement\n"
       "    -r      set run time config file name\n"
+      "                The format of the file consists of lines: 'Dest Addr Data'\n"
+      "                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
+      "                four bit field where the bottom two bits are VC and The top two are Lane\n"
       "    -p      Set platform id           [required]\n"
   );
 }
