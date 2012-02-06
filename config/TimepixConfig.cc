@@ -289,13 +289,16 @@ namespace Pds_ConfigDb {
   public:
     Enumerated<Pds::Timepix::ConfigV1::ReadoutSpeed> _readoutSpeed;
     Enumerated<int32_t> _timepixSpeed;
+    NumericInt<int32_t> _dac0ThlFine;
+    NumericInt<int32_t> _dac1ThlFine;
+    NumericInt<int32_t> _dac2ThlFine;
+    NumericInt<int32_t> _dac3ThlFine;
     NumericInt<int32_t> _dac0Ikrum;
     NumericInt<int32_t> _dac0Disc;
     NumericInt<int32_t> _dac0Preamp;
     NumericInt<int32_t> _dac0BufAnalogA;
     NumericInt<int32_t> _dac0BufAnalogB;
     NumericInt<int32_t> _dac0Hist;
-    NumericInt<int32_t> _dac0ThlFine;
     NumericInt<int32_t> _dac0ThlCourse;
     NumericInt<int32_t> _dac0Vcas;
     NumericInt<int32_t> _dac0Fbk;
@@ -309,7 +312,6 @@ namespace Pds_ConfigDb {
     NumericInt<int32_t> _dac1BufAnalogA;
     NumericInt<int32_t> _dac1BufAnalogB;
     NumericInt<int32_t> _dac1Hist;
-    NumericInt<int32_t> _dac1ThlFine;
     NumericInt<int32_t> _dac1ThlCourse;
     NumericInt<int32_t> _dac1Vcas;
     NumericInt<int32_t> _dac1Fbk;
@@ -323,7 +325,6 @@ namespace Pds_ConfigDb {
     NumericInt<int32_t> _dac2BufAnalogA;
     NumericInt<int32_t> _dac2BufAnalogB;
     NumericInt<int32_t> _dac2Hist;
-    NumericInt<int32_t> _dac2ThlFine;
     NumericInt<int32_t> _dac2ThlCourse;
     NumericInt<int32_t> _dac2Vcas;
     NumericInt<int32_t> _dac2Fbk;
@@ -337,7 +338,6 @@ namespace Pds_ConfigDb {
     NumericInt<int32_t> _dac3BufAnalogA;
     NumericInt<int32_t> _dac3BufAnalogB;
     NumericInt<int32_t> _dac3Hist;
-    NumericInt<int32_t> _dac3ThlFine;
     NumericInt<int32_t> _dac3ThlCourse;
     NumericInt<int32_t> _dac3Vcas;
     NumericInt<int32_t> _dac3Fbk;
