@@ -149,12 +149,9 @@ namespace Pds_ConfigDb {
     int pull(void* from) {
       TimepixConfigType& tc = *new(from) TimepixConfigType;
 
-//    tc.dump();
 
       _readoutSpeed.value = (Pds::Timepix::ConfigV1::ReadoutSpeed)tc.readoutSpeed();
-      _timepixSpeed.value = tc.shutterTimeout();  // timepix speed replaces shutter timeout
-//    _triggerMode.value = tc.triggerMode();
-//    _shutterTimeout.value = tc.shutterTimeout();
+      _timepixSpeed.value = tc.timepixSpeed();
       _dac0Ikrum.value = tc.dac0Ikrum();
       _dac0Disc.value = tc.dac0Disc();
       _dac0Preamp.value = tc.dac0Preamp();
@@ -218,7 +215,7 @@ namespace Pds_ConfigDb {
       TimepixConfigType& tc = *new(to) TimepixConfigType(
         _readoutSpeed.value,
         Pds::Timepix::ConfigV1::TriggerMode_ExtNeg,   // trigger mode: external/neg
-        _timepixSpeed.value,    // timepix speed replaces shutter timeout
+        _timepixSpeed.value,
         _dac0Ikrum.value,
         _dac0Disc.value,
         _dac0Preamp.value,
