@@ -158,6 +158,7 @@ void printUsage(char* s) {
       "    -h      Show usage\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
+      "    -f      Set server to drop 1st img[Default 1]\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offset and count calls\n"
@@ -178,10 +179,11 @@ int main( int argc, char** argv )
   unsigned            platform            = 0;
   bool                platformEntered     = false;
   unsigned            debug               = 0;
+  bool                dropFirst           = true;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:D:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:f:D:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -209,6 +211,9 @@ int main( int argc, char** argv )
          case 'i':
            deviceId = strtoul(optarg, NULL, 0);
             break;
+         case 'f':
+           dropFirst = 0 != strtoul(optarg, NULL, 0);
+           break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
            break;
@@ -249,8 +254,10 @@ int main( int argc, char** argv )
    cfgService = new CfgClientNfs(detInfo);
    printf("making PhasicsServer\n");
    phasicsServer = new PhasicsServer(detInfo);
-   printf("setting PhasicsServer debug level\n");
+   printf("setting PhasicsServer debug level 0x%x\n", debug);
    phasicsServer->debug(debug);
+   printf("Setting dropFirst flag to %s\n", dropFirst ? "true" : "false");
+   phasicsServer->dropTheFirst(dropFirst);
 
    printf("MySegWire settings\n");
    MySegWire settings(phasicsServer);

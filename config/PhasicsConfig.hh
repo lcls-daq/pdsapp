@@ -12,14 +12,17 @@
 
 namespace Pds_ConfigDb {
 
-//  class PhasicsSimpleCount : public ParameterCount {
-//    public:
-//    PhasicsSimpleCount(unsigned c) : mycount(c) {};
-//    ~PhasicsSimpleCount() {};
-//    bool connect(ParameterSet&) { return false; }
-//    unsigned count() { return mycount; }
-//    unsigned mycount;
-//  };
+  class PhasicsExpertConfig : public Serializer {
+  public:
+    PhasicsExpertConfig();
+    ~PhasicsExpertConfig() {};
+  public:
+    int  readParameters (void* from);
+    int  writeParameters(void* to);
+    int  dataSize       () const;
+  public:
+    NumericInt<uint32_t>*       _reg[PhasicsConfigType::NumberOfRegisters];
+  };
 
 
   class PhasicsConfig : public Serializer {
@@ -32,7 +35,6 @@ namespace Pds_ConfigDb {
     int  dataSize       () const;
   public:
     NumericInt<uint32_t>*       _reg[PhasicsConfigType::NumberOfRegisters];
-//    PhasicsSimpleCount           _count;
   };
 
 };
