@@ -17,12 +17,12 @@ namespace Pds_ConfigDb {
   class TimepixExpertConfig::Private_Data {
   public:
     Private_Data() :
+      // readout speed is NOT frequently changed
       _readoutSpeed   ("Chip readout speed", Pds::Timepix::ConfigV1::ReadoutSpeed_Fast,
                                              readoutSpeed_to_name),
 
-      _shutterTimeout   ("Timepix speed", 0 /* 100 MHz */, shutterTimeout_to_name),
-
-      // the following four values are frequently changed
+      // the following five values are frequently changed
+      _shutterTimeout ("Timepix speed", 0 /* 100 MHz */, shutterTimeout_to_name),
       _dac0ThlFine    ("DAC0 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac1ThlFine    ("DAC1 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac2ThlFine    ("DAC2 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
@@ -413,9 +413,7 @@ namespace Pds_ConfigDb {
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
-      pList.insert(&_readoutSpeed);
-      pList.insert(&_shutterTimeout);
-      // the following four values are frequently changed
+      pList.insert(&_shutterTimeout);   // "Timepix speed"
       pList.insert(&_dac0ThlFine);
       pList.insert(&_dac1ThlFine);
       pList.insert(&_dac2ThlFine);
