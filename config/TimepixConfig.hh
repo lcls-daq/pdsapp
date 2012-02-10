@@ -7,8 +7,25 @@ class QCheckBox;
 
 namespace Pds_ConfigDb
 {
+  class TimepixExpertConfig;
   class TimepixConfig;
 }
+
+class Pds_ConfigDb::TimepixExpertConfig
+  : public Serializer
+{
+  public:
+    TimepixExpertConfig();
+    ~TimepixExpertConfig() {}
+
+    int  readParameters (void* from);
+    int  writeParameters(void* to);
+    int  dataSize       () const;
+
+  private:
+    class Private_Data;
+    Private_Data* _private_data;
+};
 
 class Pds_ConfigDb::TimepixConfig
   : public Serializer
