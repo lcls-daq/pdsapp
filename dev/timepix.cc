@@ -177,15 +177,15 @@ int main( int argc, char** argv )
   unsigned verbosity = 0;
   unsigned debug = 0;
   char *threshFileName = NULL;
+  char *imageFileName = NULL;
+  int readCpu = -1;
+  int decodeCpu = -1;
   char *logpath = NULL;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "a:i:p:m:vd:T:o:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "i:p:m:vd:T:o:I:R:D:" ) ) != EOF ) {
       switch(c) {
-         case 'a':
-            arp = new Arp(optarg);
-            break;
          case 'i':
             detid  = strtoul(optarg, NULL, 0);
             break;
@@ -194,6 +194,12 @@ int main( int argc, char** argv )
             break;
          case 'd':
             debug  = strtoul(optarg, NULL, 0);
+            break;
+         case 'R':
+            readCpu  = strtol(optarg, NULL, 0);
+            break;
+         case 'D':
+            decodeCpu  = strtol(optarg, NULL, 0);
             break;
          case 'v':
             ++verbosity;
@@ -204,6 +210,10 @@ int main( int argc, char** argv )
          case 'T':
             threshFileName = optarg;
             break;
+         case 'I':
+            // test image file
+            imageFileName = optarg;
+            break;
          case 'o':
             logpath = optarg;
             break;
@@ -212,7 +222,7 @@ int main( int argc, char** argv )
 
    if( (platform==-1UL) || ( detid == -1UL ) ) {
       printf( "Error: Platform and detid required\n" );
-      printf( "Usage: %s -i <detid> -p <platform> [-a <arp process id>] [-m <module id>] [-v]\n"
+      printf( "Usage: %s -i <detid> -p <platform> [-m <module id>] [-v]\n"
               "                   [-d <debug flags>] [-T <threshold file>] [-o <logpath>]\n", argv[0] );
       return 0;
    }
@@ -233,18 +243,6 @@ int main( int argc, char** argv )
   if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 )
     printf( "main(): Cannot register signal handler for SIGTERM\n" );
 
-   if( arp )
-   {
-      if( arp->error() )
-      {
-         printf( "%s failed to create odfArp : %s\n",
-                 argv[0], strerror( arp->error() ) );
-
-         delete arp;
-         return 0;
-      }
-   }
-
    Node node( Level::Source, platform );
 
    Task* task = new Task( Task::MakeThisATask );
@@ -259,7 +257,7 @@ int main( int argc, char** argv )
 
   cfgService = new CfgClientNfs(detInfo);
 
-  timepixServer = new TimepixServer(detInfo, moduleId, verbosity, debug, threshFileName);
+  timepixServer = new TimepixServer(detInfo, moduleId, verbosity, debug, threshFileName, imageFileName, readCpu, decodeCpu);
   readTask = timepixServer->readTask();
   decodeTask = timepixServer->decodeTask();
 
@@ -282,8 +280,6 @@ int main( int argc, char** argv )
     task->mainLoop();
     printf("exiting timepix task main loop\n");
   }
-
-   if (arp) delete arp;
 
    return 0;
 }
