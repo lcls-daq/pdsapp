@@ -154,8 +154,9 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: phasics [-h] [-d <detector>] [-i <deviceID>] [-D <debug>] -p <platform>\n"
+  printf( "Usage: %s [-h] [-d <detector>] [-i <deviceID>] [-D <debug>] -p <platform>\n"
       "    -h      Show usage\n"
+      "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
       "    -f      Set server to drop 1st img[Default 1]\n"
@@ -165,10 +166,9 @@ void printUsage(char* s) {
       "                bit 02          fill in fetch details\n"
       "                bit 03          label PhasicsL1Action::fire\n"
       "                bit 05          label PhasicsServer enable and disable\n"
-      "                "
-      "    -p      Set platform id           [required]\n"
       "            NB, if you can't remember the detector names\n"
       "            just make up something and it'll list them\n"
+      , s
   );
 }
 
