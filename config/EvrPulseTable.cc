@@ -201,7 +201,18 @@ bool EvrPulseTable::validate(unsigned ncodes,
       QMessageBox::warning(0,"Input Error",msg);
       return false;
     }
-        
+
+    //
+    // MRF EVR limited to 16-bit pulse width
+    //
+    if (npt>=4 && p._width.value>0xffff) {
+      QString msg = QString("Pulse %1 width exceeds EVR limits (%3 sec) for pulse id >= 4\n")
+        .arg(i)
+        .arg(double(0xffff)*EvrPeriod);
+      QMessageBox::warning(0,"Input Error",msg);
+      return false;
+    }
+
     *new(&pt[npt]) EvrConfigType::PulseType(npt+p0, 
                                             p._polarity->state() == PolarityButton::Pos ? 0 : 1,
                                             1,

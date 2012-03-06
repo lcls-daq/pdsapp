@@ -64,6 +64,10 @@ namespace StatsT {
     }
 
     void dump(int indent) const {
+
+      if (_damage==0) 
+        return;
+
       printf("%*c%08x/%08x : dmg 0x%08x  events 0x%x  avg sz 0x%llx\n",
           indent, ' ', _node.log(), _node.phy(),
           _damage, _events, _events ? _size/_events : 0);

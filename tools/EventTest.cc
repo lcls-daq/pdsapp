@@ -68,10 +68,8 @@ void EventTest::attached(SetOfStreams& streams)
     }
   case EventOptions::Display:
     {
-      //      const Node& node = _event->header();
-      //      (new StatsApp(node.procInfo()))->connect(frmk->inlet());
       (new StatsTree())->connect(frmk->inlet());
-      (new EbDump(static_cast<EbBase*>(streams.wire())))->connect(frmk->inlet());
+      //      (new EbDump(static_cast<EbBase*>(streams.wire())))->connect(frmk->inlet());
       break;
     }
   }

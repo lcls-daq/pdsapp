@@ -63,6 +63,8 @@ void EvrStandAloneManager::configure() {
     _er.SetUnivOutMap( pulse[i].output, i);
   }
 
+  _er.DumpPulses(npulses);
+
   _er.IrqEnable(EVR_IRQ_MASTER_ENABLE | EVR_IRQFLAG_EVENT);
   _er.EnableFIFO(1);
   _er.Enable(1);
@@ -138,6 +140,9 @@ int main(int argc, char** argv) {
       } else {
         pulse[npulses].polarity = 0;
       }
+      if (npulses>=4 && pulse[npulses].width>0xffff) 
+        printf("Pulse %d width exceeds EVR limit of 16-bits.  Truncating!\n",npulses);
+
       npulses++;
       break;
     case 'T':

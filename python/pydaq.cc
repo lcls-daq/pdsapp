@@ -422,7 +422,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
   { for(unsigned i=0; i<cfg->npvControls(); i++)
       clist.push_back(cfg->pvControl(i)); }
 
-  if (controls)
+  if (controls) {
     for(unsigned i=0; i<PyList_Size(controls); i++) {
       PyObject* item = PyList_GetItem(controls,i);
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
@@ -440,6 +440,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
         return NULL;
       }
     }
+  }
 
   list<PVMonitor> mlist;
   { for(unsigned i=0; i<cfg->npvMonitors(); i++)
