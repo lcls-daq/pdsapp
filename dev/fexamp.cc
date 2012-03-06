@@ -175,6 +175,7 @@ using namespace Pds;
 void printUsage(char* s) {
   printf( "Usage: fexamp [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> -p <platform>\n"
       "    -h      Show usage\n"
+      "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
       "    -m      Set config mask           [Default: 0]\n"
@@ -188,7 +189,6 @@ void printUsage(char* s) {
       "                bit 05          label FexampServer enable and disable\n"
       "                bit 08          turn on printing of FE Internal status on\n"
       "                "
-      "    -p      Set platform id           [required]\n"
       "            NB, if you can't remember the detector names\n"
       "            just make up something and it'll list them\n"
   );

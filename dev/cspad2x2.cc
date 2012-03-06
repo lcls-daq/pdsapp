@@ -180,6 +180,7 @@ using namespace Pds;
 void printUsage(char* s) {
   printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] -p <platform>\n"
       "    -h      Show usage\n"
+      "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
       "            NB, if you can't remember the detector names\n"
       "            just make up something and it'll list them\n"
@@ -201,7 +202,6 @@ void printUsage(char* s) {
       "                The format of the file consists of lines: 'Dest Addr Data'\n"
       "                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
       "                four bit field where the bottom two bits are VC and The top two are Lane\n"
-      "    -p      Set platform id           [required]\n"
   );
 }
 
