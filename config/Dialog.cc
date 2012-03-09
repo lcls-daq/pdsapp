@@ -189,6 +189,11 @@ void Dialog::write()
 {
   // Save the current cycle
   _s.update();
+
+  // Validate
+  if (!_s.validate())
+    return;
+
 #ifdef EDIT_CYCLES
   int i = _cycleBox->currentIndex();
 #else
@@ -198,10 +203,6 @@ void Dialog::write()
   Cycle* cycle = new Cycle(_s.dataSize());
   _s.writeParameters(cycle->buffer);
   _cycles[i] = cycle;
-
-  // Validate
-  if (!_s.validate())
-    return;
 
   const int bufsize = 128;
   char* buff = new char[bufsize];
