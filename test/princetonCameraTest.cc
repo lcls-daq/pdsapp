@@ -708,7 +708,7 @@ int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16
     
     if ( sFnPrefix != NULL && sFnPrefix[0] != 0 )
     {
-      char sFnOut[64];
+      char sFnOut[128];
       sprintf( sFnOut, "%s%02d.raw", sFnPrefix, iFrame );
       printf( "Outputting to %s...\n", sFnOut );
       FILE* fOut = fopen( sFnOut, "wb" );
