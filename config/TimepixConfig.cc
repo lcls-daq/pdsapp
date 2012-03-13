@@ -1,6 +1,7 @@
 // TimepixConfig.cc
 
 #include "pdsapp/config/TimepixConfig.hh"
+#include "pdsapp/config/TimepixConfigDefaults.hh"
 
 #include "pdsapp/config/Parameters.hh"
 #include "pds/config/TimepixConfigType.hh"
@@ -11,18 +12,17 @@ namespace Pds_ConfigDb {
 
   // these must end in NULL
   static const char* readoutSpeed_to_name[] = { "62.5 MHz", "125 MHz", NULL };
-  static const char* shutterTimeout_to_name[] = { "100 MHz", "80 MHz", "40 MHz", "10 MHz", "2.5 MHz", NULL };
+  static const char* timepixSpeed_to_name[] = { "100 MHz", "80 MHz", "40 MHz", "10 MHz", "2.5 MHz", NULL };
 
   // ------- expert mode ---------
   class TimepixExpertConfig::Private_Data {
   public:
     Private_Data() :
       // readout speed is NOT frequently changed
-      _readoutSpeed   ("Chip readout speed", Pds::Timepix::ConfigV1::ReadoutSpeed_Fast,
-                                             readoutSpeed_to_name),
+      _readoutSpeed   ("Chip readout speed", TimepixConfigType::ReadoutSpeed_Fast, readoutSpeed_to_name),
 
       // the following five values are frequently changed
-      _shutterTimeout ("Timepix speed", 0 /* 100 MHz */, shutterTimeout_to_name),
+      _timepixSpeed   ("Timepix speed", 0 /* 100 MHz */, timepixSpeed_to_name),
       _dac0ThlFine    ("DAC0 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac1ThlFine    ("DAC1 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac2ThlFine    ("DAC2 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
@@ -85,7 +85,7 @@ namespace Pds_ConfigDb {
 
     void insert(Pds::LinkedList<Parameter>& pList) {
       pList.insert(&_readoutSpeed);
-      pList.insert(&_shutterTimeout);
+      pList.insert(&_timepixSpeed);
       // the following four values are frequently changed
       pList.insert(&_dac0ThlFine);
       pList.insert(&_dac1ThlFine);
@@ -149,9 +149,8 @@ namespace Pds_ConfigDb {
     int pull(void* from) {
       TimepixConfigType& tc = *new(from) TimepixConfigType;
 
-
-      _readoutSpeed.value = (Pds::Timepix::ConfigV1::ReadoutSpeed)tc.readoutSpeed();
-      _shutterTimeout.value = tc.shutterTimeout();
+      _readoutSpeed.value = (TimepixConfigType::ReadoutSpeed)tc.readoutSpeed();
+      _timepixSpeed.value = tc.timepixSpeed();
       _dac0Ikrum.value = tc.dac0Ikrum();
       _dac0Disc.value = tc.dac0Disc();
       _dac0Preamp.value = tc.dac0Preamp();
@@ -214,8 +213,8 @@ namespace Pds_ConfigDb {
     int push(void* to) {
       TimepixConfigType& tc = *new(to) TimepixConfigType(
         _readoutSpeed.value,
-        Pds::Timepix::ConfigV1::TriggerMode_ExtNeg,   // trigger mode: external/neg
-        _shutterTimeout.value,
+        TimepixConfigType::TriggerMode_ExtNeg,   // trigger mode: external/neg
+        _timepixSpeed.value,
         _dac0Ikrum.value,
         _dac0Disc.value,
         _dac0Preamp.value,
@@ -282,8 +281,8 @@ namespace Pds_ConfigDb {
     }
 
   public:
-    Enumerated<Pds::Timepix::ConfigV1::ReadoutSpeed> _readoutSpeed;
-    Enumerated<int32_t> _shutterTimeout;
+    Enumerated<TimepixConfigType::ReadoutSpeed> _readoutSpeed;
+    Enumerated<int32_t> _timepixSpeed;
     NumericInt<int32_t> _dac0ThlFine;
     NumericInt<int32_t> _dac1ThlFine;
     NumericInt<int32_t> _dac2ThlFine;
@@ -346,10 +345,9 @@ namespace Pds_ConfigDb {
   class TimepixConfig::Private_Data {
   public:
     Private_Data() :
-      _readoutSpeed   ("Chip readout speed", Pds::Timepix::ConfigV1::ReadoutSpeed_Fast,
-                                             readoutSpeed_to_name),
+      _readoutSpeed   ("Chip readout speed", TimepixConfigType::ReadoutSpeed_Fast, readoutSpeed_to_name),
 
-      _shutterTimeout   ("Timepix speed", 0 /* 100 MHz */, shutterTimeout_to_name),
+      _timepixSpeed   ("Timepix speed", 0 /* 100 MHz */, timepixSpeed_to_name),
 
       // the following four values are frequently changed
       _dac0ThlFine    ("DAC0 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
@@ -413,7 +411,7 @@ namespace Pds_ConfigDb {
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
-      pList.insert(&_shutterTimeout);   // "Timepix speed"
+      pList.insert(&_timepixSpeed);   // "Timepix speed"
       pList.insert(&_dac0ThlFine);
       pList.insert(&_dac1ThlFine);
       pList.insert(&_dac2ThlFine);
@@ -424,8 +422,8 @@ namespace Pds_ConfigDb {
       TimepixConfigType& tc = *new(from) TimepixConfigType;
 
 
-      _readoutSpeed.value = (Pds::Timepix::ConfigV1::ReadoutSpeed)tc.readoutSpeed();
-      _shutterTimeout.value = tc.shutterTimeout();
+      _readoutSpeed.value = (TimepixConfigType::ReadoutSpeed)tc.readoutSpeed();
+      _timepixSpeed.value = tc.timepixSpeed();
       _dac0Ikrum.value = tc.dac0Ikrum();
       _dac0Disc.value = tc.dac0Disc();
       _dac0Preamp.value = tc.dac0Preamp();
@@ -488,8 +486,8 @@ namespace Pds_ConfigDb {
     int push(void* to) {
       TimepixConfigType& tc = *new(to) TimepixConfigType(
         _readoutSpeed.value,
-        Pds::Timepix::ConfigV1::TriggerMode_ExtNeg,   // trigger mode: external/neg
-        _shutterTimeout.value,
+        TimepixConfigType::TriggerMode_ExtNeg,   // trigger mode: external/neg
+        _timepixSpeed.value,
         _dac0Ikrum.value,
         _dac0Disc.value,
         _dac0Preamp.value,
@@ -556,8 +554,8 @@ namespace Pds_ConfigDb {
     }
 
   public:
-    Enumerated<Pds::Timepix::ConfigV1::ReadoutSpeed> _readoutSpeed;
-    Enumerated<int32_t> _shutterTimeout;
+    Enumerated<TimepixConfigType::ReadoutSpeed> _readoutSpeed;
+    Enumerated<int32_t> _timepixSpeed;
     NumericInt<int32_t> _dac0ThlFine;
     NumericInt<int32_t> _dac1ThlFine;
     NumericInt<int32_t> _dac2ThlFine;
