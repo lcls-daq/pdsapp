@@ -21,6 +21,12 @@
 
 static bool verbose = false;
 
+static void usage(const char* p)
+{
+  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -v\n",p);
+  printf("<detinfo> = integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Opal1000/1 or 22/0/1)\n");
+}
+
 static Pds::CameraDriver* _driver(int id) 
 {
   return new PdsLeutron::PicPortCL(*new Pds::Opal1kCamera,id);
@@ -123,19 +129,65 @@ namespace Pds {
 
 using namespace Pds;
 
+
+static bool parseDetInfo(const char* args, DetInfo& info)
+{
+  DetInfo::Detector det(DetInfo::NumDetector);
+  DetInfo::Device   dev(DetInfo::NumDevice);
+  unsigned detid(0), devid(0);
+
+  printf("Parsing %s\n",args);
+
+  char* p;
+  det    = (DetInfo::Detector)strtoul(args, &p, 0);
+  if (p != args) {
+    detid  = strtoul(p+1 , &p, 0);
+    dev    = DetInfo::Opal1000;
+    devid  = strtoul(p+1 , &p, 0);
+  }
+  else {
+    int n = (p=strchr(args,'/')) - args;
+    det = DetInfo::NumDetector;
+    for(int i=0; i<DetInfo::NumDetector; i++)
+      if (strncasecmp(args,DetInfo::name((DetInfo::Detector)i),n)==0) {
+        det = (DetInfo::Detector)i;
+        break;
+      }
+    if (det == DetInfo::NumDetector)
+      return false;
+
+    detid  = strtoul(p+1 , &p, 0);
+
+    args = p+1;
+    n = (p=strchr(args,'/')) - args;
+    for(int i=0; i<DetInfo::NumDevice; i++)
+      if (strncasecmp(args,DetInfo::name((DetInfo::Device)i),n)==0) {
+        dev = (DetInfo::Device)i;
+        break;
+      }
+    if (dev == DetInfo::NumDevice)
+      return false;
+
+    devid  = strtoul(p+1 , &p, 0);
+  }
+
+  info = DetInfo(0, det, detid, dev, devid);
+  printf("Sourcing %s\n",DetInfo::name(info));
+  return true;
+}
+
+
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
   unsigned platform = -1UL;
   Arp* arp = 0;
 
-  DetInfo::Detector det(DetInfo::NoDetector);
-  unsigned detid(0), devid(0);
+  DetInfo info;
 
   unsigned grabberId(0);
 
   extern char* optarg;
-  char* endPtr;
   int c;
   while ( (c=getopt( argc, argv, "a:i:p:g:v")) != EOF ) {
     switch(c) {
@@ -143,9 +195,10 @@ int main(int argc, char** argv) {
       arp = new Arp(optarg);
       break;
     case 'i':
-      det    = (DetInfo::Detector)strtoul(optarg, &endPtr, 0);
-      detid  = strtoul(endPtr+1, &endPtr, 0);
-      devid  = strtoul(endPtr+1, &endPtr, 0);
+      if (!parseDetInfo(optarg,info)) {
+        usage(argv[0]);
+        return -1;
+      }
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
@@ -188,13 +241,13 @@ int main(int argc, char** argv) {
   pthread_sigmask(SIG_BLOCK, &sigset_full, 0);
 
   Task* task = new Task(Task::MakeThisATask);
+
   Node node(Level::Source,platform);
+  info = DetInfo(node.pid(), info.detector(), info.detId(), info.device(), info.devId());
 
   SegTest* segtest = new SegTest(task, 
-				 platform, 
-				 DetInfo(node.pid(), 
-					 det, detid, 
-					 DetInfo::Opal1000, devid),
+				 platform,
+                                 info,
 				 grabberId);
 
   printf("Creating segment level ...\n");
