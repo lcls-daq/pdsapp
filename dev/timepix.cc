@@ -152,9 +152,6 @@ void Pds::Seg::dissolved( const Node& who )
 
 using namespace Pds;
 
-// static int    iSignalCaught   = 0;
-static Task*  readTask = NULL;
-static Task*  decodeTask = NULL;
 static TimepixServer* timepixServer;
 
 void timepixSignalIntHandler( int iSignalNo )
@@ -178,13 +175,14 @@ int main( int argc, char** argv )
   unsigned debug = 0;
   char *threshFileName = NULL;
   char *imageFileName = NULL;
-  int readCpu = -1;
-  int decodeCpu = -1;
+  int cpu0 = -1;
+  int cpu1 = -1;
   char *logpath = NULL;
+  char *pComma = NULL;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "i:p:m:vd:T:o:I:R:D:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "i:p:m:vd:T:o:I:a:" ) ) != EOF ) {
       switch(c) {
          case 'i':
             detid  = strtoul(optarg, NULL, 0);
@@ -195,11 +193,13 @@ int main( int argc, char** argv )
          case 'd':
             debug  = strtoul(optarg, NULL, 0);
             break;
-         case 'R':
-            readCpu  = strtol(optarg, NULL, 0);
-            break;
-         case 'D':
-            decodeCpu  = strtol(optarg, NULL, 0);
+         case 'a':
+            // cpu affinity
+            cpu0  = strtol(optarg, NULL, 0);
+            pComma = strchr(optarg, ',');
+            if (pComma) {
+              cpu1  = strtol(pComma+1, NULL, 0);
+            }
             break;
          case 'v':
             ++verbosity;
@@ -223,7 +223,8 @@ int main( int argc, char** argv )
    if( (platform==-1UL) || ( detid == -1UL ) ) {
       printf( "Error: Platform and detid required\n" );
       printf( "Usage: %s -i <detid> -p <platform> [-m <module id>] [-v]\n"
-              "                   [-d <debug flags>] [-T <threshold file>] [-o <logpath>]\n", argv[0] );
+              "                   [-d <debug flags>] [-T <threshold file>] [-o <logpath>]\n"
+              "                   [-a <cpu0>,<cpu1>]\n", argv[0] );
       return 0;
    }
 
@@ -257,9 +258,7 @@ int main( int argc, char** argv )
 
   cfgService = new CfgClientNfs(detInfo);
 
-  timepixServer = new TimepixServer(detInfo, moduleId, verbosity, debug, threshFileName, imageFileName, readCpu, decodeCpu);
-  readTask = timepixServer->readTask();
-  decodeTask = timepixServer->decodeTask();
+  timepixServer = new TimepixServer(detInfo, moduleId, verbosity, debug, threshFileName, imageFileName, cpu0, cpu1);
 
   MySegWire settings(timepixServer);
 
