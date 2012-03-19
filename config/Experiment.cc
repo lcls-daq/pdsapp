@@ -25,7 +25,7 @@ Experiment::Experiment(const Path& path) :
 
 void Experiment::read()
 {
-  const int line_size=128;
+  const int line_size=1024;
   char buff[line_size];
 
   string path = _path.expt();
