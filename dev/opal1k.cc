@@ -6,6 +6,7 @@
 #include "pds/utility/InletWireServer.hh"
 #include "pds/utility/Stream.hh"
 #include "pds/utility/SetOfStreams.hh"
+#include "pds/utility/ToEventWireScheduler.hh"
 
 #include "pds/service/Task.hh"
 
@@ -27,9 +28,9 @@ static void usage(const char* p)
   printf("<detinfo> = integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Opal1000/1 or 22/0/1)\n");
 }
 
-static Pds::CameraDriver* _driver(int id) 
+static Pds::CameraDriver* _driver(int id, const Pds::Src& src) 
 {
-  return new PdsLeutron::PicPortCL(*new Pds::Opal1kCamera,id);
+  return new PdsLeutron::PicPortCL(*new Pds::Opal1kCamera(static_cast<const Pds::DetInfo&>(src)),id);
 }
 
 static void *thread_signals(void*)
@@ -89,7 +90,7 @@ namespace Pds {
       _opal1k->appliance().connect(frmk->inlet());
       //      (new Decoder)->connect(frmk->inlet());
 
-      _opal1k->attach(_driver(_grabberId));
+      _opal1k->attach(_driver(_grabberId,_sources.front()));
     }
     void failed(Reason reason)
     {
@@ -249,6 +250,9 @@ int main(int argc, char** argv) {
 				 platform,
                                  info,
 				 grabberId);
+
+  if (info.device()==DetInfo::Opal4000)
+    ToEventWireScheduler::setMaximum(3);
 
   printf("Creating segment level ...\n");
   SegmentLevel* segment = new SegmentLevel(platform, 

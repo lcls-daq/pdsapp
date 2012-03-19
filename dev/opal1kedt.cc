@@ -21,9 +21,9 @@
 
 static bool verbose = false;
 
-static Pds::CameraDriver* _driver(int id) 
+static Pds::CameraDriver* _driver(int id, const Pds::Src& src) 
 {
-  return new Pds::EdtPdvCL(*new Pds::Opal1kCamera,0,id);
+  return new Pds::EdtPdvCL(*new Pds::Opal1kCamera(static_cast<const Pds::DetInfo&>(src)),0,id);
 }
 
 namespace Pds {
@@ -77,7 +77,7 @@ namespace Pds {
       _opal1k->appliance().connect(frmk->inlet());
       //      (new Decoder)->connect(frmk->inlet());
 
-      _opal1k->attach(_driver(_grabberId));
+      _opal1k->attach(_driver(_grabberId,_sources.front()));
     }
     void failed(Reason reason)
     {
