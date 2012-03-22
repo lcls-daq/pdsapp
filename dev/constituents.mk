@@ -1,5 +1,8 @@
 # constituents for the segment level device production code ONLY
 
+libnames := devapp
+libsrcs_devapp := CmdLineTools.cc
+
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
@@ -33,7 +36,7 @@ endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
-
+commonlibs  += pdsapp/devapp
 
 tgtsrcs_phasics := phasics.cc
 tgtlibs_phasics := $(commonlibs) pds/camera pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/phasicsdata pds/phasics
@@ -140,6 +143,7 @@ tgtlibs_opal1kedt += pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsd
 tgtlibs_opal1kedt += pds/service pds/collection pds/xtc pds/mon pds/vmon 
 tgtlibs_opal1kedt += pds/utility pds/management pds/client pds/config 
 tgtlibs_opal1kedt += pds/camera
+tgtlibs_opal1kedt += pdsapp/devapp
 tgtlibs_opal1kedt += $(edt_libs)
 tgtslib_opal1kedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
 tgtincs_opal1kedt := edt/include

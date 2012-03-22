@@ -1,3 +1,5 @@
+#include "pdsapp/dev/CmdLineTools.hh"
+
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -131,53 +133,6 @@ namespace Pds {
 using namespace Pds;
 
 
-static bool parseDetInfo(const char* args, DetInfo& info)
-{
-  DetInfo::Detector det(DetInfo::NumDetector);
-  DetInfo::Device   dev(DetInfo::NumDevice);
-  unsigned detid(0), devid(0);
-
-  printf("Parsing %s\n",args);
-
-  char* p;
-  det    = (DetInfo::Detector)strtoul(args, &p, 0);
-  if (p != args) {
-    detid  = strtoul(p+1 , &p, 0);
-    dev    = DetInfo::Opal1000;
-    devid  = strtoul(p+1 , &p, 0);
-  }
-  else {
-    int n = (p=strchr(args,'/')) - args;
-    det = DetInfo::NumDetector;
-    for(int i=0; i<DetInfo::NumDetector; i++)
-      if (strncasecmp(args,DetInfo::name((DetInfo::Detector)i),n)==0) {
-        det = (DetInfo::Detector)i;
-        break;
-      }
-    if (det == DetInfo::NumDetector)
-      return false;
-
-    detid  = strtoul(p+1 , &p, 0);
-
-    args = p+1;
-    n = (p=strchr(args,'/')) - args;
-    for(int i=0; i<DetInfo::NumDevice; i++)
-      if (strncasecmp(args,DetInfo::name((DetInfo::Device)i),n)==0) {
-        dev = (DetInfo::Device)i;
-        break;
-      }
-    if (dev == DetInfo::NumDevice)
-      return false;
-
-    devid  = strtoul(p+1 , &p, 0);
-  }
-
-  info = DetInfo(0, det, detid, dev, devid);
-  printf("Sourcing %s\n",DetInfo::name(info));
-  return true;
-}
-
-
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
@@ -196,7 +151,7 @@ int main(int argc, char** argv) {
       arp = new Arp(optarg);
       break;
     case 'i':
-      if (!parseDetInfo(optarg,info)) {
+      if (!CmdLineTools::parseDetInfo(optarg,info)) {
         usage(argv[0]);
         return -1;
       }
