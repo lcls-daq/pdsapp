@@ -1,0 +1,817 @@
+static const bool  verbose = false;
+
+static const int   cols  = Pds::Opal1k::ConfigV1::Column_Pixels;
+
+static void project_spectrumX(const Pds::Camera::FrameV1& frame,
+                              unsigned top_row,
+                              unsigned bot_row,
+                              unsigned lft_col,
+                              unsigned rgt_col,
+                              uint32_t* sig)
+{
+  const int width = frame.width();
+  const uint16_t* p = reinterpret_cast<const uint16_t*>(frame.data());
+  const uint16_t* p_end = p + (bot_row+1)*width;
+  p += top_row*width;
+  p += lft_col;
+  for(unsigned int i=lft_col; i<=rgt_col; i++) 
+    sig[i] = (*p++);
+  while(p < p_end) {
+    for(unsigned int i=lft_col; i<=rgt_col; i++)
+      sig[i] += (*p++);
+  }
+}
+
+static void project_spectrumY(const Pds::Camera::FrameV1& frame,
+                              unsigned lft_col,
+                              unsigned rgt_col,
+                              unsigned top_row,
+                              unsigned bot_row,
+                              uint32_t* sig)
+{
+  const int width = frame.width();
+  for(unsigned int i=top_row; i<=bot_row; i++) {
+    sig[i] = 0;
+    const uint16_t* p = reinterpret_cast<const uint16_t*>(frame.data());
+    p += i*width;
+    p += lft_col;
+    for(unsigned int j=lft_col; j<=rgt_col; j++)
+      sig[i] += (*p++);
+  }
+}
+
+namespace Pds_TimeTool {
+
+  class Sideband {
+  public:
+    Sideband() :
+      _f1  (0.05),
+      _init(false),
+      _wf  (new double[cols]),
+      _avg (new double[cols]) {}
+    ~Sideband() {
+      delete[] _wf;
+      delete[] _avg;
+    }
+  public:
+    double* process(uint32_t* wf)
+    {
+      if (!_init) {
+        _init=true;
+        for(int k=0; k<cols; k++)
+          _avg[k] = double(wf[k]);
+      }
+      else {
+        const double f0 = 1-_f1;
+        const double f1 = _f1;
+        for(int k=0; k<cols; k++)
+          _avg[k] = f0*_avg[k] + f1*double(wf[k]);
+      }
+      //
+      // Calculate left,right x odd,even pixel baseline shifts
+      //
+      q_left_odd=0; q_left_even=0; q_right_odd=0; q_right_even=0;
+      {
+        int k=0, m=cols/2;
+        while(k < cols/2) {
+          q_left_even  += double(wf[k]) - _avg[k]; k++;
+          q_right_even += double(wf[m]) - _avg[m]; m++;
+          q_left_odd   += double(wf[k]) - _avg[k]; k++;
+          q_right_odd  += double(wf[m]) - _avg[m]; m++;
+        }
+      
+        { double n = double(cols/4);
+          q_left_even  /= n;
+          q_left_odd   /= n;
+          q_right_even /= n;
+          q_right_odd  /= n; }
+      }
+      {
+        int k=0, m=cols/2;
+        while(k < cols/2) {
+          _wf[k] = _avg[k] + q_left_even; k++;
+          _wf[m] = _avg[m] + q_right_even; m++;
+          _wf[k] = _avg[k] + q_left_odd; k++;
+          _wf[m] = _avg[m] + q_right_odd; m++;
+        }
+      }
+      return _wf;
+    }
+    void set_convergence(double v) { _f1=v; }
+  private:
+    double _f1;
+    bool _init;
+    double q_left_even;
+    double q_left_odd;
+    double q_right_even;
+    double q_right_odd;
+    double* _wf;
+    double* _avg;
+  };
+
+  class RatioFit {
+  public:
+    RatioFit() : _fit_p1(false) {}
+    ~RatioFit() {}
+  public:
+    void reset() { vv=0; vw=0; xvv=0; xvw=0; xxvv=0; ww=0; }
+    void accum(unsigned k, double v, double w, double sw)
+    {
+      if (_fit_p1) {
+        double q,p;
+        double x = double(k)/double(cols) - 0.5;
+        double r=1./(sw*sw);
+        vv   += (q=v*v*r);
+        vw   += (p=v*w*r);
+        xvv  += (q*=x);
+        xvw  += (p*=x);
+        xxvv += (q*=x);
+        ww   += w*w*r;
+      }
+      else {
+        vv   += v;
+        ww   += w;
+      }
+    }
+    void finalize()
+    {
+      if (_fit_p1) {
+        double d = ( xvv*xvv - xxvv*vv );
+        _p[0] = ( xvw*xvv - vw*xxvv ) / d;
+        _p[1] = ( vw*xvv  - xvw*vv  ) / d;
+        _chsq = ( ww + ( vv*_p[0]*_p[0] + xxvv*_p[1]*_p[1] +2*xvv*_p[0]*_p[1] )
+                  - 2 * ( vw*_p[0] + xvw*_p[1]) );
+      }
+      else {
+        _p[0] = ww/vv;
+        _p[1] = 0;
+        _chsq = 0;
+      }
+    }
+  public:
+    void   fit_p1(bool v) { _fit_p1=v; }
+  public:
+    double p0  () const { return _p[0]; }
+    double p1  () const { return _p[1]; }
+    double chsq() const { return _chsq; }
+  private:
+    double vv, vw, xvv, xvw, xxvv, ww;
+    double _p[2];
+    double _chsq;
+    bool   _fit_p1;
+  };
+
+  class LineFit {
+  public:
+    LineFit() : _f1(0.05) { reset(); }
+    ~LineFit() {}
+  public:
+    void set_convergence(double v) { _f1=v; }
+    void reset() { v=0, w=0, vv=0; vw=0; ww=0; }
+    void accum(double x, double y)
+    {
+      const double f0 = 1-_f1;
+      const double f1 = _f1;
+      v   =  f0*v  + f1*x;
+      w   =  f0*w  + f1*y;
+      vv  =  f0*vv + f1*x*x;
+      vw  =  f0*vw + f1*x*y;
+    }
+    void finalize()
+    {
+      double d = vv-v*v;
+      if (d==0) {
+        _p[0] = _p[1] = 0;
+      }
+      else {
+        _p[1] = ( vw - v*w ) / (vv-v*v);
+        _p[0] = w - v*_p[1];
+      }
+    }
+  public:
+    double p0  () const { return _p[0]; }
+    double p1  () const { return _p[1]; }
+    double chsq() const { return _chsq; }
+  private:
+    double _f1;
+    double v, w, vv, vw, ww;
+    double _p[2];
+    double _chsq;
+  };
+
+  class RefCorr {
+  public:
+    RefCorr() : _n(10), _i(0) {
+      //
+      //  Initialize with 1:1 normalization correction 
+      //
+      _p0p[0]=1; _p0p[1]=0; _p0.reset();
+      _p1p[0]=0; _p1p[1]=0; _p1.reset();
+    }
+    ~RefCorr() {}
+  public:
+    void set_period(int n) { _n=n; _i=0; }
+    void accum(const RatioFit& input, const RatioFit& output)
+    {
+      _p0.accum(input.p0(),output.p0());
+      _p1.accum(input.p1(),output.p1());
+      if (++_i == _n) {
+	_i = 0;
+        _p0.finalize();
+	_p0p[0] = _p0.p0();
+	_p0p[1] = _p0.p1();
+	_p0.reset();
+        _p1.finalize();
+	_p1p[0] = _p1.p0();
+	_p1p[1] = _p1.p1();
+	_p1.reset();
+      }
+    }
+    double p0(double x) const { return _p0p[0] + x*_p0p[1]; }
+    double p1(double x) const { return _p1p[0] + x*_p1p[1]; }
+  private:
+    unsigned _n, _i;
+    LineFit _p0;
+    LineFit _p1;
+    double  _p0p[2];
+    double  _p1p[2];
+  };
+
+  class Spectrum {
+  public:
+    Spectrum() :
+      _raw (new double[cols]),
+      _wf  (new double[cols]),
+      _ref (new double[cols]),
+      _f1  (0.25),
+      _init(false),
+      _fit_ratio(false)
+    {
+      for(int k=0; k<cols; k++) _ref[k]=1.;
+    }
+    ~Spectrum()
+    {
+      delete[] _raw;
+      delete[] _wf;
+      delete[] _ref;
+    }
+  public:
+    double* process_ref(uint32_t* wf, double* sb, double cut)
+    {	
+      bool lcut=true;
+
+      for(int k=0; k<cols; k++)
+        if ((_wf[k] = double(wf[k]) - sb[k])>cut)
+	  lcut=false;
+
+      if (lcut) return _ref;
+
+      if (!_init) {
+        _init=true;
+        for(int k=0; k<cols; k++)
+          _ref[k] = _wf[k];
+      }
+      else if (_fit_ratio) {
+        //
+        //  (1) Fit a 1d poly to the ratio of this frame to the reference
+        //  (2) Update the reference
+        //
+        _ratio_fit.reset();
+        const double f0 = 1-_f1;
+        const double f1 = _f1;
+        const double _noise = 25;
+        for(int k=0; k<cols; k++) {
+          _ratio_fit.accum(k, _ref[k], _wf[k], _noise);  // (1)
+          _ref[k] = f0*_ref[k] + f1*_wf[k];              // (2)
+        }
+	_ratio_fit.finalize();
+      }
+      else {
+        const double f0 = 1-_f1;
+        const double f1 = _f1;
+        for(int k=0; k<cols; k++)
+          _ref[k] = f0*_ref[k] + f1*_wf[k];
+      }
+      return _ref;	
+    }
+    double* process_sig(uint32_t* wf, double* sb, double cut)
+    {
+      bool lcut=true;
+      for(int k=0; k<cols; k++) {
+	double v = double(wf[k]) - sb[k];
+        if (v > cut) lcut=false;
+        _wf[k] = v/_ref[k] - 1;
+      }
+      return lcut ? 0 : _wf;
+    }
+    double* process_sig(uint32_t* wf, double* sb, double cut,
+                        double p0, double p1)
+    {
+      bool lcut=true;
+      for(int k=0; k<cols; k++) {
+        double r = p0+p1*(double(k)/double(cols)-0.5);
+	double v = double(wf[k]) - sb[k];
+	if (v > cut) lcut=false;
+        _wf[k] = v/(_ref[k]*r) - 1;
+      }
+      return lcut ? 0 : _wf;
+    }
+    void set_convergence(double v) { _f1=v; }
+  public:
+    void      fit_ratio(bool v) { _fit_ratio = v; }
+    RatioFit& ratio_fit()       { return _ratio_fit; }
+    const double* ref  () const { return _ref; }
+  protected:
+    double*         _raw;
+    double*         _wf;
+    double*         _ref;
+    double          _f1;
+    bool            _init;
+    bool            _fit_ratio;
+    RatioFit        _ratio_fit;
+  };
+
+  class ParabFit {
+  public:
+    ParabFit()
+    {
+      memset(xx,0,5*sizeof(double));
+      memset(xy,0,3*sizeof(double));
+    }
+    ~ParabFit() {}
+  public:
+    void accum(int ix, double y)
+    {
+      double x = double(ix);
+      double qx =x;
+      xx[0]++;
+      xy[0] += y;
+      xx[1] += x;
+      xy[1] += (y*=x);
+      xx[2] += (qx*=x);
+      xy[2] += y*x;
+      xx[3] += (qx*=x);
+      xx[4] += qx*x;
+    }
+    void finalize()
+    {
+      _valid = false;
+
+      double a11 = xx[0];
+      double a21 = xx[1];
+      double a31 = xx[2];
+      double a22 = xx[2];
+      double a32 = xx[3];
+      double a33 = xx[4];
+
+      double b11 = a22*a33-a32*a32;
+      double b21 = a21*a33-a32*a31;
+      double b31 = a21*a32-a31*a22;
+      double b22 = a11*a33-a31*a31;
+      double b32 = a11*a32-a21*a31;
+      double b33 = a11*a22-a21*a21;
+
+      double det = a11*b11 - a21*b21 + a31*b31;
+
+      if (det==0)
+        return;
+
+      _a = ( b11*xy[0] - b21*xy[1] + b31*xy[2])/det;
+      _b = (-b21*xy[0] + b22*xy[1] - b32*xy[2])/det;
+      _c = ( b31*xy[0] - b32*xy[1] + b33*xy[2])/det;
+
+      if (verbose) {
+        printf("%g\t%g\t%g\n",
+               ( a11*b11 - a21*b21 + a31*b31)/det,
+               (-a11*b21 + a21*b22 - a31*b32)/det,
+               ( a11*b31 - a21*b32 + a31*b33)/det);
+        printf("%g\t%g\t%g\n",
+               ( a21*b11 - a22*b21 + a32*b31)/det,
+               (-a21*b21 + a22*b22 - a32*b32)/det,
+               ( a21*b31 - a22*b32 + a32*b33)/det);
+        printf("%g\t%g\t%g\n",
+               ( a31*b11 - a32*b21 + a33*b31)/det,
+               (-a31*b21 + a32*b22 - a33*b32)/det,
+               ( a31*b31 - a32*b32 + a33*b33)/det);
+      }
+      
+      if (_c<0)
+        _valid=true;
+    }
+    bool   valid    () const { return _valid; }
+    double amplitude() const { return _a - 0.25*_b*_b/_c; }
+    double position () const { return -0.5*_b/_c; }
+    double position_error() const { return 0; }
+    double chisquare() const { return 0; }
+  private:
+    bool   _valid;
+    double xx[5], xy[3];
+    double _a, _b, _c;
+  };
+
+  class Fit {
+    enum { Amplitude, Position, FWHM, NParameters };
+  public:
+    Fit() {}
+    ~Fit() {}
+  public:
+    void process(double* qwf, double* qwfe, unsigned word, unsigned nwts)
+    {
+      unsigned ix = word&0xffff;
+
+      //  Fit parabola
+      ParabFit pfit;
+      pfit.accum(ix,qwf[ix]);
+
+      //  Fit upper 20%
+      const double afrac = 0.8;
+
+      const double trf = afrac*qwf[ix];
+      int ix_left(ix);
+      while(--ix_left > int(nwts)) {
+        pfit.accum(ix_left,qwf[ix_left]);
+        if (qwf[ix_left] < trf)
+          break;
+      }
+
+      int ix_right(ix);
+      while(++ix_right < cols-1) {
+        pfit.accum(ix_right,qwf[ix_right]);
+        if (qwf[ix_right] < trf)
+          break;
+      }
+    
+      pfit.finalize();
+
+      if (pfit.valid()) {
+        _p[Amplitude] = pfit.amplitude();
+        _p[Position ] = pfit.position();
+        _valid = true;
+      }
+
+      const double hm = 0.5*qwf[ix];
+      while(qwf[ix_left]>hm && ix_left>int(nwts))
+        ix_left--;
+      while(qwf[ix_right]>hm && ix_right<cols-1)
+        ix_right++;
+
+      _p[FWHM] = double(ix_right-ix_left) -
+        (hm-qwf[ix_left ])/(qwf[ix_left +1]-qwf[ix_left ]) -
+        (hm-qwf[ix_right])/(qwf[ix_right+1]-qwf[ix_right]);
+    }
+  public:
+    bool   valid    () const { return _valid; }
+    double amplitude() const { return _p[Amplitude]; }
+    double position () const { return _p[Position ]; }
+    double fwhm     () const { return _p[FWHM]; }
+  private:
+    bool    _valid;
+    double  _p[NParameters];
+  };
+  
+  class Fex {
+  public:
+    Fex(const char* fname="timetool.input") :
+	_fname   (fname), 
+	_event_code_bykik(162), 
+	_event_code_no_laser(0),
+	_calib_p0(0),
+	_calib_p1(0),
+	_calib_p2(0),
+	_use_ref(false), 
+        _ref_cut (0),
+        _sig_cut (0),
+	_wts     (0),
+	sb       (new uint32_t[cols]),
+	ref      (new uint32_t[cols]),
+	sig      (new uint32_t[cols])
+    {}
+    virtual ~Fex() { 
+      if (_wts) delete[] _wts; 
+      delete[] sb;
+      delete[] ref;
+      delete[] sig;
+    }
+  public:
+    void configure()
+    {
+      //
+      // defaults for absent variables
+      //
+      _adjust_stats = 0;
+
+      char buff[128];
+      const char* dir = getenv("HOME");
+      sprintf(buff,"%s/%s", dir ? dir : "/tmp", _fname.c_str());
+      FILE* f = fopen(buff,"r");
+      if (f) {
+        size_t sz = 8 * 1024;
+        char* linep = (char *)malloc(sz);
+        char* pEnd;
+
+        while(getline(&linep, &sz, f)>0) {
+          if (linep[0]=='#')
+            continue;
+          const char* delim = " \t";
+          char* name = strtok(linep,delim);
+          char* arg  = strtok(0,delim);
+          unsigned v_ul = strtoul(arg,&pEnd,0);
+          double   v_db = strtod (arg,&pEnd);
+          if      (strcasecmp(name,"base_name")==0)  _base_name= string(arg);
+          else if (strcasecmp(name,"phy")==0)        _phy      = v_ul;
+          else if (strcasecmp(name,"event_code_bykik")==0)    _event_code_bykik  = v_ul;
+          else if (strcasecmp(name,"event_code_no_laser")==0) _event_code_no_laser  = v_ul;
+          else if (strcasecmp(name,"calib_p0")==0)    _calib_p0  = v_db;
+          else if (strcasecmp(name,"calib_p1")==0)    _calib_p1  = v_db;
+          else if (strcasecmp(name,"calib_p2")==0)    _calib_p2  = v_db;
+          else if (strcasecmp(name,"use_ref")==0)    _use_ref  = v_ul;
+          else if (strcasecmp(name,"ref_fit_p1")==0) _ref_fit_p1  = v_ul;
+          else if (strcasecmp(name,"ref_top")==0)    _ref_top  = v_ul;
+          else if (strcasecmp(name,"ref_bot")==0)    _ref_bot  = v_ul;
+          else if (strcasecmp(name,"ref_cut")==0)    _ref_cut  = v_db;
+          else if (strcasecmp(name,"sig_top")==0)    _sig_top  = v_ul;
+          else if (strcasecmp(name,"sig_bot")==0)    _sig_bot  = v_ul;
+          else if (strcasecmp(name,"sig_cut")==0)    _sig_cut  = v_db;
+          else if (strcasecmp(name,"sb_top")==0)     _sb_top   = v_ul;
+          else if (strcasecmp(name,"sb_bot")==0)     _sb_bot   = v_ul;
+          else if (strcasecmp(name,"spec_begin")==0) _spec_begin = v_ul;
+          else if (strcasecmp(name,"spec_end"  )==0) _spec_end   = v_ul;
+          else if (strcasecmp(name,"sb_convergence")==0)
+            _sb.set_convergence(v_db);
+          else if (strcasecmp(name,"sig_convergence")==0)
+            _sp.set_convergence(v_db);
+          else if (strcasecmp(name,"indicator_offset")==0)
+            _indicator_offset = v_db;
+          else if (strcasecmp(name,"ref_update_period")==0)
+            _ref_corr.set_period(v_ul);
+          else if (strcasecmp(name,"nwts")==0) {
+            _nwts     = v_ul;
+            if (_wts) delete _wts;
+            _wts      = new double[_nwts];
+            for(int i=0; i<int(_nwts); i++) {
+              getline(&linep, &sz, f);
+              _wts[i] = strtod(linep,&pEnd);
+            }
+          }
+          else if (strcasecmp(name,"project")==0)
+            _projectX = strcasecmp(arg,"x")==0;
+          else if (strcasecmp(name,"adjust_stats")==0)
+            _adjust_stats = v_ul;
+          else if (strcasecmp(name,"adjust_pv")==0)
+            _adjust_pv = string(arg);
+          else
+            printf("Unknown parameter name %s\n",name);
+        }
+
+        free(linep);
+        
+
+        fclose(f);
+
+//        _use_ref = false;  // hardwire
+        _sp .fit_ratio(_use_ref); _sp .ratio_fit().fit_p1(_ref_fit_p1);
+        _ref.fit_ratio(_use_ref); _ref.ratio_fit().fit_p1(_ref_fit_p1);
+
+	_flt_center_ps = _calib_p0 + _calib_p1*double(cols>>1) + _calib_p2*double(cols*cols>>2);
+      }
+      else
+        printf("Failed to open %s\n",buff);
+    }
+    void reset() { _nfits=0; _amplitude=_raw_position=_flt_position=_flt_position_ps=_flt_fwhm=_nxt_amplitude=_ref_amplitude=0; }
+    void analyze(const Pds::Camera::FrameV1& frame,
+ 		 bool bykik, bool no_laser)
+    {
+      reset();
+
+      if (no_laser) return;
+
+      if (_projectX) {
+	project_spectrumX(frame, 
+	 		  _sig_top, _sig_bot,
+	 		  _spec_begin, _spec_end,
+			  sig);
+	project_spectrumX(frame, 
+	 		  _sb_top, _sb_bot,
+	 		  _spec_begin, _spec_end,
+			  sb);
+	if (_use_ref)
+	  project_spectrumX(frame, 
+	 		    _ref_top, _ref_bot,
+	 		    _spec_begin, _spec_end,
+			    ref);
+      }
+      else {
+	project_spectrumY(frame, 
+	 		  _sig_top, _sig_bot,
+	 		  _spec_begin, _spec_end,
+			  sig);
+	project_spectrumY(frame, 
+	 		  _sb_top, _sb_bot,
+	 		  _spec_begin, _spec_end,
+			  sb);
+	if (_use_ref)
+	  project_spectrumY(frame, 
+	 		    _ref_top, _ref_bot,
+	 		    _spec_begin, _spec_end,
+			    ref);
+      }
+      
+      double* sbwf = _sb.process(sb);
+
+      if (bykik) {
+        //  Add ratio fit results to correlation
+        if (_use_ref) {
+          _ref.process_ref(ref,sbwf,_ref_cut);
+	  _sp .process_ref(sig,sbwf,_sig_cut);
+          _ref_corr.accum (_ref.ratio_fit(),_sp.ratio_fit());
+	  _monitor_corr   (_ref.ratio_fit(),_sp.ratio_fit());
+        }
+	else {
+          _monitor_ref_sig( _sp .process_ref(sig,sbwf,_sig_cut) );
+        }
+      }
+      else {
+	_monitor_raw_sig( sig, sbwf );
+
+        double* sigwf;
+        if (_use_ref) {
+          //  Use ratio fit correlation to correct spectra changes
+          _monitor_ref_sig( _ref.process_ref(ref,sbwf,_ref_cut) );
+          sigwf = _sp.process_sig(sig,sbwf,_sig_cut,
+                                  _ref_corr.p0(_ref.ratio_fit().p0()),
+                                  _ref_corr.p1(_ref.ratio_fit().p1()));
+        }
+        else {
+          sigwf = _sp.process_sig(sig,sbwf,_sig_cut);
+        }
+
+	if (!sigwf) return;
+
+	_monitor_sub_sig( sigwf );
+
+        double* qwf  = new double[cols];
+        double* qwfe = new double[cols];
+        const double noise=25.;
+
+        unsigned x0 = _nwts+_spec_begin;
+        for(int i=x0; i<=_spec_end; i++) {
+          qwf[i] = 0;
+          for(int j=0; j<int(_nwts); j++)
+            qwf[i] += _wts[j]*sigwf[i-j];
+          qwfe[i] = _wtsig*noise;
+        }
+
+	_monitor_flt_sig( qwf );
+
+        std::list<int> peaks;
+
+        double amax    = qwf[x0] > 0 ? qwf[x0] : 0;
+        double aleft   = amax;
+        double aright  = 0;
+        unsigned imax  = x0;
+        const double afrac = 0.50;
+
+        _nfits = 0;
+        bool lpeak = false;
+
+        for(int i=x0+1; i<_spec_end; i++) {
+          if (qwf[i] > amax) {
+            amax = qwf[i];
+            if (amax*afrac > aleft) {
+              imax = i;
+              lpeak  = true;
+              aright = afrac*amax;
+            } 
+          }
+          else if (lpeak && qwf[i] < aright) {
+            if (peaks.size()==MaxFits && qwf[peaks.back()&0xffff]>amax)
+              ;
+            else {
+              int word = (i<<16) | imax;
+              
+              if (peaks.size()==MaxFits)
+                peaks.pop_back();
+
+              int sz = peaks.size();
+              for(std::list<int>::iterator it=peaks.begin(); it!=peaks.end(); it++)
+                if (qwf[(*it)&0xffff]<amax) {
+                  peaks.insert(it,word);
+                  break;
+                }
+              if (sz == int(peaks.size()))
+                peaks.push_back(word);
+            }
+
+            lpeak = false;
+            amax  = aleft = (qwf[i]>0 ? qwf[i] : 0);
+          }
+          else if (!lpeak && qwf[i] < aleft) {
+            amax = aleft = (qwf[i] > 0 ? qwf[i] : 0);
+          }
+        }
+
+        //      for(std::list<int>::const_iterator it=peaks.begin(); it!=peaks.end(); it++, _nfits++)
+        //        _fits[_nfits].process(qwf,qwfe,*it,_nwts);
+
+        _flt_position  = 0;
+        _flt_fwhm      = 0;
+        _amplitude     = 0;
+        _nxt_amplitude = -1;
+        _nfits = peaks.size();
+        if (_nfits>0) {
+          int word = *peaks.begin();
+	  int ix   = word&0xffff;
+          _raw_position = ix;
+          _fits[0].process(qwf,qwfe,word,_nwts);
+          if (_fits[0].valid()) {
+	    double x = _fits[0].position();
+            _flt_position = x;
+            _flt_position_ps   = _calib_p0 + x*_calib_p1 + x*x*_calib_p2;
+            _flt_fwhm     = _fits[0].fwhm();
+            _amplitude    = _fits[0].amplitude();
+	    _ref_amplitude= _use_ref ? _ref.ref()[ix] : _sp.ref()[ix];
+            _nxt_amplitude = -1;
+            if (_nfits>1) {
+              _fits[1].process(qwf,qwfe,*(++peaks.begin()),_nwts);
+              if (_fits[1].valid())
+                _nxt_amplitude = _fits[1].amplitude();
+            }
+          }
+        }
+        delete[] qwf;
+        delete[] qwfe;
+      }
+    }
+    const string& base_name () const { return _base_name; }	
+    double raw_position     () const { return _raw_position; }
+    double filtered_position() const { return _flt_position; }
+    double filtered_pos_ps  () const { return _flt_position_ps; }
+    double filtered_pos_adj () const { return _flt_position_ps - _flt_center_ps; }
+    double filtered_fwhm    () const { return _flt_fwhm; }
+    double amplitude        () const { return _amplitude; }
+    double next_amplitude   () const { return _nxt_amplitude; }
+    double ref_amplitude    () const { return _ref_amplitude; }
+    bool   status   () const { return _nfits>0; }
+  public:
+    virtual void _monitor_raw_sig (uint32_t*, double*) {}
+    virtual void _monitor_ref_sig (double*) {}
+    virtual void _monitor_sub_sig (double*) {}
+    virtual void _monitor_flt_sig (double*) {}
+    virtual void _monitor_corr    (const RatioFit&, const RatioFit&) {}
+  public:
+    string   _fname;
+    string   _base_name;
+    unsigned _phy;
+
+    unsigned _adjust_stats;
+    string   _adjust_pv;
+
+    unsigned _event_code_bykik;;
+    unsigned _event_code_no_laser;;
+	
+    double   _calib_p0;
+    double   _calib_p1;
+    double   _calib_p2;
+
+    bool     _projectX;
+    unsigned _use_ref;
+    unsigned _ref_fit_p1;
+    unsigned _ref_top;
+    unsigned _ref_bot;
+    double   _ref_cut;
+    unsigned _sig_top;
+    unsigned _sig_bot;
+    double   _sig_cut;
+    unsigned _sb_top;
+    unsigned _sb_bot;
+    int      _spec_begin;
+    int      _spec_end;
+    double   _indicator_offset;
+    unsigned _nwts;
+    double*  _wts;
+    double   _wtsig;
+
+    uint32_t*  sb;
+    uint32_t*  ref;
+    uint32_t*  sig;
+
+    Sideband _sb;
+    Spectrum _sp;
+    Spectrum _ref;
+    RefCorr  _ref_corr;
+
+    enum {MaxFits=8};
+    Fit      _fits[MaxFits];
+    unsigned _nfits;
+
+    double _raw_position;
+    double _flt_position;
+    double _flt_position_ps;
+    double _flt_center_ps;
+    double _flt_fwhm;
+    double _amplitude;
+    double _nxt_amplitude;
+    double _ref_amplitude;
+  };
+
+};

@@ -31,7 +31,8 @@ tgtnames :=  evr \
     gsc16ai  \
     timepix  \
     simcam   \
-    cspad2x2
+    cspad2x2 \
+    timetool
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
@@ -147,6 +148,14 @@ tgtlibs_opal1kedt += pdsapp/devapp
 tgtlibs_opal1kedt += $(edt_libs)
 tgtslib_opal1kedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
 tgtincs_opal1kedt := edt/include
+
+
+tgtsrcs_timetool := timetool.cc TimeTool.cc
+tgtlibs_timetool := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_timetool += pds/camera pds/epicstools epics/ca epics/Com
+tgtlibs_timetool += $(leutron_libs)
+tgtincs_timetool := leutron/include
+tgtincs_timetool += epics/include epics/include/os/Linux
 
 tgtsrcs_tm6740 := tm6740.cc 
 tgtlibs_tm6740 := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
