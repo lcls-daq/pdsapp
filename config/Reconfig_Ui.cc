@@ -91,7 +91,7 @@ const TableEntry* Reconfig_Ui::_device_entry() const
 void Reconfig_Ui::apply()
 {
   if (_entry) {
-    _expt.update_key(*_entry);
+    _expt.update_keys();
     _expt.write();
     emit changed();
   }

@@ -19,7 +19,7 @@ namespace Pds_ConfigDb {
   public:
     Private_Data() :
       _black_level      ("Black Level",   0, 0, 0xfff),
-      _gain             ("Gain"       , 100, 100, 3200),
+      _gain             ("Gain (x100)"   , 100, 100, 3200),
       _depth            ("Depth"      , Opal1kConfigType::Twelve_bit, depth_range),
       _binning          ("Binning", Opal1kConfigType::x1, binning_range),
       _mirroring        ("Mirroring", Opal1kConfigType::None, mirroring_range),
