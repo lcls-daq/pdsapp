@@ -30,6 +30,10 @@
 #include "pds/vmon/VmonEb.hh"
 #include "pds/xtc/XtcType.hh"
 #include "pdsdata/bld/bldData.hh"
+#include "pdsdata/xtc/XtcIterator.hh"
+#include "pdsdata/xtc/XtcFileIterator.hh"
+#include "pdsdata/xtc/Level.hh"
+#include "pdsdata/xtc/BldInfo.hh"
 // Bld from XRT cameras
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/PimImageConfigType.hh"
@@ -46,6 +50,33 @@
 static const unsigned MAX_EVENT_SIZE = 4*1024*1024;
 static const unsigned NetBufferDepth = 32;
 
+//////////////////////////// JBT EBeam version kludge //////////////////
+class myLevelIter : public XtcIterator {
+public:
+  myLevelIter () {}
+public:
+  int process(Xtc* xtc) {
+    static const TypeId oldId(TypeId::Id_EBeam,1);
+    static const TypeId curId(TypeId::Id_EBeam,2);
+    static const TypeId newId(TypeId::Id_EBeam,3);
+    if (xtc->contains.id()==TypeId::Id_Xtc)
+      iterate(xtc);
+    else if (xtc->contains.value()==curId.value()) {
+      xtc->contains = newId;
+      return 0;
+    }
+    else if (xtc->contains.value()==newId.value()) {
+      printf("Found %x\n",newId.value());
+    }
+    else if (xtc->contains.value()==oldId.value()) {
+      printf("Found %x\n",oldId.value());
+    }
+    return 1;
+  }
+};
+//////////////////////////// JBT ////////////////////////////////////
+
+
 namespace Pds {
 
   static NullServer* _evrServer = 0;
@@ -60,8 +91,14 @@ namespace Pds {
     InDatagram* events     (InDatagram* dg) {
       if (dg->datagram().seq.service()==TransitionId::Configure)
 	dg->insert(_configtc, _config_payload);
+      else if(dg->datagram().seq.service()==TransitionId::L1Accept) {
+        //Overwrite the EBeam data type in the xtc contains field
+        myLevelIter iter ;
+        iter.iterate(&(dg->xtc));
+      }
       return dg; 
     }
+
     Transition* transitions(Transition* tr) {
       if (tr->id()==TransitionId::Map) {
         const Allocation& alloc = reinterpret_cast<const Allocate*>(tr)->allocation(); 
