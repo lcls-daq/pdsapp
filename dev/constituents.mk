@@ -47,8 +47,8 @@ tgtlibs_phasics += libdc1394/raw1394
 tgtlibs_phasics += libdc1394/dc1394
 tgtslib_phasics := $(USRLIBDIR)/rt
 CPPFLAGS += -fno-strict-aliasing
-#CPPFLAGS += -fopenmp
-#DEFINES += -fopenmp
+CPPFLAGS += -fopenmp
+DEFINES += -fopenmp
 
 tgtsrcs_fexamp := fexamp.cc
 tgtlibs_fexamp := $(commonlibs) pdsdata/fexampdata pds/fexamp pds/pgp

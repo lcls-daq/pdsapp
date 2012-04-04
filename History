@@ -1,42 +1,43 @@
-2012-Jan-05 caf		Added Timepix detector.
-2011-Nov-08 caf		Tag V03-00-01.
-2011-Nov-02 caf		Tag V03-00-00.  Added reporting of full pathname to db.  Now offlinedb-1.3.0 is required.
-2011-Oct-03 caf		Added Gsc16ai detector.
-2011-Mar-31 weaver	Fixed CspadShuffle recording of ElementV2 extent.
-2011-Jan-17 weaver	Tag V02-10-03.  Added configuration GUI panels for Acqiris TDC.
-2010-Dec-06 weaver	Tag V02-10-00.  Added configuration GUI panels for new EVR configuration type (ConfigV5).
-			Added sequencer control to control_gui.
+2012-Apr-03 tomytsai Added Ocean Optics spectrometer and EpicsConfig
+2012-Jan-05 caf   Added Timepix detector.
+2011-Nov-08 caf   Tag V03-00-01.
+2011-Nov-02 caf   Tag V03-00-00.  Added reporting of full pathname to db.  Now offlinedb-1.3.0 is required.
+2011-Oct-03 caf   Added Gsc16ai detector.
+2011-Mar-31 weaver  Fixed CspadShuffle recording of ElementV2 extent.
+2011-Jan-17 weaver  Tag V02-10-03.  Added configuration GUI panels for Acqiris TDC.
+2010-Dec-06 weaver  Tag V02-10-00.  Added configuration GUI panels for new EVR configuration type (ConfigV5).
+      Added sequencer control to control_gui.
 2010-Nov-02 caf         Tag V02-08-05.
-2010-Sep-13 weaver	Tag V02-08-00.	Transient data filenames (eventp) reported by control_gui.
-			Transient data filenames match recorded data filenames when recording.
-			control_gui exports data filenames to logbook proxy.
-2010-Aug-10 weaver	Tag V02-06-00.  Added LUSI FEX configurations.  Added configuration key to
-			remote scan interface.  Changed xppmon to report FEX values to EPICS.
-2010-Jul-21 weaver	Rationalized configuration control in control_gui.  Added monobs/xppmon to export
-			XPP diode readings to EPICS.
-2010-Jun-28 weaver	Tag V02-05-00.  Added expert mode to configuration menus to provide an expert view into 
-			configurations, particularly for advanced EVR configurations.
-2010-Jun-14 weaver	Fixed bug in acqiris configuration gui (hex channel mask -> vertical configs) which
-			prevented creation of vertical configs matching channel mask.
-2010-Apr-27 weaver	Added Evr scanning (trigger delay) to control_gui.  Disabled calibration cycle
-			editing in config/control gui.  Added tools/ParasiticRecorder,eventp to record
-			events to disk (as an observer) for fast disk-based analysis.  Encapsulated
-			DAQ python classes in DaqScan.py module.
-2010-Apr-14 weaver	Added -g <grabberIndex> to dev/opal1k for multiple frame grabbers per CPU.
-			monshmserver now uses pdsdata/app/XtcMonitorServer for shared memory service.
-2010-Apr-06 weaver	Add classes to monobs for monitoring applications that use
-			EPICS channel access.
+2010-Sep-13 weaver  Tag V02-08-00.  Transient data filenames (eventp) reported by control_gui.
+      Transient data filenames match recorded data filenames when recording.
+      control_gui exports data filenames to logbook proxy.
+2010-Aug-10 weaver  Tag V02-06-00.  Added LUSI FEX configurations.  Added configuration key to
+      remote scan interface.  Changed xppmon to report FEX values to EPICS.
+2010-Jul-21 weaver  Rationalized configuration control in control_gui.  Added monobs/xppmon to export
+      XPP diode readings to EPICS.
+2010-Jun-28 weaver  Tag V02-05-00.  Added expert mode to configuration menus to provide an expert view into 
+      configurations, particularly for advanced EVR configurations.
+2010-Jun-14 weaver  Fixed bug in acqiris configuration gui (hex channel mask -> vertical configs) which
+      prevented creation of vertical configs matching channel mask.
+2010-Apr-27 weaver  Added Evr scanning (trigger delay) to control_gui.  Disabled calibration cycle
+      editing in config/control gui.  Added tools/ParasiticRecorder,eventp to record
+      events to disk (as an observer) for fast disk-based analysis.  Encapsulated
+      DAQ python classes in DaqScan.py module.
+2010-Apr-14 weaver  Added -g <grabberIndex> to dev/opal1k for multiple frame grabbers per CPU.
+      monshmserver now uses pdsdata/app/XtcMonitorServer for shared memory service.
+2010-Apr-06 weaver  Add classes to monobs for monitoring applications that use
+      EPICS channel access.
 2009-Dec-03 weaver  Tag V01-08-01.  Added derived event-builder in dev/bld to handle BLD.  Added
-		    record/no_record option to RunControl.  All observers now specify a mask of
-		    event nodes to receive.
+        record/no_record option to RunControl.  All observers now specify a mask of
+        event nodes to receive.
 2009-Nov-24 caf     Added support for the eventtest -c chunk_size flag.
 2009-Nov-23 caf     Simplified offlineobs: do not destroy and reinitialize the EPICS context once established.
 2009-Nov-20 cpo         Add some pnccd utilities (like camex channel swapping)
-2009-Nov-19 weaver	Tag V01-06-01.  ObserverLevel uses node mask.
-2009-Nov-16 weaver	Removed a few more instances of Qt slots called out of Qt thread context.
-2009-Nov-12 weaver	Added DamageStats to control_gui for identifying source of damaged events.
-2009-Nov-10 weaver  	Tag V01-06-00.  Removed BLD components from control_gui partition selection.
-		    	Added separate bld "segment-level" event builder.
+2009-Nov-19 weaver  Tag V01-06-01.  ObserverLevel uses node mask.
+2009-Nov-16 weaver  Removed a few more instances of Qt slots called out of Qt thread context.
+2009-Nov-12 weaver  Added DamageStats to control_gui for identifying source of damaged events.
+2009-Nov-10 weaver    Tag V01-06-00.  Removed BLD components from control_gui partition selection.
+          Added separate bld "segment-level" event builder.
 2009-Oct-28 weaver  Tag V01-05-00.  Removed Recorder level.
 2009-Oct-27 tomytsai  Add command line options for bldServerTest and bldClientTest to support the multicast address/port/interface options.
 2009-Oct-20 weaver  Tag V01-04-02.  Bug fix to config/ControlScan for live editing of scan
