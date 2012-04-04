@@ -37,6 +37,7 @@
 #include "pdsapp/config/TimepixConfig.hh"
 #include "pdsapp/config/PhasicsConfig.hh"
 #include "pdsapp/config/Cspad2x2Config.hh"
+#include "pdsapp/config/OceanOpticsConfig.hh"
 
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/EvrIOConfigType.hh"
@@ -60,6 +61,7 @@
 #include "pds/config/TimepixConfigType.hh"
 #include "pds/config/PhasicsConfigType.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
+#include "pds/config/OceanOpticsConfigType.hh"
 #include "pdsapp/config/PdsDefs.hh"
 
 #include "pdsdata/lusi/DiodeFexConfigV1.hh"
@@ -82,29 +84,30 @@ bool SerializerDEntry::operator==(const SerializerDEntry& s) const
 
 SerializerDictionary::SerializerDictionary()
 {
-  enroll(_encoderConfigType   ,new EncoderConfig);
-  enroll(_acqConfigType       ,new AcqConfig);
-  enroll(_acqTdcConfigType    ,new AcqTdcConfig);
-  enroll(_evrConfigType       ,new EvrConfigP);
-  enroll(_evrIOConfigType     ,new EvrIOConfig);
-  enroll(_opal1kConfigType    ,new Opal1kConfig);
-  enroll(_fccdConfigType      ,new FccdConfig);
-  enroll(_tm6740ConfigType    ,new TM6740Config);  
-  enroll(_pnCCDConfigType     ,new pnCCDConfig);
-  enroll(_frameFexConfigType  ,new FrameFexConfig);
-  enroll(_controlConfigType   ,new ControlConfig);
-  enroll(_princetonConfigType ,new princetonConfig);  
-  enroll(_ipimbConfigType     ,new IpimbConfig);  
-  enroll(_ipmFexConfigType    ,new IpmFexConfig);
-  enroll(_diodeFexConfigType  ,new DiodeFexConfig);  
-  enroll(_pimImageConfigType  ,new PimImageConfig);  
-  enroll(_CsPadConfigType     ,new CspadConfig);
-  enroll(_XampsConfigType     ,new XampsConfig);
-  enroll(_FexampConfigType    ,new FexampConfig);
-  enroll(_gsc16aiConfigType   ,new Gsc16aiConfig);
-  enroll(_timepixConfigType   ,new TimepixConfig);
-  enroll(_PhasicsConfigType   ,new PhasicsConfig);
-  enroll(_CsPad2x2ConfigType  ,new Cspad2x2Config);
+  enroll(_encoderConfigType     ,new EncoderConfig);
+  enroll(_acqConfigType         ,new AcqConfig);
+  enroll(_acqTdcConfigType      ,new AcqTdcConfig);
+  enroll(_evrConfigType         ,new EvrConfigP);
+  enroll(_evrIOConfigType       ,new EvrIOConfig);
+  enroll(_opal1kConfigType      ,new Opal1kConfig);
+  enroll(_fccdConfigType        ,new FccdConfig);
+  enroll(_tm6740ConfigType      ,new TM6740Config);  
+  enroll(_pnCCDConfigType       ,new pnCCDConfig);
+  enroll(_frameFexConfigType    ,new FrameFexConfig);
+  enroll(_controlConfigType     ,new ControlConfig);
+  enroll(_princetonConfigType   ,new princetonConfig);  
+  enroll(_ipimbConfigType       ,new IpimbConfig);  
+  enroll(_ipmFexConfigType      ,new IpmFexConfig);
+  enroll(_diodeFexConfigType    ,new DiodeFexConfig);  
+  enroll(_pimImageConfigType    ,new PimImageConfig);  
+  enroll(_CsPadConfigType       ,new CspadConfig);
+  enroll(_XampsConfigType       ,new XampsConfig);
+  enroll(_FexampConfigType      ,new FexampConfig);
+  enroll(_gsc16aiConfigType     ,new Gsc16aiConfig);
+  enroll(_timepixConfigType     ,new TimepixConfig);
+  enroll(_PhasicsConfigType     ,new PhasicsConfig);
+  enroll(_CsPad2x2ConfigType    ,new Cspad2x2Config);
+  enroll(_oceanOpticsConfigType ,new OceanOpticsConfig);  
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,2) , new CspadConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  
@@ -127,7 +130,7 @@ SerializerDictionary::~SerializerDictionary()
 }
 
 void SerializerDictionary::enroll(const Pds::TypeId& type,
-				  Serializer* s)
+          Serializer* s)
 {
   SerializerDEntry entry(type,s);
   _list.remove(entry);

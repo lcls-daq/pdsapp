@@ -32,7 +32,8 @@ tgtnames :=  evr \
     timepix  \
     simcam   \
     cspad2x2 \
-    timetool
+    timetool \
+    oceanoptics
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
@@ -211,3 +212,6 @@ tgtlibs_timepix := $(commonlibs) pdsdata/timepixdata pds/timepix pdsdata/camdata
 tgtslib_timepix := /usr/lib/rt
 tgtincs_timepix := relaxd/include/common relaxd/include/src
 
+tgtsrcs_oceanoptics := oceanoptics.cc
+tgtlibs_oceanoptics := $(commonlibs) pdsdata/oceanopticsdata pds/oceanoptics pds/oopt
+tgtslib_oceanoptics := /usr/lib/rt

@@ -76,6 +76,7 @@ libsrcs_configdbg += PimImageConfig.cc
 libsrcs_configdbg += EncoderConfig.cc EncoderConfig_V1.cc
 libsrcs_configdbg += Gsc16aiConfig.cc
 libsrcs_configdbg += TimepixConfig.cc
+libsrcs_configdbg += OceanOpticsConfig.cc
 libsrcs_configdbg += AcqChannelMask.cc AcqChannelMask_moc.cc
 libsrcs_configdbg += AcqConfig.cc
 libsrcs_configdbg += AcqTdcConfig.cc
@@ -92,9 +93,10 @@ tgtnames       += configdb_list
 # executable python modules: configdb_gui.py
 
 datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata
-datalibs += pdsdata/timepixdata
+datalibs += pdsdata/timepixdata 
 datalibs += pdsdata/phasicsdata
 datalibs += pdsdata/cspad2x2data
+datalibs += pdsdata/oceanopticsdata 
 
 tgtsrcs_configdb := configdb.cc
 #tgtincs_configdb := $(qtincdir)
@@ -106,12 +108,12 @@ tgtslib_configdb := $(USRLIBDIR)/rt
 
 tgtsrcs_configdb_gui := configdb_gui.cc
 tgtsrcs_configdb_gui += Ui.cc
-tgtsrcs_configdb_gui += Devices_Ui.cc 		Devices_Ui_moc.cc
-tgtsrcs_configdb_gui += Experiment_Ui.cc 	Experiment_Ui_moc.cc
-tgtsrcs_configdb_gui += Transaction_Ui.cc 	Transaction_Ui_moc.cc
-tgtsrcs_configdb_gui += Info_Ui.cc 		Info_Ui_moc.cc
-tgtsrcs_configdb_gui += ListUi.cc 		ListUi_moc.cc
-tgtsrcs_configdb_gui += DetInfoDialog_Ui.cc 	DetInfoDialog_Ui_moc.cc
+tgtsrcs_configdb_gui += Devices_Ui.cc     Devices_Ui_moc.cc
+tgtsrcs_configdb_gui += Experiment_Ui.cc  Experiment_Ui_moc.cc
+tgtsrcs_configdb_gui += Transaction_Ui.cc   Transaction_Ui_moc.cc
+tgtsrcs_configdb_gui += Info_Ui.cc    Info_Ui_moc.cc
+tgtsrcs_configdb_gui += ListUi.cc     ListUi_moc.cc
+tgtsrcs_configdb_gui += DetInfoDialog_Ui.cc   DetInfoDialog_Ui_moc.cc
 tgtincs_configdb_gui := $(qtincdir)
 tgtlibs_configdb_gui := $(datalibs)
 tgtlibs_configdb_gui += qt/QtGui qt/QtCore

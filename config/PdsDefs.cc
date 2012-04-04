@@ -22,6 +22,7 @@
 #include "pds/config/TimepixConfigType.hh"
 #include "pds/config/PhasicsConfigType.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
+#include "pds/config/OceanOpticsConfigType.hh"
 //#include "pds/config/SeqConfigType.hh"
 
 #include <sstream>
@@ -77,6 +78,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case Timepix      : type = &_timepixConfigType;   break;
   case Phasics      : type = &_PhasicsConfigType;   break;
   case Cspad2x2     : type = &_CsPad2x2ConfigType;  break;
+  case OceanOptics  : type = &_oceanOpticsConfigType; break;
   default: 
     printf("PdsDefs::typeId id %d not found\n",unsigned(id));
     break;
@@ -111,6 +113,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_timepixConfigType);
   test(_PhasicsConfigType);
   test(_CsPad2x2ConfigType);
+  test(_oceanOpticsConfigType);    
 #undef test
   //  database-only types
   //  if (name==_eventCodeSetName) return &_eventCodeSetType;
@@ -146,6 +149,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_timepixConfigType);
   test(_PhasicsConfigType);
   test(_CsPad2x2ConfigType);
+  test(_oceanOpticsConfigType);    
 #undef test
   //  database-only types
   //  if (name==_eventCodeSetName) return &_eventCodeSetType;

@@ -286,12 +286,12 @@ int main(int argc, char** argv)
       
     Task* task = new Task(Task::MakeThisATask);
     taskMainThread = task;
-
+    
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsPrinceton settings(detInfo);
     
     EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iDebugLevel);
-    SegmentLevel segmentLevel(iPlatform, settings, eventCallBackPrinceton, NULL); // !! for debug
+    SegmentLevel segmentLevel(iPlatform, settings, eventCallBackPrinceton, NULL);
     
     segmentLevel.attach();    
     if ( eventCallBackPrinceton.IsAttached() )    

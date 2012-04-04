@@ -45,7 +45,8 @@ XtcEpicsMonitor::~XtcEpicsMonitor()
         int iFail = epicsPvCur.release();
         
         if (iFail != 0)
-            printf( "xtcEpicsTest()::EpicsMonitorPv::release(%s) failed\n", epicsPvCur.getPvName().c_str());
+          printf( "xtcEpicsTest()::EpicsMonitorPv::release(%s (%s)) failed\n", 
+            epicsPvCur.getPvDescription().c_str(), epicsPvCur.getPvName().c_str());
     }
     
     if (_fhXtc != NULL)
@@ -82,8 +83,8 @@ int XtcEpicsMonitor::runMonitorLoop()
             EpicsMonitorPv& epicsPvCur = _lpvPvList[iPvName];
             if ( !epicsPvCur.isConnected() )
             {
-                printf( "XtcEpicsMonitor::runMonitorLoop(): PV %s has not been connected to CA library\n",
-                  epicsPvCur.getPvName().c_str() );
+                printf( "XtcEpicsMonitor::runMonitorLoop(): PV %s (%s) has not been connected to CA library\n",
+                  epicsPvCur.getPvDescription().c_str(), epicsPvCur.getPvName().c_str() );
                 continue;
             }
             
@@ -153,11 +154,12 @@ int XtcEpicsMonitor::setupPvList(int iNumPv, char* lsPvName[], TEpicsMonitorPvLi
         string sPvName( lsPvName[iPvName % iOrgNumPv] );
         //if ( iPvName != 0 )
         //    sPvName += ( itoa( iPvName) );
-        int iFail = epicsPvCur.init( iPvName, sPvName.c_str() );
+        int iFail = epicsPvCur.init( iPvName, sPvName.c_str(), sPvName.c_str(), 1, 1 );
         
         if (iFail != 0)
         {
-            printf( "setupPvList()::EpicsMonitorPv::init(%s) failed\n", epicsPvCur.getPvName().c_str());
+            printf( "setupPvList()::EpicsMonitorPv::init(%s (%s)) failed\n", 
+              epicsPvCur.getPvDescription().c_str(), epicsPvCur.getPvName().c_str());
             return 1;   
         }       
     }    
