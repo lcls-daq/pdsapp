@@ -6,7 +6,7 @@ libsrcs_devapp := CmdLineTools.cc
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames := opal1kedt phasics 
+tgtnames := opal1kedt pimimageedt phasics 
 
 else
 tgtnames :=  evr \
@@ -14,7 +14,6 @@ tgtnames :=  evr \
     evrsnoop \
     acq \
     opal1k \
-    opal1kedt \
     epicsArch \
     rceProxy \
     encoder \
@@ -169,6 +168,13 @@ tgtlibs_pimimage := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pu
 tgtlibs_pimimage += pds/camera
 tgtlibs_pimimage += $(leutron_libs)
 tgtincs_pimimage := leutron/include
+
+tgtsrcs_pimimageedt := pimimageedt.cc 
+tgtlibs_pimimageedt := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_pimimageedt += pds/camera
+tgtlibs_pimimageedt += $(edt_libs)
+tgtslib_pimimageedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
+tgtincs_pimimageedt := edt/include
 
 tgtsrcs_fccd := fccd.cc
 tgtlibs_fccd := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
