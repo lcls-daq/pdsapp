@@ -30,6 +30,7 @@ tgtlibs_control_gui := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pds
 tgtlibs_control_gui += pdsdata/timepixdata
 tgtlibs_control_gui += pdsdata/phasicsdata
 tgtlibs_control_gui += pdsdata/cspad2x2data
+tgtlibs_control_gui += pdsdata/oceanopticsdata
 tgtlibs_control_gui += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/client pds/offlineclient pds/config pds/management pds/epicstools
 tgtlibs_control_gui += pds/epicstools
 tgtlibs_control_gui += pdsapp/configdb
