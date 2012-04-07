@@ -80,7 +80,7 @@ void AcqChannelMask::boxChanged(int)
 
 void AcqChannelMask::numberChanged() {
   unsigned k=0;
-  unsigned mask=_input->text().toUInt(0,16);
+  unsigned mask= (allowEdit() ? _input->text() : _display->text()).toUInt(0,16);
   for(unsigned row=1; row<=Modules; row++) {
     for(unsigned col=1; col<=Channels; col++,k++) {
       QCheckBox* box = _box[k];
