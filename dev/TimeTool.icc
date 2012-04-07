@@ -512,7 +512,7 @@ namespace Pds_TimeTool {
         while(getline(&linep, &sz, f)>0) {
           if (linep[0]=='#')
             continue;
-          const char* delim = " \t";
+          const char* delim = " \t\n";
           char* name = strtok(linep,delim);
           char* arg  = strtok(0,delim);
           unsigned v_ul = strtoul(arg,&pEnd,0);
@@ -553,8 +553,10 @@ namespace Pds_TimeTool {
               _wts[i] = strtod(linep,&pEnd);
             }
           }
-          else if (strcasecmp(name,"project")==0)
-            _projectX = strcasecmp(arg,"x")==0;
+          else if (strcasecmp(name,"project")==0) {
+            _projectX = arg[0]=='x' || arg[0]=='X';
+	    printf("project %c [%c]\n", _projectX ? 'X' : 'Y',arg[0]);
+          }
           else if (strcasecmp(name,"adjust_stats")==0)
             _adjust_stats = v_ul;
           else if (strcasecmp(name,"adjust_pv")==0)
