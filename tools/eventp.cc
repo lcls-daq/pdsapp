@@ -31,6 +31,7 @@ int main(int argc, char** argv)
     case 't':  lifetime = strtoul(optarg, &endPtr, 0); break;
     case 'e':  options.mode = EventOptions::Decoder; break;
     case 'd':  options.mode = EventOptions::Display; break;
+    case 'b':  options.buffersize = strtoul(optarg, &endPtr,0); break;
     default:
       usage(argv[0]);
       exit(1);
