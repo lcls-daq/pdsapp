@@ -27,8 +27,9 @@ int main(int argc, char** argv) {
   Task* task = new Task(Task::MakeThisATask);
   EventTest* test = new EventTest(task, options, arp);
   EventLevel* event = new EventLevel(options.platform,
-             *test,
-             arp);
+                                     *test,
+                                     arp,
+                                     options.buffersize);
 
   if (test->attach(event)) {
     task->mainLoop();
