@@ -87,6 +87,24 @@ private:
   Pool* _pool;
 };
 
+#include "pds/utility/EbBase.hh"
+
+class MyEbDump : public Appliance {
+public:
+  MyEbDump(InletWire* eb) : _eb(static_cast<EbBase*>(eb)) {}
+public:
+  Transition* transitions(Transition* in) { return in; }
+  InDatagram* occurrences(InDatagram* in) { return in; }
+  InDatagram* events     (InDatagram* in) {
+    const Datagram& dg = in->datagram();
+    if (dg.seq.service()==TransitionId::EndRun)
+      _eb->dump(1);
+    return in;
+  }
+private:
+  EbBase* _eb;
+};
+
 class MyCallback : public EventCallback {
 public:
   MyCallback(Task* task, Appliance* app) :
@@ -100,6 +118,7 @@ public:
   {
     Stream* frmk = streams.stream(StreamParams::FrameWork);
     _appliances->connect(frmk->inlet());
+    (new MyEbDump(streams.wire()))->connect(frmk->inlet());
   }
   void failed   (Reason reason)   { _task->destroy(); delete this; }
   void dissolved(const Node& who) { _task->destroy(); delete this; }
@@ -193,9 +212,10 @@ int main(int argc, char** argv) {
                  apps);
 
     ObserverLevel* event = new ObserverLevel(platform,
-               partition,
-               node,
-               *display);
+                                             partition,
+                                             node,
+                                             *display,
+                                             sizeOfBuffers);
 
     if (event->attach()) {
       task->mainLoop();
