@@ -123,9 +123,21 @@ namespace Pds {
 
 using namespace Pds;
 
-static void calibrate_module(ViSession id) 
+static void calibrate_module(ViSession id,
+                             uint32_t nbrConverters,
+                             uint32_t calChannelMask) 
 {
-  ViStatus status = Acqrs_calibrate(id);
+  ViStatus status;
+  if (nbrConverters==0 && calChannelMask==0)
+    status = Acqrs_calibrate(id);
+  else {
+    // configure channels
+    printf("Configuring channelmask 0x%x  nbrConverters %d\n",
+           calChannelMask, nbrConverters);
+    AcqrsD1_configChannelCombination(id, nbrConverters, calChannelMask);
+    status = Acqrs_calibrateEx(id,1,0,0);
+  }
+
   if(status != VI_SUCCESS) {
     char message[256];
     Acqrs_errorMessage(id,status,message,256);
@@ -143,17 +155,17 @@ static void calibrate_module(ViSession id)
   }
 }
 
-static void calibrate() 
+static void calibrate(AcqFinder& acqFinder,
+                      unsigned   nbrConverters,
+                      unsigned   calChannelMask) 
 {
-  AcqFinder acqFinder(AcqFinder::All);
-
-  printf("Calibrating %d D1 instruments\n",acqFinder.numD1Instruments());
+  printf("Calibrating %ld D1 instruments\n",acqFinder.numD1Instruments());
   for(int i=0; i<acqFinder.numD1Instruments();i++)
-    calibrate_module(acqFinder.D1Id(i));
+    calibrate_module(acqFinder.D1Id(i),nbrConverters,calChannelMask);
 
-  printf("Calibrating %d T3 instruments\n",acqFinder.numT3Instruments());
+  printf("Calibrating %ld T3 instruments\n",acqFinder.numT3Instruments());
   for(int i=0; i<acqFinder.numT3Instruments();i++)
-    calibrate_module(acqFinder.T3Id(i));
+    calibrate_module(acqFinder.T3Id(i),0,0);
 }
 
 int main(int argc, char** argv) {
@@ -163,10 +175,13 @@ int main(int argc, char** argv) {
   unsigned devid = 0;
   unsigned platform = -1UL;
   bool multi_instruments_only = true;
+  bool lcalibrate = false;
+  unsigned nbrConverters=0;
+  unsigned calChannelMask=0;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:d:p:tC")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:d:p:tCc:m:")) != EOF ) {
     switch(c) {
     case 'i':
       detid  = strtoul(optarg, NULL, 0);
@@ -181,10 +196,24 @@ int main(int argc, char** argv) {
       multi_instruments_only = false;
       break;
     case 'C':
-      calibrate();
-      return 0;
+      lcalibrate = true;
+      break;
+    case 'c':
+      nbrConverters = strtoul(optarg, NULL, 0);
+      break;
+    case 'm':
+      calChannelMask = strtoul(optarg, NULL, 0);
       break;
     }
+  }
+
+  AcqFinder acqFinder(multi_instruments_only ? 
+		      AcqFinder::MultiInstrumentsOnly :
+		      AcqFinder::All);
+
+  if (lcalibrate) {
+    calibrate(acqFinder,nbrConverters,calChannelMask);
+    return 0;
   }
 
   if ((platform == -1UL) || (detid == -1UL)) {
@@ -199,9 +228,6 @@ int main(int argc, char** argv) {
   std::list<AcqD1Manager*> D1Managers;
   std::list<AcqT3Manager*> T3Managers;
 
-  AcqFinder acqFinder(multi_instruments_only ? 
-		      AcqFinder::MultiInstrumentsOnly :
-		      AcqFinder::All);
   Semaphore sem(Semaphore::FULL);
   for(int i=0; i<acqFinder.numD1Instruments();i++) {
     DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::Acqiris, i+devid);
