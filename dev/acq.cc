@@ -145,7 +145,7 @@ static void calibrate_module(ViSession id)
 
 static void calibrate() 
 {
-  AcqFinder acqFinder(AcqFinder::MultiInstrumentsOnly);
+  AcqFinder acqFinder(AcqFinder::All);
 
   printf("Calibrating %d D1 instruments\n",acqFinder.numD1Instruments());
   for(int i=0; i<acqFinder.numD1Instruments();i++)
