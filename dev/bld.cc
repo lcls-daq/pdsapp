@@ -62,11 +62,11 @@ public:
     if (xtc->contains.id()==TypeId::Id_Xtc)
       iterate(xtc);
     else if (xtc->contains.value()==curId.value()) {
+      printf("Found %x\n",curId.value());
       xtc->contains = newId;
       return 0;
     }
     else if (xtc->contains.value()==newId.value()) {
-      printf("Found %x\n",newId.value());
     }
     else if (xtc->contains.value()==oldId.value()) {
       printf("Found %x\n",oldId.value());
