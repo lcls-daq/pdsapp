@@ -19,7 +19,7 @@ int main(int argc, char** argv)
   EventOptions options;
 
   int c;
-  while ((c = getopt(argc, argv, "f:p:s:c:edP:i:t:")) != -1) {
+  while ((c = getopt(argc, argv, "f:p:s:c:edP:i:t:b:")) != -1) {
     char* endPtr;
     switch(c) {
     case 'f':  options.outfile = optarg; break;
