@@ -47,10 +47,10 @@ class EventCallBackPrinceton : public EventCallback
 {
 public:
     EventCallBackPrinceton(int iPlatform, CfgClientNfs& cfgService, int iCamera, bool bDelayMode, 
-      bool bInitTest, string sConfigDb, int iDebugLevel) :
+      bool bInitTest, string sConfigDb, int iSleepInt, int iDebugLevel) :
       _iPlatform(iPlatform), _cfg(cfgService), _iCamera(iCamera), 
-      _bDelayMode(bDelayMode), _bInitTest(bInitTest), _sConfigDb(sConfigDb),
-      _iDebugLevel(iDebugLevel),
+      _bDelayMode(bDelayMode), _bInitTest(bInitTest), 
+      _sConfigDb(sConfigDb), _iSleepInt(iSleepInt), _iDebugLevel(iDebugLevel),
       _bAttached(false), _princetonManager(NULL) 
     {
     }
@@ -80,7 +80,7 @@ private:
         
         try
         {            
-        _princetonManager = new PrincetonManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iDebugLevel);
+        _princetonManager = new PrincetonManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iSleepInt, _iDebugLevel);
         }
         catch ( PrincetonManagerException& eManager )
         {
@@ -127,6 +127,7 @@ private:
     bool                _bDelayMode;
     bool                _bInitTest;
     string              _sConfigDb;
+    int                 _iSleepInt;
     int                 _iDebugLevel;
     bool                _bAttached;
     PrincetonManager*   _princetonManager;    
@@ -142,7 +143,7 @@ using namespace Pds;
 static void showUsage()
 {
     printf( "Usage:  princeton  [-v|--version] [-h|--help] [-c|--camera <0-9> ] "
-      "[-i|--id <id>] [-d|--delay] [-n|--init] [-g|--config <db_path>] "
+      "[-i|--id <id>] [-d|--delay] [-n|--init] [-g|--config <db_path>] [-s|--sleep <ms>] "
       "[-l|--debug <level>] [-i|--id <id>] -p|--platform <platform id>\n" 
       "  Options:\n"
       "    -v|--version                 Show file version.\n"
@@ -151,7 +152,8 @@ static void showUsage()
       "    -i|--id       <id>           Set ID. Format: Detector/DetectorId/DeviceId. (Default: NoDetector/0/0)\n"
       "    -d|--delay                   Use delay mode.\n"
       "    -n|--init                    Run a testing capture to avoid the initial delay.\n"
-      "    -g|--config <db_path>        Intial princeton camera based on the config db at <db_path>\n"
+      "    -g|--config   <db_path>      Intial princeton camera based on the config db at <db_path>\n"
+      "    -s|--sleep    <sleep_ms>     Sleep inteval between multiple perinceton camera. (Default: 500 ms)\n"
       "    -l|--debug    <level>        Set debug level. (Default: 0)\n"
       "    -p|--platform <platform id>  [*required*] Set platform id.\n"
     );
@@ -175,7 +177,7 @@ void princetonSignalIntHandler( int iSignalNo )
 
 int main(int argc, char** argv) 
 {
-    const char*   strOptions    = ":vhp:c:i:dnl:g:";
+    const char*   strOptions    = ":vhp:c:i:dnl:g:s:";
     const struct option loOptions[]   = 
     {
        {"ver",      0, 0, 'v'},
@@ -186,7 +188,8 @@ int main(int argc, char** argv)
        {"delay",    0, 0, 'd'},
        {"init",     0, 0, 'n'},
        {"config",   1, 0, 'g'},
-       {"debug",    1, 0, 'l'},
+       {"sleep" ,   1, 0, 's'},
+       {"debug" ,   1, 0, 'l'},
        {0,          0, 0,  0 }
     };    
     
@@ -198,8 +201,9 @@ int main(int argc, char** argv)
     bool              bDelayMode    = false;
     bool              bInitTest     = false;
     int               iDebugLevel   = 0;
-    int               iPlatform     = -1;
+    int               iPlatform     = -1;    
     string            sConfigDb;
+    int               iSleepInt     = 500; // 500 ms
         
     int               iOptionIndex  = 0;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
@@ -236,6 +240,9 @@ int main(int argc, char** argv)
             break;       
         case 'g':
             sConfigDb = optarg;
+            break;       
+        case 's':
+            iSleepInt = strtoul(optarg, NULL, 0);
             break;       
         case '?':               /* Terse output mode */
             printf( "princeton:main(): Unknown option: %c\n", optopt );
@@ -280,7 +287,7 @@ int main(int argc, char** argv)
     printf("  Platform: %d  Camera: %d\n", iPlatform, iCamera);        
     
     const DetInfo detInfo( getpid(), detector, iDetectorId, DetInfo::Princeton, iDeviceId);    
-    printf("  DetInfo: %s  ConfigDb: %s\n", DetInfo::name(detInfo), sConfigDb.c_str() );    
+    printf("  DetInfo: %s  ConfigDb: %s  Sleep: %d ms\n", DetInfo::name(detInfo), sConfigDb.c_str(), iSleepInt );    
     printf("  Delay Mode: %s  Init Test: %s  Debug Level: %d\n", (bDelayMode?"Yes":"No"), (bInitTest?"Yes":"No"),
       iDebugLevel);
       
@@ -290,7 +297,7 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsPrinceton settings(detInfo);
     
-    EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iDebugLevel);
+    EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iDebugLevel);
     SegmentLevel segmentLevel(iPlatform, settings, eventCallBackPrinceton, NULL);
     
     segmentLevel.attach();    
