@@ -141,6 +141,13 @@ namespace Pds {
       if (CheckType(HfxMonCam  ))     extent += SizeCamType;
       if (CheckType(HfxMonImb01))     extent += SizeType(BldDataIpimb);	  
       if (CheckType(HfxMonImb02))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(HfxMonImb03))     extent += SizeType(BldDataIpimb);
+      if (CheckType(MecLasEm01))     extent += SizeType(BldDataIpimb);
+      if (CheckType(MecLasDio01))     extent += SizeType(BldDataIpimb);
+      if (CheckType(MecTcTrDio01))     extent += SizeType(BldDataIpimb);
+      if (CheckType(MecXt2Ipm02))     extent += SizeType(BldDataIpimb);
+      if (CheckType(MecXt2Ipm03))     extent += SizeType(BldDataIpimb);
+      if (CheckType(MecHxmIpm01))     extent += SizeType(BldDataIpimb);
       _configtc.extent = sizeof(Xtc)+extent;
       if (extent) {
         if (_config_payload) delete[] _config_payload;
@@ -164,6 +171,13 @@ namespace Pds {
         if (CheckType(HfxMonCam  ))     AddCamType(HfxMonCam);
         if (CheckType(HfxMonImb01))     AddType(HfxMonImb01,     Id_SharedIpimb,     BldDataIpimb);	
         if (CheckType(HfxMonImb02))     AddType(HfxMonImb02,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(HfxMonImb03))     AddType(HfxMonImb03,     Id_SharedIpimb,     BldDataIpimb);
+        if (CheckType(MecLasEm01))      AddType(MecLasEm01,      Id_SharedIpimb,     BldDataIpimb);
+        if (CheckType(MecLasDio01))     AddType(MecLasDio01,     Id_SharedIpimb,     BldDataIpimb);
+        if (CheckType(MecTcTrDio01))    AddType(MecTcTrDio01,    Id_SharedIpimb,     BldDataIpimb);
+        if (CheckType(MecXt2Ipm02))     AddType(MecXt2Ipm02,     Id_SharedIpimb,     BldDataIpimb);
+        if (CheckType(MecXt2Ipm03))     AddType(MecXt2Ipm03,     Id_SharedIpimb,     BldDataIpimb);
+        if (CheckType(MecHxmIpm01))     AddType(MecHxmIpm01,     Id_SharedIpimb,     BldDataIpimb);
       }
 #undef CheckType
 #undef SizeType
