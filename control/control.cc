@@ -19,12 +19,13 @@ int main(int argc, char** argv)
   const char* partition = "partition";
   const char* dbpath    = "none";
   const char* offlinerc = (char *)NULL;
+  const char* runNumberFile = (char *)NULL;
   const char* experiment = (char *)NULL;
   unsigned    sequencer_id = 0;
   unsigned key=0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:b:P:D:L:E:S:")) != -1) {
+  while ((c = getopt(argc, argv, "p:b:P:D:L:R:E:S:")) != -1) {
     char* endPtr;
     switch (c) {
     case 'b':
@@ -46,6 +47,9 @@ int main(int argc, char** argv)
     case 'L':
       offlinerc = optarg;
       break;
+    case 'R':
+      runNumberFile = optarg;
+      break;
     case 'E':
       experiment = optarg;
       break;
@@ -54,9 +58,9 @@ int main(int argc, char** argv)
       break;
     }
   }
-  if ((platform==-1UL || !partition || !dbpath) || (!offlinerc && experiment)) {
+  if ((platform==-1UL || !partition || !dbpath) || (!offlinerc && experiment) || (offlinerc && runNumberFile)) {
     printf("usage: %s -p <platform> -P <partition_description> -D <db name> [-b <bld>]\n"
-           "             [-L <offlinerc>] [-E <experiment_name>]\n", argv[0]);
+           "             [-L <offlinerc> | -R <run_number_file>] [-E <experiment_name>]\n", argv[0]);
     return 0;
   }
 
@@ -65,10 +69,11 @@ int main(int argc, char** argv)
   QApplication app(_argc, _argv);
   
   MainWindow* window = new MainWindow(platform,
-				      partition,
-				      dbpath,
-				      offlinerc,
-				      experiment,
+                                      partition,
+                                      dbpath,
+                                      offlinerc,
+                                      runNumberFile,
+                                      experiment,
                                       sequencer_id);
   window->show();
   app.exec();
