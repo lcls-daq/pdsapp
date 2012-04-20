@@ -11,6 +11,7 @@
 #include "pdsapp/control/RunStatus.hh"
 #include "pdsapp/control/ControlLog.hh"
 #include "pdsapp/control/MySqlRunAllocator.hh"
+#include "pdsapp/control/FileRunAllocator.hh"
 
 #include "pds/offlineclient/OfflineClient.hh"
 #include "pds/management/QualifiedControl.hh"
@@ -221,6 +222,7 @@ MainWindow::MainWindow(unsigned          platform,
 		       const char*       partition,
 		       const char*       db_path,
 		       const char*       offlinerc,
+		       const char*       runNumberFile,
 		       const char*       experiment,
                        unsigned          sequencer_id) :
   QWidget(0),
@@ -244,10 +246,17 @@ MainWindow::MainWindow(unsigned          platform,
     else {
       _offlineclient = new OfflineClient(offlinerc, partition);
     }
+    // option A: run number maintained in a mysql database
     _runallocator = new MySqlRunAllocator(_offlineclient);
     experiment_number = _offlineclient->GetExperimentNumber();
     _control->set_experiment(experiment_number);
+  } else if (runNumberFile) {
+    // option B: run number maintained in a simple file
+    _runallocator = new FileRunAllocator(runNumberFile);
+    // NULL offline database
+    _offlineclient = (OfflineClient*)NULL;
   } else {
+    // option C: run number fixed at 0
     _runallocator = new RunAllocator;
     // NULL offline database
     _offlineclient = (OfflineClient*)NULL;

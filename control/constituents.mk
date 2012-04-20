@@ -19,6 +19,7 @@ tgtsrcs_control_gui += ControlLog.cc    ControlLog_moc.cc
 tgtsrcs_control_gui += DamageStats.cc     DamageStats_moc.cc
 tgtsrcs_control_gui += RunStatus.cc     RunStatus_moc.cc
 tgtsrcs_control_gui += MySqlRunAllocator.cc
+tgtsrcs_control_gui += FileRunAllocator.cc
 tgtsrcs_control_gui += SeqAppliance.cc
 tgtsrcs_control_gui += RemoteSeqApp.cc
 tgtsrcs_control_gui += PVManager.cc

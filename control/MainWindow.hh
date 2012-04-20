@@ -26,6 +26,7 @@ namespace Pds {
 	       const char*       partition,
 	       const char*       dbpath,
 	       const char*       offlinerc,
+         const char*       runNumberFile,
 	       const char*       experiment,
                unsigned          sequencer_id);
     ~MainWindow();
