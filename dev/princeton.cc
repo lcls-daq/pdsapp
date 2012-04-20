@@ -153,7 +153,7 @@ static void showUsage()
       "    -d|--delay                   Use delay mode.\n"
       "    -n|--init                    Run a testing capture to avoid the initial delay.\n"
       "    -g|--config   <db_path>      Intial princeton camera based on the config db at <db_path>\n"
-      "    -s|--sleep    <sleep_ms>     Sleep inteval between multiple perinceton camera. (Default: 500 ms)\n"
+      "    -s|--sleep    <sleep_ms>     Sleep inteval between multiple perinceton camera. (Default: 750 ms)\n"
       "    -l|--debug    <level>        Set debug level. (Default: 0)\n"
       "    -p|--platform <platform id>  [*required*] Set platform id.\n"
     );
@@ -203,7 +203,7 @@ int main(int argc, char** argv)
     int               iDebugLevel   = 0;
     int               iPlatform     = -1;    
     string            sConfigDb;
-    int               iSleepInt     = 500; // 500 ms
+    int               iSleepInt     = 750; // 750 ms
         
     int               iOptionIndex  = 0;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
