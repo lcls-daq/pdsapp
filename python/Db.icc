@@ -28,6 +28,7 @@ static PyObject* pdsdb_new    (PyTypeObject* type, PyObject* args, PyObject* kwd
 static int       pdsdb_init   (pdsdb* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_get    (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_set    (PyObject* self, PyObject* args, PyObject* kwds);
+static PyObject* pdsdb_sync   (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_commit (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_clone  (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_sub    (PyObject* self, PyObject* args, PyObject* kwds);
@@ -38,6 +39,7 @@ static PyMethodDef pdsdb_methods[] = {
   {"get"       , (PyCFunction)pdsdb_get    , METH_KEYWORDS, "Return the xtc data"},
   {"set"       , (PyCFunction)pdsdb_set    , METH_KEYWORDS, "Insert the xtc data"},
   {"substitute", (PyCFunction)pdsdb_sub    , METH_KEYWORDS, "Replace the xtc data"},
+  {"sync"      , (PyCFunction)pdsdb_sync   , METH_NOARGS  , "Abandon changes and reread db"},
   {"commit"    , (PyCFunction)pdsdb_commit , METH_NOARGS  , "Commit changes and update db"},
   {"clone"     , (PyCFunction)pdsdb_clone  , METH_VARARGS , "Clone a key"},
   {"get_key"   , (PyCFunction)pdsdb_get_key, METH_KEYWORDS, "Return the current key for an alias"},
@@ -407,6 +409,14 @@ PyObject* pdsdb_sub(PyObject* self_o, PyObject* args, PyObject* kwds)
   fwrite(xtc->payload, xtc->extent, 1, xfile);
   fclose(xfile);
 
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+PyObject* pdsdb_sync (PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+  self->expt->read();
   Py_INCREF(Py_None);
   return Py_None;
 }
