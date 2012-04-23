@@ -317,7 +317,9 @@ MainWindow::~MainWindow()
   delete _control; 
   delete _controlcb; 
   delete _pvmanager;
-  delete _offlineclient;
+  if (_offlineclient) {
+    delete _offlineclient;
+  }
 }
 
 ControlLog& MainWindow::log() { return *_log; }
