@@ -143,7 +143,7 @@ namespace Pds {
       if (CheckType(HfxMonImb02))     extent += SizeType(BldDataIpimb);	  
       if (CheckType(HfxMonImb03))     extent += SizeType(BldDataIpimb);
       if (CheckType(MecLasEm01))     extent += SizeType(BldDataIpimb);
-      if (CheckType(MecLasDio01))     extent += SizeType(BldDataIpimb);
+      if (CheckType(MecTctrPip01))     extent += SizeType(BldDataIpimb);
       if (CheckType(MecTcTrDio01))     extent += SizeType(BldDataIpimb);
       if (CheckType(MecXt2Ipm02))     extent += SizeType(BldDataIpimb);
       if (CheckType(MecXt2Ipm03))     extent += SizeType(BldDataIpimb);
@@ -173,7 +173,7 @@ namespace Pds {
         if (CheckType(HfxMonImb02))     AddType(HfxMonImb02,     Id_SharedIpimb,     BldDataIpimb);	
         if (CheckType(HfxMonImb03))     AddType(HfxMonImb03,     Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecLasEm01))      AddType(MecLasEm01,      Id_SharedIpimb,     BldDataIpimb);
-        if (CheckType(MecLasDio01))     AddType(MecLasDio01,     Id_SharedIpimb,     BldDataIpimb);
+        if (CheckType(MecTctrPip01))     AddType(MecTctrPip01,     Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecTcTrDio01))    AddType(MecTcTrDio01,    Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecXt2Ipm02))     AddType(MecXt2Ipm02,     Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecXt2Ipm03))     AddType(MecXt2Ipm03,     Id_SharedIpimb,     BldDataIpimb);
@@ -388,7 +388,11 @@ namespace Pds {
     {
       unsigned max_size = MAX_EVENT_SIZE;
       unsigned net_buf_depth = 16;
+#ifdef BLD_DELAY
+      unsigned eb_depth = 120;
+#else
       unsigned eb_depth = 8;
+#endif
 
       const Node& node = m.header();
       Level::Type level = node.level();
