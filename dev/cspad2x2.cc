@@ -106,10 +106,10 @@ void sigHandler( int signal ) {
 //      myWire->remove_input(server);
 //    }
 //    printf("myWire removed input\nserver ");
-    server->ignoreFetch(true);
-    server->disable();
-    printf("disabled\n");
-    server->dumpFrontEnd();
+//    server->ignoreFetch(true);
+//    server->disable();
+//    printf("disabled\n");
+//    server->dumpFrontEnd();
     server->die();
   }
   printf("Signal handler pulling the plug\n");
@@ -187,6 +187,10 @@ void printUsage(char* s) {
       "    -i      Set device id             [Default: 0]\n"
       "    -m      Set config mask           [Default: 0]\n"
       "    -P      Set pgpcard index number  [Default: 0]\n"
+      "                The format of the index number is a one byte number with the bottom nybble being\n"
+      "                the index of the card and the top nybble being a port mask where one bit is for\n"
+      "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
+      "                applications that use the whole card\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -254,9 +258,11 @@ int main( int argc, char** argv )
            break;
          case 'P':
            pgpcard = strtoul(optarg, NULL, 0);
+           printf("Cspad2x2 using pgpcard 0x%x\n", pgpcard);
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
+           printf("Cspad2x2 using debug value of 0x%x\n", debug);
            break;
          case 'r':
            strcpy(runTimeConfigname, optarg);

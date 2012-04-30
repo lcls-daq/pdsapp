@@ -19,19 +19,6 @@
 #include <signal.h>
 #include <new>
 
-/*
- *
- * Note by Tomy:
- *  
- * This file has support for Cspad Compression, but the function is turned off now.
- *
- * To enable the compression, find the following line in this file:
- *   // cspadMgr.appProcessor().connect( frmk->inlet() );
- *
- *  Uncomment the line to enable the compression
- *
- */
-
 namespace Pds
 {
    class MySegWire;
@@ -156,7 +143,6 @@ void Pds::Seg::attached( SetOfStreams& streams )
       
    Stream* frmk = streams.stream(StreamParams::FrameWork);
    CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard );
-   //cspadMgr.appProcessor().connect( frmk->inlet() );
    cspadMgr.appliance().connect( frmk->inlet() );
 }
 
@@ -201,6 +187,10 @@ void printUsage(char* s) {
       "    -i      Set device id             [Default: 0]\n"
       "    -m      Set config mask           [Default: 0]\n"
       "    -P      Set pgpcard index number  [Default: 0]\n"
+      "                The format of the index number is a one byte number with the bottom nybble being\n"
+      "                the index of the card and the top nybble being a port mask where one bit is for\n"
+      "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
+      "                applications that use the whole card\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -268,9 +258,11 @@ int main( int argc, char** argv )
            break;
          case 'P':
            pgpcard = strtoul(optarg, NULL, 0);
+           printf("Cspad using pgpcard 0x%x\n", pgpcard);
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
+           printf("Cspad using debug value of 0x%x\n", debug);
            break;
          case 'r':
            strcpy(runTimeConfigname, optarg);
