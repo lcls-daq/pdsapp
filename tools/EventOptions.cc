@@ -8,7 +8,7 @@
 
 using namespace Pds;
 
-const unsigned DefaultBufferSize = 0x100000;
+const unsigned DefaultBufferSize = 0x1000000;
 const uint64_t DefaultChunkSize = ULLONG_MAX;
 
 EventOptions::EventOptions() :
