@@ -14,14 +14,15 @@ DefineXtcType(PrincetonConfig) ;
 
 #include "pdsdata/princeton/ConfigV1.hh"
 #include "pdsdata/princeton/ConfigV2.hh"
+#include "pdsdata/princeton/ConfigV3.hh"
 #include <new>
 
 
 //  Return a dictionary of configuration data
 #define SetDictMember(name,isFloat)                                                       \
-  { if (isFloat)                                                        	                  \
-      PyDict_SetItemString(o,#name,PyFloat_FromDouble(cfg->name()));            	        \
-    else                                                                                	  \
+  { if (isFloat)                                                                            \
+      PyDict_SetItemString(o,#name,PyFloat_FromDouble(cfg->name()));                      \
+    else                                                                                    \
       PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfg->name())); }
 
 PyObject* pds_PrincetonConfig_get (PyObject*   self, PyObject* args) 
@@ -58,10 +59,29 @@ PyObject* pds_PrincetonConfig_get (PyObject*   self, PyObject* args)
     SetDictMember(binY,false);
     SetDictMember(exposureTime,true);
     SetDictMember(coolingTemp,true);
-    SetDictMember(gainIndex,true);
+    SetDictMember(gainIndex,false);
     SetDictMember(readoutSpeedIndex,false);
     SetDictMember(readoutEventCode,false);
     SetDictMember(delayMode,false);
+
+    return o;
+  }
+  else if (xtc->contains.version()==3) { 
+    const Pds::Princeton::ConfigV3* cfg = 
+      reinterpret_cast<const Pds::Princeton::ConfigV3*>(xtc->payload);
+
+    SetDictMember(width,false);
+    SetDictMember(height,false);
+    SetDictMember(orgX,false);
+    SetDictMember(orgY,false); 
+    SetDictMember(binX,false);
+    SetDictMember(binY,false);
+    SetDictMember(exposureTime,true);
+    SetDictMember(coolingTemp,true);
+    SetDictMember(gainIndex,false);
+    SetDictMember(readoutSpeedIndex,false);
+    SetDictMember(exposureEventCode,false);
+    SetDictMember(numDelayShots,false);
 
     return o;
   }
@@ -86,8 +106,8 @@ PyObject* pds_PrincetonConfig_get (PyObject*   self, PyObject* args)
       else  name = (double) PyLong_AsUnsignedLong(i);                \
     }                                                                \
     else { \
-	printf("Unknown %s\n",#name); \
-	name = (double) cfg->name();  } }              
+  printf("Unknown %s\n",#name); \
+  name = (double) cfg->name();  } }              
 
 
 PyObject* pds_PrincetonConfig_set    (PyObject*   self, PyObject* args)
@@ -154,6 +174,37 @@ PyObject* pds_PrincetonConfig_set    (PyObject*   self, PyObject* args)
                       (uint16_t) readoutSpeedIndex,
                       (uint16_t) readoutEventCode,
                       (uint16_t) delayMode); 
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else if (xtc->contains.version()==3) { 
+    const Pds::Princeton::ConfigV3* cfg = 
+      reinterpret_cast<const Pds::Princeton::ConfigV3*>(xtc->payload);
+
+    SetDictMember(width);
+    SetDictMember(height);
+    SetDictMember(orgX);
+    SetDictMember(orgY);
+    SetDictMember(binX);
+    SetDictMember(binY);
+    SetDictMember(exposureTime);
+    SetDictMember(coolingTemp);
+    SetDictMember(gainIndex);
+    SetDictMember(readoutSpeedIndex);
+    SetDictMember(exposureEventCode);
+    SetDictMember(numDelayShots);
+    new(xtc->payload) Pds::Princeton::ConfigV3((uint32_t) width,
+                      (uint32_t) height,
+                      (uint32_t) orgX,
+                      (uint32_t) orgY,
+                      (uint32_t) binX,
+                      (uint32_t) binY,
+                      (float) exposureTime,
+                      (float) coolingTemp,
+                      (uint8_t) gainIndex,
+                      (uint8_t) readoutSpeedIndex,
+                      (uint16_t) exposureEventCode,
+                      (uint16_t) numDelayShots); 
     Py_INCREF(Py_None);
     return Py_None;
   }

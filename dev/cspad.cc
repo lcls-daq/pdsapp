@@ -19,6 +19,19 @@
 #include <signal.h>
 #include <new>
 
+/*
+ *
+ * Note by Tomy:
+ *  
+ * This file has support for Cspad Compression, but the function is turned off now.
+ *
+ * To enable the compression, find the following line in this file:
+ *   // cspadMgr.appProcessor().connect( frmk->inlet() );
+ *
+ *  Uncomment the line to enable the compression
+ *
+ */
+
 namespace Pds
 {
    class MySegWire;
@@ -143,6 +156,7 @@ void Pds::Seg::attached( SetOfStreams& streams )
       
    Stream* frmk = streams.stream(StreamParams::FrameWork);
    CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard );
+   //cspadMgr.appProcessor().connect( frmk->inlet() );
    cspadMgr.appliance().connect( frmk->inlet() );
 }
 

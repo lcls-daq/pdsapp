@@ -1,25 +1,25 @@
-#include "pdsapp/config/princetonConfig.hh"
+#include "pdsapp/config/FliConfig.hh"
 
 #include "pdsapp/config/Parameters.hh"
-#include "pds/config/PrincetonConfigType.hh"
+#include "pds/config/FliConfigType.hh"
 
 #include <new>
 
 namespace Pds_ConfigDb {
 
-  class princetonConfig::Private_Data {
+  class FliConfig::Private_Data {
   public:
     Private_Data() :
-      _uWidth               ("Width",               16, 1,    2048),
-      _uHeight              ("Height",              16, 1,    2048),
-      _uOrgX                ("Orgin X",             0,    0,    2047),
-      _uOrgY                ("Orgin Y",             0,    0,    2047),
-      _uBinX                ("Binning X",           1,    1,    64),
-      _uBinY                ("Binning Y",           1,    1,    64),
+      _uWidth               ("Width",               16, 1,      4152),
+      _uHeight              ("Height",              16, 1,      4128),
+      _uOrgX                ("Orgin X",             0,    0,    4151),
+      _uOrgY                ("Orgin Y",             0,    0,    4127),
+      _uBinX                ("Binning X",           1,    1,    16),
+      _uBinY                ("Binning Y",           1,    1,    16),
       // Note: Here the min exposure time need to set 9.99e-4 to allow user to input 1e-3, due to floating points imprecision
       _f32ExposureTime      ("Exposure time (sec)", 1e-3, 9.99e-4, 3600),
       _f32CoolingTemp       ("Cooling Temp (C)",    25,   -100,  25),      
-      _u8GainIndex          ("Gain Index",          3,    0,    5),
+      _u8GainIndex          ("Gain Index",          1,    0,    5),
       _u8ReadoutSpeedIndex  ("Readout Speed",       1,    0,    5),
       _u16ExposureEventCode ("Exposure Event Code", 1,    1,    255),
       _u32NumDelayShots     ("Number Delay Shots",  0,    0,    (uint32_t)-1)
@@ -41,7 +41,7 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      PrincetonConfigType& tc = *new(from) PrincetonConfigType;
+      FliConfigType& tc = *new(from) FliConfigType;
       _uWidth               .value = tc.width   ();
       _uHeight              .value = tc.height  ();
       _uOrgX                .value = tc.orgX    ();
@@ -58,7 +58,7 @@ namespace Pds_ConfigDb {
     }
 
     int push(void* to) {
-      PrincetonConfigType& tc = *new(to) PrincetonConfigType(
+      FliConfigType& tc = *new(to) FliConfigType(
         _uWidth               .value,
         _uHeight              .value,
         _uOrgX                .value,
@@ -76,7 +76,7 @@ namespace Pds_ConfigDb {
     }
 
     int dataSize() const {
-      return sizeof(PrincetonConfigType);
+      return sizeof(FliConfigType);
     }
 
   public:
@@ -95,7 +95,7 @@ namespace Pds_ConfigDb {
   };
 };
 
-  // !! for reference: from pdsdata/princeton/ConfigV1.hh
+  // !! for reference: from pdsdata/fli/ConfigV1.hh
   //uint32_t          _uWidth, _uHeight;
   //uint32_t          _uOrgX,  _uOrgY;
   //uint32_t          _uBinX,  _uBinY;
@@ -107,22 +107,22 @@ namespace Pds_ConfigDb {
 
 using namespace Pds_ConfigDb;
 
-princetonConfig::princetonConfig() : 
-  Serializer("princeton_Config"),
+FliConfig::FliConfig() : 
+  Serializer("fli_Config"),
   _private_data( new Private_Data )
 {
   _private_data->insert(pList);
 }
 
-int  princetonConfig::readParameters (void* from) {
+int  FliConfig::readParameters (void* from) {
   return _private_data->pull(from);
 }
 
-int  princetonConfig::writeParameters(void* to) {
+int  FliConfig::writeParameters(void* to) {
   return _private_data->push(to);
 }
 
-int  princetonConfig::dataSize() const {
+int  FliConfig::dataSize() const {
   return _private_data->dataSize();
 }
 

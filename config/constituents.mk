@@ -30,6 +30,7 @@ libsrcs_configdbg += Opal1kConfig.cc
 libsrcs_configdbg += FccdConfig.cc
 libsrcs_configdbg += pnCCDConfig.cc
 libsrcs_configdbg += princetonConfig.cc
+libsrcs_configdbg += FliConfig.cc
 libsrcs_configdbg += TM6740Config.cc
 libsrcs_configdbg += TM6740ConfigV1.cc
 libsrcs_configdbg += FrameFexConfig.cc
@@ -96,7 +97,7 @@ datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdat
 datalibs += pdsdata/timepixdata 
 datalibs += pdsdata/phasicsdata
 datalibs += pdsdata/cspad2x2data
-datalibs += pdsdata/oceanopticsdata 
+datalibs += pdsdata/oceanopticsdata pdsdata/flidata
 
 tgtsrcs_configdb := configdb.cc
 #tgtincs_configdb := $(qtincdir)

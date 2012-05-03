@@ -7,8 +7,8 @@ CPPFLAGS += -D_ACQIRIS -D_LINUX
 #CPPFLAGS += -DBLD_DELAY # for tolerating BLD delays up to 0.5 seconds
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames := opal1kedt pimimageedt phasics 
-
+tgtnames := opal1kedt pimimageedt phasics \
+  oceanoptics fli
 else
 tgtnames :=  evr \
     evrstandalone \
@@ -34,7 +34,8 @@ tgtnames :=  evr \
     simcam   \
     cspad2x2 \
     timetool \
-    oceanoptics
+    oceanoptics \
+    fli
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
@@ -230,3 +231,15 @@ tgtincs_timepix := relaxd/include/common relaxd/include/src
 tgtsrcs_oceanoptics := oceanoptics.cc
 tgtlibs_oceanoptics := $(commonlibs) pdsdata/oceanopticsdata pds/oceanoptics pds/oopt
 tgtslib_oceanoptics := /usr/lib/rt
+
+tgtsrcs_fli := fli.cc
+#tgtsrcs_fli := princeton.cc
+#tgtlibs_fli := $(commonlibs) pdsdata/flidata pds/fli fli/fli
+tgtlibs_fli := $(commonlibs) 
+tgtlibs_fli += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/lusidata
+tgtlibs_fli += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/controldata pdsdata/princetondata 
+tgtlibs_fli += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/timepixdata
+tgtlibs_fli += pdsdata/phasicsdata pdsdata/oceanopticsdata pdsdata/pnccddata pdsdata/evrdata 
+tgtlibs_fli += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
+tgtlibs_fli += pdsdata/flidata pds/fli fli/flisdk
+tgtslib_fli := /usr/lib/rt dl pthread 

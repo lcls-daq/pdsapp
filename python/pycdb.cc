@@ -15,6 +15,7 @@
 #include "pdsapp/python/IpmFexConfig.icc"
 #include "pdsapp/python/IpimbConfig.icc"
 #include "pdsapp/python/PrincetonConfig.icc"
+#include "pdsapp/python/FliConfig.icc"
 #include "pdsapp/python/Db.icc"
 #include "pdsapp/python/pycdbHelp.icc"
 
@@ -46,7 +47,7 @@ initpycdb(void)
 
   if (PyType_Ready(&pds_CspadConfig_type) < 0)
     return; 
-	
+  
   if (PyType_Ready(&pds_IpmFexConfig_type) < 0)
     return; 
 
@@ -55,7 +56,10 @@ initpycdb(void)
 
   if (PyType_Ready(&pds_PrincetonConfig_type) < 0)
     return; 
-	
+
+  if (PyType_Ready(&pds_FliConfig_type) < 0)
+    return; 
+    
   PyObject *m = Py_InitModule("pycdb", PycdbMethods);
   if (m == NULL)
     return;
@@ -81,4 +85,6 @@ initpycdb(void)
   Py_INCREF(&pds_PrincetonConfig_type);
   PyModule_AddObject(m, "PrincetonConfig", (PyObject*)&pds_PrincetonConfig_type); 
   
+  Py_INCREF(&pds_FliConfig_type);
+  PyModule_AddObject(m, "FliConfig", (PyObject*)&pds_FliConfig_type);     
 }

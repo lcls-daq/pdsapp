@@ -160,10 +160,10 @@ int main(int argc, char** argv) {
         pulse.output    = strtoul(endPtr+1,&endPtr,0);
         pulses.push_back(pulse);
       }
-      break;	  
+      break;    
     case 'i':
       interface = parse_interface(optarg);
-      break;	  
+      break;    
     case 'd':
       detector   = (DetInfo::Detector)strtoul(optarg, &endPtr, 0);
       detectorId = strtoul(endPtr+1, &endPtr, 0);
@@ -175,13 +175,13 @@ int main(int argc, char** argv) {
       break;
     case 'p':
       controlPort = strtoul(optarg, NULL, 0);
-      break;	  
+      break;    
     case 'b':
       baselineSubtraction = strtoul(optarg, NULL, 0);
       break;
     case 'r':
       evrid = *optarg;
-      break;	  
+      break;    
     case 'f':
       fp = fopen(optarg,"r");
       if (fp) 
@@ -241,7 +241,7 @@ int main(int argc, char** argv) {
         if (bldId >= 255) {
           printf("Invalid Bld Multicast Address: (%s.%d) for Boar BoardNo: %u Exiting Program \n",getBldAddrBase(),bldId,nboards);
           return 1;
-        }	
+        } 
         portInfo[nboards][0] = detector;
         portInfo[nboards][1] = detectorId;
         portInfo[nboards][2] = deviceId;
@@ -320,7 +320,7 @@ int main(int argc, char** argv) {
   const int MaxSize = 0x100000;
   const int ebdepth = 4;
   InletWire* iwire = new L1EventBuilder(idleSrc, _xtcType, Level::Segment, *bldIpimbStream->inlet(),
-					*outlet, 0, bldIpimbStream->ip(), MaxSize, ebdepth, 0);
+          *outlet, 0, bldIpimbStream->ip(), MaxSize, ebdepth, 0);
   iwire->connect();
   
   //  attach the EVR and IPIMB servers

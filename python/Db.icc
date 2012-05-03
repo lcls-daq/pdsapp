@@ -77,12 +77,12 @@ static PyTypeObject pdsdb_type = {
     0,                         /*tp_as_buffer*/
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /*tp_flags*/
     "pycdb Db objects",        /* tp_doc */
-    0,		               /* tp_traverse */
-    0,		               /* tp_clear */
-    0,		               /* tp_richcompare */
-    0,		               /* tp_weaklistoffset */
-    0,		               /* tp_iter */
-    0,		               /* tp_iternext */
+    0,                   /* tp_traverse */
+    0,                   /* tp_clear */
+    0,                   /* tp_richcompare */
+    0,                   /* tp_weaklistoffset */
+    0,                   /* tp_iter */
+    0,                   /* tp_iternext */
     pdsdb_methods,             /* tp_methods */
     pdsdb_members,             /* tp_members */
     0,                         /* tp_getset */
@@ -238,13 +238,13 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
         unsigned typ = strtoul(basename(gk.gl_pathv[m]),NULL,16);
         //  Match type
         if (typid==Default || 
-	    typid==typ ||
+      typid==typ ||
             typid==(typ&0xffff)) {
           int i = PyTuple_Size(result);
           _PyTuple_Resize(&result, i+1);
 
           PyObject* o;
-	  Pds::TypeId contains(Pds::TypeId::Type(typ&0xffff),
+    Pds::TypeId contains(Pds::TypeId::Type(typ&0xffff),
                                typ>>16);
           switch(contains.id()) {
           case Pds::TypeId::Id_DiodeFexConfig:
@@ -252,15 +252,18 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
             break;
           case Pds::TypeId::Id_IpmFexConfig:
             o = _PyObject_New(&pds_IpmFexConfig_type);
-            break;	
+            break;  
           case Pds::TypeId::Id_IpimbConfig:
             o = _PyObject_New(&pds_IpimbConfig_type);
-            break;			
+            break;      
           case Pds::TypeId::Id_CspadConfig:
             o = _PyObject_New(&pds_CspadConfig_type);
             break;
           case Pds::TypeId::Id_PrincetonConfig:
             o = _PyObject_New(&pds_PrincetonConfig_type);
+            break;
+          case Pds::TypeId::Id_FliConfig:
+            o = _PyObject_New(&pds_FliConfig_type);
             break;
           default:
             o = _PyObject_New(&pds_Xtc_type);
@@ -344,7 +347,7 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
           FILE* xfile = fopen(xpath.c_str(),"w");
           fwrite(xtc->payload, xtc->extent, 1, xfile);
           fclose(xfile);
-  	  Py_INCREF(Py_None);
+      Py_INCREF(Py_None);
           return Py_None;
         }
       }
@@ -514,13 +517,13 @@ PyObject* pdsdb_evolve(PyObject* self_o, PyObject* args, PyObject* kwds)
     extent = (contains.version()==1) ? 
       sizeof(Pds::Lusi::IpmFexConfigV1) :
       sizeof(Pds::Lusi::IpmFexConfigV2);
-    break;	
+    break;  
   case Pds::TypeId::Id_IpimbConfig:
     o = _PyObject_New(&pds_IpimbConfig_type);
     extent = (contains.version()==1) ? 
       sizeof(Pds::Ipimb::ConfigV1) :
       sizeof(Pds::Ipimb::ConfigV2);
-    break;			
+    break;      
   case Pds::TypeId::Id_CspadConfig:
     o = _PyObject_New(&pds_CspadConfig_type);
     switch(contains.version()) {

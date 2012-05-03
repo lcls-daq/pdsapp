@@ -13,7 +13,7 @@ datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdat
 datalibs += pdsdata/timepixdata
 datalibs += pdsdata/phasicsdata
 datalibs += pdsdata/cspad2x2data
-datalibs += pdsdata/oceanopticsdata
+datalibs += pdsdata/oceanopticsdata pdsdata/flidata
 
 #ifeq ($(shell uname -m | egrep -c '(x86_|amd)64$$'),1)
 #ARCHCODE=64

@@ -38,6 +38,7 @@
 #include "pdsapp/config/PhasicsConfig.hh"
 #include "pdsapp/config/Cspad2x2Config.hh"
 #include "pdsapp/config/OceanOpticsConfig.hh"
+#include "pdsapp/config/FliConfig.hh"
 
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/EvrIOConfigType.hh"
@@ -62,6 +63,7 @@
 #include "pds/config/PhasicsConfigType.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
 #include "pds/config/OceanOpticsConfigType.hh"
+#include "pds/config/FliConfigType.hh"
 #include "pdsapp/config/PdsDefs.hh"
 
 #include "pdsdata/lusi/DiodeFexConfigV1.hh"
@@ -108,6 +110,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_PhasicsConfigType     ,new PhasicsConfig);
   enroll(_CsPad2x2ConfigType    ,new Cspad2x2Config);
   enroll(_oceanOpticsConfigType ,new OceanOpticsConfig);  
+  enroll(_fliConfigType         ,new FliConfig);  
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,2) , new CspadConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  
