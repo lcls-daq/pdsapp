@@ -1,6 +1,12 @@
 import pycdb
 
 x = pycdb.Db("/reg/neh/home/weaver/configdb/xpp")
+y = x.get(alias="BEAM",src=0x100)[1]
+z = y.get()
+z['pulses'][0]['polarity'] = 'Pos'
+y.set(z)
+x.set(alias="BEAM",y)
+
 y = x.get(alias="BEAM",src=0x0f010800)[1]
 y.get_base()
 y.get_scale()

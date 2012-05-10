@@ -262,6 +262,9 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
           case Pds::TypeId::Id_PrincetonConfig:
             o = _PyObject_New(&pds_PrincetonConfig_type);
             break;
+          case Pds::TypeId::Id_EvrConfig:
+            o = _PyObject_New(&pds_EvrConfig_type);
+            break;
           case Pds::TypeId::Id_FliConfig:
             o = _PyObject_New(&pds_FliConfig_type);
             break;
@@ -531,6 +534,10 @@ PyObject* pdsdb_evolve(PyObject* self_o, PyObject* args, PyObject* kwds)
     case 2 : extent = sizeof(Pds::CsPad::ConfigV2); break;
     default: extent = sizeof(Pds::CsPad::ConfigV3); break;
     }
+    break;
+  case Pds::TypeId::Id_EvrConfig:
+    o = _PyObject_New(&pds_EvrConfig_type);
+    extent = 4;
     break;
   default:
     return NULL;
