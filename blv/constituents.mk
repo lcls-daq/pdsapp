@@ -52,26 +52,18 @@ tgtlibs_pimblvedt += $(edt_libs)
 tgtslib_pimblvedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
 tgtincs_pimblvedt := edt/include
 
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata
+
 tgtsrcs_evrbld := evrbld.cc EvrBldManager.cc IdleStream.cc PipeApp.cc
-tgtlibs_evrbld := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata pdsdata/phasicsdata
+tgtlibs_evrbld := $(commonlibs) $(datalibs)
 tgtlibs_evrbld += pdsapp/configdb qt/QtGui qt/QtCore
-tgtlibs_evrbld += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/lusidata
-tgtlibs_evrbld += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/princetondata pdsdata/controldata
-tgtlibs_evrbld += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata
-tgtlibs_evrbld += pdsdata/timepixdata
-tgtlibs_evrbld += pdsdata/oceanopticsdata
 tgtlibs_evrbld += evgr/evr evgr/evg
 tgtlibs_evrbld += pds/evgr
 tgtincs_evrbld := evgr
 
 tgtsrcs_pimbld := pimbld.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
-tgtlibs_pimbld := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/evrdata pdsdata/phasicsdata
+tgtlibs_pimbld := $(commonlibs) $(datalibs)
 tgtlibs_pimbld += pdsapp/configdb qt/QtGui qt/QtCore
-tgtlibs_pimbld += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/lusidata
-tgtlibs_pimbld += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/princetondata pdsdata/controldata
-tgtlibs_pimbld += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata
-tgtlibs_pimbld += pdsdata/timepixdata
-tgtlibs_pimbld += pdsdata/oceanopticsdata
 tgtlibs_pimbld += pds/camera
 tgtlibs_pimbld += $(leutron_libs)
 tgtincs_pimbld := leutron/include

@@ -95,11 +95,7 @@ tgtnames       += configdb_list
 
 # executable python modules: configdb_gui.py
 
-datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata
-datalibs += pdsdata/timepixdata 
-datalibs += pdsdata/phasicsdata
-datalibs += pdsdata/cspad2x2data
-datalibs += pdsdata/oceanopticsdata pdsdata/flidata
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata
 
 tgtsrcs_configdb := configdb.cc
 #tgtincs_configdb := $(qtincdir)

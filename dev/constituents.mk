@@ -42,6 +42,9 @@ commonlibs  := pdsdata/xtcdata pdsdata/appdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
 commonlibs  += pdsapp/devapp
 
+#  libconfigdb dependencies
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata
+
 tgtsrcs_phasics := phasics.cc
 tgtlibs_phasics := $(commonlibs) pds/camera pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/phasicsdata pds/phasics
 tgtincs_phasics += libdc1394/include
@@ -198,20 +201,14 @@ tgtlibs_rceProxy := $(commonlibs) pdsdata/pnccddata pds/rceProxy
 tgtslib_rceProxy := /usr/lib/rt
 
 tgtsrcs_princeton := princeton.cc
-tgtlibs_princeton := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcam 
-tgtlibs_princeton += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/lusidata
-tgtlibs_princeton += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/princetondata pdsdata/controldata
-tgtlibs_princeton += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/timepixdata
-tgtlibs_princeton += pdsdata/phasicsdata
+tgtlibs_princeton := $(commonlibs) pds/princeton pvcam/pvcam 
+tgtlibs_princeton += $(datalibs)
 tgtlibs_princeton += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
 tgtslib_princeton := /usr/lib/rt dl pthread
 
 tgtsrcs_princetonsim := princeton.cc
-tgtlibs_princetonsim := $(commonlibs) pdsdata/pnccddata pdsdata/evrdata pdsdata/princetondata pds/princeton pvcam/pvcamtest
-tgtlibs_princetonsim += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/lusidata
-tgtlibs_princetonsim += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/princetondata pdsdata/controldata
-tgtlibs_princetonsim += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/timepixdata
-tgtlibs_princetonsim += pdsdata/phasicsdata
+tgtlibs_princetonsim := $(commonlibs) pds/princeton pvcam/pvcamtest
+tgtlibs_princetonsim += $(datalibs)
 tgtlibs_princetonsim += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
 tgtslib_princetonsim := /usr/lib/rt dl pthread
 
