@@ -314,8 +314,10 @@ void Dialog::append(const QString& file)
   char* b = buff;
   char* e = buff + file_stat.st_size;
   while(b < e) {
-    Cycle* cycle = new Cycle(_s.readParameters(b));
-    b += cycle->size;
+    //    Cycle* cycle = new Cycle(_s.readParameters(b));
+    int len = _s.readParameters(b);
+    Cycle* cycle = new Cycle(_s.dataSize());
+    b += len;
     _s.writeParameters(cycle->buffer);
     _cycles.push_back(cycle);
 #ifdef EDIT_CYCLES
