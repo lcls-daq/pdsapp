@@ -5,6 +5,7 @@
 #include "pdsapp/config/EvrEventCodeTable.hh"
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/SeqConfigType.hh"
+#include "pdsdata/evr/ConfigV5.hh"
 
 #include <QtGui/QWidget>
 #include <QtGui/QHBoxLayout>
@@ -152,7 +153,20 @@ void     SequencerConfig::flush     () { _detail->flush (); }
 
 void     SequencerConfig::enable    (bool) {}
 
-void  SequencerConfig::pull  (const EvrConfigType& evr) {
+void  SequencerConfig::pull  (const Pds::EvrData::ConfigV5& evr) {
+  const SeqConfigType& cfg = evr.seq_config();
+  _detail->pull(cfg);
+  if (cfg.sync_source()==SeqConfigType::Disable) {
+    _mode->button(External)->setChecked(true);
+    _stack->setCurrentIndex(External);
+  }
+  else {
+    _mode->button(Detail)->setChecked(true);
+    _stack->setCurrentIndex(Detail); 
+  }
+}
+
+void  SequencerConfig::pull  (const Pds::EvrData::ConfigV6& evr) {
   const SeqConfigType& cfg = evr.seq_config();
   _detail->pull(cfg);
   if (cfg.sync_source()==SeqConfigType::Disable) {

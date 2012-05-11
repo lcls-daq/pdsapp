@@ -19,7 +19,7 @@
 
 using namespace Pds_ConfigDb;
 
-static const int MaxOutputs = EvrConfigType::EvrOutputs;
+static const int MaxOutputs = 13;
 static const unsigned MaxEVRs = 8;
 
 static const char* connTypes[] = { "FrontPanel", "UnivIO", NULL };

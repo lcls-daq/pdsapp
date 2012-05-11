@@ -2,8 +2,10 @@
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/EvrSeqEventDesc.hh"
 #include "pdsapp/config/EvrGlbEventDesc.hh"
+
+#include "pdsdata/evr/ConfigV5.hh"
+#include "pdsdata/evr/ConfigV6.hh"
 //#include "pds/config/SeqConfigType.hh"
-#include "pdsdata/evr/EventCodeV5.hh"
 
 #include <QtGui/QCheckBox>
 #include <QtGui/QGridLayout>
@@ -55,7 +57,7 @@ EvrEventCodeTable::EvrEventCodeTable() :
   _range_hi(NULL,DefaultHi,0,255),
   _ncodes     (0),
   _code_buffer(new char[(MaxUserCodes+MaxGlobalCodes)
-                        *sizeof(EvrConfigType::EventCodeType)])
+                        *sizeof(Pds::EvrData::EventCodeV5)])
 {
   _seq_code = new EvrSeqEventDesc[MaxUserCodes];
   _glb_code = new EvrGlbEventDesc[MaxGlobalCodes];
@@ -71,7 +73,7 @@ void EvrEventCodeTable::insert(Pds::LinkedList<Parameter>& pList)
   pList.insert(this);
 }
 
-void EvrEventCodeTable::pull(const EvrConfigType& cfg) 
+void EvrEventCodeTable::pull(const Pds::EvrData::ConfigV5& cfg) 
 {
   for(unsigned i=0; i<MaxUserCodes; i++)
     _seq_code[i].set_enable(false);
@@ -83,7 +85,48 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
   unsigned max_seq = 0;
   unsigned nglb=0;
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
-    const EvrConfigType::EventCodeType& e = cfg.eventcode(i);
+    const Pds::EvrData::EventCodeV5& e = cfg.eventcode(i);
+    if (EvrGlbEventDesc::global_code(e.code())) {
+      _glb_code[nglb++].pull(e);
+    }
+    else if (e.code() >= StartUserCodes) {
+      int useq = (e.code()-StartUserCodes)/MinUserCodes;
+      if (userseq < 0) {
+        userseq = useq;
+        _range_lo.value = useq*MinUserCodes+StartUserCodes;
+      }
+      else if (useq != userseq) {
+        printf("Eventcode %d does not belong to user sequence (%d:%d) or global sequence\n",
+               e.code(), _range_lo.value, _range_lo.value+MinUserCodes);
+        continue;
+      }
+      _seq_code[e.code()-_range_lo.value].pull(e);
+      if (e.code() > max_seq)
+        max_seq = e.code();
+    }
+  }
+
+  if (max_seq < _range_lo.value+MinUserCodes)
+    _range_hi.value = _range_lo.value+MinUserCodes-1;
+  else
+    _range_hi.value = max_seq;
+
+  update_range();
+}
+
+void EvrEventCodeTable::pull(const Pds::EvrData::ConfigV6& cfg) 
+{
+  for(unsigned i=0; i<MaxUserCodes; i++)
+    _seq_code[i].set_enable(false);
+
+  for(unsigned i=0; i<MaxGlobalCodes; i++)
+    _glb_code[i].set_enable(false);
+
+  int userseq = -1;
+  unsigned max_seq = 0;
+  unsigned nglb=0;
+  for(unsigned i=0; i<cfg.neventcodes(); i++) {
+    const Pds::EvrData::EventCodeV5& e = cfg.eventcode(i);
     if (EvrGlbEventDesc::global_code(e.code())) {
       _glb_code[nglb++].pull(e);
     }
@@ -114,8 +157,8 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
 
 bool EvrEventCodeTable::validate() {
 
-  EvrConfigType::EventCodeType* codep = 
-    reinterpret_cast<EvrConfigType::EventCodeType*>(_code_buffer);
+  Pds::EvrData::EventCodeV5* codep = 
+    reinterpret_cast<Pds::EvrData::EventCodeV5*>(_code_buffer);
 
   //  Every "latch" type should have a partner un-"latch"
   //  All enabled codes should be within range
@@ -163,7 +206,7 @@ bool EvrEventCodeTable::validate() {
     if (_glb_code[i].enabled())
       _glb_code[i].push(codep++);
 
-  _ncodes = codep - reinterpret_cast<EvrConfigType::EventCodeType*>(_code_buffer);
+  _ncodes = codep - reinterpret_cast<Pds::EvrData::EventCodeV5*>(_code_buffer);
 
   return true;
 }
@@ -295,9 +338,9 @@ unsigned    EvrEventCodeTable::ncodes() const
   return _ncodes;
 }
 
-const EvrConfigType::EventCodeType* EvrEventCodeTable::codes() const
+const Pds::EvrData::EventCodeV5* EvrEventCodeTable::codes() const
 {
-  return reinterpret_cast<const EvrConfigType::EventCodeType*>(_code_buffer);
+  return reinterpret_cast<const Pds::EvrData::EventCodeV5*>(_code_buffer);
 }
 
 

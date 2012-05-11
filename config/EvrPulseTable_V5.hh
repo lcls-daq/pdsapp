@@ -1,8 +1,8 @@
-#ifndef PdsConfigDb_EvrPulseTable_hh
-#define PdsConfigDb_EvrPulseTable_hh
+#ifndef PdsConfigDb_EvrPulseTable_V5_hh
+#define PdsConfigDb_EvrPulseTable_V5_hh
 
 #include "pdsapp/config/Parameters.hh"
-#include "pds/config/EvrConfigType.hh"
+#include "pdsdata/evr/ConfigV5.hh"
 
 #include <QtCore/QObject>
 
@@ -10,25 +10,23 @@ class QButtonGroup;
 
 namespace Pds_ConfigDb
 {
-  class EvrConfigP;
-  class Pulse;
+  class Pulse_V5;
   class QrLabel;
-  class EvrPulseTableQ;
+  class EvrPulseTable_V5Q;
 
-  class EvrPulseTable : public Parameter {
+  class EvrPulseTable_V5 : public Parameter {
   public:
-    enum { MaxPulses  = 12 };
-    enum { MaxOutputs = 13 };
-    EvrPulseTable(unsigned id);
-    ~EvrPulseTable();
+    enum    { MaxPulses = 12 };
+    EvrPulseTable_V5(unsigned id);
+    ~EvrPulseTable_V5();
   public:
-    void     pull  (const EvrConfigType&);
+    void     pull  (const Pds::EvrData::ConfigV5&);
     //  validate() updates pulses, outputs accessors
     bool validate(unsigned ncodes, 
-                  const EvrConfigType::EventCodeType* codes,
+                  const Pds::EvrData::EventCodeV5* codes,
                   int delay_offset,
-                  unsigned, EvrConfigType::PulseType*,
-                  unsigned, EvrConfigType::OutputMapType*);
+                  unsigned, Pds::EvrData::PulseConfigV3*,
+                  unsigned, Pds::EvrData::OutputMap*);
 
     unsigned npulses () const;
     unsigned noutputs() const;
@@ -42,26 +40,26 @@ namespace Pds_ConfigDb
     void     update_output    (int);
   public:
     unsigned                   _id;
-    QrLabel*                   _outputs[MaxOutputs];
-    Pulse*                     _pulses [MaxPulses];
+    QrLabel*                   _outputs[Pds::EvrData::ConfigV5::EvrOutputs];
+    Pulse_V5*                  _pulses [MaxPulses];
     QButtonGroup*              _enable_group;
     QButtonGroup*              _outputs_group;
     Pds::LinkedList<Parameter> _pList;
-    EvrPulseTableQ*            _qlink;
+    EvrPulseTable_V5Q*            _qlink;
     unsigned                   _npulses;
     unsigned                   _noutputs;
   };
 
-  class EvrPulseTableQ : public QObject {
+  class EvrPulseTable_V5Q : public QObject {
     Q_OBJECT
   public:
-    EvrPulseTableQ(EvrPulseTable&,
+    EvrPulseTable_V5Q(EvrPulseTable_V5&,
 		   QWidget*);
   public slots:
     void     update_enable    (int);
     void     update_output    (int);
   private:
-    EvrPulseTable& _table;
+    EvrPulseTable_V5& _table;
   };
 };
 

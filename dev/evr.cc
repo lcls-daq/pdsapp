@@ -81,6 +81,10 @@ namespace Pds {
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       (new TimeStampApp())->connect(frmk->inlet());
       EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(_evrdev);
+      {
+	uint32_t* p = reinterpret_cast<uint32_t*>(&erInfo.board());
+	printf("Found EVR FPGA Version %x\n",p[11]);
+      }
       EvrManager& evrmgr = *new EvrManager(erInfo, _cfg, _bTurnOffBeamCodes);
       evrmgr.appliance().connect(frmk->inlet());
     }
@@ -153,7 +157,7 @@ int main(int argc, char** argv) {
       evrid = optarg;
       break;
     case 'd':
-      EvrManager::drop_pulses(strtoul(optarg, NULL, 0));
+      //      EvrManager::drop_pulses(strtoul(optarg, NULL, 0));
       break;
     case 'n':
       bTurnOffBeamCodes = true;

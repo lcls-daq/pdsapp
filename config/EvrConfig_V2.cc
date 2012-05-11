@@ -1,7 +1,7 @@
 #include "EvrConfig_V2.hh"
 
 #include "EvrPulseConfig_V1.hh"
-#include "EvrOutputMap.hh"
+#include "EvrOutputMap_V1.hh"
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
@@ -87,7 +87,7 @@ namespace Pds_ConfigDb {
     NumericInt<unsigned>    _npulses;
     NumericInt<unsigned>    _noutputs;
     EvrPulseConfig_V1 _pulses [MaxPulses];
-    EvrOutputMap   _outputs[MaxOutputs];
+    EvrOutputMap_V1   _outputs[MaxOutputs];
     Pds::LinkedList<Parameter> _pulseArgs [MaxPulses];
     Pds::LinkedList<Parameter> _outputArgs[MaxOutputs];
     ParameterSet   _pulseSet;

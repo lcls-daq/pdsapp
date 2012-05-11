@@ -1,23 +1,13 @@
 import pycdb
 
-x = pycdb.Db("/reg/neh/home/weaver/configdb/xpp")
-y = x.get(alias="BEAM",src=0x100)[1]
-z = y.get()
-z['pulses'][0]['polarity'] = 'Pos'
-y.set(z)
-x.set(alias="BEAM",y)
+def evolve(db,fname):
+    y = db.get(typeid=0x00050008,src=0x100,file=fname)[0]
+    v = x.evolve(6,y)
+    v.set(y.get())
+    x.set(file=fname,xtc=v)
 
-y = x.get(alias="BEAM",src=0x0f010800)[1]
-y.get_base()
-y.get_scale()
-y.set_scale([2,1,1])
-y.get_scale()
-
-z = x.clone(0x27)
-x.substitute(z,y)
-
-x.set(y)
-x.commit()
-
-y = x.get(alias="BEAM",src=0x14000a00)
-y[0].get()
+db = pycdb.Db("/reg/lab2/home/tstopr/configdb/weaver")
+evolve(db,'cspad_v3.xtc')
+evolve(db,'live_scan.xtc')
+evolve(db,'jack_newer.xtc')
+       

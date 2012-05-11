@@ -3,7 +3,6 @@
 
 #include "pdsapp/config/Parameters.hh"
 
-#include "pds/config/EvrConfigType.hh"
 #include "pds/service/LinkedList.hh"
 
 #include <QtCore/QObject>
@@ -12,7 +11,14 @@ class QLayout;
 class QGridLayout;
 class QWidget;
 
-namespace Pds { namespace EvrData { class EventCodeV5; class SequencerConfigV1; } }
+namespace Pds { 
+  namespace EvrData { 
+    class ConfigV5; 
+    class ConfigV6; 
+    class EventCodeV5; 
+    class SequencerConfigV1; 
+  }
+}
 
 namespace Pds_ConfigDb {
 
@@ -26,11 +32,12 @@ namespace Pds_ConfigDb {
     EvrEventCodeTable();
     ~EvrEventCodeTable();
   public:
-    void pull(const EvrConfigType&);
+    void pull(const Pds::EvrData::ConfigV5&);
+    void pull(const Pds::EvrData::ConfigV6&);
     int  push(Pds::EvrData::EventCodeV5* to) const;
     bool validate();
     unsigned ncodes() const;
-    const EvrConfigType::EventCodeType* codes() const;
+    const Pds::EvrData::EventCodeV5* codes() const;
   public:
     void insert(Pds::LinkedList<Parameter>& pList);
     QLayout* initialize(QWidget*);

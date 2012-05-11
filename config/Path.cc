@@ -87,6 +87,18 @@ string Path::data_path(const string& device,
   return path;
 }
 
+string Path::data_path(const QTypeName& type) const
+{
+  string path = _path + "/xtc/" + type;
+  struct stat s;
+  if (stat(path.c_str(),&s)) {
+    //    mode_t mode = S_IRWXU | S_IRWXG;
+    mode_t mode = _fmode;
+    mkdir(path.c_str(),mode);
+  }
+  return path;
+}
+
 string Path::desc_path(const string& device,
 		       const UTypeName& type) const
 {

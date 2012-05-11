@@ -16,9 +16,10 @@ static const char* conn_range[] = { "Front Panel",
 
 EvrOutputMap::EvrOutputMap() :
   _source    ("Source"   , EvrConfigType::OutputMapType::Pulse, source_range),
-  _source_id ("Source id", 0, 0, 9),
+  _source_id ("Source id", 0, 0, 255),
   _conn      ("Conn"     , EvrConfigType::OutputMapType::FrontPanel, conn_range),
-  _conn_id   ("Conn id"  , 0, 0, 9)
+  _conn_id   ("Conn id"  , 0, 0, 12),
+  _module    ("Module"   , 0, 0, 255)
 {}
    
 void EvrOutputMap::insert(Pds::LinkedList<Parameter>& pList) {
@@ -26,6 +27,7 @@ void EvrOutputMap::insert(Pds::LinkedList<Parameter>& pList) {
   pList.insert(&_source_id);
   pList.insert(&_conn);
   pList.insert(&_conn_id);
+  pList.insert(&_module);
 }
 
 bool EvrOutputMap::pull(void* from) {
@@ -34,6 +36,7 @@ bool EvrOutputMap::pull(void* from) {
   _source_id.value = tc.source_id();
   _conn     .value = tc.conn();
   _conn_id  .value = tc.conn_id();
+  _module   .value = tc.module ();
   return true;
 }
 
@@ -42,7 +45,8 @@ int EvrOutputMap::push(void* to) {
     _source.value,
     _source_id.value,
     _conn.value,
-    _conn_id.value);
+    _conn_id.value,
+    _module.value);
   return sizeof(tc);
 }
 

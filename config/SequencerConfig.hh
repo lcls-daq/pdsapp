@@ -3,7 +3,6 @@
 
 #include "pdsapp/config/Serializer.hh"
 #include "pdsapp/config/Parameters.hh"
-#include "pds/config/EvrConfigType.hh"
 
 #include <QtGui/QWidget>
 
@@ -13,6 +12,14 @@ typedef Pds::EvrData::SequencerEntry SeqEntryType;
 class QGridLayout;
 class QButtonGroup;
 class QStackedWidget;
+
+namespace Pds {
+  namespace EvrData {
+    class ConfigV5;
+    class ConfigV6;
+    class SequencerConfigV1;
+  }
+}
 
 namespace Pds_ConfigDb {
   class DetailConfig;
@@ -29,9 +36,10 @@ namespace Pds_ConfigDb {
     void     flush     ();
     void     enable    (bool);
   public:
-    void pull  (const EvrConfigType&);
+    void pull  (const Pds::EvrData::ConfigV6&);
+    void pull  (const Pds::EvrData::ConfigV5&);
     bool validate();
-    const EvrConfigType::SeqConfigType& result() const;
+    const Pds::EvrData::SequencerConfigV1& result() const;
   private:
     const EvrEventCodeTable& _code_table;
     QButtonGroup*      _mode;
@@ -46,7 +54,7 @@ namespace Pds_ConfigDb {
   public:
     SeqEntryInput(const EvrEventCodeTable&);
   public:
-    void pull(const EvrConfigType::SeqConfigType&);
+    void pull(const Pds::EvrData::SequencerConfigV1&);
     void update();
     void flush ();
   public slots:

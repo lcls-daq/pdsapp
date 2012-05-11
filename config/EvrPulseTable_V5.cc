@@ -1,11 +1,18 @@
-#include "pdsapp/config/EvrPulseTable.hh"
+#include "pdsapp/config/EvrPulseTable_V5.hh"
 
 #include "pdsapp/config/QrLabel.hh"
 #include "pdsapp/config/GlobalCfg.hh"
 #include "pdsapp/config/PolarityButton.hh"
 #include "pdsapp/config/EvrEventCodeTable.hh"
 #include "pdsapp/config/EventcodeTiming.hh"
-#include "pds/config/EvrIOConfigType.hh"
+
+#include "pdsdata/xtc/TypeId.hh"
+#include "pdsdata/evr/IOConfigV1.hh"
+#include "pdsdata/evr/IOChannel.hh"
+
+static Pds::TypeId _evrIOConfigType(Pds::TypeId::Id_EvrIOConfig,
+                                    Pds::EvrData::IOConfigV1::Version);
+
 
 #include <QtGui/QButtonGroup>
 #include <QtGui/QCheckBox>
@@ -14,15 +21,14 @@
 #include <QtGui/QLineEdit>
 #include <QtGui/QMessageBox>
 
-static const unsigned MaxOutputs = 13;
 static const int PolarityGroup = 100;
 static const double EvrPeriod = 1./119e6;
 
 namespace Pds_ConfigDb
 {
-  class Pulse {
+  class Pulse_V5 {
   public:
-    Pulse() :
+    Pulse_V5() :
       _delay    ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Scaled, EvrPeriod)),
       _width    ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Scaled, EvrPeriod))
     {}
@@ -35,7 +41,7 @@ namespace Pds_ConfigDb
       v &= (_polarity->state()!=PolarityButton::None);
       _delay    .enable(v);
       _width    .enable(v);
-      for(unsigned i=0; i<MaxOutputs; i++) {
+      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++) {
 	_outputs[i]->setEnabled(v && allowEdit);
 	_outputs[i]->setVisible(v);
       }
@@ -45,7 +51,7 @@ namespace Pds_ConfigDb
       _delay    .value = 0;
       _width    .value = 0;
       _polarity  ->setState(PolarityButton::None);
-      for(unsigned i=0; i<MaxOutputs; i++)
+      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
 	_outputs[i]->setChecked(false);
     }
   public:
@@ -57,13 +63,13 @@ namespace Pds_ConfigDb
     {
       _enable    = new QCheckBox;
       _polarity  = new PolarityButton;
-      for(unsigned i=0; i<MaxOutputs; i++)
+      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
 	_outputs[i] = new QCheckBox;
 
       egroup->addButton(_enable,bid);
       egroup->addButton(_polarity,bid+PolarityGroup);
-      for(unsigned i=0; i<MaxOutputs; i++)
-	ogroup->addButton(_outputs[i],bid*MaxOutputs+i);
+      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
+	ogroup->addButton(_outputs[i],bid*Pds::EvrData::ConfigV5::EvrOutputs+i);
 
       int column = 0;
       layout->addWidget(_enable, row, column++, Qt::AlignCenter);
@@ -72,7 +78,7 @@ namespace Pds_ConfigDb
       layout->addLayout(_delay.initialize(parent)    , row, column++, Qt::AlignCenter);
       layout->setColumnMinimumWidth(column,97);
       layout->addLayout(_width.initialize(parent)    , row, column++, Qt::AlignCenter);
-      for(unsigned i=0; i<MaxOutputs; i++)
+      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
 	layout->addWidget(_outputs[i], row, column++, Qt::AlignCenter);
 
       _delay    .widget()->setMaximumWidth(97);
@@ -80,7 +86,7 @@ namespace Pds_ConfigDb
 
       ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _delay.widget(), SLOT(setVisible(bool)));
       ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _width.widget(), SLOT(setVisible(bool)));
-      for(unsigned i=0; i<MaxOutputs; i++)
+      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
 	::QObject::connect(_polarity, SIGNAL(toggled(bool)), _outputs[i], SLOT(setVisible(bool)));
 
       _enable->setEnabled(Parameter::allowEdit());
@@ -99,31 +105,31 @@ namespace Pds_ConfigDb
     PolarityButton*       _polarity;
     NumericInt<unsigned>  _delay;
     NumericInt<unsigned>  _width;
-    QCheckBox*            _outputs[MaxOutputs];
+    QCheckBox*            _outputs[Pds::EvrData::ConfigV5::EvrOutputs];
   };
 };
 
 using namespace Pds_ConfigDb;
 
-EvrPulseTable::EvrPulseTable(unsigned id) :
+EvrPulseTable_V5::EvrPulseTable_V5(unsigned id) :
   Parameter(NULL),
   _id      (id),
   _npulses (0)
 {
   for(unsigned i=0; i<MaxPulses; i++)
-    _pulses[i] = new Pulse;
+    _pulses[i] = new Pulse_V5;
 }
 
-EvrPulseTable::~EvrPulseTable()
+EvrPulseTable_V5::~EvrPulseTable_V5()
 {
 }
 
-void EvrPulseTable::pull(const EvrConfigType& tc) {
+void EvrPulseTable_V5::pull(const Pds::EvrData::ConfigV5& tc) {
 
   unsigned npulses     = 0;
   int      delay_offset= 0;
   for(unsigned i=0; i<tc.neventcodes(); i++) {
-    const EvrConfigType::EventCodeType& ec = tc.eventcode(i);
+    const Pds::EvrData::ConfigV5::EventCodeType& ec = tc.eventcode(i);
     if (ec.isReadout()) {
       delay_offset =
         EventcodeTiming::timeslot(140) -
@@ -133,24 +139,24 @@ void EvrPulseTable::pull(const EvrConfigType& tc) {
   }
 
   for(unsigned j=0; j<tc.npulses(); j++) {
-    Pulse& p = *_pulses[npulses];
+    Pulse_V5& p = *_pulses[npulses];
 
     bool lUsed=false;
-    for(unsigned k=0; k<MaxOutputs; k++)
+    for(unsigned k=0; k<Pds::EvrData::ConfigV5::EvrOutputs; k++)
       p._outputs[k]->setChecked(false);
     for(unsigned k=0; k<tc.noutputs(); k++) {
-      const EvrConfigType::OutputMapType& om = tc.output_map(k);
-      if ( om.source()==EvrConfigType::OutputMapType::Pulse &&
+      const Pds::EvrData::ConfigV5::OutputMapType& om = tc.output_map(k);
+      if ( om.source()==Pds::EvrData::ConfigV5::OutputMapType::Pulse &&
            om.source_id()==j )
-        if ((om.module()) == _id)
-          p._outputs[om.conn_id()]->setChecked(lUsed=true);
+        if ((om.conn_id()/Pds::EvrData::ConfigV5::EvrOutputs) == _id)
+          p._outputs[om.conn_id()%Pds::EvrData::ConfigV5::EvrOutputs]->setChecked(lUsed=true);
       
     }
     if (!lUsed) continue;
 
     p._enable    ->setChecked(true);
     update_enable(npulses);
-    const EvrConfigType::PulseType& pt = tc.pulse(j);
+    const Pds::EvrData::ConfigV5::PulseType& pt = tc.pulse(j);
     p._polarity  ->setState(pt.polarity()==Pds_ConfigDb::Enums::Pos ? 
                             PolarityButton::Pos : PolarityButton::Neg);
     p._delay      .value = pt.delay() - delay_offset;
@@ -166,26 +172,26 @@ void EvrPulseTable::pull(const EvrConfigType& tc) {
   }
 }
 
-unsigned EvrPulseTable::npulses() const {
+unsigned EvrPulseTable_V5::npulses() const {
   return _npulses;
 }
 
-unsigned EvrPulseTable::noutputs() const {
+unsigned EvrPulseTable_V5::noutputs() const {
   return _noutputs;
 }
 
 
-bool EvrPulseTable::validate(unsigned ncodes, 
-                             const EvrConfigType::EventCodeType* codes,
+bool EvrPulseTable_V5::validate(unsigned ncodes, 
+                             const Pds::EvrData::ConfigV5::EventCodeType* codes,
                              int delay_offset,
-                             unsigned p0, EvrConfigType::PulseType* pt,
-                             unsigned o0, EvrConfigType::OutputMapType* om)
+                             unsigned p0, Pds::EvrData::ConfigV5::PulseType* pt,
+                             unsigned o0, Pds::EvrData::ConfigV5::OutputMapType* om)
 {
   unsigned npt = 0;
   unsigned nom = 0;
 
   for(unsigned i=0; i<MaxPulses; i++) {
-    const Pulse& p = *_pulses[i];
+    const Pulse_V5& p = *_pulses[i];
     if (!p._enable->isChecked())
       continue;
 
@@ -216,16 +222,16 @@ bool EvrPulseTable::validate(unsigned ncodes,
     }
     **/
 
-    *new(&pt[npt]) EvrConfigType::PulseType(npt+p0, 
+    *new(&pt[npt]) Pds::EvrData::ConfigV5::PulseType(npt+p0, 
                                             p._polarity->state() == PolarityButton::Pos ? 0 : 1,
                                             1,
                                             adjusted_delay,
                                             p._width.value);
 
-    for(unsigned j=0; j<MaxOutputs; j++) {
+    for(unsigned j=0; j<Pds::EvrData::ConfigV5::EvrOutputs; j++) {
       if (p._outputs[j]->isChecked())
-        *new(&om[nom++]) EvrConfigType::OutputMapType( EvrConfigType::OutputMapType::Pulse, npt+p0,
-                                                       EvrConfigType::OutputMapType::UnivIO, j, _id );
+        *new(&om[nom++]) Pds::EvrData::ConfigV5::OutputMapType( Pds::EvrData::ConfigV5::OutputMapType::Pulse, npt+p0,
+                                                       Pds::EvrData::ConfigV5::OutputMapType::UnivIO, j+Pds::EvrData::ConfigV5::EvrOutputs*_id );
     }
     npt++;
   }
@@ -234,8 +240,8 @@ bool EvrPulseTable::validate(unsigned ncodes,
   uint32_t fill = 0;
   for(unsigned i=0; i<ncodes; i++)
     if (codes[i].isReadout())
-      *new(const_cast<EvrConfigType::EventCodeType*>(&codes[i]))
-           EvrConfigType::EventCodeType(codes[i].code(),
+      *new(const_cast<Pds::EvrData::ConfigV5::EventCodeType*>(&codes[i]))
+           Pds::EvrData::ConfigV5::EventCodeType(codes[i].code(),
                                         codes[i].desc(),
                                         codes[i].maskTrigger()|pm,fill,fill);
            
@@ -247,11 +253,11 @@ bool EvrPulseTable::validate(unsigned ncodes,
 
 
 
-QLayout* EvrPulseTable::initialize(QWidget*) 
+QLayout* EvrPulseTable_V5::initialize(QWidget*) 
 {
   QVBoxLayout* vl = new QVBoxLayout;
 
-  _qlink = new EvrPulseTableQ(*this,0);
+  _qlink = new EvrPulseTable_V5Q(*this,0);
 
   //
   //  Read EvrIOConfig
@@ -261,7 +267,7 @@ QLayout* EvrPulseTable::initialize(QWidget*)
     if (p) {
       unsigned id=0;
       do {
-        const EvrIOConfigType& iocfg = *reinterpret_cast<const EvrIOConfigType*>(p);
+        const Pds::EvrData::IOConfigV1& iocfg = *reinterpret_cast<const Pds::EvrData::IOConfigV1*>(p);
         if (iocfg.nchannels()==0) break;
         for(unsigned i=0; i<iocfg.nchannels(); i++)
           if (id == _id)
@@ -271,7 +277,7 @@ QLayout* EvrPulseTable::initialize(QWidget*)
       } while(1);
     }
   }  
-  while(j < MaxOutputs) {
+  while(j < Pds::EvrData::ConfigV5::EvrOutputs) {
     _outputs[j] = new QrLabel(QString::number(j));
     j++;
   }
@@ -286,7 +292,7 @@ QLayout* EvrPulseTable::initialize(QWidget*)
   layout->addWidget(new QLabel("Pulse\nPolarity\n"), row, column++, align);
   layout->addWidget(new QLabel("Pulse\nDelay\n(sec)")   , row, column++, align);
   layout->addWidget(new QLabel("Pulse\nWidth\n(sec)")   , row, column++, align);
-  for(unsigned i=0; i<MaxOutputs; i++)
+  for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
     layout->addWidget( _outputs[i], row, column++, align);
 
   _enable_group     = new QButtonGroup; _enable_group    ->setExclusive(false);
@@ -312,7 +318,7 @@ QLayout* EvrPulseTable::initialize(QWidget*)
   return vl;
 }
 
-void EvrPulseTable::update() {
+void EvrPulseTable_V5::update() {
   Parameter* p = _pList.forward();
   while( p != _pList.empty() ) {
     p->update();
@@ -320,7 +326,7 @@ void EvrPulseTable::update() {
   }
 }
 
-void EvrPulseTable::flush () {
+void EvrPulseTable_V5::flush () {
   Parameter* p = _pList.forward();
   while( p != _pList.empty() ) {
     p->flush();
@@ -328,11 +334,11 @@ void EvrPulseTable::flush () {
   }
 }
 
-void EvrPulseTable::enable(bool) 
+void EvrPulseTable_V5::enable(bool) 
 {
 }
 
-void EvrPulseTable::update_enable    (int i) 
+void EvrPulseTable_V5::update_enable    (int i) 
 {
   if (i < 0) {
   }
@@ -349,10 +355,10 @@ void EvrPulseTable::update_enable    (int i)
   flush();
 }
 
-void EvrPulseTable::update_output    (int k) 
+void EvrPulseTable_V5::update_output    (int k) 
 {
-  int row = k/MaxOutputs;
-  int col = k%MaxOutputs;
+  int row = k/Pds::EvrData::ConfigV5::EvrOutputs;
+  int col = k%Pds::EvrData::ConfigV5::EvrOutputs;
   //  Exclusive among enabled rows
   for(int j=0; j<MaxPulses; j++) {
     if (row==j || !_enable_group->button(j)->isChecked())
@@ -363,9 +369,9 @@ void EvrPulseTable::update_output    (int k)
   }
 }
 
-EvrPulseTableQ::EvrPulseTableQ(EvrPulseTable& table,QWidget* parent) : QObject(parent), _table(table) {}
+EvrPulseTable_V5Q::EvrPulseTable_V5Q(EvrPulseTable_V5& table,QWidget* parent) : QObject(parent), _table(table) {}
 
-void EvrPulseTableQ::update_enable    (int i) { _table.update_enable(i); }
-void EvrPulseTableQ::update_output    (int i) { _table.update_output(i); }
+void EvrPulseTable_V5Q::update_enable    (int i) { _table.update_enable(i); }
+void EvrPulseTable_V5Q::update_output    (int i) { _table.update_output(i); }
 
 #include "Parameters.icc"

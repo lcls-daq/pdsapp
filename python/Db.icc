@@ -100,6 +100,38 @@ static PyTypeObject pdsdb_type = {
 //  pdsdb class functions
 //
 
+static PyObject* _new_xtc(Pds::TypeId& contains)
+{
+	PyObject* o;
+          switch(contains.id()) {
+          case Pds::TypeId::Id_DiodeFexConfig:
+            o = _PyObject_New(&pds_DiodeFexConfig_type);
+            break;
+          case Pds::TypeId::Id_IpmFexConfig:
+            o = _PyObject_New(&pds_IpmFexConfig_type);
+            break;  
+          case Pds::TypeId::Id_IpimbConfig:
+            o = _PyObject_New(&pds_IpimbConfig_type);
+            break;      
+          case Pds::TypeId::Id_CspadConfig:
+            o = _PyObject_New(&pds_CspadConfig_type);
+            break;
+          case Pds::TypeId::Id_PrincetonConfig:
+            o = _PyObject_New(&pds_PrincetonConfig_type);
+            break;
+          case Pds::TypeId::Id_EvrConfig:
+            o = _PyObject_New(&pds_EvrConfig_type);
+            break;
+          case Pds::TypeId::Id_FliConfig:
+            o = _PyObject_New(&pds_FliConfig_type);
+            break;
+          default:
+            o = _PyObject_New(&pds_Xtc_type);
+            break;
+          }
+	return o;
+}
+
 void pdsdb_dealloc(pdsdb* self)
 {
   if (self->expt) {
@@ -156,6 +188,7 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
   unsigned level (Default);
   unsigned typid (Default);
   const char* alias = 0;
+  const char* file  = 0;
 
   while(1) {
     { char* kwlist[] = {"key"  ,"src"  ,"typeid", NULL };
@@ -188,12 +221,41 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
                                        &alias,&typid) != 0)
         break; }
 
+    { char* kwlist[] = {"file","src","typeid", NULL };
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"s|II",kwlist,
+                                       &file,&phy,&typid) != 0)
+        break; }
+
     PyErr_Clear();
 
     return result;
   }
 
   PyErr_Clear();
+
+  if (file!=0) {
+    if (typid==Default || phy==Default)
+      return result;
+
+    Pds::TypeId contains(Pds::TypeId::Type(typid&0xffff),
+                         typid>>16);
+    string xpath = self->path->data_path(PdsDefs::qtypeName(contains));
+    xpath += "/" + string(file);
+
+    int i = PyTuple_Size(result);
+    _PyTuple_Resize(&result, i+1);
+
+    PyObject* o = _new_xtc(contains);
+
+    Pds::DetInfo info(0, 
+                      Pds::DetInfo::Detector((phy>>24)&0xff), (phy>>16)&0xff,
+                      Pds::DetInfo::Device  ((phy>> 8)&0xff), (phy>> 0)&0xff);
+        
+    pdsxtc_read(o, info, contains, xpath.c_str());
+    PyTuple_SetItem(result,i,o);
+
+    return result;    
+  }
 
   if (key==Default) {
     const TableEntry* entry = self->expt->table().get_top_entry(alias);
@@ -243,35 +305,9 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
           int i = PyTuple_Size(result);
           _PyTuple_Resize(&result, i+1);
 
-          PyObject* o;
-    Pds::TypeId contains(Pds::TypeId::Type(typ&0xffff),
+          Pds::TypeId contains(Pds::TypeId::Type(typ&0xffff),
                                typ>>16);
-          switch(contains.id()) {
-          case Pds::TypeId::Id_DiodeFexConfig:
-            o = _PyObject_New(&pds_DiodeFexConfig_type);
-            break;
-          case Pds::TypeId::Id_IpmFexConfig:
-            o = _PyObject_New(&pds_IpmFexConfig_type);
-            break;  
-          case Pds::TypeId::Id_IpimbConfig:
-            o = _PyObject_New(&pds_IpimbConfig_type);
-            break;      
-          case Pds::TypeId::Id_CspadConfig:
-            o = _PyObject_New(&pds_CspadConfig_type);
-            break;
-          case Pds::TypeId::Id_PrincetonConfig:
-            o = _PyObject_New(&pds_PrincetonConfig_type);
-            break;
-          case Pds::TypeId::Id_EvrConfig:
-            o = _PyObject_New(&pds_EvrConfig_type);
-            break;
-          case Pds::TypeId::Id_FliConfig:
-            o = _PyObject_New(&pds_FliConfig_type);
-            break;
-          default:
-            o = _PyObject_New(&pds_Xtc_type);
-            break;
-          }
+          PyObject* o = _new_xtc(contains);
           pdsxtc_read(o, info, contains, gk.gl_pathv[m]);
           PyTuple_SetItem(result,i,o);
         }
@@ -292,12 +328,22 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
 {
   pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
 
-  char* alias = 0;
+  const char* alias = 0;
+  const char* file  = 0;
   PyObject* o;
-  int sts = PyArg_ParseTuple(args,"sO",&alias,&o);
 
-  if (sts==0) {
-    printf("Parse failed\n");
+  while(1) {
+
+    { char* kwlist[] = {"file", "xtc", NULL };
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"sO",kwlist,
+                                       &file,&o) != 0)
+        break; }
+
+    { char* kwlist[] = {"alias", "xtc", NULL };
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"sO",kwlist,
+                                       &alias,&o) != 0)
+        break; }
+
     return NULL;
   }
 
@@ -307,6 +353,18 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
   }
 
   pdsxtc* xtc = (pdsxtc*)o;
+
+  if (file != 0) {
+    string xpath = self->path->data_path(PdsDefs::qtypeName(xtc->contains));
+    xpath += "/" + string(file);
+
+    FILE* f = fopen(xpath.c_str(),"w");
+    fwrite(xtc->payload,xtc->extent,1,f);
+    fclose(f);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
 
   //
   //  Lookup device entry matching the xtc Src field
@@ -551,3 +609,4 @@ PyObject* pdsdb_evolve(PyObject* self_o, PyObject* args, PyObject* kwds)
   memset(oxtc->payload, 0, extent);
   return o;
 }
+

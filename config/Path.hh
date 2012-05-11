@@ -9,6 +9,7 @@ using std::list;
 namespace Pds_ConfigDb {
 
   class UTypeName;
+  class QTypeName;
 
   class Path {
   public:
@@ -21,6 +22,7 @@ namespace Pds_ConfigDb {
     string device (const string&) const;
 
     string data_path(const string& device, const UTypeName& type) const;
+    string data_path(const QTypeName& type) const;
     string desc_path(const string& device, const UTypeName& type) const;
     list<string> xtc_files(const string& device, const UTypeName& type) const;
     //  Device key

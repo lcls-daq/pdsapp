@@ -1,6 +1,6 @@
-#include "pdsapp/config/EvrConfigP.hh"
+#include "pdsapp/config/EvrConfig_V5.hh"
 #include "pdsapp/config/EvrEventCodeTable.hh"
-#include "pdsapp/config/EvrPulseTable.hh"
+#include "pdsapp/config/EvrPulseTable_V5.hh"
 #include "pdsapp/config/SequencerConfig.hh"
 #include "pdsapp/config/EventcodeTiming.hh"
 #include "pdsapp/config/GlobalCfg.hh"
@@ -21,20 +21,20 @@ static const double EvrPeriod = 1./119e6;
 
 namespace Pds_ConfigDb {
 
-  class EvrPulseTables : public Parameter {
+  class EvrPulseTables_V5 : public Parameter {
   public:
-    EvrPulseTables() : 
+    EvrPulseTables_V5() : 
       Parameter(NULL), 
       _nevr(0),
-      _pulse_buffer (new char[EvrConfigType::MaxPulses*sizeof(EvrConfigType::PulseType)]),
-      _output_buffer(new char[EvrConfigType::MaxOutputs*sizeof(EvrConfigType::OutputMapType)]),
+      _pulse_buffer (new char[Pds::EvrData::ConfigV5::MaxPulses*sizeof(Pds::EvrData::ConfigV5::PulseType)]),
+      _output_buffer(new char[MaxEVRs*Pds::EvrData::ConfigV5::EvrOutputs*sizeof(Pds::EvrData::ConfigV5::OutputMapType)]),
       _npulses      (0),
       _noutputs     (0)
     {
       for(unsigned i=0; i<MaxEVRs; i++)
-        _evr[i] = new EvrPulseTable(i);
+        _evr[i] = new EvrPulseTable_V5(i);
     }
-    ~EvrPulseTables() {
+    ~EvrPulseTables_V5() {
       delete[] _pulse_buffer;
       delete[] _output_buffer;
       for(unsigned i=0; i<MaxEVRs; i++)
@@ -68,7 +68,7 @@ namespace Pds_ConfigDb {
     void     update    () { for(unsigned i=0; i<_nevr; i++) _evr[i]->update(); }
     void     enable    (bool) {}
   public:
-    void     pull    (const EvrConfigType& tc)
+    void     pull    (const Pds::EvrData::ConfigV5& tc)
     { 
       for(unsigned i=0; i<MaxEVRs; i++) 
         _evr[i]->pull(tc); 
@@ -98,7 +98,7 @@ namespace Pds_ConfigDb {
     }
 
     bool     validate(unsigned ncodes,
-                      const EvrConfigType::EventCodeType* codes)
+                      const Pds::EvrData::ConfigV5::EventCodeType* codes)
     {
       bool result  = true;
 
@@ -139,12 +139,12 @@ namespace Pds_ConfigDb {
       }
 
       unsigned npt = 0;
-      EvrConfigType::PulseType*     pt = 
-        reinterpret_cast<EvrConfigType::PulseType*>(_pulse_buffer);
+      Pds::EvrData::ConfigV5::PulseType*     pt = 
+        reinterpret_cast<Pds::EvrData::ConfigV5::PulseType*>(_pulse_buffer);
 
       unsigned nom = 0;
-      EvrConfigType::OutputMapType* om = 
-        reinterpret_cast<EvrConfigType::OutputMapType*>(_output_buffer);
+      Pds::EvrData::ConfigV5::OutputMapType* om = 
+        reinterpret_cast<Pds::EvrData::ConfigV5::OutputMapType*>(_output_buffer);
       
       for(unsigned i=0; i<_nevr; i++) {
         result &= _evr[i]->validate(ncodes, codes, delay_offset, 
@@ -162,15 +162,15 @@ namespace Pds_ConfigDb {
     }
 
     unsigned                            npulses () const { return _npulses; }
-    const EvrConfigType::PulseType*     pulses () const 
-    { return reinterpret_cast<const EvrConfigType::PulseType*>(_pulse_buffer); }
+    const Pds::EvrData::ConfigV5::PulseType*     pulses () const 
+    { return reinterpret_cast<const Pds::EvrData::ConfigV5::PulseType*>(_pulse_buffer); }
 
     unsigned                            noutputs() const { return _noutputs; }
-    const EvrConfigType::OutputMapType* outputs () const 
-    { return reinterpret_cast<const EvrConfigType::OutputMapType*>(_output_buffer); }
+    const Pds::EvrData::ConfigV5::OutputMapType* outputs () const 
+    { return reinterpret_cast<const Pds::EvrData::ConfigV5::OutputMapType*>(_output_buffer); }
 
   private:
-    EvrPulseTable* _evr[MaxEVRs];
+    EvrPulseTable_V5* _evr[MaxEVRs];
     unsigned       _nevr;
     char*          _pulse_buffer;
     char*          _output_buffer;
@@ -179,11 +179,11 @@ namespace Pds_ConfigDb {
     QTabWidget*    _tab;
   };
 
-  class EvrConfigP::Private_Data : public Parameter {
+  class EvrConfig_V5::Private_Data : public Parameter {
   public:
     Private_Data() :
       Parameter(NULL),
-      _pulse_table (new EvrPulseTables) ,
+      _pulse_table (new EvrPulseTables_V5) ,
       _code_table  (new EvrEventCodeTable),
       _seq_config  (new SequencerConfig(*_code_table))
     {}
@@ -194,7 +194,6 @@ namespace Pds_ConfigDb {
       ADDTAB(_pulse_table,"Pulses");
       ADDTAB(_code_table ,"EventCodes");
       ADDTAB(_seq_config ,"Sequencer");
-      tab->setTabEnabled(2,false);
       layout->addWidget(tab);
       return layout;
     }
@@ -203,16 +202,16 @@ namespace Pds_ConfigDb {
     void     enable    (bool) {}
   public:
     int pull(void *from) {
-      const EvrConfigType& tc = *reinterpret_cast<const EvrConfigType*>(from);
+      const Pds::EvrData::ConfigV5& tc = *reinterpret_cast<const Pds::EvrData::ConfigV5*>(from);
       _pulse_table->pull(tc);
       _code_table ->pull(tc);
       _seq_config ->pull(tc);
       return tc.size();
     }
     int push(void *to) {
-      const_cast<EvrConfigP::Private_Data*>(this)->validate();
-      EvrConfigType& tc = 
-        *new(to) EvrConfigType( _code_table ->ncodes  (),_code_table->codes  (),
+      const_cast<EvrConfig_V5::Private_Data*>(this)->validate();
+      Pds::EvrData::ConfigV5& tc = 
+        *new(to) Pds::EvrData::ConfigV5( _code_table ->ncodes  (),_code_table->codes  (),
                                 _pulse_table->npulses (),_pulse_table->pulses (),
                                 _pulse_table->noutputs(),_pulse_table->outputs(),
                                 _seq_config ->result() );
@@ -220,11 +219,11 @@ namespace Pds_ConfigDb {
     }
 
     int dataSize() const {
-      const_cast<EvrConfigP::Private_Data*>(this)->validate();
-      return sizeof(EvrConfigType) + 
-        _code_table ->ncodes  ()*sizeof(EvrConfigType::EventCodeType) +
-        _pulse_table->npulses ()*sizeof(EvrConfigType::PulseType) +
-        _pulse_table->noutputs()*sizeof(EvrConfigType::OutputMapType) +
+      const_cast<EvrConfig_V5::Private_Data*>(this)->validate();
+      return sizeof(Pds::EvrData::ConfigV5) + 
+        _code_table ->ncodes  ()*sizeof(Pds::EvrData::ConfigV5::EventCodeType) +
+        _pulse_table->npulses ()*sizeof(Pds::EvrData::ConfigV5::PulseType) +
+        _pulse_table->noutputs()*sizeof(Pds::EvrData::ConfigV5::OutputMapType) +
         _seq_config ->result().size();
     }
     bool validate() {
@@ -236,7 +235,7 @@ namespace Pds_ConfigDb {
       return v;
     }
   private:
-    EvrPulseTables*    _pulse_table;
+    EvrPulseTables_V5* _pulse_table;
     EvrEventCodeTable* _code_table;
     SequencerConfig*   _seq_config;
   };
@@ -246,28 +245,28 @@ namespace Pds_ConfigDb {
 
 using namespace Pds_ConfigDb;
 
-EvrConfigP::EvrConfigP():
+EvrConfig_V5::EvrConfig_V5():
   Serializer("Evr_Config"), _private_data(new Private_Data)
 {
   pList.insert(_private_data);
 }
 
-int EvrConfigP::readParameters(void *from)
+int EvrConfig_V5::readParameters(void *from)
 {
   return _private_data->pull(from);
 }
 
-int EvrConfigP::writeParameters(void *to)
+int EvrConfig_V5::writeParameters(void *to)
 {
   return _private_data->push(to);
 }
 
-int EvrConfigP::dataSize() const
+int EvrConfig_V5::dataSize() const
 {
   return _private_data->dataSize();
 }
 
-bool EvrConfigP::validate() 
+bool EvrConfig_V5::validate() 
 {
   return _private_data->validate();
 }

@@ -160,15 +160,25 @@ QList<Node> NodeGroup::selected()
   _persist.clear();
   QList<Node> nodes;
   QList<QAbstractButton*> buttons = _buttons->buttons();
+  Node* master_evr = 0;
   foreach(QAbstractButton* b, buttons) {
     if (b->isChecked()) {
       int id = _buttons->id(b);
       _persist.push_back(_nodes[id].plabel().replace('\n','\t'));
-      if (_nodes[id].det().device()==DetInfo::Evr)
-        nodes.push_front(_nodes[id].node());
+      if (_nodes[id].det().device()==DetInfo::Evr) {
+	if (_nodes[id].det().devId()==0)
+	  master_evr = new Node(_nodes[id].node());
+	else
+	  nodes.push_front(_nodes[id].node());
+      }
       else
         nodes.push_back (_nodes[id].node());
     }
+  }
+
+  if (master_evr) {
+    nodes.push_front(*master_evr);
+    delete master_evr;
   }
 
   //  Write persistent selected nodes

@@ -5,6 +5,7 @@
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/EvrIOConfig.hh"
 #include "pdsapp/config/EvrConfigP.hh"
+#include "pdsapp/config/EvrConfig_V5.hh"
 #include "pdsapp/config/EvrConfig_V4.hh"
 #include "pdsapp/config/EvrConfig_V3.hh"
 #include "pdsapp/config/EvrConfig_V2.hh"
@@ -115,6 +116,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,2) , new CspadConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_EncoderConfig,1),new EncoderConfig_V1);
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,5)   , new EvrConfig_V5);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,4)   , new EvrConfig_V4);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,3)   , new EvrConfig_V3);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2)   , new EvrConfig_V2);

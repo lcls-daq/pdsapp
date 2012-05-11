@@ -186,6 +186,7 @@ PyObject* pds_EvrConfig_get (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
   PyObject* o = PyDict_New();  
+  printf("evrconfig vsn %d\n",xtc->contains.version());
   if (xtc->contains.version()==5) {
     const Pds::EvrData::ConfigV5* v = 
       reinterpret_cast<const Pds::EvrData::ConfigV5*>(xtc->payload);
@@ -250,6 +251,7 @@ PyObject* pds_EvrConfig_set    (PyObject*   self, PyObject* args)
     return NULL;
 
   pdsxtc* xtc = (pdsxtc*)self;
+  printf("evrconfig vsn %d\n",xtc->contains.version());
   if (xtc->contains.version()==5) {
 
     Pds::EvrData::EventCodeV5*   p_eventcodes = 0;
@@ -294,8 +296,6 @@ PyObject* pds_EvrConfig_set    (PyObject*   self, PyObject* args)
     Pds::EvrData::SequencerConfigV1 noSequencer(Pds::EvrData::SequencerConfigV1::Disable,
                                                 Pds::EvrData::SequencerConfigV1::Disable,
                                                 0, 0, 0);
-
-    printf("neventcodes %d  npulses %d  noutputs %d\n", neventcodes, npulses, noutputs);
 
     char* p = new char[neventcodes*sizeof(Pds::EvrData::EventCodeV5) +
                        npulses    *sizeof(Pds::EvrData::PulseConfigV3) +
