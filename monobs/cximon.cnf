@@ -1,0 +1,15 @@
+# Comment
+# 
+#     Detector		PvBase
+#
+# [ Detector>0 : DetInfo::Detector 
+#   Detector<0 : BldInfo::Type ]
+#
+        38.0    CXI:USER:ARC:1
+        38.1    CXI:USER:ARC:2
+        38.2    CXI:USER:ARC:3
+        38.3    CXI:USER:ARC:4
+        38.4    CXI:USER:ARC:5
+        38.5    CXI:USER:ARC:6
+        38.6    CXI:USER:ARC:7
+        38.7    CXI:USER:ARC:8

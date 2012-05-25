@@ -10,6 +10,10 @@ namespace PdsCas {
     static void monitor(ShmClient&  client,
                         const char* pvbase,
                         const Pds::DetInfo& info);
+    static void monitor(ShmClient&     client,
+                        const char*    pvbase,
+                        unsigned       detid,
+                        unsigned       devid);
   };
 }
 

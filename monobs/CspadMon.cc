@@ -361,6 +361,7 @@ namespace PdsCas {
       char buff[64];
       for(unsigned i=0; i<NTHERMS; i++) {
         sprintf(buff,"%s:TEMP%d.VAL",_pvName,i%4);
+        printf("Initializing CspadMiniT %s\n",buff);
         _valu_writer[i] = new PVWriter(buff);
       }
       _initialized = true;
@@ -390,4 +391,24 @@ void PdsCas::CspadMon::monitor(ShmClient&     client,
   client.insert(new CspadEHandler(*evr,*cspad));
   client.insert(new CspadTHandler(pvbase,det));
   client.insert(new CspadMiniTHandler(pvbase,det));
+}
+
+void PdsCas::CspadMon::monitor(ShmClient&     client,
+                               const char*    pvbase,
+                               unsigned       detid,
+                               unsigned       devid)
+{
+  {
+    DetInfo info(0, DetInfo::Detector(detid), 0, DetInfo::Cspad, devid);
+    EvrHandler* evr = new EvrHandler;
+    CspadHandler* cspad = new CspadHandler(info);
+    client.insert(evr);
+    client.insert(cspad);
+    client.insert(new CspadEHandler(*evr,*cspad));
+    client.insert(new CspadTHandler(pvbase,info));
+  }
+  {
+    DetInfo info(0, DetInfo::Detector(detid), 0, DetInfo::Cspad2x2, devid);
+    client.insert(new CspadMiniTHandler(pvbase,info));
+  }
 }
