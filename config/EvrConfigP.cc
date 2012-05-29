@@ -43,8 +43,6 @@ namespace Pds_ConfigDb {
   public:
     QLayout* initialize(QWidget*) 
     {
-      _nevr = 0;
-
       QVBoxLayout* vl = new QVBoxLayout;
       vl->addStretch();
       { QGridLayout* hl = new QGridLayout;
@@ -61,6 +59,9 @@ namespace Pds_ConfigDb {
         }
         vl->addWidget(_tab); }
       vl->addStretch();
+
+      _nevr = 1;
+      _tab->setTabEnabled(0,true);
 
       return vl;
     }

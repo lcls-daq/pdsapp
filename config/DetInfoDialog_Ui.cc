@@ -133,10 +133,12 @@ void DetInfoDialog_Ui::add()
 void DetInfoDialog_Ui::remove()
 {
   int idx = _srclist->currentRow();
-  _srclist->takeItem(idx);
-  list<Pds::Src>::iterator iter = _list.begin();
-  while(idx--) iter++;
-  _list.erase(iter);
+  if (idx>=0) {
+    _srclist->takeItem(idx);
+    list<Pds::Src>::iterator iter = _list.begin();
+    while(idx--) iter++;
+    _list.erase(iter);
+  }
 }
 
 void DetInfoDialog_Ui::reconstitute_srclist()

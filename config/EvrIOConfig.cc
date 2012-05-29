@@ -217,6 +217,8 @@ namespace Pds_ConfigDb
         l->addWidget(_tab); 
         }
 
+      addEvr();
+
       return l;
     }
 
