@@ -37,8 +37,8 @@ static const QString nopath(".");
 static const QString nochoice;
 
 Dialog::Dialog(QWidget* parent,
-	       Serializer& s,
-	       const QString& file) :
+         Serializer& s,
+         const QString& file) :
   QDialog(parent),
   _s(s),
   _read_dir (nochoice),
@@ -51,10 +51,10 @@ Dialog::Dialog(QWidget* parent,
 }
 
 Dialog::Dialog(QWidget* parent,
-	       Serializer& s,
-	       const QString& read_dir,
-	       const QString& write_dir,
-	       const QString& file) :
+         Serializer& s,
+         const QString& read_dir,
+         const QString& write_dir,
+         const QString& file) :
   QDialog(parent),
   _s(s),
   _read_dir (read_dir),
@@ -67,9 +67,9 @@ Dialog::Dialog(QWidget* parent,
 }
 
 Dialog::Dialog(QWidget* parent,
-	       Serializer& s,
-	       const QString& read_dir,
-	       const QString& write_dir) :
+         Serializer& s,
+         const QString& read_dir,
+         const QString& write_dir) :
   QDialog(parent),
   _s(s),
   _read_dir (read_dir),
@@ -162,7 +162,7 @@ void Dialog::layout()
 void Dialog::replace()
 {
   QString file = QFileDialog::getOpenFileName(this,"File to read from:",
-					      _read_dir, "(current) *.xtc;; (all) *");
+                _read_dir, "(current) *.xtc;; (all) *");
   if (file.isNull())
     return;
 
@@ -178,7 +178,7 @@ void Dialog::replace()
 void Dialog::append()
 {
   QString file = QFileDialog::getOpenFileName(this,"File to read from:",
-					      _read_dir, "*.xtc");
+                _read_dir, "*.xtc");
   if (file.isNull())
     return;
 
@@ -212,7 +212,7 @@ void Dialog::write()
 
     bool ok;
     QString file = QInputDialog::getText(this,"File to write to:","Filename:",
-					 QLineEdit::Normal,filet,&ok);
+           QLineEdit::Normal,filet,&ok);
     if (!ok)
       return;
     if (file.isEmpty())

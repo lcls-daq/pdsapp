@@ -114,7 +114,8 @@ namespace Pds_ConfigDb
       return sizeof(EvrConfigType) + 
         _neventcodes.value * sizeof(EvrConfigType::EventCodeType) +
         _npulses.value * sizeof(EvrConfigType::PulseType) +
-        _noutputs.value * sizeof(EvrConfigType::OutputMapType);
+        _noutputs.value * sizeof(EvrConfigType::OutputMapType) +
+        sizeof(EvrConfigType::SeqConfigType); // this config object doesn't support sequencer config
     }
   public:
     NumericInt < unsigned >                 _neventcodes;      
