@@ -1,5 +1,5 @@
-#ifndef PdsConfigDb_CspadConfigTable_hh
-#define PdsConfigDb_CspadConfigTable_hh
+#ifndef PdsConfigDb_CspadConfigTable_V2_hh
+#define PdsConfigDb_CspadConfigTable_V2_hh
 
 #include "pdsapp/config/Parameters.hh"
 

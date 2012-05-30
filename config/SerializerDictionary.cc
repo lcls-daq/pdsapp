@@ -31,6 +31,7 @@
 #include "pdsapp/config/ControlConfig.hh"
 #include "pdsapp/config/CspadConfig_V1.hh"
 #include "pdsapp/config/CspadConfig_V2.hh"
+#include "pdsapp/config/CspadConfig_V3.hh"
 #include "pdsapp/config/CspadConfig.hh"
 #include "pdsapp/config/XampsConfig.hh"
 #include "pdsapp/config/FexampConfig.hh"
@@ -113,6 +114,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_oceanOpticsConfigType ,new OceanOpticsConfig);  
   enroll(_fliConfigType         ,new FliConfig);  
   //  retired
+  enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,3) , new CspadConfig_V3);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,2) , new CspadConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_EncoderConfig,1),new EncoderConfig_V1);

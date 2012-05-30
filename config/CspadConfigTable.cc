@@ -29,11 +29,11 @@ namespace Pds_ConfigDb
   class GlobalP {
     public:
       GlobalP() :
-        _runDelay        ( "Run Delay"     , 0,0, 0x7fffffff, Decimal),
-        _eventCode       ( "Event Code"    , 40,0,       0xff, Decimal),
+        _runDelay        ( "Run Delay"     , 36797,0, 0x7fffffff, Decimal),
+        _eventCode       ( "Event Code"    , 40,   0,       0xff, Decimal),
         _inactiveRunMode ( "Inact Run Mode", Pds::CsPad::RunButDrop, RunModeText),
         _activeRunMode   ( "Activ Run Mode", Pds::CsPad::RunAndSendTriggeredByTTL, RunModeText),
-        _testDataIndex   ( "Test Data Indx", 4, 0, 7, Decimal ),
+        _testDataIndex   ( "Test Data Indx", 4,    0, 7, Decimal ),
         _badAsicMask     ( "Bad ASIC Mask (hex)" , 0, 0, -1ULL, Hex),
         _sectors         ( "Sector Mask (hex)"   , 0xffffffff, 0, 0xffffffff, Hex),
         _protQ0AdcThr      ("ADC Threshold quad 0",  67,   0, 0x3fff, Decimal),
@@ -43,8 +43,7 @@ namespace Pds_ConfigDb
         _protQ2AdcThr      ("ADC Threshold quad 2",  54,   0, 0x3fff, Decimal),
         _protQ2PixelThr    ("Pixel Count Threshold quad 2",  1200, 0, 574564,  Decimal),
         _protQ3AdcThr      ("ADC Threshold quad 3",  300,  0, 0x3fff, Decimal),
-        _protQ3PixelThr    ("Pixel Count Threshold quad 3",  1200, 0, 574564,  Decimal),
-        _beamFinderCheckBox(0)
+        _protQ3PixelThr    ("Pixel Count Threshold quad 3",  1200, 0, 574564,  Decimal)
       {}
     public:
       void enable(bool v)
@@ -67,7 +66,6 @@ namespace Pds_ConfigDb
         _protQ2PixelThr .value = 1200;
         _protQ3AdcThr  .value = 300;
         _protQ3PixelThr .value = 1200;
-        if (_beamFinderCheckBox) _beamFinderCheckBox->setCheckState((Qt::CheckState)0);
       }
       void pull   (const CsPadConfigType& p)
       {
@@ -78,11 +76,6 @@ namespace Pds_ConfigDb
         _testDataIndex  .value = p.tdi();
         _badAsicMask    .value = (uint64_t(p.badAsicMask1())<<32) | p.badAsicMask0();
         _sectors        .value = p.roiMask(0) | (p.roiMask(1)<<8) | (p.roiMask(2)<<16) | (p.roiMask(3)<<24);
-        if (p.payloadSize() < sizeof(Pds::CsPad::ElementV1) + 4 + Columns*Rows*sizeof(uint16_t)*8) {
-          _beamFinderCheckBox->setCheckState((Qt::CheckState)2);
-        } else {
-          _beamFinderCheckBox->setCheckState((Qt::CheckState)0);
-        }
         _protQ0AdcThr   .value = p.protectionThresholds()[0].adcThreshold;
         _protQ0PixelThr .value = p.protectionThresholds()[0].pixelCountThreshold;
         _protQ1AdcThr   .value = p.protectionThresholds()[1].adcThreshold;
@@ -99,15 +92,14 @@ namespace Pds_ConfigDb
         unsigned qmask = 0;
         for(unsigned i=0; i<4; i++)
           if (rmask&(0xff<<(8*i))) qmask |= (1<<i);
-        unsigned amask = _beamFinderCheckBox->checkState() ? 1 : 0xf;
+        unsigned amask = 0xf;
 
         *new (p) CsPadConfigType( _runDelay .value,
             _eventCode.value,
             _inactiveRunMode.value,
             _activeRunMode  .value,
             _testDataIndex  .value,
-            sizeof(Pds::CsPad::ElementV1) + 4 + Columns*Rows*sizeof(uint16_t)*
-            ( _beamFinderCheckBox->checkState() ? 4 : 16 ),
+            sizeof(Pds::CsPad::ElementV1) + 4 + Columns*Rows*sizeof(uint16_t)* 16,
             _badAsicMask    .value & 0xffffffff,
             _badAsicMask    .value >> 32,
             amask,
@@ -141,9 +133,6 @@ namespace Pds_ConfigDb
         layout->addLayout(_protQ3PixelThr .initialize(parent));
         layout->addLayout(_badAsicMask    .initialize(parent));
         layout->addLayout(_sectors        .initialize(parent));
-
-        _beamFinderCheckBox = new QCheckBox("Beam Finder", parent);
-        layout->addWidget(_beamFinderCheckBox);
 
         QGridLayout* gl = new QGridLayout;
         gl->addWidget(_roiCanvas[0] = new CspadSector(*_sectors._input,0),0,0,::Qt::AlignBottom|::Qt::AlignRight);
@@ -201,7 +190,6 @@ namespace Pds_ConfigDb
       NumericInt<unsigned>             _protQ3PixelThr;
       CspadSector*                     _roiCanvas[4];
       CspadConfigTableQ*               _qlink;
-      QCheckBox*                       _beamFinderCheckBox;
   };
 
 
@@ -220,9 +208,12 @@ namespace Pds_ConfigDb
         _ampIdle         ( NULL, 0, 0, 0x7fffffff, Decimal),
         _injTotal        ( NULL, 0, 0, 0x7fffffff, Decimal),
         _rowColShiftPer  ( NULL, 5, 0, 0x7fffffff, Decimal),
+        _ampReset        ( NULL, 0, 0, 1, Decimal),
+        _digCount        ( NULL, 0x3fff, 0, 0x3fff, Hex),
+        _digPeriod       ( NULL, 0xc, 0, 0xff, Hex),
         // digital pots fields
-        _vref            ( NULL, 0xba, 0, 0xff, Decimal),
-        _vinj            ( NULL, 0xba, 0, 0xff, Decimal),
+        _vref            ( NULL, 0xaf, 0, 0xff, Decimal),
+        _vinj            ( NULL, 0xaf, 0, 0xff, Decimal),
         _rampCurrR1      ( NULL, 0x04, 0, 0xff, Decimal),
         _rampCurrR2      ( NULL, 0x25, 0, 0xff, Decimal),
         _rampCurrRef     ( NULL, 0, 0, 0xff, Decimal),
@@ -241,7 +232,7 @@ namespace Pds_ConfigDb
       void reset ()
       {
       }
-      void pull   (const Pds::CsPad::ConfigV1QuadReg& p, Pds::CsPad::CsPadGainMapCfg* gm)
+      void pull   (const Pds::CsPad::ConfigV2QuadReg& p, Pds::CsPad::CsPadGainMapCfg* gm)
       {
         for(int i=0; i<4; i++) {
           _shiftSelect.value[i] = p.shiftSelect()[i];
@@ -257,6 +248,9 @@ namespace Pds_ConfigDb
         _ampIdle         .value = p.ampIdle();
         _injTotal        .value = p.injTotal();
         _rowColShiftPer  .value = p.rowColShiftPer();
+        _ampReset        .value = p.ampReset();
+        _digCount        .value = p.digCount();
+        _digPeriod       .value = p.digPeriod();
 
         const uint8_t* pots = &p.dp().pots[0];
         _vref.value        = pots[0];
@@ -273,9 +267,9 @@ namespace Pds_ConfigDb
 
         memcpy(gm, p.gm(), sizeof(*p.gm()));
       }
-      void push   (Pds::CsPad::ConfigV1QuadReg* p, Pds::CsPad::CsPadGainMapCfg* gm)
+      void push   (Pds::CsPad::ConfigV2QuadReg* p, Pds::CsPad::CsPadGainMapCfg* gm)
       {
-        *new(p) Pds::CsPad::ConfigV1QuadReg(
+        *new(p) Pds::CsPad::ConfigV2QuadReg(
             _shiftSelect     .value,
             _edgeSelect      .value,
             _readClkSet      .value,
@@ -287,7 +281,10 @@ namespace Pds_ConfigDb
             _digDelay        .value,
             _ampIdle         .value,
             _injTotal        .value,
-            _rowColShiftPer  .value );
+            _rowColShiftPer  .value,
+            _ampReset        .value,
+            _digCount        .value,
+            _digPeriod       .value );
 
         uint8_t* pots = &p->dp().pots[0];
         *pots++ = _vref.value;
@@ -343,6 +340,9 @@ namespace Pds_ConfigDb
         ADDP("Amp Idle");
         ADDP("Inj Total");
         ADDP("Row/Col Shift");
+        ADDP("Amp Reset");
+        ADDP("Dig Count (hex)");
+        ADDP("Dig Period (hex)");
         layout->addWidget(new QLabel("Digital Pots Fields"), row++, 1, 1, 4, ::Qt::AlignHCenter);
         ADDP("Vref");
         ADDP("Vin");
@@ -375,6 +375,9 @@ namespace Pds_ConfigDb
         ADDP(_ampIdle);
         ADDP(_injTotal);
         ADDP(_rowColShiftPer);
+        ADDP(_ampReset);
+        ADDP(_digCount);
+        ADDP(_digPeriod);
         row++;
         ADDP(_vref);
         ADDP(_vinj);
@@ -405,6 +408,9 @@ namespace Pds_ConfigDb
         ADDP(_ampIdle);
         ADDP(_injTotal);
         ADDP(_rowColShiftPer);
+        ADDP(_ampReset);
+        ADDP(_digCount);
+        ADDP(_digPeriod);
         ADDP(_vref);
         ADDP(_vinj);
         ADDP(_rampCurrR1);
@@ -432,6 +438,9 @@ namespace Pds_ConfigDb
       NumericInt<uint32_t> _ampIdle;
       NumericInt<uint32_t> _injTotal;
       NumericInt<uint32_t> _rowColShiftPer;
+      NumericInt<uint32_t> _ampReset;
+      NumericInt<uint32_t> _digCount;
+      NumericInt<uint32_t> _digPeriod;
       // digital pots fields
       NumericInt<uint8_t> _vref;
       NumericInt<uint8_t> _vinj;

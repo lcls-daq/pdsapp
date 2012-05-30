@@ -1,8 +1,8 @@
 #include "pdsapp/config/CspadConfigTable_V2.hh"
 #include "pdsapp/config/CspadSector.hh"
 #include "pdsapp/config/CspadGainMap.hh"
+#include "pdsdata/cspad/ConfigV2.hh"
 #include "pdsdata/cspad/ElementV1.hh"
-#include "pds/config/CsPadConfigType.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -47,7 +47,7 @@ namespace Pds_ConfigDb
           _badAsicMask    .value = 0;
           _sectors        .value = 0xffffffff;
         }
-        void pull   (const CsPadConfigType& p)
+        void pull   (const Pds::CsPad::ConfigV2& p)
         {
           _runDelay .value = p.runDelay();
           _eventCode.value = p.eventCode();
@@ -58,7 +58,7 @@ namespace Pds_ConfigDb
           _sectors        .value = p.roiMask(0) | (p.roiMask(1)<<8) | (p.roiMask(2)<<16) | (p.roiMask(3)<<24);
           update_readout();
         }
-        void push   (CsPadConfigType* p)
+        void push   (Pds::CsPad::ConfigV2* p)
         {
           unsigned rmask = _sectors.value;
           unsigned qmask = 0;
@@ -68,7 +68,7 @@ namespace Pds_ConfigDb
           //      unsigned amask = (rmask&0xfcfcfcfc) ? 0xf : 1;
           unsigned amask = 0xf;
 
-          *new (p) CsPadConfigType( _runDelay .value,
+          *new (p) Pds::CsPad::ConfigV2( _runDelay .value,
               _eventCode.value,
               _inactiveRunMode.value,
               _activeRunMode  .value,
@@ -407,7 +407,7 @@ void CspadConfigTable_V2::insert(Pds::LinkedList<Parameter>& pList)
 }
 
 int CspadConfigTable_V2::pull(const void* from) {
-  const CsPadConfigType& tc = *reinterpret_cast<const CsPadConfigType*>(from);
+  const Pds::CsPad::ConfigV2& tc = *reinterpret_cast<const Pds::CsPad::ConfigV2*>(from);
 
   _globalP->pull(tc);
   for(unsigned q=0; q<4; q++)
@@ -419,7 +419,7 @@ int CspadConfigTable_V2::pull(const void* from) {
 
 int CspadConfigTable_V2::push(void* to) const {
 
-  CsPadConfigType& tc = *reinterpret_cast<CsPadConfigType*>(to);
+  Pds::CsPad::ConfigV2& tc = *reinterpret_cast<Pds::CsPad::ConfigV2*>(to);
   _globalP->push(&tc);
   for(unsigned q=0; q<4; q++)
     _quadP[q]->push(&(tc.quads()[q]),_gainMap->quad(q));
@@ -428,7 +428,7 @@ int CspadConfigTable_V2::push(void* to) const {
 }
 
 int CspadConfigTable_V2::dataSize() const {
-  return sizeof(CsPadConfigType);
+  return sizeof(Pds::CsPad::ConfigV2);
 }
 
 bool CspadConfigTable_V2::validate()
@@ -476,7 +476,7 @@ void CspadConfigTable_V2::enable(bool)
 {
 }
 
-CspadConfigTableQ_V2::CspadConfigTableQ_V2(GlobalP& table,
+CspadConfigTableQ_V2::CspadConfigTableQ_V2(V2::GlobalP& table,
 				     QWidget* parent) : 
   QObject(parent),
   _table (table)
