@@ -11,12 +11,20 @@ static void project_spectrumX(const Pds::Camera::FrameV1& frame,
 {
   const int width = frame.width();
   const uint16_t* p = reinterpret_cast<const uint16_t*>(frame.data());
-  const uint16_t* p_end = p + (bot_row+1)*width;
   p += top_row*width;
   p += lft_col;
-  for(unsigned int i=lft_col; i<=rgt_col; i++) 
-    sig[i] = (*p++);
-  while(p < p_end) {
+  unsigned i=0;
+  while(i<lft_col)
+    sig[i++] = 0;
+  while(i<=rgt_col)
+    sig[i++] = (*p++);
+  while(i<width)
+    sig[i++] = 0;
+
+  for(unsigned j=top_row+1; j<=bot_row; j++) {
+    p = reinterpret_cast<const uint16_t*>(frame.data());
+    p += j*width;
+    p += lft_col;
     for(unsigned int i=lft_col; i<=rgt_col; i++)
       sig[i] += (*p++);
   }
@@ -299,8 +307,12 @@ namespace Pds_TimeTool {
       bool lcut=true;
       for(int k=0; k<cols; k++) {
 	double v = double(wf[k]) - sb[k];
-        if (v > cut) lcut=false;
-        _wf[k] = v/_ref[k] - 1;
+	if (v > cut) {
+          lcut=false;
+          _wf[k] = v/_ref[k] - 1;
+        }
+        else
+          _wf[k] = 0;
       }
       return lcut ? 0 : _wf;
     }
@@ -656,8 +668,9 @@ namespace Pds_TimeTool {
         const double noise=25.;
 
         unsigned x0 = _nwts+_spec_begin;
-        for(int i=x0; i<=_spec_end; i++) {
+        for(int i=0; i<cols; i++)
           qwf[i] = 0;
+        for(int i=x0; i<=_spec_end; i++) {
           for(int j=0; j<int(_nwts); j++)
             qwf[i] += _wts[j]*sigwf[i-j];
           qwfe[i] = _wtsig*noise;
@@ -756,9 +769,9 @@ namespace Pds_TimeTool {
     bool   status   () const { return _nfits>0; }
   public:
     virtual void _monitor_raw_sig (uint32_t*, double*) {}
-    virtual void _monitor_ref_sig (double*) {}
-    virtual void _monitor_sub_sig (double*) {}
-    virtual void _monitor_flt_sig (double*) {}
+    virtual void _monitor_ref_sig (const double*) {}
+    virtual void _monitor_sub_sig (const double*) {}
+    virtual void _monitor_flt_sig (const double*) {}
     virtual void _monitor_corr    (const RatioFit&, const RatioFit&) {}
   public:
     string   _fname;
