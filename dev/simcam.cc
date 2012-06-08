@@ -56,7 +56,18 @@ public:
     delete[] _evtpayload;
   }
 public:
-  Transition* transitions(Transition* tr) { return tr; }
+  Transition* transitions(Transition* tr) 
+  { 
+    switch(tr->id()) {
+    case TransitionId::Configure:
+      break;
+    case TransitionId::L1Accept:
+      break;
+    default:
+      break;
+    }
+    return tr; 
+  }
   InDatagram* events     (InDatagram* dg) 
   {
     switch(dg->seq.service()) {
@@ -181,15 +192,15 @@ int main(int argc, char** argv) {
   Task* task = new Task(Task::MakeThisATask);
   Node node(Level::Source,platform);
   SegTest* segtest = new SegTest(task, 
-				 platform, 
-				 DetInfo(node.pid(), 
-					 DetInfo::Detector(det), detid, 
-					 DetInfo::TM6740, devid),
+         platform, 
+         DetInfo(node.pid(), 
+           DetInfo::Detector(det), detid, 
+           DetInfo::TM6740, devid),
                                  evtsz);
   SegmentLevel* segment = new SegmentLevel(platform, 
-					   *segtest,
-					   *segtest, 
-					   NULL);
+             *segtest,
+             *segtest, 
+             NULL);
   if (segment->attach()) {
     task->mainLoop();
   }
