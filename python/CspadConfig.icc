@@ -277,6 +277,12 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
     if (i)  name = PyLong_AsLong(i);             \
     else    name = cfg->name(); }
 
+#define SetMemberDef(name,default)               \
+  unsigned name;                                 \	
+  { PyObject* i = PyDict_GetItemString(o,#name); \
+    if (i)  name = PyLong_AsLong(i);             \
+    else    name = default; }
+
 static bool set_quad(ConfigV1QuadReg* cfg,
                      PyObject* o)
 {
@@ -380,9 +386,9 @@ static bool set_quad(ConfigV2QuadReg* cfg,
   SetMember(ampIdle);
   SetMember(injTotal);
   SetMember(rowColShiftPer);
-  SetMember(ampReset);
-  SetMember(digCount);
-  SetMember(digPeriod);
+  SetMemberDef(ampReset,0);
+  SetMemberDef(digCount,0x3fff);
+  SetMemberDef(digPeriod,0xc);
 
   *cfg= ConfigV2QuadReg(shiftSelect,
 			edgeSelect,
