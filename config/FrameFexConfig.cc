@@ -29,10 +29,10 @@ namespace Pds_ConfigDb {
       _forwarding       ("Frame Forwarding", FrameFexConfigType::FullFrame, Forwarding_range),
       _fwd_prescale     ("Frame Fwd Prescale", 1, 1, 0x7fffffff),
       _processing       ("Processing", FrameFexConfigType::NoProcessing, Processing_range),
-      _roi_begin_col    ("ROI Begin Column", 0, 0, 0x3ff),
-      _roi_begin_row    ("ROI Begin Row"   , 0, 0, 0x3ff),
-      _roi_end_col      ("ROI   End Column", 0, 0, 0x400),
-      _roi_end_row      ("ROI   End Row"   , 0, 0, 0x400),
+      _roi_begin_col    ("ROI Begin Column", 0, 0, 0x7fffffff),
+      _roi_begin_row    ("ROI Begin Row"   , 0, 0, 0x7fffffff),
+      _roi_end_col      ("ROI   End Column", 0, 0, 0x7fffffff),
+      _roi_end_row      ("ROI   End Row"   , 0, 0, 0x7fffffff),
       _threshold        ("FEX Threshold"   , 0, 0, 0xfff),
       _masked_pixels    ("Masked Pixels"   , NoPixels, MaskedPixels_range)
     {}
