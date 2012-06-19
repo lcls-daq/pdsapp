@@ -110,8 +110,13 @@ int DgSummary::process(const Xtc& xtc, InDatagramIterator* iter)
     else
       _out->append(xtc.src);
   }
-  else if (xtc.damage.value() && xtc.src.level() == Level::Reporter)
-    _out->append(_bld->src(xtc.src));
+  else if (xtc.damage.value() && xtc.src.level() == Level::Reporter) {
+    if (BldInfo::Type(xtc.src.phy())==BldInfo::EBeam &&
+        xtc.damage.value()==(1<<Damage::UserDefined))
+      ; // don't count this
+    else
+      _out->append(_bld->src(xtc.src));
+  }
   else if (xtc.src.level() == Level::Source)
     advance = -1;
   else if (xtc.contains.id() == TypeId::Id_Xtc)
