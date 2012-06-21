@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
       break;
     case 'h':
       usage(argv[0]);
-      exit(1);
+      exit(0);
     }
   }
 
