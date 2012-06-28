@@ -79,6 +79,7 @@ namespace Pds {
         }
       }
       else if (tr->id()==TransitionId::Unconfigure) {
+        _fex.unconfigure();
         if (_pv_writer) {
           delete _pv_writer;
           _pv_writer = 0;

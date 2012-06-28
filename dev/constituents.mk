@@ -227,7 +227,7 @@ tgtincs_timepix := relaxd/include/common relaxd/include/src
 
 tgtsrcs_oceanoptics := oceanoptics.cc
 tgtlibs_oceanoptics := $(commonlibs) pdsdata/oceanopticsdata pds/oceanoptics pds/oopt
-tgtslib_oceanoptics := /usr/lib/rt
+tgtslib_oceanoptics := ${USRLIBDIR}/rt
 
 tgtsrcs_fli := fli.cc
 #tgtsrcs_fli := princeton.cc
@@ -239,4 +239,4 @@ tgtlibs_fli += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opa
 tgtlibs_fli += pdsdata/phasicsdata pdsdata/oceanopticsdata pdsdata/pnccddata pdsdata/evrdata 
 tgtlibs_fli += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
 tgtlibs_fli += pdsdata/flidata pds/fli fli/flisdk
-tgtslib_fli := /usr/lib/rt dl pthread 
+tgtslib_fli := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 

@@ -268,9 +268,11 @@ namespace Pds_TimeTool {
     {	
       bool lcut=true;
 
-      for(int k=0; k<cols; k++)
-        if ((_wf[k] = double(wf[k]) - sb[k])>cut)
+      for(int k=0; k<cols; k++) {
+        _wf[k] = double(wf[k]) - sb[k];
+        if (_wf[k]>cut)
 	  lcut=false;
+      }
 
       if (lcut) return _ref;
 
@@ -316,6 +318,20 @@ namespace Pds_TimeTool {
       }
       return lcut ? 0 : _wf;
     }
+    double* process_sig(uint32_t* wf, double* sb, double cut, double* ref)
+    {
+      bool lcut=true;
+      for(int k=0; k<cols; k++) {
+	double v = double(wf[k]) - sb[k];
+	if (v > cut) {
+          lcut=false;
+          _wf[k] = v/ref[k] - 1;
+        }
+        else
+          _wf[k] = 0;
+      }
+      return lcut ? 0 : _wf;
+    }
     double* process_sig(uint32_t* wf, double* sb, double cut,
                         double p0, double p1)
     {
@@ -329,6 +345,37 @@ namespace Pds_TimeTool {
       return lcut ? 0 : _wf;
     }
     void set_convergence(double v) { _f1=v; }
+    void save_ref(const char* fname) {
+      if (_init) {
+	FILE* f = fopen(fname,"w");
+        if (f) {
+	  printf("Saving reference to %s\n",fname);
+	  for(int k=0; k<cols; k++) 
+	    fprintf(f,"%g\n",_ref[k]);
+	  fclose(f);
+        }
+        else {
+	  printf("Failed to save reference to %s\n",fname);
+        }
+      }
+      else
+        printf("No reference to save to %s\n",fname);
+    }
+    void load_ref(const char* fname) {
+      FILE* f = fopen(fname,"r");
+      if (f) {
+        printf("Loading reference from %s\n",fname);
+	_init = true;
+	float v;
+	for(int k=0; k<cols; k++) {
+	  fscanf(f,"%g",&v);	
+	  _ref[k] = v;	
+        }
+        fclose(f);
+      }
+      else
+        printf("No reference file %s\n",fname);
+    }
   public:
     void      fit_ratio(bool v) { _fit_ratio = v; }
     RatioFit& ratio_fit()       { return _ratio_fit; }
@@ -490,7 +537,7 @@ namespace Pds_TimeTool {
 	_calib_p0(0),
 	_calib_p1(0),
 	_calib_p2(0),
-	_use_ref(false), 
+	_use_ref (0), 
         _ref_cut (0),
         _sig_cut (0),
 	_wts     (0),
@@ -505,6 +552,18 @@ namespace Pds_TimeTool {
       delete[] sig;
     }
   public:
+    void init_plots()
+    {
+      _monitor_ref_sig( _sp.ref() );
+    }
+    void unconfigure()
+    {
+      // Record accumulated reference
+      char buff[128];
+      const char* dir = getenv("HOME");
+      sprintf(buff,"%s/timetool.ref.%08x", dir ? dir : "/tmp", _phy);
+      _sp.save_ref(buff);
+    }
     void configure()
     {
       //
@@ -536,7 +595,7 @@ namespace Pds_TimeTool {
           else if (strcasecmp(name,"calib_p0")==0)    _calib_p0  = v_db;
           else if (strcasecmp(name,"calib_p1")==0)    _calib_p1  = v_db;
           else if (strcasecmp(name,"calib_p2")==0)    _calib_p2  = v_db;
-          else if (strcasecmp(name,"use_ref")==0)    _use_ref  = v_ul;
+          else if (strcasecmp(name,"use_ref")==0)     _use_ref   = v_ul;
           else if (strcasecmp(name,"ref_fit_p1")==0) _ref_fit_p1  = v_ul;
           else if (strcasecmp(name,"ref_top")==0)    _ref_top  = v_ul;
           else if (strcasecmp(name,"ref_bot")==0)    _ref_bot  = v_ul;
@@ -582,11 +641,19 @@ namespace Pds_TimeTool {
 
         fclose(f);
 
-//        _use_ref = false;  // hardwire
-        _sp .fit_ratio(_use_ref); _sp .ratio_fit().fit_p1(_ref_fit_p1);
-        _ref.fit_ratio(_use_ref); _ref.ratio_fit().fit_p1(_ref_fit_p1);
+//        _use_ref = 0;  // hardwire
+        _sp .fit_ratio(_use_ref==2); _sp .ratio_fit().fit_p1(_ref_fit_p1);
+        _ref.fit_ratio(_use_ref==2); _ref.ratio_fit().fit_p1(_ref_fit_p1);
 
 	_flt_center_ps = _calib_p0 + _calib_p1*double(cols>>1) + _calib_p2*double(cols*cols>>2);
+
+        // Load reference
+        char buff[128];
+        const char* dir = getenv("HOME");
+        sprintf(buff,"%s/timetool.ref.%08x", dir ? dir : "/tmp", _phy);
+        _sp.load_ref(buff);
+
+	printf("TT use_ref %u\n",_use_ref);
       }
       else
         printf("Failed to open %s\n",buff);
@@ -634,7 +701,7 @@ namespace Pds_TimeTool {
 
       if (bykik) {
         //  Add ratio fit results to correlation
-        if (_use_ref) {
+        if (_use_ref==2) {
           _ref.process_ref(ref,sbwf,_ref_cut);
 	  _sp .process_ref(sig,sbwf,_sig_cut);
           _ref_corr.accum (_ref.ratio_fit(),_sp.ratio_fit());
@@ -648,12 +715,18 @@ namespace Pds_TimeTool {
 	_monitor_raw_sig( sig, sbwf );
 
         double* sigwf;
-        if (_use_ref) {
+        if (_use_ref==2) {
           //  Use ratio fit correlation to correct spectra changes
           _monitor_ref_sig( _ref.process_ref(ref,sbwf,_ref_cut) );
           sigwf = _sp.process_sig(sig,sbwf,_sig_cut,
                                   _ref_corr.p0(_ref.ratio_fit().p0()),
                                   _ref_corr.p1(_ref.ratio_fit().p1()));
+        }
+	else if (_use_ref==1) {
+          //  Use reference trace as a straight substitution
+	  double* rref = _ref.process_ref(ref,sbwf,_ref_cut);
+          _monitor_ref_sig( rref );
+          sigwf = _sp.process_sig(sig,sbwf,_sig_cut,rref);
         }
         else {
           sigwf = _sp.process_sig(sig,sbwf,_sig_cut);
