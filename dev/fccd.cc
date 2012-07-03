@@ -23,7 +23,7 @@ static bool verbose = false;
 
 static Pds::CameraDriver* _driver()
 {
-  return new PdsLeutron::PicPortCL(*new Pds::FccdCamera);
+  return new PdsLeutron::PicPortCL(*new Pds::FccdCamera, 0, "Stereo");
 }
 
 static void *thread_signals(void*)
