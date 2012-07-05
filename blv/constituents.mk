@@ -32,6 +32,8 @@ leutron_libs += leutron/LvSerialCommunication.34.${ARCHCODE}
 
 edt_libs := pds/camedt edt/pdv
 
+cam_libs := pdsdata/opal1kdata pdsdata/quartzdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+
 tgtsrcs_evrblv := evrblv.cc IdleStream.cc
 tgtincs_evrblv := evgr
 tgtlibs_evrblv := $(commonlibs) pdsdata/evrdata
@@ -40,19 +42,19 @@ tgtlibs_evrblv += pds/evgr
 tgtslib_evrblv := /usr/lib/rt
 
 tgtsrcs_pimblv := pimblv.cc ShmOutlet.cc IdleStream.cc 
-tgtlibs_pimblv := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_pimblv := $(commonlibs) $(cam_libs)
 tgtlibs_pimblv += pds/camera
 tgtlibs_pimblv += $(leutron_libs)
 tgtincs_pimblv := leutron/include
 
 tgtsrcs_pimblvedt := pimblvedt.cc ShmOutlet.cc IdleStream.cc 
-tgtlibs_pimblvedt := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_pimblvedt := $(commonlibs) $(cam_libs)
 tgtlibs_pimblvedt += pds/camera
 tgtlibs_pimblvedt += $(edt_libs)
 tgtslib_pimblvedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
 tgtincs_pimblvedt := edt/include
 
-datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata
 
 tgtsrcs_evrbld := evrbld.cc EvrBldManager.cc IdleStream.cc PipeApp.cc
 tgtlibs_evrbld := $(commonlibs) $(datalibs)

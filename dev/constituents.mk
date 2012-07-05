@@ -7,7 +7,7 @@ CPPFLAGS += -D_ACQIRIS -D_LINUX
 #CPPFLAGS += -DBLD_DELAY # for tolerating BLD delays up to 0.5 seconds
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames := opal1kedt pimimageedt phasics \
+tgtnames := opal1kedt quartzedt pimimageedt phasics \
   oceanoptics fli
 else
 tgtnames :=  evr \
@@ -43,17 +43,7 @@ commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility p
 commonlibs  += pdsapp/devapp
 
 #  libconfigdb dependencies
-datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata
-
-tgtsrcs_phasics := phasics.cc
-tgtlibs_phasics := $(commonlibs) pds/camera pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/phasicsdata pds/phasics
-tgtincs_phasics += libdc1394/include
-tgtlibs_phasics += libdc1394/raw1394
-tgtlibs_phasics += libdc1394/dc1394
-tgtslib_phasics := $(USRLIBDIR)/rt
-CPPFLAGS += -fno-strict-aliasing
-CPPFLAGS += -fopenmp
-DEFINES += -fopenmp
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata
 
 tgtsrcs_fexamp := fexamp.cc
 tgtlibs_fexamp := $(commonlibs) pdsdata/fexampdata pds/fexamp pds/pgp
@@ -137,8 +127,10 @@ leutron_libs += leutron/LvSerialCommunication.34.${ARCHCODE}
 
 edt_libs := pds/camedt edt/pdv
 
+cam_libs := pdsdata/opal1kdata pdsdata/quartzdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+
 tgtsrcs_opal1k := opal1k.cc 
-tgtlibs_opal1k := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_opal1k := $(commonlibs) $(cam_libs)
 tgtlibs_opal1k += pds/camera
 tgtlibs_opal1k += $(leutron_libs)
 tgtincs_opal1k := leutron/include
@@ -146,7 +138,7 @@ tgtincs_opal1k := leutron/include
 tgtsrcs_opal1kedt := opal1kedt.cc 
 #tgtlibs_opal1kedt := pdsdata/xtcdata pdsdata/appdata 
 tgtlibs_opal1kedt := pdsdata/xtcdata
-tgtlibs_opal1kedt += pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_opal1kedt += $(cam_libs)
 tgtlibs_opal1kedt += pds/service pds/collection pds/xtc pds/mon pds/vmon 
 tgtlibs_opal1kedt += pds/utility pds/management pds/client pds/config 
 tgtlibs_opal1kedt += pds/camera
@@ -155,38 +147,60 @@ tgtlibs_opal1kedt += $(edt_libs)
 tgtslib_opal1kedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
 tgtincs_opal1kedt := edt/include
 
+tgtsrcs_quartzedt := quartzedt.cc 
+#tgtlibs_quartzedt := pdsdata/xtcdata pdsdata/appdata 
+tgtlibs_quartzedt := pdsdata/xtcdata
+tgtlibs_quartzedt += $(cam_libs)
+tgtlibs_quartzedt += pds/service pds/collection pds/xtc pds/mon pds/vmon 
+tgtlibs_quartzedt += pds/utility pds/management pds/client pds/config 
+tgtlibs_quartzedt += pds/camera
+tgtlibs_quartzedt += pdsapp/devapp
+tgtlibs_quartzedt += $(edt_libs)
+tgtslib_quartzedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
+tgtincs_quartzedt := edt/include
+
 
 tgtsrcs_timetool := timetool.cc TimeTool.cc
-tgtlibs_timetool := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_timetool := $(commonlibs) $(cam_libs)
 tgtlibs_timetool += pds/camera pds/epicstools epics/ca epics/Com
 tgtlibs_timetool += $(leutron_libs)
 tgtincs_timetool := leutron/include
 tgtincs_timetool += epics/include epics/include/os/Linux
 
 tgtsrcs_tm6740 := tm6740.cc 
-tgtlibs_tm6740 := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_tm6740 := $(commonlibs) $(cam_libs)
 tgtlibs_tm6740 += pds/camera
 tgtlibs_tm6740 += $(leutron_libs)
 tgtincs_tm6740 := leutron/include
 
 tgtsrcs_pimimage := pimimage.cc 
-tgtlibs_pimimage := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_pimimage := $(commonlibs) $(cam_libs)
 tgtlibs_pimimage += pds/camera
 tgtlibs_pimimage += $(leutron_libs)
 tgtincs_pimimage := leutron/include
 
 tgtsrcs_pimimageedt := pimimageedt.cc 
-tgtlibs_pimimageedt := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_pimimageedt := $(commonlibs) $(cam_libs)
 tgtlibs_pimimageedt += pds/camera
 tgtlibs_pimimageedt += $(edt_libs)
 tgtslib_pimimageedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
 tgtincs_pimimageedt := edt/include
 
 tgtsrcs_fccd := fccd.cc
-tgtlibs_fccd := $(commonlibs) pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata
+tgtlibs_fccd := $(commonlibs) $(cam_libs)
 tgtlibs_fccd += pds/camera
 tgtlibs_fccd += $(leutron_libs)
 tgtincs_fccd := leutron/include
+
+tgtsrcs_phasics := phasics.cc
+tgtlibs_phasics := $(commonlibs) $(cam_libs) pds/phasics pdsdata/phasicsdata
+tgtincs_phasics += libdc1394/include
+tgtlibs_phasics += libdc1394/raw1394
+tgtlibs_phasics += libdc1394/dc1394
+tgtslib_phasics := $(USRLIBDIR)/rt
+CPPFLAGS += -fno-strict-aliasing
+CPPFLAGS += -fopenmp
+DEFINES += -fopenmp
 
 tgtsrcs_epicsArch := epicsArch.cc
 tgtlibs_epicsArch := $(commonlibs) pdsdata/epics pds/epicsArch epics/ca epics/Com
@@ -235,7 +249,7 @@ tgtsrcs_fli := fli.cc
 tgtlibs_fli := $(commonlibs) 
 tgtlibs_fli += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/lusidata
 tgtlibs_fli += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/controldata pdsdata/princetondata 
-tgtlibs_fli += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opal1kdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/timepixdata
+tgtlibs_fli += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/timepixdata
 tgtlibs_fli += pdsdata/phasicsdata pdsdata/oceanopticsdata pdsdata/pnccddata pdsdata/evrdata 
 tgtlibs_fli += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
 tgtlibs_fli += pdsdata/flidata pds/fli fli/flisdk

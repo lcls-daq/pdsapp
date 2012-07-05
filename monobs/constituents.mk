@@ -6,16 +6,14 @@ endif
 
 libnames := 
 
-commonlibs := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata pdsdata/acqdata
+commonlibs := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/acqdata
 liblibs_tools := pdsdata/cspaddata pdsdata/pnccddata
 
 tgtsrcs_monobs := monobs.cc CamDisplay.cc AcqDisplay.cc
-tgtlibs_monobs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata
 tgtlibs_monobs += $(commonlibs) pds/mon
 tgtslib_monobs := $(USRLIBDIR)/rt
 
 tgtsrcs_monshm := monshm.cc CamDisplay.cc AcqDisplay.cc XtcMonitorClient.cc
-tgtlibs_monshm := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata 
 tgtlibs_monshm += $(commonlibs) pds/mon
 tgtslib_monshm := $(USRLIBDIR)/rt
 

@@ -27,6 +27,7 @@ libsrcs_configdbg += SerializerDictionary.cc
 libsrcs_configdbg += ExpertDictionary.cc
 libsrcs_configdbg += Serializer.cc
 libsrcs_configdbg += Opal1kConfig.cc
+libsrcs_configdbg += QuartzConfig.cc
 libsrcs_configdbg += FccdConfig.cc
 libsrcs_configdbg += pnCCDConfig.cc
 libsrcs_configdbg += princetonConfig.cc
@@ -97,7 +98,7 @@ tgtnames       += configdb_list
 
 # executable python modules: configdb_gui.py
 
-datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata
 
 tgtsrcs_configdb := configdb.cc
 #tgtincs_configdb := $(qtincdir)

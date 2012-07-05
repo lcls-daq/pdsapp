@@ -2,6 +2,7 @@
 
 #include "pds/config/FrameFexConfigType.hh"
 #include "pds/config/Opal1kConfigType.hh"
+#include "pds/config/QuartzConfigType.hh"
 #include "pds/config/FccdConfigType.hh"
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/EvrConfigType.hh"
@@ -62,6 +63,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case AcqADC       : type = &_acqConfigType;       break;
   case AcqTDC       : type = &_acqTdcConfigType;    break;
   case Opal1k       : type = &_opal1kConfigType;    break;
+  case Quartz       : type = &_quartzConfigType;    break;
   case Fccd         : type = &_fccdConfigType;      break;
   case TM6740       : type = &_tm6740ConfigType;    break;
   case FrameFex     : type = &_frameFexConfigType;  break;
@@ -102,6 +104,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_pimImageConfigType);
   test(_encoderConfigType);
   test(_opal1kConfigType);
+  test(_quartzConfigType);
   test(_fccdConfigType);
   test(_tm6740ConfigType);
   test(_pnCCDConfigType);
@@ -139,6 +142,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_pimImageConfigType);
   test(_encoderConfigType);
   test(_opal1kConfigType);
+  test(_quartzConfigType);
   test(_fccdConfigType);
   test(_tm6740ConfigType);
   test(_pnCCDConfigType);
