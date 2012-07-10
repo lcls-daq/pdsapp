@@ -178,7 +178,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] -p <platform>\n"
+  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] [-R <runTriggerFactor>] -p <platform>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
@@ -202,6 +202,7 @@ void printUsage(char* s) {
       "                bit 08          turn on printing of FE concentrator status on\n"
       "                bit 09          turn on printing of FE quad status\n"
       "                bit 10          print out time dumping front end took\n"
+      "    -R      set run trigger rate  (120, 60, 30Hz ...\n"
       "    -r      set run time config file name\n"
       "                The format of the file consists of lines: 'Dest Addr Data'\n"
       "                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
@@ -219,13 +220,14 @@ int main( int argc, char** argv )
   unsigned            mask                = 0;
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
+  unsigned            runTriggerFactor       = 1;
   ::signal( SIGINT, sigHandler );
   char                runTimeConfigname[256] = {""};
   bool                platformMissing     = true;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:D:xP:r:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:D:xP:r:R:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -263,6 +265,10 @@ int main( int argc, char** argv )
          case 'D':
            debug = strtoul(optarg, NULL, 0);
            printf("Cspad2x2 using debug value of 0x%x\n", debug);
+           break;
+         case 'R':
+           runTriggerFactor = 120 / strtoul(optarg, NULL, 0);
+           printf("Cspad2x2 using run trigger rate of %u Hz\n", 120 / runTriggerFactor);
            break;
          case 'r':
            strcpy(runTimeConfigname, optarg);
@@ -304,6 +310,7 @@ int main( int argc, char** argv )
    cspad2x2Server = new Cspad2x2Server(detInfo, typeId, mask);
    cspad2x2Server->debug(debug);
    cspad2x2Server->runTimeConfigName(runTimeConfigname);
+   cspad2x2Server->runTrigFactor(runTriggerFactor);
 
    MySegWire settings(cspad2x2Server);
 

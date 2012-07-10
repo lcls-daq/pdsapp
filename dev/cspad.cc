@@ -192,7 +192,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: cspad [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] -p <platform>\n"
+  printf( "Usage: %s [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] -p <platform>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
@@ -219,7 +219,8 @@ void printUsage(char* s) {
       "    -r      set run time config file name\n"
       "                The format of the file consists of lines: 'Dest Addr Data'\n"
       "                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
-      "                four bit field where the bottom two bits are VC and The top two are Lane\n"
+      "                four bit field where the bottom two bits are VC and The top two are Lane\n",
+      s
   );
 }
 

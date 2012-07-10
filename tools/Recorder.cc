@@ -217,7 +217,7 @@ Transition* Recorder::transitions(Transition* tr) {
       printf("\n");
 
       if (_path_error) {
-        printf("Error opening output file : failed to stat output path\n");
+        printf("Error opening output file : failed to stat output path: %s\n", _path);
         _beginrunerr++;
       }
       else {

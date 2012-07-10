@@ -57,6 +57,13 @@ int main(int argc, char** argv) {
         } else {
           pulse[npulses].polarity = 0;
         }
+        printf("Pulse %u:%u,%u,%u,%u,%u\n",
+            npulses,
+            pulse[npulses].eventcode,
+            pulse[npulses].delay,
+            pulse[npulses].width,
+            pulse[npulses].output,
+            pulse[npulses].polarity);
         npulses++;
       } else {
         unsigned a = (unsigned)strtoul(optarg  ,&endptr,0);

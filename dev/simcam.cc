@@ -146,30 +146,55 @@ private:
   SimApp*        _app;
 };
 
+void printUsage(char* s) {
+  printf( "Usage: %s [-h] [-d <detector>] [-i <deviceID>] -p <platform>\n"
+      "    -h      Show usage\n"
+      "    -p      Set platform id           [required]\n"
+      "    -d      Set detector type by name [Default: NoDetector]\n"
+      "            NB, if you can't remember the detector names\n"
+      "            just make up something and it'll list them\n"
+      "    -i      Set device id             [Default: 0]\n"
+      "    -z      Set event size in bytes\n"
+      "    -v      Toggle verbose mode\n",
+      s
+  );
+}
+
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
   unsigned platform = -1UL;
 
-  unsigned det(0);
-  unsigned detid(0), devid(0);
+  DetInfo::Detector   detector            = DetInfo::NoDetector;
+  unsigned detid = 0;
+  unsigned devid = 0;
   unsigned evtsz = 1<<20;
+  unsigned index;
 
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:z:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "d:i:p:z:vh")) != EOF ) {
+    bool     found;
     switch(c) {
+      case 'd':
+      found = false;
+      for (index=0; !found && index<DetInfo::NumDetector; index++) {
+        if (!strcmp(optarg, DetInfo::name((DetInfo::Detector)index))) {
+          detector = (DetInfo::Detector)index;
+          found = true;
+        }
+      }
+      if (!found) {
+        printf("Bad Detector name: %s\n  Detector Names are:\n", optarg);
+        for (index=0; index<DetInfo::NumDetector; index++) {
+          printf("\t%s\n", DetInfo::name((DetInfo::Detector)index));
+        }
+        printUsage(argv[0]);
+        return 0;
+      }
+      break;
     case 'i':
-      endPtr = optarg;
-      det    = strtoul(endPtr, &endPtr, 0);
-      if (*endPtr == '\0') {
-        break;
-      }
-      detid  = strtoul(endPtr+1, &endPtr, 0);
-      if (*endPtr == '\0') {
-        break;
-      }
       devid  = strtoul(endPtr+1, &endPtr, 0);
       break;
     case 'p':
@@ -179,8 +204,16 @@ int main(int argc, char** argv) {
       evtsz = strtoul(optarg, NULL, 0);
       break;
     case 'v':
-      verbose = true;
+      verbose = !verbose;
+      printf("Verbose mode now %s\n", verbose ? "true" : "false");
       break;
+    case 'h':
+      printUsage(argv[0]);
+      return 0;
+    default:
+      printf("Option %c not understood\n", (char) c&0xff);
+      printUsage(argv[0]);
+      return 1;
     }
   }
 
@@ -194,7 +227,7 @@ int main(int argc, char** argv) {
   SegTest* segtest = new SegTest(task, 
          platform, 
          DetInfo(node.pid(), 
-           DetInfo::Detector(det), detid, 
+           detector, detid,
            DetInfo::TM6740, devid),
                                  evtsz);
   SegmentLevel* segment = new SegmentLevel(platform, 
