@@ -18,6 +18,10 @@ namespace Pds_ConfigDb {
   public:
     Dialog(QWidget* parent,
 	   Serializer& s,
+	   const void* p,
+           unsigned    sz);
+    Dialog(QWidget* parent,
+	   Serializer& s,
 	   const QString& file);
     Dialog(QWidget* parent,
 	   Serializer& s,
@@ -42,6 +46,7 @@ namespace Pds_ConfigDb {
   private:
     void layout();
     void append(const QString&);
+    void append(const void*, unsigned);
   private:
     Serializer&         _s;
     const QString&      _read_dir;

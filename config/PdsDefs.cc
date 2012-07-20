@@ -124,7 +124,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   //  database-only types
   //  if (name==_eventCodeSetName) return &_eventCodeSetType;
 
-  printf("PdsDefs::typeId id %s not found\n",name.data());
+  //  printf("PdsDefs::typeId id %s not found\n",name.data());
   return 0;
 }
 

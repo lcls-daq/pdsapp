@@ -94,6 +94,7 @@ libincs_configdbg := $(qtincdir)
 tgtnames       := configdb
 tgtnames       += configdb_gui
 tgtnames       += configdb_list
+tgtnames       += configdb_readxtc
 #tgtnames       += create_scan
 
 # executable python modules: configdb_gui.py
@@ -139,3 +140,12 @@ tgtlibs_create_scan += qt/QtGui qt/QtCore
 tgtlibs_create_scan += pdsapp/configdb
 tgtlibs_create_scan += pdsapp/configdbg
 tgtslib_create_scan := $(USRLIBDIR)/rt
+
+tgtsrcs_configdb_readxtc := configdb_readxtc.cc
+tgtsrcs_configdb_readxtc += Xtc_Ui.cc Xtc_Ui_moc.cc
+tgtincs_configdb_readxtc := $(qtincdir)
+tgtlibs_configdb_readxtc := $(datalibs)
+tgtlibs_configdb_readxtc += qt/QtGui qt/QtCore
+tgtlibs_configdb_readxtc += pdsapp/configdb
+tgtlibs_configdb_readxtc += pdsapp/configdbg
+tgtslib_configdb_readxtc := $(USRLIBDIR)/rt

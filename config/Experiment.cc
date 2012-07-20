@@ -260,6 +260,10 @@ bool Experiment::update_key(const TableEntry& entry)
     }
     _table.set_top_entry(te);
     cout << "Assigned new key " << te.key() << " to " << te.name() << endl;
+
+    string spath = kpath + "/Info";
+    ofstream of(spath.c_str());
+    of << te.name() << endl;
   }
 
   return invalid;

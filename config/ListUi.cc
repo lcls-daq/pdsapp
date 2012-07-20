@@ -13,6 +13,9 @@
 #include <glob.h>
 #include <libgen.h>
 
+#include <fstream>
+using std::ifstream;
+
 using namespace Pds_ConfigDb;
 
 ListUi::ListUi(const Path& path) :
@@ -23,6 +26,7 @@ ListUi::ListUi(const Path& path) :
   { QVBoxLayout* layout1 = new QVBoxLayout;
     layout1->addWidget(new QLabel("Key",this));
     layout1->addWidget(_keylist = new QListWidget(this));
+    _keylist->setMinimumWidth(400);
     layout->addLayout(layout1); }
   { QVBoxLayout* layout1 = new QVBoxLayout;
     layout1->addWidget(new QLabel("Devices",this));
@@ -44,6 +48,15 @@ ListUi::ListUi(const Path& path) :
     stat(g.gl_pathv[k],&s);
     QString entry(basename(g.gl_pathv[k]));
     entry += "  [" + QString(ctime(&s.st_mtime)).remove('\n') + "]";
+
+    string info_path(g.gl_pathv[k]);
+    info_path += "/Info";
+    ifstream fi(info_path.c_str());
+    if (fi.good()) {
+      char buff[16];
+      fi.getline(buff,16);
+      entry += "  [" + QString(buff) + "]";
+    }
     *new QListWidgetItem(entry,_keylist);
   }
   globfree(&g);

@@ -37,6 +37,20 @@ static const QString nopath(".");
 static const QString nochoice;
 
 Dialog::Dialog(QWidget* parent,
+               Serializer& s,
+               const void* p,
+               unsigned    sz) :
+  QDialog(parent),
+  _s(s),
+  _read_dir (nochoice),
+  _write_dir(nochoice)
+{
+  layout();
+
+  append(p,sz);
+}
+
+Dialog::Dialog(QWidget* parent,
          Serializer& s,
          const QString& file) :
   QDialog(parent),
@@ -311,8 +325,15 @@ void Dialog::append(const QString& file)
   fread(buff, file_stat.st_size, 1, input);
   fclose(input);
 
-  char* b = buff;
-  char* e = buff + file_stat.st_size;
+  append(buff, file_stat.st_size);
+
+  delete[] buff;
+}
+
+void Dialog::append(const void* p, unsigned sz)
+{
+  char* b = reinterpret_cast<char*>(const_cast<void*>(p));
+  char* e = b + sz;
   while(b < e) {
     //    Cycle* cycle = new Cycle(_s.readParameters(b));
     int len = _s.readParameters(b);
@@ -331,8 +352,6 @@ void Dialog::append(const QString& file)
   _s.readParameters(_cycles[_current]->buffer);
   
   _s.flush();
-
-  delete[] buff;
 }
 
 void Dialog::showEvent(QShowEvent*)
