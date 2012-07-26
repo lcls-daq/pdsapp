@@ -80,7 +80,10 @@ namespace Pds_ConfigDb {
       _dac3Gnd        ("DAC3 gnd",          TIMEPIX_DAC_GND_DEFAULT,        0, 255),
       _dac3Ths        ("DAC3 ths",          TIMEPIX_DAC_THS_DEFAULT,        0, 255),
       _dac3BiasLvds   ("DAC3 bias lvds",    TIMEPIX_DAC_BIASLVDS_DEFAULT,   0, 255),
-      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255)
+      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255),
+
+      // mode
+      _timepixMode   ("Timepix mode (0=Count, 1=TOT)", 0, 0, 1)
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
@@ -144,6 +147,7 @@ namespace Pds_ConfigDb {
       pList.insert(&_dac3Ths);
       pList.insert(&_dac3BiasLvds);
       pList.insert(&_dac3RefLvds);
+      pList.insert(&_timepixMode);
     }
 
     int pull(void* from) {
@@ -207,13 +211,14 @@ namespace Pds_ConfigDb {
       _dac3Ths.value = tc.dac3Ths();
       _dac3BiasLvds.value = tc.dac3BiasLvds();
       _dac3RefLvds.value = tc.dac3RefLvds();
+      _timepixMode.value = tc.triggerMode();  // ext/neg assumed for trigger, so pass timepix mode here
       return tc.size();
     }
 
     int push(void* to) {
       TimepixConfigType& tc = *new(to) TimepixConfigType(
         _readoutSpeed.value,
-        TimepixConfigType::TriggerMode_ExtNeg,   // trigger mode: external/neg
+        _timepixMode.value,   // ext/neg assumed for trigger, so pass timepix mode here
         _timepixSpeed.value,
         _dac0Ikrum.value,
         _dac0Disc.value,
@@ -339,6 +344,7 @@ namespace Pds_ConfigDb {
     NumericInt<int32_t> _dac3Ths;
     NumericInt<int32_t> _dac3BiasLvds;
     NumericInt<int32_t> _dac3RefLvds;
+    NumericInt<uint8_t> _timepixMode;
   };
 
   // ------- user mode ---------
@@ -407,7 +413,8 @@ namespace Pds_ConfigDb {
       _dac3Gnd        ("DAC3 gnd",          TIMEPIX_DAC_GND_DEFAULT,        0, 255),
       _dac3Ths        ("DAC3 ths",          TIMEPIX_DAC_THS_DEFAULT,        0, 255),
       _dac3BiasLvds   ("DAC3 bias lvds",    TIMEPIX_DAC_BIASLVDS_DEFAULT,   0, 255),
-      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255)
+      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255),
+      _timepixMode    ("Timepix mode (0=Count, 1=TOT)", 0,                  0, 1)
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
@@ -480,13 +487,14 @@ namespace Pds_ConfigDb {
       _dac3Ths.value = tc.dac3Ths();
       _dac3BiasLvds.value = tc.dac3BiasLvds();
       _dac3RefLvds.value = tc.dac3RefLvds();
+      _timepixMode.value = tc.triggerMode();  // ext/neg assumed for trigger, so pass timepix mode here
       return tc.size();
     }
 
     int push(void* to) {
       TimepixConfigType& tc = *new(to) TimepixConfigType(
         _readoutSpeed.value,
-        TimepixConfigType::TriggerMode_ExtNeg,   // trigger mode: external/neg
+        _timepixMode.value,   // ext/neg assumed for trigger, so pass timepix mode here
         _timepixSpeed.value,
         _dac0Ikrum.value,
         _dac0Disc.value,
@@ -612,6 +620,7 @@ namespace Pds_ConfigDb {
     NumericInt<int32_t> _dac3Ths;
     NumericInt<int32_t> _dac3BiasLvds;
     NumericInt<int32_t> _dac3RefLvds;
+    NumericInt<uint8_t> _timepixMode;
   };
 };
 
