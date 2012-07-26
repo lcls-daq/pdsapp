@@ -51,7 +51,7 @@ if __name__ == "__main__":
     newkey = cdb.clone(key)
     print 'Generated key ',newkey
 
-    xtc = cdb.get(key=key,typeid=0x0002001d)[0]
+    xtc = cdb.get(key=key,typeid=0x0004001d)[0]
     cspad = xtc.get()
     extent = options.range[1]-options.range[0]
     for cycle in range(options.limit+1):
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         elif options.parameter=='intTime':
             for q in range(4):
                 cspad['quads'][q]['intTime']=value
-    xtc.set(cspad)
+        xtc.set(cspad,cycle)
     cdb.substitute(newkey,xtc)
 
 #

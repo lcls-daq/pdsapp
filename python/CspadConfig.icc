@@ -3,6 +3,7 @@
 //
 static PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args);
 static PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args);
+static unsigned  pds_CspadConfig_size   (PyObject*   self);
 
 static PyMethodDef pds_CspadConfig_methods[] = {
   {"get"   , (PyCFunction)pds_CspadConfig_get   , METH_NOARGS  , "Output the configuration"},
@@ -122,9 +123,21 @@ static PyObject* get_quad(const ConfigV2QuadReg* cfg)
 PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
+ 
+  int icycle;
+  if (PyArg_ParseTuple(args,"I",&icycle)==0)
+    icycle = 0;
+
+  unsigned isize = pds_CspadConfig_size(self);
+  unsigned usize = isize*(icycle+1);
+  if (xtc->extent < usize)
+    return NULL;
+
+  char* ubegin = xtc->payload + isize*icycle;
+
   if(xtc->contains.version()==1) {
     const Pds::CsPad::ConfigV1* cfg = 
-      reinterpret_cast<const Pds::CsPad::ConfigV1*>(xtc->payload);
+      reinterpret_cast<const Pds::CsPad::ConfigV1*>(ubegin);
 
     PyObject* o = PyDict_New();
     SetMember(concentratorVersion);
@@ -150,7 +163,7 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
   }
   else if (xtc->contains.version()==2) {
     const ConfigV2* cfg = 
-      reinterpret_cast<const ConfigV2*>(xtc->payload);
+      reinterpret_cast<const ConfigV2*>(ubegin);
 
     PyObject* o = PyDict_New();
     SetMember(concentratorVersion);
@@ -179,7 +192,7 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
   }
   else if (xtc->contains.version()==3) {
     const ConfigV3* cfg = 
-      reinterpret_cast<const ConfigV3*>(xtc->payload);
+      reinterpret_cast<const ConfigV3*>(ubegin);
 
     PyObject* o = PyDict_New();
     SetMember(concentratorVersion);
@@ -222,7 +235,7 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
   }
   else if (xtc->contains.version()==4) {
     const ConfigV4* cfg = 
-      reinterpret_cast<const ConfigV4*>(xtc->payload);
+      reinterpret_cast<const ConfigV4*>(ubegin);
 
     PyObject* o = PyDict_New();
     SetMember(concentratorVersion);
@@ -278,7 +291,7 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
     else    name = cfg->name(); }
 
 #define SetMemberDef(name,default)               \
-  unsigned name;                                 \	
+  unsigned name;                                 \
   { PyObject* i = PyDict_GetItemString(o,#name); \
     if (i)  name = PyLong_AsLong(i);             \
     else    name = default; }
@@ -424,13 +437,28 @@ static bool set_quad(ConfigV2QuadReg* cfg,
 PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
 {
   PyObject* o = 0;
-  if (PyArg_ParseTuple(args,"O",&o)==0)
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"O|I",&o,&icycle)==0)
     return NULL;
 
   pdsxtc* xtc = (pdsxtc*)self;
+
+  unsigned isize = pds_CspadConfig_size(self);
+  unsigned usize = isize*(icycle+1);
+  if (xtc->extent < usize) {
+    char* p = new char[usize];
+    memcpy(p, xtc->payload, xtc->extent);
+    delete[] xtc->payload;
+
+    xtc->payload = p;
+    xtc->extent  = usize;
+  }
+
+  char* ubegin = xtc->payload + icycle*isize;
+
   if (xtc->contains.version()==1) {
     ConfigV1* cfg = 
-      reinterpret_cast<ConfigV1*>(xtc->payload);
+      reinterpret_cast<ConfigV1*>(ubegin);
 
     SetMember(runDelay);
     SetMember(eventCode);
@@ -466,7 +494,7 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
   }
   else if (xtc->contains.version()==2) {
     ConfigV2* cfg = 
-      reinterpret_cast<ConfigV2*>(xtc->payload);
+      reinterpret_cast<ConfigV2*>(ubegin);
 
     SetMember(runDelay);
     SetMember(eventCode);
@@ -513,7 +541,7 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
   }
   else if (xtc->contains.version()==3) {
     ConfigV3* cfg = 
-      reinterpret_cast<ConfigV3*>(xtc->payload);
+      reinterpret_cast<ConfigV3*>(ubegin);
 
     SetMember(runDelay);
     SetMember(eventCode);
@@ -574,7 +602,7 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
   }
   else if (xtc->contains.version()==4) {
     ConfigV4* cfg = 
-      reinterpret_cast<ConfigV4*>(xtc->payload);
+      reinterpret_cast<ConfigV4*>(ubegin);
 
     SetMember(runDelay);
     SetMember(eventCode);
@@ -639,4 +667,21 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
 
   Py_INCREF(Py_None);
   return Py_None;
+}
+
+
+unsigned pds_CspadConfig_size(PyObject* self)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.id() == Pds::TypeId::Id_CspadConfig) {
+    switch(xtc->contains.version()) {
+      case 1:  return sizeof(Pds::CsPad::ConfigV1);
+      case 2:  return sizeof(Pds::CsPad::ConfigV2);
+      case 3:  return sizeof(Pds::CsPad::ConfigV3);
+      case 4:  return sizeof(Pds::CsPad::ConfigV4);
+      default: break;
+    }
+  }
+
+  return 0;
 }
