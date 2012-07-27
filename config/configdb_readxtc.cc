@@ -11,8 +11,8 @@ using namespace Pds_ConfigDb;
 
 int main(int argc, char** argv)
 {
-  if (argc!=2) {
-    printf("Usage: %s <xtc_file>\n",argv[0]);
+  if (argc<2 || strcmp(argv[1],"-h")==0 || strcmp(argv[1],"--help")==0) {
+    printf("Usage: %s <xtc_file> [cycle]\n",argv[0]);
   }
 
   int fd = ::open(argv[1],O_LARGEFILE,O_RDONLY);
@@ -26,8 +26,11 @@ int main(int argc, char** argv)
   Pds::XtcFileIterator iter(fd,0x2000000);
   Pds::Dgram* dg;
   
+  int cycle = argc>2 ? atoi(argv[2]) : 0;
   while((dg = iter.next())) {
-    if (dg->seq.service()==Pds::TransitionId::Configure)
+    if (dg->seq.service()==Pds::TransitionId::Configure && argc==2)
+      break;
+    if (dg->seq.service()==Pds::TransitionId::BeginCalibCycle && cycle--==0)
       break;
   }
   
