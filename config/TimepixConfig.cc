@@ -21,12 +21,13 @@ namespace Pds_ConfigDb {
       // readout speed is NOT frequently changed
       _readoutSpeed   ("Chip readout speed", TimepixConfigType::ReadoutSpeed_Fast, readoutSpeed_to_name),
 
-      // the following five values are frequently changed
+      // the following six values are frequently changed
       _timepixSpeed   ("Timepix speed", 0 /* 100 MHz */, timepixSpeed_to_name),
       _dac0ThlFine    ("DAC0 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac1ThlFine    ("DAC1 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac2ThlFine    ("DAC2 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac3ThlFine    ("DAC3 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
+      _timepixMode    ("Timepix mode (0=Count, 1=TOT)", 0,                  0,   1),
 
       // remaining values are NOT frequently changed
       _dac0Ikrum      ("DAC0 ikrum",        TIMEPIX_DAC_IKRUM_DEFAULT,      0, 255),
@@ -80,10 +81,7 @@ namespace Pds_ConfigDb {
       _dac3Gnd        ("DAC3 gnd",          TIMEPIX_DAC_GND_DEFAULT,        0, 255),
       _dac3Ths        ("DAC3 ths",          TIMEPIX_DAC_THS_DEFAULT,        0, 255),
       _dac3BiasLvds   ("DAC3 bias lvds",    TIMEPIX_DAC_BIASLVDS_DEFAULT,   0, 255),
-      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255),
-
-      // mode
-      _timepixMode   ("Timepix mode (0=Count, 1=TOT)", 0, 0, 1)
+      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255)
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
@@ -94,6 +92,8 @@ namespace Pds_ConfigDb {
       pList.insert(&_dac1ThlFine);
       pList.insert(&_dac2ThlFine);
       pList.insert(&_dac3ThlFine);
+      // the mode is frequently changed
+      pList.insert(&_timepixMode);
       // remaining values are NOT frequently changed
       pList.insert(&_dac0Ikrum);
       pList.insert(&_dac0Disc);
@@ -147,7 +147,6 @@ namespace Pds_ConfigDb {
       pList.insert(&_dac3Ths);
       pList.insert(&_dac3BiasLvds);
       pList.insert(&_dac3RefLvds);
-      pList.insert(&_timepixMode);
     }
 
     int pull(void* from) {
@@ -360,6 +359,8 @@ namespace Pds_ConfigDb {
       _dac1ThlFine    ("DAC1 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac2ThlFine    ("DAC2 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac3ThlFine    ("DAC3 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
+      // the mode is frequently changed
+      _timepixMode    ("Timepix mode (0=Count, 1=TOT)", 0,                  0, 1),
 
       // remaining values are NOT frequently changed
       _dac0Ikrum      ("DAC0 ikrum",        TIMEPIX_DAC_IKRUM_DEFAULT,      0, 255),
@@ -413,8 +414,7 @@ namespace Pds_ConfigDb {
       _dac3Gnd        ("DAC3 gnd",          TIMEPIX_DAC_GND_DEFAULT,        0, 255),
       _dac3Ths        ("DAC3 ths",          TIMEPIX_DAC_THS_DEFAULT,        0, 255),
       _dac3BiasLvds   ("DAC3 bias lvds",    TIMEPIX_DAC_BIASLVDS_DEFAULT,   0, 255),
-      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255),
-      _timepixMode    ("Timepix mode (0=Count, 1=TOT)", 0,                  0, 1)
+      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255)
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
@@ -423,6 +423,7 @@ namespace Pds_ConfigDb {
       pList.insert(&_dac1ThlFine);
       pList.insert(&_dac2ThlFine);
       pList.insert(&_dac3ThlFine);
+      pList.insert(&_timepixMode);
     }
 
     int pull(void* from) {
