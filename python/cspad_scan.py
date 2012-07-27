@@ -14,6 +14,8 @@ if __name__ == "__main__":
                       help="connect to DAQ at HOST", metavar="HOST")
     parser.add_option("-p","--platform",dest="platform",type="int",default=3,
                       help="connect to DAQ at PLATFORM", metavar="PLATFORM")
+    parser.add_option("-D","--detector",dest="detector",type="int",default=0x20000a00,
+                      help="detector ID to scan",metavar="ID")
     parser.add_option("-P","--parameter",dest="parameter",type="string",
                       help="cspad parameter to scan {\'runDelay\',\'intTime\'}", metavar="PARAMETER")
     parser.add_option("-r","--range",dest="range",type="int",nargs=2,default=[2,2],
@@ -52,7 +54,7 @@ if __name__ == "__main__":
     newkey = cdb.clone(key)
     print 'Generated key ',newkey
 
-    xtc = cdb.get(key=key,typeid=0x0004001d)[0]
+    xtc = cdb.get(key=key,src=options.detector,typeid=0x0004001d)[0]
     cspad = xtc.get(0)
     extent = options.range[1]-options.range[0]
     for cycle in range(options.limit+1):
