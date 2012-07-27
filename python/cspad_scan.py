@@ -10,10 +10,10 @@ if __name__ == "__main__":
     import sys
 
     parser = OptionParser()
-    parser.add_option("-a","--address",dest="host",default='xpp-daq',
+    parser.add_option("-a","--address",dest="host",default='localhost',
                       help="connect to DAQ at HOST", metavar="HOST")
-    parser.add_option("-p","--port",dest="port",type="int",default=10133,
-                      help="connect to DAQ at PORT", metavar="PORT")
+    parser.add_option("-p","--platform",dest="platform",type="int",default=3,
+                      help="connect to DAQ at PLATFORM", metavar="PLATFORM")
     parser.add_option("-P","--parameter",dest="parameter",type="string",
                       help="cspad parameter to scan {\'runDelay\',\'intTime\'}", metavar="PARAMETER")
     parser.add_option("-r","--range",dest="range",type="int",nargs=2,default=[2,2],
@@ -26,10 +26,11 @@ if __name__ == "__main__":
                       help="limit number of configs to less than number of steps", metavar="N")
     
     (options, args) = parser.parse_args()
-    daq = pydaq.Control(options.host,options.port)
+    daq = pydaq.Control(options.host,options.platform)
+    daq.connect()
     
     print 'host', options.host
-    print 'port', options.port
+    print 'platform', options.platform
     print 'parameter', options.parameter
     print 'range', options.range
     print 'steps', options.steps
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     print 'Generated key ',newkey
 
     xtc = cdb.get(key=key,typeid=0x0004001d)[0]
-    cspad = xtc.get()
+    cspad = xtc.get(0)
     extent = options.range[1]-options.range[0]
     for cycle in range(options.limit+1):
         value = ((cycle*extent)/options.limit) + options.range[0]
@@ -63,7 +64,7 @@ if __name__ == "__main__":
                 cspad['quads'][q]['intTime']=value
         xtc.set(cspad,cycle)
     cdb.substitute(newkey,xtc)
-
+    print 'done'
 #
 #  Could scan EVR simultaneously
 #

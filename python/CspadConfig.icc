@@ -6,7 +6,7 @@ static PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args);
 static unsigned  pds_CspadConfig_size   (PyObject*   self);
 
 static PyMethodDef pds_CspadConfig_methods[] = {
-  {"get"   , (PyCFunction)pds_CspadConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"get"   , (PyCFunction)pds_CspadConfig_get   , METH_KEYWORDS, "Output the configuration"},
   {"set"   , (PyCFunction)pds_CspadConfig_set   , METH_KEYWORDS, "Input the configuration"},
   {NULL},
 };
@@ -130,6 +130,7 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
 
   unsigned isize = pds_CspadConfig_size(self);
   unsigned usize = isize*(icycle+1);
+
   if (xtc->extent < usize)
     return NULL;
 
@@ -445,6 +446,7 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
 
   unsigned isize = pds_CspadConfig_size(self);
   unsigned usize = isize*(icycle+1);
+
   if (xtc->extent < usize) {
     char* p = new char[usize];
     memcpy(p, xtc->payload, xtc->extent);
@@ -471,7 +473,7 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
     SetMember(asicMask);
     SetMember(quadMask);
   
-    new(xtc->payload) ConfigV1(runDelay, 
+    new(ubegin) ConfigV1(runDelay, 
                                eventCode,
                                inactiveRunMode,
                                activeRunMode,
@@ -518,7 +520,7 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
         roiMask |= cfg->roiMask(i)<<(i*ASICsPerQuad/2);
     }
 
-    new(xtc->payload) ConfigV2(runDelay, 
+    new(ubegin) ConfigV2(runDelay, 
                                eventCode,
                                inactiveRunMode,
                                activeRunMode,
@@ -565,7 +567,7 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
         roiMask |= cfg->roiMask(i)<<(i*ASICsPerQuad/2);
     }
 
-    new(xtc->payload) ConfigV3(runDelay, 
+    new(ubegin) ConfigV3(runDelay, 
                                eventCode,
                                inactiveRunMode,
                                activeRunMode,
@@ -626,9 +628,9 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
         roiMask |= cfg->roiMask(i)<<(i*ASICsPerQuad/2);
     }
 
-    new(xtc->payload) ConfigV4(runDelay, 
-                               eventCode,
-                               inactiveRunMode,
+    new(ubegin) ConfigV4(runDelay, 
+              	         eventCode,
+                	 inactiveRunMode,
                                activeRunMode,
                                tdi,
                                payloadSize, 
