@@ -27,7 +27,7 @@ namespace Pds_ConfigDb {
       _dac1ThlFine    ("DAC1 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac2ThlFine    ("DAC2 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
       _dac3ThlFine    ("DAC3 thl fine",     TIMEPIX_DAC_THLFINE_DEFAULT,    0,1023),
-      _timepixMode    ("Timepix mode (0=Count, 1=TOT)", 0,                  0,   1),
+      _timepixMode    ("Timepix mode (0=Count, 1=TOT)", 1,                  0,   1),
 
       // remaining values are NOT frequently changed
       _dac0Ikrum      ("DAC0 ikrum",        TIMEPIX_DAC_IKRUM_DEFAULT,      0, 255),
