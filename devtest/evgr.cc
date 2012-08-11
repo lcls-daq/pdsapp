@@ -1,6 +1,7 @@
 #include "pds/evgr/EvgrBoardInfo.hh"
 #include "pds/evgr/EvgrManager.hh"
 #include "pds/evgr/EvgrPulseParams.hh"
+#include "pds/evgr/EvgMasterTiming.hh"
 #include "pdsapp/config/EventcodeTiming.hh"
 #include "pdsapp/config/EventcodeTiming.cc"
 
@@ -11,11 +12,12 @@
 using namespace Pds;
 
 void usage(const char* p) {
-  printf("Usage: %s -r <evr a/b> -p <eventcode,delay,width,output[,polarity]> [-p ...]\n",p);
+  printf("Usage: %s -r <evr a/b> -p <eventcode,delay,width,output[,polarity]> [-p ...] [-x]\n",p);
   printf("\teventcode : [40=120Hz, 41=60Hz, ..]\n");
   printf("\tdelay,width in 119MHz ticks [1=8.4ns, 2=16.8ns, ..]\n");
   printf("\toutput : connector number [0=Univ0,..]\n");
   printf("\tpolarity : 0=pos(default) | 1=neg\n");
+  printf("\t [-x] : Use external sync trigger\n");
 }
 
 int main(int argc, char** argv) {
@@ -28,13 +30,14 @@ int main(int argc, char** argv) {
   unsigned ticks;
   int delta;
   unsigned udelta;
+  bool external_sync=false;
 
   extern char* optarg;
   char* endptr;
   char* evgid=0;
   char* evrid=0;
   int c;
-  while ( (c=getopt( argc, argv, "g:r:p:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "g:r:p:xh")) != EOF ) {
     switch(c) {
     case 'g':
       evgid = optarg;
@@ -77,6 +80,9 @@ int main(int argc, char** argv) {
         printf(" is %u too many!\n", ++tooMany);
       }
       break;
+    case 'x':
+      external_sync = true;
+      break;
     case 'h':
       usage(argv[0]);
       exit(0);
@@ -98,7 +104,8 @@ int main(int argc, char** argv) {
 
   EvgrBoardInfo<Evg>& egInfo = *new EvgrBoardInfo<Evg>(evgdev);
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
-  new EvgrManager(egInfo,erInfo, npulses, pulse);
+  EvgMasterTiming timing(!external_sync, 3, 120.);
+  new EvgrManager(egInfo,erInfo, timing, npulses, pulse);
   while (1) sleep(10);
   return 0;
 }
