@@ -22,6 +22,7 @@ static const char* code_str[] = { "40 [120 Hz]",
                                   "146 [0.5 Hz Beam]",
                                   "150 [Burst Mode]",
                                   "162 [BYKIK]",
+                                  "9   [360 Hz*]",
                                   NULL };
                                   
 using namespace Pds_ConfigDb;
@@ -50,5 +51,5 @@ void EvrGlbEventDesc::set_code(unsigned n)
 
 bool EvrGlbEventDesc::global_code(unsigned e)
 {
-  return (e>=40 && e<=46) || (e>=140 && e<=146) || (e==150) || (e==162);
+  return (e>=40 && e<=46) || (e>=140 && e<=146) || (e==150) || (e==162) || (e==9);
 }
