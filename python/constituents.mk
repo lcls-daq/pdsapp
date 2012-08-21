@@ -10,6 +10,7 @@ liblibs_pycdb += pdsdata/pnccddata pdsdata/ipimbdata
 liblibs_pycdb += pdsdata/evrdata pdsdata/encoderdata
 liblibs_pycdb += pdsdata/controldata pdsdata/epics 
 liblibs_pycdb += pdsdata/cspaddata pdsdata/lusidata
+liblibs_pycdb += pdsdata/cspad2x2data
 liblibs_pycdb += pdsapp/configdb
 libslib_pycdb := $(USRLIBDIR)/rt
 

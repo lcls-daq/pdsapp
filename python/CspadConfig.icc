@@ -671,6 +671,7 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
   return Py_None;
 }
 
+#undef SetMember
 
 unsigned pds_CspadConfig_size(PyObject* self)
 {

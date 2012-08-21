@@ -12,6 +12,7 @@
 #include "pdsapp/python/Xtc.icc"
 #include "pdsapp/python/DiodeFexConfig.icc"
 #include "pdsapp/python/CspadConfig.icc"
+#include "pdsapp/python/Cspad2x2Config.icc"
 #include "pdsapp/python/IpmFexConfig.icc"
 #include "pdsapp/python/IpimbConfig.icc"
 #include "pdsapp/python/PrincetonConfig.icc"
@@ -49,7 +50,10 @@ initpycdb(void)
   if (PyType_Ready(&pds_CspadConfig_type) < 0)
     return; 
   
-  if (PyType_Ready(&pds_IpmFexConfig_type) < 0)
+  if (PyType_Ready(&pds_Cspad2x2Config_type) < 0)
+    return;
+
+ if (PyType_Ready(&pds_IpmFexConfig_type) < 0)
     return; 
 
   if (PyType_Ready(&pds_IpimbConfig_type) < 0)
@@ -80,6 +84,9 @@ initpycdb(void)
   Py_INCREF(&pds_CspadConfig_type);
   PyModule_AddObject(m, "CspadConfig", (PyObject*)&pds_CspadConfig_type);
   
+  Py_INCREF(&pds_Cspad2x2Config_type);
+  PyModule_AddObject(m, "Cspad2x2Config", (PyObject*)&pds_Cspad2x2Config_type);
+
   Py_INCREF(&pds_IpmFexConfig_type);
   PyModule_AddObject(m, "IpmFexConfig", (PyObject*)&pds_IpmFexConfig_type);
 
