@@ -3,6 +3,7 @@
 #include "pdsapp/monobs/XppIpm.hh"
 #include "pdsapp/monobs/XppPim.hh"
 #include "pdsapp/monobs/CspadMon.hh"
+#include "pdsapp/monobs/Encoder.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 
@@ -86,6 +87,7 @@ int main(int argc, char* argv[])
                             pvbase,
                             Pds::DetInfo(0, Pds::DetInfo::Detector(detid), 0, 
                                          Pds::DetInfo::Cspad,0));
+          client.insert(new Encoder(pvbase,detid));
           break;
 	default:
 	  fprintf(stderr,"Error in lookup of detector index %d\n",detid);
