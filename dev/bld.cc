@@ -319,7 +319,7 @@ namespace Pds {
 
       if (_vmoneb) _vmoneb->depth(depth);
       
-      if (depth==1) _flushOne(); // keep one buffer for recopy possibility
+      if (depth<=1) _flushOne(); // keep one buffer for recopy possibility
       
       CDatagram* datagram = new(&_datagrams) CDatagram(_ctns, _id);
       EbSequenceKey* key = new(&_keys) EbSequenceKey(const_cast<Datagram&>(datagram->datagram()));
@@ -338,7 +338,7 @@ namespace Pds {
       
       if (_vmoneb) _vmoneb->depth(depth);
       
-      if (depth==0) _flushOne();
+      if (depth<=1) _flushOne();
       
       return event;
     }

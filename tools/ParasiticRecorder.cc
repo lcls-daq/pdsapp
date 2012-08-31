@@ -25,9 +25,15 @@ namespace Pds {
     void routine() 
     { 
       char pathname[128];
+      // old style paths
       sprintf(pathname,"%s/e*/*.xtc*",_path);
       remove(pathname);
       sprintf(pathname,"%s/e*/index/*.idx*",_path);
+      remove(pathname);
+      // new style paths
+      sprintf(pathname,"%s/*/xtc/*.xtc*",_path);
+      remove(pathname);
+      sprintf(pathname,"%s/*/xtc/index/*.idx*",_path);
       remove(pathname);
       delete this;
     }
@@ -92,28 +98,48 @@ using namespace Pds;
 
 ParasiticRecorder::ParasiticRecorder(Task*         task,
 				     EventOptions& options,
-				     unsigned      lifetime_sec) :
+				     unsigned      lifetime_sec,
+             const char *  partition,
+             const char *  offlinerc) :
   _task   (task),
   _options(options),
   _cleanup_task(new Task("cleanup")),
-  _lifetime_sec(lifetime_sec)
+  _lifetime_sec(lifetime_sec),
+  _partition(partition),
+  _offlinerc(offlinerc),
+  _offlineclient(NULL)
 {
+  if (_offlinerc) {
+    _expname = options.expname;
+    if (_expname) {
+      _offlineclient = new OfflineClient(_offlinerc, _partition, _expname);
+    }
+  }
 }
 
 ParasiticRecorder::~ParasiticRecorder()
 {
   _cleanup_task->destroy();
   _task->destroy();
+  if (_offlinerc && _offlineclient) {
+    delete _offlineclient;
+  }
 }
 
 void ParasiticRecorder::attached(SetOfStreams& streams)
 {
-  printf("ParasiticRecorder connected to platform.\n");
+  printf("ParasiticRecorder connected to platform.  ");
+
+  if (_offlineclient) {
+    printf("Offline client is initialized.\n");
+  } else {
+    printf("Offline client is NOT initialized.\n");
+  }
   
   Stream* frmk = streams.stream(StreamParams::FrameWork);
 
   if (_options.outfile) {
-    (new RecorderQ   (_options.outfile, _options.sliceID, _options.chunkSize, true))->connect(frmk->inlet());
+    (new RecorderQ   (_options.outfile, _options.sliceID, _options.chunkSize, true, false, _offlineclient, _options.expname))->connect(frmk->inlet());
     (new OfflineProxy(_cleanup_task, _options.outfile, _lifetime_sec))->connect(frmk->inlet());
   }
 
@@ -135,7 +161,6 @@ void ParasiticRecorder::attached(SetOfStreams& streams)
       break;
     }
   }
-
 }
 
 void ParasiticRecorder::failed(Reason reason) 

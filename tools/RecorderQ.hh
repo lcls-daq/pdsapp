@@ -3,6 +3,7 @@
 
 #include "pdsapp/tools/Recorder.hh"
 #include "pds/service/Semaphore.hh"
+#include "pds/offlineclient/OfflineClient.hh"
 
 namespace Pds {
 
@@ -15,7 +16,9 @@ namespace Pds {
   public:
     RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, 
               bool delay_xfer=false,
-	      bool dont_queue=false);
+              bool dont_queue=false,
+              OfflineClient *offlineclient=NULL,
+              const char* expname=NULL);
     ~RecorderQ() {}
   public:
     InDatagram* events     (InDatagram* in);

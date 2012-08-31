@@ -19,7 +19,8 @@ EventOptions::EventOptions() :
   outfile(0),
   mode(Counter),
   chunkSize(DefaultChunkSize),
-  delayXfer(false)
+  delayXfer(false),
+  expname(NULL)
 {
 }
 
@@ -31,10 +32,11 @@ EventOptions::EventOptions(int argc, char** argv) :
   outfile(0),
   mode(Counter),
   chunkSize(DefaultChunkSize),
-  delayXfer(false)
+  delayXfer(false),
+  expname(NULL)
 {
   int c;
-  while ((c = getopt(argc, argv, "f:p:b:a:s:c:edD")) != -1) {
+  while ((c = getopt(argc, argv, "f:p:b:a:s:c:edDE:")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -65,6 +67,9 @@ EventOptions::EventOptions(int argc, char** argv) :
     case 'D':
       delayXfer = true;
       break;
+    case 'E':
+      expname = optarg;
+      break;
     case 'c':
       errno = 0;
       chunkSize = strtoull(optarg, &endPtr, 0);
@@ -85,7 +90,8 @@ int EventOptions::validate(const char* arg0) const
            "         -a <arp_suid_executable>\n"
            "         -f <outputfilename>\n"
            "         -c <chunk_size>\n"
-           "         -s <slice_ID>\n",
+           "         -s <slice_ID>\n"
+           "         -E <experimentname>\n",
 	   arg0);
     return 0;
   }

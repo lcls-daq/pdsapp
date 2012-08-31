@@ -6,6 +6,7 @@
 #include "pdsdata/xtc/Src.hh"
 #include "pdsdata/index/IndexList.hh"
 #include "pds/utility/Appliance.hh"
+#include "pds/offlineclient/OfflineClient.hh"
 
 namespace Pds {
 
@@ -13,7 +14,7 @@ class GenericPool;
 
 class Recorder : public Appliance {
 public:
-  Recorder(const char* fname, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer);
+  Recorder(const char* fname, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer, OfflineClient *offline, const char* expname);
   ~Recorder() {}
   virtual Transition* transitions(Transition*);
   virtual InDatagram* occurrences(InDatagram* in);
@@ -50,11 +51,13 @@ private:
   uint64_t _chunkSize;
   bool     _delay_xfer;
   int      _experiment;
+  const char *_expname;
   int      _run;
   GenericPool* _occPool;
   Index::IndexList _indexList;
   char     _indexfname[SizeofName];
   char     _host_name[SizeofName];
+  OfflineClient *_offlineclient;
 };
 
 }

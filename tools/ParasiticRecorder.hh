@@ -2,6 +2,7 @@
 #define Pds_ParasiticRecorder_hh
 
 #include "pds/management/EventCallback.hh"
+#include "pds/offlineclient/OfflineClient.hh"
 
 namespace Pds {
 
@@ -13,7 +14,9 @@ namespace Pds {
   public:
     ParasiticRecorder(Task*         task,
 		      EventOptions& options,
-		      unsigned      lifetime_sec);
+		      unsigned      lifetime_sec,
+		      const char *  partition,
+		      const char *  offlinerc);
     virtual ~ParasiticRecorder();
   private:
     // Implements EventCallback
@@ -26,6 +29,10 @@ namespace Pds {
     EventOptions&  _options;
     Task*          _cleanup_task;
     unsigned       _lifetime_sec;
+    const char *   _partition;
+    const char *   _offlinerc;
+    const char *   _expname;
+    OfflineClient* _offlineclient;
   };
 
 }

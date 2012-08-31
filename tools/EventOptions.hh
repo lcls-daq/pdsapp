@@ -22,6 +22,7 @@ public:
   Mode mode;
   uint64_t chunkSize;
   bool     delayXfer;
+  const char* expname;
 }; 
 }
 

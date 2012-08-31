@@ -14,14 +14,19 @@ tgtnames := event segtest sourcetest bldtest source montest showPartitions killP
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 liblibs_tools := pdsdata/cspaddata pdsdata/pnccddata
+liblibs_tools += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
+libincs_tools := offlinedb/include
 
 tgtsrcs_event := event.cc
 tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata pdsdata/evrdata
 tgtslib_event := $(USRLIBDIR)/rt
+tgtincs_event := offlinedb/include
 
 tgtsrcs_eventp := eventp.cc ParasiticRecorder.cc
-tgtlibs_eventp := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata pdsdata/evrdata
+tgtlibs_eventp := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata pdsdata/evrdata pds/offlineclient
+tgtlibs_eventp += offlinedb/mysqlclient offlinedb/offlinedb
 tgtslib_eventp := $(USRLIBDIR)/rt
+tgtincs_eventp := offlinedb/include
 
 tgtsrcs_segtest := segtest.cc
 tgtlibs_segtest := $(commonlibs)

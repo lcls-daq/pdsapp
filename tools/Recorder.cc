@@ -20,6 +20,7 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #define DELAY_XFER
     
@@ -36,7 +37,43 @@ static void local_mkdir (const char * path)
   }
 }
 
-Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer) : 
+static int call(char *cmd)
+{
+  int rv;
+
+  printf("calling: %s\n", cmd);
+  rv = system(cmd);
+  if (errno != 0) {
+    perror("Recorder:: system");
+  }
+  if (rv != 0) {
+    fprintf(stderr, " *** system call '%s' returned %d ***\n", cmd, rv);
+  }
+}
+
+static void local_mkdir_with_acls (const char * path, const char *expname)
+{
+  struct stat buf;
+
+  if (path && (stat(path, &buf) != 0)) {
+    if (mkdir(path, 0770)) {
+      perror("Recorder:: mkdir");
+    } else {
+      // set ACLs
+      char cmdbuf[200];
+      snprintf(cmdbuf, sizeof(cmdbuf), "setfacl -m group:ps-data:rx %s", path);
+      call(cmdbuf);
+      snprintf(cmdbuf, sizeof(cmdbuf), "setfacl -d -m group:ps-data:rx %s", path);
+      call(cmdbuf);
+      snprintf(cmdbuf, sizeof(cmdbuf), "setfacl -m group:%s:rx %s", expname, path);
+      call(cmdbuf);
+      snprintf(cmdbuf, sizeof(cmdbuf), "setfacl -d -m group:%s:rx %s", expname, path);
+      call(cmdbuf);
+    }
+  }
+}
+
+Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer, OfflineClient *offlineclient, const char* expname) : 
   Appliance(), 
   _pool    (new GenericPool(sizeof(ZcpDatagramIterator),1)),
   _node    (0),
@@ -49,8 +86,10 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
   _chunkSize(chunkSize),
   _delay_xfer(delay_xfer),
   _experiment(0),
+  _expname(expname),
   _run(0),
-  _occPool(new GenericPool(sizeof(DataFileOpened),5))
+  _occPool(new GenericPool(sizeof(DataFileOpened),5)),
+  _offlineclient(offlineclient)
 {
   struct stat st;
 
@@ -210,7 +249,10 @@ Transition* Recorder::transitions(Transition* tr) {
       _run = rinfo.run();
       _chunk = 0;
       // open the file, write configure, and this transition
-      printf("run %d expt %d ",_run,_experiment);
+      printf("run %d exp# %d ",_run,_experiment);
+      if (_expname) {
+        printf("expname %s ", _expname);
+      }
       if (_chunkSize < ULLONG_MAX) {
         printf("chunk_size %llu", _chunkSize);
       }
@@ -222,7 +264,19 @@ Transition* Recorder::transitions(Transition* tr) {
       }
       else {
         // create directory
-        sprintf(_fname,"%s/e%d", _path,_experiment);
+        if (_expname && isalpha(_expname[0])) {
+          sprintf(_fname,"%s/%s", _path,_expname);
+          if (_offlineclient) {
+            // fast feedback directory: add ACLs
+            local_mkdir_with_acls(_fname,_expname);
+          } else {
+            // data directory: no ACLs needed
+            local_mkdir(_fname);
+          }
+          sprintf(_fname,"%s/%s/xtc", _path,_expname);
+        } else {
+          sprintf(_fname,"%s/e%d", _path,_experiment);
+        }
         local_mkdir(_fname);
         // open output file
         if (_openOutputFile(true) != 0) {
@@ -273,8 +327,13 @@ int Recorder::_openOutputFile(bool verbose) {
   flk.l_start  = 0;
   flk.l_len    = 0;
 
-  sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
-    _path, _experiment, _experiment, _run, _sliceID, _chunk);
+  if (_expname && isalpha(_expname[0])) {
+    sprintf(_fname,"%s/%s/xtc/e%d-r%04d-s%02d-c%02d.xtc",
+      _path, _expname, _experiment, _run, _sliceID, _chunk);
+  } else {
+    sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
+      _path, _experiment, _experiment, _run, _sliceID, _chunk);
+  }
   sprintf(_fnamerunning,"%s.inprogress",_fname);
   _f=fopen(_fnamerunning,"wx"); // x: if the file already exists, fopen() fails
   if (_f) {
@@ -297,7 +356,17 @@ int Recorder::_openOutputFile(bool verbose) {
     if (verbose) {
       printf("Opened %s\n",_fname);
     }
-    post(new(_occPool) DataFileOpened(_experiment,_run,_sliceID,_chunk,_host_name,_fname));
+    if (_offlineclient) {
+      if (_experiment != 0) {
+        // fast feedback
+        std::string hostname = _host_name;
+        std::string filename = _fname;
+        // ffb=true
+        _offlineclient->reportOpenFile(_experiment, _run, (int)_sliceID, (int)_chunk, hostname, filename, true);
+      }
+    } else {
+      post(new(_occPool) DataFileOpened(_experiment,_run,_sliceID,_chunk,_host_name,_fname));
+    }
   }
   else {
     if (verbose) {
@@ -308,13 +377,22 @@ int Recorder::_openOutputFile(bool verbose) {
   /*
    * Initialize/Reset the index list 
    */
-  sprintf(_indexfname,"%s/e%d/index", _path,_experiment);
+  if (_expname && isalpha(_expname[0])) {
+    sprintf(_indexfname,"%s/%s/xtc/index", _path,_expname);
+  } else {
+    sprintf(_indexfname,"%s/e%d/index", _path,_experiment);
+  }
   local_mkdir(_indexfname);
   
   _indexList.reset();
   _indexList.setXtcFilename(_fname);   
-  sprintf(_indexfname,"%s/e%d/index/e%d-r%04d-s%02d-c%02d.xtc.idx",
-    _path, _experiment, _experiment, _run, _sliceID, _chunk); 
+  if (_expname && isalpha(_expname[0])) {
+    sprintf(_indexfname,"%s/%s/xtc/index/e%d-r%04d-s%02d-c%02d.xtc.idx",
+      _path, _expname, _experiment, _run, _sliceID, _chunk); 
+  } else {
+    sprintf(_indexfname,"%s/e%d/index/e%d-r%04d-s%02d-c%02d.xtc.idx",
+      _path, _experiment, _experiment, _run, _sliceID, _chunk); 
+  }
   
   return rv;
 }

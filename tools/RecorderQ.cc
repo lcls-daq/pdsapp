@@ -38,8 +38,8 @@ namespace Pds {
 
 using namespace Pds;
 
-RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer, bool dont_queue) :
-  Recorder(fname, sliceID, chunkSize, delay_xfer),
+RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer, bool dont_queue, OfflineClient *offlineclient, const char* expname) :
+  Recorder(fname, sliceID, chunkSize, delay_xfer, offlineclient, expname),
   _task(new Task(TaskObject("RecEvt"))),
   _sem (Semaphore::EMPTY),
   _dont_queue(dont_queue)
