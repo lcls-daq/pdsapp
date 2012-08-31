@@ -41,11 +41,13 @@ namespace Pds {
     QString _label;
     bool    _ready;
   };
+  
+  class CallbackNodeGroup;
 
   class NodeGroup : public QGroupBox {
     Q_OBJECT
   public:
-    NodeGroup(const QString& label, QWidget* parent, unsigned platform);
+    NodeGroup(const QString& label, QWidget* parent, unsigned platform, int iUseReadoutGroup = 0);
     ~NodeGroup();
   public slots:
     void add_node    (int);
@@ -61,16 +63,38 @@ namespace Pds {
     QList<BldInfo> reporters();
     NodeGroup*     freeze  ();
     bool           ready   () const;
+    void           setGroup(int iNodeIndex, int iGroup);    
   private:
     QButtonGroup*  _buttons;
     QList<NodeSelect> _nodes;
     QList<QString> _persist;
+    QList<int>     _persistGroup;
     QList<int>     _order;
     QPalette*      _ready;
     QPalette*      _notready;
     unsigned       _platform;
+    /*
+     * _iUseReadoutGroup : 0: No readout group, 1: Readout group UI, 2: Default readout group without UI
+     */
+    int            _iUseReadoutGroup;
+    QList<CallbackNodeGroup*>
+                   _lCallback;
   };
 
-};
+  class CallbackNodeGroup : public QObject
+  {
+    Q_OBJECT
+  public:
+    CallbackNodeGroup(NodeGroup& nodeGroup, int iNodeIndex);
+    
+  public slots:    
+    void currentIndexChanged(int iGroupIndex);
+    
+  private:
+    NodeGroup& _nodeGroup;
+    int        _iNodeIndex;
+  };
+
+}; // namespace Pds
 
 #endif

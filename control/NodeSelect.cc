@@ -1,14 +1,16 @@
 #include "NodeSelect.hh"
 
-#include "pds/collection/PingReply.hh"
-#include "pdsdata/xtc/BldInfo.hh"
-#include "pdsdata/xtc/DetInfo.hh"
-
+#include <errno.h>
 #include <QtCore/QString>
 #include <QtGui/QButtonGroup>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QPalette>
-#include <errno.h>
+#include <QtGui/QComboBox>
+
+#include "pdsdata/xtc/BldInfo.hh"
+#include "pdsdata/xtc/DetInfo.hh"
+#include "pds/collection/PingReply.hh"
+#include "pds/config/EvrConfigType.hh"
 
 #define NODE_BUFF_SIZE  256
 
@@ -16,27 +18,27 @@ using namespace Pds;
 
 static QList<int> _bldOrder = 
   QList<int>() << BldInfo::EBeam
-	       << BldInfo::PhaseCavity
-	       << BldInfo::FEEGasDetEnergy
-	       << BldInfo::Nh2Sb1Ipm01
-	       << BldInfo::HxxUm6Imb01
-	       << BldInfo::HxxUm6Imb02                           
-	       << BldInfo::HxxDg1Cam
-	       << BldInfo::HfxDg2Imb01
-	       << BldInfo::HfxDg2Imb02
-	       << BldInfo::HfxDg2Cam
-	       << BldInfo::HfxMonImb01
-	       << BldInfo::HfxMonImb02
-	       << BldInfo::HfxMonImb03
-	       << BldInfo::HfxMonCam
-	       << BldInfo::HfxDg3Imb01
-	       << BldInfo::HfxDg3Imb02
-	       << BldInfo::HfxDg3Cam
-	       << BldInfo::XcsDg3Imb03
-	       << BldInfo::XcsDg3Imb04
-	       << BldInfo::XcsDg3Cam
-	       << BldInfo::XcsDg3Cam
-	       << BldInfo::NumberOf;
+         << BldInfo::PhaseCavity
+         << BldInfo::FEEGasDetEnergy
+         << BldInfo::Nh2Sb1Ipm01
+         << BldInfo::HxxUm6Imb01
+         << BldInfo::HxxUm6Imb02                           
+         << BldInfo::HxxDg1Cam
+         << BldInfo::HfxDg2Imb01
+         << BldInfo::HfxDg2Imb02
+         << BldInfo::HfxDg2Cam
+         << BldInfo::HfxMonImb01
+         << BldInfo::HfxMonImb02
+         << BldInfo::HfxMonImb03
+         << BldInfo::HfxMonCam
+         << BldInfo::HfxDg3Imb01
+         << BldInfo::HfxDg3Imb02
+         << BldInfo::HfxDg3Cam
+         << BldInfo::XcsDg3Imb03
+         << BldInfo::XcsDg3Imb04
+         << BldInfo::XcsDg3Cam
+         << BldInfo::XcsDg3Cam
+         << BldInfo::NumberOf;
 
 static FILE* open_pref(const char* title, unsigned platform, char* mode)
 {
@@ -60,45 +62,76 @@ static FILE* open_pref(const char* title, unsigned platform, char* mode)
   return f;
 }
 
-NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform) :
+NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, int iUseReadoutGroup) :
   QGroupBox(label, parent),
-  _buttons(new QButtonGroup(parent)),
-  _ready    (new QPalette(Qt::green)),
+  _buttons (new QButtonGroup(parent)),
+  _ready   (new QPalette(Qt::green)),
   _notready(new QPalette(Qt::red)),
-  _platform(platform)
+  _platform(platform),
+  _iUseReadoutGroup(iUseReadoutGroup)
 {
+  if ( _iUseReadoutGroup < 0 )
+    _iUseReadoutGroup = 0;
+  else if ( _iUseReadoutGroup > 2 )
+    _iUseReadoutGroup = 2;
+    
   //  Read persistent selected nodes
   char *buff = (char *)malloc(NODE_BUFF_SIZE);  // use malloc w/ getline
   if (buff == (char *)NULL) {
     printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, NODE_BUFF_SIZE, errno);
-  } else {
-
-    FILE* f = open_pref(qPrintable(title()), _platform, "r");
-    if (f) {
-      char* lptr=buff;
-      unsigned linesz = NODE_BUFF_SIZE;         // initialize for getline
-      while(getline(&lptr,&linesz,f)!=-1) {
-        QString p(lptr);
-        p.chop(1);  // remove new-line
-        _persist.push_back(p.replace('\t','\n'));
+    return;
+  }
+    
+  FILE* f = open_pref(qPrintable(title()), _platform, "r");
+  if (f) {
+    char* lptr=buff;
+    unsigned linesz = NODE_BUFF_SIZE;         // initialize for getline
+    
+    const char* lsReadGroupDesc[] = 
+      { "", "with Readout Group (UI)", "with default Readout Group (No UI)" };
+    printf("Reading pref file \"%s\" %s\n", qPrintable(title()), lsReadGroupDesc[_iUseReadoutGroup]);      
+    while(getline(&lptr,&linesz,f)!=-1) {
+      QString p(lptr);
+      p.chop(1);  // remove new-line
+      p.replace('\t','\n');        
+      
+      if (_iUseReadoutGroup != 0)
+      {          
+        QStringList ls = p.split(';');                    
+        if (ls.size()>0)
+        {
+          int iGroup = ( ls.size() <= 1 ? 0 : ls[1].toInt() );            
+          _persist.push_back(ls[0]);
+          _persistGroup.push_back(iGroup);
+          
+          printf("Persist %s Group %d\n",qPrintable(ls[0]), iGroup);
+        }        
+      }
+      else
+      {
+        _persist.push_back(p);
         printf("Persist %s\n",qPrintable(p));
       }
-      fclose(f);
     }
-    free(buff);
-
-    _buttons->setExclusive(false);
-    setLayout(new QVBoxLayout(this)); 
-    connect(this, SIGNAL(node_added(int)), 
-            this, SLOT(add_node(int)));
-    connect(this, SIGNAL(node_replaced(int)), 
-            this, SLOT(replace_node(int)));
+    fclose(f);
   }
+  free(buff);
+
+  _buttons->setExclusive(false);
+  setLayout(new QVBoxLayout(this)); 
+  connect(this, SIGNAL(node_added(int)), 
+          this, SLOT(add_node(int)));
+  connect(this, SIGNAL(node_replaced(int)), 
+          this, SLOT(replace_node(int)));
 }
 
 NodeGroup::~NodeGroup() 
 {
   delete _buttons; 
+  
+  CallbackNodeGroup* pCallback;
+  foreach (pCallback, _lCallback)
+    delete pCallback;
 }
 
 void NodeGroup::addNode(const NodeSelect& node)
@@ -117,14 +150,16 @@ void NodeGroup::addNode(const NodeSelect& node)
 
 void NodeGroup::add_node(int index)
 { 
+  const int iNodeIndex = index;
   const NodeSelect& node = _nodes[index];
   QCheckBox* button = new QCheckBox(node.label(),this);
-  printf("Add node %s\n",qPrintable(node.plabel()));
-  button->setCheckState(_persist.contains(node.plabel()) ? Qt::Checked : Qt::Unchecked);
+    
+  int indexPersist = _persist.indexOf(node.plabel());
+  button->setCheckState( indexPersist>=0 ? Qt::Checked : Qt::Unchecked);
   button->setPalette( node.ready() ? *_ready : *_notready );
   _buttons->addButton(button,index); 
   QObject::connect(button, SIGNAL(clicked()), this, SIGNAL(list_changed()));
-
+  
   QBoxLayout* l = static_cast<QBoxLayout*>(layout());
   if (node.src().level()==Level::Reporter) {
     int order = _bldOrder.indexOf(node.src().phy());
@@ -136,11 +171,75 @@ void NodeGroup::add_node(int index)
   }
   else {
     for(index = 0; index < l->count(); index++) {
-      if (node.label() < static_cast<QCheckBox*>(l->itemAt(index)->widget())->text())
+      QString sLabel;
+      if (_iUseReadoutGroup == 1)
+        sLabel = static_cast<QCheckBox*>(
+                    static_cast<QHBoxLayout*>(l->itemAt(index)->layout())
+                   ->itemAt(0)->widget()) ->text();
+      else
+        sLabel = static_cast<QCheckBox*>(l->itemAt(index)->widget())->text();
+      //if (node.label() < static_cast<QCheckBox*>(l->itemAt(index)->widget())->text())
+      if (node.label() < sLabel)
         break;
     }
   }
-  l->insertWidget(index,button); 
+  
+  //!!! readout group
+  if (_iUseReadoutGroup == 2)
+  {
+    bool bEvrNode = ( 
+      node.src().level() == Level::Source &&
+      static_cast<const DetInfo&>(node.src()).device() == DetInfo::Evr);          
+    int iNodeGroup = (bEvrNode? 0:1);
+    setGroup(iNodeIndex, iNodeGroup);          
+    
+    l->insertWidget(index,button); 
+    printf("Added node %s Group (Default) %d\n",qPrintable(node.plabel()), iNodeGroup);
+  }
+  else
+  if (_iUseReadoutGroup == 1)
+  {    
+        
+    QHBoxLayout* layoutButton = new QHBoxLayout;
+    layoutButton->addWidget(button); 
+    
+    QComboBox* ciUseReadoutGroup = new QComboBox(this);
+            
+    bool bEvrNode = ( 
+      node.src().level() == Level::Source &&
+      static_cast<const DetInfo&>(node.src()).device() == DetInfo::Evr);                
+    int iNodeGroup;
+    if ( bEvrNode )
+    {
+      iNodeGroup = 0;
+      ciUseReadoutGroup->addItem(QString().setNum(0));
+      ciUseReadoutGroup->setCurrentIndex(0);    
+      ciUseReadoutGroup->setDisabled(true);
+    }
+    else
+    {
+      iNodeGroup = ( indexPersist >= 0 ? _persistGroup[indexPersist] : 1 );            
+      for (int iGroup=1; iGroup <= EvrConfigType::EventCodeType::MaxReadoutGroup; ++iGroup)
+        ciUseReadoutGroup->addItem(QString().setNum(iGroup));
+      ciUseReadoutGroup->setCurrentIndex( iNodeGroup-1 );    
+    }
+        
+    layoutButton->addStretch(1);         
+    layoutButton->addWidget(ciUseReadoutGroup); 
+    
+    setGroup(iNodeIndex, iNodeGroup);    
+    
+    _lCallback.append(new CallbackNodeGroup(*this, iNodeIndex));
+    connect(ciUseReadoutGroup, SIGNAL(currentIndexChanged(int)), _lCallback.last(), SLOT(currentIndexChanged(int)));    
+    
+    l->insertLayout(index,layoutButton);   
+    printf("Added node %s Group %d\n",qPrintable(node.plabel()), iNodeGroup);
+  }
+  else
+  {
+    l->insertWidget(index,button); 
+    printf("Added node %s\n",qPrintable(node.plabel()));
+  }    
   
   emit list_changed();
 }
@@ -158,6 +257,7 @@ void NodeGroup::replace_node(int index)
 QList<Node> NodeGroup::selected() 
 {
   _persist.clear();
+  _persistGroup.clear();
   QList<Node> nodes;
   QList<QAbstractButton*> buttons = _buttons->buttons();
   Node* master_evr = 0;
@@ -165,14 +265,18 @@ QList<Node> NodeGroup::selected()
     if (b->isChecked()) {
       int id = _buttons->id(b);
       _persist.push_back(_nodes[id].plabel().replace('\n','\t'));
+      _persistGroup.push_back(_nodes[id].node().group());
+      
+      //printf("node %d %s group %d\n", id, qPrintable(_persist[id]), _persistGroup[id]); //!!!debug
+      
       if (_nodes[id].det().device()==DetInfo::Evr) {
-	if (_nodes[id].det().devId()==0)
-	  master_evr = new Node(_nodes[id].node());
-	else
-	  nodes.push_front(_nodes[id].node());
+        if (_nodes[id].det().devId()==0)
+          master_evr = new Node(_nodes[id].node());
+        else
+          nodes.push_front(_nodes[id].node());
       }
       else
-        nodes.push_back (_nodes[id].node());
+        nodes.push_back(_nodes[id].node());
     }
   }
 
@@ -184,8 +288,15 @@ QList<Node> NodeGroup::selected()
   //  Write persistent selected nodes
   FILE* f = open_pref(qPrintable(title()), _platform,"w");
   if (f) {
-    foreach(QString p, _persist) {
-      fprintf(f,"%s\n",qPrintable(p));
+    for (int iNode = 0; iNode < _persist.size(); ++iNode)
+    {
+      //foreach(QString p, _persist) {      
+        //fprintf(f,"%s;%d\n",qPrintable(p), _persistGroup);
+        
+      if (_iUseReadoutGroup != 0)
+        fprintf(f,"%s;%d\n",qPrintable(_persist[iNode]), _persistGroup[iNode]);
+      else
+        fprintf(f,"%s\n",qPrintable(_persist[iNode]));      
     }
     fclose(f);
   }
@@ -224,7 +335,7 @@ QList<BldInfo> NodeGroup::reporters()
 
 NodeGroup* NodeGroup::freeze()
 {
-  NodeGroup* g = new NodeGroup(title(),(QWidget*)0, 0);
+  NodeGroup* g = new NodeGroup(title(),(QWidget*)this, _platform, _iUseReadoutGroup);
 
   {
     QList<QAbstractButton*> buttons = _buttons->buttons();
@@ -234,13 +345,13 @@ NodeGroup* NodeGroup::freeze()
     }
   }
 
-  {
-    QList<QAbstractButton*> buttons = g->_buttons->buttons();
-    foreach(QAbstractButton* b, buttons) {
-      b->setEnabled(false);
-    }
-  }
-
+  //{
+  //  QList<QAbstractButton*> buttons = g->_buttons->buttons();
+  //  foreach(QAbstractButton* b, buttons) {
+  //    b->setEnabled(false);
+  //  }
+  //}  
+  g->setEnabled(false);  
   return g;
 }
 
@@ -251,6 +362,12 @@ bool NodeGroup::ready() const
     if (buttons[i]->isChecked() && !_nodes[i].ready())
       return false;
   return true;
+}
+
+void NodeGroup::setGroup(int iNodeIndex, int iGroup)
+{
+  //printf("set node %d group %d\n", iNodeIndex, iGroup);//!!! debug
+  ((Node&) _nodes[iNodeIndex].node()).setGroup(iGroup);
 }
 
 NodeSelect::NodeSelect(const Node& node) :
@@ -283,11 +400,14 @@ NodeSelect::NodeSelect(const Node& node, const PingReply& msg) :
         _label += QString("/%1/%2").arg(DetInfo::name(src.device  ())).arg(src.devId());
       }
     }
+
+  ////!!! for support group
+  //_label += QString(" G %1").arg(node.group());      
   }
   else 
     _label = QString(Level::name(node.level()));
   struct in_addr inaddr;
-  inaddr.s_addr = ntohl(node.ip());
+  inaddr.s_addr = ntohl(node.ip());  
   _label += QString(" : %1").arg(inet_ntoa(inaddr));
   _label += QString(" : %1").arg(node.pid());
 }
@@ -331,4 +451,14 @@ bool NodeSelect::operator==(const NodeSelect& n) const
 QString NodeSelect::plabel() const
 {
   return _label.mid(0,_label.lastIndexOf(':'));
+}
+
+CallbackNodeGroup::CallbackNodeGroup(NodeGroup& nodeGroup, int iNodeIndex) :
+  _nodeGroup(nodeGroup), _iNodeIndex(iNodeIndex)
+{
+}
+
+void CallbackNodeGroup::currentIndexChanged(int iGroupIndex)
+{
+  _nodeGroup.setGroup(_iNodeIndex, iGroupIndex + 1);
 }

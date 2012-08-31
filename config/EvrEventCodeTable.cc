@@ -3,8 +3,6 @@
 #include "pdsapp/config/EvrSeqEventDesc.hh"
 #include "pdsapp/config/EvrGlbEventDesc.hh"
 
-#include "pdsdata/evr/ConfigV5.hh"
-#include "pdsdata/evr/ConfigV6.hh"
 //#include "pds/config/SeqConfigType.hh"
 
 #include <QtGui/QCheckBox>
@@ -13,13 +11,13 @@
 #include <QtGui/QLineEdit>
 #include <QtGui/QMessageBox>
 #include <QtGui/QGroupBox>
+#include <QtGui/QComboBox>
 
-static const unsigned DefaultLo =67;
-static const unsigned DefaultHi =74;
+static const unsigned DefaultLo = 67;
+static const unsigned DefaultHi = 74;
 static const unsigned MaxUserCodes      = Pds_ConfigDb::EvrEventCodeTable::MaxCodes;
 static const unsigned MinUserCodes      = 8;
 static const unsigned MaxGlobalCodes    = 4;
-static const unsigned StartUserCodes    = 67;
 
 static void showLayoutItem(QLayoutItem* item, bool show);
 
@@ -51,13 +49,17 @@ namespace Pds_ConfigDb {
 using namespace Pds_ConfigDb;
 
 
-EvrEventCodeTable::EvrEventCodeTable() : 
+EvrEventCodeTable::EvrEventCodeTable(EvrPulseTables* pPulseTables) : 
   Parameter(NULL),
+  _pPulseTables(pPulseTables),
   _range_lo(NULL,DefaultLo,0,255),
   _range_hi(NULL,DefaultHi,0,255),
   _ncodes     (0),
+  _pLabelGroup1     (NULL),
+  _pLabelGroup2     (NULL),
+  _cbEnableReadGroup(NULL),
   _code_buffer(new char[(MaxUserCodes+MaxGlobalCodes)
-                        *sizeof(Pds::EvrData::EventCodeV5)])
+                        *sizeof(EvrConfigType::EventCodeType)])                        
 {
   _seq_code = new EvrSeqEventDesc[MaxUserCodes];
   _glb_code = new EvrGlbEventDesc[MaxGlobalCodes];
@@ -65,6 +67,8 @@ EvrEventCodeTable::EvrEventCodeTable() :
 
 EvrEventCodeTable::~EvrEventCodeTable()
 {
+  delete[] _seq_code;
+  delete[] _glb_code;
   delete[] _code_buffer;
 }
 
@@ -73,92 +77,61 @@ void EvrEventCodeTable::insert(Pds::LinkedList<Parameter>& pList)
   pList.insert(this);
 }
 
-void EvrEventCodeTable::pull(const Pds::EvrData::ConfigV5& cfg) 
+void EvrEventCodeTable::pull(const EvrConfigType& cfg) 
 {
+  _cbEnableReadGroup->setCurrentIndex((cfg.enableReadGroup() != EvrConfigType::ReadGroupOff)? 1 : 0);    
+  
   for(unsigned i=0; i<MaxUserCodes; i++)
     _seq_code[i].set_enable(false);
 
   for(unsigned i=0; i<MaxGlobalCodes; i++)
     _glb_code[i].set_enable(false);
 
-  int userseq = -1;
   unsigned max_seq = 0;
+  unsigned min_seq = 256;
   unsigned nglb=0;
+
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
-    const Pds::EvrData::EventCodeV5& e = cfg.eventcode(i);
+    const EvrConfigType::EventCodeType& e = cfg.eventcode(i);
     if (EvrGlbEventDesc::global_code(e.code())) {
       _glb_code[nglb++].pull(e);
+      continue;
     }
-    else if (e.code() >= StartUserCodes) {
-      int useq = (e.code()-StartUserCodes)/MinUserCodes;
-      if (userseq < 0) {
-        userseq = useq;
-        _range_lo.value = useq*MinUserCodes+StartUserCodes;
-      }
-      else if (useq != userseq) {
-        printf("Eventcode %d does not belong to user sequence (%d:%d) or global sequence\n",
-               e.code(), _range_lo.value, _range_lo.value+MinUserCodes);
-        continue;
-      }
-      _seq_code[e.code()-_range_lo.value].pull(e);
-      if (e.code() > max_seq)
-        max_seq = e.code();
-    }
+    if (e.code() > max_seq)
+      max_seq = e.code();
+    if (e.code() < min_seq)
+      min_seq = e.code();
   }
 
-  if (max_seq < _range_lo.value+MinUserCodes)
-    _range_hi.value = _range_lo.value+MinUserCodes-1;
-  else
-    _range_hi.value = max_seq;
-
-  update_range();
-}
-
-void EvrEventCodeTable::pull(const Pds::EvrData::ConfigV6& cfg) 
-{
-  for(unsigned i=0; i<MaxUserCodes; i++)
-    _seq_code[i].set_enable(false);
-
-  for(unsigned i=0; i<MaxGlobalCodes; i++)
-    _glb_code[i].set_enable(false);
-
-  int userseq = -1;
-  unsigned max_seq = 0;
-  unsigned nglb=0;
+  if ( min_seq == 256 )
+  {
+    _range_lo.value = DefaultLo;
+    _range_hi.value = DefaultHi;
+    return;
+  }
+  
+  _range_lo.value = min_seq;
+  
+  if (max_seq < _range_lo.value+MaxUserCodes)
+    _range_hi.value = max_seq;  
+  else 
+    _range_hi.value = max_seq + MaxUserCodes - 1;
+    
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
-    const Pds::EvrData::EventCodeV5& e = cfg.eventcode(i);
-    if (EvrGlbEventDesc::global_code(e.code())) {
-      _glb_code[nglb++].pull(e);
-    }
-    else if (e.code() >= StartUserCodes) {
-      int useq = (e.code()-StartUserCodes)/MinUserCodes;
-      if (userseq < 0) {
-        userseq = useq;
-        _range_lo.value = useq*MinUserCodes+StartUserCodes;
-      }
-      else if (useq != userseq) {
-        printf("Eventcode %d does not belong to user sequence (%d:%d) or global sequence\n",
-               e.code(), _range_lo.value, _range_lo.value+MinUserCodes);
-        continue;
-      }
-      _seq_code[e.code()-_range_lo.value].pull(e);
-      if (e.code() > max_seq)
-        max_seq = e.code();
-    }
+    const EvrConfigType::EventCodeType& e = cfg.eventcode(i);
+    if (EvrGlbEventDesc::global_code(e.code())) 
+      continue;      
+    
+    if ( e.code() <= _range_hi.value )
+    _seq_code[e.code()-_range_lo.value].pull(e);
   }
-
-  if (max_seq < _range_lo.value+MinUserCodes)
-    _range_hi.value = _range_lo.value+MinUserCodes-1;
-  else
-    _range_hi.value = max_seq;
-
-  update_range();
+  update_range();      
 }
 
 bool EvrEventCodeTable::validate() {
 
-  Pds::EvrData::EventCodeV5* codep = 
-    reinterpret_cast<Pds::EvrData::EventCodeV5*>(_code_buffer);
+  EvrConfigType::EventCodeType* codep = 
+    reinterpret_cast<EvrConfigType::EventCodeType*>(_code_buffer);
 
   //  Every "latch" type should have a partner un-"latch"
   //  All enabled codes should be within range
@@ -206,7 +179,7 @@ bool EvrEventCodeTable::validate() {
     if (_glb_code[i].enabled())
       _glb_code[i].push(codep++);
 
-  _ncodes = codep - reinterpret_cast<Pds::EvrData::EventCodeV5*>(_code_buffer);
+  _ncodes = codep - reinterpret_cast<EvrConfigType::EventCodeType*>(_code_buffer);
 
   return true;
 }
@@ -226,8 +199,10 @@ QLayout* EvrEventCodeTable::initialize(QWidget*)
       layout->addWidget(new QLabel("Enable")   ,0,0,::Qt::AlignCenter);
       layout->addWidget(new QLabel("Code")     ,0,1,::Qt::AlignCenter);
       layout->addWidget(new QLabel("Type")     ,0,2,::Qt::AlignCenter);
-      layout->addWidget(new QLabel("Describe") ,0,3,::Qt::AlignCenter);
-      layout->addWidget(new QLabel("Reporting"),0,4,::Qt::AlignCenter);
+      layout->addWidget(_pLabelGroup1 = new QLabel("Group")    
+                                               ,0,3,::Qt::AlignCenter);
+      layout->addWidget(new QLabel("Describe") ,0,4,::Qt::AlignCenter);
+      layout->addWidget(new QLabel("Reporting"),0,5,::Qt::AlignCenter);
       for(unsigned i=0; i<MaxUserCodes; i++) {
         _seq_code[i].initialize(layout,i+1);
         ::QObject::connect(_seq_code[i]._enable, SIGNAL(toggled(bool)), this, SIGNAL(update_codes(bool)));
@@ -241,8 +216,10 @@ QLayout* EvrEventCodeTable::initialize(QWidget*)
       layout->addWidget(new QLabel("Enable")   ,0,0,::Qt::AlignCenter);
       layout->addWidget(new QLabel("Code")     ,0,1,::Qt::AlignCenter);
       layout->addWidget(new QLabel("Type")     ,0,2,::Qt::AlignCenter);
-      layout->addWidget(new QLabel("Describe") ,0,3,::Qt::AlignCenter);
-      layout->addWidget(new QLabel("Reporting"),0,4,::Qt::AlignCenter);
+      layout->addWidget(_pLabelGroup2 = new QLabel("Group")    
+                                               ,0,3,::Qt::AlignCenter);
+      layout->addWidget(new QLabel("Describe") ,0,4,::Qt::AlignCenter);
+      layout->addWidget(new QLabel("Reporting"),0,5,::Qt::AlignCenter);
       for(unsigned i=0; i<MaxGlobalCodes; i++) {
         _glb_code[i].initialize(layout,i+1);
       }
@@ -256,9 +233,23 @@ QLayout* EvrEventCodeTable::initialize(QWidget*)
   ::QObject::connect(_range_lo._input, SIGNAL(editingFinished()), this, SLOT(update_range()));
   ::QObject::connect(_range_hi._input, SIGNAL(editingFinished()), this, SLOT(update_range()));
   }
-
   update_range();
-
+  
+  {
+    QHBoxLayout* hl = new QHBoxLayout;
+    hl->addWidget(new QLabel("Readout Group Support"));
+    _cbEnableReadGroup = new QComboBox;
+    //_cbEnableReadGroup->addItem(QString().setNum(iGroup));
+    _cbEnableReadGroup->addItem("Off");
+    _cbEnableReadGroup->addItem("On");
+    _cbEnableReadGroup->setCurrentIndex(0);        
+    hl->addWidget(_cbEnableReadGroup);
+    hl->addStretch();
+    l->addLayout(hl);    
+    ::QObject::connect(_cbEnableReadGroup, SIGNAL(currentIndexChanged(int)), this, SLOT(onEnableReadGroup(int)));    
+  }
+  
+  onEnableReadGroup(0);
   return l;
 }
 
@@ -269,6 +260,7 @@ void EvrEventCodeTable::update() {
     _seq_code[i].update();
   for(unsigned i=0; i<MaxGlobalCodes; i++)
     _glb_code[i].update();
+  _cbEnableReadGroup->update();        
 }
 void EvrEventCodeTable::flush() {
   _range_lo.flush();
@@ -338,11 +330,32 @@ unsigned    EvrEventCodeTable::ncodes() const
   return _ncodes;
 }
 
-const Pds::EvrData::EventCodeV5* EvrEventCodeTable::codes() const
+const EvrConfigType::EventCodeType* EvrEventCodeTable::codes() const
 {
-  return reinterpret_cast<const Pds::EvrData::EventCodeV5*>(_code_buffer);
+  return reinterpret_cast<const EvrConfigType::EventCodeType*>(_code_buffer);
 }
 
+bool EvrEventCodeTable::enableReadoutGroup() const
+{
+  return (_cbEnableReadGroup->currentIndex() != 0);
+}
+
+void EvrEventCodeTable::onEnableReadGroup(int iIndex)
+{
+  printf("EvrEventCodeTable::onEnableReadGroup(%d)\n", iIndex); //!!debug
+  bool bEnableReadGroup = (iIndex != 0);
+  _pLabelGroup1->setVisible(bEnableReadGroup);
+  _pLabelGroup2->setVisible(bEnableReadGroup);
+  
+  for(unsigned i=0; i<MaxUserCodes; i++)
+    _seq_code[i].setGroupEnable(bEnableReadGroup);
+    
+  for(unsigned i=0; i<MaxGlobalCodes; i++)
+    _glb_code[i].setGroupEnable(bEnableReadGroup);
+    
+  if (_pPulseTables != NULL)
+    _pPulseTables->setReadGroupEnable(bEnableReadGroup);
+}
 
 void showLayoutItem(QLayoutItem* item, bool s )
 {

@@ -3,6 +3,7 @@
 
 #include <QtCore/QObject>
 
+#include "pds/config/EvrConfigType.hh"
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 
@@ -12,8 +13,6 @@ class QGridLayout;
 class QLabel;
 class QStackedWidget;
 class QWidget;
-
-namespace Pds { namespace EvrData { class EventCodeV5; } }
 
 namespace Pds_ConfigDb {
   class EvrEventDesc : public QObject {
@@ -29,12 +28,13 @@ namespace Pds_ConfigDb {
     void initialize(QGridLayout* l, unsigned row);
     void update    ();
     void flush     ();
-    void pull      (const Pds::EvrData::EventCodeV5& c);
-    void push      (Pds::EvrData::EventCodeV5* c) const;
+    void pull      (const EvrConfigType::EventCodeType& c);
+    void push      (EvrConfigType::EventCodeType* c) const;
   public:
     bool enabled   () const;
     const char*    get_label() const;
     void set_enable(bool);
+    void setGroupEnable(bool bEnableGroup);
   public slots:
     void enable    (bool);
     void update_p  ();
@@ -45,12 +45,14 @@ namespace Pds_ConfigDb {
   private:
     QLabel*                      _code;
     QComboBox*                   _type;
+    QComboBox*                   _group;
     QStackedWidget*              _stack;
     TextParameter                _desc;
     NumericInt<unsigned>         _trans_delay;
     NumericInt<unsigned>         _trans_width;
     NumericInt<unsigned>         _latch_delay;
     NumericInt<unsigned>         _latch_release;
+    bool                         _bEnableGroup;
   };
 };
 

@@ -2,8 +2,6 @@
 
 #include "pds/config/EvrConfigType.hh"
 
-#include "pdsdata/evr/EventCodeV5.hh"
-
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QGridLayout>
 #include <QtGui/QCheckBox>
@@ -18,14 +16,15 @@ using namespace Pds_ConfigDb;
 // combo box items
 enum { Readout, Command, Transient, Latch };
 
-static const unsigned DescLength = Pds::EvrData::EventCodeV5::DescSize;
+static const unsigned DescLength = EvrConfigType::EventCodeType::DescSize;
 EvrEventDesc::EvrEventDesc() :
   _enabled      (false),
   _desc         (NULL, "", DescLength),
   _trans_delay  ("Delay",0, 0, 0x7fffffff),
   _trans_width  ("Duration",1, 1, 0x7fffffff),
   _latch_delay  ("Delay",0, 0, 0x7fffffff),
-  _latch_release("Release",0, 0, 255)
+  _latch_release("Release",0, 0, 255),
+  _bEnableGroup (false)
 {
 }
 
@@ -45,6 +44,12 @@ void EvrEventDesc::initialize(QGridLayout* l, unsigned row)
   _type->addItem("Control[Latch]");
   l->addWidget(_type, row, column++, Qt::AlignCenter);
 
+  _group = new QComboBox;
+  for (int iGroup = 1; iGroup <= EvrConfigType::EventCodeType::MaxReadoutGroup; ++iGroup)
+    _group->addItem(QString().setNum(iGroup));
+  _group->setCurrentIndex(0);
+  l->addWidget(_group, row, column++, Qt::AlignCenter);
+  
   l->addLayout(_desc.initialize(0), row, column++, Qt::AlignCenter);
   _desc.widget()->setMaximumWidth(100);
 
@@ -90,6 +95,7 @@ void EvrEventDesc::enable(bool v)
 {
   _enabled = v;
   _type         ->setVisible(v);
+  _group        ->setVisible(v && _bEnableGroup);
   _desc.widget()->setVisible(v);
   _stack        ->setVisible(v);
 }
@@ -120,12 +126,13 @@ void EvrEventDesc::update()
 
 void EvrEventDesc::update_p() { update(); }
 
-void EvrEventDesc::pull(const Pds::EvrData::EventCodeV5& c) 
+void EvrEventDesc::pull(const EvrConfigType::EventCodeType& c) 
 {
   set_code(c.code());
-  strncpy(_desc.value, c.desc(), Pds::EvrData::EventCodeV5::DescSize);
+  strncpy(_desc.value, c.desc(), Pds::EvrData::EventCodeV6::DescSize);
   if      (c.isReadout   ()) {
     _type->setCurrentIndex(Readout);
+    _group->setCurrentIndex(c.readoutGroup()-1);
   }
   else if (c.isCommand   ()) {
     _type->setCurrentIndex(Command);
@@ -143,12 +150,13 @@ void EvrEventDesc::pull(const Pds::EvrData::EventCodeV5& c)
   _enabled = c.code()!=Disabled;
 }
 
-void EvrEventDesc::push(Pds::EvrData::EventCodeV5* c) const
+void EvrEventDesc::push(EvrConfigType::EventCodeType* c) const
 {
   uint32_t fill(0);
   switch(_type->currentIndex()) {
   case Readout:
     *new(c) EvrConfigType::EventCodeType(get_code(),
+                                         1+_group->currentIndex(),
                                          _desc.value,
                                          fill,fill,fill);
     break;
@@ -158,12 +166,14 @@ void EvrEventDesc::push(Pds::EvrData::EventCodeV5* c) const
     break;
   case Transient: // Transient
     *new(c) EvrConfigType::EventCodeType(get_code(),
+                                         0, // default group 0
                                          _desc.value, false,
                                          _trans_delay.value,
                                          _trans_width.value);
     break;
   case Latch: // Latch
     *new(c) EvrConfigType::EventCodeType(get_code(),
+                                         0, // default group 0
                                          _desc.value, true,
                                          _latch_delay  .value,
                                          _latch_release.value);
@@ -172,5 +182,13 @@ void EvrEventDesc::push(Pds::EvrData::EventCodeV5* c) const
 }
 
 void EvrEventDesc::set_enable(bool v) { _enable->setChecked(v); }
+
+void EvrEventDesc::setGroupEnable(bool bEnableGroup)
+{
+  _bEnableGroup = bEnableGroup;
+  _group->setVisible(_enabled && _bEnableGroup);  
+  if (!_bEnableGroup)
+    _group->setCurrentIndex(0);
+}
 
 #include "Parameters.icc"

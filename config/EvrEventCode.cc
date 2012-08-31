@@ -16,7 +16,8 @@ EvrEventCode::EvrEventCode() :
   _reportWidth  ("Report Width/Release",  1, 1, 0xffff),
   _maskTrigger  ("Trigger Mask",  0, 0, 0x03ff, Hex),
   _maskSet      ("Set     Mask",  0, 0, 0x03ff, Hex),
-  _maskClear    ("Clear   Mask",  0, 0, 0x03ff, Hex)
+  _maskClear    ("Clear   Mask",  0, 0, 0x03ff, Hex),
+  _readoutGroup ("Readout Group", 0, 0, EvrConfigType::EventCodeType::MaxReadoutGroup)
 {}
 
 void EvrEventCode::insert(Pds::LinkedList<Parameter>& pList) {
@@ -30,6 +31,7 @@ void EvrEventCode::insert(Pds::LinkedList<Parameter>& pList) {
   pList.insert(&_maskTrigger);
   pList.insert(&_maskSet);
   pList.insert(&_maskClear);
+  pList.insert(&_readoutGroup);
 }
 
 bool EvrEventCode::pull(void* from) {
@@ -45,6 +47,7 @@ bool EvrEventCode::pull(void* from) {
   _maskTrigger .value = eventCode.maskTrigger();
   _maskSet     .value = eventCode.maskSet();
   _maskClear   .value = eventCode.maskClear();
+  _readoutGroup.value = eventCode.readoutGroup();
   
   return true;
 }
@@ -52,6 +55,7 @@ bool EvrEventCode::pull(void* from) {
 int EvrEventCode::push(void* to) {
   EvrConfigType::EventCodeType& evntCode = *new (to) EvrConfigType::EventCodeType(
     (uint8_t) _code.value,
+    _readoutGroup.value,
     _desc        .value,
     _isReadout   .value == Enums::True,
     _isCommand   .value == Enums::True,

@@ -15,8 +15,7 @@ class QStackedWidget;
 
 namespace Pds {
   namespace EvrData {
-    class ConfigV5;
-    class ConfigV6;
+    class ConfigV7;
     class SequencerConfigV1;
   }
 }
@@ -36,8 +35,7 @@ namespace Pds_ConfigDb {
     void     flush     ();
     void     enable    (bool);
   public:
-    void pull  (const Pds::EvrData::ConfigV6&);
-    void pull  (const Pds::EvrData::ConfigV5&);
+    void pull  (const Pds::EvrData::ConfigV7&);
     bool validate();
     const Pds::EvrData::SequencerConfigV1& result() const;
   private:

@@ -184,7 +184,7 @@ namespace Pds_ConfigDb {
     Private_Data() :
       Parameter(NULL),
       _pulse_table (new EvrPulseTables_V5) ,
-      _code_table  (new EvrEventCodeTable),
+      _code_table  (new EvrEventCodeTable(NULL)),
       _seq_config  (new SequencerConfig(*_code_table))
     {}
   public:
@@ -202,20 +202,22 @@ namespace Pds_ConfigDb {
     void     enable    (bool) {}
   public:
     int pull(void *from) {
-      const Pds::EvrData::ConfigV5& tc = *reinterpret_cast<const Pds::EvrData::ConfigV5*>(from);
-      _pulse_table->pull(tc);
-      _code_table ->pull(tc);
-      _seq_config ->pull(tc);
-      return tc.size();
+      //const Pds::EvrData::ConfigV5& tc = *reinterpret_cast<const Pds::EvrData::ConfigV5*>(from);
+      //_pulse_table->pull(tc);
+      //_code_table ->pull(tc);
+      //_seq_config ->pull(tc);
+      //return tc.size();
+      return 0;
     }
     int push(void *to) {
       const_cast<EvrConfig_V5::Private_Data*>(this)->validate();
-      Pds::EvrData::ConfigV5& tc = 
-        *new(to) Pds::EvrData::ConfigV5( _code_table ->ncodes  (),_code_table->codes  (),
-                                _pulse_table->npulses (),_pulse_table->pulses (),
-                                _pulse_table->noutputs(),_pulse_table->outputs(),
-                                _seq_config ->result() );
-      return tc.size();
+      //Pds::EvrData::ConfigV5& tc = 
+      //  *new(to) Pds::EvrData::ConfigV5( _code_table ->ncodes  (),_code_table->codes  (),
+      //                          _pulse_table->npulses (),_pulse_table->pulses (),
+      //                          _pulse_table->noutputs(),_pulse_table->outputs(),
+      //                          _seq_config ->result() );
+      //return tc.size();
+      return 0;
     }
 
     int dataSize() const {
@@ -228,11 +230,12 @@ namespace Pds_ConfigDb {
     }
     bool validate() {
 
-      bool v = _code_table   ->validate();
-      v = v && _pulse_table  ->validate(_code_table->ncodes(),
-                                        _code_table->codes ());
-      v = v && _seq_config   ->validate();
-      return v;
+      //bool v = _code_table   ->validate();
+      //v = v && _pulse_table  ->validate(_code_table->ncodes(),
+      //                                  _code_table->codes ());
+      //v = v && _seq_config   ->validate();
+      //return v;
+      return true;
     }
   private:
     EvrPulseTables_V5* _pulse_table;

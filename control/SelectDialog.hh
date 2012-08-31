@@ -17,11 +17,11 @@ namespace Pds {
   class NodeGroup;
 
   class SelectDialog : public QDialog,
-		       public PlatformCallback {
+           public PlatformCallback {
     Q_OBJECT
   public:
     SelectDialog(QWidget* parent,
-		 PartitionControl& control);
+     PartitionControl& control, bool bReadGroupEnable);
     ~SelectDialog();
   public:
     void        available(const Node& hdr, const PingReply& msg);
@@ -35,6 +35,7 @@ namespace Pds {
     void check_ready();
   private:
     PartitionControl& _pcontrol;
+    bool              _bReadGroupEnable;
     enum { MAX_NODES=32 };
     Node _control;
     Node _segments [MAX_NODES];

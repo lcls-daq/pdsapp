@@ -78,12 +78,12 @@ namespace Pds {
     Transition* transitions(Transition* tr) { return tr; }
     InDatagram* events     (InDatagram* dg) 
     { if (dg->datagram().xtc.damage.value())
-	_w.transition_damaged(*dg);
+  _w.transition_damaged(*dg);
       return dg;
     }
     Occurrence* occurrences(Occurrence* occ)
     { if (occ->id()==OccurrenceId::UserMessage)
-	_w.insert_message(static_cast<UserMessage*>(occ)->msg());
+  _w.insert_message(static_cast<UserMessage*>(occ)->msg());
       else if (occ->id()==OccurrenceId::ClearReadout) {
         _w.insert_message("Detector out-of-order.\n  Shutting down.\n  Allocate/Run to continue");
         _w.require_shutdown();
@@ -115,25 +115,25 @@ namespace Pds {
     Transition* transitions(Transition* tr)
     {
       if (tr->id()==TransitionId::BeginRun) {
-	if (tr->size() == sizeof(Transition)) {  // No RunInfo
-	  char fname[256];
-	  sprintf(fname, "e%d/e%d-r%04d-sNN-cNN.xtc", 
-		  0, 0, tr->env().value());
-	  _log.appendText(QString("%1: Not recording. Transient data file: %2\n")
-			  .arg(QTime::currentTime().toString("hh:mm:ss"))
-			  .arg(fname));
-	}
-	else {
+  if (tr->size() == sizeof(Transition)) {  // No RunInfo
+    char fname[256];
+    sprintf(fname, "e%d/e%d-r%04d-sNN-cNN.xtc", 
+      0, 0, tr->env().value());
+    _log.appendText(QString("%1: Not recording. Transient data file: %2\n")
+        .arg(QTime::currentTime().toString("hh:mm:ss"))
+        .arg(fname));
+  }
+  else {
           RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
-	  char fname[256];
-	  sprintf(fname, "e%d/e%d-r%04d-s00-c00.xtc", 
-		  rinfo.experiment(), rinfo.experiment(), rinfo.run());
-	  _experiment = rinfo.experiment();
-	  _log.appendText(QString("%1: Recording run %2. Transient data file: %3\n")
-			  .arg(QTime::currentTime().toString("hh:mm:ss"))
-			  .arg(rinfo.run())
-			  .arg(fname));
-	}
+    char fname[256];
+    sprintf(fname, "e%d/e%d-r%04d-s00-c00.xtc", 
+      rinfo.experiment(), rinfo.experiment(), rinfo.run());
+    _experiment = rinfo.experiment();
+    _log.appendText(QString("%1: Recording run %2. Transient data file: %3\n")
+        .arg(QTime::currentTime().toString("hh:mm:ss"))
+        .arg(rinfo.run())
+        .arg(fname));
+  }
       }
     return tr;
     }
@@ -219,11 +219,11 @@ using namespace Pds;
 using Pds_ConfigDb::Experiment;
 
 MainWindow::MainWindow(unsigned          platform,
-		       const char*       partition,
-		       const char*       db_path,
-		       const char*       offlinerc,
-		       const char*       runNumberFile,
-		       const char*       experiment,
+           const char*       partition,
+           const char*       db_path,
+           const char*       offlinerc,
+           const char*       runNumberFile,
+           const char*       experiment,
                        unsigned          sequencer_id) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
@@ -284,15 +284,15 @@ MainWindow::MainWindow(unsigned          platform,
   }
   _controlcb->add_appliance(state);
   _controlcb->add_appliance(new SeqAppliance(*_control, *state, *_config,
-  					     *_pvmanager, sequencer_id));
+                 *_pvmanager, sequencer_id));
   _controlcb->add_appliance(new RemoteSeqApp(*_control, *state,*_pvmanager,
-					     _config->src()));
+               _config->src()));
   _control->attach();
 
   QObject::connect(state , SIGNAL(configured(bool)), config, SLOT(configured(bool)));
   QObject::connect(state , SIGNAL(state_changed(QString)), _partition, SLOT(change_state(QString)));
   QObject::connect(this  , SIGNAL(message_received(const QString&, bool))   , 
-		   this  , SLOT(handle_message(const QString&, bool)));
+       this  , SLOT(handle_message(const QString&, bool)));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));
 
   // Unix signal support
@@ -361,28 +361,28 @@ void MainWindow::transition_damaged(const InDatagram& dg)
       const ProcInfo& info = static_cast<const ProcInfo&>(xtc.src);
       DetInfo dinfo(-1,DetInfo::NoDetector,0,DetInfo::NoDevice,0);
       for(int i=0; i<_partition->segments().size();i++) {
-	if (_partition->segments().at(i)==info) {
-	  dinfo = _partition->detectors().at(i);
-	  break;
-	}
+  if (_partition->segments().at(i)==info) {
+    dinfo = _partition->detectors().at(i);
+    break;
+  }
       }
       struct in_addr inaddr;
       inaddr.s_addr = ntohl(info.ipAddr());
       msg += QString("\n  %1 [%2 : %3] : 0x%4").
-	arg(DetInfo::name(dinfo)).
-	arg(inet_ntoa(inaddr)).
-	arg(info.processId()).
-	arg(QString::number(xtc.damage.value(),16));
+  arg(DetInfo::name(dinfo)).
+  arg(inet_ntoa(inaddr)).
+  arg(info.processId()).
+  arg(QString::number(xtc.damage.value(),16));
     }
     else {
       const ProcInfo& info = static_cast<const ProcInfo&>(xtc.src);
       struct in_addr inaddr;
       inaddr.s_addr = ntohl(info.ipAddr());
       msg += QString("\n  %1 : %2 : %3 : 0x%4").
-	arg(Level::name(xtc.src.level())).
-	arg(inet_ntoa(inaddr)).
-	arg(info.processId()).
-	arg(QString::number(xtc.damage.value(),16));
+  arg(Level::name(xtc.src.level())).
+  arg(inet_ntoa(inaddr)).
+  arg(info.processId()).
+  arg(QString::number(xtc.damage.value(),16));
     }
   }
 

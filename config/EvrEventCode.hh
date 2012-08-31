@@ -24,6 +24,7 @@ namespace Pds_ConfigDb {
     NumericInt<unsigned>          _maskTrigger;
     NumericInt<unsigned>          _maskSet;
     NumericInt<unsigned>          _maskClear;
+    NumericInt<unsigned>          _readoutGroup;
   };
 };
 

@@ -76,8 +76,17 @@ public:
       dg->insert(_cfgtc,_cfgpayload);
       break;
     case TransitionId::L1Accept:
+    {
+      ///!!! Simulate long exposure time
+      //printf("L1Accept %d", dg->seq.stamp().vector());
+      //fflush(NULL);
+      //timeval timeSleepMicro = {0, 980000}; // 980 ms
+      //// Use select() to simulate nanosleep(), because experimentally select() controls the sleeping time more precisely
+      //select( 0, NULL, NULL, NULL, &timeSleepMicro);  
+      //printf(" ok\n");
       dg->insert(_evttc,_evtpayload);
       break;
+    }
     default:
       break;
     }

@@ -5,7 +5,6 @@
 #include "pdsapp/config/EvrEventCodeTable.hh"
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/SeqConfigType.hh"
-#include "pdsdata/evr/ConfigV5.hh"
 
 #include <QtGui/QWidget>
 #include <QtGui/QHBoxLayout>
@@ -28,8 +27,8 @@
 static const unsigned fiducials[] = { 3, 6, 12, 36, 72, 360, 720, 0 };
 
 static const char* rateList[] = { "120 Hz", "60 Hz", "30 Hz", "10 Hz", 
-				  "5 Hz", "1 Hz", "0.5 Hz", "Disable", 
-				  NULL };
+          "5 Hz", "1 Hz", "0.5 Hz", "Disable", 
+          NULL };
 
 static void setInputValue(QWidget* w, int v)
 {
@@ -80,8 +79,8 @@ namespace Pds_ConfigDb {
       unsigned n = _seqInput->nentries();
       SeqEntryType* entries = _seqInput->entries();
       new(to) SeqConfigType( SeqConfigType::Source(_syncSource.value),
-			     SeqConfigType::Source(_beamSource.value),
-			     n, 0, entries);
+           SeqConfigType::Source(_beamSource.value),
+           n, 0, entries);
     }
     bool validate() { return true; }
   public:
@@ -153,20 +152,7 @@ void     SequencerConfig::flush     () { _detail->flush (); }
 
 void     SequencerConfig::enable    (bool) {}
 
-void  SequencerConfig::pull  (const Pds::EvrData::ConfigV5& evr) {
-  const SeqConfigType& cfg = evr.seq_config();
-  _detail->pull(cfg);
-  if (cfg.sync_source()==SeqConfigType::Disable) {
-    _mode->button(External)->setChecked(true);
-    _stack->setCurrentIndex(External);
-  }
-  else {
-    _mode->button(Detail)->setChecked(true);
-    _stack->setCurrentIndex(Detail); 
-  }
-}
-
-void  SequencerConfig::pull  (const Pds::EvrData::ConfigV6& evr) {
+void  SequencerConfig::pull  (const Pds::EvrData::ConfigV7& evr) {
   const SeqConfigType& cfg = evr.seq_config();
   _detail->pull(cfg);
   if (cfg.sync_source()==SeqConfigType::Disable) {
@@ -252,9 +238,9 @@ void SeqEntryInput::pull(const SeqConfigType&     c) {
     _elayout->getItemPosition(i, &row, &col, &rowspan, &colspan);
     if (row>0) {
       if (col==0) {
-	QComboBox* event = static_cast<QComboBox*>
-	  (static_cast<QWidgetItem*>(_elayout->itemAt(i))->widget());
-	event->setCurrentIndex(_code_table.code_index(c.entry(row-1).eventcode()));
+  QComboBox* event = static_cast<QComboBox*>
+    (static_cast<QWidgetItem*>(_elayout->itemAt(i))->widget());
+  event->setCurrentIndex(_code_table.code_index(c.entry(row-1).eventcode()));
       }
       else if (col==1) {
         setInputValue(static_cast<QWidgetItem*>(_elayout->itemAt(i))->widget(),
@@ -290,7 +276,7 @@ void SeqEntryInput::update_totals()
     _elayout->getItemPosition(i, &row, &col, &rowspan, &colspan);
     if (col==2 && row>0) {
       QLabel* total = static_cast<QLabel*   >
-	(static_cast<QWidgetItem*>(_elayout->itemAt(i))->widget());
+  (static_cast<QWidgetItem*>(_elayout->itemAt(i))->widget());
       total->setText(QString::number(val[row-1],10));
     }
   }
@@ -309,7 +295,7 @@ void SeqEntryInput::update_length()
       int row, col, rowspan, colspan;
       _elayout->getItemPosition(i, &row, &col, &rowspan, &colspan);
       if (row>int(len))
-	items.push_back(_elayout->itemAt(i));
+  items.push_back(_elayout->itemAt(i));
     }
     for(std::list<QLayoutItem*>::iterator it=items.begin(); it!=items.end(); it++) {
       QLayoutItem* item = *it;
@@ -358,7 +344,7 @@ void SeqEntryInput::update_length()
       connect(event, SIGNAL(currentIndexChanged(int)), this, SLOT(update_codes(int)));
       step ->setText (QString::number(0,10));
     }
-  }						   
+  }              
 
   _ulength = len;
 
@@ -402,7 +388,7 @@ void SeqEntryInput::update_codes(bool)
       box->setPalette(QPalette(Qt::red));
 
     connect(box, SIGNAL(currentIndexChanged(int)), this, SLOT(update_codes(int)));
-  }						   
+  }              
 
 }
 
@@ -415,13 +401,13 @@ SeqEntryType* SeqEntryInput::entries() const
     _elayout->getItemPosition(i, &row, &col, &rowspan, &colspan);
     if (row>0) {
       if (col==0) {
-	QComboBox* event = static_cast<QComboBox*>
-	  (static_cast<QWidgetItem*>(_elayout->itemAt(i))->widget());
-	v[row-1] = SeqEntryType(_code_table.code_lookup(event->currentIndex()), 
+  QComboBox* event = static_cast<QComboBox*>
+    (static_cast<QWidgetItem*>(_elayout->itemAt(i))->widget());
+  v[row-1] = SeqEntryType(_code_table.code_lookup(event->currentIndex()), 
                                 v[row-1].delay());
       }
       else if (col==1) {
-	v[row-1] = SeqEntryType(v[row-1].eventcode(), 
+  v[row-1] = SeqEntryType(v[row-1].eventcode(), 
                                 getInputValue(static_cast<QWidgetItem*>(_elayout->itemAt(i))->widget()));
       }
     }

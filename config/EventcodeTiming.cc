@@ -35,9 +35,11 @@ unsigned EventcodeTiming::timeslot(unsigned code)
   for(unsigned i=0; i<n; i++)
     if (slots[i].code==code)
       return slots[i].tick;
-  if (code >= 67 && code <= 98)
-    return timeslot(140)+code;
   if (code >= 140 && code <= 159)
     return 11850+(code-140);
+  if (code >= 67 && code <= 98)
+    return 11900+code;
+  if (code >= 167 && code <= 198)
+    return 11900+code;
   return 0;
 }

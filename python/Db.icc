@@ -102,7 +102,7 @@ static PyTypeObject pdsdb_type = {
 
 static PyObject* _new_xtc(Pds::TypeId& contains)
 {
-	PyObject* o;
+  PyObject* o;
           switch(contains.id()) {
           case Pds::TypeId::Id_DiodeFexConfig:
             o = _PyObject_New(&pds_DiodeFexConfig_type);
@@ -132,7 +132,7 @@ static PyObject* _new_xtc(Pds::TypeId& contains)
             o = _PyObject_New(&pds_Xtc_type);
             break;
           }
-	return o;
+  return o;
 }
 
 void pdsdb_dealloc(pdsdb* self)
@@ -337,14 +337,9 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
 
   while(1) {
 
-    { char* kwlist[] = {"file", "xtc", NULL };
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"sO",kwlist,
-                                       &file,&o) != 0)
-        break; }
-
-    { char* kwlist[] = {"alias", "xtc", NULL };
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"sO",kwlist,
-                                       &alias,&o) != 0)
+    { char* kwlist[] = {"xtc", "alias", "file", NULL };
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"O|ss",kwlist,
+                                       &o, &alias, &file) != 0)
         break; }
 
     return NULL;
@@ -354,6 +349,8 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
     printf("TypeCheck failed\n");
     return NULL;
   }
+  
+  //printf("pdsdb_set(): file %s alias %s xtc1 %p\n", file, alias, o);
 
   pdsxtc* xtc = (pdsxtc*)o;
 

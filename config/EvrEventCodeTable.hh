@@ -1,9 +1,10 @@
 #ifndef Pds_EvrEventCodeTable_hh
 #define Pds_EvrEventCodeTable_hh
 
-#include "pdsapp/config/Parameters.hh"
-
+#include "pds/config/EvrConfigType.hh"
 #include "pds/service/LinkedList.hh"
+#include "pdsapp/config/Parameters.hh"
+#include "pdsapp/config/EvrPulseTable.hh"
 
 #include <QtCore/QObject>
 
@@ -13,9 +14,9 @@ class QWidget;
 
 namespace Pds { 
   namespace EvrData { 
-    class ConfigV5; 
-    class ConfigV6; 
-    class EventCodeV5; 
+    class ConfigV7; 
+    class ConfigV7; 
+    class EventCodeV6; 
     class SequencerConfigV1; 
   }
 }
@@ -28,16 +29,16 @@ namespace Pds_ConfigDb {
   class EvrEventCodeTable : public QObject, public Parameter {
     Q_OBJECT
   public:
-    enum { MaxCodes=12 };
-    EvrEventCodeTable();
+    enum { MaxCodes=16 };
+    EvrEventCodeTable(EvrPulseTables* pPulseTables);
     ~EvrEventCodeTable();
   public:
-    void pull(const Pds::EvrData::ConfigV5&);
-    void pull(const Pds::EvrData::ConfigV6&);
-    int  push(Pds::EvrData::EventCodeV5* to) const;
+    void pull(const EvrConfigType&);
+    int  push(EvrConfigType::EventCodeType* to) const;
     bool validate();
     unsigned ncodes() const;
-    const Pds::EvrData::EventCodeV5* codes() const;
+    bool     enableReadoutGroup() const;
+    const EvrConfigType::EventCodeType* codes() const;
   public:
     void insert(Pds::LinkedList<Parameter>& pList);
     QLayout* initialize(QWidget*);
@@ -52,13 +53,18 @@ namespace Pds_ConfigDb {
     unsigned    code_index (unsigned) const; // list index from code value
   public slots:
     void update_range();
+    void onEnableReadGroup(int iIndex);
   private:
+    EvrPulseTables*      _pPulseTables;
     NumericInt<unsigned> _range_lo;
     NumericInt<unsigned> _range_hi;
     QGridLayout*         _elayout;
     EvrSeqEventDesc*     _seq_code;
     EvrGlbEventDesc*     _glb_code;
     unsigned             _ncodes;
+    QLabel*              _pLabelGroup1;
+    QLabel*              _pLabelGroup2;
+    QComboBox*           _cbEnableReadGroup;
     char*                _code_buffer;
   };
 };

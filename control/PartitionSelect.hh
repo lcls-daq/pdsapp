@@ -19,9 +19,9 @@ namespace Pds {
     Q_OBJECT
   public:
     PartitionSelect(QWidget*          parent,
-		    PartitionControl& control,
-		    const char*       pt_name,
-		    const char*       db_name);
+        PartitionControl& control,
+        const char*       pt_name,
+        const char*       db_name);
     ~PartitionSelect();
   public:
     const QList<DetInfo >& detectors() const;
@@ -33,10 +33,12 @@ namespace Pds {
     void change_state(QString);
   private:
     bool _validate(unsigned);
+    bool _checkReadGroupEnable();
   private:
     PartitionControl&  _pcontrol;
     const char*        _pt_name;
     char               _db_path[128];
+    char               _db_path_org[128];
     QWidget*           _display;
     enum { MAX_NODES=64 };
     unsigned _nnodes;

@@ -13,6 +13,7 @@
 #include <QtGui/QLabel>
 #include <QtGui/QLineEdit>
 #include <QtGui/QMessageBox>
+#include <QtGui/QComboBox>
 
 static const unsigned MaxOutputs = 13;
 static const int PolarityGroup = 100;
@@ -27,7 +28,7 @@ namespace Pds_ConfigDb
       _width    ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Scaled, EvrPeriod))
     {}
   public:
-    void enable(bool v) 
+    void enable(bool v, bool enableGroup) 
     {
       bool allowEdit = Parameter::allowEdit();
       _polarity  ->setEnabled(v && allowEdit);
@@ -35,35 +36,40 @@ namespace Pds_ConfigDb
       v &= (_polarity->state()!=PolarityButton::None);
       _delay    .enable(v);
       _width    .enable(v);
+      _group  ->setEnabled(v && allowEdit);
+      _group  ->setVisible(v && enableGroup);
+      if (!enableGroup)
+        _group->setCurrentIndex(0);
       for(unsigned i=0; i<MaxOutputs; i++) {
-	_outputs[i]->setEnabled(v && allowEdit);
-	_outputs[i]->setVisible(v);
+        _outputs[i]->setEnabled(v && allowEdit);
+        _outputs[i]->setVisible(v);
       }
     }
     void reset () 
     {
       _delay    .value = 0;
-      _width    .value = 0;
+      _width    .value = 0;      
       _polarity  ->setState(PolarityButton::None);
+      _group     ->setCurrentIndex(0);
       for(unsigned i=0; i<MaxOutputs; i++)
-	_outputs[i]->setChecked(false);
+        _outputs[i]->setChecked(false);
     }
   public:
     void initialize(QWidget* parent,
-		    QGridLayout* layout, 
-		    int row, int bid,
-		    QButtonGroup* egroup,
-		    QButtonGroup* ogroup) 
+        QGridLayout* layout, 
+        int row, int bid,
+        QButtonGroup* egroup,
+        QButtonGroup* ogroup) 
     {
       _enable    = new QCheckBox;
       _polarity  = new PolarityButton;
       for(unsigned i=0; i<MaxOutputs; i++)
-	_outputs[i] = new QCheckBox;
+        _outputs[i] = new QCheckBox;
 
       egroup->addButton(_enable,bid);
       egroup->addButton(_polarity,bid+PolarityGroup);
       for(unsigned i=0; i<MaxOutputs; i++)
-	ogroup->addButton(_outputs[i],bid*MaxOutputs+i);
+        ogroup->addButton(_outputs[i],bid*MaxOutputs+i);
 
       int column = 0;
       layout->addWidget(_enable, row, column++, Qt::AlignCenter);
@@ -72,8 +78,15 @@ namespace Pds_ConfigDb
       layout->addLayout(_delay.initialize(parent)    , row, column++, Qt::AlignCenter);
       layout->setColumnMinimumWidth(column,97);
       layout->addLayout(_width.initialize(parent)    , row, column++, Qt::AlignCenter);
+      
+      _group = new QComboBox;
+      for (int iGroup = 1; iGroup <= EvrConfigType::EventCodeType::MaxReadoutGroup; ++iGroup)
+        _group->addItem(QString().setNum(iGroup));
+      _group->setCurrentIndex(0);
+      layout->addWidget(_group, row, column++, Qt::AlignCenter);
+      
       for(unsigned i=0; i<MaxOutputs; i++)
-	layout->addWidget(_outputs[i], row, column++, Qt::AlignCenter);
+        layout->addWidget(_outputs[i], row, column++, Qt::AlignCenter);
 
       _delay    .widget()->setMaximumWidth(97);
       _width    .widget()->setMaximumWidth(97);
@@ -81,12 +94,12 @@ namespace Pds_ConfigDb
       ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _delay.widget(), SLOT(setVisible(bool)));
       ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _width.widget(), SLOT(setVisible(bool)));
       for(unsigned i=0; i<MaxOutputs; i++)
-	::QObject::connect(_polarity, SIGNAL(toggled(bool)), _outputs[i], SLOT(setVisible(bool)));
+        ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _outputs[i], SLOT(setVisible(bool)));
 
       _enable->setEnabled(Parameter::allowEdit());
 
       reset();
-      enable(false);
+      enable(false, false);
     }
 
     void insert(Pds::LinkedList<Parameter>& pList) {
@@ -97,6 +110,7 @@ namespace Pds_ConfigDb
   public:
     QCheckBox*            _enable;
     PolarityButton*       _polarity;
+    QComboBox*            _group;
     NumericInt<unsigned>  _delay;
     NumericInt<unsigned>  _width;
     QCheckBox*            _outputs[MaxOutputs];
@@ -108,7 +122,9 @@ using namespace Pds_ConfigDb;
 EvrPulseTable::EvrPulseTable(unsigned id) :
   Parameter(NULL),
   _id      (id),
-  _npulses (0)
+  _npulses (0),
+  _bEnableReadGroup(false),
+  _pLabelGroup(NULL)
 {
   for(unsigned i=0; i<MaxPulses; i++)
     _pulses[i] = new Pulse;
@@ -118,20 +134,51 @@ EvrPulseTable::~EvrPulseTable()
 {
 }
 
-void EvrPulseTable::pull(const EvrConfigType& tc) {
-
+void EvrPulseTable::pull(const EvrConfigType& tc) {  
   unsigned npulses     = 0;
-  int      delay_offset= 0;
-  for(unsigned i=0; i<tc.neventcodes(); i++) {
-    const EvrConfigType::EventCodeType& ec = tc.eventcode(i);
-    if (ec.isReadout()) {
-      delay_offset =
-        EventcodeTiming::timeslot(140) -
-        EventcodeTiming::timeslot(ec.code());
-      break;
-    }
-  }
-
+  //int      delay_offset= 0;
+  //int      lDelayOffset[EvrConfigType::EventCodeType::MaxReadoutGroup];
+  
+  //for (int i=0; i<EvrConfigType::EventCodeType::MaxReadoutGroup; ++i)
+  //  lDelayOffset[i] = -1;
+  
+  //for(unsigned i=0; i<tc.neventcodes(); i++) {
+  //  const EvrConfigType::EventCodeType& ec = tc.eventcode(i);
+  //  if (ec.isReadout()) {
+  //    printf( "EvrPulseTable::pull(): event code [%d] %d readout group %d maskTrigger 0x%x\n", 
+  //      i, ec.code(), ec.readoutGroup(), ec.maskTrigger());
+  //    if ( lDelayOffset[ec.readoutGroup()] == -1 )
+  //      lDelayOffset[ec.readoutGroup()] = 
+  //      //delay_offset =
+  //        EventcodeTiming::timeslot(140) -
+  //        EventcodeTiming::timeslot(ec.code());        
+  //    else
+  //    {
+  //      int delay = lDelayOffset[ec.readoutGroup()] -
+  //        (EventcodeTiming::timeslot(140) -
+  //         EventcodeTiming::timeslot(ec.code()));
+  //      QString msg = QString("In readout group %1, secondary readout eventcode [%2] %3 will produce pulses %4 ticks (%5 ns)\n")
+  //        .arg(ec.readoutGroup())
+  //        .arg(i)
+  //        .arg(ec.code())
+  //        .arg(delay)
+  //        .arg(delay*EvrPeriod*1e9);
+  //      msg += QString("delayed with respect to primary readout eventcode\n");
+  //      QMessageBox::warning(0,"",msg);                  
+  //    }        
+  //    
+  //    uint32_t uPulseBit = (1 << iPulseStartId);
+  //    for (unsigned uPulse = 0; uPulse < MaxPulses; ++uPulse, uPulseBit<<=1)
+  //      if ( ec.maskTrigger() & uPulseBit )
+  //      {
+  //        Pulse& p = *_pulses[uPulse];
+  //        p._group->setCurrentIndex(ec.readoutGroup());
+  //        
+  //        printf( "EvrPulseTable::pull(): event code [%d] %d readout group %d set pulse %d group %d\n", 
+  //          i, ec.code(), ec.readoutGroup(), uPulse, p._group->currentIndex());          
+  //      }
+  //  }
+  //}  
   for(unsigned j=0; j<tc.npulses(); j++) {
     Pulse& p = *_pulses[npulses];
 
@@ -143,17 +190,52 @@ void EvrPulseTable::pull(const EvrConfigType& tc) {
       if ( om.source()==EvrConfigType::OutputMapType::Pulse &&
            om.source_id()==j )
         if ((om.module()) == _id)
-          p._outputs[om.conn_id()]->setChecked(lUsed=true);
-      
+          p._outputs[om.conn_id()]->setChecked(lUsed=true);      
     }
     if (!lUsed) continue;
 
     p._enable    ->setChecked(true);
     update_enable(npulses);
     const EvrConfigType::PulseType& pt = tc.pulse(j);
+        
+    const uint32_t  uPulseBit    = (1 << j);
+    const EvrConfigType::EventCodeType* 
+                    pCodeReadout = NULL;
+    for(unsigned i=0; i<tc.neventcodes(); i++) {
+      const EvrConfigType::EventCodeType& ec = tc.eventcode(i);
+      if (ec.isReadout() && ( ec.maskTrigger() & uPulseBit ) != 0) {
+        //printf( "EvrPulseTable::pull(): pulse %d event code [%d] %d readout group %d maskTrigger 0x%x\n", 
+        //  j, i, ec.code(), ec.readoutGroup(), ec.maskTrigger()); //!!!debug
+        if ( pCodeReadout == NULL )
+          pCodeReadout = &ec;          
+        else
+        {
+          QString msg = QString("Pulse %1: Secondary readout eventcode [%2] %3 found. Conflict with primary readout %4\n")
+            .arg(j)
+            .arg(i)
+            .arg(ec.code())
+            .arg(pCodeReadout->code());
+          QMessageBox::warning(0,"",msg);                  
+        }                
+      }
+    }
+
+    int iDelayOffset;    
+    if ( pCodeReadout != NULL) 
+    {
+      iDelayOffset = 
+        EventcodeTiming::timeslot(140) -
+        EventcodeTiming::timeslot(pCodeReadout->code());        
+      p._group->setCurrentIndex(pCodeReadout->readoutGroup()-1);    
+    }
+    else
+    {
+      iDelayOffset = 0;
+      p._group->setCurrentIndex(0);    
+    }
     p._polarity  ->setState(pt.polarity()==Pds_ConfigDb::Enums::Pos ? 
                             PolarityButton::Pos : PolarityButton::Neg);
-    p._delay      .value = pt.delay() - delay_offset;
+    p._delay      .value = pt.delay() - iDelayOffset;
     p._width      .value = pt.width();
 //     printf("delay/width %d/%d  :  %g/%g\n",
 //            p._delay.value, p._width.value,
@@ -163,7 +245,9 @@ void EvrPulseTable::pull(const EvrConfigType& tc) {
   while(npulses < MaxPulses) {
     _pulses[npulses]->_enable->setChecked(false);
     update_enable(npulses++);
-  }
+  }  
+  
+  setReadGroupEnable(tc.enableReadGroup() != 0);  
 }
 
 unsigned EvrPulseTable::npulses() const {
@@ -177,10 +261,13 @@ unsigned EvrPulseTable::noutputs() const {
 
 bool EvrPulseTable::validate(unsigned ncodes, 
                              const EvrConfigType::EventCodeType* codes,
-                             int delay_offset,
+                             //int delay_offset,
                              unsigned p0, EvrConfigType::PulseType* pt,
-                             unsigned o0, EvrConfigType::OutputMapType* om)
+                             unsigned o0, EvrConfigType::OutputMapType* om,
+                             bool enableReadoutGroup)
 {
+  setReadGroupEnable(enableReadoutGroup);
+  
   unsigned npt = 0;
   unsigned nom = 0;
 
@@ -192,16 +279,16 @@ bool EvrPulseTable::validate(unsigned ncodes,
     if (p._polarity->state() == PolarityButton::None)
       continue;
 
-    int adjusted_delay = p._delay.value + delay_offset;
+    //int adjusted_delay = p._delay.value + delay_offset;
 
-    if (adjusted_delay < 0) {
-      QString msg = QString("Pulse %1 delay too small (by %2 ticks, %3 sec)\n")
-        .arg(i)
-        .arg(-adjusted_delay)
-        .arg(double(-adjusted_delay)*EvrPeriod);
-      QMessageBox::warning(0,"Input Error",msg);
-      return false;
-    }
+    //if (adjusted_delay < 0) {
+    //  QString msg = QString("Pulse %1 delay too small (by %2 ticks, %3 sec)\n")
+    //    .arg(i)
+    //    .arg(-adjusted_delay)
+    //    .arg(double(-adjusted_delay)*EvrPeriod);
+    //  QMessageBox::warning(0,"Input Error",msg);
+    //  return false;
+    //}
 
     //
     // MRF EVR limited to 16-bit pulse width
@@ -216,28 +303,87 @@ bool EvrPulseTable::validate(unsigned ncodes,
     }
     **/
 
-    *new(&pt[npt]) EvrConfigType::PulseType(npt+p0, 
-                                            p._polarity->state() == PolarityButton::Pos ? 0 : 1,
-                                            1,
-                                            adjusted_delay,
-                                            p._width.value);
+    //*new(&pt[npt]) EvrConfigType::PulseType(npt+p0, 
+    //                                        p._polarity->state() == PolarityButton::Pos ? 0 : 1,
+    //                                        1,
+    //                                        adjusted_delay,
+    //                                        p._width.value);
 
     for(unsigned j=0; j<MaxOutputs; j++) {
       if (p._outputs[j]->isChecked())
         *new(&om[nom++]) EvrConfigType::OutputMapType( EvrConfigType::OutputMapType::Pulse, npt+p0,
                                                        EvrConfigType::OutputMapType::UnivIO, j, _id );
     }
+    
+    
+    int delay_offset = 0;
+    int primary_readout = -1;
+    
+    int iGroup = 1+p._group->currentIndex();
+    uint32_t pm = 1<<(npt+p0);
+    uint32_t fill = 0;
+    for(unsigned i=0; i<ncodes; i++)
+      if (codes[i].isReadout() && codes[i].readoutGroup() == iGroup )
+      {
+        *new(const_cast<EvrConfigType::EventCodeType*>(&codes[i]))
+             EvrConfigType::EventCodeType(codes[i].code(),
+                                          codes[i].readoutGroup(),
+                                          codes[i].desc(),
+                                          codes[i].maskTrigger()|pm,fill,fill);
+                                          
+        if ( primary_readout == -1 )
+        {
+          primary_readout = codes[i].code();
+          delay_offset    =
+                    EventcodeTiming::timeslot(140) -
+                    EventcodeTiming::timeslot(codes[i].code());                                                                                    
+          printf("Adjusting pulse [%d] for readout event code [%d] %d, delays %+d ticks (%lg ns)\n",
+                 npt, i, codes[i].code(), delay_offset, (double)(delay_offset*EvrPeriod*1e9));
+        }
+        else
+        {
+          int delay = delay_offset -
+            (EventcodeTiming::timeslot(140) -
+             EventcodeTiming::timeslot(codes[i].code()));
+          QString msg = QString("Secondary readout eventcode [%1] %2 will produce pulses %3 ticks (%4 ns)\n")
+            .arg(i)
+            .arg(codes[i].code())
+            .arg(delay)
+            .arg(delay*EvrPeriod*1e9);
+          msg += QString("delayed with respect to primary readout eventcode %1\n").arg(primary_readout);
+          QMessageBox::warning(0,"",msg);          
+        }
+      }
+                                        
+    int adjusted_delay = p._delay.value + delay_offset;
+
+    if (adjusted_delay < 0) {
+      QString msg = QString("Pulse %1 delay too small (by %2 ticks, %3 ns)\n")
+        .arg(npt)
+        .arg(-adjusted_delay)
+        .arg(double(-adjusted_delay)*EvrPeriod*1e9);
+      QMessageBox::warning(0,"Input Error",msg);
+      return false;
+    }
+                                        
+    *new(&pt[npt]) EvrConfigType::PulseType(npt+p0, 
+                                            p._polarity->state() == PolarityButton::Pos ? 0 : 1,
+                                            1,
+                                            adjusted_delay,
+                                            p._width.value);
+    
     npt++;
   }
 
-  uint32_t pm = ((1<<npt)-1)<<p0;
-  uint32_t fill = 0;
-  for(unsigned i=0; i<ncodes; i++)
-    if (codes[i].isReadout())
-      *new(const_cast<EvrConfigType::EventCodeType*>(&codes[i]))
-           EvrConfigType::EventCodeType(codes[i].code(),
-                                        codes[i].desc(),
-                                        codes[i].maskTrigger()|pm,fill,fill);
+  //uint32_t pm = ((1<<npt)-1)<<p0;
+  //uint32_t fill = 0;
+  //for(unsigned i=0; i<ncodes; i++)
+  //  if (codes[i].isReadout() && codes[i].readoutGroup() == 0 )
+  //    *new(const_cast<EvrConfigType::EventCodeType*>(&codes[i]))
+  //         EvrConfigType::EventCodeType(codes[i].code(),
+  //                                      codes[i].readoutGroup(),
+  //                                      codes[i].desc(),
+  //                                      codes[i].maskTrigger()|pm,fill,fill);
            
   _npulses  = npt;
   _noutputs = nom;
@@ -286,6 +432,7 @@ QLayout* EvrPulseTable::initialize(QWidget*)
   layout->addWidget(new QLabel("Pulse\nPolarity\n"), row, column++, align);
   layout->addWidget(new QLabel("Pulse\nDelay\n(sec)")   , row, column++, align);
   layout->addWidget(new QLabel("Pulse\nWidth\n(sec)")   , row, column++, align);
+  layout->addWidget(_pLabelGroup = new QLabel("Group")  , row, column++, align);
   for(unsigned i=0; i<MaxOutputs; i++)
     layout->addWidget( _outputs[i], row, column++, align);
 
@@ -328,8 +475,18 @@ void EvrPulseTable::flush () {
   }
 }
 
-void EvrPulseTable::enable(bool) 
+void EvrPulseTable::enable(bool) // virtual function. Need to be defined
 {
+}
+
+void EvrPulseTable::setReadGroupEnable(bool bEnableReadGroup)
+{
+  _bEnableReadGroup = bEnableReadGroup;
+  if (_pLabelGroup != NULL)
+    _pLabelGroup->setVisible(_bEnableReadGroup);
+  
+  for (int iPulse = 0; iPulse < MaxPulses; ++iPulse)
+    update_enable(iPulse);
 }
 
 void EvrPulseTable::update_enable    (int i) 
@@ -337,14 +494,14 @@ void EvrPulseTable::update_enable    (int i)
   if (i < 0) {
   }
   else if (i >= PolarityGroup) {
-    _pulses[i-PolarityGroup]->enable(_enable_group->button(i-PolarityGroup)->isChecked());
+    _pulses[i-PolarityGroup]->enable(_enable_group->button(i-PolarityGroup)->isChecked(), _bEnableReadGroup);
   }
   else if (_enable_group->button(i)->isChecked()) {  // enabled
-    _pulses[i]->enable(true);
+    _pulses[i]->enable(true, _bEnableReadGroup);
   }
   else {  // disabled
     _pulses[i]->reset();
-    _pulses[i]->enable(false);
+    _pulses[i]->enable(false, _bEnableReadGroup);
   }
   flush();
 }
@@ -367,5 +524,155 @@ EvrPulseTableQ::EvrPulseTableQ(EvrPulseTable& table,QWidget* parent) : QObject(p
 
 void EvrPulseTableQ::update_enable    (int i) { _table.update_enable(i); }
 void EvrPulseTableQ::update_output    (int i) { _table.update_output(i); }
+
+EvrPulseTables::EvrPulseTables() : 
+  Parameter(NULL), 
+  _nevr(0),
+  _pulse_buffer (new char[EvrConfigType::MaxPulses*sizeof(EvrConfigType::PulseType)]),
+  _output_buffer(new char[EvrConfigType::MaxOutputs*sizeof(EvrConfigType::OutputMapType)]),
+  _npulses      (0),
+  _noutputs     (0)
+{
+  for(unsigned i=0; i<MaxEVRs; i++)
+    _evr[i] = new EvrPulseTable(i);
+}
+
+EvrPulseTables::~EvrPulseTables() {
+  delete[] _pulse_buffer;
+  delete[] _output_buffer;
+  for(unsigned i=0; i<MaxEVRs; i++)
+    delete _evr[i];
+}
+
+QLayout* EvrPulseTables::initialize(QWidget*) 
+{
+  QVBoxLayout* vl = new QVBoxLayout;
+  vl->addStretch();
+  { QGridLayout* hl = new QGridLayout;
+    hl->addWidget(new QLabel("Pulses generated by \"Readout\" EventCode")             ,0,0,Qt::AlignHCenter);
+    hl->addWidget(new QLabel("Pulse delay is specified with respect to EventCode 140"),1,0,Qt::AlignHCenter);
+    vl->addLayout(hl); }
+  vl->addStretch();
+  { _tab = new QTabWidget;
+    for(unsigned i=0; i<MaxEVRs; i++) {
+      QWidget* w = new QWidget;
+      w->setLayout(_evr[i]->initialize(0));
+      _tab->addTab(w,QString("EVR %1").arg(i));
+      _tab->setTabEnabled(i,false);
+    }
+    vl->addWidget(_tab); }
+  vl->addStretch();
+
+  _nevr = 1;
+  _tab->setTabEnabled(0,true);
+
+  return vl;
+}
+
+void EvrPulseTables::setReadGroupEnable(bool bEnableReadGroup)
+{
+  for(unsigned i=0; i<MaxEVRs; i++)
+    _evr[i]->setReadGroupEnable(bEnableReadGroup);
+}
+
+void EvrPulseTables::pull    (const EvrConfigType& tc)
+{ 
+  for(unsigned i=0; i<MaxEVRs; i++) 
+    _evr[i]->pull(tc); 
+
+  //
+  //  Read EvrIOConfig
+  //
+  unsigned nevr = 1;
+  { const char* p = reinterpret_cast<const char*>(GlobalCfg::fetch(_evrIOConfigType));
+    if (p) {
+      nevr = 0;
+      do {
+        const EvrIOConfigType& iocfg = *reinterpret_cast<const EvrIOConfigType*>(p);
+        if (iocfg.nchannels()==0) break;
+        p += iocfg.size();
+        nevr++;
+      } while(1);
+    }
+  }
+  
+  for(unsigned i=nevr; i<_nevr; i++)
+    _tab->setTabEnabled(i,false);
+  for(unsigned i=_nevr; i<nevr; i++)
+    _tab->setTabEnabled(i,true);
+
+  _nevr = nevr;
+}
+
+bool EvrPulseTables::validate(unsigned ncodes,
+                  const EvrConfigType::EventCodeType* codes, 
+                  bool enableReadoutGroup)
+{
+  bool result  = true;
+
+//      int  delay_offset(0);
+//      int primaryReadout=-1;
+//      for(unsigned i=0; i<ncodes; i++) {
+//        if (codes[i].isReadout()) {
+
+//          if (primaryReadout<0) {
+//            primaryReadout=codes[i].code();
+//            delay_offset =
+//              EventcodeTiming::timeslot(140) -
+//              EventcodeTiming::timeslot(codes[i].code());
+//            printf("Adjusting pulse delays %+d ticks for readout eventcode %d\n",
+//                   delay_offset, codes[i].code());
+//          }
+//          else {
+//#if 0
+//            QString msg = QString("Found more than one READOUT code (%1, %2, ...)\n")
+//              .arg(primaryReadout)
+//              .arg(codes[i].code());
+//            msg += QString("Remove all but one.\n");
+//            QMessageBox::warning(0,"",msg);
+//            result = false;
+//#else
+//            int delay = delay_offset -
+//              (EventcodeTiming::timeslot(140) -
+//               EventcodeTiming::timeslot(codes[i].code()));
+//            QString msg = QString("Secondary readout eventcode %1 will produce pulses %2 ticks [%3 ns]\n")
+//              .arg(codes[i].code())
+//              .arg(delay)
+//              .arg(delay*EvrPeriod*1e9);
+//            msg += QString("delayed with respect to primary readout eventcode %1\n").arg(primaryReadout);
+//            QMessageBox::warning(0,"",msg);
+//#endif
+//          }
+//        }
+//      }
+
+  unsigned npt = 0;
+  EvrConfigType::PulseType*     pt = 
+    reinterpret_cast<EvrConfigType::PulseType*>(_pulse_buffer);
+
+  unsigned nom = 0;
+  EvrConfigType::OutputMapType* om = 
+    reinterpret_cast<EvrConfigType::OutputMapType*>(_output_buffer);
+  
+  for(unsigned i=0; i<_nevr; i++) {
+    //printf("Pds_ConfigDb::EvrPulseTables::validate() evr %d\n", i);//!!!debug
+    result &= _evr[i]->validate(ncodes, codes, 
+                                //delay_offset, 
+                                npt, pt,
+                                nom, om,
+                                enableReadoutGroup);
+    npt += _evr[i]->npulses();
+    //printf("Pds_ConfigDb::EvrPulseTables:: evr %d pulse %d \n", i, _evr[i]->npulses());//!!!debug
+    pt  += _evr[i]->npulses();
+    nom += _evr[i]->noutputs();
+    om  += _evr[i]->noutputs();
+  }
+  _npulses  = npt;
+  _noutputs = nom;
+
+  //printf("Pds_ConfigDb::EvrPulseTables:: pulses %d\n", _npulses);//!!!debug
+  return result;
+}
+
 
 #include "Parameters.icc"

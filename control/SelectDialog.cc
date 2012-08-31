@@ -8,14 +8,16 @@
 using namespace Pds;
 
 SelectDialog::SelectDialog(QWidget* parent,
-			   PartitionControl& control) :
+         PartitionControl& control, bool bReadGroupEnable) :
   QDialog  (parent),
-  _pcontrol(control) 
+  _pcontrol(control),
+  _bReadGroupEnable(bReadGroupEnable)
 {
   setWindowTitle("Partition Selection");
 
   QVBoxLayout* layout = new QVBoxLayout(this);
-  layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, _pcontrol.header().platform()));
+  layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, _pcontrol.header().platform(), 
+    (_bReadGroupEnable? 1:2) ));
   layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this, _pcontrol.header().platform()));
   layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this, _pcontrol.header().platform()));
 
@@ -44,16 +46,27 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
   switch(hdr.level()) {
   case Level::Control : _control = hdr; break;
   case Level::Segment : 
-    { _segbox->addNode(NodeSelect(hdr, msg));
-      for(unsigned i=0; i<msg.nsources(); i++) {
-        if (msg.source(i).level()==Level::Reporter) {
+    {       
+      for(unsigned i=0; i<msg.nsources(); i++) 
+      {
+        if (msg.source(i).level()==Level::Reporter) 
+        {
           const BldInfo& bld = static_cast<const BldInfo&>(msg.source(i));
           Node h(hdr);
           h.fixup(StreamPorts::bld(bld.type()).address(),h.ether());
           _rptbox->addNode(NodeSelect(h,bld));
         }
+        ////!!! kludge for adding group
+        //else if (msg.source(i).level()==Level::Source) 
+        //{
+        //   const DetInfo& detInfo = static_cast<const DetInfo&>(msg.source(i));
+        //   if (detInfo.devId() >= 100)
+        //    ((Node&)hdr).setGroup((int)(detInfo.devId() / 100));
+        //}        
       }
-      break; }
+      _segbox->addNode(NodeSelect(hdr, msg));      
+      break; 
+    }
   case Level::Event   : _evtbox->addNode(NodeSelect(hdr, msg)); break;
   default: break;
   }
@@ -99,5 +112,5 @@ void SelectDialog::select() {
 void SelectDialog::check_ready()
 {
   _acceptb->setEnabled(_segbox->ready() && 
-		       _evtbox->ready());
+           _evtbox->ready());
 }

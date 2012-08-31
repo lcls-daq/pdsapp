@@ -17,10 +17,10 @@
 using namespace Pds_ConfigDb;
 
 static void _parse_range(const QString& lo,
-			 const QString& hi,
-			 int steps,
-			 double& v0,
-			 double& dv)
+       const QString& hi,
+       int steps,
+       double& v0,
+       double& dv)
 {
   double x0 = lo.toDouble();
   double x1 = hi.toDouble();
@@ -68,7 +68,7 @@ int EvrScan::write(unsigned step, unsigned nsteps, char* buff) const
 {
   double control_v, control_step;
   _parse_range(_delay_lo->text(), _delay_hi->text(), nsteps,
-	       control_v, control_step);
+         control_v, control_step);
   control_v += double(step)*control_step;
 
   const EvrConfigType& cfg = *reinterpret_cast<const EvrConfigType*>(_buff);
@@ -81,15 +81,16 @@ int EvrScan::write(unsigned step, unsigned nsteps, char* buff) const
 
   new (const_cast<Pds::EvrData::PulseConfigV3*>(&pulse))
     Pds::EvrData::PulseConfigV3(pulse.pulseId(),
-				pulse.polarity(),
-				pulse.prescale(),
-				delay,
-				width);
+        pulse.polarity(),
+        pulse.prescale(),
+        delay,
+        width);
   
   EvrConfigType* c   = new(buff) EvrConfigType(cfg.neventcodes(), &cfg.eventcode (0),
-					       cfg.npulses    (), &cfg.pulse     (0),
-					       cfg.noutputs   (), &cfg.output_map(0),
-                                               cfg.seq_config ());
+                 cfg.npulses    (), &cfg.pulse     (0),
+                 cfg.noutputs   (), &cfg.output_map(0),
+                 cfg.enableReadGroup(),
+                 cfg.seq_config ());
   
   
   return c->size();
