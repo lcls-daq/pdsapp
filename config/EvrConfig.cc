@@ -25,7 +25,6 @@ namespace Pds_ConfigDb
         _neventcodes("Number of Event Codes", 0, 0, MaxEventCodes),      
         _npulses("Number of Pulses", 0, 0, MaxPulses),
         _noutputs("Number of Outputs", 0, 0, MaxOutputs),
-        _enumEnableReadGroup("Enable Readout Group", EvrConfigType::ReadGroupOff, lsEnableReadGroup),
         _eventcodeSet("Event Code Definition", _eventcodeArgs, _neventcodes),        
         _pulseSet("Pulse Definition", _pulseArgs, _npulses),
         _outputSet("Output Definition", _outputArgs, _noutputs)
@@ -53,7 +52,6 @@ namespace Pds_ConfigDb
       pList.insert(&_pulseSet);
       pList.insert(&_noutputs);
       pList.insert(&_outputSet);
-      pList.insert(&_enumEnableReadGroup);
     }
 
     int pull(void *from)
@@ -62,7 +60,6 @@ namespace Pds_ConfigDb
       _neventcodes.value = tc.neventcodes();
       _npulses.value = tc.npulses();
       _noutputs.value = tc.noutputs();
-      _enumEnableReadGroup.value = ( tc.enableReadGroup() != 0 ? EvrConfigType::ReadGroupOn: EvrConfigType::ReadGroupOff );
       
       for (unsigned k = 0; k < tc.neventcodes(); k++)
         _eventcodes[k].pull(const_cast <
@@ -100,7 +97,6 @@ namespace Pds_ConfigDb
               _neventcodes.value, eventcodes,
               _npulses.value,     pc, 
               _noutputs.value,    mo,
-              (uint8_t) _enumEnableReadGroup.value,
               EvrConfigType::SeqConfigType(EvrConfigType::SeqConfigType::Disable,
                                            EvrConfigType::SeqConfigType::Disable,                                           
                                            0, 0, 0));
@@ -123,8 +119,6 @@ namespace Pds_ConfigDb
     NumericInt < unsigned >                 _neventcodes;      
     NumericInt < unsigned >                 _npulses;
     NumericInt < unsigned >                 _noutputs;
-    Enumerated<EvrConfigType::EnumEnableReadGroup> 
-                                            _enumEnableReadGroup;
     EvrEventCode                            _eventcodes[MaxEventCodes];
     EvrPulseConfig                          _pulses[MaxPulses];
     EvrOutputMap                            _outputs[MaxOutputs];

@@ -225,7 +225,6 @@ namespace Pds_ConfigDb {
         *new(to) EvrConfigType( _code_table ->ncodes  (),_code_table->codes  (),
                                 _pulse_table->npulses (),_pulse_table->pulses (),
                                 _pulse_table->noutputs(),_pulse_table->outputs(),
-                                (_code_table->enableReadoutGroup() ? 1 : 0),
                                 _seq_config ->result() );
       //printf("Pds_ConfigDb::EvrConfigP::Private_Data::push(): end\n"); //!!!debug
       //tc.print(); //!!!debug
@@ -247,8 +246,7 @@ namespace Pds_ConfigDb {
       //printf("Pds_ConfigDb::EvrConfigP::Private_Data::validate(): begin:  pulse %d\n", _pulse_table->npulses ()); //!!!debug
       bool v = _code_table   ->validate();
       v = v && _pulse_table  ->validate(_code_table->ncodes(),
-                                        _code_table->codes (),
-                                        _code_table->enableReadoutGroup());
+                                        _code_table->codes () );
       v = v && _seq_config   ->validate();
       //printf("Pds_ConfigDb::EvrConfigP::Private_Data::validate(): end:  pulse %d\n", _pulse_table->npulses ()); //!!!debug      
       return v;

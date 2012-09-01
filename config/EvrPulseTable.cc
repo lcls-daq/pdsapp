@@ -247,7 +247,7 @@ void EvrPulseTable::pull(const EvrConfigType& tc) {
     update_enable(npulses++);
   }  
   
-  setReadGroupEnable(tc.enableReadGroup() != 0);  
+  //setReadGroupEnable(tc.enableReadGroup() != 0);  //!!!testset
 }
 
 unsigned EvrPulseTable::npulses() const {
@@ -263,10 +263,11 @@ bool EvrPulseTable::validate(unsigned ncodes,
                              const EvrConfigType::EventCodeType* codes,
                              //int delay_offset,
                              unsigned p0, EvrConfigType::PulseType* pt,
-                             unsigned o0, EvrConfigType::OutputMapType* om,
-                             bool enableReadoutGroup)
+                             unsigned o0, EvrConfigType::OutputMapType* om
+                             )
+                             //bool enableReadoutGroup) //!!!testset
 {
-  setReadGroupEnable(enableReadoutGroup);
+  //setReadGroupEnable(enableReadoutGroup); //!!!testset
   
   unsigned npt = 0;
   unsigned nom = 0;
@@ -605,8 +606,8 @@ void EvrPulseTables::pull    (const EvrConfigType& tc)
 }
 
 bool EvrPulseTables::validate(unsigned ncodes,
-                  const EvrConfigType::EventCodeType* codes, 
-                  bool enableReadoutGroup)
+                  const EvrConfigType::EventCodeType* codes)
+                  // bool enableReadoutGroup) //!!! testset
 {
   bool result  = true;
 
@@ -659,8 +660,9 @@ bool EvrPulseTables::validate(unsigned ncodes,
     result &= _evr[i]->validate(ncodes, codes, 
                                 //delay_offset, 
                                 npt, pt,
-                                nom, om,
-                                enableReadoutGroup);
+                                nom, om
+                                );
+                                //enableReadoutGroup); //!!!testset
     npt += _evr[i]->npulses();
     //printf("Pds_ConfigDb::EvrPulseTables:: evr %d pulse %d \n", i, _evr[i]->npulses());//!!!debug
     pt  += _evr[i]->npulses();

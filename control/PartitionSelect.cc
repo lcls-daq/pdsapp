@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 #include "pdsapp/control/SelectDialog.hh"
 #include "pds/management/PlatformCallback.hh"
 #include "pds/management/PartitionControl.hh"
@@ -190,26 +191,45 @@ bool PartitionSelect::_checkReadGroupEnable()
     return false;
   }
   
-  char config[sizeof(EvrConfigType)];
-  int iSizeRead = ::read(fdConfig, &config, sizeof(EvrConfigType));
-  if (iSizeRead != sizeof(EvrConfigType))
+  static const unsigned MaxUserCodes      = 16;
+  static const unsigned MaxGlobalCodes    = 4;  
+  int iMaxEvrDataSize = sizeof(EvrConfigType) + (MaxUserCodes+MaxGlobalCodes) * sizeof(EvrConfigType::EventCodeType);
+  char* lcConfigBuffer = (char*) malloc( iMaxEvrDataSize );
+  if ( lcConfigBuffer == NULL )
   {
-    printf("PartitionSelect::_checkReadGroupEnable():: Read config data of smaller size. Read size = %d (should be %d) bytes\n",
-      iSizeRead, sizeof(EvrConfigType));
+    printf("PartitionSelect::_checkReadGroupEnable(): malloc(%d) failed. Error: %s\n", iMaxEvrDataSize, strerror(errno));      
     return false;
   }
-
+    
+  int iSizeRead = ::read(fdConfig, lcConfigBuffer, iMaxEvrDataSize);
+  if (iSizeRead == -1 )
+  {
+    printf("PartitionSelect::_checkReadGroupEnable():: Read failed. Error: %s\n", strerror(errno));      
+    ::close(fdConfig);
+    return false;
+  }
+    
   int iCloseFail = ::close(fdConfig);
   if ( iCloseFail == -1 )
   {
-    printf("PartitionSelect::_checkReadGroupEnable(): Close Evr config file (%s) failed\n", strConfigPath);      
+    printf("PartitionSelect::_checkReadGroupEnable(): Close Evr config file (%s) failed. Error: %s\n", strConfigPath, strerror(errno));      
     return false;
   }
   
-  EvrConfigType& evrConfig = (EvrConfigType&) config;
-  printf("Evr config event %d pulse %d output %d readGroup %s\n", 
-    evrConfig.neventcodes(), evrConfig.npulses(), evrConfig.noutputs(), 
-    (evrConfig.enableReadGroup() != 0 ? "On" : "Off"));
+  EvrConfigType& evrConfig  = (EvrConfigType&) *(EvrConfigType*) lcConfigBuffer;    
+    
+  printf("Evr config event %d pulse %d output %d\n", 
+    evrConfig.neventcodes(), evrConfig.npulses(), evrConfig.noutputs() );
 
-  return (evrConfig.enableReadGroup() != 0);
+  bool bEneableReadoutGroup = false;
+  for(unsigned i=0; i<evrConfig.neventcodes(); i++) 
+  {
+    const EvrConfigType::EventCodeType& e = evrConfig.eventcode(i);
+    if (e.readoutGroup() > 1)
+      bEneableReadoutGroup = true;
+  }
+  
+  free(lcConfigBuffer);
+    
+  return bEneableReadoutGroup;
 }

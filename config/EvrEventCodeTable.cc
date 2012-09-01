@@ -78,9 +78,7 @@ void EvrEventCodeTable::insert(Pds::LinkedList<Parameter>& pList)
 }
 
 void EvrEventCodeTable::pull(const EvrConfigType& cfg) 
-{
-  _cbEnableReadGroup->setCurrentIndex((cfg.enableReadGroup() != EvrConfigType::ReadGroupOff)? 1 : 0);    
-  
+{  
   for(unsigned i=0; i<MaxUserCodes; i++)
     _seq_code[i].set_enable(false);
 
@@ -91,8 +89,11 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
   unsigned min_seq = 256;
   unsigned nglb=0;
 
+  bool bEneableReadoutGroup = false;
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
     const EvrConfigType::EventCodeType& e = cfg.eventcode(i);
+    if (e.readoutGroup() > 1)
+      bEneableReadoutGroup = true;
     if (EvrGlbEventDesc::global_code(e.code())) {
       _glb_code[nglb++].pull(e);
       continue;
@@ -102,6 +103,8 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
     if (e.code() < min_seq)
       min_seq = e.code();
   }
+  
+  _cbEnableReadGroup->setCurrentIndex(bEneableReadoutGroup? 1 : 0);      
 
   if ( min_seq == 256 )
   {
