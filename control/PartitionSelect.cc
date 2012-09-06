@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <set>
 #include "pdsapp/control/SelectDialog.hh"
 #include "pds/management/PlatformCallback.hh"
 #include "pds/management/PartitionControl.hh"
@@ -128,21 +129,31 @@ const QList<BldInfo >& PartitionSelect::reporters() const { return _reporters ; 
 bool PartitionSelect::_validate(unsigned bld_mask) 
 {
   bool lEvent  =false;
+  bool lError  =false;
+  bool lWarning=false;
+  QString errorMsg;
+
   for(unsigned i=0; i<_nnodes; i++) {
     lEvent   |= (_nodes[i].level()==Level::Event);
   }
 
   bool lEvr    =false;
   bool lBld    =false;
+  std::pair<std::set<std::string>::iterator,bool> insertResult;
+  std::set<std::string> unique_names;
   foreach(DetInfo info, _detectors) {
     lEvr     |= (info.device  ()==DetInfo::Evr);
     lBld     |= (info.detector()==DetInfo::BldEb);
+    // check for duplicate device name
+    insertResult = unique_names.insert(DetInfo::name(info));
+    if (!(insertResult.second)) {
+      lError = true;
+      errorMsg += "Duplicate devices selected: ";
+      errorMsg += DetInfo::name(info);
+      errorMsg += "\n";
+    }
   }
 
-  bool lError  =false;
-  bool lWarning=false;
-
-  QString errorMsg;
   if (!lEvent) {
     lError = true;
     errorMsg += "No Processing Node selected.\n";
