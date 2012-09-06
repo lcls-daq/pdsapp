@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <string>
+#include <errno.h>
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/epics/EpicsXtcSettings.hh"
 
@@ -133,12 +134,13 @@ using namespace Pds;
 static void showUsage()
 {
     printf( "Usage:  epicsArch  [-v|--version] [-h|--help] [-i|--interval <min trigger interval>] "
-      "[-d|--debug <debug level>] -p|--platform <platform>  -f <config filename>\n" 
+      "[-d|--debug <debug level>] [-u|--unit <unit #> -p|--platform <platform>  -f <config filename>\n" 
       "  Options:\n"
       "    -v|--version       Show file version\n"
       "    -h|--help          Show usage\n"
       "    -d|--debug         Set debug level\n"
       "    -i|--interval      Set minimum trigger interval, in seconds (float number) [Default: 1.0]\n"
+      "    -u|--unit          Set unit number [Default: 0]\n"
       "    -f|--file          [*required*] Set configuration filename\n"
       "    -p|--platform      [*required*] Set platform id\n"
       " ================================================================================\n"
@@ -167,13 +169,13 @@ int main(int argc, char** argv)
     const char*         strOptions  = ":vhi:d:p:f:u:";
     const struct option loOptions[] = 
     {
-       {"ver",      0, 0, 'v'},
+       {"version",  0, 0, 'v'},
        {"help",     0, 0, 'h'},
        {"debug",    1, 0, 'd'},
        {"interval", 1, 0, 'i'},
        {"platform", 1, 0, 'p'},
        {"file",     1, 0, 'f'},
-       {"unit",     0, 0, 'u'},
+       {"unit",     1, 0, 'u'},
        {0,          0, 0,  0  }
     };    
     
@@ -184,6 +186,7 @@ int main(int argc, char** argv)
     int     iUnit               = 0;
 
     int     iOptionIndex        = 0;
+    char *  endptr;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
@@ -200,13 +203,21 @@ int main(int argc, char** argv)
             fMinTriggerInterval = (float) strtod(optarg, NULL);
             break;            
         case 'p':
-            iPlatform = strtoul(optarg, NULL, 0);
+            errno = 0;
+            iPlatform = strtoul(optarg, &endptr, 0);
+            if ((optarg == endptr) || errno) {
+              printf( "epicsArch:main(): Invalid platform number\n");
+            }
             break;
         case 'f':
             sFnConfig = optarg;
             break;
         case 'u':
-            iUnit = strtoul(optarg, NULL, 0);
+            errno = 0;
+            iUnit = strtoul(optarg, &endptr, 0);
+            if ((optarg == endptr) || errno) {
+              printf( "epicsArch:main(): Invalid unit number\n");
+            }
             break;
         case '?':               /* Terse output mode */
             printf( "epicsArch:main(): Unknown option: %c\n", optopt );
