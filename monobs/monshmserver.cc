@@ -31,8 +31,9 @@ public:
   LiveMonitorServer(const char* tag,
 		    unsigned sizeofBuffers, 
 		    int numberofEvBuffers, 
-		    unsigned numberofClients) : 
-    XtcMonitorServer(tag, sizeofBuffers, numberofEvBuffers, numberofClients),
+		    unsigned numberofClients,
+                    unsigned numberofEvQueues) : 
+    XtcMonitorServer(tag, sizeofBuffers, numberofEvBuffers, numberofClients, numberofEvQueues),
     _pool           (new GenericPool(sizeof(ZcpDatagramIterator),2))
   {
   }
@@ -128,7 +129,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c <# clients>] [-u <uniqueID>]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c <# clients>] [-q <# event queues>] [-u <uniqueID>]\n", progname);
 }
 
 LiveMonitorServer* apps;
@@ -145,6 +146,7 @@ int main(int argc, char** argv) {
   int numberOfBuffers = 0;
   unsigned sizeOfBuffers = 0;
   unsigned nclients = 1;
+  unsigned nevqueues = 0;
   unsigned node =  0xffff0;
   char partitionTag[80] = "";
   const char* uniqueID = 0;
@@ -152,7 +154,7 @@ int main(int argc, char** argv) {
   (void) signal(SIGINT, sigfunc);
   if (prctl(PR_SET_PDEATHSIG, SIGINT) < 0) printf("Changing death signal failed!\n");
   int c;
-  while ((c = getopt(argc, argv, "p:i:n:P:s:c:u:")) != -1) {
+  while ((c = getopt(argc, argv, "p:i:n:P:s:c:q:u:")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -174,6 +176,9 @@ int main(int argc, char** argv) {
       break;
     case 'c':
       nclients = strtoul(optarg, NULL, 0);
+      break;
+    case 'q':
+      nevqueues = strtoul(optarg, NULL, 0);
       break;
     case 's':
       sizeOfBuffers = (unsigned) strtoul(optarg, NULL, 0);
@@ -205,7 +210,7 @@ int main(int argc, char** argv) {
   printf("\nPartition Tag:%s\n", partitionTag);
 
 
-  apps = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nclients);
+  apps = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nclients, nevqueues);
   if (apps) {
     Task* task = new Task(Task::MakeThisATask);
     MyCallback* display = new MyCallback(task, 
