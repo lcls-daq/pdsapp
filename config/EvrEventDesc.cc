@@ -166,14 +166,12 @@ void EvrEventDesc::push(EvrConfigType::EventCodeType* c) const
     break;
   case Transient: // Transient
     *new(c) EvrConfigType::EventCodeType(get_code(),
-                                         0, // default group 0
                                          _desc.value, false,
                                          _trans_delay.value,
                                          _trans_width.value);
     break;
   case Latch: // Latch
     *new(c) EvrConfigType::EventCodeType(get_code(),
-                                         0, // default group 0
                                          _desc.value, true,
                                          _latch_delay  .value,
                                          _latch_release.value);

@@ -30,7 +30,6 @@ namespace Pds_ConfigDb
                   //int delay_offset,
                   unsigned, EvrConfigType::PulseType*,
                   unsigned, EvrConfigType::OutputMapType*);
-                  //bool enableReadoutGroup); //!!!testset
 
     unsigned npulses () const;
     unsigned noutputs() const;
@@ -86,7 +85,6 @@ namespace Pds_ConfigDb
     void     pull    (const EvrConfigType& tc);
     bool     validate(unsigned ncodes,
                       const EvrConfigType::EventCodeType* codes);
-                      //bool enableReadoutGroup); //!!! testset
     unsigned                            npulses () const { return _npulses; }
     const EvrConfigType::PulseType*     pulses () const 
     { return reinterpret_cast<const EvrConfigType::PulseType*>(_pulse_buffer); }

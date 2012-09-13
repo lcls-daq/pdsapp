@@ -23,6 +23,7 @@ DefineXtcType(EvrConfig) ;
 
 #include "pdsdata/evr/ConfigV5.hh"
 #include "pdsdata/evr/ConfigV6.hh"
+#include "pdsdata/evr/ConfigV7.hh"
 
 static const double EvrPeriod = 1./119e6;
 
@@ -44,6 +45,11 @@ static PyObject* get_EventCodeV5(const Pds::EvrData::EventCodeV5& eventcode)
   PyDict_SetItemString(ec, "reportDelay", PyLong_FromUnsignedLong(eventcode.reportDelay()));
   PyDict_SetItemString(ec, "reportWidth", PyLong_FromUnsignedLong(eventcode.reportWidth()));
   PyDict_SetItemString(ec, "releaseCode", PyLong_FromUnsignedLong(eventcode.reportWidth()));
+  
+  PyDict_SetItemString(ec, "maskTrigger", PyLong_FromUnsignedLong(eventcode.maskTrigger()));
+  PyDict_SetItemString(ec, "maskSet", PyLong_FromUnsignedLong(eventcode.maskSet()));
+  PyDict_SetItemString(ec, "maskClear", PyLong_FromUnsignedLong(eventcode.maskClear()));
+
   return ec;
 }
 
@@ -52,18 +58,20 @@ static bool set_EventCodeV5(Pds::EvrData::EventCodeV5& eventcode, PyObject* o)
   const char* type = 0;
   { PyObject* data = PyDict_GetItemString(o,"type");
     if (data)  type = PyString_AsString(data);  }
-
-  uint16_t code=0;  SetDictMemberU("code",code);
+    
+  uint16_t code=0;         SetDictMemberU("code",code);
   uint32_t reportDelay=0;  SetDictMemberU("reportDelay",reportDelay);
   uint32_t reportWidth=1;  SetDictMemberU("reportWidth",reportWidth);
   uint32_t releaseCode=0;  SetDictMemberU("releaseCode",releaseCode);
+  uint32_t maskTrigger=0;  SetDictMemberU("maskTrigger",maskTrigger);
+  uint32_t maskSet=0;      SetDictMemberU("maskSet",maskSet);
+  uint32_t maskClear=0;    SetDictMemberU("maskClear",maskClear);
  
   if (strcasecmp(type,"Readout")==0) {
-    uint32_t zero(0);
     new (&eventcode) 
       Pds::EvrData::EventCodeV5(code, 
                                 PyString_AsString(PyDict_GetItemString(o,"desc")),
-                                zero,zero,zero);
+                                maskTrigger,maskSet,maskClear);
   }
   else if (strcasecmp(type,"Command")==0) {
     new (&eventcode) 
@@ -81,6 +89,86 @@ static bool set_EventCodeV5(Pds::EvrData::EventCodeV5& eventcode, PyObject* o)
   else if (strcasecmp(type,"Control")==0) {
     new (&eventcode) 
       Pds::EvrData::EventCodeV5(code, 
+                                PyString_AsString(PyDict_GetItemString(o,"desc")),
+                                false,
+                                reportDelay,
+                                reportWidth);
+  }
+  else {
+    char buff[128];
+    sprintf(buff,"Unknown eventcode type %s {Readout,Command,Control,Latch}",type);
+    PyErr_SetString(PyExc_RuntimeError,buff);
+    return false;
+  }
+  return true;
+}
+
+static PyObject* get_EventCodeV6(const Pds::EvrData::EventCodeV6& eventcode)
+{
+  PyObject* ec = PyDict_New();
+  PyDict_SetItemString(ec, "code", PyLong_FromUnsignedLong(eventcode.code()));
+  PyDict_SetItemString(ec, "desc", PyString_FromString(eventcode.desc()));
+
+  if (eventcode.isReadout())
+    PyDict_SetItemString(ec, "type", PyString_FromString("Readout"));
+  else if (eventcode.isCommand())
+    PyDict_SetItemString(ec, "type", PyString_FromString("Command"));
+  else if (eventcode.isLatch())
+   PyDict_SetItemString(ec, "type", PyString_FromString("Latch"));
+  else
+    PyDict_SetItemString(ec, "type", PyString_FromString("Control"));
+
+  PyDict_SetItemString(ec, "reportDelay", PyLong_FromUnsignedLong(eventcode.reportDelay()));
+  PyDict_SetItemString(ec, "reportWidth", PyLong_FromUnsignedLong(eventcode.reportWidth()));
+  PyDict_SetItemString(ec, "releaseCode", PyLong_FromUnsignedLong(eventcode.reportWidth()));
+
+  PyDict_SetItemString(ec, "maskTrigger", PyLong_FromUnsignedLong(eventcode.maskTrigger()));
+  PyDict_SetItemString(ec, "maskSet", PyLong_FromUnsignedLong(eventcode.maskSet()));
+  PyDict_SetItemString(ec, "maskClear", PyLong_FromUnsignedLong(eventcode.maskClear()));
+  
+  PyDict_SetItemString(ec, "readoutGroup", PyLong_FromUnsignedLong(eventcode.readoutGroup()));
+  
+  return ec;
+}
+
+static bool set_EventCodeV6(Pds::EvrData::EventCodeV6& eventcode, PyObject* o)
+{
+  const char* type = 0;
+  { PyObject* data = PyDict_GetItemString(o,"type");
+    if (data)  type = PyString_AsString(data);  }
+
+  uint16_t code=0;  SetDictMemberU("code",code);
+  uint32_t reportDelay=0;  SetDictMemberU("reportDelay",reportDelay);
+  uint32_t reportWidth=1;  SetDictMemberU("reportWidth",reportWidth);
+  uint32_t releaseCode=0;  SetDictMemberU("releaseCode",releaseCode);
+  uint32_t maskTrigger=0;  SetDictMemberU("maskTrigger",maskTrigger);
+  uint32_t maskSet=0;      SetDictMemberU("maskSet",maskSet);
+  uint32_t maskClear=0;    SetDictMemberU("maskClear",maskClear);
+  uint16_t readoutGroup=1; SetDictMemberU("readoutGroup",readoutGroup);
+ 
+  if (strcasecmp(type,"Readout")==0) {
+    new (&eventcode) 
+      Pds::EvrData::EventCodeV6(code, 
+                                readoutGroup,
+                                PyString_AsString(PyDict_GetItemString(o,"desc")),
+                                maskTrigger,maskSet,maskClear);
+  }
+  else if (strcasecmp(type,"Command")==0) {
+    new (&eventcode) 
+      Pds::EvrData::EventCodeV6(code, 
+                                PyString_AsString(PyDict_GetItemString(o,"desc")));
+  }
+  else if (strcasecmp(type,"Latch")==0) {
+    new (&eventcode) 
+      Pds::EvrData::EventCodeV6(code, 
+                                PyString_AsString(PyDict_GetItemString(o,"desc")),
+                                true,
+                                reportDelay,
+                                releaseCode);
+  }
+  else if (strcasecmp(type,"Control")==0) {
+    new (&eventcode) 
+      Pds::EvrData::EventCodeV6(code, 
                                 PyString_AsString(PyDict_GetItemString(o,"desc")),
                                 false,
                                 reportDelay,
@@ -194,7 +282,7 @@ PyObject* pds_EvrConfig_get (PyObject*   self, PyObject* args)
     { unsigned neventcodes = v->neventcodes();
       PyObject* eventcodes = PyList_New(neventcodes);
       for(unsigned j=0; j<neventcodes; j++)
-	PyList_SetItem(eventcodes, j, get_EventCodeV5(v->eventcode(j)));
+  PyList_SetItem(eventcodes, j, get_EventCodeV5(v->eventcode(j)));
       PyDict_SetItemString(o, "eventcodes", eventcodes);
     }
     { unsigned npulses = v->npulses();
@@ -218,7 +306,31 @@ PyObject* pds_EvrConfig_get (PyObject*   self, PyObject* args)
     { unsigned neventcodes = v->neventcodes();
       PyObject* eventcodes = PyList_New(neventcodes);
       for(unsigned j=0; j<neventcodes; j++)
-	PyList_SetItem(eventcodes, j, get_EventCodeV5(v->eventcode(j)));
+      PyList_SetItem(eventcodes, j, get_EventCodeV5(v->eventcode(j)));
+      PyDict_SetItemString(o, "eventcodes", eventcodes);
+    }
+    { unsigned npulses = v->npulses();
+      PyObject* pulses = PyList_New(npulses);
+      for(unsigned j=0; j<npulses; j++)
+        PyList_SetItem(pulses, j, get_PulseConfigV3(v->pulse(j)));
+      PyDict_SetItemString(o, "pulses", pulses);
+    }
+    { unsigned noutputs = v->noutputs();
+      PyObject* outputs = PyList_New(noutputs);
+      for(unsigned j=0; j<noutputs; j++)
+        PyList_SetItem(outputs, j, get_OutputMapV2(v->output_map(j)));
+      PyDict_SetItemString(o, "outputs", outputs);
+    }
+    return o;
+  }
+  else if (xtc->contains.version()==7) {
+    const Pds::EvrData::ConfigV7* v = 
+      reinterpret_cast<const Pds::EvrData::ConfigV7*>(xtc->payload);
+
+    { unsigned neventcodes = v->neventcodes();
+      PyObject* eventcodes = PyList_New(neventcodes);
+      for(unsigned j=0; j<neventcodes; j++)
+      PyList_SetItem(eventcodes, j, get_EventCodeV6(v->eventcode(j)));
       PyDict_SetItemString(o, "eventcodes", eventcodes);
     }
     { unsigned npulses = v->npulses();
@@ -370,6 +482,74 @@ PyObject* pds_EvrConfig_set    (PyObject*   self, PyObject* args)
 
     char* p = new char[sz];
     new(p) Pds::EvrData::ConfigV6(neventcodes, p_eventcodes,
+                                  npulses,     p_pulses,
+                                  noutputs,    p_outputs,
+                                  noSequencer);
+    
+
+    delete[] xtc->payload;
+
+    xtc->extent  = sz;
+    xtc->payload = p;
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else if (xtc->contains.version()==7) {
+
+    Pds::EvrData::EventCodeV6*   p_eventcodes = 0;
+    Pds::EvrData::PulseConfigV3* p_pulses     = 0;
+    Pds::EvrData::OutputMapV2*   p_outputs    = 0;
+
+    unsigned neventcodes = 0;
+    unsigned npulses = 0;
+    unsigned noutputs = 0;
+
+    PyObject* eventcodes = PyDict_GetItemString(o,"eventcodes");
+    if (eventcodes) {
+      neventcodes = PyList_Size(eventcodes);
+      p_eventcodes = new Pds::EvrData::EventCodeV6[neventcodes];
+      for(unsigned j=0; j<neventcodes; j++)
+        if (!set_EventCodeV6(p_eventcodes[j],PyList_GetItem(eventcodes,j)))
+          return NULL;
+    }
+    else {
+      PyErr_SetString(PyExc_RuntimeError,"No eventcodes defined");
+      return NULL;
+    }
+
+    PyObject* pulses = PyDict_GetItemString(o,"pulses");
+    if (pulses) {
+      npulses = PyList_Size(pulses);
+      p_pulses = new Pds::EvrData::PulseConfigV3[npulses];
+      for(unsigned j=0; j<npulses; j++)
+        if (!set_PulseConfigV3(p_pulses[j],PyList_GetItem(pulses,j)))
+          return NULL;
+    }
+
+    PyObject* outputs = PyDict_GetItemString(o,"outputs");
+    if (outputs) {
+      noutputs = PyList_Size(outputs);
+      p_outputs = new Pds::EvrData::OutputMapV2[noutputs];
+      for(unsigned j=0; j<noutputs; j++)
+        if (!set_OutputMapV2(p_outputs[j],PyList_GetItem(outputs,j)))
+          return NULL;
+    }
+
+    Pds::EvrData::SequencerConfigV1 noSequencer(Pds::EvrData::SequencerConfigV1::Disable,
+                                                Pds::EvrData::SequencerConfigV1::Disable,
+                                                0, 0, 0);
+
+    printf("neventcodes %d  npulses %d  noutputs %d\n", neventcodes, npulses, noutputs);
+
+    unsigned sz =      neventcodes*sizeof(Pds::EvrData::EventCodeV6) +
+                       npulses    *sizeof(Pds::EvrData::PulseConfigV3) +
+                       noutputs   *sizeof(Pds::EvrData::OutputMapV2) +
+                       sizeof(Pds::EvrData::ConfigV7) +
+                       sizeof(Pds::EvrData::SequencerConfigV1);
+
+    char* p = new char[sz];
+    new(p) Pds::EvrData::ConfigV7(neventcodes, p_eventcodes,
                                   npulses,     p_pulses,
                                   noutputs,    p_outputs,
                                   noSequencer);
