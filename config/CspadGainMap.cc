@@ -35,6 +35,18 @@ static const int yo[] = { _length+8, _length+8,
 			  4, 4,
 			  4, _width+6 };
 static const int frame = 134;
+static const unsigned rotation[] = { 0, 1, 2, 1 };
+
+static void setChildrenVisible(QLayout* l, bool v)
+{
+  for(int i=0; i<l->count(); i++) {
+    QLayoutItem* item = l->itemAt(i);
+    if (item->widget())
+      item->widget()->setVisible(v);
+    else if (item->layout())
+      setChildrenVisible(item->layout(), v);
+  }
+}
 
 namespace Pds_ConfigDb {
 
@@ -44,6 +56,7 @@ namespace Pds_ConfigDb {
       _parent(parent), _quad(q),
       _gainMap(new Pds::CsPad::CsPadGainMapCfg) 
     { setFrameStyle (QFrame::NoFrame);
+      memset(_gainMap, 0, sizeof(*_gainMap));
       update_sections(0); }
     ~QuadGainMap() { delete _gainMap; }
   public:
@@ -95,7 +108,7 @@ namespace Pds_ConfigDb {
 
   class SectionDisplay : public QLabel {
   public:
-    SectionDisplay() : QLabel(0)
+    SectionDisplay(QLayout& h, QLayout& v) : QLabel(0), _h(h), _v(v)
     {
       setFrameStyle(QFrame::NoFrame);
     }
@@ -104,6 +117,7 @@ namespace Pds_ConfigDb {
                                 unsigned quad, 
                                 unsigned section) 
     {
+#if 0
       const unsigned SIZE = ROWS*2 + 8;
       QPixmap* image = new QPixmap(SIZE,SIZE);
       
@@ -113,6 +127,19 @@ namespace Pds_ConfigDb {
       const unsigned col0=(SIZE-COLS)/2;
       const unsigned row0= SIZE/2+1+ROWS;
       const unsigned row1= SIZE/2-1;
+#else
+      const unsigned HGT = ROWS*2 + 8;
+      const unsigned WDT = COLS + 8;
+
+      QPixmap* image = new QPixmap(WDT,HGT);
+      
+      QRgb bg = QPalette().color(QPalette::Window).rgb();
+      image->fill(bg);
+
+      const unsigned col0=(WDT-COLS)/2;
+      const unsigned row0= HGT/2+1+ROWS;
+      const unsigned row1= HGT/2-1;
+#endif
       unsigned asic0=(section<<1)+0;
       unsigned asic1=(section<<1)+1;
       QRgb fg;
@@ -129,12 +156,23 @@ namespace Pds_ConfigDb {
         }
       }
       
-      static const unsigned rotation[] = { 0, 1, 2, 1 };
       unsigned rot = quad + rotation[section>>1];
       QTransform transform(QTransform().rotate(90*rot));
       setPixmap(image->transformed(transform));
       setFrameStyle(QFrame::NoFrame);
+
+      if (rot&1) {
+        setChildrenVisible(&_h,true );
+        setChildrenVisible(&_v,false);
+      }
+      else {
+        setChildrenVisible(&_h,false);
+        setChildrenVisible(&_v,true );
+      }
     }
+  private:
+    QLayout& _h;
+    QLayout& _v;
   };
 };
 
@@ -160,23 +198,58 @@ void CspadGainMap::initialize(QWidget* parent, QVBoxLayout* layout)
   QPushButton* exportB = new QPushButton("Export Text File");
   l->addWidget(importB);
   l->addWidget(exportB);
-  QGridLayout* gl = new QGridLayout;
-  gl->addWidget(_quad[0] = new QuadGainMap(*this,0),0,0,::Qt::AlignBottom|::Qt::AlignRight);
-  gl->addWidget(_quad[1] = new QuadGainMap(*this,1),0,1,::Qt::AlignBottom|::Qt::AlignLeft);
-  gl->addWidget(_quad[3] = new QuadGainMap(*this,3),1,0,::Qt::AlignTop   |::Qt::AlignRight);
-  gl->addWidget(_quad[2] = new QuadGainMap(*this,2),1,1,::Qt::AlignTop   |::Qt::AlignLeft);
-  l->addLayout(gl);
-  l->addWidget(_display = new SectionDisplay);
-  { QHBoxLayout* hl = new QHBoxLayout;
-    QPushButton* setB = new QPushButton("Set Section");
-    QPushButton* clrB = new QPushButton("Clear Section");
-    connect(setB, SIGNAL(clicked()), this, SLOT(set_section()));
-    connect(clrB, SIGNAL(clicked()), this, SLOT(clear_section()));
-    hl->addStretch();
-    hl->addWidget(setB);
-    hl->addWidget(clrB);
-    hl->addStretch();
-    l->addLayout(hl); }
+  l->addStretch();
+  { QGridLayout* gl = new QGridLayout;
+    gl->addWidget(_quad[0] = new QuadGainMap(*this,0),0,0,::Qt::AlignBottom|::Qt::AlignRight);
+    gl->addWidget(_quad[1] = new QuadGainMap(*this,1),0,1,::Qt::AlignBottom|::Qt::AlignLeft);
+    gl->addWidget(_quad[3] = new QuadGainMap(*this,3),1,0,::Qt::AlignTop   |::Qt::AlignRight);
+    gl->addWidget(_quad[2] = new QuadGainMap(*this,2),1,1,::Qt::AlignTop   |::Qt::AlignLeft);
+    l->addLayout(gl); }
+  { QGridLayout* gl = new QGridLayout;
+    QLayout *hcl, *vcl;
+    { QVBoxLayout* vl = new QVBoxLayout;
+      vl->addStretch();
+      { QPushButton* setB = new QPushButton("Set ASIC");
+        QPushButton* clrB = new QPushButton("Clear ASIC");
+        connect(setB, SIGNAL(clicked()), this, SLOT(set_asic0()));
+        connect(clrB, SIGNAL(clicked()), this, SLOT(clear_asic0()));
+        vl->addWidget(setB);
+        vl->addWidget(clrB); }
+      vl->addStretch();
+      { QPushButton* setB = new QPushButton("Set ASIC");
+        QPushButton* clrB = new QPushButton("Clear ASIC");
+        connect(setB, SIGNAL(clicked()), this, SLOT(set_asic1()));
+        connect(clrB, SIGNAL(clicked()), this, SLOT(clear_asic1()));
+        vl->addWidget(setB);
+        vl->addWidget(clrB); }
+      vl->addStretch();
+      vcl = vl;
+      gl->addLayout(vl,0,1); }
+    { QHBoxLayout* hl = new QHBoxLayout;
+      hl->addStretch();
+      { QVBoxLayout* vl = new QVBoxLayout;
+        QPushButton* setB = new QPushButton("Set ASIC");
+        QPushButton* clrB = new QPushButton("Clear ASIC");
+        connect(setB, SIGNAL(clicked()), this, SLOT(set_asic1()));
+        connect(clrB, SIGNAL(clicked()), this, SLOT(clear_asic1()));
+        vl->addWidget(setB);
+        vl->addWidget(clrB); 
+        hl->addLayout(vl); }
+      hl->addStretch();
+      { QVBoxLayout* vl = new QVBoxLayout;
+        QPushButton* setB = new QPushButton("Set ASIC");
+        QPushButton* clrB = new QPushButton("Clear ASIC");
+        connect(setB, SIGNAL(clicked()), this, SLOT(set_asic0()));
+        connect(clrB, SIGNAL(clicked()), this, SLOT(clear_asic0()));
+        vl->addWidget(setB);
+        vl->addWidget(clrB);
+        hl->addLayout(vl); }
+      hl->addStretch();
+      hcl = hl;
+      gl->addLayout(hl,1,0); }
+    gl->addWidget(_display = new SectionDisplay(*hcl,*vcl),0,0);
+    l->addLayout(gl); 
+    l->addStretch(); }
   box->setLayout(l);
   layout->addWidget(box);
 
@@ -278,9 +351,12 @@ void CspadGainMap::export_()
   }
 }
 
-void CspadGainMap::set_section()
+void CspadGainMap::set_asic0()
 {
-  uint16_t m = 0x3 << (2*_s);
+  unsigned rot = _q + rotation[_s>>1];
+  uint16_t m = rot&2 ? 0x1 : 0x2;
+  m <<= (2*_s);
+
   Pds::CsPad::CsPadGainMapCfg::GainMap& map = *_quad[_q]->gainMap()->map();
   for(unsigned col=0; col<COLS; col++)
     for(unsigned row=0; row<ROWS; row++)
@@ -289,13 +365,44 @@ void CspadGainMap::set_section()
   _display->update_map(_quad[_q]->gainMap(), _q, _s);
 }
 
-void CspadGainMap::clear_section()
+void CspadGainMap::set_asic1()
 {
-  uint16_t m = ~(0x3 << (2*_s));
+  unsigned rot = _q + rotation[_s>>1];
+  uint16_t m = rot&2 ? 0x2 : 0x1;
+  m <<= (2*_s);
+
   Pds::CsPad::CsPadGainMapCfg::GainMap& map = *_quad[_q]->gainMap()->map();
   for(unsigned col=0; col<COLS; col++)
     for(unsigned row=0; row<ROWS; row++)
-      map[col][row] &= m;
+      map[col][row] |= m;
+
+  _display->update_map(_quad[_q]->gainMap(), _q, _s);
+}
+
+void CspadGainMap::clear_asic0()
+{
+  unsigned rot = _q + rotation[_s>>1];
+  uint16_t m = rot&2 ? 0x1 : 0x2;
+  m <<= (2*_s);
+
+  Pds::CsPad::CsPadGainMapCfg::GainMap& map = *_quad[_q]->gainMap()->map();
+  for(unsigned col=0; col<COLS; col++)
+    for(unsigned row=0; row<ROWS; row++)
+      map[col][row] &= ~m;
+
+  _display->update_map(_quad[_q]->gainMap(), _q, _s);
+}
+
+void CspadGainMap::clear_asic1()
+{
+  unsigned rot = _q + rotation[_s>>1];
+  uint16_t m = rot&2 ? 0x2 : 0x1;
+  m <<= (2*_s);
+
+  Pds::CsPad::CsPadGainMapCfg::GainMap& map = *_quad[_q]->gainMap()->map();
+  for(unsigned col=0; col<COLS; col++)
+    for(unsigned row=0; row<ROWS; row++)
+      map[col][row] &= ~m;
 
   _display->update_map(_quad[_q]->gainMap(), _q, _s);
 }

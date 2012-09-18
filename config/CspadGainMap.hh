@@ -30,8 +30,10 @@ namespace Pds_ConfigDb
   public slots:
     void import_();
     void export_();
-    void set_section();
-    void clear_section();
+    void set_asic0();
+    void set_asic1();
+    void clear_asic0();
+    void clear_asic1();
   private:
     QuadGainMap* _quad[4];
     SectionDisplay* _display;
