@@ -167,6 +167,16 @@ void CspadGainMap::initialize(QWidget* parent, QVBoxLayout* layout)
   gl->addWidget(_quad[2] = new QuadGainMap(*this,2),1,1,::Qt::AlignTop   |::Qt::AlignLeft);
   l->addLayout(gl);
   l->addWidget(_display = new SectionDisplay);
+  { QHBoxLayout* hl = new QHBoxLayout;
+    QPushButton* setB = new QPushButton("Set Section");
+    QPushButton* clrB = new QPushButton("Clear Section");
+    connect(setB, SIGNAL(clicked()), this, SLOT(set_section()));
+    connect(clrB, SIGNAL(clicked()), this, SLOT(clear_section()));
+    hl->addStretch();
+    hl->addWidget(setB);
+    hl->addWidget(clrB);
+    hl->addStretch();
+    l->addLayout(hl); }
   box->setLayout(l);
   layout->addWidget(box);
 
@@ -268,3 +278,24 @@ void CspadGainMap::export_()
   }
 }
 
+void CspadGainMap::set_section()
+{
+  uint16_t m = 0x3 << (2*_s);
+  Pds::CsPad::CsPadGainMapCfg::GainMap& map = *_quad[_q]->gainMap()->map();
+  for(unsigned col=0; col<COLS; col++)
+    for(unsigned row=0; row<ROWS; row++)
+      map[col][row] |= m;
+
+  _display->update_map(_quad[_q]->gainMap(), _q, _s);
+}
+
+void CspadGainMap::clear_section()
+{
+  uint16_t m = ~(0x3 << (2*_s));
+  Pds::CsPad::CsPadGainMapCfg::GainMap& map = *_quad[_q]->gainMap()->map();
+  for(unsigned col=0; col<COLS; col++)
+    for(unsigned row=0; row<ROWS; row++)
+      map[col][row] &= m;
+
+  _display->update_map(_quad[_q]->gainMap(), _q, _s);
+}
