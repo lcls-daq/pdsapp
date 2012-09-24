@@ -76,6 +76,8 @@ const QList<Node    >& SelectDialog::selected () const { return _selected; }
 
 const QList<DetInfo >& SelectDialog::detectors() const { return _detinfo; }
 
+const std::set<std::string>& SelectDialog::deviceNames() const { return _deviceNames; }
+
 const QList<ProcInfo>& SelectDialog::segments () const { return _seginfo; }
 
 const QList<BldInfo >& SelectDialog::reporters() const { return _rptinfo; }
@@ -100,6 +102,7 @@ void SelectDialog::select() {
   _rptbox->selected();
 
   _detinfo << _segbox->detectors();
+  _deviceNames = _segbox->deviceNames();
   foreach(Node n, _segbox->selected()) {
     _seginfo  << n.procInfo();
   }

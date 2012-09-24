@@ -178,10 +178,9 @@ namespace Pds {
         RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
         _experiment = rinfo.experiment();
         _run = rinfo.run();
-        const QList<DetInfo> detlist = _partition.detectors();
         std::vector<std::string> names;
-        foreach (DetInfo dd, detlist) {
-          names.push_back(DetInfo::name(dd));
+        foreach (std::string ss, _partition.deviceNames()) {
+          names.push_back(ss);
         }
         _runallocator.reportDetectors(_experiment, _run, names);
       }

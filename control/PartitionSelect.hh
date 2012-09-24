@@ -1,6 +1,7 @@
 #ifndef Pds_PartitionSelect_hh
 #define Pds_PartitionSelect_hh
 
+#include <set>
 #include <QtGui/QGroupBox>
 #include <QtCore/QList>
 
@@ -25,6 +26,7 @@ namespace Pds {
     ~PartitionSelect();
   public:
     const QList<DetInfo >& detectors() const;
+    const std::set<std::string>& deviceNames() const;
     const QList<ProcInfo>& segments () const;
     const QList<BldInfo >& reporters() const;
   public slots:
@@ -44,6 +46,7 @@ namespace Pds {
     unsigned _nnodes;
     Node _nodes[MAX_NODES];
     QList<DetInfo > _detectors;
+    std::set<std::string> _deviceNames;
     QList<ProcInfo> _segments;
     QList<BldInfo > _reporters;
     QPushButton*    _selectb;

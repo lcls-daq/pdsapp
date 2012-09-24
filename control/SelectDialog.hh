@@ -1,6 +1,7 @@
 #ifndef Pds_SelectDialog_hh
 #define Pds_SelectDialog_hh
 
+#include <set>
 #include "pds/management/PlatformCallback.hh"
 #include <QtGui/QDialog>
 
@@ -27,6 +28,7 @@ namespace Pds {
     void        available(const Node& hdr, const PingReply& msg);
     const QList<Node    >& selected()  const;
     const QList<DetInfo >& detectors() const;
+    const std::set<std::string>& deviceNames() const;
     const QList<ProcInfo>& segments () const;
     const QList<BldInfo >& reporters() const;
     QWidget*               display ();
@@ -46,6 +48,7 @@ namespace Pds {
     NodeGroup* _rptbox;
     QList<Node>    _selected;
     QList<DetInfo > _detinfo;
+    std::set<std::string> _deviceNames;
     QList<ProcInfo> _seginfo;
     QList<BldInfo > _rptinfo;
     QPushButton*   _acceptb;

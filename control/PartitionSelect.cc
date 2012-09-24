@@ -88,6 +88,7 @@ void PartitionSelect::select_dialog()
     }
 
     _detectors = dialog->detectors();
+    _deviceNames = dialog->deviceNames();
     _segments  = dialog->segments ();
     _reporters = dialog->reporters();
 
@@ -121,6 +122,8 @@ void PartitionSelect::change_state(QString s)
 }
 
 const QList<DetInfo >& PartitionSelect::detectors() const { return _detectors; }
+
+const std::set<std::string>& PartitionSelect::deviceNames() const { return _deviceNames; }
 
 const QList<ProcInfo>& PartitionSelect::segments () const { return _segments ; }
 

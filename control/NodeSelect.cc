@@ -320,6 +320,21 @@ QList<DetInfo> NodeGroup::detectors()
   return dets;
 }
 
+std::set<std::string> NodeGroup::deviceNames()
+{
+  std::set<std::string> rv;   // return value
+  QList<QAbstractButton*> buttons = _buttons->buttons();
+  foreach(QAbstractButton* b, buttons) {
+    if (b->isChecked()) {
+      int id = _buttons->id(b);
+      foreach(std::string sss, _nodes[id].deviceNames()) {
+        rv.insert(sss);
+      }
+    }
+  }
+  return rv;
+}
+
 QList<BldInfo> NodeGroup::reporters() 
 {
   QList<BldInfo> dets;
@@ -390,6 +405,7 @@ NodeSelect::NodeSelect(const Node& node, const PingReply& msg) :
     for(unsigned i=0; i<msg.nsources(); i++) {
       if (msg.source(i).level()==Level::Source) {
         const DetInfo& src = static_cast<const DetInfo&>(msg.source(i));
+        _deviceNames.insert(DetInfo::name(src));
         if (!found) {
           found=true;
           _src    = msg.source(i);
@@ -434,6 +450,7 @@ NodeSelect::NodeSelect(const Node& node, const BldInfo& info) :
 NodeSelect::NodeSelect(const NodeSelect& s) :
   _node (s._node),
   _src  (s._src ),
+  _deviceNames(s._deviceNames),
   _label(s._label),
   _ready(s._ready)
 {

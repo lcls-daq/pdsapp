@@ -1,6 +1,8 @@
 #ifndef Pds_NodeSelect_hh
 #define Pds_NodeSelect_hh
 
+#include <set>
+
 #include <QtGui/QGroupBox>
 #include <QtGui/QCheckBox>
 #include <QtCore/QList>
@@ -28,6 +30,7 @@ namespace Pds {
     const QString& label() const { return _label; }
     const Node&    node () const { return _node; }
     const DetInfo& det  () const { return static_cast<const DetInfo&>(_src); }
+    const std::set<std::string>& deviceNames() const { return _deviceNames; }
     const BldInfo& bld  () const { return static_cast<const BldInfo&>(_src); }
     const Src&     src  () const { return _src; }
     bool           ready() const { return _ready; }
@@ -38,6 +41,7 @@ namespace Pds {
   private:
     Node    _node;
     Src     _src;
+    std::set<std::string> _deviceNames;
     QString _label;
     bool    _ready;
   };
@@ -60,6 +64,7 @@ namespace Pds {
     void addNode(const NodeSelect&);
     QList<Node>    selected();
     QList<DetInfo> detectors();
+    std::set<std::string>  deviceNames();
     QList<BldInfo> reporters();
     NodeGroup*     freeze  ();
     bool           ready   () const;
