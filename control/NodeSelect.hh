@@ -70,10 +70,14 @@ namespace Pds {
     bool           ready   () const;
     void           setGroup(int iNodeIndex, int iGroup);    
   private:
+    void _read_pref(const QString&, QList<QString>&, QList<int>&);
+  private:
     QButtonGroup*  _buttons;
     QList<NodeSelect> _nodes;
     QList<QString> _persist;
     QList<int>     _persistGroup;
+    QList<QString> _require;
+    QList<int>     _requireGroup;
     QList<int>     _order;
     QPalette*      _ready;
     QPalette*      _notready;

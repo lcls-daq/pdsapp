@@ -38,6 +38,7 @@ namespace PdsCas {
     EList       _ehandlers;
     const char* _partitionTag;
     unsigned    _index;
+    unsigned    _evindex;
     double      _rate;
     class MyTimer;
     MyTimer* _timer;

@@ -10,6 +10,9 @@
 #include "pds/service/Ins.hh"
 #include "pdsdata/control/PVControl.hh"
 #include "pdsdata/control/PVMonitor.hh"
+#include "pdsdata/control/PVLabel.hh"
+
+#include "pds/config/ControlConfigType.hh"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -54,8 +57,8 @@ RemoteSeqApp::~RemoteSeqApp()
 
 bool RemoteSeqApp::readTransition()
 {
-  Pds::ControlData::ConfigV1& config = 
-    *reinterpret_cast<Pds::ControlData::ConfigV1*>(_config_buffer);
+  ControlConfigType& config = 
+    *reinterpret_cast<ControlConfigType*>(_config_buffer);
 
   int len = ::recv(_socket, &config, sizeof(config), MSG_WAITALL);
   if (len != sizeof(config)) {
@@ -85,15 +88,17 @@ bool RemoteSeqApp::readTransition()
 	     config.npvControls());
   }
 
-  //  Create config with only monitor channels
+  //
+  //  Create config with only DAQ control information (to send to EVR)
+  //
   std::list<ControlData::PVControl> controls;
   std::list<ControlData::PVMonitor> monitors;
-  for(unsigned i=0; i<config.npvMonitors(); i++)
-    monitors.push_back(config.pvMonitor(i));
+  std::list<ControlData::PVLabel  > labels;
+
   if (config.uses_duration())
-    new(_cfgmon_buffer) ControlConfigType(controls, monitors, config.duration());
+    new(_cfgmon_buffer) ControlConfigType(controls, monitors, labels, config.duration());
   else
-    new(_cfgmon_buffer) ControlConfigType(controls, monitors, config.events  ());
+    new(_cfgmon_buffer) ControlConfigType(controls, monitors, labels, config.events  ());
 
   _configtc.extent = sizeof(Xtc) + config.size();
   return true;
@@ -101,11 +106,11 @@ bool RemoteSeqApp::readTransition()
 
 void RemoteSeqApp::routine()
 {
-  Pds::ControlData::ConfigV1& config = 
-    *reinterpret_cast<Pds::ControlData::ConfigV1*>(_config_buffer);
+  ControlConfigType& config = 
+    *reinterpret_cast<ControlConfigType*>(_config_buffer);
 
   //  replace the configuration with default running
-  new(_config_buffer) ControlConfigType(Pds::ControlData::ConfigV1::Default);
+  new(_config_buffer) ControlConfigType(ControlConfigType::Default);
   _configtc.extent = sizeof(Xtc) + config.size();
   _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
   _control.set_transition_env(TransitionId::Enable, 
@@ -184,23 +189,29 @@ void RemoteSeqApp::routine()
 
               while(1) {
                 if (!readTransition())  break;
-                //	      _pvmanager.unconfigure();
-                //	      _pvmanager.configure(*reinterpret_cast<ControlConfigType*>(_config_buffer));
-                _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
-                _control.set_transition_env(TransitionId::Enable, 
-                                            config.uses_duration() ?
-                                            EnableEnv(config.duration()).value() :
-                                            EnableEnv(config.events()).value());
-                _control.set_target_state(PartitionControl::Enabled);
+                //
+                //  A request for a cycle of zero duration is an EndCalib
+                //
+                const Pds::ClockTime NoTime(0,0);
+                if (config.uses_duration() && config.duration()==NoTime) {
+                  _control.set_target_state(PartitionControl::Running);
+                }
+                else {
+                  _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
+                  _control.set_transition_env(TransitionId::Enable, 
+                                              config.uses_duration() ?
+                                              EnableEnv(config.duration()).value() :
+                                              EnableEnv(config.events()).value());
+                  _control.set_target_state(PartitionControl::Enabled);
+                }
               }
-              //	    _pvmanager.unconfigure();
             }
 
             close(_socket);
             _socket = -1;
 
             //  replace the configuration with default running
-            new(_config_buffer) ControlConfigType(Pds::ControlData::ConfigV1::Default);
+            new(_config_buffer) ControlConfigType(ControlConfigType::Default);
             _configtc.extent = sizeof(Xtc) + config.size();
             _control.set_transition_env    (TransitionId::Configure,old_key);
             _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);

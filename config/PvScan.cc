@@ -142,11 +142,12 @@ int PvScan::write(unsigned step, unsigned nsteps, bool usePvs, const Pds::ClockT
 {
   std::list<Pds::ControlData::PVControl> controls;
   std::list<Pds::ControlData::PVMonitor> monitors;
+  std::list<Pds::ControlData::PVLabel  > labels;
   if (usePvs)
     _fill_pvs(step, nsteps, controls, monitors);
 
-  Pds::ControlData::ConfigV1* c = 
-    new (buff) Pds::ControlData::ConfigV1(controls, monitors, ctime);
+  ControlConfigType* c = 
+    new (buff) ControlConfigType(controls, monitors, labels, ctime);
 
   return c->size();
 }
@@ -156,25 +157,26 @@ int PvScan::write(unsigned step, unsigned nsteps, bool usePvs, unsigned nevents,
 {
   std::list<Pds::ControlData::PVControl> controls;
   std::list<Pds::ControlData::PVMonitor> monitors;
+  std::list<Pds::ControlData::PVLabel  > labels;
   if (usePvs)
     _fill_pvs(step, nsteps, controls, monitors);
 
-  Pds::ControlData::ConfigV1* c = 
-    new (buff) Pds::ControlData::ConfigV1(controls, monitors, nevents);
+  ControlConfigType* c = 
+    new (buff) ControlConfigType(controls, monitors, labels, nevents);
 
   return c->size();
 }
 
 void PvScan::read(const char* dbuf, int len)
 {
-  const Pds::ControlData::ConfigV1& cfg = 
-    *reinterpret_cast<const Pds::ControlData::ConfigV1*>(dbuf);
+  const ControlConfigType& cfg = 
+    *reinterpret_cast<const ControlConfigType*>(dbuf);
 
   int npts = len/cfg.size();
   printf("cfg size %d/%d (%d)\n",cfg.size(),len,npts);
 
-  const Pds::ControlData::ConfigV1& lst = 
-    *reinterpret_cast<const Pds::ControlData::ConfigV1*>(dbuf+(npts-1)*cfg.size());
+  const ControlConfigType& lst = 
+    *reinterpret_cast<const ControlConfigType*>(dbuf+(npts-1)*cfg.size());
 
   if (cfg.npvControls()) {
     const Pds::ControlData::PVControl& ctl = cfg.pvControl(0);

@@ -30,6 +30,7 @@
 #include "pdsapp/config/pnCCDConfig.hh"
 #include "pdsapp/config/princetonConfig.hh"
 #include "pdsapp/config/FrameFexConfig.hh"
+#include "pdsapp/config/ControlConfig_V1.hh"
 #include "pdsapp/config/ControlConfig.hh"
 #include "pdsapp/config/CspadConfig_V1.hh"
 #include "pdsapp/config/CspadConfig_V2.hh"
@@ -132,6 +133,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(Pds::TypeId(Pds::TypeId::Id_IpimbConfig,1) , new IpimbConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_IpmFexConfig,1), new IpmFexConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_DiodeFexConfig,1), new DiodeFexConfig_V1);  
+  enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,1),new ControlConfig_V1);
 }
 
 SerializerDictionary::~SerializerDictionary()

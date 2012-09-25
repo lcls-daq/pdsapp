@@ -5,6 +5,7 @@
 
 #include "pdsdata/control/PVControl.hh"
 #include "pdsdata/control/PVMonitor.hh"
+#include "pdsdata/control/PVLabel.hh"
 
 #include <list>
 

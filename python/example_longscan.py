@@ -37,7 +37,8 @@ if __name__ == "__main__":
     
     daq.configure(record=do_record,
                   events=options.events,
-                  controls=[('EXAMPLEPV1',0),('EXAMPLEPV2',0)])
+                  controls=[('EXAMPLEPV1',0),('EXAMPLEPV2',0)],
+                  labels=[('EXAMPLELABEL1',''),('EXAMPLELABEL2','')])
 
     print "Configured."
 
@@ -50,7 +51,9 @@ if __name__ == "__main__":
     for cycle in range(options.cycles):
         print "Cycle ", cycle
         daq.begin(controls=[('EXAMPLEPV1',cycle),
-                            ('EXAMPLEPV2',100-cycle)])
+                            ('EXAMPLEPV2',100-cycle)],
+                  labels=[('EXAMPLELABEL1','CYCLE%d'%cycle),
+                          ('EXAMPLELABEL2','LCYCLE%d'%(options.cycles-cycle))])
         # enable the EVR sequence, if necessary
 
         # wait for disabled, then disable the EVR sequence

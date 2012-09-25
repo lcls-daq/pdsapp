@@ -76,46 +76,8 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, i
     _iUseReadoutGroup = 2;
     
   //  Read persistent selected nodes
-  char *buff = (char *)malloc(NODE_BUFF_SIZE);  // use malloc w/ getline
-  if (buff == (char *)NULL) {
-    printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, NODE_BUFF_SIZE, errno);
-    return;
-  }
-    
-  FILE* f = open_pref(qPrintable(title()), _platform, "r");
-  if (f) {
-    char* lptr=buff;
-    unsigned linesz = NODE_BUFF_SIZE;         // initialize for getline
-    
-    const char* lsReadGroupDesc[] = 
-      { "", "with Readout Group (UI)", "with default Readout Group (No UI)" };
-    printf("Reading pref file \"%s\" %s\n", qPrintable(title()), lsReadGroupDesc[_iUseReadoutGroup]);      
-    while(getline(&lptr,&linesz,f)!=-1) {
-      QString p(lptr);
-      p.chop(1);  // remove new-line
-      p.replace('\t','\n');        
-      
-      if (_iUseReadoutGroup != 0)
-      {          
-        QStringList ls = p.split(';');                    
-        if (ls.size()>0)
-        {
-          int iGroup = ( ls.size() <= 1 ? 0 : ls[1].toInt() );            
-          _persist.push_back(ls[0]);
-          _persistGroup.push_back(iGroup);
-          
-          printf("Persist %s Group %d\n",qPrintable(ls[0]), iGroup);
-        }        
-      }
-      else
-      {
-        _persist.push_back(p);
-        printf("Persist %s\n",qPrintable(p));
-      }
-    }
-    fclose(f);
-  }
-  free(buff);
+  _read_pref(title(), _persist, _persistGroup);
+  _read_pref(QString("%1 required").arg(title()), _require, _requireGroup);
 
   _buttons->setExclusive(false);
   setLayout(new QVBoxLayout(this)); 
@@ -155,7 +117,9 @@ void NodeGroup::add_node(int index)
   QCheckBox* button = new QCheckBox(node.label(),this);
     
   int indexPersist = _persist.indexOf(node.plabel());
-  button->setCheckState( indexPersist>=0 ? Qt::Checked : Qt::Unchecked);
+  int indexRequire = _require.indexOf(node.plabel());
+  button->setCheckState( (indexPersist>=0 || indexRequire>=0) ? Qt::Checked : Qt::Unchecked);
+  button->setEnabled   ( indexRequire<0 );
   button->setPalette( node.ready() ? *_ready : *_notready );
   _buttons->addButton(button,index); 
   QObject::connect(button, SIGNAL(clicked()), this, SIGNAL(list_changed()));
@@ -385,6 +349,52 @@ void NodeGroup::setGroup(int iNodeIndex, int iGroup)
   ((Node&) _nodes[iNodeIndex].node()).setGroup(iGroup);
 }
 
+void NodeGroup::_read_pref(const QString&  title,
+                           QList<QString>& l, 
+                           QList<int>&     lg)
+{
+  char *buff = (char *)malloc(NODE_BUFF_SIZE);  // use malloc w/ getline
+  if (buff == (char *)NULL) {
+    printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, NODE_BUFF_SIZE, errno);
+    return;
+  }
+    
+  FILE* f = open_pref(qPrintable(title), _platform, "r");
+  if (f) {
+    char* lptr=buff;
+    unsigned linesz = NODE_BUFF_SIZE;         // initialize for getline
+    
+    const char* lsReadGroupDesc[] = 
+      { "", "with Readout Group (UI)", "with default Readout Group (No UI)" };
+    printf("Reading pref file \"%s\" %s\n", qPrintable(title), lsReadGroupDesc[_iUseReadoutGroup]);      
+    while(getline(&lptr,&linesz,f)!=-1) {
+      QString p(lptr);
+      p.chop(1);  // remove new-line
+      p.replace('\t','\n');        
+      
+      if (_iUseReadoutGroup != 0)
+      {          
+        QStringList ls = p.split(';');                    
+        if (ls.size()>0)
+        {
+          int iGroup = ( ls.size() <= 1 ? 0 : ls[1].toInt() );            
+          l .push_back(ls[0]);
+          lg.push_back(iGroup);
+          
+          printf("Persist %s Group %d\n",qPrintable(ls[0]), iGroup);
+        }        
+      }
+      else
+      {
+        l.push_back(p);
+        printf("Persist %s\n",qPrintable(p));
+      }
+    }
+    fclose(f);
+  }
+}
+
+
 NodeSelect::NodeSelect(const Node& node) :
   _node    (node),
   _ready   (true)
@@ -479,3 +489,4 @@ void CallbackNodeGroup::currentIndexChanged(int iGroupIndex)
 {
   _nodeGroup.setGroup(_iNodeIndex, iGroupIndex + 1);
 }
+

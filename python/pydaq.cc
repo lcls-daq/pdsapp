@@ -11,8 +11,10 @@
 #include "pds/config/ControlConfigType.hh"
 #include "pdsdata/control/PVControl.hh"
 #include "pdsdata/control/PVMonitor.hh"
+#include "pdsdata/control/PVLabel.hh"
 using Pds::ControlData::PVControl;
 using Pds::ControlData::PVMonitor;
+using Pds::ControlData::PVLabel;
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -50,6 +52,7 @@ static PyObject* pdsdaq_connect  (PyObject* self);
 static PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_end      (PyObject* self);
+static PyObject* pdsdaq_stop     (PyObject* self);
 static PyObject* pdsdaq_rcv      (PyObject* self);
 
 static PyMethodDef pdsdaq_methods[] = {
@@ -60,6 +63,7 @@ static PyMethodDef pdsdaq_methods[] = {
   {"configure" , (PyCFunction)pdsdaq_configure , METH_KEYWORDS, "Configure the scan"},
   {"begin"     , (PyCFunction)pdsdaq_begin     , METH_KEYWORDS, "Configure the cycle"},
   {"end"       , (PyCFunction)pdsdaq_end       , METH_NOARGS  , "Wait for the cycle end"},
+  {"stop"      , (PyCFunction)pdsdaq_stop      , METH_NOARGS  , "End the current cycle"},
   {"connect"   , (PyCFunction)pdsdaq_connect   , METH_NOARGS  , "Connect to control"},
   {"disconnect", (PyCFunction)pdsdaq_disconnect, METH_NOARGS  , "Disconnect from control"},
   {NULL},
@@ -306,6 +310,7 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
   PyObject* duration = 0;
   PyObject* controls = 0;
   PyObject* monitors = 0;
+  PyObject* labels   = 0;
 
   PyObject* keys = PyDict_Keys  (kwds);
   PyObject* vals = PyDict_Values(kwds);
@@ -322,6 +327,7 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
     else if (strcmp("duration",name)==0)  duration=obj;
     else if (strcmp("controls",name)==0)  controls=obj;
     else if (strcmp("monitors",name)==0)  monitors=obj;
+    else if (strcmp("labels"  ,name)==0)  labels  =obj;
     else {
       ostringstream o;
       o << name << " is not a valid keyword";
@@ -359,15 +365,23 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
                                 PyFloat_AsDouble (PyTuple_GetItem(item,2))));
     }
 
+  list<PVLabel> llist;
+  if (labels)
+    for(unsigned i=0; i<PyList_Size(labels); i++) {
+      PyObject* item = PyList_GetItem(labels,i);
+      llist.push_back(PVLabel  (PyString_AsString(PyTuple_GetItem(item,0)),
+                                PyString_AsString(PyTuple_GetItem(item,1))));
+    }
+
   ControlConfigType* cfg;
 
   if (duration) {
     Pds::ClockTime dur(PyLong_AsUnsignedLong(PyList_GetItem(duration,0)),
                        PyLong_AsUnsignedLong(PyList_GetItem(duration,1)));
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,dur);
+    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,dur);
   }
   else {
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,events);
+    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,events);
   }
 
   daq->state = Configured;
@@ -381,7 +395,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
 {
   pdsdaq*   daq      = (pdsdaq*)self;
 
-  if (daq->state == Running) {
+  if (daq->state >= Running) {
     PyObject* o = pdsdaq_end(self);
     if (o == NULL) return o;
     Py_DECREF(o);
@@ -396,19 +410,20 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
   PyObject* duration = 0;
   PyObject* controls = 0;
   PyObject* monitors = 0;
+  PyObject* labels   = 0;
 
   while(1) {
-    { char* kwlist[] = {"events"  ,"controls","monitors",NULL};
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"i|OO",kwlist,
-                                       &events, &controls, &monitors) )
+    { char* kwlist[] = {"events"  ,"controls","monitors","labels",NULL};
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"i|OOO",kwlist,
+                                       &events, &controls, &monitors, &labels) )
         break; }
-    { char* kwlist[] = {"duration","controls","monitors",NULL};
+    { char* kwlist[] = {"duration","controls","monitors","labels",NULL};
       if ( PyArg_ParseTupleAndKeywords(args,kwds,"O|OO",kwlist,
-                                       &duration, &controls, &monitors) )
+                                       &duration, &controls, &monitors, &labels) )
         break; }
-    { char* kwlist[] = {"controls","monitors",NULL};
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"|OO",kwlist,
-                                       &controls, &monitors) )
+    { char* kwlist[] = {"controls","monitors","labels",NULL};
+      if ( PyArg_ParseTupleAndKeywords(args,kwds,"|OOO",kwlist,
+                                       &controls, &monitors, &labels) )
         break; }
 
     return NULL;
@@ -446,7 +461,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
   { for(unsigned i=0; i<cfg->npvMonitors(); i++)
       mlist.push_back(cfg->pvMonitor(i)); }
 
-  if (monitors)
+  if (monitors) {
     for(unsigned i=0; i<PyList_Size(monitors); i++) {
       PyObject* item = PyList_GetItem(monitors,i);
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
@@ -466,27 +481,53 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
         return NULL;
       }
     }
+  }
+
+  list<PVLabel> llist;
+  { for(unsigned i=0; i<cfg->npvLabels(); i++)
+      llist.push_back(cfg->pvLabel(i)); }
+
+  if (labels) {
+    for(unsigned i=0; i<PyList_Size(labels); i++) {
+      PyObject* item = PyList_GetItem(labels,i);
+      const char* name = PyString_AsString(PyTuple_GetItem(item,0));
+      list<PVLabel>::iterator it=llist.begin(); 
+      do {
+        if (strcmp(name,it->name())==0) {
+          (*it) = PVLabel(name, PyString_AsString(PyTuple_GetItem(item,1)));
+          break;
+        }
+      } while (++it!= llist.end());
+      if (it == llist.end()) {
+        ostringstream o;
+        o << "Label " << name << " not present in Configure";
+        PyErr_SetString(PyExc_TypeError,o.str().c_str());
+        return NULL;
+      }
+    }
+  }
 
   if (duration) {
     Pds::ClockTime dur(PyLong_AsUnsignedLong(PyList_GetItem(duration,0)),
                        PyLong_AsUnsignedLong(PyList_GetItem(duration,1)));
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,dur);
+    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,dur);
   }
   else if (events>=0) {
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,events);
+    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,events);
   }
   else if (cfg->uses_duration()) {
     ClockTime dur(cfg->duration());
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,dur);
+    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,dur);
   }
   else {
     unsigned events = cfg->events();
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,events);
+    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,events);
   }
 
   ::write(daq->socket,daq->buffer,cfg->size());
 
   daq->state = Running;
+
   return pdsdaq_rcv(self);
 }
 
@@ -500,6 +541,21 @@ PyObject* pdsdaq_end      (PyObject* self)
 
   daq->state = Configured;
   return pdsdaq_rcv(self);
+}
+
+PyObject* pdsdaq_stop     (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  if (daq->state == Running) {
+    ControlConfigType* cfg = new (daq->buffer) ControlConfigType(list<PVControl>(),
+                                                                 list<PVMonitor>(),
+                                                                 list<PVLabel  >(),
+                                                                 ClockTime(0,0));
+    ::write(daq->socket,daq->buffer,cfg->size());
+  }
+
+  Py_INCREF(Py_None);
+  return Py_None;
 }
 
 PyObject* pdsdaq_rcv      (PyObject* self)

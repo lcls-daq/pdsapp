@@ -1,50 +1,20 @@
-#include "pdsapp/config/ControlConfig.hh"
+#include "pdsapp/config/ControlConfig_V1.hh"
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 #include "pdsapp/config/PVControl.hh"
 #include "pdsapp/config/PVMonitor.hh"
 
-#include "pds/config/ControlConfigType.hh"
+#include "pdsdata/control/ConfigV1.hh"
 #include "pdsdata/control/PVControl.hh"
 #include "pdsdata/control/PVMonitor.hh"
-#include "pdsdata/control/PVLabel.hh"
+
+#include "pdsapp/config/PVControl.hh"
 
 #include <new>
 #include <float.h>
 
 namespace Pds_ConfigDb {
-  
-  class PVLabel {
-  public:
-    PVLabel() :
-      _name        ("PV Name" , "", Pds::ControlData::PVLabel::NameSize),
-      _value       ("PV Value", "", Pds::ControlData::PVLabel::ValueSize)
-    {
-    }
-    
-    void insert(Pds::LinkedList<Parameter>& pList) {
-      pList.insert(&_name);
-      pList.insert(&_value);
-    }
-
-    bool pull(void* from) {
-      Pds::ControlData::PVLabel& tc = *new(from) Pds::ControlData::PVLabel;
-      // construct the full name from the array base and index
-      strncpy(_name .value, tc.name (), Pds::ControlData::PVLabel::NameSize);
-      strncpy(_value.value, tc.value(), Pds::ControlData::PVLabel::ValueSize);
-      return true;
-    }
-
-    int push(void* to) {
-      Pds::ControlData::PVLabel& tc = *new(to) Pds::ControlData::PVLabel(_name.value,
-                                                                         _value.value);
-      return sizeof(tc);
-    }
-  private:
-    TextParameter        _name;
-    TextParameter        _value;
-  };
 
   enum StepControl { System, Duration, Events };
   static const char* step_control[] = { "System",
@@ -52,7 +22,9 @@ namespace Pds_ConfigDb {
 					"Events",
 					NULL };
 
-  class ControlConfig::Private_Data {
+  typedef Pds::ControlData::ConfigV1 ControlConfigType;
+
+  class ControlConfig_V1::Private_Data {
     enum { MaxPVs = 100 };
   public:
     Private_Data() :
@@ -63,16 +35,12 @@ namespace Pds_ConfigDb {
       _npvcs        ("Number of Control PVs", 0, 0, MaxPVs),
       _pvcSet       ("Control PV"           , _pvcArgs, _npvcs ),
       _npvms        ("Number of Monitor PVs", 0, 0, MaxPVs),
-      _pvmSet       ("Monitor PV"           , _pvmArgs, _npvms ),
-      _npvls        ("Number of Label PVs", 0, 0, MaxPVs),
-      _pvlSet       ("Label PV"           , _pvlArgs, _npvls )
+      _pvmSet       ("Monitor PV"           , _pvmArgs, _npvms )
     {
       for(unsigned k=0; k<MaxPVs; k++)
 	_pvcs[k].insert(_pvcArgs[k]);
       for(unsigned k=0; k<MaxPVs; k++)
 	_pvms[k].insert(_pvmArgs[k]);
-      for(unsigned k=0; k<MaxPVs; k++)
-	_pvls[k].insert(_pvlArgs[k]);
     }
 
     void insert(Pds::LinkedList<Parameter>& pList) {
@@ -84,8 +52,6 @@ namespace Pds_ConfigDb {
       pList.insert(&_pvcSet);
       pList.insert(&_npvms);
       pList.insert(&_pvmSet);
-      pList.insert(&_npvls);
-      pList.insert(&_pvlSet);
     }
 
     int pull(void* from) {
@@ -100,9 +66,6 @@ namespace Pds_ConfigDb {
       _npvms        .value = tc.npvMonitors();
       for(unsigned k=0; k<tc.npvMonitors(); k++)
 	_pvms[k].pull(const_cast<Pds::ControlData::PVMonitor*>(&tc.pvMonitor(k)));
-      _npvls        .value = tc.npvLabels();
-      for(unsigned k=0; k<tc.npvLabels(); k++)
-	_pvls[k].pull(const_cast<Pds::ControlData::PVLabel*  >(&tc.pvLabel  (k)));
 
       return tc.size();
     }
@@ -122,22 +85,15 @@ namespace Pds_ConfigDb {
 	pvms.push_back(pvm);
       }
 
-      std::list<Pds::ControlData::PVLabel  > pvls;
-      for(unsigned k=0; k<_npvls.value; k++) {
-	Pds::ControlData::PVLabel pvl;
-	_pvls[k].push(&pvl);
-	pvls.push_back(pvl);
-      }
-
       ControlConfigType* tc;
       switch(_control.value) {
-      case Duration: tc = new(to) ControlConfigType(pvcs, pvms, pvls, 
+      case Duration: tc = new(to) ControlConfigType(pvcs, pvms, 
 						    ClockTime(_duration_sec.value,
 							      _duration_nsec.value)); break;
-      case Events  : tc = new(to) ControlConfigType(pvcs, pvms, pvls,
+      case Events  : tc = new(to) ControlConfigType(pvcs, pvms,
 						    _events.value); break;
       case System  :
-      default      : tc = new(to) ControlConfigType(pvcs, pvms, pvls); break;
+      default      : tc = new(to) ControlConfigType(pvcs, pvms); break;
       }
       return tc->size();
     }
@@ -145,8 +101,7 @@ namespace Pds_ConfigDb {
     int dataSize() const {
       return sizeof(ControlConfigType) + 
 	_npvcs.value*sizeof(Pds::ControlData::PVControl) +
-	_npvms.value*sizeof(Pds::ControlData::PVMonitor) +
-        _npvls.value*sizeof(Pds::ControlData::PVLabel  );
+	_npvms.value*sizeof(Pds::ControlData::PVMonitor);
     }
 
   private:
@@ -162,10 +117,6 @@ namespace Pds_ConfigDb {
     PVMonitor               _pvms[MaxPVs];
     Pds::LinkedList<Parameter> _pvmArgs[MaxPVs];
     ParameterSet            _pvmSet;
-    NumericInt<unsigned>    _npvls;
-    PVLabel                 _pvls[MaxPVs];
-    Pds::LinkedList<Parameter> _pvlArgs[MaxPVs];
-    ParameterSet            _pvlSet;
   };
 
 };
@@ -173,22 +124,22 @@ namespace Pds_ConfigDb {
 
 using namespace Pds_ConfigDb;
 
-ControlConfig::ControlConfig() : 
+ControlConfig_V1::ControlConfig_V1() : 
   Serializer("Control_Config"),
   _private_data( new Private_Data )
 {
   _private_data->insert(pList);
 }
 
-int  ControlConfig::readParameters (void* from) {
+int  ControlConfig_V1::readParameters (void* from) {
   return _private_data->pull(from);
 }
 
-int  ControlConfig::writeParameters(void* to) {
+int  ControlConfig_V1::writeParameters(void* to) {
   return _private_data->push(to);
 }
 
-int  ControlConfig::dataSize() const {
+int  ControlConfig_V1::dataSize() const {
   return _private_data->dataSize();
 }
 

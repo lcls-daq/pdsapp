@@ -67,6 +67,7 @@ using namespace PdsCas;
 ShmClient::ShmClient() :
   _partitionTag(0),
   _index(0),
+  _evindex(-1),
   _rate (1.)
 {
 }
@@ -87,6 +88,9 @@ bool ShmClient::arg(char c, const char* o)
   case 'i':
     _index = strtoul(o,NULL,0);
     break;
+  case 'e':
+    _evindex = strtoul(o,NULL,0);
+    break;
   case 'p':
     _partitionTag = o;
     break;
@@ -96,6 +100,10 @@ bool ShmClient::arg(char c, const char* o)
   default:
     return false;
   }
+
+  if (_evindex == -1)
+    _evindex = _index;
+
   return true;
 }
 
@@ -104,7 +112,7 @@ int ShmClient::start()
   _timer = new MyTimer(unsigned(1000/_rate),*this);
   _timer->task()->call(new InitializeClient(*this));
   _timer->start();
-  return run(_partitionTag,_index,_index); 
+  return run(_partitionTag,_index,_evindex); 
 }
 
 void ShmClient::insert(Handler* a) 
@@ -192,6 +200,6 @@ void ShmClient::update()
 
 bool ShmClient::valid() const { return _partitionTag!=0; }
 
-const char* ShmClient::opts   () { return "p:i:r:"; }
+const char* ShmClient::opts   () { return "p:i:e:r:"; }
 const char* ShmClient::options() { return "[-p <partitionTag>] [-i clientID] [-r <rate, Hz>]"; }
 
