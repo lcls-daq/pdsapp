@@ -8,7 +8,7 @@ CPPFLAGS += -DBLD_DELAY # for tolerating BLD delays up to 0.5 seconds
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
 tgtnames := opal1kedt quartzedt pimimageedt phasics \
-  oceanoptics fli
+  oceanoptics fli andor
 else
 tgtnames :=  evr \
     evrstandalone \
@@ -35,7 +35,8 @@ tgtnames :=  evr \
     cspad2x2 \
     timetool \
     oceanoptics \
-    fli
+    fli \
+    andor
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
@@ -43,7 +44,7 @@ commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility p
 commonlibs  += pdsapp/devapp
 
 #  libconfigdb dependencies
-datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata pdsdata/andordata
 
 tgtsrcs_fexamp := fexamp.cc
 tgtlibs_fexamp := $(commonlibs) pdsdata/fexampdata pds/fexamp pds/pgp
@@ -244,13 +245,15 @@ tgtlibs_oceanoptics := $(commonlibs) pdsdata/oceanopticsdata pds/oceanoptics pds
 tgtslib_oceanoptics := ${USRLIBDIR}/rt
 
 tgtsrcs_fli := fli.cc
-#tgtsrcs_fli := princeton.cc
-#tgtlibs_fli := $(commonlibs) pdsdata/flidata pds/fli fli/fli
 tgtlibs_fli := $(commonlibs) 
-tgtlibs_fli += pdsdata/xampsdata pdsdata/fexampdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/lusidata
-tgtlibs_fli += pdsdata/encoderdata pdsdata/ipimbdata pdsdata/controldata pdsdata/princetondata 
-tgtlibs_fli += pdsdata/acqdata pdsdata/pnccddata pdsdata/gsc16aidata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/timepixdata
-tgtlibs_fli += pdsdata/phasicsdata pdsdata/oceanopticsdata pdsdata/pnccddata pdsdata/evrdata 
+tgtlibs_fli += $(datalibs)
 tgtlibs_fli += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
-tgtlibs_fli += pdsdata/flidata pds/fli fli/flisdk
+tgtlibs_fli += pds/fli fli/flisdk
 tgtslib_fli := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 
+
+tgtsrcs_andor := andor.cc
+tgtlibs_andor := $(commonlibs) 
+tgtlibs_andor += $(datalibs)
+tgtlibs_andor += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
+tgtlibs_andor += pdsdata/andordata pds/pdsandor andor/andor
+tgtslib_andor := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 
