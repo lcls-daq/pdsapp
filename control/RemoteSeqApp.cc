@@ -77,16 +77,16 @@ bool RemoteSeqApp::readTransition()
 	     len,payload,strerror(errno));
       return false;
     }
-    else if (config.uses_duration())
-      printf("received remote configuration for %d/%d seconds, %d controls\n",
-	     config.duration().seconds(),
-	     config.duration().nanoseconds(),
-	     config.npvControls());
-    else if (config.uses_events())
-      printf("received remote configuration for %d events, %d controls\n",
-	     config.events(),
-	     config.npvControls());
   }
+  if (config.uses_duration())
+    printf("received remote configuration for %d/%d seconds, %d controls\n",
+           config.duration().seconds(),
+           config.duration().nanoseconds(),
+           config.npvControls());
+  else if (config.uses_events())
+    printf("received remote configuration for %d events, %d controls\n",
+           config.events(),
+           config.npvControls());
 
   //
   //  Create config with only DAQ control information (to send to EVR)

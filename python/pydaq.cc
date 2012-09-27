@@ -412,20 +412,28 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
   PyObject* monitors = 0;
   PyObject* labels   = 0;
 
-  while(1) {
-    { char* kwlist[] = {"events"  ,"controls","monitors","labels",NULL};
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"i|OOO",kwlist,
-                                       &events, &controls, &monitors, &labels) )
-        break; }
-    { char* kwlist[] = {"duration","controls","monitors","labels",NULL};
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"O|OO",kwlist,
-                                       &duration, &controls, &monitors, &labels) )
-        break; }
-    { char* kwlist[] = {"controls","monitors","labels",NULL};
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"|OOO",kwlist,
-                                       &controls, &monitors, &labels) )
-        break; }
+  PyObject* keys = PyDict_Keys  (kwds);
+  PyObject* vals = PyDict_Values(kwds);
+  for(int i=0; i<PyList_Size(keys); i++) {
+    const char* name = PyString_AsString(PyList_GetItem(keys,i));
+    PyObject* obj = PyList_GetItem(vals,i);
+    if (strcmp("events"  ,name)==0) {
+      if (!ParseInt (obj,events,"events")) return NULL;
+    }
+    else if (strcmp("duration",name)==0)  duration=obj;
+    else if (strcmp("controls",name)==0)  controls=obj;
+    else if (strcmp("monitors",name)==0)  monitors=obj;
+    else if (strcmp("labels"  ,name)==0)  labels  =obj;
+    else {
+      ostringstream o;
+      o << name << " is not a valid keyword";
+      PyErr_SetString(PyExc_TypeError,o.str().c_str());
+      return NULL;
+    }
+  }
 
+  if (duration && events!=-1) {
+    PyErr_SetString(PyExc_TypeError,"Cannot specify both events and duration");
     return NULL;
   }
 
@@ -546,12 +554,14 @@ PyObject* pdsdaq_end      (PyObject* self)
 PyObject* pdsdaq_stop     (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
-  if (daq->state == Running) {
-    ControlConfigType* cfg = new (daq->buffer) ControlConfigType(list<PVControl>(),
-                                                                 list<PVMonitor>(),
-                                                                 list<PVLabel  >(),
-                                                                 ClockTime(0,0));
-    ::write(daq->socket,daq->buffer,cfg->size());
+  if (daq->state >= Configured) {
+    char* buff = new char[MaxConfigSize];
+    ControlConfigType* cfg = new (buff)ControlConfigType(list<PVControl>(),
+                                                         list<PVMonitor>(),
+                                                         list<PVLabel  >(),
+                                                         ClockTime(0,0));
+    ::write(daq->socket, buff, cfg->size());
+    delete[] buff;
   }
 
   Py_INCREF(Py_None);
