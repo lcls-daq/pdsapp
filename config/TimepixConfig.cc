@@ -291,6 +291,7 @@ namespace Pds_ConfigDb {
     NumericInt<int32_t> _dac1ThlFine;
     NumericInt<int32_t> _dac2ThlFine;
     NumericInt<int32_t> _dac3ThlFine;
+    NumericInt<uint8_t> _timepixMode;
     NumericInt<int32_t> _dac0Ikrum;
     NumericInt<int32_t> _dac0Disc;
     NumericInt<int32_t> _dac0Preamp;
@@ -343,7 +344,6 @@ namespace Pds_ConfigDb {
     NumericInt<int32_t> _dac3Ths;
     NumericInt<int32_t> _dac3BiasLvds;
     NumericInt<int32_t> _dac3RefLvds;
-    NumericInt<uint8_t> _timepixMode;
   };
 
   // ------- user mode ---------
@@ -569,6 +569,7 @@ namespace Pds_ConfigDb {
     NumericInt<int32_t> _dac1ThlFine;
     NumericInt<int32_t> _dac2ThlFine;
     NumericInt<int32_t> _dac3ThlFine;
+    NumericInt<uint8_t> _timepixMode;
     NumericInt<int32_t> _dac0Ikrum;
     NumericInt<int32_t> _dac0Disc;
     NumericInt<int32_t> _dac0Preamp;
@@ -621,7 +622,6 @@ namespace Pds_ConfigDb {
     NumericInt<int32_t> _dac3Ths;
     NumericInt<int32_t> _dac3BiasLvds;
     NumericInt<int32_t> _dac3RefLvds;
-    NumericInt<uint8_t> _timepixMode;
   };
 };
 
