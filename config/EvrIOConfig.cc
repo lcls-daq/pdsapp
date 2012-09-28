@@ -175,7 +175,7 @@ namespace Pds_ConfigDb
         p += _evr[i]->push(p);
       }
       p += (new(p) EvrIOConfigType(Pds::EvrData::OutputMap::UnivIO, 0, 0))->size();
-      printf("EvrIOConfig push %d bytes\n",p - reinterpret_cast<char*>(to));
+      printf("EvrIOConfig push %d bytes\n", (int)(p - reinterpret_cast<char*>(to)));
       return p - reinterpret_cast<char*>(to);
     }
 
