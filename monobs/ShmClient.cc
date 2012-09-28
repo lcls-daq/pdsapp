@@ -89,7 +89,7 @@ bool ShmClient::arg(char c, const char* o)
     _index = strtoul(o,NULL,0);
     break;
   case 'e':
-    _evindex = strtoul(o,NULL,0);
+    _evindex = strtol(o,NULL,0);
     break;
   case 'p':
     _partitionTag = o;

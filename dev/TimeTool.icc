@@ -18,7 +18,7 @@ static void project_spectrumX(const Pds::Camera::FrameV1& frame,
     sig[i++] = 0;
   while(i<=rgt_col)
     sig[i++] = (*p++);
-  while(i<width)
+  while(i<(unsigned)width)
     sig[i++] = 0;
 
   for(unsigned j=top_row+1; j<=bot_row; j++) {
