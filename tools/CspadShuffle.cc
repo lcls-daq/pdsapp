@@ -17,6 +17,8 @@
 #include <string.h>
 #include <vector>
 
+#define QUAD_CHECK
+
 using namespace Pds;
 
 static std::vector<CsPadConfigType> _config;
@@ -97,6 +99,22 @@ private:
 	  if (_info[i] == info) {
 
 	    const CsPadConfigType& cfg = _config[i];
+
+#ifdef QUAD_CHECK
+            //  check for duplicate quads
+            {
+              unsigned qmask = 0;
+              CsPad::ElementIterator iiter(cfg, *xtc);
+              for(const Pds::CsPad::ElementHeader* hdr = iiter.next(); (hdr); hdr=iiter.next()) {
+                unsigned iq = 1<<hdr->quad();
+                if (qmask & iq)
+                  printf("%s. Found duplicate quad %d.\n",
+                         DetInfo::name(static_cast<const DetInfo&>(xtc->src)),hdr->quad());
+                qmask |= iq;
+              }
+            }
+#endif
+
 	    CsPad::ElementIterator iter(cfg, *xtc);
 
 	    // Copy the xtc header
