@@ -22,6 +22,7 @@
 #include "pdsapp/config/PimImageConfig.hh"
 #include "pdsapp/config/EncoderConfig.hh"
 #include "pdsapp/config/EncoderConfig_V1.hh"
+#include "pdsapp/config/UsdUsbConfig.hh"
 #include "pdsapp/config/Opal1kConfig.hh"
 #include "pdsapp/config/QuartzConfig.hh"
 #include "pdsapp/config/FccdConfig.hh"
@@ -54,6 +55,7 @@
 #include "pds/config/DiodeFexConfigType.hh"
 #include "pds/config/PimImageConfigType.hh"
 #include "pds/config/EncoderConfigType.hh"
+#include "pds/config/UsdUsbConfigType.hh"
 #include "pds/config/Opal1kConfigType.hh"
 #include "pds/config/QuartzConfigType.hh"
 #include "pds/config/FccdConfigType.hh"
@@ -95,6 +97,7 @@ bool SerializerDEntry::operator==(const SerializerDEntry& s) const
 SerializerDictionary::SerializerDictionary()
 {
   enroll(_encoderConfigType     ,new EncoderConfig);
+  enroll(_usdusbConfigType      ,new UsdUsbConfig);
   enroll(_acqConfigType         ,new AcqConfig);
   enroll(_acqTdcConfigType      ,new AcqTdcConfig);
   enroll(_evrConfigType         ,new EvrConfigP);

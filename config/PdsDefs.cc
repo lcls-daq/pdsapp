@@ -26,6 +26,7 @@
 #include "pds/config/OceanOpticsConfigType.hh"
 #include "pds/config/FliConfigType.hh"
 #include "pds/config/AndorConfigType.hh"
+#include "pds/config/UsdUsbConfigType.hh"
 //#include "pds/config/SeqConfigType.hh"
 
 #include <sstream>
@@ -85,6 +86,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case OceanOptics  : type = &_oceanOpticsConfigType; break;
   case Fli          : type = &_fliConfigType; break;
   case Andor        : type = &_andorConfigType; break;
+  case UsdUsb       : type = &_usdusbConfigType; break;
   default: 
     printf("PdsDefs::typeId id %d not found\n",unsigned(id));
     break;
@@ -123,6 +125,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_oceanOpticsConfigType);    
   test(_fliConfigType);    
   test(_andorConfigType);    
+  test(_usdusbConfigType);    
 #undef test
   //  database-only types
   //  if (name==_eventCodeSetName) return &_eventCodeSetType;
@@ -162,6 +165,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_oceanOpticsConfigType);    
   test(_fliConfigType);    
   test(_andorConfigType);    
+  test(_usdusbConfigType);    
 #undef test
   //  database-only types
   //  if (name==_eventCodeSetName) return &_eventCodeSetType;

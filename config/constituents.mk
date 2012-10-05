@@ -89,6 +89,7 @@ libsrcs_configdbg += DiodeFexTable.cc
 libsrcs_configdbg += DiodeFexConfig.cc DiodeFexConfig_V1.cc
 libsrcs_configdbg += PimImageConfig.cc
 libsrcs_configdbg += EncoderConfig.cc EncoderConfig_V1.cc
+libsrcs_configdbg += UsdUsbConfig.cc
 libsrcs_configdbg += Gsc16aiConfig.cc
 libsrcs_configdbg += TimepixConfig.cc
 libsrcs_configdbg += OceanOpticsConfig.cc
@@ -108,7 +109,7 @@ tgtnames       += configdb_readxtc
 
 # executable python modules: configdb_gui.py
 
-datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata pdsdata/andordata
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata pdsdata/andordata pdsdata/usdusbdata
 
 tgtsrcs_configdb := configdb.cc
 #tgtincs_configdb := $(qtincdir)
