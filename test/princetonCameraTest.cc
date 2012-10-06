@@ -12,7 +12,7 @@
 #include "pvcam/include/pvcam.h"
 
 int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip);
+  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY);
 
 static const char sPrincetonCameraTestVersion[] = "1.40";
 
@@ -34,18 +34,18 @@ class ImageCapture
 public:
   
   int   start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-    int iGainIndex, float fTemperature, int iStrip);    
+    int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY);    
   int   getConfig(int& x, int& y, int& iWidth, int& iHeight, int& iBinning);
   int   lockCurrentFrame(unsigned char*& pCurrentFrame);
   int   unlockFrame();
   
 private:     
   // private functions
-  int testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime);
+  int testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY);
   int testImageCaptureContinous(int iNumFrame, int16 modeExposure, uns32 uExposureTime);  
   int testImageCaptureFirstTime();
   int setupROI(rgn_type& region);
-
+  int setupROI(rgn_type& region, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY);
   // private data
   unsigned char* _pCurrentFrame;
   unsigned char* _pLockedFrame;
@@ -79,8 +79,8 @@ static void showUsage()
 {
     printf( "Usage:  princetonCameraTest  [-v|--version] [-h|--help] [-c|--camera <camera number>]\n"
       "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time>]\n"
-      "[-r|--readout <readout port>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
-      "[-t|--temp <temperature>] [-p|--strip <strip number>]\n"
+      "[-p|--port <readout port>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
+      "[-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>] [--strip <strip cycle>]\n"
       "  Options:\n"
       "    -v|--version                      Show file version\n"
       "    -h|--help                         Show usage\n"
@@ -88,11 +88,13 @@ static void showUsage()
       "    -w|--write     <filename prefix>  Output filename prefix\n"
       "    -n|--number    <number of images> Number of images to be captured (Default: 1)\n"
       "    -e|--exposure  <exposure time>    Exposure time (in ms) (Default: 1 ms)\n"      
-      "    -r|--readout   <readout port>     Readout port\n"      
+      "    -p|--port      <readout port>     Readout port\n"      
       "    -s|--speed     <speed inedx>      Speed table index\n"      
       "    -g|--gain      <gain index>       Gain Index\n"      
       "    -t|--temp      <temperature>      Temperature (in Celcius) (Default: 25 C)\n"            
-      "    -p|--strip     <strip number>     Number of rows per clear cycle\n"
+      "    -r|--roi       <x,y,w,h>          Region of Interest\n"
+      "    -b|--bin       <xbin,ybin>        Binning of X/Y\n"
+      "       --strip     <strip cycle>      Number of rows per clear cycle\n"
     );
 }
 
@@ -130,7 +132,7 @@ void signalIntHandler(int iSignalNo)
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhc:w:n:e:r:s:g:t:p:";
+  const char*         strOptions  = ":vhc:w:n:e:p:s:g:t:r:b:";
   const struct option loOptions[] = 
   {
      {"ver",      0, 0, 'v'},
@@ -139,11 +141,13 @@ int main(int argc, char **argv)
      {"write",    1, 0, 'w'},
      {"number",   1, 0, 'n'},
      {"exposure", 1, 0, 'e'},
-     {"readout",  1, 0, 'r'},
+     {"port",     1, 0, 'p'},
      {"speed",    1, 0, 's'},
      {"gain",     1, 0, 'g'},
      {"temp",     1, 0, 't'},     
-     {"strip",    1, 0, 'p'},     
+     {"roi",      1, 0, 'r'},
+     {"bin",      1, 0, 'b'},     
+     {"strip",    1, 0,  1000},     
      {0,          0, 0,  0 }
   };    
   
@@ -156,6 +160,12 @@ int main(int argc, char **argv)
   int   iGainIndex    = -1;
   float fTemperature  = 25.0f;
   int   iStrip        = -1;
+  int   iRoiX         = 0;
+  int   iRoiY         = 0;
+  int   iRoiW         = -1;
+  int   iRoiH         = -1;
+  int   iBinX         = 1;
+  int   iBinY         = 1;  
   
   int iOptionIndex = 0;
   while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
@@ -179,7 +189,7 @@ int main(int argc, char **argv)
       case 'e':
           iExposureTime = strtoul(optarg, NULL, 0);
           break;            
-      case 'r':
+      case 'p':
           iReadoutPort  = strtoul(optarg, NULL, 0);
           break;            
       case 's':
@@ -191,7 +201,27 @@ int main(int argc, char **argv)
       case 't':
           fTemperature  = strtof (optarg, NULL);
           break;            
-      case 'p':
+      case 'r':
+          {
+            char* pNextToken = optarg;
+            iRoiX = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+            if ( *pNextToken == 0 ) break;
+            iRoiY = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+            if ( *pNextToken == 0 ) break;
+            iRoiW = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+            if ( *pNextToken == 0 ) break;
+            iRoiH = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+            break;            
+          }
+      case 'b':
+          {
+            char* pNextToken;
+            iBinX = strtoul(optarg, &pNextToken, 0); ++pNextToken;            
+            if ( *pNextToken == 0 ) break;
+            iBinY = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+            break;            
+          }
+      case 1000:
           iStrip        = strtoul(optarg, NULL, 0);
           break;            
       case '?':               /* Terse output mode */
@@ -210,7 +240,7 @@ int main(int argc, char **argv)
 
   argc -= optind;
   argv += optind;
-
+  
   /*
    * Register singal handler
    */
@@ -224,13 +254,11 @@ int main(int argc, char **argv)
   if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 ) 
     printf( "main(): Cannot register signal handler for SIGTERM\n" );  
 
-  testPIDaq(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, iStrip);
+  testPIDaq(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, iStrip, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
 }
 
-#include <signal.h>
-
 int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip)
+  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY)
 {
   ImageCapture  imageCapure;
   TestDaqThread testDaqThread;    
@@ -242,7 +270,7 @@ int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, i
     return 1;
   }
   
-  iFail = imageCapure.start(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, iStrip);
+  iFail = imageCapure.start(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, iStrip, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
   if (0 != iFail)
   {    
     printf("testPIDaq(): imageCapure.start() failed, error code = %d\n", iFail);
@@ -430,7 +458,7 @@ int ImageCapture::setupCooling(float fTemperature)
 }
 
 int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip)
+  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY)
 {
   char cam_name[CAM_NAME_LEN];  /* camera name                    */
 
@@ -487,7 +515,7 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
   //const int16 modeExposure = STROBED_MODE;
   const uns32 u32ExposureTime = iExposureTime;
   
-  testImageCaptureStandard(sFnPrefix, iNumFrame, modeExposure, u32ExposureTime);
+  testImageCaptureStandard(sFnPrefix, iNumFrame, modeExposure, u32ExposureTime, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
   //testImageCaptureContinous(hCam, iNumFrame, modeExposure, u32ExposureTime);
 
   bStatus = pl_cam_close(_hCam);
@@ -522,25 +550,40 @@ int ImageCapture::setupROI(rgn_type& region)
   region.p2 = iHeight - 1;
   region.pbin = 1;
 
-  /*
-  //!! for debug only
-  region.sbin = 4;
-  region.pbin = 4;
-  region.s1 = 0;
-  region.p1 = 0;
-  region.s2 = 256 - 1;
-  region.p2 = 256 - 1;
-  */
+  return 0;
+}
+
+int ImageCapture::setupROI(rgn_type& region, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY)
+{
+  using PICAM::getAnyParam;
+  int iWidth, iHeight;
+  getAnyParam( _hCam, PARAM_SER_SIZE, &iWidth );
+  getAnyParam( _hCam, PARAM_PAR_SIZE, &iHeight );
+  
+  // set the region to use full frame and 1x1 binning
+  region.s1 = iRoiX;
+  region.s2 = iRoiX + iRoiW - 1;
+  region.sbin = iBinX;
+  region.p1 = iRoiY;
+  region.p2 = iRoiY + iRoiH - 1;
+  region.pbin = iBinY;
 
   return 0;
 }
+
 
 int ImageCapture::testImageCaptureFirstTime()
 {    
   rgn_type region;
   setupROI(region);
-  region.sbin = 16;
-  region.pbin = 16;
+  region.s1   = 0;
+  region.s2   = 127;
+  region.sbin = 1;
+  region.p1   = 0;
+  region.p2   = 127;
+  region.pbin = 1;  
+  
+  PICAM::printROI(1, &region);
   
   /* Init a sequence set the region, exposure mode and exposure time */
   pl_exp_init_seq();
@@ -609,13 +652,17 @@ int ImageCapture::testImageCaptureFirstTime()
   return 0;
 }
 
-int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime)
+int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY)
 {
   printf( "Starting standard image capture for %d frames, exposure mode = %d, exposure time = %d ms\n",
     iNumFrame, (int) modeExposure, (int) uExposureTime );
     
   rgn_type region;
-  setupROI(region);
+  if (iRoiW < 0 || iRoiH < 0 )
+    setupROI(region);
+  else
+    setupROI(region, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
+  
   PICAM::printROI(1, &region);
   
   /* Init a sequence set the region, exposure mode and exposure time */

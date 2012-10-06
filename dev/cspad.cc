@@ -73,7 +73,8 @@ class Pds::Seg
         SegWireSettings& settings,
         Arp* arp,
         CspadServer* cspadServer,
-        unsigned pgpcard );
+        unsigned pgpcard,
+        bool compress = false);
 
    virtual ~Seg();
    bool didYouFail() { return _failed; }
@@ -89,6 +90,7 @@ class Pds::Seg
    CfgClientNfs* _cfg;
    CspadServer*  _cspadServer;
    unsigned      _pgpcard;
+   bool          _compress;
    bool          _failed;
 };
 
@@ -135,12 +137,14 @@ Pds::Seg::Seg( Task* task,
                SegWireSettings& settings,
                Arp* arp,
                CspadServer* cspadServer,
-               unsigned pgpcard )
+               unsigned pgpcard,
+               bool compress)
    : _task(task),
      _platform(platform),
      _cfg   (cfgService),
      _cspadServer(cspadServer),
      _pgpcard(pgpcard),
+     _compress(compress),
      _failed(false)
 {}
 
@@ -155,8 +159,8 @@ void Pds::Seg::attached( SetOfStreams& streams )
           _platform);
       
    Stream* frmk = streams.stream(StreamParams::FrameWork);
-   CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard );
-   //cspadMgr.appProcessor().connect( frmk->inlet() );
+   CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard, _compress );
+   if (_compress) cspadMgr.appProcessor().connect( frmk->inlet() );
    cspadMgr.appliance().connect( frmk->inlet() );
 }
 
@@ -192,7 +196,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: %s [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] -p <platform>\n"
+  printf( "Usage: %s [-h] -p <platform> [-d <detector>] [-i <deviceID>] [-m <configMask>] [-c <compressFlag>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>]\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
@@ -205,6 +209,7 @@ void printUsage(char* s) {
       "                the index of the card and the top nybble being a port mask where one bit is for\n"
       "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
       "                applications that use the whole card\n"
+      "    -c      Set the compression active flag to given value\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -216,6 +221,7 @@ void printUsage(char* s) {
       "                bit 08          turn on printing of FE concentrator status on\n"
       "                bit 09          turn on printing of FE quad status\n"
       "                bit 10          print out time dumping front end took\n"
+      "                bit 12          print out compression status info\n"
       "    -r      set run time config file name\n"
       "                The format of the file consists of lines: 'Dest Addr Data'\n"
       "                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
@@ -237,10 +243,11 @@ int main( int argc, char** argv )
   ::signal( SIGINT, sigHandler );
   char                runTimeConfigname[256] = {""};
   bool                platformMissing     = true;
+  bool                compressFlag        = false;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:D:xP:r:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:c:D:xP:r:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -274,6 +281,10 @@ int main( int argc, char** argv )
          case 'P':
            pgpcard = strtoul(optarg, NULL, 0);
            printf("Cspad using pgpcard 0x%x\n", pgpcard);
+           break;
+         case 'c':
+           compressFlag = strtoul(optarg, NULL, 0) != 0;
+           printf("Compression set to %s\n", compressFlag ? "enabled" : "disabled");
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
@@ -328,7 +339,8 @@ int main( int argc, char** argv )
                        settings,
                        0,
                        cspadServer,
-                       pgpcard);
+                       pgpcard,
+                       compressFlag);
 
    SegmentLevel* seglevel = new SegmentLevel( platform,
                                               settings,

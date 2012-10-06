@@ -37,7 +37,7 @@ static QList<int> _bldOrder =
          << BldInfo::XcsDg3Imb03
          << BldInfo::XcsDg3Imb04
          << BldInfo::XcsDg3Cam
-         << BldInfo::XcsDg3Cam
+         << BldInfo::GMD
          << BldInfo::NumberOf;
 
 static FILE* open_pref(const char* title, unsigned platform, char* mode)

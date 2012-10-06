@@ -49,6 +49,8 @@ static int call(char *cmd)
   if (rv != 0) {
     fprintf(stderr, " *** system call '%s' returned %d ***\n", cmd, rv);
   }
+  
+  return 0;
 }
 
 static void local_mkdir_with_acls (const char * path, const char *expname)

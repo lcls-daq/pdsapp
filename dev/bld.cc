@@ -90,7 +90,7 @@ namespace Pds {
   public:
     InDatagram* events     (InDatagram* dg) {
       if (dg->datagram().seq.service()==TransitionId::Configure)
-	dg->insert(_configtc, _config_payload);
+  dg->insert(_configtc, _config_payload);
       else if(dg->datagram().seq.service()==TransitionId::L1Accept) {
         //Overwrite the EBeam data type in the xtc contains field
         myLevelIter iter ;
@@ -125,29 +125,31 @@ namespace Pds {
       if (CheckType(EBeam))           extent += SizeType(BldDataEBeam);
       if (CheckType(PhaseCavity))     extent += SizeType(BldDataPhaseCavity);
       if (CheckType(FEEGasDetEnergy)) extent += SizeType(BldDataFEEGasDetEnergy);
-      if (CheckType(Nh2Sb1Ipm01))     extent += SizeType(BldDataIpimb);	  
-      if (CheckType(HxxUm6Imb01))     extent += SizeType(BldDataIpimb);	  
-      if (CheckType(HxxUm6Imb02))     extent += SizeType(BldDataIpimb);	  
-      if (CheckType(HfxDg2Imb01))     extent += SizeType(BldDataIpimb);	  
-      if (CheckType(HfxDg2Imb02))     extent += SizeType(BldDataIpimb);	  
-      if (CheckType(XcsDg3Imb03))     extent += SizeType(BldDataIpimb);	  
-      if (CheckType(XcsDg3Imb04))     extent += SizeType(BldDataIpimb);	  
-      if (CheckType(HfxDg3Imb01))     extent += SizeType(BldDataIpimb);	  
-      if (CheckType(HfxDg3Imb02))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(Nh2Sb1Ipm01))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(HxxUm6Imb01))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(HxxUm6Imb02))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(HfxDg2Imb01))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(HfxDg2Imb02))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(XcsDg3Imb03))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(XcsDg3Imb04))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(HfxDg3Imb01))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(HfxDg3Imb02))     extent += SizeType(BldDataIpimb);   
       if (CheckType(HxxDg1Cam  ))     extent += SizeCamType;
       if (CheckType(HfxDg2Cam  ))     extent += SizeCamType;
       if (CheckType(HfxDg3Cam  ))     extent += SizeCamType;
       if (CheckType(XcsDg3Cam  ))     extent += SizeCamType;
       if (CheckType(HfxMonCam  ))     extent += SizeCamType;
-      if (CheckType(HfxMonImb01))     extent += SizeType(BldDataIpimb);	  
-      if (CheckType(HfxMonImb02))     extent += SizeType(BldDataIpimb);	  
+      if (CheckType(HfxMonImb01))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(HfxMonImb02))     extent += SizeType(BldDataIpimb);   
       if (CheckType(HfxMonImb03))     extent += SizeType(BldDataIpimb);
-      if (CheckType(MecLasEm01))     extent += SizeType(BldDataIpimb);
-      if (CheckType(MecTctrPip01))     extent += SizeType(BldDataIpimb);
-      if (CheckType(MecTcTrDio01))     extent += SizeType(BldDataIpimb);
+      if (CheckType(MecLasEm01))      extent += SizeType(BldDataIpimb);
+      if (CheckType(MecTctrPip01))    extent += SizeType(BldDataIpimb);
+      if (CheckType(MecTcTrDio01))    extent += SizeType(BldDataIpimb);
       if (CheckType(MecXt2Ipm02))     extent += SizeType(BldDataIpimb);
       if (CheckType(MecXt2Ipm03))     extent += SizeType(BldDataIpimb);
       if (CheckType(MecHxmIpm01))     extent += SizeType(BldDataIpimb);
+      if (CheckType(GMD))             extent += SizeType(BldDataGMD);
+      
       _configtc.extent = sizeof(Xtc)+extent;
       if (extent) {
         if (_config_payload) delete[] _config_payload;
@@ -155,29 +157,30 @@ namespace Pds {
         if (CheckType(EBeam))           AddType(EBeam,           Id_EBeam,           BldDataEBeam);
         if (CheckType(PhaseCavity))     AddType(PhaseCavity,     Id_PhaseCavity,     BldDataPhaseCavity);
         if (CheckType(FEEGasDetEnergy)) AddType(FEEGasDetEnergy, Id_FEEGasDetEnergy, BldDataFEEGasDetEnergy );
-        if (CheckType(Nh2Sb1Ipm01))     AddType(Nh2Sb1Ipm01,     Id_SharedIpimb,     BldDataIpimb);	
-        if (CheckType(HxxUm6Imb01))     AddType(HxxUm6Imb01,     Id_SharedIpimb,     BldDataIpimb);	
-        if (CheckType(HxxUm6Imb02))     AddType(HxxUm6Imb02,     Id_SharedIpimb,     BldDataIpimb);	
-        if (CheckType(HfxDg2Imb01))     AddType(HfxDg2Imb01,     Id_SharedIpimb,     BldDataIpimb);	
-        if (CheckType(HfxDg2Imb02))     AddType(HfxDg2Imb02,     Id_SharedIpimb,     BldDataIpimb);	
-        if (CheckType(XcsDg3Imb03))     AddType(XcsDg3Imb03,     Id_SharedIpimb,     BldDataIpimb);	
-        if (CheckType(XcsDg3Imb04))     AddType(XcsDg3Imb04,     Id_SharedIpimb,     BldDataIpimb);	
-        if (CheckType(HfxDg3Imb01))     AddType(HfxDg3Imb01,     Id_SharedIpimb,     BldDataIpimb);	
-        if (CheckType(HfxDg3Imb02))     AddType(HfxDg3Imb02,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(Nh2Sb1Ipm01))     AddType(Nh2Sb1Ipm01,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(HxxUm6Imb01))     AddType(HxxUm6Imb01,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(HxxUm6Imb02))     AddType(HxxUm6Imb02,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(HfxDg2Imb01))     AddType(HfxDg2Imb01,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(HfxDg2Imb02))     AddType(HfxDg2Imb02,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(XcsDg3Imb03))     AddType(XcsDg3Imb03,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(XcsDg3Imb04))     AddType(XcsDg3Imb04,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(HfxDg3Imb01))     AddType(HfxDg3Imb01,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(HfxDg3Imb02))     AddType(HfxDg3Imb02,     Id_SharedIpimb,     BldDataIpimb); 
         if (CheckType(HxxDg1Cam  ))     AddCamType(HxxDg1Cam);
         if (CheckType(HfxDg2Cam  ))     AddCamType(HfxDg2Cam);
         if (CheckType(HfxDg3Cam  ))     AddCamType(HfxDg3Cam);
         if (CheckType(XcsDg3Cam  ))     AddCamType(XcsDg3Cam);
         if (CheckType(HfxMonCam  ))     AddCamType(HfxMonCam);
-        if (CheckType(HfxMonImb01))     AddType(HfxMonImb01,     Id_SharedIpimb,     BldDataIpimb);	
-        if (CheckType(HfxMonImb02))     AddType(HfxMonImb02,     Id_SharedIpimb,     BldDataIpimb);	
+        if (CheckType(HfxMonImb01))     AddType(HfxMonImb01,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(HfxMonImb02))     AddType(HfxMonImb02,     Id_SharedIpimb,     BldDataIpimb); 
         if (CheckType(HfxMonImb03))     AddType(HfxMonImb03,     Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecLasEm01))      AddType(MecLasEm01,      Id_SharedIpimb,     BldDataIpimb);
-        if (CheckType(MecTctrPip01))     AddType(MecTctrPip01,     Id_SharedIpimb,     BldDataIpimb);
+        if (CheckType(MecTctrPip01))     AddType(MecTctrPip01,    Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecTcTrDio01))    AddType(MecTcTrDio01,    Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecXt2Ipm02))     AddType(MecXt2Ipm02,     Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecXt2Ipm03))     AddType(MecXt2Ipm03,     Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecHxmIpm01))     AddType(MecHxmIpm01,     Id_SharedIpimb,     BldDataIpimb);
+        if (CheckType(GMD))             AddType(GMD,             Id_GMD,             BldDataGMD);
       }
 #undef CheckType
 #undef SizeType
@@ -200,15 +203,15 @@ namespace Pds {
     {
       if (_cnt!=0) _cnt--;
       if ((dg->datagram().xtc.damage.value()&(1<<Damage::DroppedContribution)) && _cnt==0) {
-	_eb->dump(1);
-	_cnt = Period;
+  _eb->dump(1);
+  _cnt = Period;
       }
       return dg; 
     }
     Transition* transitions(Transition* tr) 
     {
       if (tr->id() == TransitionId::Disable)
-	_eb->dump(1);
+  _eb->dump(1);
       return tr; 
     }
   private:
@@ -217,18 +220,18 @@ namespace Pds {
   };
 
   class BldCallback : public EventCallback, 
-		      public SegWireSettings {
+          public SegWireSettings {
   public:
     BldCallback(Task*      task,
-		unsigned   platform,
-		unsigned   mask) :
+    unsigned   platform,
+    unsigned   mask) :
       _task    (task),
       _platform(platform)
     {
       Node node(Level::Source,platform);
       _sources.push_back(DetInfo(node.pid(), 
-				 DetInfo::BldEb, 0,
-				 DetInfo::NoDevice, 0));
+         DetInfo::BldEb, 0,
+         DetInfo::NoDevice, 0));
       for(unsigned i=0; i<BldInfo::NumberOf; i++)
         if ( (1<<i)&mask ) 
           _sources.push_back(BldInfo(node.pid(),(BldInfo::Type)i));
@@ -251,10 +254,10 @@ namespace Pds {
     void failed(Reason reason)
     {
       static const char* reasonname[] = { "platform unavailable", 
-					  "crates unavailable", 
-					  "fcpm unavailable" };
+            "crates unavailable", 
+            "fcpm unavailable" };
       printf("SegTest: unable to allocate crates on platform 0x%x : %s\n", 
-	     _platform, reasonname[reason]);
+       _platform, reasonname[reason]);
       delete this;
     }
     void dissolved(const Node& who)
@@ -268,7 +271,7 @@ namespace Pds {
       Node::ip_name(who.ip(),ipname, iplen);
       
       printf("SegTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
-	     who.platform(), username, who.pid(), ipname);
+       who.platform(), username, who.pid(), ipname);
       
       delete this;
     }
@@ -281,15 +284,15 @@ namespace Pds {
   class BldEvBuilder : public EbS {
   public:
     BldEvBuilder(const Src& id,
-		 const TypeId& ctns,
-		 Level::Type level,
-		 Inlet& inlet,
-		 OutletWire& outlet,
-		 int stream,
-		 int ipaddress,
-		 unsigned eventsize,
-		 unsigned eventpooldepth,
-		 VmonEb* vmoneb=0) : 
+     const TypeId& ctns,
+     Level::Type level,
+     Inlet& inlet,
+     OutletWire& outlet,
+     int stream,
+     int ipaddress,
+     unsigned eventsize,
+     unsigned eventpooldepth,
+     VmonEb* vmoneb=0) : 
       EbS(id, ctns, level, inlet, outlet, stream, ipaddress, eventsize, eventpooldepth, vmoneb) {}
     ~BldEvBuilder() {}
   public:
@@ -305,12 +308,12 @@ namespace Pds {
       EbEventBase* empty = _pending.empty();
       //  Prefer to flush an unvalued event first
       while( event != empty ) {
-	EbBitMask value(event->allocated().remaining() & _valued_clients);
-	if (value.isZero()) {
-	  _postEvent(event);
-	  return;
-	}
-	event = event->forward();
+  EbBitMask value(event->allocated().remaining() & _valued_clients);
+  if (value.isZero()) {
+    _postEvent(event);
+    return;
+  }
+  event = event->forward();
       }
       _postEvent(_pending.forward());
     }
@@ -326,8 +329,8 @@ namespace Pds {
       return new(&_events) EbEvent(serverId, _clients, datagram, key);
     }
     EbEventBase* _new_event  ( const EbBitMask& serverId,
-			       char*            payload, 
-			       unsigned         sizeofPayload ) {
+             char*            payload, 
+             unsigned         sizeofPayload ) {
       CDatagram* datagram = new(&_datagrams) CDatagram(_ctns, _id);
       EbSequenceKey* key = new(&_keys) EbSequenceKey(const_cast<Datagram&>(datagram->datagram()));
       EbEvent* event = new(&_events) EbEvent(serverId, _clients, datagram, key);
@@ -350,32 +353,32 @@ namespace Pds {
       //    Search for FIFO Event with current pulseId and beam present code
       //
       if (_evrServer) {
-	if (serverId.hasBitSet(_evrServer->id())) {  // EVR just added 
-	  Datagram* dg = event->datagram();
-	  uint32_t timestamp = dg->seq.stamp().fiducials();
-	  const Xtc& xtc  = *reinterpret_cast<const Xtc*>(_evrServer->payload());
-	  const Xtc& xtc1 = *reinterpret_cast<const Xtc*>(xtc.payload());
-	  const EvrDataType& evrd = *reinterpret_cast<const EvrDataType*>(xtc1.payload());
+  if (serverId.hasBitSet(_evrServer->id())) {  // EVR just added 
+    Datagram* dg = event->datagram();
+    uint32_t timestamp = dg->seq.stamp().fiducials();
+    const Xtc& xtc  = *reinterpret_cast<const Xtc*>(_evrServer->payload());
+    const Xtc& xtc1 = *reinterpret_cast<const Xtc*>(xtc.payload());
+    const EvrDataType& evrd = *reinterpret_cast<const EvrDataType*>(xtc1.payload());
 
 //           static int nprint=0;
-// 	  if (nprint++%119 == 0) {
-// 	    printf("== nfifo %d\n",evrd.numFifoEvents());
-// 	    for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
-// 	      const EvrDataType::FIFOEvent& fe = evrd.fifoEvent(i);
-// 	      printf("  %d : %08x/%08x : %d\n", 
-// 		     i, fe.TimestampHigh, fe.TimestampLow, fe.EventCode);
-// 	    }
-// 	  }
+//    if (nprint++%119 == 0) {
+//      printf("== nfifo %d\n",evrd.numFifoEvents());
+//      for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
+//        const EvrDataType::FIFOEvent& fe = evrd.fifoEvent(i);
+//        printf("  %d : %08x/%08x : %d\n", 
+//         i, fe.TimestampHigh, fe.TimestampLow, fe.EventCode);
+//      }
+//    }
 
-	  for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
-	    const EvrDataType::FIFOEvent& fe = evrd.fifoEvent(i);
-	    if (fe.TimestampHigh == timestamp &&
-		fe.EventCode >= 140 &&
-		fe.EventCode <= 146)
-	      return EbS::_is_complete(event,serverId);  //  A beam-present code is found
-	  }
-	  return NoBuild;   // No beam-present code is found
-	}
+    for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
+      const EvrDataType::FIFOEvent& fe = evrd.fifoEvent(i);
+      if (fe.TimestampHigh == timestamp &&
+    fe.EventCode >= 140 &&
+    fe.EventCode <= 146)
+        return EbS::_is_complete(event,serverId);  //  A beam-present code is found
+    }
+    return NoBuild;   // No beam-present code is found
+  }
       }
       return EbS::_is_complete(event,serverId);   //  Not only EVR is present
     }
@@ -400,29 +403,29 @@ namespace Pds {
       const Src& src = m.header().procInfo();
       for (int s = 0; s < StreamParams::NumberOfStreams; s++) {
 
-	_outlets[s] = new ToEventWire(*stream(s)->outlet(), 
-				      m, 
-				      ipaddress, 
-				      max_size*net_buf_depth,
-				      m.occurrences());
+  _outlets[s] = new ToEventWire(*stream(s)->outlet(), 
+              m, 
+              ipaddress, 
+              max_size*net_buf_depth,
+              m.occurrences());
 
-	_inlet_wires[s] = new BldEvBuilder(src,
-					   _xtcType,
-					   level,
-					   *stream(s)->inlet(), 
-					   *_outlets[s],
-					   s,
-					   ipaddress,
-					   max_size, eb_depth,
-					   new VmonEb(src,32,eb_depth,(1<<23),(1<<22)));
-				       
-	(new VmonServerAppliance(src))->connect(stream(s)->inlet());
+  _inlet_wires[s] = new BldEvBuilder(src,
+             _xtcType,
+             level,
+             *stream(s)->inlet(), 
+             *_outlets[s],
+             s,
+             ipaddress,
+             max_size, eb_depth,
+             new VmonEb(src,32,eb_depth,(1<<23),(1<<22)));
+               
+  (new VmonServerAppliance(src))->connect(stream(s)->inlet());
       }
     }
     ~BldStreams() {  
       for (int s = 0; s < StreamParams::NumberOfStreams; s++) {
-	delete _inlet_wires[s];
-	delete _outlets[s];
+  delete _inlet_wires[s];
+  delete _outlets[s];
       }
     }
   };
@@ -430,31 +433,31 @@ namespace Pds {
   class BldSegmentLevel : public SegmentLevel {
   public:
     BldSegmentLevel(unsigned     platform, 
-		    BldCallback& cb) :
+        BldCallback& cb) :
       SegmentLevel(platform, cb, cb, 0) {}
     ~BldSegmentLevel() {}
   public:
     bool attach() {
       start();
       if (connect()) {
-	_streams = new BldStreams(*this);  // specialized here
-	_streams->connect();
+  _streams = new BldStreams(*this);  // specialized here
+  _streams->connect();
 
-	_callback.attached(*_streams);
+  _callback.attached(*_streams);
 
-	//  Add the L1 Data servers  
-	_settings.connect(*_streams->wire(StreamParams::FrameWork),
-			  StreamParams::FrameWork, 
-			  header().ip());
+  //  Add the L1 Data servers  
+  _settings.connect(*_streams->wire(StreamParams::FrameWork),
+        StreamParams::FrameWork, 
+        header().ip());
 
-	//    Message join(Message::Ping);
-	//    mcast(join);
-	_reply.ready(true);
-	mcast(_reply);
-	return true;
+  //    Message join(Message::Ping);
+  //    mcast(join);
+  _reply.ready(true);
+  mcast(_reply);
+  return true;
       } else {
-	_callback.failed(EventCallback::PlatformUnavailable);
-	return false;
+  _callback.failed(EventCallback::PlatformUnavailable);
+  return false;
       }
     }
     void allocated(const Allocation& alloc, unsigned index) {
@@ -465,59 +468,59 @@ namespace Pds {
       InletWire & inlet  = *_streams->wire(StreamParams::FrameWork);
 
       for (unsigned n = 0; n < nnodes; n++) {
-	const Node & node = *alloc.node(n);
-	if (node.level() == Level::Segment) {
-	  Ins ins = StreamPorts::event(partition, Level::Observer, 0, 0);
-	  _evrServer =
-	    new NullServer(ins,
-			   header().procInfo(),
-			   sizeof(Pds::EvrData::DataV3)+256*sizeof(Pds::EvrData::DataV3::FIFOEvent),
-			   NetBufferDepth);
+  const Node & node = *alloc.node(n);
+  if (node.level() == Level::Segment) {
+    Ins ins = StreamPorts::event(partition, Level::Observer, 0, 0);
+    _evrServer =
+      new NullServer(ins,
+         header().procInfo(),
+         sizeof(Pds::EvrData::DataV3)+256*sizeof(Pds::EvrData::DataV3::FIFOEvent),
+         NetBufferDepth);
 
-	  Ins mcastIns(ins.address());
-	  _evrServer->server().join(mcastIns, Ins(header().ip()));
+    Ins mcastIns(ins.address());
+    _evrServer->server().join(mcastIns, Ins(header().ip()));
 
-	  inlet.add_input(_evrServer);
+    inlet.add_input(_evrServer);
           _inputs.push_back(_evrServer);
-	  break;
-	}
+    break;
+  }
       }
 
       for(int i=0; i<BldInfo::NumberOf; i++) {
-	if (bldmask & (1<<i)) {
-	  Node node(Level::Reporter, 0);
-	  node.fixup(StreamPorts::bld(i).address(),Ether());
-	  Ins ins( node.ip(), StreamPorts::bld(0).portId());
-	  BldServer* srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
-	  inlet.add_input(srv);
+  if (bldmask & (1<<i)) {
+    Node node(Level::Reporter, 0);
+    node.fixup(StreamPorts::bld(i).address(),Ether());
+    Ins ins( node.ip(), StreamPorts::bld(0).portId());
+    BldServer* srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
+    inlet.add_input(srv);
           _inputs.push_back(srv);
-	  srv->server().join(ins, header().ip());
-	  printf("Bld::allocated assign bld  fragment %d  %x/%d\n",
-		 srv->id(),ins.address(),srv->server().portId());
-	}
+    srv->server().join(ins, header().ip());
+    printf("Bld::allocated assign bld  fragment %d  %x/%d\n",
+     srv->id(),ins.address(),srv->server().portId());
+  }
       } 
 
       unsigned vectorid = 0;
 
       for (unsigned n = 0; n < nnodes; n++) {
-	const Node & node = *alloc.node(n);
-	if (node.level() == Level::Event) {
-	  // Add vectored output clients on inlet
-	  Ins ins = StreamPorts::event(partition,
-				       Level::Event,
-				       vectorid,
-				       index);
-	  InletWireIns wireIns(vectorid, ins);
-	  inlet.add_output(wireIns);
-	  printf("SegmentLevel::allocated adding output %d to %x/%d\n",
-		 vectorid, ins.address(), ins.portId());
-	  vectorid++;
-	}
+  const Node & node = *alloc.node(n);
+  if (node.level() == Level::Event) {
+    // Add vectored output clients on inlet
+    Ins ins = StreamPorts::event(partition,
+               Level::Event,
+               vectorid,
+               index);
+    InletWireIns wireIns(vectorid, ins);
+    inlet.add_output(wireIns);
+    printf("SegmentLevel::allocated adding output %d to %x/%d\n",
+     vectorid, ins.address(), ins.portId());
+    vectorid++;
+  }
       }
       OutletWire* owire = _streams->stream(StreamParams::FrameWork)->outlet()->wire();
       owire->bind(OutletWire::Bcast, StreamPorts::bcast(partition, 
-							Level::Event,
-							index));
+              Level::Event,
+              index));
     }
     void dissolved() {
       _evrServer = 0;
