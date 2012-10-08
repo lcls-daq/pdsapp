@@ -15,18 +15,21 @@ SelectDialog::SelectDialog(QWidget* parent,
 {
   setWindowTitle("Partition Selection");
 
-  QVBoxLayout* layout = new QVBoxLayout(this);
+  QGridLayout* layout = new QGridLayout(this);
   layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, _pcontrol.header().platform(), 
-    (_bReadGroupEnable? 1:2) ));
-  layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this, _pcontrol.header().platform()));
-  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this, _pcontrol.header().platform()));
+                                            (_bReadGroupEnable? 1:2) ), 
+                    0, 0);
+  layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this, _pcontrol.header().platform()), 
+                    1, 0);
+  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this, _pcontrol.header().platform()),
+                    2, 0);
 
   _acceptb = new QPushButton("Ok",this);
   QPushButton* rejectb = new QPushButton("Cancel",this);
   QHBoxLayout* layoutb = new QHBoxLayout;
   layoutb->addWidget(_acceptb);
   layoutb->addWidget(rejectb);
-  layout->addLayout(layoutb);
+  layout->addLayout(layoutb, 3, 0, 1, 3);
   setLayout(layout);
 
   connect(_acceptb, SIGNAL(clicked()), this, SLOT(select()));
@@ -70,6 +73,42 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
   case Level::Event   : _evtbox->addNode(NodeSelect(hdr, msg)); break;
   default: break;
   }
+
+  //
+  //  Balance the layout
+  //
+  const unsigned MaxRows = 15;
+  unsigned ns = _segbox->nodes();
+  unsigned ne = _evtbox->nodes();
+  unsigned nr = _rptbox->nodes();
+  QGridLayout* layout = static_cast<QGridLayout*>(this->layout());
+  if (ns+ne>MaxRows) {
+    _clearLayout();
+    if (ne+nr > MaxRows) {
+      layout->addWidget(_segbox,0,0);
+      layout->addWidget(_evtbox,0,1);
+      layout->addWidget(_rptbox,0,2);
+    }
+    else {
+      layout->addWidget(_segbox,0,0,2,1);
+      layout->addWidget(_evtbox,0,1);
+      layout->addWidget(_rptbox,1,1);
+    }
+  }
+  else if (ns+ne+nr > MaxRows) {
+    _clearLayout();
+    if (ns+ne < ne+nr) {
+      layout->addWidget(_segbox,0,0);
+      layout->addWidget(_evtbox,1,0);
+      layout->addWidget(_rptbox,0,1,2,1);
+    }
+    else {
+      layout->addWidget(_segbox,0,0,2,1);
+      layout->addWidget(_evtbox,0,1);
+      layout->addWidget(_rptbox,1,1);
+    }
+  }
+  updateGeometry();
 }
 
 const QList<Node    >& SelectDialog::selected () const { return _selected; }
@@ -116,4 +155,11 @@ void SelectDialog::check_ready()
 {
   _acceptb->setEnabled(_segbox->ready() && 
            _evtbox->ready());
+}
+
+void SelectDialog::_clearLayout()
+{
+  layout()->removeWidget(_segbox);
+  layout()->removeWidget(_evtbox);
+  layout()->removeWidget(_rptbox);
 }

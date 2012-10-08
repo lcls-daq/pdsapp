@@ -3,7 +3,7 @@
 
 #include <set>
 
-#include <QtGui/QGroupBox>
+#include <QtGui/QWidget>
 #include <QtGui/QCheckBox>
 #include <QtCore/QList>
 #include <QtCore/QString>
@@ -12,6 +12,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 
+class QGroupBox;
 class QButtonGroup;
 class QPalette;
 
@@ -48,7 +49,7 @@ namespace Pds {
   
   class CallbackNodeGroup;
 
-  class NodeGroup : public QGroupBox {
+  class NodeGroup : public QWidget {
     Q_OBJECT
   public:
     NodeGroup(const QString& label, QWidget* parent, unsigned platform, int iUseReadoutGroup = 0);
@@ -62,6 +63,7 @@ namespace Pds {
     void list_changed ();
   public:
     void addNode(const NodeSelect&);
+    unsigned       nodes() const;
     QList<Node>    selected();
     QList<DetInfo> detectors();
     std::set<std::string>  deviceNames();
@@ -72,6 +74,7 @@ namespace Pds {
   private:
     void _read_pref(const QString&, QList<QString>&, QList<int>&);
   private:
+    QGroupBox*     _group;
     QButtonGroup*  _buttons;
     QList<NodeSelect> _nodes;
     QList<QString> _persist;

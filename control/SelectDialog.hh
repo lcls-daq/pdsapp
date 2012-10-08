@@ -36,6 +36,8 @@ namespace Pds {
     void select();
     void check_ready();
   private:
+    void _clearLayout();
+  private:
     PartitionControl& _pcontrol;
     bool              _bReadGroupEnable;
     enum { MAX_NODES=32 };

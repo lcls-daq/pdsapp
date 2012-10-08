@@ -6,6 +6,7 @@
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QPalette>
 #include <QtGui/QComboBox>
+#include <QtGui/QGroupBox>
 
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -37,7 +38,7 @@ static QList<int> _bldOrder =
          << BldInfo::XcsDg3Imb03
          << BldInfo::XcsDg3Imb04
          << BldInfo::XcsDg3Cam
-         << BldInfo::GMD
+         << BldInfo::XcsDg3Cam
          << BldInfo::NumberOf;
 
 static FILE* open_pref(const char* title, unsigned platform, char* mode)
@@ -63,7 +64,8 @@ static FILE* open_pref(const char* title, unsigned platform, char* mode)
 }
 
 NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, int iUseReadoutGroup) :
-  QGroupBox(label, parent),
+  QWidget  (parent),
+  _group   (new QGroupBox(label)),
   _buttons (new QButtonGroup(parent)),
   _ready   (new QPalette(Qt::green)),
   _notready(new QPalette(Qt::red)),
@@ -76,11 +78,17 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, i
     _iUseReadoutGroup = 2;
     
   //  Read persistent selected nodes
-  _read_pref(title(), _persist, _persistGroup);
-  _read_pref(QString("%1 required").arg(title()), _require, _requireGroup);
+  _read_pref(_group->title(), _persist, _persistGroup);
+  _read_pref(QString("%1 required").arg(_group->title()), _require, _requireGroup);
 
   _buttons->setExclusive(false);
-  setLayout(new QVBoxLayout(this)); 
+
+  _group->setLayout(new QVBoxLayout);
+  QVBoxLayout* l = new QVBoxLayout;
+  l->addWidget(_group);
+  l->addStretch();
+  setLayout(l);
+
   connect(this, SIGNAL(node_added(int)), 
           this, SLOT(add_node(int)));
   connect(this, SIGNAL(node_replaced(int)), 
@@ -110,6 +118,11 @@ void NodeGroup::addNode(const NodeSelect& node)
   }
 }
 
+unsigned NodeGroup::nodes() const
+{
+  return _nodes.size();
+}
+
 void NodeGroup::add_node(int index)
 { 
   const int iNodeIndex = index;
@@ -124,7 +137,7 @@ void NodeGroup::add_node(int index)
   _buttons->addButton(button,index); 
   QObject::connect(button, SIGNAL(clicked()), this, SIGNAL(list_changed()));
   
-  QBoxLayout* l = static_cast<QBoxLayout*>(layout());
+  QBoxLayout* l = static_cast<QBoxLayout*>(_group->layout());
   if (node.src().level()==Level::Reporter) {
     int order = _bldOrder.indexOf(node.src().phy());
     for(index = 0; index < l->count(); index++) {
@@ -250,7 +263,7 @@ QList<Node> NodeGroup::selected()
   }
 
   //  Write persistent selected nodes
-  FILE* f = open_pref(qPrintable(title()), _platform,"w");
+  FILE* f = open_pref(qPrintable(_group->title()), _platform,"w");
   if (f) {
     for (int iNode = 0; iNode < _persist.size(); ++iNode)
     {
@@ -314,7 +327,7 @@ QList<BldInfo> NodeGroup::reporters()
 
 NodeGroup* NodeGroup::freeze()
 {
-  NodeGroup* g = new NodeGroup(title(),(QWidget*)this, _platform, _iUseReadoutGroup);
+  NodeGroup* g = new NodeGroup(_group->title(),(QWidget*)this, _platform, _iUseReadoutGroup);
 
   {
     QList<QAbstractButton*> buttons = _buttons->buttons();
