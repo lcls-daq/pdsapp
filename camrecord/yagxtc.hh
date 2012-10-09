@@ -1,6 +1,9 @@
 #include"pdsdata/xtc/Xtc.hh"
 #include<string>
 
+#define DEFAULT_DIR "/reg/neh/home/mcbrowne/lib"
+#define DEFAULT_CFG ".camrecord"
+
 /* main.c */
 extern void add_socket(int s);
 extern void remove_socket(int s);

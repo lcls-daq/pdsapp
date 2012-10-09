@@ -16,9 +16,6 @@
 
 using namespace std;
 
-#define DEFAULT_DIR "/reg/neh/home/mcbrowne/lib"
-#define DEFAULT_CFG ".yagxtc"
-
 class symbol {
  public:
     symbol(string _name, string _det, string _camtype, string _pvname, int _binned)
@@ -230,7 +227,7 @@ int main(int argc, char **argv)
     while ((c = getopt_long(argc, argv, "hc:o:t:", long_options, &idx)) != -1) {
         switch (c) {
         case 'h':
-            fprintf(stderr, "Usage: yagxtc [ OPTION ]...\n");
+            fprintf(stderr, "Usage: camrecord [ OPTION ]...\n");
             fprintf(stderr, "Record camera PVs and BLDs into a file.  Options are:\n");
             fprintf(stderr, "    -h, --help                       = Print this help text.\n");
             fprintf(stderr, "    -c FILE, --config FILE           = Specify the configuration file.\n");
