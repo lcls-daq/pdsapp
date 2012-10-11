@@ -98,21 +98,20 @@ void Pds::MySegWire::connect( InletWire& wire,
 }
 
 void sigHandler( int signal ) {
+  bool shutdown = false;
   Pds::Cspad2x2Server* server = Pds::Cspad2x2Server::instance();
   psignal( signal, "Signal received by Cspad2x2Server");
   if (server != 0) {
-    printf("server still exists\n");
-//    if (myWire != 0) {
-//      myWire->remove_input(server);
-//    }
-//    printf("myWire removed input\nserver ");
-//    server->ignoreFetch(true);
-//    server->disable();
-//    printf("disabled\n");
-//    server->dumpFrontEnd();
-    server->die();
+    server->ignoreFetch(true);
   }
-  printf("Signal handler pulling the plug\n");
+  if (server != 0) {
+    server->dumpFrontEnd();
+  }
+    if (server != 0) {
+    server->die();
+    shutdown = true;
+  }
+  printf("Signal handler pulling the plug %s shutting down\n", shutdown ? "after" : "without");
   ::exit(signal);
 }
 
