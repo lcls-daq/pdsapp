@@ -3,7 +3,7 @@
 
 #include <set>
 
-#include <QtGui/QWidget>
+#include <QtGui/QGroupBox>
 #include <QtGui/QCheckBox>
 #include <QtCore/QList>
 #include <QtCore/QString>
@@ -12,9 +12,10 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 
-class QGroupBox;
 class QButtonGroup;
 class QPalette;
+
+//#define BALANCE_LAYOUT
 
 namespace Pds {
   class PingReply;
@@ -49,7 +50,11 @@ namespace Pds {
   
   class CallbackNodeGroup;
 
+#ifdef BALANCE_LAYOUT
   class NodeGroup : public QWidget {
+#else
+  class NodeGroup : public QGroupBox {
+#endif
     Q_OBJECT
   public:
     NodeGroup(const QString& label, QWidget* parent, unsigned platform, int iUseReadoutGroup = 0);
@@ -63,7 +68,10 @@ namespace Pds {
     void list_changed ();
   public:
     void addNode(const NodeSelect&);
+#ifdef BALANCE_LAYOUT
+    QString        title() const;
     unsigned       nodes() const;
+#endif
     QList<Node>    selected();
     QList<DetInfo> detectors();
     std::set<std::string>  deviceNames();
@@ -74,7 +82,9 @@ namespace Pds {
   private:
     void _read_pref(const QString&, QList<QString>&, QList<int>&);
   private:
+#ifdef BALANCE_LAYOUT
     QGroupBox*     _group;
+#endif
     QButtonGroup*  _buttons;
     QList<NodeSelect> _nodes;
     QList<QString> _persist;

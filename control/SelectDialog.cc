@@ -15,6 +15,7 @@ SelectDialog::SelectDialog(QWidget* parent,
 {
   setWindowTitle("Partition Selection");
 
+#ifdef BALANCE_LAYOUT
   QGridLayout* layout = new QGridLayout(this);
   layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, _pcontrol.header().platform(), 
                                             (_bReadGroupEnable? 1:2) ), 
@@ -31,6 +32,21 @@ SelectDialog::SelectDialog(QWidget* parent,
   layoutb->addWidget(rejectb);
   layout->addLayout(layoutb, 3, 0, 1, 3);
   setLayout(layout);
+#else
+  QVBoxLayout* layout = new QVBoxLayout(this);
+  layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, _pcontrol.header().platform(), 
+                                            (_bReadGroupEnable? 1:2) ));
+  layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this, _pcontrol.header().platform()));
+  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this, _pcontrol.header().platform()));
+
+  _acceptb = new QPushButton("Ok",this);
+  QPushButton* rejectb = new QPushButton("Cancel",this);
+  QHBoxLayout* layoutb = new QHBoxLayout;
+  layoutb->addWidget(_acceptb);
+  layoutb->addWidget(rejectb);
+  layout->addLayout(layoutb);
+  setLayout(layout);
+#endif
 
   connect(_acceptb, SIGNAL(clicked()), this, SLOT(select()));
   connect( rejectb, SIGNAL(clicked()), this, SLOT(reject()));
@@ -74,6 +90,7 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
   default: break;
   }
 
+#ifdef BALANCE_LAYOUT
   //
   //  Balance the layout
   //
@@ -109,6 +126,7 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
     }
   }
   updateGeometry();
+#endif
 }
 
 const QList<Node    >& SelectDialog::selected () const { return _selected; }
