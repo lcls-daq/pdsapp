@@ -447,8 +447,9 @@ int Recorder::_flushOutputFile() {
     if (fflush(_f) == 0) {
       // success
       rv = 0;
-    } else {
+    } else if (!_write_error) {
       // error
+      _write_error = true;
       perror("fflush");
       _postDataFileError();
     }
