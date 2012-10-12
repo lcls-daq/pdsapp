@@ -281,7 +281,6 @@ int main( int argc, char** argv )
            break;
          case 'c':
            compressFlag = strtoul(optarg, NULL, 0) != 0;
-           printf("Compression set to %s\n", compressFlag ? "enabled" : "disabled");
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
@@ -314,6 +313,8 @@ int main( int argc, char** argv )
   
    CspadServer* cspadServer;
    CfgClientNfs* cfgService;
+
+   printf("Compression is %s.\n", compressFlag ? "enabled" : "disabled");
 
    DetInfo detInfo( node.pid(),
                     (Pds::DetInfo::Detector) detector,
