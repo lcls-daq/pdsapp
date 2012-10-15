@@ -18,10 +18,12 @@ namespace Pds_ConfigDb {
     enum Bool     { False, True };
     enum Polarity { Pos, Neg };
     enum Enabled  { Enable, Disable };
+    enum Disabled { Disabled_Disable, Disabled_Enable };
 
     static const char* Bool_Names[];
     static const char* Polarity_Names[];
     static const char* Enabled_Names[];
+    static const char* Disabled_Names[];
   };
 
   class Parameter : public Pds::LinkedList<Parameter> {
@@ -59,7 +61,7 @@ namespace Pds_ConfigDb {
 
   template <class T>
   class NumericInt : public Parameter,
-		     public ParameterCount {
+         public ParameterCount {
   public:
     NumericInt(const char* label, T val, T vlo, T vhi, IntMode mo=Decimal, double sca=1.);
     ~NumericInt();

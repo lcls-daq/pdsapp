@@ -5,9 +5,9 @@
 
 #include <new>
 
-namespace Pds_ConfigDb {
-
+namespace Pds_ConfigDb {  
   class AndorConfig::Private_Data {
+  static const char*  lsEnumFanMode[];
   public:
     Private_Data() :
       _uWidth               ("Width",               16, 1,      4152),
@@ -19,8 +19,11 @@ namespace Pds_ConfigDb {
       // Note: Here the min exposure time need to set 9.99e-4 to allow user to input 1e-3, due to floating points imprecision
       _f32ExposureTime      ("Exposure time (sec)", 1e-3, 9.99e-4, 3600),
       _f32CoolingTemp       ("Cooling Temp (C)",    25,   -100,  25),      
-      _u8GainIndex          ("Gain Index",          1,    0,    5),
-      _u8ReadoutSpeedIndex  ("Readout Speed",       1,    0,    5),
+      _enumFanMode          ("Fan Mode",            AndorConfigType::ENUM_FAN_FULL, lsEnumFanMode),
+      _enumBaselineClamp    ("Baseline Clamp",      Enums::Disabled_Disable, Enums::Disabled_Names ),
+      _enumHighCapacity     ("High Capacity",       Enums::Disabled_Disable, Enums::Disabled_Names ),
+      _u8GainIndex          ("Gain Index",          0,    0,    5),
+      _u16ReadoutSpeedIndex ("Readout Speed",       0,    0,    5),
       _u16ExposureEventCode ("Exposure Event Code", 1,    1,    255),
       _u32NumDelayShots     ("Number Delay Shots",  0,    0,    (uint32_t)-1)
     {}
@@ -34,8 +37,11 @@ namespace Pds_ConfigDb {
       pList.insert(&_uBinY);
       pList.insert(&_f32ExposureTime);
       pList.insert(&_f32CoolingTemp);
+      pList.insert(&_enumFanMode);
+      pList.insert(&_enumBaselineClamp);
+      pList.insert(&_enumHighCapacity);
       pList.insert(&_u8GainIndex);
-      pList.insert(&_u8ReadoutSpeedIndex);
+      pList.insert(&_u16ReadoutSpeedIndex);
       pList.insert(&_u16ExposureEventCode);
       pList.insert(&_u32NumDelayShots);
     }
@@ -50,8 +56,11 @@ namespace Pds_ConfigDb {
       _uBinY                .value = tc.binY    ();
       _f32ExposureTime      .value = tc.exposureTime();
       _f32CoolingTemp       .value = tc.coolingTemp ();
+      _enumFanMode          .value = (AndorConfigType::EnumFanMode) tc.fanMode();
+      _enumBaselineClamp    .value = (Enums::Disabled) tc.baselineClamp();
+      _enumHighCapacity     .value = (Enums::Disabled) tc.highCapacity();
       _u8GainIndex          .value = tc.gainIndex();
-      _u8ReadoutSpeedIndex  .value = tc.readoutSpeedIndex();
+      _u16ReadoutSpeedIndex .value = tc.readoutSpeedIndex();
       _u16ExposureEventCode .value = tc.exposureEventCode();
       _u32NumDelayShots     .value = tc.numDelayShots();
       return tc.size();
@@ -67,8 +76,11 @@ namespace Pds_ConfigDb {
         _uBinY                .value,
         _f32ExposureTime      .value,
         _f32CoolingTemp       .value,
+        _enumFanMode          .value,
+        _enumBaselineClamp    .value,
+        _enumHighCapacity     .value,
         _u8GainIndex          .value,
-        _u8ReadoutSpeedIndex  .value,
+        _u16ReadoutSpeedIndex .value,
         _u16ExposureEventCode .value,
         _u32NumDelayShots     .value
       );
@@ -88,22 +100,18 @@ namespace Pds_ConfigDb {
     NumericInt<uint32_t>    _uBinY;    
     NumericFloat<float>     _f32ExposureTime;    
     NumericFloat<float>     _f32CoolingTemp;        
+    Enumerated<AndorConfigType::EnumFanMode>  _enumFanMode;
+    Enumerated<Enums::Disabled>               _enumBaselineClamp;
+    Enumerated<Enums::Disabled>               _enumHighCapacity;
     NumericInt<uint8_t>     _u8GainIndex;        
-    NumericInt<uint8_t>     _u8ReadoutSpeedIndex;        
+    NumericInt<uint16_t>    _u16ReadoutSpeedIndex;        
     NumericInt<uint16_t>    _u16ExposureEventCode;
     NumericInt<uint32_t>    _u32NumDelayShots;
   };
+  
+  const char* AndorConfig::Private_Data::lsEnumFanMode[] = { "Full", "Low", "Off", "Off during Acq", NULL};    
+  
 };
-
-  // !! for reference: from pdsdata/andor/ConfigV1.hh
-  //uint32_t          _uWidth, _uHeight;
-  //uint32_t          _uOrgX,  _uOrgY;
-  //uint32_t          _uBinX,  _uBinY;
-  //float             _f32ExposureTime;
-  //float             _f32CoolingTemp;
-  //uint32_t          _u32ReadoutSpeedIndex;
-  //uint16_t          _u16ExposureEventCode;
-  //uint16_t          _u16DelayMode;
 
 using namespace Pds_ConfigDb;
 

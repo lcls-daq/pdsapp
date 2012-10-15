@@ -6,12 +6,14 @@
 #include <errno.h>
 #include <getopt.h>
 #include <pthread.h> 
+#include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
 #include <iostream>
 #include <fstream>
 #include "andor/include/atmcdLXd.h"
 #include "pds/andor/AndorErrorCodes.hh"
+#include "pds/oceanoptics/histreport.hh"
 
 using namespace std;
 
@@ -29,7 +31,7 @@ class AndorCameraTest
 public:  
   AndorCameraTest(int iCamera, double fExposureTime, int iReadoutPort, int iSpeedIndex, int iGainIndex, 
     double fTemperature, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY,
-    char* sFnPrefix, int iNumImages);
+    char* sFnPrefix, int iNumImages, int iMenu);
     
   int init();
   int run();
@@ -38,6 +40,7 @@ public:
 private:
   int _selectCamera(int iCamera);
   int _printCaps(AndorCapabilities &caps);
+  int _runAcquisition();
     
   int     _iCamera;
   double  _fExposureTime;
@@ -53,7 +56,13 @@ private:
   int     _iBinY;
   string  _strFnPrefix;
   int     _iNumImages;
-  at_32   _iCameraHandle;    
+  int     _iMenu;
+  
+  int     _iOutImageIndex;
+  at_32   _iCameraHandle;     
+  int     _iCcdWidth;
+  int     _iCcdHeight;
+  int     _iADChannel;
   
   // Class usage control: Value semantics is disabled
   AndorCameraTest(const AndorCameraTest &);
@@ -62,11 +71,11 @@ private:
 
 AndorCameraTest::AndorCameraTest(int iCamera, double fExposureTime, int iReadoutPort, int iSpeedIndex, 
   int iGainIndex, double fTemperature, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY,
-  char* sFnPrefix, int iNumImages) :
+  char* sFnPrefix, int iNumImages, int iMenu) :
   _iCamera(iCamera), _fExposureTime(fExposureTime), _iReadoutPort(iReadoutPort), _iSpeedIndex(iSpeedIndex), 
   _iGainIndex(iGainIndex), _fTemperature(fTemperature), _iRoiX(iRoiX), _iRoiY(iRoiY), _iRoiW(iRoiW), 
-  _iRoiH(iRoiH), _iBinX(iBinX), _iBinY(iBinY), _strFnPrefix(sFnPrefix), _iNumImages(iNumImages),
-  _iCameraHandle(0)
+  _iRoiH(iRoiH), _iBinX(iBinX), _iBinY(iBinY), _strFnPrefix(sFnPrefix), _iNumImages(iNumImages), _iMenu(iMenu),
+  _iOutImageIndex(0), _iCameraHandle(0), _iCcdWidth(-1), _iCcdHeight(-1), _iADChannel(0)
 {
 }
 
@@ -84,10 +93,13 @@ int AndorCameraTest::init()
   if (iError != 0)
     return 1;
     
+  timespec timeVal0;
+  clock_gettime( CLOCK_REALTIME, &timeVal0 );
+    
   iError = Initialize("/usr/local/etc/andor");
   if (isAndorFuncOk(iError))
   {
-    printf("Wait for hardware to finish initializing...\n");
+    printf("Waiting for hardware to finish initializing...\n");
     sleep(2); //sleep to allow initialization to complete
     iCameraInitialized = 1;
   }
@@ -96,6 +108,9 @@ int AndorCameraTest::init()
     printf("Initialize(): %s\n", AndorErrorCodes::name(iError));  
     return 2;
   }
+  
+  timespec timeVal1;
+  clock_gettime( CLOCK_REALTIME, &timeVal1 );  
   
   iError = GetVersionInfo(AT_DeviceDriverVersion, sVersionInfo, sizeof(sVersionInfo));  
   if (isAndorFuncOk(iError))
@@ -144,15 +159,224 @@ int AndorCameraTest::init()
   else
     printf("GetHeadModel(): %s\n", AndorErrorCodes::name(iError));  
   
+  //Get Detector dimensions
+  GetDetector(&_iCcdWidth, &_iCcdHeight);
+  
+  float fPixelWidth, fPixelHeight;
+  GetPixelSize(&fPixelWidth, &fPixelHeight);
+  printf("Detector Width %d Height %d  Pixel Width (um) %.2f Height %.2f\n", 
+    _iCcdWidth, _iCcdHeight, fPixelWidth, fPixelHeight);
+    
   AndorCapabilities caps;
   iError = GetCapabilities(&caps);
   if (isAndorFuncOk(iError))
     _printCaps(caps);
   else
-    printf("GetCapabilities(): %s\n", AndorErrorCodes::name(iError));  
+    printf("GetCapabilities(): %s\n", AndorErrorCodes::name(iError));      
+    
+  printf("Available Trigger Modes:\n");
+  for (int iTriggerMode = 0; iTriggerMode < 13; ++iTriggerMode)
+  {
+    static const char* lsTriggerMode[] =
+    { "Internal", //0
+      "External", //1
+      "", "", "", "", 
+      "External Start", //6
+      "External Exposure (Bulb)", //7
+      "", 
+      "External FVB EM", //9
+      "Software Trigger", //10
+      "",
+      "External Charge Shifting", //12
+    };
+    iError = IsTriggerModeAvailable(iTriggerMode);
+    if (isAndorFuncOk(iError))
+      printf("  [%d] %s\n", iTriggerMode, lsTriggerMode[iTriggerMode]);
+  }
   
+  int iNumVSSpeed = -1;
+  GetNumberVSSpeeds(&iNumVSSpeed);
+  printf("VSSpeed Number: %d\n", iNumVSSpeed);
   
-  printf("init okay\n");
+  for (int iVSSpeed = 0; iVSSpeed < iNumVSSpeed; ++iVSSpeed)
+  {
+    float fSpeed;
+    GetVSSpeed(iVSSpeed, &fSpeed);
+    printf("  VSSpeed[%d] : %f us/pixel\n", iVSSpeed, fSpeed);
+  }  
+  
+  int   iVSRecIndex = -1;
+  float fVSRecSpeed = -1;  
+  GetFastestRecommendedVSSpeed(&iVSRecIndex, &fVSRecSpeed);
+  printf("VSSpeed Recommended Index [%d] Speed %f us/pixel\n", iVSRecIndex, fVSRecSpeed);
+  
+  iError = SetVSSpeed(iVSRecIndex);
+  if (isAndorFuncOk(iError))
+    printf("Set VSSpeed to %d\n", iVSRecIndex);
+  else
+    printf("SetVSSpeed(): %s\n", AndorErrorCodes::name(iError));
+
+  int iNumVSAmplitude = -1;
+  GetNumberVSAmplitudes(&iNumVSAmplitude);
+  printf("VSAmplitude Number: %d\n", iNumVSAmplitude);
+  
+  for (int iVSAmplitude = 0; iVSAmplitude < iNumVSAmplitude; ++iVSAmplitude)
+  {
+    int iAmplitudeValue = -1;
+    GetVSAmplitudeValue(iAmplitudeValue, &iAmplitudeValue);
+    
+    char sAmplitude[32];
+    sAmplitude[sizeof(sAmplitude)-1] = 0;
+    GetVSAmplitudeString(iVSAmplitude, sAmplitude);    
+    printf("  VSAmplitude[%d]: [%d] %s\n", iVSAmplitude, iAmplitudeValue, sAmplitude);    
+  }        
+  
+  int iNumGain = -1;
+  GetNumberPreAmpGains(&iNumGain);
+  printf("Preamp Gain Number: %d\n", iNumGain);
+  
+  for (int iGain = 0; iGain < iNumGain; ++iGain)
+  {
+    float fGain = -1;
+    GetPreAmpGain(iGain, &fGain);
+    
+    char sGainText[64];
+    sGainText[sizeof(sGainText)-1] = 0;
+    GetPreAmpGainText(iGain, sGainText, sizeof(sGainText));    
+    printf("  Gain %d: %s\n", iGain, sGainText);    
+  }   
+  
+  int iNumChannel = -1;
+  GetNumberADChannels(&iNumChannel);
+  printf("Channel Number: %d\n", iNumChannel);
+    
+  int iNumAmp = -1;
+  GetNumberAmp(& iNumAmp);
+  printf("Amp Number: %d\n", iNumAmp);
+  
+  for (int iChannel = 0; iChannel < iNumChannel; ++iChannel)
+  {
+    printf("  Channel[%d]\n", iChannel);
+    
+    int iDepth = -1;
+    GetBitDepth(iChannel, &iDepth);    
+    printf("    Depth %d\n", iDepth);
+    
+    for (int iAmp = 0; iAmp < iNumAmp; ++iAmp)
+    {
+      printf("    Amp[%d]\n", iAmp);
+      int iNumHSSpeed = -1;
+      GetNumberHSSpeeds(iChannel, iAmp, &iNumHSSpeed);
+     
+      for (int iSpeed = 0; iSpeed < iNumHSSpeed; ++iSpeed)
+      {        
+        float fSpeed = -1;
+        GetHSSpeed(iChannel, iAmp, iSpeed, &fSpeed);
+        printf("      Speed[%d]: %f MHz\n", iSpeed, fSpeed);
+        
+        for (int iGain = 0; iGain < iNumGain; ++iGain)
+        {
+          int iStatus = -1;
+          IsPreAmpGainAvailable(iChannel, iAmp, iSpeed, iGain, &iStatus);
+          printf("        Gain [%d]: %d\n", iGain, iStatus);
+        }
+      }
+    }    
+  }
+  
+  _iADChannel = 0; // hard coded to channel 0  
+  if (_iReadoutPort == -1) _iReadoutPort  = 0;
+  if (_iSpeedIndex  == -1) _iSpeedIndex   = 0;
+  if (_iGainIndex   == -1) _iGainIndex    = 0;
+    
+  int iTempMin = -1;
+  int iTempMax = -1;  
+  GetTemperatureRange(&iTempMin, &iTempMax);
+  printf("Temperature Min %d Max %d\n", iTempMin, iTempMax);
+  
+  int iFrontEndStatus = -1;
+  int iTECStatus      = -1;
+  GetFrontEndStatus (&iFrontEndStatus);
+  GetTECStatus      (&iTECStatus);
+  printf("Overhear: FrontEnd %d TEC %d\n", iFrontEndStatus, iTECStatus);  
+    
+  int iCoolerStatus = -1;
+  iError = IsCoolerOn(&iCoolerStatus);
+  if (!isAndorFuncOk(iError))
+    printf("IsCoolerOn(): %s\n", AndorErrorCodes::name(iError));  
+  
+  int iTemperature = -1;
+  iError = GetTemperature(&iTemperature);
+  printf("Current Temperature %d C  Status %s Cooler %d\n", iTemperature, AndorErrorCodes::name(iError), iCoolerStatus);
+  
+  float fSensorTemp   = -1;
+  float fTargetTemp   = -1;
+  float fAmbientTemp  = -1;
+  float fCoolerVolts  = -1;
+  GetTemperatureStatus(&fSensorTemp, &fTargetTemp, &fAmbientTemp, &fCoolerVolts);
+  printf("Advanced Temperature: Sensor %f Target %f Ambient %f CoolerVolts %f\n", fSensorTemp, fTargetTemp, fAmbientTemp, fCoolerVolts);
+  
+  int iFanMode = 0; // 0: Full, 1: Low: 2:Off
+  iError = SetFanMode(iFanMode);
+  if (!isAndorFuncOk(iError))
+    printf("SetFanMode(%d): %s\n", iFanMode, AndorErrorCodes::name(iError));  
+  else
+    printf("Set Fan Mode      to %d\n", iFanMode);
+    
+  int iBaselineClamp = 0; 
+  iError = SetBaselineClamp(iBaselineClamp);
+  if (!isAndorFuncOk(iError))
+    printf("SetBaselineClamp(): %s\n", AndorErrorCodes::name(iError));  
+  else
+    printf("Set BaselineClamp to %d\n", iBaselineClamp);
+  
+  int iHighCapacity = 0; 
+  iError = SetHighCapacity(iHighCapacity);
+  if (!isAndorFuncOk(iError))
+    printf("SetHighCapacity(): %s\n", AndorErrorCodes::name(iError));  
+  else
+    printf("Set HighCapacity  to %d\n", iHighCapacity);    
+  
+  /*
+   * setup for acquisition
+   */
+  
+  int iReadMode = 4; //Set Read Mode to --Image--
+  SetReadMode(iReadMode);
+
+  int iAcqMode = 1; //Set Acquisition mode to --Single scan--
+  SetAcquisitionMode(iAcqMode);
+    
+  int iMaxBinH = -1;
+  int iMaxBinV = -1;
+  GetMaximumBinning(iReadMode, 0, &iMaxBinH);
+  GetMaximumBinning(iReadMode, 1, &iMaxBinV);
+  printf("Max binning H %d V %d\n", iMaxBinH, iMaxBinV);
+  
+  float fTimeMaxExposure;
+  GetMaximumExposure(&fTimeMaxExposure);
+  printf("Max exposure time: %f s\n", fTimeMaxExposure);
+    
+  int iMinImageLen = -1;
+  GetMinimumImageLength (&iMinImageLen);
+  printf("MinImageLen: %d\n", iMinImageLen);   
+      
+  if (_iRoiW < 0)
+    _iRoiW = _iCcdWidth - _iRoiX;
+  if (_iRoiH < 0)
+    _iRoiH = _iCcdHeight - _iRoiY;  
+
+  //Initialize Shutter
+  SetShutter(1,0,0,0);
+  
+  printf("Initialization okay\n"); 
+  
+  timespec timeVal2;
+  clock_gettime( CLOCK_REALTIME, &timeVal2 );  
+  double fTimeStartup = (timeVal1.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal1.tv_sec - timeVal0.tv_sec ) * 1.e3;    
+  double fTimeInfo    = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
+  printf(">> Startup time %6.1lf  Info time %6.1lf ms\n", fTimeStartup, fTimeInfo);
+  
   return 0;
 }
 
@@ -163,7 +387,7 @@ int AndorCameraTest::_selectCamera(int iCamera)
   
   printf("Found %d Andor Cameras\n", (int) iNumCameras);
   
-  if (iCamera < 0 || iCamera > iNumCameras)
+  if (iCamera < 0 || iCamera >= iNumCameras)
   {
     printf("Invalid Camera selection: %d\n", iCamera);
     return 1;
@@ -176,92 +400,400 @@ int AndorCameraTest::_selectCamera(int iCamera)
 }
 
 int AndorCameraTest::run()
-{
-  //Set Read Mode to --Image--
-  SetReadMode(4);
-
-  //Set Acquisition mode to --Single scan--
-  SetAcquisitionMode(1);
-
-  //Set initial exposure time
-  SetExposureTime((float)_fExposureTime);
-
-  int width, height;
-  //Get Detector dimensions
-  GetDetector(&width, &height);
-  printf("Detector width %d height %d\n", width, height);
-
-  //Initialize Shutter
-  SetShutter(1,0,0,0);
-        
-  //Setup Image dimensions
-  SetImage(1,1,1,width,1,height);
+{            
+  if (_iMenu == 0)
+    return _runAcquisition();
     
-  float fKeepCleanTime = -1;
-  GetKeepCleanTime(&fKeepCleanTime);
-  printf("Keep clean time: %f s\n", fKeepCleanTime);
-
   bool quit = false;
   do{
     //Show menu options
-    cout << "        Menu" << endl;
-    cout << "====================" << endl;
+    cout << endl;
+    cout << "======= Current Configuration ======="  << endl;
+    cout << "Output Filename Prefix  : " << _strFnPrefix    << endl;
+    cout << "Number Images per Acq   : " << _iNumImages     << endl;
+    cout << "Exposure Time (sec)     : " << _fExposureTime  << endl;
+    cout << "Readout Port            : " << _iReadoutPort   << endl;
+    cout << "Speed Index             : " << _iSpeedIndex    <<  endl;
+    cout << "Gain Index              : " << _iGainIndex     << endl;
+    cout << "Cooling Temperature (C) : " << _fTemperature   << endl;
+    cout << "ROI : x " << _iRoiX << " y " <<  _iRoiY << 
+      " W " << _iRoiW << " H " << _iRoiH << 
+      " binX " << _iBinX << " binY " << _iBinY << endl;    
+    cout << "=============== Menu ================"  << endl;
     cout << "a. Start Acquisition" << endl;
-    cout << "b. Set Exposure Time" << endl;
-    cout << "z.     Exit" << endl;
-    cout << "====================" << endl;
-    cout << "Choice?::";
+    cout << "w. Set Output Filename Prefix" << endl;
+    cout << "n. Set Number of Images per Acquisition" << endl;
+    cout << "e. Set Exposure Time" << endl;
+    cout << "p. Set Readout Port" << endl;
+    cout << "s. Set Speed Index" << endl;
+    cout << "g. Set Gain Index" << endl;
+    cout << "t. Set Cooling Temperature" << endl;
+    cout << "r. Set ROI" << endl;
+    cout << "b. Set Binning" << endl;    
+    cout << "q. Quit Program" << endl;
+    cout << "====================================="  << endl;
+    cout << "> ";
     //Get menu choice
     int choice = getchar();
 
     switch(choice){
     case 'a': //Acquire
-      {
-      StartAcquisition();
-
-      int status;
-      at_32* imageData = new at_32[width*height];
-
-      fstream fout("image.txt", ios::out);
-
-      //Loop until acquisition finished
-      GetStatus(&status);
-      while(status==DRV_ACQUIRING) GetStatus(&status);
-
-      GetAcquiredData(imageData, width*height);
-
-      for(int i=0;i<width*height;i++) fout << imageData[i] << endl;
-
-      SaveAsBmp("./image.bmp", "./GREY.PAL", 0, 0);
-
-                          delete[] imageData;
-      }
-
+      _runAcquisition();
+      break;    
+    case 'w': 
+    {
+      cout << endl << "Enter new Output Filename Prefix ('x': disable output) > ";
+      cin >> _strFnPrefix;
+      if (_strFnPrefix == "x")
+        _strFnPrefix = "";
+      printf("New Output Filename Prefix: \'%s\'\n", _strFnPrefix.c_str());
       break;
-    
-    case 'b': //Set new exposure time
-      double fChoice;
-      cout << endl << "Enter new Exposure Time(s)::";
-      cin >> fChoice;
-
-      SetExposureTime( (float) fChoice);
-
+    }     
+    case 'n': 
+    {
+      cout << endl << "Enter new Number of Images per Acquisition > ";
+      cin >> _iNumImages;
+      printf("New Number of Images per Acquisition: %d\n", _iNumImages);
       break;
-
-    case 'z': //Exit
-
+    }
+    case 'e': 
+    {
+      cout << endl << "Enter new Exposure Time (sec) > ";
+      cin >> _fExposureTime;
+      printf("New Exposure Time: %f\n", _fExposureTime);
+      break;
+    }
+    case 'p': 
+    {
+      cout << endl << "Enter new Readout Port > ";
+      cin >> _iReadoutPort;
+      printf("New Readout Port: %d\n", _iReadoutPort);
+      break;
+    }    
+    case 's': 
+    {
+      cout << endl << "Enter new Speed Index > ";
+      cin >> _iSpeedIndex;
+      printf("New Speed Index: %d\n", _iSpeedIndex);
+      break;
+    }    
+    case 'g': 
+    {
+      cout << endl << "Enter new Gain Index > ";
+      cin >> _iGainIndex;
+      printf("New Gain Index: %d\n", _iGainIndex);
+      break;
+    }    
+    case 't': 
+    {
+      cout << endl << "Enter new Cooling Temperature (C) > ";
+      cin >> _fTemperature;
+      printf("New Cooling Temperature: %f\n", _fTemperature);
+      break;
+    }    
+    case 'r':
+    {
+      cout << endl << "Enter new ROI [x,y,W,H] > ";
+      string strROI;
+      cin >> strROI;
+      char sROI[64];
+      strcpy(sROI, strROI.c_str());
+      char* pNextToken = sROI;
+      _iRoiX = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+      if ( *pNextToken == 0 ) break;
+      _iRoiY = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+      if ( *pNextToken == 0 ) break;
+      _iRoiW = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+      if ( *pNextToken == 0 ) break;
+      _iRoiH = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+      printf("New ROI: x %d y %d W %d H %d\n", _iRoiX, _iRoiY, _iRoiW, _iRoiH);
+      break;            
+    }
+    case 'b':
+    {
+      cout << endl << "Enter new Binning [binX,binY] > ";
+      string strBin;
+      cin >> strBin;
+      char sBin[64];
+      strcpy(sBin, strBin.c_str());
+      char* pNextToken = sBin;
+      _iBinX = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+      if ( *pNextToken == 0 ) break;
+      _iBinY = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+      printf("New binX %d binY %d \n", _iBinX, _iBinY);
+      break;            
+    }    
+    case 'q': //Exit
       quit = true;
-
       break;
     
     default:
-
-      cout << "!Invalid Option!" << endl;
-
+      cout << "!Invalid Option! Key = " << choice << endl;
     } 
     getchar();
 
   }while(!quit);  
+  
+  return 0;
+}
+
+int AndorCameraTest::_runAcquisition()
+{
+  int iError;
+  
+  timespec timeVala0;
+  clock_gettime( CLOCK_REALTIME, &timeVala0 );  
+  
+  int iTempMin = -1;
+  int iTempMax = -1;    
+  GetTemperatureRange(&iTempMin, &iTempMax);
+  if ( _fTemperature < iTempMin || _fTemperature > iTempMax )
+    printf("Cooling temperature %f out of range (min %d max %d)\n", _fTemperature, iTempMin, iTempMax);
+  else
+  { 
+    iError = SetTemperature((int)_fTemperature);
+    if (!isAndorFuncOk(iError))
+    {
+      printf("SetTemperature(): %s\n", AndorErrorCodes::name(iError));  
+      return 1;
+    }  
+    iError = CoolerON();
+    if (!isAndorFuncOk(iError))
+    {
+      printf("CoolerON(): %s\n", AndorErrorCodes::name(iError));  
+      return 2;
+    }  
+    printf("Set Temperature to %f C\n", _fTemperature);
+  }
+  
+  int iCoolerStatus = -1;
+  iError = IsCoolerOn(&iCoolerStatus);
+  if (!isAndorFuncOk(iError))
+    printf("IsCoolerOn(): %s\n", AndorErrorCodes::name(iError));  
+  
+  int iTemperature;
+  iError = GetTemperature(&iTemperature);
+  printf("Current Temperature %d C  Status %s Cooler %d\n", iTemperature, AndorErrorCodes::name(iError), iCoolerStatus);
+     
+  iError = SetADChannel(_iADChannel);
+  if (!isAndorFuncOk(iError))
+  {
+    printf("SetADChannel(): %s\n", AndorErrorCodes::name(iError));  
+    return 1;
+  }
+  int iDepth = -1;
+  GetBitDepth(_iADChannel, &iDepth);    
+  printf("Set Channel to %d: depth %d\n", _iADChannel, iDepth);            
+  
+  int iNumAmp = -1;
+  GetNumberAmp(& iNumAmp);
+  if (_iReadoutPort < 0 || _iReadoutPort >= iNumAmp)
+  {
+    printf("Readout Port %d out of range (max inddx %d)\n", _iReadoutPort, iNumAmp);
+    return 2;
+  }
+  iError = SetOutputAmplifier(_iReadoutPort);
+  if (!isAndorFuncOk(iError))
+  {
+    printf("SetOutputAmplifier(): %s\n", AndorErrorCodes::name(iError));    
+    return 3;
+  }  
+  printf("Set Readout Port to %d\n", _iReadoutPort);
+
+  int iNumHSSpeed = -1;
+  GetNumberHSSpeeds(_iADChannel, _iReadoutPort, &iNumHSSpeed);
+  if (_iSpeedIndex < 0 || _iSpeedIndex >= iNumHSSpeed)
+  {
+    printf("Speed Index %d  out of range (max index %d)\n", _iSpeedIndex, iNumHSSpeed);
+    return 4;
+  }
+  
+  iError = SetHSSpeed(_iReadoutPort, _iSpeedIndex);
+  if (!isAndorFuncOk(iError))
+  {
+    printf("SetHSSpeed(): %s\n", AndorErrorCodes::name(iError));    
+    return 5;
+  }
+  float fSpeed = -1;
+  GetHSSpeed(_iADChannel, _iReadoutPort, _iSpeedIndex, &fSpeed);
+  printf("Set Speed Index to %d: %f MHz\n", _iSpeedIndex, fSpeed);      
+   
+  int iNumGain = -1;
+  GetNumberPreAmpGains(&iNumGain);
+  if (_iGainIndex < 0 || _iGainIndex >= iNumGain)
+  {
+    printf("Gain Index %d out of range (max index %d)\n", _iGainIndex, iNumGain);
+    return 6;
+  }
+  
+  int iStatus = -1;
+  IsPreAmpGainAvailable(_iADChannel, _iReadoutPort, _iSpeedIndex, _iGainIndex, &iStatus);  
+  if (iStatus != 1)
+  {
+    printf("Gain Index %d not supported for channel %d port %d speed %d\n", _iGainIndex,
+      _iADChannel, _iReadoutPort, _iSpeedIndex);
+    return 7;
+  }
+
+  iError = SetPreAmpGain(_iGainIndex);
+  if (!isAndorFuncOk(iError))
+  {
+    printf("SetGain(): %s\n", AndorErrorCodes::name(iError));    
+    return 8;
+  }
+  
+  float fGain = -1;
+  GetPreAmpGain(_iGainIndex, &fGain);
+  
+  char sGainText[64];
+  sGainText[sizeof(sGainText)-1] = 0;
+  GetPreAmpGainText(_iGainIndex, sGainText, sizeof(sGainText));    
+  printf("Set Gain Index to %d: %s\n", _iGainIndex, sGainText);  
+  
+  static HistReport   histTimeFrame   (0,10000,100);
+  static HistReport   histTimeOverhead(0,5000,100);
+  histTimeFrame.reset();
+  histTimeOverhead.reset();
+      
+  //Setup Image dimensions
+  printf("Setting Image ROI x %d y %d W %d H %d binX %d binY %d\n", _iRoiX, _iRoiY, _iRoiW, _iRoiH, _iBinX, _iBinY);
+  iError = SetImage(_iBinX, _iBinY, _iRoiX + 1, _iRoiX + _iRoiW, _iRoiY + 1, _iRoiY + _iRoiH);
+  if (!isAndorFuncOk(iError))
+    printf("SetImage(): %s\n", AndorErrorCodes::name(iError));    
+    
+  int iImageWidth   = _iRoiW / _iBinX;
+  int iImageHeight  = _iRoiH / _iBinY;
+  printf("Output image W %d H %d\n", iImageWidth, iImageHeight);
+    
+  //Set initial exposure time
+  iError = SetExposureTime((float)_fExposureTime);
+  if (!isAndorFuncOk(iError))
+    printf("SetExposureTime(): %s\n", AndorErrorCodes::name(iError));
+
+  ////** Keep clean enable only available for FVB trigger mode
+  //int iKeepCleanMode = 0; // Off
+  //iError = EnableKeepCleans(iKeepCleanMode);
+  //if (!isAndorFuncOk(iError))
+  //  printf("EnableKeepCleans(): %s\n", AndorErrorCodes::name(iError));    
+      
+  float fTimeKeepClean = -1;
+  GetKeepCleanTime(&fTimeKeepClean);
+  printf("Keep clean time: %f s\n", fTimeKeepClean); 
+ 
+  float fTimeExposure   = -1;
+  float fTimeAccumulate = -1;
+  float fTimeKinetic    = -1;
+  GetAcquisitionTimings(&fTimeExposure, &fTimeAccumulate, &fTimeKinetic);
+  printf("Exposure time: %f s  Accumulate time: %f s  Kinetic time: %f s\n", fTimeExposure, fTimeAccumulate, fTimeKinetic);
+
+  float fTimeReadout = -1;
+  GetReadOutTime(&fTimeReadout);  
+  printf("Readout time: %f s\n", fTimeReadout);    
+  
+  
+  uint16_t* liImageData = new uint16_t[iImageWidth*iImageHeight];
+
+  timespec timeVala1;
+  clock_gettime( CLOCK_REALTIME, &timeVala1 );
+  
+  iError = PrepareAcquisition();
+  if (!isAndorFuncOk(iError))
+  {
+    printf("PrepareAcquisition(): %s\n", AndorErrorCodes::name(iError));
+    return 9;
+  }
+  
+  timespec timeVala2;
+  clock_gettime( CLOCK_REALTIME, &timeVala2 );
+      
+  double fTimeSetupAcq  = (timeVala1.tv_nsec - timeVala0.tv_nsec) * 1.e-6 + ( timeVala1.tv_sec - timeVala0.tv_sec ) * 1.e3;    
+  double fTimePreAcq    = (timeVala2.tv_nsec - timeVala1.tv_nsec) * 1.e-6 + ( timeVala2.tv_sec - timeVala1.tv_sec ) * 1.e3;    
+  printf(">> Acquisition Setup Time %6.1lf  Preparation Time %6.1lf ms\n", fTimeSetupAcq, fTimePreAcq);
+  
+  for (int iImage = 0; iImage < _iNumImages; ++iImage)
+  {
+    printf("Image [%3d/%3d]", 1+iImage, _iNumImages); 
+    fflush(NULL);
+    
+    timespec timeVal0;
+    clock_gettime( CLOCK_REALTIME, &timeVal0 );
+    
+    iError = StartAcquisition();
+    if (!isAndorFuncOk(iError))
+      printf("SetExposureTime(): %s\n", AndorErrorCodes::name(iError));
+
+    timespec timeVal1;
+    clock_gettime( CLOCK_REALTIME, &timeVal1 );
+    
+    //Loop until acquisition finished
+    int status;    
+    GetStatus(&status);
+    while(status==DRV_ACQUIRING) GetStatus(&status);        
+    if (status != DRV_IDLE)
+      printf("GetStatus() return status %s\n", AndorErrorCodes::name(status));
+    
+    timespec timeVal2;
+    clock_gettime( CLOCK_REALTIME, &timeVal2 );
+
+    iError = GetAcquiredData16(liImageData, iImageWidth*iImageHeight);
+    if (!isAndorFuncOk(iError))
+      printf("GetAcquiredData16(): %s\n", AndorErrorCodes::name(iError));
+        
+    const uint16_t*     pPixel     = liImageData;  
+    const uint16_t*     pEnd       = pPixel + iImageWidth*iImageHeight;
+    const uint64_t      uNumPixels = (uint64_t) (iImageWidth*iImageHeight);
+    
+    uint64_t            uSum    = 0;
+    uint64_t            uSumSq  = 0;
+    for ( ; pPixel < pEnd; pPixel++ )
+    {
+      uSum   += *pPixel;
+      uSumSq += ((uint32_t)*pPixel) * ((uint32_t)*pPixel);
+    }
+      
+    printf( " Avg %.2lf Std %.2lf", 
+      (double) uSum / (double) uNumPixels, 
+      sqrt( (uNumPixels * uSumSq - uSum * uSum) / (double)(uNumPixels*uNumPixels)) );
+
+    if ( !_strFnPrefix.empty() )
+    {
+      ++_iOutImageIndex;
+      
+      char sFnOut[32];
+      sprintf(sFnOut, "%s_%03d.raw", _strFnPrefix.c_str(), _iOutImageIndex);
+      
+      printf("Writing to image file %s...", sFnOut);
+      fflush(NULL);
+      printf("done.\n");
+      
+      int fdImage = ::open(sFnOut, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );       
+      ::write(fdImage, liImageData, iImageWidth*iImageHeight*sizeof(liImageData[0]));
+      ::close(fdImage);
+    }       
+    //fstream fout("image.txt", ios::out);    
+    //for(int i=0;i<_iCcdWidth*_iCcdHeight;i++) fout << imageData[i] << endl;
+    //SaveAsBmp("./image.bmp", "./GREY.PAL", 0, 0);
+      
+    timespec timeVal3;
+    clock_gettime( CLOCK_REALTIME, &timeVal3 );
+        
+    double fTimeInit  = (timeVal1.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal1.tv_sec - timeVal0.tv_sec ) * 1.e3;    
+    double fTimeAcq   = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
+    double fTimePost  = (timeVal3.tv_nsec - timeVal2.tv_nsec) * 1.e-6 + ( timeVal3.tv_sec - timeVal2.tv_sec ) * 1.e3;    
+    double fTimeFrame = fTimeInit + fTimeAcq;
+    double fTimeOverhead = fTimeFrame - (_fExposureTime + fTimeReadout) * 1000;
+    printf(" Time Init %6.1lf  Acq %6.1lf  Post %6.1f Frame %6.1lf  Overhead %6.1lf ms\n", fTimeInit, fTimeAcq, fTimePost, fTimeFrame, fTimeOverhead);
+
+    histTimeFrame.addValue(fTimeFrame);
+    histTimeOverhead.addValue(fTimeOverhead);      
+  }
+  
+  delete[] liImageData;  
+  
+  printf("\n");
+  histTimeFrame.report("Frame time");
+  printf("\n");
+  histTimeOverhead.report("Overhead time");
   
   return 0;
 }
@@ -287,7 +819,14 @@ int AndorCameraTest::_printCaps(AndorCapabilities &caps)
   printf("    AC_ACQMODE_OVERLAP  : %d\n", (caps.ulAcqModes & AC_ACQMODE_OVERLAP)? 1:0 );  
     
   printf("  ReadModes         : 0x%x\n", (int) caps.ulReadModes);  
-    
+  printf("    AC_READMODE_FULLIMAGE       : %d\n", (caps.ulReadModes & AC_READMODE_FULLIMAGE)? 1:0 );  
+  printf("    AC_READMODE_SUBIMAGE        : %d\n", (caps.ulReadModes & AC_READMODE_SUBIMAGE)? 1:0 );  
+  printf("    AC_READMODE_SINGLETRACK     : %d\n", (caps.ulReadModes & AC_READMODE_SINGLETRACK)? 1:0 );  
+  printf("    AC_READMODE_FVB             : %d\n", (caps.ulReadModes & AC_READMODE_FVB)? 1:0 );  
+  printf("    AC_READMODE_MULTITRACK      : %d\n", (caps.ulReadModes & AC_READMODE_MULTITRACK)? 1:0 );  
+  printf("    AC_READMODE_RANDOMTRACK     : %d\n", (caps.ulReadModes & AC_READMODE_RANDOMTRACK)? 1:0 );  
+  printf("    AC_READMODE_MULTITRACKSCAN  : %d\n", (caps.ulReadModes & AC_READMODE_MULTITRACKSCAN)? 1:0 );  
+  
   printf("  TriggerModes      : 0x%x\n", (int) caps.ulTriggerModes);    
   printf("    AC_TRIGGERMODE_INTERNAL         : %d\n", (caps.ulTriggerModes & AC_TRIGGERMODE_INTERNAL)? 1:0 );  
   printf("    AC_TRIGGERMODE_EXTERNAL         : %d\n", (caps.ulTriggerModes & AC_TRIGGERMODE_EXTERNAL)? 1:0 );  
@@ -300,24 +839,114 @@ int AndorCameraTest::_printCaps(AndorCapabilities &caps)
   printf("    AC_CAMERATYPE_IKON  : %d\n", (caps.ulCameraType == AC_CAMERATYPE_IKON)? 1:0 );  
   
   printf("  PixelMode         : 0x%x\n", (int) caps.ulPixelMode);
+  printf("    AC_PIXELMODE_16BIT  : %d\n", (caps.ulPixelMode & AC_PIXELMODE_16BIT)? 1:0 );  
   printf("  SetFunctions      : 0x%x\n", (int) caps.ulSetFunctions);  
+  printf("    AC_SETFUNCTION_VREADOUT           : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_VREADOUT)? 1:0 );  
+  printf("    AC_SETFUNCTION_HREADOUT           : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_HREADOUT)? 1:0 );  
+  printf("    AC_SETFUNCTION_TEMPERATURE        : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_TEMPERATURE)? 1:0 );  
+  printf("    AC_SETFUNCTION_MCPGAIN            : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_MCPGAIN)? 1:0 );  
+  printf("    AC_SETFUNCTION_EMCCDGAIN          : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_EMCCDGAIN)? 1:0 );  
+  printf("    AC_SETFUNCTION_BASELINECLAMP      : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_BASELINECLAMP)? 1:0 );  
+  printf("    AC_SETFUNCTION_VSAMPLITUDE        : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_VSAMPLITUDE)? 1:0 );  
+  printf("    AC_SETFUNCTION_HIGHCAPACITY       : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_HIGHCAPACITY)? 1:0 );  
+  printf("    AC_SETFUNCTION_BASELINEOFFSET     : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_BASELINEOFFSET)? 1:0 );  
+  printf("    AC_SETFUNCTION_PREAMPGAIN         : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_PREAMPGAIN)? 1:0 );  
+  printf("    AC_SETFUNCTION_CROPMODE           : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_CROPMODE)? 1:0 );  
+  printf("    AC_SETFUNCTION_DMAPARAMETERS      : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_DMAPARAMETERS)? 1:0 );  
+  printf("    AC_SETFUNCTION_HORIZONTALBIN      : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_HORIZONTALBIN)? 1:0 );  
+  printf("    AC_SETFUNCTION_MULTITRACKHRANGE   : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_MULTITRACKHRANGE)? 1:0 );  
+  printf("    AC_SETFUNCTION_RANDOMTRACKNOGAPS  : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_RANDOMTRACKNOGAPS)? 1:0 );  
+  printf("    AC_SETFUNCTION_EMADVANCED         : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_EMADVANCED)? 1:0 );  
+  printf("    AC_SETFUNCTION_GATEMODE           : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_GATEMODE)? 1:0 );  
+  printf("    AC_SETFUNCTION_DDGTIMES           : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_DDGTIMES)? 1:0 );  
+  printf("    AC_SETFUNCTION_IOC                : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_IOC)? 1:0 );  
+  printf("    AC_SETFUNCTION_INTELLIGATE        : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_INTELLIGATE)? 1:0 );  
+  printf("    AC_SETFUNCTION_INSERTION_DELAY    : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_INSERTION_DELAY)? 1:0 );  
+  printf("    AC_SETFUNCTION_GATESTEP           : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_GATESTEP)? 1:0 );  
+  printf("    AC_SETFUNCTION_TRIGGERTERMINATION : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_TRIGGERTERMINATION)? 1:0 );  
+  printf("    AC_SETFUNCTION_EXTENDEDNIR        : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_EXTENDEDNIR)? 1:0 );  
+  printf("    AC_SETFUNCTION_SPOOLTHREADCOUNT   : %d\n", (caps.ulSetFunctions & AC_SETFUNCTION_SPOOLTHREADCOUNT)? 1:0 );  
+
   printf("  GetFunctions      : 0x%x\n", (int) caps.ulGetFunctions);  
+  printf("    AC_GETFUNCTION_TEMPERATURE        : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_TEMPERATURE)? 1:0 );  
+  printf("    AC_GETFUNCTION_TARGETTEMPERATURE  : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_TARGETTEMPERATURE)? 1:0 );  
+  printf("    AC_GETFUNCTION_TEMPERATURERANGE   : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_TEMPERATURERANGE)? 1:0 );  
+  printf("    AC_GETFUNCTION_DETECTORSIZE       : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_DETECTORSIZE)? 1:0 );  
+  printf("    AC_GETFUNCTION_MCPGAIN            : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_MCPGAIN)? 1:0 );  
+  printf("    AC_GETFUNCTION_EMCCDGAIN          : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_EMCCDGAIN)? 1:0 );  
+  printf("    AC_GETFUNCTION_HVFLAG             : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_HVFLAG)? 1:0 );  
+  printf("    AC_GETFUNCTION_GATEMODE           : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_GATEMODE)? 1:0 );  
+  printf("    AC_GETFUNCTION_DDGTIMES           : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_DDGTIMES)? 1:0 );  
+  printf("    AC_GETFUNCTION_IOC                : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_IOC)? 1:0 );  
+  printf("    AC_GETFUNCTION_INTELLIGATE        : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_INTELLIGATE)? 1:0 );  
+  printf("    AC_GETFUNCTION_INSERTION_DELAY    : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_INSERTION_DELAY)? 1:0 );  
+  printf("    AC_GETFUNCTION_GATESTEP           : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_GATESTEP)? 1:0 );  
+  printf("    AC_GETFUNCTION_PHOSPHORSTATUS     : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_PHOSPHORSTATUS)? 1:0 );  
+  printf("    AC_GETFUNCTION_MCPGAINTABLE       : %d\n", (caps.ulGetFunctions & AC_GETFUNCTION_MCPGAINTABLE)? 1:0 );  
+  
   printf("  Features          : 0x%x\n", (int) caps.ulFeatures);  
+  printf("    AC_FEATURES_POLLING                         : %d\n", (caps.ulFeatures & AC_FEATURES_POLLING)? 1:0 );  
+  printf("    AC_FEATURES_EVENTS                          : %d\n", (caps.ulFeatures & AC_FEATURES_EVENTS)? 1:0 );  
+  printf("    AC_FEATURES_SPOOLING                        : %d\n", (caps.ulFeatures & AC_FEATURES_SPOOLING)? 1:0 );  
+  printf("    AC_FEATURES_SHUTTER                         : %d\n", (caps.ulFeatures & AC_FEATURES_SHUTTER)? 1:0 );  
+  printf("    AC_FEATURES_SHUTTEREX                       : %d\n", (caps.ulFeatures & AC_FEATURES_SHUTTEREX)? 1:0 );  
+  printf("    AC_FEATURES_EXTERNAL_I2C                    : %d\n", (caps.ulFeatures & AC_FEATURES_EXTERNAL_I2C)? 1:0 );  
+  printf("    AC_FEATURES_SATURATIONEVENT                 : %d\n", (caps.ulFeatures & AC_FEATURES_SATURATIONEVENT)? 1:0 );  
+  printf("    AC_FEATURES_FANCONTROL                      : %d\n", (caps.ulFeatures & AC_FEATURES_FANCONTROL)? 1:0 );  
+  printf("    AC_FEATURES_MIDFANCONTROL                   : %d\n", (caps.ulFeatures & AC_FEATURES_MIDFANCONTROL)? 1:0 );  
+  printf("    AC_FEATURES_TEMPERATUREDURINGACQUISITION    : %d\n", (caps.ulFeatures & AC_FEATURES_TEMPERATUREDURINGACQUISITION)? 1:0 );  
+  printf("    AC_FEATURES_KEEPCLEANCONTROL                : %d\n", (caps.ulFeatures & AC_FEATURES_KEEPCLEANCONTROL)? 1:0 );  
+  printf("    AC_FEATURES_DDGLITE                         : %d\n", (caps.ulFeatures & AC_FEATURES_DDGLITE)? 1:0 );  
+  printf("    AC_FEATURES_FTEXTERNALEXPOSURE              : %d\n", (caps.ulFeatures & AC_FEATURES_FTEXTERNALEXPOSURE)? 1:0 );  
+  printf("    AC_FEATURES_KINETICEXTERNALEXPOSURE         : %d\n", (caps.ulFeatures & AC_FEATURES_KINETICEXTERNALEXPOSURE)? 1:0 );  
+  printf("    AC_FEATURES_DACCONTROL                      : %d\n", (caps.ulFeatures & AC_FEATURES_DACCONTROL)? 1:0 );  
+  printf("    AC_FEATURES_METADATA                        : %d\n", (caps.ulFeatures & AC_FEATURES_METADATA)? 1:0 );  
+  printf("    AC_FEATURES_IOCONTROL                       : %d\n", (caps.ulFeatures & AC_FEATURES_IOCONTROL)? 1:0 );  
+  printf("    AC_FEATURES_PHOTONCOUNTING                  : %d\n", (caps.ulFeatures & AC_FEATURES_PHOTONCOUNTING)? 1:0 );  
+  printf("    AC_FEATURES_COUNTCONVERT                    : %d\n", (caps.ulFeatures & AC_FEATURES_COUNTCONVERT)? 1:0 );  
+  printf("    AC_FEATURES_DUALMODE                        : %d\n", (caps.ulFeatures & AC_FEATURES_DUALMODE)? 1:0 );  
+  printf("    AC_FEATURES_OPTACQUIRE                      : %d\n", (caps.ulFeatures & AC_FEATURES_OPTACQUIRE)? 1:0 );  
+  printf("    AC_FEATURES_REALTIMESPURIOUSNOISEFILTER     : %d\n", (caps.ulFeatures & AC_FEATURES_REALTIMESPURIOUSNOISEFILTER)? 1:0 );  
+  printf("    AC_FEATURES_POSTPROCESSSPURIOUSNOISEFILTER  : %d\n", (caps.ulFeatures & AC_FEATURES_POSTPROCESSSPURIOUSNOISEFILTER)? 1:0 );  
+  printf("    AC_FEATURES_DUALPREAMPGAIN                  : %d\n", (caps.ulFeatures & AC_FEATURES_DUALPREAMPGAIN)? 1:0 );  
+  printf("    AC_FEATURES_DEFECT_CORRECTION               : %d\n", (caps.ulFeatures & AC_FEATURES_DEFECT_CORRECTION)? 1:0 );  
+  printf("    AC_FEATURES_STARTOFEXPOSURE_EVENT           : %d\n", (caps.ulFeatures & AC_FEATURES_STARTOFEXPOSURE_EVENT)? 1:0 );  
+  printf("    AC_FEATURES_ENDOFEXPOSURE_EVENT             : %d\n", (caps.ulFeatures & AC_FEATURES_ENDOFEXPOSURE_EVENT)? 1:0 );  
+  printf("    AC_FEATURES_CAMERALINK                      : %d\n", (caps.ulFeatures & AC_FEATURES_CAMERALINK)? 1:0 );  
+
   printf("  PCICard           : 0x%x\n", (int) caps.ulPCICard);  
   printf("  EMGainCapability  : 0x%x\n", (int) caps.ulEMGainCapability);  
   printf("  FTReadModes       : 0x%x\n", (int) caps.ulFTReadModes);  
+  printf("    AC_READMODE_FULLIMAGE       : %d\n", (caps.ulFTReadModes & AC_READMODE_FULLIMAGE)? 1:0 );  
+  printf("    AC_READMODE_SUBIMAGE        : %d\n", (caps.ulFTReadModes & AC_READMODE_SUBIMAGE)? 1:0 );  
+  printf("    AC_READMODE_SINGLETRACK     : %d\n", (caps.ulFTReadModes & AC_READMODE_SINGLETRACK)? 1:0 );  
+  printf("    AC_READMODE_FVB             : %d\n", (caps.ulFTReadModes & AC_READMODE_FVB)? 1:0 );  
+  printf("    AC_READMODE_MULTITRACK      : %d\n", (caps.ulFTReadModes & AC_READMODE_MULTITRACK)? 1:0 );  
+  printf("    AC_READMODE_RANDOMTRACK     : %d\n", (caps.ulFTReadModes & AC_READMODE_RANDOMTRACK)? 1:0 );  
+  printf("    AC_READMODE_MULTITRACKSCAN  : %d\n", (caps.ulFTReadModes & AC_READMODE_MULTITRACKSCAN)? 1:0 );    
   return 0;
 }
 
 int closeCamera()
 {
+  int iError;
+  
   AbortAcquisition();
   
-  int temp = -999;
-  GetTemperature(&temp);
-  if(temp!=-999 && temp<5)
+  while (true)
+  {
+    int iTemperature = -999;  
+    iError = GetTemperature(&iTemperature);
+    printf("Temperature %d C  Status %s\n", iTemperature, AndorErrorCodes::name(iError));
+    
+    if(iTemperature==-999 || iTemperature>5)
+      break;
+
     cout << "Wait until temperature rises above 5C, before exiting" << endl;
-  CoolerOFF();  
+  }
+  iError = CoolerOFF();  
+  if (!isAndorFuncOk(iError))
+    printf("CoolerOFF(): %s\n", AndorErrorCodes::name(iError));      
   
   if (iCameraInitialized != 0)
   {
@@ -333,13 +962,13 @@ static void showUsage()
     printf( "Usage:  andorStandAlone  [-v|--version] [-h|--help] [-c|--camera <camera number>]\n"
       "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (sec)>]\n"
       "[-p|--port <readout port>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
-      "[-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>]\n"
+      "[-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>] [-m|--menu]\n"
       "  Options:\n"
       "    -v|--version                      Show file version\n"
       "    -h|--help                         Show usage\n"
       "    -c|--camera    <camera number>    Select camera\n"
       "    -w|--write     <filename prefix>  Output filename prefix\n"
-      "    -n|--number    <number of images> Number of images to be captured (Default: 1)\n"
+      "    -n|--number    <number of images> Number of images to be captured (Default: 0)\n"
       "    -e|--exposure  <exposure time>    Exposure time (sec) (Default: 1 sec)\n"      
       "    -p|--port      <readout port>     Readout port\n"      
       "    -s|--speed     <speed inedx>      Speed table index\n"      
@@ -347,6 +976,7 @@ static void showUsage()
       "    -t|--temp      <temperature>      Temperature (in Celcius) (Default: 25 C)\n"
       "    -r|--roi       <x,y,w,h>          Region of Interest\n"
       "    -b|--bin       <xbin,ybin>        Binning of X/Y\n"
+      "    -m|--menu                         Show interactive menu\n"
     );
 }
 
@@ -366,7 +996,7 @@ void signalIntHandler(int iSignalNo)
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhc:w:n:e:p:s:g:t:r:b:";
+  const char*         strOptions  = ":vhc:w:n:e:p:s:g:t:r:b:m";
   const struct option loOptions[] = 
   {
      {"ver",      0, 0, 'v'},
@@ -381,6 +1011,7 @@ int main(int argc, char **argv)
      {"temp",     1, 0, 't'},        
      {"roi",      1, 0, 'r'},
      {"bin",      1, 0, 'b'},        
+     {"menu",     0, 0, 'm'},
      {0,          0, 0,  0 }
   };    
   
@@ -398,6 +1029,7 @@ int main(int argc, char **argv)
   int     iRoiH         = -1;
   int     iBinX         = 1;
   int     iBinY         = 1;
+  int     iMenu         = 0;
   
   int iOptionIndex = 0;
   while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
@@ -447,12 +1079,15 @@ int main(int argc, char **argv)
           }
       case 'b':
           {
-            char* pNextToken;
-            iBinX = strtoul(optarg, &pNextToken, 0); ++pNextToken;            
+            char* pNextToken = optarg;
+            iBinX = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
             if ( *pNextToken == 0 ) break;
             iBinY = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
             break;            
           }
+      case 'm':
+          iMenu = 1;
+          break;
       case '?':               /* Terse output mode */
           printf( "andorStandAlone:main(): Unknown option: %c\n", optopt );
           break;
@@ -484,7 +1119,7 @@ int main(int argc, char **argv)
     printf( "main(): Cannot register signal handler for SIGTERM\n" );       
 
   AndorCameraTest testCamera(iCamera, fExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, 
-    fTemperature, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, sFnPrefix, iNumImages);
+    fTemperature, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, sFnPrefix, iNumImages, iMenu);
     
   int iError = testCamera.init();
   if (iError == 0)

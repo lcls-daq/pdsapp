@@ -10,7 +10,8 @@ using namespace Pds_ConfigDb;
 
 const char* Enums::Bool_Names[] = { "False", "True", NULL };
 const char* Enums::Polarity_Names[] = { "Pos", "Neg", NULL };
-const char* Enums::Enabled_Names[] = { "Enable", "Disable", NULL };
+const char* Enums::Enabled_Names[]  = { "Enable", "Disable", NULL };
+const char* Enums::Disabled_Names[] = { "Disable", "Enable", NULL };
 
 static bool _edit = false;
 

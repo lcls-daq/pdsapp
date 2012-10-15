@@ -39,6 +39,9 @@ PyObject* pds_AndorConfig_get (PyObject*   self, PyObject* args)
     SetDictMember(binY,false);
     SetDictMember(exposureTime,true);
     SetDictMember(coolingTemp,true);
+    SetDictMember(fanMode,false);
+    SetDictMember(baselineClamp,false);
+    SetDictMember(highCapacity,false);
     SetDictMember(gainIndex,false);
     SetDictMember(readoutSpeedIndex,false);
     SetDictMember(exposureEventCode,false);
@@ -90,22 +93,28 @@ PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
     SetDictMember(binY);
     SetDictMember(exposureTime);
     SetDictMember(coolingTemp);
+    SetDictMember(fanMode);
+    SetDictMember(baselineClamp);
+    SetDictMember(highCapacity);
     SetDictMember(gainIndex);
     SetDictMember(readoutSpeedIndex);
     SetDictMember(exposureEventCode);
     SetDictMember(numDelayShots);
     new(xtc->payload) Pds::Andor::ConfigV1((uint32_t) width,
-                      (uint32_t) height,
-                      (uint32_t) orgX,
-                      (uint32_t) orgY,
-                      (uint32_t) binX,
-                      (uint32_t) binY,
-                      (float) exposureTime,
-                      (float) coolingTemp,
-                      (uint8_t) gainIndex,
-                      (uint8_t) readoutSpeedIndex,
-                      (uint16_t) exposureEventCode,
-                      (uint16_t) numDelayShots); 
+                      (uint32_t)  height,
+                      (uint32_t)  orgX,
+                      (uint32_t)  orgY,
+                      (uint32_t)  binX,
+                      (uint32_t)  binY,
+                      (float)     exposureTime,
+                      (float)     coolingTemp,
+                      (uint8_t)   fanMode,
+                      (uint8_t)   baselineClamp,
+                      (uint8_t)   highCapacity,
+                      (uint8_t)   gainIndex,
+                      (uint16_t)  readoutSpeedIndex,
+                      (uint16_t)  exposureEventCode,
+                      (uint16_t)  numDelayShots); 
     Py_INCREF(Py_None);
     return Py_None;
   }
