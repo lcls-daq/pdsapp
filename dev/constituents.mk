@@ -4,7 +4,7 @@ libnames := devapp
 libsrcs_devapp := CmdLineTools.cc
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
-CPPFLAGS += -DBLD_DELAY # for tolerating BLD delays up to 0.5 seconds
+#CPPFLAGS += -DBLD_DELAY # for tolerating BLD delays up to 0.5 seconds
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
 tgtnames := opal1kedt quartzedt pimimageedt phasics \
