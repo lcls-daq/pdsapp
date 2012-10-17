@@ -7,7 +7,7 @@ class Dgram;
 
 class CspadShuffle {
 public:
-  static void shuffle(Dgram& dg);
+  static bool shuffle(Dgram& dg);
   //  static int  shuffle(void *in, void *out, unsigned int nelements);
 };
 

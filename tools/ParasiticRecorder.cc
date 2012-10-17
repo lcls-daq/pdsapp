@@ -24,16 +24,19 @@ namespace Pds {
   public:
     void routine() 
     { 
+      //
+      //  Cleanup e0-* files only
+      //
       char pathname[128];
       // old style paths
-      sprintf(pathname,"%s/e*/*.xtc*",_path);
+      sprintf(pathname,"%s/e*/e0-*.xtc*",_path);
       remove(pathname);
-      sprintf(pathname,"%s/e*/index/*.idx*",_path);
+      sprintf(pathname,"%s/e*/index/e0-*.idx*",_path);
       remove(pathname);
       // new style paths
-      sprintf(pathname,"%s/*/xtc/*.xtc*",_path);
+      sprintf(pathname,"%s/*/xtc/e0-*.xtc*",_path);
       remove(pathname);
-      sprintf(pathname,"%s/*/xtc/index/*.idx*",_path);
+      sprintf(pathname,"%s/*/xtc/index/e0-*.idx*",_path);
       remove(pathname);
       delete this;
     }

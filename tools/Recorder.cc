@@ -129,7 +129,8 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
 InDatagram* Recorder::events(InDatagram* in) {
 
   PnccdShuffle::shuffle(in->datagram());
-  CspadShuffle::shuffle(reinterpret_cast<Dgram&>(in->datagram()));
+  if (!CspadShuffle::shuffle(reinterpret_cast<Dgram&>(in->datagram())))
+    post(new(_occPool) UserMessage("Corrupt CSPAD data.  Recommend reboot of host"));
 
   InDatagramIterator* iter = in->iterator(_pool);
 

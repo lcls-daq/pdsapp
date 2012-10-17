@@ -32,7 +32,8 @@ public:
   enum Status {Stop, Continue};
   myIter(Xtc* root, uint32_t*& pwrite) : 
     _root  (root), 
-    _pwrite(pwrite) {}
+    _pwrite(pwrite),
+    _fatalError(false) {}
 
 private:
   void _write(const void* p, ssize_t sz) 
@@ -51,7 +52,7 @@ private:
 
 public:
   void iterate() { iterate(_root); }
-
+  bool fatalError() const { return _fatalError; }
 private:
   void iterate(Xtc* root) {
     if (root->damage.value() & ( 1 << Damage::IncompleteContribution)) {
@@ -107,9 +108,11 @@ private:
               CsPad::ElementIterator iiter(cfg, *xtc);
               for(const Pds::CsPad::ElementHeader* hdr = iiter.next(); (hdr); hdr=iiter.next()) {
                 unsigned iq = 1<<hdr->quad();
-                if (qmask & iq)
+                if (qmask & iq) {
                   printf("%s. Found duplicate quad %d.\n",
                          DetInfo::name(static_cast<const DetInfo&>(xtc->src)),hdr->quad());
+                  _fatalError = true;
+                }
                 qmask |= iq;
               }
             }
@@ -159,9 +162,10 @@ private:
 private:
   Xtc*       _root;
   uint32_t*& _pwrite;
+  bool       _fatalError;
 };
 
-void CspadShuffle::shuffle(Dgram& dg) 
+bool CspadShuffle::shuffle(Dgram& dg) 
 {
   if (dg.seq.service() == TransitionId::Configure) {
     _config.clear();
@@ -174,5 +178,8 @@ void CspadShuffle::shuffle(Dgram& dg)
     uint32_t* pdg = reinterpret_cast<uint32_t*>(&(dg.xtc));
     myIter iter(&(dg.xtc),pdg);
     iter.iterate();
+    if (iter.fatalError())
+      return false;
   }
+  return true;
 }
