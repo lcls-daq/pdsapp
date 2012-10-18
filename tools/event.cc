@@ -29,7 +29,8 @@ int main(int argc, char** argv) {
   EventLevel* event = new EventLevel(options.platform,
                                      *test,
                                      arp,
-                                     options.buffersize);
+                                     options.buffersize,
+                                     options.nbuffers);
 
   if (test->attach(event)) {
     task->mainLoop();

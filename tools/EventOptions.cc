@@ -8,12 +8,14 @@
 
 using namespace Pds;
 
+const unsigned DefaultBuffers    = 0;
 const unsigned DefaultBufferSize = 0x1000000;
 const uint64_t DefaultChunkSize = ULLONG_MAX;
 
 EventOptions::EventOptions() :
   platform((unsigned)-1),
   sliceID(0),
+  nbuffers  (DefaultBuffers),
   buffersize(DefaultBufferSize),
   arpsuidprocess(0),
   outfile(0),
@@ -27,6 +29,7 @@ EventOptions::EventOptions() :
 EventOptions::EventOptions(int argc, char** argv) :
   platform((unsigned)-1),
   sliceID(0),
+  nbuffers  (DefaultBuffers),
   buffersize(DefaultBufferSize),
   arpsuidprocess(0),
   outfile(0),
@@ -36,10 +39,13 @@ EventOptions::EventOptions(int argc, char** argv) :
   expname(NULL)
 {
   int c;
-  while ((c = getopt(argc, argv, "f:p:b:a:s:c:edDE:")) != -1) {
+  while ((c = getopt(argc, argv, "f:p:b:a:s:c:n:edDE:")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
+    case 'n':
+      nbuffers   = strtoul(optarg, &endPtr, 0);
+      break;
     case 'b':
       buffersize = strtoul(optarg, &endPtr, 0);
       if (errno != 0 || endPtr == optarg) buffersize=DefaultBufferSize;
@@ -86,6 +92,7 @@ int EventOptions::validate(const char* arg0) const
 	   "options: -e decodes each transition (no FSM is connected)\n"
 	   "         -d displays transition summaries and eb statistics\n"
 	   "         -D delay transfer to offline until file is closed\n"
+	   "         -n <nbuffers>\n"
 	   "         -b <buffer_size>\n"
            "         -a <arp_suid_executable>\n"
            "         -f <outputfilename>\n"
