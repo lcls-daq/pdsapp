@@ -25,7 +25,7 @@ namespace Pds_ConfigDb {
       _u8GainIndex          ("Gain Index",          0,    0,    5),
       _u16ReadoutSpeedIndex ("Readout Speed",       0,    0,    5),
       _u16ExposureEventCode ("Exposure Event Code", 1,    1,    255),
-      _u32NumDelayShots     ("Number Delay Shots",  0,    0,    (uint32_t)-1)
+      _u32NumDelayShots     ("Number Delay Shots",  1,    0,    0x7FFFFFFF)
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
