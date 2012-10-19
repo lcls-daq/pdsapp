@@ -17,7 +17,7 @@
 
 using namespace std;
 
-static const char sAndorCameraTestVersion[] = "1.00";
+static const char sAndorCameraTestVersion[] = "1.10";
 int closeCamera();
 
 static int iCameraInitialized = 0;
@@ -146,14 +146,14 @@ int AndorCameraTest::init()
   
     
   int iSerialNumber = -1;
-  GetCameraSerialNumber(&iSerialNumber);
+  iError = GetCameraSerialNumber(&iSerialNumber);
   if (isAndorFuncOk(iError))
     printf("Camera serial number: %d\n", iSerialNumber);
   else
     printf("GetCameraSerialNumber(): %s\n", AndorErrorCodes::name(iError));  
     
   char sHeadModel[256];
-  GetHeadModel(sHeadModel);
+  iError = GetHeadModel(sHeadModel);
   if (isAndorFuncOk(iError))
     printf("Camera Head Model: %s\n", sHeadModel);
   else
@@ -162,7 +162,7 @@ int AndorCameraTest::init()
   //Get Detector dimensions
   GetDetector(&_iCcdWidth, &_iCcdHeight);
   
-  float fPixelWidth, fPixelHeight;
+  float fPixelWidth = -1, fPixelHeight = -1;
   GetPixelSize(&fPixelWidth, &fPixelHeight);
   printf("Detector Width %d Height %d  Pixel Width (um) %.2f Height %.2f\n", 
     _iCcdWidth, _iCcdHeight, fPixelWidth, fPixelHeight);
@@ -298,7 +298,7 @@ int AndorCameraTest::init()
   int iTECStatus      = -1;
   GetFrontEndStatus (&iFrontEndStatus);
   GetTECStatus      (&iTECStatus);
-  printf("Overhear: FrontEnd %d TEC %d\n", iFrontEndStatus, iTECStatus);  
+  printf("Overheat: FrontEnd %d TEC %d\n", iFrontEndStatus, iTECStatus);  
     
   int iCoolerStatus = -1;
   iError = IsCoolerOn(&iCoolerStatus);
@@ -382,12 +382,12 @@ int AndorCameraTest::init()
 
 int AndorCameraTest::_selectCamera(int iCamera)
 {
-  at_32 iNumCameras;
-  GetAvailableCameras(&iNumCameras);
+  at_32 iNumCamera;
+  GetAvailableCameras(&iNumCamera);
   
-  printf("Found %d Andor Cameras\n", (int) iNumCameras);
+  printf("Found %d Andor Cameras\n", (int) iNumCamera);
   
-  if (iCamera < 0 || iCamera >= iNumCameras)
+  if (iCamera < 0 || iCamera >= iNumCamera)
   {
     printf("Invalid Camera selection: %d\n", iCamera);
     return 1;
@@ -589,7 +589,7 @@ int AndorCameraTest::_runAcquisition()
   GetNumberAmp(& iNumAmp);
   if (_iReadoutPort < 0 || _iReadoutPort >= iNumAmp)
   {
-    printf("Readout Port %d out of range (max inddx %d)\n", _iReadoutPort, iNumAmp);
+    printf("Readout Port %d out of range (max index %d)\n", _iReadoutPort, iNumAmp);
     return 2;
   }
   iError = SetOutputAmplifier(_iReadoutPort);
@@ -604,7 +604,7 @@ int AndorCameraTest::_runAcquisition()
   GetNumberHSSpeeds(_iADChannel, _iReadoutPort, &iNumHSSpeed);
   if (_iSpeedIndex < 0 || _iSpeedIndex >= iNumHSSpeed)
   {
-    printf("Speed Index %d  out of range (max index %d)\n", _iSpeedIndex, iNumHSSpeed);
+    printf("Speed Index %d out of range (max index %d)\n", _iSpeedIndex, iNumHSSpeed);
     return 4;
   }
   
@@ -688,9 +688,8 @@ int AndorCameraTest::_runAcquisition()
 
   float fTimeReadout = -1;
   GetReadOutTime(&fTimeReadout);  
-  printf("Readout time: %f s\n", fTimeReadout);    
-  
-  
+  printf("Readout time: %f s\n", fTimeReadout);
+    
   uint16_t* liImageData = new uint16_t[iImageWidth*iImageHeight];
 
   timespec timeVala1;
@@ -720,18 +719,26 @@ int AndorCameraTest::_runAcquisition()
     
     iError = StartAcquisition();
     if (!isAndorFuncOk(iError))
-      printf("SetExposureTime(): %s\n", AndorErrorCodes::name(iError));
+      printf("StartAcquisition(): %s\n", AndorErrorCodes::name(iError));
 
     timespec timeVal1;
     clock_gettime( CLOCK_REALTIME, &timeVal1 );
     
-    //Loop until acquisition finished
-    int status;    
-    GetStatus(&status);
-    while(status==DRV_ACQUIRING) GetStatus(&status);        
-    if (status != DRV_IDLE)
-      printf("GetStatus() return status %s\n", AndorErrorCodes::name(status));
-    
+    ////Loop until acquisition finished
+    //int status;    
+    //GetStatus(&status);
+    //while(status==DRV_ACQUIRING) GetStatus(&status);        
+    //if (status != DRV_IDLE)
+    //  printf("GetStatus() return status %s\n", AndorErrorCodes::name(status));
+
+    const int iMaxReadoutTime = 12000; // in ms 
+    iError = WaitForAcquisitionTimeOut(iMaxReadoutTime );
+    if (!isAndorFuncOk(iError))
+    {
+      printf("WaitForAcquisitionTimeOut(): %s\n", AndorErrorCodes::name(iError));    
+      break;
+    }
+          
     timespec timeVal2;
     clock_gettime( CLOCK_REALTIME, &timeVal2 );
 
