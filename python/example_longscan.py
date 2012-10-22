@@ -21,6 +21,8 @@ if __name__ == "__main__":
                       help="record N events/cycle", metavar="N")
     parser.add_option("-q","--qbeam",dest="qbeam",type="float",default=-1.,
                       help="require qbeam > Q", metavar="Q")
+    parser.add_option("-s","--sleep",dest="tsleep",type="float",default=0.,
+                      help="sleep Q seconds between cycles", metavar="Q")
 
     (options, args) = parser.parse_args()
     daq = pydaq.Control(options.host,options.platform)
@@ -51,6 +53,7 @@ if __name__ == "__main__":
 
     for cycle in range(options.cycles):
         print "Cycle ", cycle
+        time.sleep(options.tsleep)
         daq.begin(controls=[('EXAMPLEPV1',cycle),('EXAMPLEPV2',100-cycle)],
                   labels=[('EXAMPLELABEL1','CYCLE%d'%cycle),('EXAMPLELABEL2','LCYCLE%d'%options.cycles)])
         # enable the EVR sequence, if necessary

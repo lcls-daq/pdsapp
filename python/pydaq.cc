@@ -225,8 +225,12 @@ PyObject* pdsdaq_connect(PyObject* self)
   daq->socket = s;
 
   while(1) {
-    uint32_t len;
+
+    uint32_t len=0;
     if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
+      break;
+
+    if (len==0)
       break;
 
     char buff[256];
