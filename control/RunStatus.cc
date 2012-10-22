@@ -154,13 +154,9 @@ int RunStatus::process(const Xtc& xtc, InDatagramIterator* iter) {
     unsigned payload;
     advance = iter->copy(&payload, sizeof(payload));
     _bytes -> increment(payload);
-    if (xtc.damage.value()!=0) {
+    if (xtc.damage.value()!=0)
       _damaged->increment();
-      advance += _details->increment(iter,xtc.sizeofPayload()-sizeof(payload));
-    }
-    else if (xtc.sizeofPayload() != sizeof(unsigned)) {
-      printf("RS::process payload %x  dmg %x\n",xtc.sizeofPayload(),xtc.damage.value());
-    }
+    advance += _details->increment(iter,xtc.sizeofPayload()-sizeof(payload));
   }
   return advance;
 }

@@ -1,6 +1,6 @@
 #include "DgSummary.hh"
+#include "SummaryDg.hh"
 
-#include "pds/xtc/CDatagram.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/Damage.hh"
@@ -8,25 +8,6 @@
 #include "pdsdata/xtc/BldInfo.hh"
 
 namespace Pds {
-  class SummaryDg : public CDatagram {
-  public:
-    SummaryDg(const Datagram& dg) : 
-      CDatagram(dg,TypeId(TypeId::Any,0),dg.xtc.src),
-      _payload(dg.xtc.sizeofPayload())
-    {
-      datagram().xtc.alloc(sizeof(_payload));
-      datagram().xtc.damage.increase(dg.xtc.damage.value());
-    }
-    ~SummaryDg() {}
-  public:
-    void append(const Src& info) {
-      *static_cast<Src*>(datagram().xtc.alloc(sizeof(info))) = info;
-    }
-  private:
-    unsigned _payload;
-    char     _info[32*sizeof(Src)];
-  };
-
   class BldStats : private XtcIterator {
   public:
     BldStats() {}
@@ -39,7 +20,8 @@ namespace Pds {
       for(unsigned i=0; i<BldInfo::NumberOf; i++)
 	if (_mask & (1<<i))
 	  out.append(BldInfo(static_cast<const ProcInfo&>(_src).processId(),
-			     BldInfo::Type(i)));
+			     BldInfo::Type(i)),
+                     Damage(1<<Damage::DroppedContribution));
     }
     const Src& src() const { return _src; }
     const Src& src(const Src& input) const { 
@@ -108,14 +90,14 @@ int DgSummary::process(const Xtc& xtc, InDatagramIterator* iter)
 	_bld->fill(*_out);
     }
     else
-      _out->append(xtc.src);
+      _out->append(xtc.src,xtc.damage);
   }
   else if (xtc.damage.value() && xtc.src.level() == Level::Reporter) {
     if (BldInfo::Type(xtc.src.phy())==BldInfo::EBeam &&
         xtc.damage.value()==(1<<Damage::UserDefined))
-      ; // don't count this
+      _out->append(EBeamBPM,0);  // don't count as damage
     else
-      _out->append(_bld->src(xtc.src));
+      _out->append(_bld->src(xtc.src),xtc.damage);
   }
   else if (xtc.src.level() == Level::Source)
     advance = -1;

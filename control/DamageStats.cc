@@ -2,6 +2,7 @@
 #include "QCounter.hh"
 
 #include "pdsapp/control/PartitionSelect.hh"
+#include "pdsapp/tools/SummaryDg.hh"
 #include "pds/xtc/InDatagramIterator.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
@@ -54,6 +55,15 @@ DamageStats::DamageStats(PartitionSelect& partition) :
       _segments << info;
       row++;
     }
+    //
+    //  Special EBeam BPM damage counter
+    //
+    l->addWidget(new QLabel("EBeam Low Curr"),row,0,Qt::AlignRight);
+    QCounter* cnt = new QCounter;
+    l->addWidget(cnt->widget(),row,1,Qt::AlignRight);
+    _counts   << cnt;
+    _segments << EBeamBPM;
+    row++;
   }
   setLayout(l);
 
