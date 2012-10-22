@@ -16,10 +16,15 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 static bool verbose = false;
 static const unsigned CfgSize = sizeof(TM6740ConfigType);
 static const unsigned FexSize = sizeof(FrameFexConfigType);
+
+static int ndrop = 0;
+static int ntime = 0;
+static double ftime = 0;
 
 using namespace Pds;
 
@@ -84,6 +89,20 @@ public:
       //// Use select() to simulate nanosleep(), because experimentally select() controls the sleeping time more precisely
       //select( 0, NULL, NULL, NULL, &timeSleepMicro);  
       //printf(" ok\n");
+
+      static int itime=0;
+      if ((++itime)==ntime) {
+	itime = 0;
+	timeval ts = { int(ftime), int(drem(ftime,1)*1000000) };
+	select( 0, NULL, NULL, NULL, &ts);
+      }
+
+      static int idrop=0;
+      if (++idrop==ndrop) {
+	idrop=0;
+	return 0;
+      }
+
       dg->insert(_evttc,_evtpayload);
       break;
     }
@@ -164,7 +183,9 @@ void printUsage(char* s) {
       "            just make up something and it'll list them\n"
       "    -i      Set device id             [Default: 0]\n"
       "    -z      Set event size in bytes\n"
-      "    -v      Toggle verbose mode\n",
+      "    -v      Toggle verbose mode\n"
+      "    -D <N>  Drop every N events\n"
+      "    -T <S>,<N>  Delay S seconds every N events\n",
       s
   );
 }
@@ -183,7 +204,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "d:i:p:z:vh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "d:i:p:z:vD:T:h")) != EOF ) {
     bool     found;
     switch(c) {
       case 'd':
@@ -215,6 +236,13 @@ int main(int argc, char** argv) {
     case 'v':
       verbose = !verbose;
       printf("Verbose mode now %s\n", verbose ? "true" : "false");
+      break;
+    case 'D':
+      ndrop = strtoul(optarg, NULL, 0);
+      break;
+    case 'T':
+      ntime = strtoul(optarg, &endPtr, 0);
+      ftime = strtod (endPtr+1, &endPtr);
       break;
     case 'h':
       printUsage(argv[0]);
