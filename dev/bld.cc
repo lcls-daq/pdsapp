@@ -50,33 +50,6 @@
 static const unsigned MAX_EVENT_SIZE = 4*1024*1024;
 static const unsigned NetBufferDepth = 32;
 
-//////////////////////////// JBT EBeam version kludge //////////////////
-class myLevelIter : public XtcIterator {
-public:
-  myLevelIter () {}
-public:
-  int process(Xtc* xtc) {
-    static const TypeId oldId(TypeId::Id_EBeam,1);
-    static const TypeId curId(TypeId::Id_EBeam,2);
-    static const TypeId newId(TypeId::Id_EBeam,3);
-    if (xtc->contains.id()==TypeId::Id_Xtc)
-      iterate(xtc);
-    else if (xtc->contains.value()==curId.value()) {
-      printf("Found %x\n",curId.value());
-      xtc->contains = newId;
-      return 0;
-    }
-    else if (xtc->contains.value()==newId.value()) {
-    }
-    else if (xtc->contains.value()==oldId.value()) {
-      printf("Found %x\n",oldId.value());
-    }
-    return 1;
-  }
-};
-//////////////////////////// JBT ////////////////////////////////////
-
-
 namespace Pds {
 
   static NullServer* _evrServer = 0;
@@ -90,12 +63,7 @@ namespace Pds {
   public:
     InDatagram* events     (InDatagram* dg) {
       if (dg->datagram().seq.service()==TransitionId::Configure)
-  dg->insert(_configtc, _config_payload);
-      else if(dg->datagram().seq.service()==TransitionId::L1Accept) {
-        //Overwrite the EBeam data type in the xtc contains field
-        myLevelIter iter ;
-        iter.iterate(&(dg->xtc));
-      }
+        dg->insert(_configtc, _config_payload);
       return dg; 
     }
 
@@ -433,31 +401,31 @@ namespace Pds {
   class BldSegmentLevel : public SegmentLevel {
   public:
     BldSegmentLevel(unsigned     platform, 
-        BldCallback& cb) :
+                    BldCallback& cb) :
       SegmentLevel(platform, cb, cb, 0) {}
     ~BldSegmentLevel() {}
   public:
     bool attach() {
       start();
       if (connect()) {
-  _streams = new BldStreams(*this);  // specialized here
-  _streams->connect();
+        _streams = new BldStreams(*this);  // specialized here
+        _streams->connect();
 
-  _callback.attached(*_streams);
+        _callback.attached(*_streams);
 
-  //  Add the L1 Data servers  
-  _settings.connect(*_streams->wire(StreamParams::FrameWork),
-        StreamParams::FrameWork, 
-        header().ip());
+        //  Add the L1 Data servers  
+        _settings.connect(*_streams->wire(StreamParams::FrameWork),
+                          StreamParams::FrameWork, 
+                          header().ip());
 
-  //    Message join(Message::Ping);
-  //    mcast(join);
-  _reply.ready(true);
-  mcast(_reply);
-  return true;
+        //    Message join(Message::Ping);
+        //    mcast(join);
+        _reply.ready(true);
+        mcast(_reply);
+        return true;
       } else {
-  _callback.failed(EventCallback::PlatformUnavailable);
-  return false;
+        _callback.failed(EventCallback::PlatformUnavailable);
+        return false;
       }
     }
     void allocated(const Allocation& alloc, unsigned index) {
@@ -468,59 +436,59 @@ namespace Pds {
       InletWire & inlet  = *_streams->wire(StreamParams::FrameWork);
 
       for (unsigned n = 0; n < nnodes; n++) {
-  const Node & node = *alloc.node(n);
-  if (node.level() == Level::Segment) {
-    Ins ins = StreamPorts::event(partition, Level::Observer, 0, 0);
-    _evrServer =
-      new NullServer(ins,
-         header().procInfo(),
-         sizeof(Pds::EvrData::DataV3)+256*sizeof(Pds::EvrData::DataV3::FIFOEvent),
-         NetBufferDepth);
+        const Node & node = *alloc.node(n);
+        if (node.level() == Level::Segment) {
+          Ins ins = StreamPorts::event(partition, Level::Observer, 0, 0);
+          _evrServer =
+            new NullServer(ins,
+                           header().procInfo(),
+                           sizeof(Pds::EvrData::DataV3)+256*sizeof(Pds::EvrData::DataV3::FIFOEvent),
+                           NetBufferDepth);
 
-    Ins mcastIns(ins.address());
-    _evrServer->server().join(mcastIns, Ins(header().ip()));
+          Ins mcastIns(ins.address());
+          _evrServer->server().join(mcastIns, Ins(header().ip()));
 
-    inlet.add_input(_evrServer);
+          inlet.add_input(_evrServer);
           _inputs.push_back(_evrServer);
-    break;
-  }
+          break;
+        }
       }
 
       for(int i=0; i<BldInfo::NumberOf; i++) {
-  if (bldmask & (1<<i)) {
-    Node node(Level::Reporter, 0);
-    node.fixup(StreamPorts::bld(i).address(),Ether());
-    Ins ins( node.ip(), StreamPorts::bld(0).portId());
-    BldServer* srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
-    inlet.add_input(srv);
+        if (bldmask & (1<<i)) {
+          Node node(Level::Reporter, 0);
+          node.fixup(StreamPorts::bld(i).address(),Ether());
+          Ins ins( node.ip(), StreamPorts::bld(0).portId());
+          BldServer* srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
+          inlet.add_input(srv);
           _inputs.push_back(srv);
-    srv->server().join(ins, header().ip());
-    printf("Bld::allocated assign bld  fragment %d  %x/%d\n",
-     srv->id(),ins.address(),srv->server().portId());
-  }
+          srv->server().join(ins, header().ip());
+          printf("Bld::allocated assign bld  fragment %d  %x/%d\n",
+                 srv->id(),ins.address(),srv->server().portId());
+        }
       } 
 
       unsigned vectorid = 0;
 
       for (unsigned n = 0; n < nnodes; n++) {
-  const Node & node = *alloc.node(n);
-  if (node.level() == Level::Event) {
-    // Add vectored output clients on inlet
-    Ins ins = StreamPorts::event(partition,
-               Level::Event,
-               vectorid,
-               index);
-    InletWireIns wireIns(vectorid, ins);
-    inlet.add_output(wireIns);
-    printf("SegmentLevel::allocated adding output %d to %x/%d\n",
-     vectorid, ins.address(), ins.portId());
-    vectorid++;
-  }
+        const Node & node = *alloc.node(n);
+        if (node.level() == Level::Event) {
+          // Add vectored output clients on inlet
+          Ins ins = StreamPorts::event(partition,
+                                       Level::Event,
+                                       vectorid,
+                                       index);
+          InletWireIns wireIns(vectorid, ins);
+          inlet.add_output(wireIns);
+          printf("SegmentLevel::allocated adding output %d to %x/%d\n",
+                 vectorid, ins.address(), ins.portId());
+          vectorid++;
+        }
       }
       OutletWire* owire = _streams->stream(StreamParams::FrameWork)->outlet()->wire();
       owire->bind(OutletWire::Bcast, StreamPorts::bcast(partition, 
-              Level::Event,
-              index));
+                                                        Level::Event,
+                                                        index));
     }
     void dissolved() {
       _evrServer = 0;
@@ -530,6 +498,7 @@ namespace Pds {
 
       static_cast <InletWireServer*>(_streams->wire())->remove_outputs();
     }
+
   private:
     std::list<Server*> _inputs;
   };
