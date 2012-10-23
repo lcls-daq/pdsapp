@@ -267,7 +267,7 @@ class bldconn {
         printf("BLD at address %d on device %s has fd %d\n", _address, device.c_str(), fd);
 #endif
         add_socket(fd);
-        xid = register_xtc();
+        xid = register_xtc(1);
     }
     static bldconn *index(int idx) {
         if (idx >= 0 && idx < (int) conns.size())
@@ -314,14 +314,14 @@ void handle_bld(fd_set *rfds)
         if (FD_ISSET(c->fd, rfds)) {
             c->bldServer->fetch(sizeof(buf), buf, msgsize);
             // The first packet, we treat as configuration information.
-            if (c->cfgdone)
-                data_xtc(c->xid, dg2->seq.stamp().fiducials(),
-                         dg2->seq.clock().seconds() - POSIX_TIME_AT_EPICS_EPOCH,
-                         dg2->seq.clock().nanoseconds(),
-                         &dg2->xtc, dg2->xtc.extent, NULL);
-            else {
+            if (!c->cfgdone) {
                 configure_xtc(c->xid, &dg2->xtc);
                 c->cfgdone = 1;
+            } else {
+                // Make sure the BLD puts the fiducial in the timestamp!
+                data_xtc(c->xid, dg2->seq.clock().seconds() - POSIX_TIME_AT_EPICS_EPOCH,
+                         (dg2->seq.clock().nanoseconds() & ~0x1ffff) | dg2->seq.stamp().fiducials(),
+                         &dg2->xtc, dg2->xtc.extent, NULL);
             }
         }
     }

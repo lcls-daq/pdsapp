@@ -1,7 +1,9 @@
 #include<stdlib.h>
-
+#include<string.h>
 #include<vector>   //for std::vector
 
+#include"cadef.h"
+#include"alarm.h"
 #include"pdsdata/xtc/Xtc.hh"
 #include"pdsdata/xtc/TimeStamp.hh"
 #include"pdsdata/xtc/DetInfo.hh"
@@ -9,8 +11,7 @@
 #include"pdsdata/pulnix/TM6740ConfigV2.hh"
 #include"pdsdata/opal1k/ConfigV1.hh"
 #include"pdsdata/camera/FrameV1.hh"
-
-#include"cadef.h"
+#include"pdsdata/epics/EpicsPvData.hh"
 #include"yagxtc.hh"
 
 using namespace std;
@@ -44,20 +45,37 @@ class caconn {
         : name(_name), detector(_det), camtype(_camtype), pvname(_pvname), connected(0), event(0), binned(_binned) {
         DetInfo::Detector det = find_detector(detector.c_str());
         DetInfo::Device   dev = find_device(camtype.c_str());
-        int               pid = getpid();
         char             *buf = NULL;
         Xtc              *cfg = NULL;
         Camera::FrameV1  *f   = NULL;
 
-        if (det == DetInfo::NumDetector || dev == DetInfo::NumDevice) {
+        if (det == DetInfo::NumDetector || (det != DetInfo::EpicsArch && dev == DetInfo::NumDevice)) {
             fprintf(stderr, "Cannot find (%s, %s) values!\n", detector.c_str(), camtype.c_str());
             exit(1);
         }
 
         num = conns.size();
         conns.push_back(this);
-        xid = register_xtc();
+        xid = register_xtc(det != DetInfo::EpicsArch);
+        if (det == DetInfo::EpicsArch) {
+            caid = nxtcaid++;
+            is_cam = 0;
+            int result = ca_create_channel(pvname.c_str(),
+                                           connection_handler,
+                                           this,
+                                           50, /* priority?!? */
+                                           &chan);
+            if (result != ECA_NORMAL) {
+                fprintf(stderr, "CA error %s while creating channel to %s!\n",
+                        ca_message(result), pvname.c_str());
+                exit(0);
+            }
+            ca_poll();
+            return;
+        } else
+            is_cam = 1;
 
+        int               pid = getpid();
         DetInfo sourceInfo(pid, det, 0, dev, 0);
 
         switch (dev) {
@@ -159,26 +177,36 @@ class caconn {
         if (event)
             ca_clear_subscription(event);
     }
+    const char *getpvname() {
+        return pvname.c_str();
+    }
  private:
     static vector<caconn *> conns;
+    static int nxtcaid;
     string name;
     string detector;
     string camtype;
     string pvname;
-    chid   chan;
  public:
     int    num;
     int    connected;
-    int nelem, dbrtype, size, status;
+    int    nelem;
+    long   dbrtype;
+    int    size;
+    int    status;
     chtype dbftype;
     evid event;
     int    xid;
     Xtc   *hdr;
     int    hdrlen;
     int    binned;
-};
+    int    is_cam;
+    int    caid;
+    chid   chan;}
+;
 
 vector<caconn *> caconn::conns;
+int caconn::nxtcaid = 0;
 
 static void event_handler(struct event_handler_args args)
 {
@@ -188,13 +216,57 @@ static void event_handler(struct event_handler_args args)
         fprintf(stderr, "Bad status: %d\n", args.status);
     } else if (args.type == c->dbrtype && args.count == c->nelem) {
         struct dbr_time_short *d = (struct dbr_time_short *) args.dbr;
-        data_xtc(c->xid, d->stamp.nsec & 0x1ffff, d->stamp.secPastEpoch, d->stamp.nsec,
-                 c->hdr, c->hdrlen, &d->value);
+        if (c->is_cam) {
+            data_xtc(c->xid, d->stamp.secPastEpoch, d->stamp.nsec,
+                     c->hdr, c->hdrlen, &d->value);
+        } else {
+            /*
+             * This is totally cheating, since we aren't looking at the actual dbr_time_* type.
+             * But we know they all start status, severity, stamp, so...
+             */
+            data_xtc(c->xid, d->stamp.secPastEpoch, d->stamp.nsec,
+                     c->hdr, c->hdrlen, const_cast<void *>(args.dbr));
+        }
     } else {
-        fprintf(stderr, "type = %ld, count = %ld -> expected type = %d, count = %d\n",
+        fprintf(stderr, "type = %ld, count = %ld -> expected type = %ld, count = %d\n",
                 args.type, args.count, c->dbrtype, c->nelem);
     }
     fflush(stdout);
+}
+
+static void get_handler(struct event_handler_args args)
+{
+    caconn *c = (caconn *)args.usr;
+    DetInfo sourceInfo(getpid(), DetInfo::EpicsArch, 0, DetInfo::NoDevice, 0);
+    int hdrsize = sizeof(EpicsPvCtrlHeader);
+    int ctrlsize = dbr_size_n(args.type, 1);
+
+    if (hdrsize % 4)
+        hdrsize += 4 - (hdrsize % 4); /* Sigh.  Padding in the middle! */
+
+    char             *buf = (char *) calloc(1, sizeof(Xtc) + hdrsize + ctrlsize);
+    Xtc              *cfg = new (buf) Xtc(TypeId(TypeId::Id_Epics, 1), sourceInfo);
+    new ((char *)cfg->alloc(hdrsize)) EpicsPvCtrlHeader(c->caid, args.type, 1, c->getpvname());
+    void             *buf2 = cfg->alloc(ctrlsize);
+    memcpy(buf2, args.dbr, ctrlsize);
+    configure_xtc(c->xid, cfg);
+    free(buf); /* delete ~cfg? */
+
+    hdrsize = sizeof(EpicsPvHeader);
+    if (hdrsize % 4)
+        hdrsize += 4 - (hdrsize % 4); /* Sigh.  Padding in the middle! */
+    c->hdrlen = sizeof(Xtc) + hdrsize;
+    buf = (char *) calloc(1, c->hdrlen);
+    c->hdr = new (buf) Xtc(TypeId(TypeId::Id_Epics, 1), sourceInfo);
+    new ((char *)c->hdr->alloc(hdrsize)) EpicsPvHeader(c->caid, c->dbrtype, 1);
+    c->hdr->alloc(c->size); // This is in the data packet, not the header!
+
+    int status = ca_create_subscription(c->dbrtype, c->nelem, c->chan, DBE_VALUE | DBE_ALARM,
+                                        event_handler, (void *) c, &c->event);
+    if (status != ECA_NORMAL) {
+        fprintf(stderr, "Failed to create subscription! error %d!\n", status);
+        exit(0);
+    }
 }
 
 static void connection_handler(struct connection_handler_args args)
@@ -205,21 +277,28 @@ static void connection_handler(struct connection_handler_args args)
         c->connected = 1;
         c->nelem = ca_element_count(args.chid);
         c->dbftype = ca_field_type(args.chid);
-        if (c->dbftype == DBF_LONG)
+        if (c->dbftype == DBF_LONG && c->is_cam)
             c->dbrtype = DBR_TIME_SHORT;             /* Force this, since we know the cameras are at most 16 bit!!! */
         else
             c->dbrtype = dbf_type_to_DBR_TIME(c->dbftype);
         c->size = dbr_size_n(c->dbrtype, c->nelem);
-#if 0
-        fprintf(stderr, "Size of %d elements of type (%d,%d): %d bytes\n",
-                c->nelem, c->dbftype, c->dbrtype, c->size);
-#endif
-
-        int status = ca_create_subscription(c->dbrtype, c->nelem, args.chid, DBE_VALUE | DBE_ALARM,
-                                            event_handler, (void *) c, &c->event);
-        if (status != ECA_NORMAL) {
-            fprintf(stderr, "Failed to create subscription! error %d!\n", status);
-            exit(0);
+        if (c->is_cam) {
+            int status = ca_create_subscription(c->dbrtype, c->nelem, args.chid, DBE_VALUE | DBE_ALARM,
+                                                event_handler, (void *) c, &c->event);
+            if (status != ECA_NORMAL) {
+                fprintf(stderr, "Failed to create subscription! error %d!\n", status);
+                exit(0);
+            }
+        } else {
+            if (c->nelem != 1) {
+                fprintf(stderr, "%s is not a scalar PV!\n", c->getpvname());
+                exit(0);
+            }
+            int status = ca_get_callback(dbf_type_to_DBR_CTRL(c->dbftype), args.chid, get_handler, (void *) c);
+            if (status != ECA_NORMAL) {
+                fprintf(stderr, "Get failed! error %d!\n", status);
+                exit(0);
+            }
         }
     } else {
         c->connected = 0;

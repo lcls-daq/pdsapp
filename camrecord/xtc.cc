@@ -1,8 +1,9 @@
 #define EXACT_TS_MATCH
-#undef TRACE
+//#define TRACE
 #include<stdio.h>
 #include<signal.h>
 #include<string.h>
+#include<math.h>
 
 #include<new>
 #include<vector>
@@ -25,21 +26,32 @@
 using namespace std;
 using namespace Pds;
 
+struct event;
+
 class xtcsrc {
  public:
-    xtcsrc(int _id) : id(_id), cfg(NULL), cfglen(0) {
-    };
+    xtcsrc(int _id, int _sync) : id(_id), sync(_sync), val(NULL),
+                                 len(0), ref(NULL), sec(0), nsec(0), ev(NULL) {};
     int   id;
-    char *cfg;
-    int   cfglen;
+    int   sync;                   // Is this a synchronous source?
+    char *val;
+    int   len;
+    int  *ref;                    // Reference count of this value (if asynchronous!)
+    unsigned int sec, nsec;       // Timestamp of this value
+    struct event *ev;             // Event for this value (if asynchronous!)
 };
 
 FILE *fp = NULL;
 static sigset_t blockset;
-static int numsrc = 0;
-static int cfgcnt = 0;
-static int totalcfglen = 0;
-static int totaldlen   = 0;
+static int started = 0;        // We are actually running.
+static int numsrc = 0;         // Total number of sources.
+static int syncsrc = 0;        // Number of synchronous sources.
+static int asyncsrc = 0;       // Number of asynchronous sources.
+static int havedata = 0;       // Number of sources that sent us a value.
+static int haveasync = 0;      // Number of asynchronous sources that sent us a value.
+static int cfgcnt = 0;         // Number of sources that sent us their configuration.
+static int totalcfglen = 0;    // Total number of bytes in all of the configuration records.
+static int totaldlen   = 0;    // Total number of bytes in all of the data records.
 static vector<xtcsrc *> src;
 
 static Dgram *dg = NULL;
@@ -49,55 +61,27 @@ static ProcInfo *segInfo = NULL;
 
 #define MAX_EVENTS    64
 static struct event {
-    int    cnt;
-    unsigned int sec, nsec;
-    char **data;
-    int   *len;
-    int    fid;
+    int    id;
+    int    valid;
+    int    synccnt;               // How many synchronous sources do we have?
+    int    asynccnt;              // How many asynchronous sources do we have?
+    unsigned int sec, nsec;       // Timestamp of this event.
+    char **data;                  // Array of numsrc data records.
+    int  **ref;                   // An array of reference counts for asynchronous data.
+    struct event *prev, *next;    // Linked list, sorted by timestamp.
 } events[MAX_EVENTS];
-static int curev = 0;
+static struct event *evlist = NULL; // The oldest event.  Its prev is the newest event.
 
-static void delete_event(int ev)
-{
-    int i;
-
-    for (i = 0; i < numsrc; i++) {
-        if (events[ev].data[i]) {
-            delete events[ev].data[i];
-            events[ev].data[i] = NULL;
-#ifdef TRACE
-            if (events[ev].cnt != numsrc)
-                printf("\t\tX%d@0x%x -> del %d\n", ev, events[ev].fid, i);
-#endif
-        }
-    }
-    events[ev].cnt = 0;
-}
-
-static int find_event(unsigned int sec, unsigned int nsec)
-{
-    int i;
-#ifndef EXACT_TS_MATCH
-    int fid = nsec & 0x1ffff;
-#endif
-    for (i = 0; i < MAX_EVENTS; i++) {
-        int ev = (curev + MAX_EVENTS - 1 - i) % MAX_EVENTS;
 #ifdef EXACT_TS_MATCH
-        if (events[ev].sec == sec && events[ev].nsec == nsec)
-            return ev;
+#define ts_match(_ev, _sec, _nsec)          \
+    (int)(((_ev)->sec != (_sec)) ? ((_ev)->sec - (_sec)) : ((int)(_ev)->nsec - (_nsec)))
 #else
-        if (events[ev].sec == sec && abs(events[ev].fid - fid) <= 2)
-            return ev;
-#endif
-    }
-    i = curev++;
-    if (curev == MAX_EVENTS)
-        curev = 0;
-    delete_event(i);
-    events[i].sec = sec;
-    events[i].nsec = nsec;
-    return i;
+static int ts_match(struct event *_ev, int _sec, int _nsec)
+{
+    double diff = (double)((int)(_ev->sec - _sec)) + ((double)(int)(_ev->nsec - _nsec))*1.0e-9;
+    return (fabs(diff) < 6.0e-3) ? 0 : ((diff < 0) ? -1 : 0);
 }
+#endif
 
 static void setup_datagram(TransitionId::Value val)
 {
@@ -145,11 +129,14 @@ static void write_xtc_config(void)
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
     write_datagram(TransitionId::Configure, totalcfglen);
     for (i = 0; i < numsrc; i++) {
-        if (!fwrite(src[i]->cfg, src[i]->cfglen, 1, fp)) {
+        if (!fwrite(src[i]->val, src[i]->len, 1, fp)) {
             fprintf(stderr, "Cannot write to file!\n");
             exit(1);
         }
         fflush(fp);
+        delete src[i]->val;
+        src[i]->val = NULL;
+        src[i]->len = 0;
     }
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
 
@@ -158,6 +145,7 @@ static void write_xtc_config(void)
     write_datagram(TransitionId::Enable,          0);
 
     begin_run();
+    started = 1;
 }
 
 /*
@@ -170,10 +158,18 @@ void initialize_xtc(char *outfile)
     int i;
 
     for (i = 0; i < MAX_EVENTS; i++) {
-        events[i].cnt = 0;
+        events[i].id = i;
+        events[i].valid = 0;
+        events[i].synccnt = 0;
+        events[i].asynccnt = 0;
+        events[i].sec = 0;
+        events[i].nsec = 0;
         events[i].data = (char **) calloc(numsrc, sizeof(char *));
-        events[i].len  = (int *)   calloc(numsrc, sizeof(int));
+        events[i].ref  = (int **)  calloc(numsrc, sizeof(int *));
+        events[i].prev = (i == 0) ? &events[MAX_EVENTS - 1] : &events[i - 1];
+        events[i].next = (i == MAX_EVENTS - 1) ? &events[0] : &events[i + 1];
     }
+    evlist = &events[0];
 
     if (!strcmp(outfile, "-"))
         fp = stdout;
@@ -186,6 +182,9 @@ void initialize_xtc(char *outfile)
     sigaddset(&blockset, SIGALRM);
     sigaddset(&blockset, SIGINT);
 
+    /*
+     * If all of the configuration information has come in, write it!
+     */
     if (cfgcnt == numsrc) {
         write_xtc_config();
     }
@@ -194,9 +193,13 @@ void initialize_xtc(char *outfile)
 /*
  * Generate a unique id for this source.
  */
-int register_xtc(void)
+int register_xtc(int sync)
 {
-    src.push_back(new xtcsrc(numsrc));
+    src.push_back(new xtcsrc(numsrc, sync));
+    if (sync)
+        syncsrc++;
+    else
+        asyncsrc++;
     return numsrc++;
 }
 
@@ -206,86 +209,59 @@ int register_xtc(void)
 void configure_xtc(int id, Pds::Xtc *xtc)
 {
     int size = xtc->extent;
-    src[id]->cfg = new char[size];
-    src[id]->cfglen = size;
+    src[id]->val = new char[size];
+    src[id]->len = size;
     totalcfglen += size;
-    memcpy((void *)src[id]->cfg, (void *)xtc, size);
+    memcpy((void *)src[id]->val, (void *)xtc, size);
     cfgcnt++;
 
+    /*
+     * If we have already finished initialization and were waiting for this,
+     * write the configuration!
+     */
     if (fp != NULL && cfgcnt == numsrc) {
         write_xtc_config();
     }
 }
 
-/*
- * Give the data Xtc for a particular source.  We assume that the Xtc header is
- * in one area and the data is in another, so we pass in a second pointer.  That
- * is, hdr contains hdrlen bytes, and data contains (hdr->extent - hdrlen) bytes.
- */
-void data_xtc(int id, int fid, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hdrlen, void *data)
+static void reset_event(struct event *ev)
 {
-    int ev, i;
+    int i;
+
+    for (i = 0; i < numsrc; i++) {
+        if (ev->data[i]) {
+            if (!ev->ref[i])
+                delete ev->data[i];
+            else if (!--(*ev->ref[i])) {
+                delete ev->ref[i];
+                ev->ref[i] = NULL;
+                delete ev->data[i];
+            }
+            ev->data[i] = NULL;
+        }
+    }
+    ev->synccnt = 0;
+    ev->asynccnt = 0;
+    ev->valid = 0;
+}
+
+void send_event(struct event *ev)
+{
     sigset_t oldsig;
-
-    if (!fp || !data_cnt)
-        return; /* Don't do anything until we've initialized! */
-
-    char *buf = new char[hdr->extent];
-    memcpy(buf, hdr, hdrlen);
-    memcpy(&buf[hdrlen], data, hdr->extent - hdrlen);
-
-#if 0
-    DetInfo& info = *(DetInfo*)(&hdr->src);
-    printf("%08x:%08x (%5x) BLD contains %d.%d, src %s,%d  %s,%d\n",
-           sec, nsec, fid, hdr->contains.id(), hdr->contains.version(), 
-           DetInfo::name(info.detector()), info.detId(),
-           DetInfo::name(info.device()), info.devId());
-#endif
-
-    ev = find_event(sec, nsec);
-    events[ev].fid = fid;
-
 #ifdef TRACE
-    printf("\tD%d@0x%x (%08x:%08x) -> got %d\n", ev, fid, sec, nsec, id);
+    printf("%08x:%08x T event %d\n", ev->sec, ev->nsec, ev->id);
 #endif
-
-    if (events[ev].data[id]) {
-        fprintf(stderr, "Warning: duplicate data for source %d at time %08x:%08x\n",
-                id, sec, nsec);
-        delete buf;
-        return;
-    }
-    events[ev].data[id] = buf;
-    events[ev].len[id] = hdr->extent;
-    data_cnt[id]++;
-    if (++events[ev].cnt != numsrc)
-        return;
-
-#ifdef TRACE
-    printf("C%d@0x%x\n", ev, fid);
-#endif
-
-    // We have a complete event!
-    if (!totaldlen) {
-        for (i = 0; i < numsrc; i++)
-            totaldlen += events[ev].len[i];
-
-        setup_datagram(TransitionId::L1Accept);
-        seg->extent    += totaldlen;
-        dg->xtc.extent += totaldlen;
-    }
-
     new ((void *) &dg->seq) Sequence(Sequence::Event, TransitionId::L1Accept, 
-                                     ClockTime(sec, nsec), 
-                                     TimeStamp(0, fid, 0, 0));
+                                     ClockTime(ev->sec, ev->nsec), 
+                                     TimeStamp(0, ev->nsec & 0x1ffff, 0, 0));
 
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
     if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
         fprintf(stderr, "Write failed!\n");
         exit(1);
     }
-    for (i = 0; i < numsrc; i++) {
-        if (!fwrite(events[ev].data[i], events[ev].len[i], 1, fp)) {
+    for (int i = 0; i < numsrc; i++) {
+        if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
             fprintf(stderr, "Write failed!\n");
             exit(1);
         }
@@ -293,14 +269,180 @@ void data_xtc(int id, int fid, unsigned int sec, unsigned int nsec, Pds::Xtc *hd
     fflush(fp);
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
     record_cnt++;
+}
 
-    delete_event(ev);
+static struct event *find_event(unsigned int sec, unsigned int nsec)
+{
+    struct event *ev;
+    int match;
+    ev = evlist->prev;
+    do {
+        if (!(match = ts_match(ev, sec, nsec)))
+            return ev;
+        if (match < 0)
+            break;
+        ev = ev->prev;
+    } while (ev != evlist->prev);
 
-#if 0
-    // Events from curev to ev, are invalid now!
-    for (i = curev; i != ev; i = (i + 1) % MAX_EVENTS)
-        delete_event(i);
+    /*
+     * No match.  If we are here, either match < 0, in which case ev is
+     * the event immediately before the new event, or every single event
+     * in the list is newer than this one.  In this rare case, we'll return
+     * NULL and just skip this.
+     */
+    if (match > 0)
+        return NULL;
+    /*
+     * evlist is the oldest event, so we want to delete it and reuse it.
+     * But first we want to see if we can complete it with asynchronous
+     * events.
+     */
+    if (evlist->synccnt == syncsrc && evlist->valid) {
+        for (int i = 0; i < numsrc; i++) {
+            if (!evlist->data[i]) {
+                evlist->data[i] = src[i]->val;
+                evlist->ref[i]  = src[i]->ref;
+                (*evlist->ref[i])++;
+            }
+        }
+        send_event(evlist);
+    }
+    reset_event(evlist);
+    /*
+     * In the most common case, ev == evlist->prev and we don't have to
+     * relink anything!  In a more rare case, if ev == evlist, we delete
+     * the oldest only to replace it with a *new* oldest, leaving the
+     * links untouched.
+     */
+    if (ev == evlist->prev) {
+        evlist = evlist->next; /* Delete and add as the newest in one step! */
+        ev = ev->next;         /* Let ev point to the new element */
+    } else if (ev != evlist) {
+        struct event *tmp = evlist;
+
+        /* Unlink tmp (evlist) from the list and move ahead evlist. */
+        evlist = tmp->next;
+        tmp->prev->next = evlist;
+        tmp->next->prev = tmp->prev;
+
+        /* Link tmp into the list after ev. */
+        tmp->next = ev->next;
+        ev->next->prev = tmp;
+        tmp->prev = ev;
+        ev->prev->next = tmp;
+
+        /* Let ev point to the new element. */
+        ev = tmp;
+    }
+    ev->sec = sec;
+    ev->nsec = nsec;
+    ev->valid = 1;
+    return ev;
+}
+
+/*
+ * Give the data Xtc for a particular source.  We assume that the Xtc header is
+ * in one area and the data is in another, so we pass in a second pointer.  That
+ * is, hdr contains hdrlen bytes, and data contains (hdr->extent - hdrlen) bytes.
+ */
+void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hdrlen, void *data)
+{
+    xtcsrc *s = src[id];
+    struct event *ev;
+
+    /*
+     * Just go home if:
+     *    - We aren't running yet.
+     *    - We don't have all of the asynchronous PVs.
+     */
+    if (!started || (s->sync && haveasync != asyncsrc))
+        return;
+
+    /*
+     * Make the data buffer.
+     */
+    char *buf = new char[hdr->extent];
+    memcpy(buf, hdr, hdrlen);
+    if (data)
+        memcpy(&buf[hdrlen], data, hdr->extent - hdrlen);
+
+    if (!s->len) { // First time we've seen this data!
+        s->len = hdr->extent;
+        totaldlen += hdr->extent;
+        if (++havedata == numsrc) {
+            // Initialize the header now that we know its length.
+            setup_datagram(TransitionId::L1Accept);
+            seg->extent    += totaldlen;
+            dg->xtc.extent += totaldlen;
+        }
+        if (!s->sync) {  // Just save asynchronous data for now.
+            s->val = buf;
+            s->sec = sec;
+            s->nsec = nsec;
+            s->ref = new int;
+            *(s->ref) = 1;
+            s->ev = find_event(sec, nsec);
+#ifdef TRACE
+            printf("%08x:%08x AI%d -> event %d\n", sec, nsec, id, s->ev->id);
 #endif
+            haveasync++;
+            return;
+        }
+    }
+
+    /*
+     * At this point, we know we have all of the asynchronous values.
+     */
+    if (!(ev = find_event(sec, nsec))) {
+        delete buf;
+        return;
+    }
+    if (s->sync) {
+        ev->data[id] = buf;
+#ifdef TRACE
+        printf("%08x:%08x S%d -> event %d\n", sec, nsec, id, ev->id);
+#endif
+        if (ev->valid && ++ev->synccnt == syncsrc && ev->asynccnt == asyncsrc) {
+            send_event(ev);
+            reset_event(ev);
+        }
+    } else {
+        struct event *cur = s->ev;
+
+        /*
+         * If the event associated with the data doesn't have the same timestamp, we must have
+         * reused it.  In this case, we can start with the oldest!
+         */
+        if (cur->sec != s->sec || cur->nsec != s->nsec)
+            cur = evlist;
+#ifdef TRACE
+        printf("%08x:%08x A%d -> event %d\n", sec, nsec, id, ev->id);
+#endif
+
+        while (cur != ev) {
+#ifdef TRACE
+            printf("                  event %d\n", cur->id);
+#endif
+            cur->data[id] = s->val;
+            cur->ref[id]  = s->ref;
+            (*s->ref)++;
+            if (cur->valid && ++cur->asynccnt == asyncsrc && cur->synccnt == syncsrc) {
+                send_event(cur);
+                reset_event(cur);
+            }
+            cur = cur->next;
+        }
+        if (!--(*s->ref)) {
+            delete s->val;
+            delete s->ref;
+        }
+        s->val = buf;
+        s->sec = sec;
+        s->nsec = nsec;
+        s->ref = new int;
+        *(s->ref) = 1;
+        s->ev = ev;
+    }
 }
 
 void cleanup_xtc(void)

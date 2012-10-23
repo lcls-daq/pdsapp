@@ -18,10 +18,12 @@ using namespace std;
 
 class symbol {
  public:
+    /* Camera */
     symbol(string _name, string _det, string _camtype, string _pvname, int _binned)
         : name(_name), detector(_det), camtype(_camtype), pvname(_pvname), address(-1), is_bld(0), binned(_binned) {
         syms.push_back(this);
     };
+    /* BLD */
     symbol(string _name, int addr) : name(_name), address(addr), is_bld(1) {
         syms.push_back(this);
     };
@@ -53,7 +55,6 @@ static int maxfds = -1;
 static int delay = 0;
 static struct timeval start, stop;
 int record_cnt = 0;
-int *data_cnt = NULL;
 static int nrec = 0;
 
 static void int_handler(int signal)
@@ -77,7 +78,6 @@ void remove_socket(int s)
 
 void begin_run(void)
 {
-    data_cnt = (int *) calloc(nrec, sizeof(int));
     if (delay)
         alarm(delay);
     gettimeofday(&start, NULL);
@@ -108,18 +108,23 @@ static ifstream *open_config_file(char *name)
 
 static void record(string name, const char *arg)
 {
-    symbol *s = symbol::find(name);
-    if (!s) {
-        printf("Can't find symbol %s!\n", name.c_str());
-        exit(1);
-    }
-    if (s->is_bld) {
-        printf("Found %s -> BLD at 239.255.24.%d\n", name.c_str(), s->address);
-        create_bld(s->name, s->address, (string)(arg ? arg : "eth0"));
+    if (name == "pv" || name == "PV") {
+        printf("Found PV -> CA to (EpicsArch, NoDevice) at %s.\n", arg);
+        create_ca((string) arg, "EpicsArch", "NoDevice", (string) arg, 0);
     } else {
-        printf("Found %s -> CA to (%s,%s) at %s.\n", name.c_str(), 
-               s->detector.c_str(), s->camtype.c_str(), s->pvname.c_str());
-        create_ca(s->name, s->detector, s->camtype, s->pvname, s->binned);
+        symbol *s = symbol::find(name);
+        if (!s) {
+            printf("Can't find symbol %s!\n", name.c_str());
+            exit(1);
+        }
+        if (s->is_bld) {
+            printf("Found %s -> BLD at 239.255.24.%d\n", name.c_str(), s->address);
+            create_bld(s->name, s->address, (string)(arg ? arg : "eth0"));
+        } else {
+            printf("Found %s -> CA to (%s,%s) at %s.\n", name.c_str(), 
+                   s->detector.c_str(), s->camtype.c_str(), s->pvname.c_str());
+            create_ca(s->name, s->detector, s->camtype, s->pvname, s->binned);
+        }
     }
     nrec++;
 }
@@ -159,7 +164,11 @@ static void read_config_file(const char *name)
             else
                 record(arrayTokens[1], arrayTokens[2].c_str());
         } else {
-            record(arrayTokens[0], NULL);
+            /* "record" is optional! */
+            if (arrayTokens.size() == 1)
+                record(arrayTokens[0], NULL);
+            else
+                record(arrayTokens[0], arrayTokens[1].c_str());
         }
     }
     delete in;
@@ -191,7 +200,6 @@ static void do_poll(void)
 void cleanup(void)
 {
     double runtime;
-    int i;
 
     cleanup_bld();
     cleanup_ca();
@@ -203,11 +211,6 @@ void cleanup(void)
     runtime /= 1000000.;
     fprintf(stderr, "Runtime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
             runtime, record_cnt, ((double) record_cnt) / runtime);
-    fprintf(stderr, "Data counts:");
-    for (i = 0; i < nrec; i++) {
-        fprintf(stderr, " %d", data_cnt[i]);
-    }
-    fprintf(stderr, "\n");
 }
 
 int main(int argc, char **argv)
