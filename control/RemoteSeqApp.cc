@@ -181,6 +181,8 @@ void RemoteSeqApp::routine()
               _control.set_transition_env    (TransitionId::Configure,options & DbKeyMask);
               _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
 
+              _control.set_target_state(PartitionControl::Configured);
+
               _wait_for_configure = true;
               _control.reconfigure();
 
