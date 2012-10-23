@@ -199,10 +199,23 @@ static bool set_PulseConfigV3(Pds::EvrData::PulseConfigV3& pulse, PyObject* o)
   { PyObject* data = PyDict_GetItemString(o,"polarity");
     if (data)  pol = PyString_AsString(data);  }
   
-  uint16_t pulseId; SetDictMemberU("pulse",pulseId);
-  double d,w;
+  uint16_t pulseId=0xffff; SetDictMemberU("pulse",pulseId);
+  if (pulseId==0xffff) {
+    PyErr_SetString(PyExc_RuntimeError,"No \'pulse\' member found.");
+    return false;
+  }
+
+  double d=-1,w=-1;
   SetDictMemberF("delay",d);
   SetDictMemberF("width",w);
+  if (d==-1) {
+    PyErr_SetString(PyExc_RuntimeError,"No \'delay\' member found.");
+    return false;
+  }
+  if (w==-1) {
+    PyErr_SetString(PyExc_RuntimeError,"No \'width\' member found.");
+    return false;
+  }
   uint32_t delay   = unsigned(d/EvrPeriod + 0.5);  
   uint32_t width   = unsigned(w/EvrPeriod + 0.5);  
 
@@ -572,5 +585,6 @@ PyObject* pds_EvrConfig_set    (PyObject*   self, PyObject* args)
 
 }
 
-#undef SetDictMember
+#undef SetDictMemberU
+#undef SetDictMemberF
 
