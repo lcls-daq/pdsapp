@@ -539,6 +539,17 @@ void resTest() {
   }
 }
 
+void listAll() {
+  unsigned index;
+  printf("Detector Names are:\n");
+  for (index=0; index<DetInfo::NumDetector; index++) {
+    printf("\t0x%x\t%s\n", index, DetInfo::name((DetInfo::Detector)index));
+  }
+  printf("Device Names are:\n");
+  for (index=0; index<DetInfo::NumDevice; index++) {
+    printf("\t0x%x\t%s\n", index, DetInfo::name((DetInfo::Device)index));
+  }
+}
 
 int main(int argc, char** argv) {
 
@@ -551,10 +562,14 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:s:r:vhT")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:s:r:vhTL")) != EOF ) {
     switch(c) {
       case 'T':
         resTest();
+        return 0;
+        break;
+      case 'L':
+        listAll();
         return 0;
         break;
       case 'i':
