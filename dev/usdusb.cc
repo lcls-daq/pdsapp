@@ -16,12 +16,16 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <signal.h>
+
 #include "libusb.h"
 
 #include <list>
 
-static void reset_usb()
+static int reset_usb()
 {
+  int n = 0;
+
   libusb_context* pctx;
 
   libusb_init(&pctx);
@@ -30,9 +34,26 @@ static void reset_usb()
   const int pid = 0x0044;
 
   libusb_device_handle* phdl = libusb_open_device_with_vid_pid(pctx, vid, pid);
-  libusb_reset_device(phdl);
+  if (phdl) {
+    libusb_reset_device(phdl);
+    libusb_close(phdl);
+    n = 1;
+  }
 
   libusb_exit(pctx);
+
+  return n;
+}
+
+static void close_usb(int isig)
+{
+  printf("close_usb %d\n",isig);
+  //  USB4_Shutdown();
+  const char* nsem = "Usb4-0000";
+  printf("Unlinking semaphore %s\n",nsem);
+  if (sem_unlink(nsem))
+    perror("Error unlinking usb4 semaphore");
+  exit(0);
 }
 
 namespace Pds {
@@ -169,12 +190,34 @@ int main(int argc, char** argv) {
   reset_usb();
 
   short deviceCount = 0;
+  printf("Initializing device\n");
   int result = USB4_Initialize(&deviceCount);
   if (result != USB4_SUCCESS) {
     printf("Failed to initialize USB4 driver (%d)\n",result);
-    USB4_Shutdown();
+    close_usb(0);
     return 1;
   }
+
+  //
+  //  Need to shutdown the USB driver properly
+  //
+  struct sigaction int_action;
+
+  int_action.sa_handler = close_usb;
+  sigemptyset(&int_action.sa_mask);
+  int_action.sa_flags = 0;
+  int_action.sa_flags |= SA_RESTART;
+
+  if (sigaction(SIGINT, &int_action, 0) > 0)
+    printf("Couldn't set up SIGINT handler\n");
+  if (sigaction(SIGKILL, &int_action, 0) > 0)
+    printf("Couldn't set up SIGKILL handler\n");
+  if (sigaction(SIGSEGV, &int_action, 0) > 0)
+    printf("Couldn't set up SIGSEGV handler\n");
+  if (sigaction(SIGABRT, &int_action, 0) > 0)
+    printf("Couldn't set up SIGABRT handler\n");
+  if (sigaction(SIGTERM, &int_action, 0) > 0)
+    printf("Couldn't set up SIGTERM handler\n");
 
   printf("Found %d devices\n", deviceCount);
 
@@ -185,14 +228,14 @@ int main(int argc, char** argv) {
       if ((result = USB4_ResetCount(deviceCount, i)) != USB4_SUCCESS)
 	printf("Failed to set preset value for channel %d : %d\n",i, result);
     }
-    USB4_Shutdown();
+    close_usb(0);
     return 1;
   }
 
   if ((platform == -1UL) || (detid == -1UL)) {
     printf("Platform and detid required\n");
     printf("Usage: %s -i <detid> -p <platform> [-a <arp process id>]\n", argv[0]);
-    USB4_Shutdown();
+    close_usb(0);
     return 0;
   }
 
