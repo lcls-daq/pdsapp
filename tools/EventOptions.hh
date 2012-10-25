@@ -9,7 +9,10 @@ public:
   EventOptions();
   EventOptions(int argc, char** argv);
 
-  int validate(const char*) const;
+  static const char* opt_string();
+
+  bool parse_opt(int);
+  int  validate (const char*) const;
 
 public:  
   unsigned platform;

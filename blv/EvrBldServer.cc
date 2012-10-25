@@ -12,6 +12,8 @@
 
 using namespace Pds;
 
+static int nPrint = 20;
+
 EvrBldServer::EvrBldServer(const Src& client,
                            int        read_fd,
                            InletWire& inlet) :
@@ -86,7 +88,12 @@ int EvrBldServer::fetch(char* payload, int flags)
 #endif
 
   int length = ::read(fd(),(char*)_evrDatagram,sizeof(EvrDatagram));
-  if(length != sizeof(EvrDatagram)) printf("*** EvrBldServer::fetch() : EvrDatagram not received in full  (%d/%u)\n", length,sizeof(EvrDatagram));
+  if(length != sizeof(EvrDatagram)) {
+    if (nPrint) {
+      printf("*** EvrBldServer::fetch() : EvrDatagram not received in full  (%d/%u)\n", length,sizeof(EvrDatagram));
+      nPrint--;
+    }
+  }
   _count = _evrDatagram->evr; 
 #ifdef DBUG
   printf("In EvrBldServer::fetch() [%p] cnt = %u fid Id = %x  tick = %d \n",

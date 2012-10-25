@@ -102,8 +102,8 @@ using namespace Pds;
 ParasiticRecorder::ParasiticRecorder(Task*         task,
 				     EventOptions& options,
 				     unsigned      lifetime_sec,
-             const char *  partition,
-             const char *  offlinerc) :
+                                     const char *  partition,
+                                     const char *  offlinerc) :
   _task   (task),
   _options(options),
   _cleanup_task(new Task("cleanup")),
@@ -142,7 +142,7 @@ void ParasiticRecorder::attached(SetOfStreams& streams)
   Stream* frmk = streams.stream(StreamParams::FrameWork);
 
   if (_options.outfile) {
-    (new RecorderQ   (_options.outfile, _options.sliceID, _options.chunkSize, true, false, _offlineclient, _options.expname))->connect(frmk->inlet());
+    (new RecorderQ   (_options.outfile, _options.sliceID, _options.chunkSize, _options.delayXfer, false, _offlineclient, _options.expname))->connect(frmk->inlet());
     (new OfflineProxy(_cleanup_task, _options.outfile, _lifetime_sec))->connect(frmk->inlet());
   }
 

@@ -39,51 +39,65 @@ EventOptions::EventOptions(int argc, char** argv) :
   expname(NULL)
 {
   int c;
-  while ((c = getopt(argc, argv, "f:p:b:a:s:c:n:edDE:")) != -1) {
-    errno = 0;
-    char* endPtr;
-    switch (c) {
-    case 'n':
-      nbuffers   = strtoul(optarg, &endPtr, 0);
-      break;
-    case 'b':
-      buffersize = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) buffersize=DefaultBufferSize;
-      break;
-    case 'p':
-      platform = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) platform = (unsigned)-1;
-      break;
-    case 's':
-      sliceID = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) sliceID = 0;
-      break;
-    case 'a':
-      arpsuidprocess = optarg;
-      break;
-    case 'f':
-      outfile = optarg;
-      break;
-    case 'e':
-      mode = Decoder;
-      break;
-    case 'd':
-      mode = Display;
-      break;
-    case 'D':
-      delayXfer = true;
-      break;
-    case 'E':
-      expname = optarg;
-      break;
-    case 'c':
-      errno = 0;
-      chunkSize = strtoull(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) chunkSize = DefaultChunkSize;
-      break;
-    }
+  while ((c = getopt(argc, argv, opt_string())) != -1) {
+    parse_opt(c);
   }
 }
+
+const char* EventOptions::opt_string() 
+{
+  return "f:p:b:a:s:c:n:edDE:";
+}
+
+bool        EventOptions::parse_opt (int c)
+{
+  errno = 0;
+  char* endPtr;
+  switch (c) {
+  case 'n':
+    nbuffers   = strtoul(optarg, &endPtr, 0);
+    break;
+  case 'b':
+    buffersize = strtoul(optarg, &endPtr, 0);
+    if (errno != 0 || endPtr == optarg) buffersize=DefaultBufferSize;
+    break;
+  case 'p':
+    platform = strtoul(optarg, &endPtr, 0);
+    if (errno != 0 || endPtr == optarg) platform = (unsigned)-1;
+    break;
+  case 's':
+    sliceID = strtoul(optarg, &endPtr, 0);
+    if (errno != 0 || endPtr == optarg) sliceID = 0;
+    break;
+  case 'a':
+    arpsuidprocess = optarg;
+    break;
+  case 'f':
+    outfile = optarg;
+    break;
+  case 'e':
+    mode = Decoder;
+    break;
+  case 'd':
+    mode = Display;
+    break;
+  case 'D':
+    delayXfer = true;
+    break;
+  case 'E':
+    expname = optarg;
+    break;
+  case 'c':
+    errno = 0;
+    chunkSize = strtoull(optarg, &endPtr, 0);
+    if (errno != 0 || endPtr == optarg) chunkSize = DefaultChunkSize;
+    break;
+  default:
+    return false;
+  }
+  return true;
+}
+
 
 int EventOptions::validate(const char* arg0) const
 {

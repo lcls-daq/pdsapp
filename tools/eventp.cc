@@ -14,31 +14,29 @@ void usage(const char* p)
 
 int main(int argc, char** argv) 
 {
+  EventOptions options;
   const char* partition = 0;
   const char* offlinerc = 0;
   unsigned nodes = 0;
   unsigned lifetime = 36000;
-  EventOptions options;
 
+  char opt_string[64];
+  sprintf(opt_string,"%sP:L:i:t:",EventOptions::opt_string());
+  
   int c;
-  while ((c = getopt(argc, argv, "f:p:s:c:edP:L:E:i:t:b:")) != -1) {
+  while ((c = getopt(argc, argv, opt_string)) != -1) {
     char* endPtr;
     switch(c) {
-    case 'f':  options.outfile = optarg; break;
-    case 'p':  options.platform = strtoul(optarg, &endPtr, 0); break;
-    case 's':  options.sliceID  = strtoul(optarg, &endPtr, 0); break;
-    case 'c':  options.chunkSize= strtoull(optarg, &endPtr, 0); break;
     case 'P':  partition = optarg; break;
     case 'L':  offlinerc = optarg; break;
-    case 'E':  options.expname = optarg; break;
     case 'i':  nodes = strtoul(optarg, &endPtr, 0); break;
     case 't':  lifetime = strtoul(optarg, &endPtr, 0); break;
-    case 'e':  options.mode = EventOptions::Decoder; break;
-    case 'd':  options.mode = EventOptions::Display; break;
-    case 'b':  options.buffersize = strtoul(optarg, &endPtr,0); break;
     default:
-      usage(argv[0]);
-      exit(1);
+      if (!options.parse_opt(c)) {
+        usage(argv[0]);
+        exit(1);
+      }
+      break;
     }
   }
 
