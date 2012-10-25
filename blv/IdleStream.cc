@@ -69,10 +69,14 @@ IdleStream::IdleStream(unsigned short port,
     printf("IdleStream socket failed : %s\n",strerror(errno));
 
   else {
+    int y=1;
+    if(setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&y, sizeof(y)) == -1)
+      printf("IdleStream error setsockopt REUSEADDR : %s\n",strerror(errno));
+
     Ins control(port);
     Sockaddr sa(control);
     if (::bind(_socket, sa.name(), sa.sizeofName())<0)
-      printf("IdleStream socket bind error : %s\n",strerror(errno));
+      printf("IdleStream socket bind error to %x.%d : %s\n",control.address(),control.portId(),strerror(errno));
     else {
       socklen_t len = sa.sizeofName();
       ::getsockname(_socket, sa.name(), &len);

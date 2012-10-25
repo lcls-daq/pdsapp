@@ -8,6 +8,8 @@
 #include "pds/client/Action.hh" 
 #include "pdsdata/xtc/DetInfo.hh"
 
+#include "EvrConfigType.hh" 
+
 #include <string>
 
 //#define DBUG
@@ -208,6 +210,8 @@ void EvrBldManager::allocate(Transition* tr)
 
 void EvrBldManager::configure(Transition* tr) 
 { 
+  bool slacEvr     = reinterpret_cast<uint32_t*>(&_er)[11] == 0x1f;
+
   _er.Reset();
 
   // Problem in Reset() function: It doesn't reset the set and clear masks 
@@ -224,6 +228,18 @@ void EvrBldManager::configure(Transition* tr)
 
   const EvrConfigType& cfg = 
     *reinterpret_cast<const EvrConfigType*>(_configBuffer);
+
+  // Another problem: The output mapping to pulses never clears
+  // workaround: Set output map to the last pulse (just cleared)
+  unsigned omask = 0;
+  for (unsigned k = 0; k < cfg.noutputs(); k++)
+    omask |= 1<<cfg.output_map(k).conn_id();
+  omask = ~omask;
+  
+  for (unsigned k = 0; k < EVR_MAX_UNIVOUT_MAP; k++) {
+    if ((omask >> k)&1 && !(k>9 && !slacEvr))
+      _er.SetUnivOutMap(k, EVR_MAX_PULSES-1);
+  }
 
   // setup map ram
   int ram = 0;

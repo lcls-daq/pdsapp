@@ -6,6 +6,8 @@
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
 tgtnames    := pimblvedt
+tgtnames    += evrbld pimbldedt
+tgtnames    += netfifo netfwd
 endif
 
 ifneq ($(findstring i386-linux,$(tgt_arch)),)
@@ -69,6 +71,13 @@ tgtlibs_pimbld += pdsapp/configdb qt/QtGui qt/QtCore
 tgtlibs_pimbld += pds/camera
 tgtlibs_pimbld += $(leutron_libs)
 tgtincs_pimbld := leutron/include
+
+tgtsrcs_pimbldedt := pimbldedt.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
+tgtlibs_pimbldedt := $(commonlibs) $(datalibs)
+tgtlibs_pimbldedt += pdsapp/configdb qt/QtGui qt/QtCore
+tgtlibs_pimbldedt += pds/camera
+tgtlibs_pimbldedt += $(edt_libs)
+tgtincs_pimbldedt := edt/include
 
 tgtsrcs_netfifo := netfifo.cc
 tgtlibs_netfifo := pds/service

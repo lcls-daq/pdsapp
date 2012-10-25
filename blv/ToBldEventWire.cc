@@ -102,11 +102,11 @@ InDatagram* ToBldEventWire::forward(InDatagram* in)
     finder.iterate();
     _seq = finder.seq;
 #ifdef DBUG
-    printf("ToBldEventWire::ev [%p] %08x.%08x [%p : %d]\n",
+    printf("ToBldEventWire::ev [%p] %08x.%08x [%x]\n",
            in,
            reinterpret_cast<const uint32_t*>(&_seq.stamp())[0],
            reinterpret_cast<const uint32_t*>(&_seq.stamp())[1],
-           this, _write_fd);
+           in->datagram().xtc.sizeofPayload());
 #endif    
   }
 
@@ -168,6 +168,10 @@ void ToBldEventWire::_send(const Xtc* inxtc,
 
     _task->call(new Carrier(dg, dst, _postman, _wait_us));
   }
+#ifdef DBUG
+  else
+    printf("TBEW::send:  No sequence");
+#endif
 }
 
 void ToBldEventWire::bind(NamedConnection, const Ins& ins) 

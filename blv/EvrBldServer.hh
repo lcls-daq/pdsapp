@@ -1,21 +1,15 @@
 #ifndef PDS_EvrBldServer_hh
 #define PDS_EvrBldServer_hh
 
-#include "pds/utility/EbServer.hh"
-#include "pds/utility/EbCountSrv.hh"
-#include "pds/utility/EbEventKey.hh"
-#include "pds/xtc/Datagram.hh"
-#include "pds/xtc/EvrDatagram.hh"
+#include "pds/utility/EvrServer.hh"
+
 #include "pds/mon/THist.hh"
 
 namespace Pds {
 
-  class CDatagram;
-  class ZcpDatagram;
-
-  class EvrBldServer : public EbServer, public EbCountSrv {
+  class EvrBldServer : public EvrServer {
   public:
-    EvrBldServer(const Src& client, int read_fd);
+    EvrBldServer(const Src& client, int read_fd, InletWire& inlet);
     ~EvrBldServer() {}    
   public:
     //  Eb interface
@@ -36,7 +30,9 @@ namespace Pds {
     int      fetch (char* payload, int flags);
     int      fetch (ZcpFragment& , int flags);
   public:
-    unsigned count() const;
+    const Sequence&     sequence() const;
+    const L1AcceptEnv&  env() const;
+    unsigned            count() const;
   private:
     Xtc          _xtc;
     unsigned     _count;
@@ -46,6 +42,25 @@ namespace Pds {
     THist        _hfetch;
   };
 }
+
+inline const Pds::Sequence& Pds::EvrBldServer::sequence() const
+{
+  const Pds::EvrDatagram& dg = *_evrDatagram;
+  return dg.seq;
+}
+
+inline const Pds::L1AcceptEnv& Pds::EvrBldServer::env() const
+{
+  const Pds::EvrDatagram& dg = *_evrDatagram;
+  return dg.env;
+}
+
+inline unsigned Pds::EvrBldServer::count() const
+{
+  const Pds::EvrDatagram& dg = *_evrDatagram;
+  return dg.evr;
+}
+
 #endif
 
 

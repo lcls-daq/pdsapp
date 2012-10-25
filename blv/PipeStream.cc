@@ -62,10 +62,10 @@ void PipeStream::start()
       _read(buff,tr->size()-sizeof(Transition));
 
 #ifdef DBUG
-    printf("PipeStream read %08x.%08x [%p : %d]\n",
+    printf("PipeStream read %s [%08x.%08x]\n",
+           TransitionId::name(tr->id()),
            reinterpret_cast<const uint32_t*>(&tr->sequence().stamp())[0],
-           reinterpret_cast<const uint32_t*>(&tr->sequence().stamp())[1],
-           this, _read_fd);
+           reinterpret_cast<const uint32_t*>(&tr->sequence().stamp())[1]);
 #endif
 
     if (tr->phase() == Transition::Record) {
@@ -73,7 +73,10 @@ void PipeStream::start()
       delete tr;
       _wire->post( *dg );
     }
-    else
+    else {
+      _wire->flush_inputs();
+      _wire->flush_outputs();
       _wire->post( *tr );
+    }
   }
 }

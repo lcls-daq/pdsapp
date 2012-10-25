@@ -2,6 +2,9 @@
 #include <getopt.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "pds/service/NetServer.hh"
 #include "pds/service/Client.hh"

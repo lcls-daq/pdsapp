@@ -68,7 +68,7 @@ namespace Pds {
 
       if (laccept) {
         int listen_fd = ::socket(AF_INET, SOCK_STREAM, 0);
-        int opt=1;
+        int32_t opt=1;
         if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))<0) {
           perror("Reuse listen addr failed");
           return;

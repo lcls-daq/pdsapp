@@ -25,7 +25,6 @@
 
 #include "pds/service/Task.hh"
 #include "pds/config/CfgClientNfs.hh" 
-#include "pds/config/EvrConfigType.hh" 
 #include "pds/config/IpimbDataType.hh"
 #include "pds/utility/SegWireSettings.hh"
 #include "pds/utility/InletWire.hh"
@@ -43,6 +42,8 @@
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Table.hh"
 #include "pdsapp/config/EventcodeTiming.hh"
+
+#include "EvrConfigType.hh" 
 
 #define IPIMB_BLD_MAX_DATASIZE  512
 #define DEFAULT_EVENT_OPCODE    140 

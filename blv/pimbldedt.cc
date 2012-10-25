@@ -4,7 +4,7 @@
 #include "pds/management/EventBuilder.hh"
 #include "pds/camera/PimManager.hh"
 #include "pds/camera/TM6740Camera.hh"
-#include "pds/camera/PicPortCL.hh"
+#include "pds/camera/EdtPdvCL.hh"
 #include "pds/xtc/XtcType.hh"
 #include "pds/service/Task.hh"
 
@@ -38,7 +38,7 @@ public:
 
 static Pds::CameraDriver* _driver(int id)
 {
-  return new PdsLeutron::PicPortCL(*new TM6740Camera, id);
+  return new Pds::EdtPdvCL(*new Pds::TM6740Camera,0,id,1000);
 }
 
 static void *thread_signals(void*)

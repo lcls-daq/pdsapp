@@ -12,7 +12,6 @@
 
 #include "evgr/evr/evr.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
-#include "pds/config/EvrConfigType.hh" 
 #include "pds/service/Task.hh"
 #include "pds/xtc/EvrDatagram.hh"
 #include "pds/client/Fsm.hh"

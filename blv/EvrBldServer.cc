@@ -13,7 +13,12 @@
 using namespace Pds;
 
 EvrBldServer::EvrBldServer(const Src& client,
-                           int        read_fd) :
+                           int        read_fd,
+                           InletWire& inlet) :
+  EvrServer(Ins(),
+            client,
+            inlet,
+            1),
   _xtc     (TypeId(TypeId::Id_EvrData,0),client),
   _hinput  ("EvrInput"),
   _hfetch  ("EvrFetch")
@@ -81,7 +86,7 @@ int EvrBldServer::fetch(char* payload, int flags)
 #endif
 
   int length = ::read(fd(),(char*)_evrDatagram,sizeof(EvrDatagram));
-  if(length != sizeof(EvrDatagram)) printf("*** EvrBldServer::fetch() : EvrDatagram not received in full \n");
+  if(length != sizeof(EvrDatagram)) printf("*** EvrBldServer::fetch() : EvrDatagram not received in full  (%d/%u)\n", length,sizeof(EvrDatagram));
   _count = _evrDatagram->evr; 
 #ifdef DBUG
   printf("In EvrBldServer::fetch() [%p] cnt = %u fid Id = %x  tick = %d \n",
@@ -107,10 +112,4 @@ int EvrBldServer::fetch(ZcpFragment& zf, int flags)
 {
   return 0;
 }
-
-unsigned EvrBldServer::count() const
-{
-  return _count;
-}
-
 
