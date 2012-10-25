@@ -8,6 +8,7 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QComboBox>
 #include <QtGui/QGroupBox>
+#include <QtGui/QKeyEvent>
 
 #include <sys/stat.h>
 #include <libgen.h>
@@ -29,12 +30,31 @@ namespace Pds_ConfigDb {
     char* buffer;
     int   size;
   };
+
+  class KeyPressEater : public QObject {
+    //    Q_OBJECT
+  protected:
+    bool eventFilter(QObject *obj, QEvent *event);
+  };
+  
+  bool KeyPressEater::eventFilter(QObject *obj, QEvent *event)
+  {
+    if (event->type() == QEvent::KeyPress) {
+      QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+      if (keyEvent->key() == ::Qt::Key_Return ||
+	  keyEvent->key() == ::Qt::Key_Enter)
+	return true;
+    }
+    // standard event processing
+    return QObject::eventFilter(obj, event);
+  }
 };
 
 using namespace Pds_ConfigDb;
 
 static const QString nopath(".");
 static const QString nochoice;
+static KeyPressEater keyPressEater;
 
 Dialog::Dialog(QWidget* parent,
                Serializer& s,
@@ -171,6 +191,8 @@ void Dialog::layout()
 
   layout->addLayout(blayout);
   setLayout(layout);
+
+  installEventFilter(&keyPressEater);
 }
 
 void Dialog::replace()
