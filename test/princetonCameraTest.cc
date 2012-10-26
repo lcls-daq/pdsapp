@@ -5,6 +5,8 @@
 #include <math.h>
 #include <errno.h>
 #include <getopt.h>
+#include <string>
+#include <iostream>
 #include <pthread.h> 
 #include <unistd.h>
 #include <signal.h>
@@ -12,7 +14,8 @@
 #include "pvcam/include/pvcam.h"
 
 int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY);
+  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY,
+  int iMenu);
 
 static const char sPrincetonCameraTestVersion[] = "1.40";
 
@@ -21,7 +24,7 @@ namespace PICAM
   void printPvError(const char *sPrefixMsg);
   void displayParamIdInfo(int16 hCam, uns32 uParamId,
                           const char sDescription[]);
-  int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue, int16 iMode = ATTR_CURRENT);
+  int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue, int16 iMode = ATTR_CURRENT, int iErrorReport = 1);
   int setAnyParam(int16 hCam, uns32 uParamId, void *pParamValue);
   
   void printROI(int iNumRoi, rgn_type* roi);
@@ -34,14 +37,14 @@ class ImageCapture
 public:
   
   int   start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-    int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY);    
+    int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iMenu);
   int   getConfig(int& x, int& y, int& iWidth, int& iHeight, int& iBinning);
   int   lockCurrentFrame(unsigned char*& pCurrentFrame);
   int   unlockFrame();
   
 private:     
   // private functions
-  int testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY);
+  int testImageCaptureStandard(const char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY);
   int testImageCaptureContinous(int iNumFrame, int16 modeExposure, uns32 uExposureTime);  
   int testImageCaptureFirstTime();
   int setupROI(rgn_type& region);
@@ -54,7 +57,7 @@ private:
   // private static functions
   static int updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip);
   static int setupCooling(float fTemperature);  
-  
+  static int printStatus();
   
 public:  
   static int16 getHcam() { return _hCam; }
@@ -77,10 +80,12 @@ private:
 
 static void showUsage()
 {
-    printf( "Usage:  princetonCameraTest  [-v|--version] [-h|--help] [-c|--camera <camera number>]\n"
-      "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time>]\n"
-      "[-p|--port <readout port>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
-      "[-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>] [--strip <strip cycle>]\n"
+    printf( 
+      "Usage:  princetonCameraTest  [-v|--version] [-h|--help] [-c|--camera <camera number>]\n"
+      "    [-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time>]\n"
+      "    [-p|--port <Rport>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
+      "    [-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>]\n"
+      "    [-m|--menu] [--strip <strip cycle>]\n"
       "  Options:\n"
       "    -v|--version                      Show file version\n"
       "    -h|--help                         Show usage\n"
@@ -94,6 +99,7 @@ static void showUsage()
       "    -t|--temp      <temperature>      Temperature (in Celcius) (Default: 25 C)\n"            
       "    -r|--roi       <x,y,w,h>          Region of Interest\n"
       "    -b|--bin       <xbin,ybin>        Binning of X/Y\n"
+      "    -m|--menu                         Show interactive menu\n"
       "       --strip     <strip cycle>      Number of rows per clear cycle\n"
     );
 }
@@ -132,7 +138,7 @@ void signalIntHandler(int iSignalNo)
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhc:w:n:e:p:s:g:t:r:b:";
+  const char*         strOptions  = ":vhc:w:n:e:p:s:g:t:r:b:m";
   const struct option loOptions[] = 
   {
      {"ver",      0, 0, 'v'},
@@ -147,6 +153,7 @@ int main(int argc, char **argv)
      {"temp",     1, 0, 't'},     
      {"roi",      1, 0, 'r'},
      {"bin",      1, 0, 'b'},     
+     {"menu",     0, 0, 'm'},     
      {"strip",    1, 0,  1000},     
      {0,          0, 0,  0 }
   };    
@@ -166,6 +173,7 @@ int main(int argc, char **argv)
   int   iRoiH         = -1;
   int   iBinX         = 1;
   int   iBinY         = 1;  
+  int   iMenu         = 0;
   
   int iOptionIndex = 0;
   while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
@@ -221,6 +229,9 @@ int main(int argc, char **argv)
             iBinY = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
             break;            
           }
+      case 'm':
+          iMenu = 1;
+          break;            
       case 1000:
           iStrip        = strtoul(optarg, NULL, 0);
           break;            
@@ -254,11 +265,12 @@ int main(int argc, char **argv)
   if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 ) 
     printf( "main(): Cannot register signal handler for SIGTERM\n" );  
 
-  testPIDaq(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, iStrip, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
+  testPIDaq(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, iStrip, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iMenu);
 }
 
 int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY)
+  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, 
+  int iMenu)
 {
   ImageCapture  imageCapure;
   TestDaqThread testDaqThread;    
@@ -269,8 +281,9 @@ int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, i
     printf("testPIDaq(): testDaqThread.start() failed, error code = %d\n", iFail);
     return 1;
   }
-  
-  iFail = imageCapure.start(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, iStrip, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
+    
+  iFail = imageCapure.start(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, 
+    iGainIndex, fTemperature, iStrip, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iMenu);
   if (0 != iFail)
   {    
     printf("testPIDaq(): imageCapure.start() failed, error code = %d\n", iFail);
@@ -457,8 +470,10 @@ int ImageCapture::setupCooling(float fTemperature)
   return 0;
 }
 
+using namespace std;
+
 int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY)
+  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iMenu)
 {
   char cam_name[CAM_NAME_LEN];  /* camera name                    */
 
@@ -501,21 +516,199 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
   timespec timeVal1;
   clock_gettime( CLOCK_REALTIME, &timeVal1 );
   double fOpenTime = (timeVal1.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal1.tv_sec - timeVal0.tv_sec ) * 1.e3;    
-  printf("Camera Open Time = %6.1lf ms\n", fOpenTime);  
-  
-  
-  updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
-  
+  printf("Camera Open Time = %6.1lf ms\n", fOpenTime);    
+
+  int16 i16MaxSpeedTableIndex = -1;
+  int16 i16MaxGainIndex       = -1;
+  uns32 u32MaxReadoutPort     = 0;   
+  PICAM::getAnyParam(_hCam, PARAM_SPDTAB_INDEX, &i16MaxSpeedTableIndex, ATTR_MAX);  
+  PICAM::getAnyParam(_hCam, PARAM_GAIN_INDEX, &i16MaxGainIndex, ATTR_MAX, 0);  
+  PICAM::getAnyParam(_hCam, PARAM_READOUT_PORT, &u32MaxReadoutPort, ATTR_MAX);    
+  if (iSpeedIndex < 0)
+    iSpeedIndex = i16MaxSpeedTableIndex;
+  if (iGainIndex < 0)
+    iGainIndex  = i16MaxGainIndex;
+  if (iReadoutPort < 0)
+    iReadoutPort = u32MaxReadoutPort; 
+    
+  int iWidth, iHeight;
+  PICAM::getAnyParam( _hCam, PARAM_SER_SIZE, &iWidth );
+  PICAM::getAnyParam( _hCam, PARAM_PAR_SIZE, &iHeight );    
+  if (iRoiW < 0 )
+    iRoiW = iWidth;
+  if (iRoiH < 0 )
+    iRoiH = iHeight;
+
+  printStatus();
+    
   setupCooling(fTemperature);
 
-  testImageCaptureFirstTime(); // dummy init capture
-    
-  const int iNumFrame         = iNumImages;
-  const int16 modeExposure    = TIMED_MODE;
-  //const int16 modeExposure = STROBED_MODE;
-  const uns32 u32ExposureTime = iExposureTime;
+  updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
+
+  printStatus();
   
-  testImageCaptureStandard(sFnPrefix, iNumFrame, modeExposure, u32ExposureTime, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
+  testImageCaptureFirstTime(); // dummy init capture
+          
+  string  strFnPrefix(sFnPrefix);    
+  float   fExposureTime = iExposureTime * 0.001;
+  bool bQuitCapture = false;
+  while (true)
+  {     
+    if (iMenu != 0)
+    {         
+      bool bQuitMenu = false;      
+      do
+      {       
+        //Show menu options
+        cout << "======= Current Configuration ======="  << endl;
+        printStatus();
+        cout << "Output Filename Prefix  : " << strFnPrefix   << endl;
+        cout << "Number Images per Acq   : " << iNumImages    << endl;
+        cout << "Exposure Time (sec)     : " << fExposureTime << endl;
+        cout << "Readout Port            : " << iReadoutPort  << endl;
+        cout << "Speed Index             : " << iSpeedIndex   <<  endl;
+        cout << "Gain Index              : " << iGainIndex    << endl;
+        cout << "Cooling Temperature (C) : " << fTemperature  << endl;
+        cout << "ROI : x " << iRoiX << " y " <<  iRoiY << 
+          " W " << iRoiW << " H " << iRoiH << 
+          " binX " << iBinX << " binY " << iBinY << endl;    
+        cout << "=============== Menu ================"  << endl;
+        cout << "a. Start Acquisition" << endl;
+        cout << "w. Set Output Filename Prefix" << endl;
+        cout << "n. Set Number of Images per Acquisition" << endl;
+        cout << "e. Set Exposure Time" << endl;
+        cout << "p. Set Readout Port" << endl;
+        cout << "s. Set Speed Index" << endl;
+        cout << "g. Set Gain Index" << endl;
+        cout << "t. Set Cooling Temperature" << endl;
+        cout << "r. Set ROI" << endl;
+        cout << "b. Set Binning" << endl;    
+        cout << "q. Quit Program" << endl;
+        cout << "====================================="  << endl;
+        cout << "> ";
+        //Get menu choice
+        int choice = getchar();
+
+        switch(choice){
+        case 'a': //Acquire    
+          bQuitMenu = true;
+          break;    
+        case 'w': 
+        {
+          cout << endl << "Enter new Output Filename Prefix ('x': disable output) > ";
+          cin >> strFnPrefix;
+          if (strFnPrefix == "x")
+            strFnPrefix = "";
+          printf("New Output Filename Prefix: \'%s\'\n", strFnPrefix.c_str());
+          break;
+        }     
+        case 'n': 
+        {
+          cout << endl << "Enter new Number of Images per Acquisition > ";
+          cin >> iNumImages;
+          printf("New Number of Images per Acquisition: %d\n", iNumImages);
+          break;
+        }
+        case 'e': 
+        {
+          cout << endl << "Enter new Exposure Time (sec) > ";
+          cin >> fExposureTime;
+          printf("New Exposure Time: %f\n", fExposureTime);
+          iExposureTime = (int)(fExposureTime * 1000);
+          break;
+        }
+        case 'p': 
+        {
+          cout << endl << "Enter new Readout Port > ";
+          cin >> iReadoutPort;
+          printf("New Readout Port: %d\n", iReadoutPort);
+          updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
+          break;
+        }    
+        case 's': 
+        {
+          cout << endl << "Enter new Speed Index > ";
+          cin >> iSpeedIndex;
+          printf("New Speed Index: %d\n", iSpeedIndex);
+          updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
+          break;
+        }    
+        case 'g': 
+        {
+          cout << endl << "Enter new Gain Index > ";
+          cin >> iGainIndex;
+          printf("New Gain Index: %d\n", iGainIndex);
+          updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
+          break;
+        }    
+        case 't': 
+        {
+          cout << endl << "Enter new Cooling Temperature (C) > ";
+          cin >> fTemperature;
+          printf("New Cooling Temperature: %f\n", fTemperature);
+          setupCooling(fTemperature);
+          break;
+        }    
+        case 'r':
+        {
+          cout << endl << "Enter new ROI [x,y,W,H] > ";
+          string strROI;
+          cin >> strROI;
+          char sROI[64];
+          strcpy(sROI, strROI.c_str());
+          char* pNextToken = sROI;
+          iRoiX = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+          if ( *pNextToken == 0 ) break;
+          iRoiY = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+          if ( *pNextToken == 0 ) break;
+          iRoiW = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+          if ( *pNextToken == 0 ) break;
+          iRoiH = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+          printf("New ROI: x %d y %d W %d H %d\n", iRoiX, iRoiY, iRoiW, iRoiH);
+          break;            
+        }
+        case 'b':
+        {
+          cout << endl << "Enter new Binning [binX,binY] > ";
+          string strBin;
+          cin >> strBin;
+          char sBin[64];
+          strcpy(sBin, strBin.c_str());
+          char* pNextToken = sBin;
+          iBinX = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+          if ( *pNextToken == 0 ) break;
+          iBinY = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+          printf("New binX %d binY %d \n", iBinX, iBinY);
+          break;            
+        }    
+        case 'q': //Exit
+          bQuitMenu     = true;
+          bQuitCapture  = true;
+          break;
+        
+        default:
+          cout << "!Invalid Option! Key = " << choice << endl;
+        } 
+        getchar();      
+      }
+      while (!bQuitMenu);
+    } // if (iMenu != 0)
+    
+    if (bQuitCapture) 
+      break;
+  
+    const int iNumFrame         = iNumImages;
+    const int16 modeExposure    = TIMED_MODE;
+    //const int16 modeExposure = STROBED_MODE;  
+    const uns32 u32ExposureTime = iExposureTime;
+    testImageCaptureStandard(strFnPrefix.c_str(), iNumFrame, modeExposure, u32ExposureTime, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
+    
+    if (iMenu == 0)
+      break;
+  }  
+
+  printStatus();
+  
   //testImageCaptureContinous(hCam, iNumFrame, modeExposure, u32ExposureTime);
 
   bStatus = pl_cam_close(_hCam);
@@ -567,7 +760,7 @@ int ImageCapture::setupROI(rgn_type& region, int iRoiX, int iRoiY, int iRoiW, in
   region.p1 = iRoiY;
   region.p2 = iRoiY + iRoiH - 1;
   region.pbin = iBinY;
-
+  
   return 0;
 }
 
@@ -584,6 +777,9 @@ int ImageCapture::testImageCaptureFirstTime()
   region.pbin = 1;  
   
   PICAM::printROI(1, &region);
+
+  timespec timeVal0;
+  clock_gettime( CLOCK_REALTIME, &timeVal0 );    
   
   /* Init a sequence set the region, exposure mode and exposure time */
   pl_exp_init_seq();
@@ -593,6 +789,10 @@ int ImageCapture::testImageCaptureFirstTime()
   uns16* pFrameBuffer = (uns16 *) malloc(uFrameSize);
   printf( "frame size for first capture = %lu\n", uFrameSize );
 
+  double fReadoutTime = -1;
+  PICAM::getAnyParam(_hCam, PARAM_READOUT_TIME, &fReadoutTime);
+  printf("Estimated Readout Time = %.1lf ms\n", fReadoutTime);        
+    
   timeval timeSleepMicroOrg = {0, 1000 }; // 1 milliseconds  
  
   /* ACQUISITION LOOP */
@@ -600,7 +800,8 @@ int ImageCapture::testImageCaptureFirstTime()
     return 0;
       
   /* frame now contains valid data */
-  printf( "Taking first frame..." );    
+  printf( "Taking test frame... " );    
+  fflush(NULL);
   
   timespec timeVal1;
   clock_gettime( CLOCK_REALTIME, &timeVal1 );    
@@ -631,15 +832,12 @@ int ImageCapture::testImageCaptureFirstTime()
 
   timespec timeVal3;
   clock_gettime( CLOCK_REALTIME, &timeVal3 );
-
-  double fReadoutTime = -1;
-  PICAM::getAnyParam(_hCam, PARAM_READOUT_TIME, &fReadoutTime);
-  
+  double fInitTime    = (timeVal1.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal1.tv_sec - timeVal0.tv_sec ) * 1.e3;      
   double fStartupTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
   double fPollingTime = (timeVal3.tv_nsec - timeVal2.tv_nsec) * 1.e-6 + ( timeVal3.tv_sec - timeVal2.tv_sec ) * 1.e3;    
   double fSingleFrameTime = fStartupTime + fPollingTime;
-  printf(" Startup Time = %6.1lf Polling Time = %7.1lf Readout Time = %.1lf Frame Time = %.1lf\n", 
-    fStartupTime, fPollingTime, fReadoutTime, fSingleFrameTime );        
+  printf("Catpure Init Time = %6.1lf Startup Time = %6.1lf Polling Time = %7.1lf Frame Time = %.1lf ms\n", 
+    fInitTime, fStartupTime, fPollingTime, fSingleFrameTime );        
     
 
   // pl_exp_finish_seq(hCam, pFrameBuffer, 0); // No need to call this function, unless we have multiple ROIs
@@ -652,10 +850,11 @@ int ImageCapture::testImageCaptureFirstTime()
   return 0;
 }
 
-int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY)
+int ImageCapture::testImageCaptureStandard(const char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime, 
+  int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY)
 {
   printf( "Starting standard image capture for %d frames, exposure mode = %d, exposure time = %d ms\n",
-    iNumFrame, (int) modeExposure, (int) uExposureTime );
+    iNumFrame, (int) modeExposure, (int) uExposureTime);
     
   rgn_type region;
   if (iRoiW < 0 || iRoiH < 0 )
@@ -664,6 +863,9 @@ int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16
     setupROI(region, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
   
   PICAM::printROI(1, &region);
+  
+  timespec timeVal0;
+  clock_gettime( CLOCK_REALTIME, &timeVal0 );    
   
   /* Init a sequence set the region, exposure mode and exposure time */
   pl_exp_init_seq();
@@ -674,17 +876,23 @@ int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16
   printf( "frame size for standard capture = %lu\n", uFrameSize );
 
   timeval timeSleepMicroOrg = {0, 1000 }; // 1 milliseconds  
-  
-  if ( modeExposure == STROBED_MODE )
-  {
-    PICAM::displayParamIdInfo(_hCam, PARAM_CONT_CLEARS , "Continuous Clearing");  
-  }
 
+  if (modeExposure == STROBED_MODE)
+    PICAM::displayParamIdInfo(_hCam, PARAM_CONT_CLEARS , "Continuous Clearing");
+
+  double fReadoutTime = -1;
+  PICAM::getAnyParam(_hCam, PARAM_READOUT_TIME, &fReadoutTime);
+  printf("Estimated Readout Time = %.1lf ms\n", fReadoutTime);        
+  
   /* Start the acquisition */
   printf("Collecting %i Frames\n", iNumFrame);
-  
-  double fAvgStartupTime = 0, fAvgPollingTime = 0, fAvgReadoutTime = 0, 
-    fAvgSingleFrameTime = 0, fAvgAvgVal = 0, fAvgStdVal = 0;
+
+  timespec timeVal0a;
+  clock_gettime( CLOCK_REALTIME, &timeVal0a );    
+  double  fInitTime = (timeVal0a.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal0a.tv_sec - timeVal0.tv_sec ) * 1.e3;      
+    
+  double fAvgStartupTime = 0, fAvgPollingTime = 0, fAvgSingleFrameTime = 0, fAvgAvgVal = 0, fAvgStdVal = 0;
+  double fSumSingleFrameTimeSq = 0;
   /* ACQUISITION LOOP */
   for (int iFrame = 0; iFrame < iNumFrame; iFrame++)
   {    
@@ -695,10 +903,13 @@ int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16
     }
       
     /* frame now contains valid data */
-    printf( "Taking frame %d...", iFrame );    
+    printf( "Taking frame %d... ", iFrame );    
+    fflush(NULL);
     
     timespec timeVal1;
     clock_gettime( CLOCK_REALTIME, &timeVal1 );    
+    if (fInitTime == -1)
+      fInitTime = (timeVal1.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal1.tv_sec - timeVal0.tv_sec ) * 1.e3;      
     
     pl_exp_start_seq(_hCam, pFrameBuffer);
 
@@ -730,9 +941,6 @@ int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16
 
     timespec timeVal3;
     clock_gettime( CLOCK_REALTIME, &timeVal3 );
-
-    double fReadoutTime = -1;
-    PICAM::getAnyParam(_hCam, PARAM_READOUT_TIME, &fReadoutTime);
       
     uint64_t uSum    = 0;
     uint64_t uSumSq  = 0;
@@ -749,8 +957,8 @@ int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16
     double fStartupTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;    
     double fPollingTime = (timeVal3.tv_nsec - timeVal2.tv_nsec) * 1.e-6 + ( timeVal3.tv_sec - timeVal2.tv_sec ) * 1.e3;    
     double fSingleFrameTime = fStartupTime + fPollingTime;
-    printf(" Startup Time = %6.1lf Polling Time = %7.1lf Readout Time = %.1lf Frame Time = %.1lf  Avg Val = %.2lf Std = %.2lf\n", 
-      fStartupTime, fPollingTime, fReadoutTime, fSingleFrameTime, fAvgVal, fStdVal );        
+    printf("Startup Time = %6.1lf Polling Time = %7.1lf Frame Time = %.1lf ms Avg Val = %.2lf Std = %.2lf\n", 
+      fStartupTime, fPollingTime, fSingleFrameTime, fAvgVal, fStdVal );        
            
     
     if ( sFnPrefix != NULL && sFnPrefix[0] != 0 )
@@ -763,11 +971,14 @@ int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16
       fclose(fOut);
     }
       
-      
-    fAvgStartupTime += fStartupTime; fAvgPollingTime     += fPollingTime; 
-    fAvgReadoutTime += fReadoutTime; fAvgSingleFrameTime += fSingleFrameTime;    
-    fAvgAvgVal      += fAvgVal;
-    fAvgStdVal      += fStdVal;
+    if ( iFrame != 0 )      
+    {
+      fAvgStartupTime += fStartupTime; fAvgPollingTime += fPollingTime; 
+      fAvgSingleFrameTime   += fSingleFrameTime;    
+      fSumSingleFrameTimeSq += fSingleFrameTime * fSingleFrameTime;
+      fAvgAvgVal      += fAvgVal;
+      fAvgStdVal      += fStdVal;
+    }
   }
 
   // pl_exp_finish_seq(_hCam, pFrameBuffer, 0); // No need to call this function, unless we have multiple ROIs
@@ -775,13 +986,18 @@ int ImageCapture::testImageCaptureStandard(char* sFnPrefix, int iNumFrame, int16
   /*Uninit the sequence */
   pl_exp_uninit_seq();
  
-  if ( iNumFrame > 0 )
+  printf("Capture Init time = %6.1lf ms\n", fInitTime);  
+  if ( iNumFrame > 1 )
   {
+    --iNumFrame;
     fAvgStartupTime /= iNumFrame; fAvgPollingTime     /= iNumFrame; 
-    fAvgReadoutTime /= iNumFrame; fAvgSingleFrameTime /= iNumFrame;
+    
     fAvgAvgVal      /= iNumFrame; fAvgStdVal          /= iNumFrame;
-    printf("Average Startup Time = %6.1lf Polling Time = %7.1lf Readout Time = %.1lf Frame Time = %.1lf  Avg Val = %.2lf Std = %.2lf\n", 
-      fAvgStartupTime, fAvgPollingTime, fAvgReadoutTime, fAvgSingleFrameTime, fAvgAvgVal, fAvgStdVal );        
+    
+    fAvgSingleFrameTime /= iNumFrame;
+    double  fStdSingleFrameTime  = sqrt( fSumSingleFrameTimeSq / iNumFrame - fAvgSingleFrameTime * fAvgSingleFrameTime );        
+    printf("Average Startup Time = %6.1lf Polling Time = %7.1lf Frame Time = %.1lf std %.1lf ms Avg Val = %.2lf Std = %.2lf\n", 
+      fAvgStartupTime, fAvgPollingTime, fAvgSingleFrameTime, fStdSingleFrameTime, fAvgAvgVal, fAvgStdVal );        
   }
   
   free(pFrameBuffer);
@@ -954,6 +1170,35 @@ int ImageCapture::testImageCaptureContinous(int iNumFrame, int16 modeExposure, u
   }
 
   return PV_OK;
+}
+
+
+int ImageCapture::printStatus()
+{
+  int16 i16DetectorWidth      = -1;
+  int16 i16DetectorHeight     = -1;  
+  int16 i16MaxSpeedTableIndex = -1;
+  int16 i16SpeedTableIndex    = -1;
+  int16 i16MaxGainIndex       = -1;
+  int16 i16GainIndex          = -1;
+  uns32 u32MaxReadoutPort     = 0; 
+  uns32 u32ReadoutPort        = 0; 
+  
+  int16 i16TemperatureCurrent = -1;  
+  PICAM::getAnyParam(_hCam, PARAM_SER_SIZE, &i16DetectorWidth );
+  PICAM::getAnyParam(_hCam, PARAM_PAR_SIZE, &i16DetectorHeight );
+  PICAM::getAnyParam(_hCam, PARAM_SPDTAB_INDEX, &i16MaxSpeedTableIndex, ATTR_MAX);  
+  PICAM::getAnyParam(_hCam, PARAM_SPDTAB_INDEX, &i16SpeedTableIndex);    
+  PICAM::getAnyParam(_hCam, PARAM_GAIN_INDEX, &i16MaxGainIndex, ATTR_MAX, 0);  
+  PICAM::getAnyParam(_hCam, PARAM_GAIN_INDEX, &i16GainIndex, ATTR_CURRENT, 0);  
+  PICAM::getAnyParam(_hCam, PARAM_READOUT_PORT, &u32MaxReadoutPort, ATTR_MAX);    
+  PICAM::getAnyParam(_hCam, PARAM_READOUT_PORT, &u32ReadoutPort);
+  PICAM::getAnyParam(_hCam, PARAM_TEMP, &i16TemperatureCurrent );  
+  printf( "Detector Width %d Height %d Speed %d/%d Gain %d/%d Port %d/%d Temperature %.1f C\n", i16DetectorWidth, i16DetectorHeight, 
+    i16SpeedTableIndex, i16MaxSpeedTableIndex, i16GainIndex, i16MaxGainIndex, 
+    (int) u32ReadoutPort, (int) u32MaxReadoutPort, i16TemperatureCurrent/100.f );   
+    
+  return 0;
 }
 
 namespace PICAM
@@ -1253,7 +1498,7 @@ void displayParamIdInfo(int16 hCam, uns32 uParamId,
   }
 }                             /* end of function displayParamIdInfo */
 
-int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue, int16 iMode)
+int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue, int16 iMode, int iErrorReport)
 {
   if (pParamValue == NULL)
   {
@@ -1274,7 +1519,8 @@ int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue, int16 iMode)
   }
   else if (!bParamAvailable)
   {
-    printf("getAnyParam(): param id %lu is not available\n", uParamId);
+    if (iErrorReport >= 1)
+      printf("getAnyParam(): param id %lu is not available\n", uParamId);
     return 3;
   }
 

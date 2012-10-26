@@ -60,8 +60,8 @@ private:
   
   int     _iOutImageIndex;
   at_32   _iCameraHandle;     
-  int     _iCcdWidth;
-  int     _iCcdHeight;
+  int     _iDetectorWidth;
+  int     _iDetectorHeight;
   int     _iADChannel;
   
   // Class usage control: Value semantics is disabled
@@ -75,7 +75,7 @@ AndorCameraTest::AndorCameraTest(int iCamera, double fExposureTime, int iReadout
   _iCamera(iCamera), _fExposureTime(fExposureTime), _iReadoutPort(iReadoutPort), _iSpeedIndex(iSpeedIndex), 
   _iGainIndex(iGainIndex), _fTemperature(fTemperature), _iRoiX(iRoiX), _iRoiY(iRoiY), _iRoiW(iRoiW), 
   _iRoiH(iRoiH), _iBinX(iBinX), _iBinY(iBinY), _strFnPrefix(sFnPrefix), _iNumImages(iNumImages), _iMenu(iMenu),
-  _iOutImageIndex(0), _iCameraHandle(0), _iCcdWidth(-1), _iCcdHeight(-1), _iADChannel(0)
+  _iOutImageIndex(0), _iCameraHandle(0), _iDetectorWidth(-1), _iDetectorHeight(-1), _iADChannel(0)
 {
 }
 
@@ -160,12 +160,12 @@ int AndorCameraTest::init()
     printf("GetHeadModel(): %s\n", AndorErrorCodes::name(iError));  
   
   //Get Detector dimensions
-  GetDetector(&_iCcdWidth, &_iCcdHeight);
+  GetDetector(&_iDetectorWidth, &_iDetectorHeight);
   
   float fPixelWidth = -1, fPixelHeight = -1;
   GetPixelSize(&fPixelWidth, &fPixelHeight);
   printf("Detector Width %d Height %d  Pixel Width (um) %.2f Height %.2f\n", 
-    _iCcdWidth, _iCcdHeight, fPixelWidth, fPixelHeight);
+    _iDetectorWidth, _iDetectorHeight, fPixelWidth, fPixelHeight);
     
   AndorCapabilities caps;
   iError = GetCapabilities(&caps);
@@ -362,9 +362,9 @@ int AndorCameraTest::init()
   printf("MinImageLen: %d\n", iMinImageLen);   
       
   if (_iRoiW < 0)
-    _iRoiW = _iCcdWidth - _iRoiX;
+    _iRoiW = _iDetectorWidth - _iRoiX;
   if (_iRoiH < 0)
-    _iRoiH = _iCcdHeight - _iRoiY;  
+    _iRoiH = _iDetectorHeight - _iRoiY;  
 
   //Initialize Shutter
   SetShutter(1,0,0,0);
@@ -532,7 +532,8 @@ int AndorCameraTest::run()
     } 
     getchar();
 
-  }while(!quit);  
+  }
+  while(!quit);  
   
   return 0;
 }
@@ -778,7 +779,7 @@ int AndorCameraTest::_runAcquisition()
       ::close(fdImage);
     }       
     //fstream fout("image.txt", ios::out);    
-    //for(int i=0;i<_iCcdWidth*_iCcdHeight;i++) fout << imageData[i] << endl;
+    //for(int i=0;i<_iDetectorWidth*_iDetectorHeight;i++) fout << imageData[i] << endl;
     //SaveAsBmp("./image.bmp", "./GREY.PAL", 0, 0);
       
     timespec timeVal3;
@@ -966,10 +967,11 @@ int closeCamera()
 
 static void showUsage()
 {
-    printf( "Usage:  andorStandAlone  [-v|--version] [-h|--help] [-c|--camera <camera number>]\n"
-      "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (sec)>]\n"
-      "[-p|--port <readout port>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
-      "[-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>] [-m|--menu]\n"
+    printf( 
+      "Usage:  andorStandAlone  [-v|--version] [-h|--help] [-c|--camera <camera number>]\n"
+      "    [-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (sec)>]\n"
+      "    [-p|--port <readout port>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
+      "    [-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>] [-m|--menu]\n"
       "  Options:\n"
       "    -v|--version                      Show file version\n"
       "    -h|--help                         Show usage\n"
