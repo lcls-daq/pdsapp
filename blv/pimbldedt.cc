@@ -38,7 +38,7 @@ public:
 
 static Pds::CameraDriver* _driver(int id)
 {
-  return new Pds::EdtPdvCL(*new Pds::TM6740Camera,0,id,1000);
+  return new Pds::EdtPdvCL(*new Pds::TM6740Camera,0,id);
 }
 
 static void *thread_signals(void*)
