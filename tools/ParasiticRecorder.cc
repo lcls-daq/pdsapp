@@ -29,14 +29,14 @@ namespace Pds {
       //
       char pathname[128];
       // old style paths
-      sprintf(pathname,"%s/e*/e0-*.xtc*",_path);
+      sprintf(pathname,"%s/e*/e*.xtc*",_path);
       remove(pathname);
-      sprintf(pathname,"%s/e*/index/e0-*.idx*",_path);
+      sprintf(pathname,"%s/e*/index/e*.idx*",_path);
       remove(pathname);
       // new style paths
-      sprintf(pathname,"%s/*/xtc/e0-*.xtc*",_path);
+      sprintf(pathname,"%s/*/xtc/e*.xtc*",_path);
       remove(pathname);
-      sprintf(pathname,"%s/*/xtc/index/e0-*.idx*",_path);
+      sprintf(pathname,"%s/*/xtc/index/e*.idx*",_path);
       remove(pathname);
       delete this;
     }

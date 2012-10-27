@@ -286,13 +286,6 @@ int main(int argc, char** argv) {
   } else 
     printf("Using BLD Multicast Addr:(%s.%d)\n",getBldAddrBase(),*bldIdMap);
   
-  // EVR Server 
-  int evrDetid = 0;
-  int evrDevid = 0;
-  Node evrNode(Level::Source,0);
-  DetInfo evrDetInfo(evrNode.pid(), DetInfo::NoDetector, evrDetid, DetInfo::Evr, evrDevid);
-  EvrBldServer& evrBldServer = *new EvrBldServer(evrDetInfo);    
-  
   // Setup ConfigDB and Run Key 
   Pds_ConfigDb::Experiment expt((const Pds_ConfigDb::Path&)Pds_ConfigDb::Path(std::string(ipimbConfigDb)));
   expt.read();
@@ -309,6 +302,17 @@ int main(int argc, char** argv) {
   Ins insDestination = StreamPorts::bld(0); 
   ToBldEventWire* outlet = new ToBldEventWire(*bldIpimbStream->outlet(),interface,maxpayload,insDestination,nServers,bldIdMap);
 
+  // create the inlet wire/event builder
+  const int MaxSize = 0x100000;
+  const int ebdepth = 4;
+  InletWire* iwire = new L1EventBuilder(idleSrc, _xtcType, Level::Segment, *bldIpimbStream->inlet(),
+          *outlet, 0, bldIpimbStream->ip(), MaxSize, ebdepth, 0);
+  iwire->connect();
+  
+  // EVR Server 
+  DetInfo evrDetInfo(getpid(), DetInfo::NoDetector, 0, DetInfo::Evr, 0);
+  EvrBldServer& evrBldServer = *new EvrBldServer(evrDetInfo, *iwire);    
+  
   // EVR & IPIMB Mgr Appliances and Stream Connections
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
   evrBldMgr = new EvrBldManager(erInfo, pulses, evrBldServer,cfgService,nServers,bldIdMap);  
@@ -316,13 +320,6 @@ int main(int argc, char** argv) {
   IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, baselineSubtraction, polarities, *new LusiDiagFex);
   evrBldMgr->appliance().connect(bldIpimbStream->inlet());
   ipimbMgr.appliance().connect(bldIpimbStream->inlet());
-  
-  // create the inlet wire/event builder
-  const int MaxSize = 0x100000;
-  const int ebdepth = 4;
-  InletWire* iwire = new L1EventBuilder(idleSrc, _xtcType, Level::Segment, *bldIpimbStream->inlet(),
-          *outlet, 0, bldIpimbStream->ip(), MaxSize, ebdepth, 0);
-  iwire->connect();
   
   //  attach the EVR and IPIMB servers
   for(unsigned i=0; i< nServers;i++)

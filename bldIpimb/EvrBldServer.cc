@@ -10,7 +10,11 @@
 
 using namespace Pds;
 
-EvrBldServer::EvrBldServer(const Src& client) :
+EvrBldServer::EvrBldServer(const Src& client, InletWire& inlet) :
+  EvrServer(Ins(), 
+            client, 
+            inlet, 
+            1),
   _xtc(TypeId(TypeId::Id_EvrData,0),client)  
 {
   if (::pipe(_pipefd))
@@ -88,10 +92,4 @@ int EvrBldServer::fetch(ZcpFragment& zf, int flags)
 {
   return 0;
 }
-
-unsigned EvrBldServer::count() const
-{
-  return _count;
-}
-
 
