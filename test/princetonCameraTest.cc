@@ -10,25 +10,15 @@
 #include <pthread.h> 
 #include <unistd.h>
 #include <signal.h>
+#include "pds/princeton/PrincetonUtils.hh"
 #include "pvcam/include/master.h"
 #include "pvcam/include/pvcam.h"
 
 int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY,
-  int iMenu);
+  int iGainIndex, float fTemperature, int iStrip, int iKinH, float fVssSpeed, int iCustW, int iCustH, int iTrgEdge, 
+  int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iTrgMode, int iMenu);
 
-static const char sPrincetonCameraTestVersion[] = "1.40";
-
-namespace PICAM
-{
-  void printPvError(const char *sPrefixMsg);
-  void displayParamIdInfo(int16 hCam, uns32 uParamId,
-                          const char sDescription[]);
-  int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue, int16 iMode = ATTR_CURRENT, int iErrorReport = 1);
-  int setAnyParam(int16 hCam, uns32 uParamId, void *pParamValue);
-  
-  void printROI(int iNumRoi, rgn_type* roi);
-}
+static const char sPrincetonCameraTestVersion[] = "1.50";
 
 using PICAM::printPvError;
 
@@ -37,7 +27,8 @@ class ImageCapture
 public:
   
   int   start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-    int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iMenu);
+    int iGainIndex, float fTemperature, int iStrip, int iKinH, float fVssSpeed, int iCustW, int iCustH, int iTrgEdge, 
+    int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iTrgMode, int iMenu);
   int   getConfig(int& x, int& y, int& iWidth, int& iHeight, int& iBinning);
   int   lockCurrentFrame(unsigned char*& pCurrentFrame);
   int   unlockFrame();
@@ -55,9 +46,11 @@ private:
   bool _bLockFrame;
   
   // private static functions
-  static int updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip);
+  static int updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip, int iKinH, float fVssSpeed, 
+    int iCustW, int iCustH, int iTrgEdge);
   static int setupCooling(float fTemperature);  
   static int printStatus();
+  static int selectVssSpeed(float fRawVssSpeed);
   
 public:  
   static int16 getHcam() { return _hCam; }
@@ -85,22 +78,31 @@ static void showUsage()
       "    [-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time>]\n"
       "    [-p|--port <Rport>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
       "    [-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>]\n"
-      "    [-m|--menu] [--strip <strip cycle>]\n"
+      "    [--kinh <height>] [--vshift <speed(us)>] [--strip <strip cycle>]\n"
+      "    [--custw <width>] [--custh <height>] [--trgmode <triggerMode>] [--trgedge <triggerEdge>]\n"
+      "    [-m|--menu] \n"
       "  Options:\n"
-      "    -v|--version                      Show file version\n"
-      "    -h|--help                         Show usage\n"
-      "    -c|--camera    <camera number>    Select camera\n"
-      "    -w|--write     <filename prefix>  Output filename prefix\n"
-      "    -n|--number    <number of images> Number of images to be captured (Default: 1)\n"
-      "    -e|--exposure  <exposure time>    Exposure time (in ms) (Default: 1 ms)\n"      
-      "    -p|--port      <readout port>     Readout port\n"      
-      "    -s|--speed     <speed inedx>      Speed table index\n"      
-      "    -g|--gain      <gain index>       Gain Index\n"      
-      "    -t|--temp      <temperature>      Temperature (in Celcius) (Default: 25 C)\n"            
-      "    -r|--roi       <x,y,w,h>          Region of Interest\n"
-      "    -b|--bin       <xbin,ybin>        Binning of X/Y\n"
-      "    -m|--menu                         Show interactive menu\n"
-      "       --strip     <strip cycle>      Number of rows per clear cycle\n"
+      "    -v|--version                       Show file version\n"
+      "    -h|--help                          Show usage\n"
+      "    -c|--camera    <camera number>     Select camera\n"
+      "    -w|--write     <filename prefix>   Output filename prefix\n"
+      "    -n|--number    <number of images>  Number of images to be captured (Default: 1)\n"
+      "    -e|--exposure  <exposure time>     Exposure time (in ms) (Default: 1 ms)\n"      
+      "    -p|--port      <readout port>      Readout port\n"      
+      "    -s|--speed     <speed inedx>       Speed table index\n"      
+      "    -g|--gain      <gain index>        Gain Index\n"      
+      "    -t|--temp      <temperature>       Temperature (in Celcius) (Default: 25 C)\n"            
+      "    -r|--roi       <x,y,w,h>           Region of Interest\n"
+      "    -b|--bin       <xbin,ybin>         Binning of X/Y\n"
+      "       --strip     <strip cycle>       Number of rows per clear cycle\n"
+      "       --kinh      <height>            Kinetics window height\n"
+      "       --vss       <speed(us)>         Vertical shift speed\n"
+      "       --custw     <width>             Custom detector width\n"
+      "       --custh     <height>            Custom detector height\n"
+      "       --trgmode   <triggerMode>       Trigger mode.\n"
+      "                                         0: Timed 1: Strobed 2: Bulb 3: Trg_First\n"
+      "       --trgedge   <triggerEdge>       Trigger edge: 0:+ 1:-\n"
+      "    -m|--menu                          Show interactive menu\n"
     );
 }
 
@@ -155,6 +157,12 @@ int main(int argc, char **argv)
      {"bin",      1, 0, 'b'},     
      {"menu",     0, 0, 'm'},     
      {"strip",    1, 0,  1000},     
+     {"kinh",     1, 0,  1001},     
+     {"vss",      1, 0,  1002},     
+     {"custw",    1, 0,  1003},     
+     {"custh",    1, 0,  1004},     
+     {"trgmode",  1, 0,  1005},     
+     {"trgedge",  1, 0,  1006},     
      {0,          0, 0,  0 }
   };    
   
@@ -166,13 +174,19 @@ int main(int argc, char **argv)
   int   iSpeedIndex   = -1;
   int   iGainIndex    = -1;
   float fTemperature  = 25.0f;
-  int   iStrip        = -1;
   int   iRoiX         = 0;
   int   iRoiY         = 0;
   int   iRoiW         = -1;
   int   iRoiH         = -1;
   int   iBinX         = 1;
   int   iBinY         = 1;  
+  int   iStrip        = -1;
+  int   iKinH         = 0;
+  int   iCustW        = 0;
+  int   iCustH        = 0;
+  int   iTrgMode      = 0;
+  int   iTrgEdge      = -1;
+  float fVssSpeed     = 0;
   int   iMenu         = 0;
   
   int iOptionIndex = 0;
@@ -235,6 +249,24 @@ int main(int argc, char **argv)
       case 1000:
           iStrip        = strtoul(optarg, NULL, 0);
           break;            
+      case 1001:
+          iKinH         = strtoul(optarg, NULL, 0);
+          break;            
+      case 1002:
+          fVssSpeed     = strtof(optarg, NULL);
+          break;            
+      case 1003:
+          iCustW        = strtoul(optarg, NULL, 0);
+          break;            
+      case 1004:
+          iCustH        = strtoul(optarg, NULL, 0);
+          break;            
+      case 1005:
+          iTrgMode      = strtoul(optarg, NULL, 0);
+          break;            
+      case 1006:
+          iTrgEdge      = strtoul(optarg, NULL, 0);
+          break;            
       case '?':               /* Terse output mode */
           printf( "princetonCameraTest:main(): Unknown option: %c\n", optopt );
           break;
@@ -265,11 +297,14 @@ int main(int argc, char **argv)
   if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 ) 
     printf( "main(): Cannot register signal handler for SIGTERM\n" );  
 
-  testPIDaq(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, iStrip, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iMenu);
+  testPIDaq(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, 
+    iStrip, iKinH, fVssSpeed, iCustW, iCustH, iTrgEdge,
+    iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iTrgMode, iMenu);
 }
 
 int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, 
+  int iGainIndex, float fTemperature, int iStrip, int iKinH, float fVssSpeed, int iCustW, int iCustH, int iTrgEdge,
+  int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iTrgMode,
   int iMenu)
 {
   ImageCapture  imageCapure;
@@ -283,7 +318,8 @@ int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, i
   }
     
   iFail = imageCapure.start(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, 
-    iGainIndex, fTemperature, iStrip, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iMenu);
+    iGainIndex, fTemperature, iStrip, iKinH, fVssSpeed, iCustW, iCustH, iTrgEdge,
+    iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iTrgMode, iMenu);
   if (0 != iFail)
   {    
     printf("testPIDaq(): imageCapure.start() failed, error code = %d\n", iFail);
@@ -334,7 +370,8 @@ void* TestDaqThread::sendDataThread(void *)
    return NULL;
 }
 
-int ImageCapture::updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip)
+int ImageCapture::updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip, int iKinH, float fVssSpeed, 
+  int iCustW, int iCustH, int iTrgEdge)
 {
   using PICAM::displayParamIdInfo;
   displayParamIdInfo(_hCam, PARAM_EXPOSURE_MODE, "Exposure Mode");
@@ -348,7 +385,7 @@ int ImageCapture::updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iG
 
   displayParamIdInfo(_hCam, PARAM_CLEAR_MODE  , "Clear Mode");
   displayParamIdInfo(_hCam, PARAM_CLEAR_CYCLES, "Clear Cycles");  
-  
+    
   if ( iStrip >= 0 )
   {
     displayParamIdInfo(_hCam, PARAM_NUM_OF_STRIPS_PER_CLR, "Strips Per Clear *org*");
@@ -392,7 +429,67 @@ int ImageCapture::updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iG
   uns32 u32LogicOutput = (uns32) OUTPUT_NOT_SCAN;
   PICAM::setAnyParam(_hCam, PARAM_LOGIC_OUTPUT, &u32LogicOutput ); 
   displayParamIdInfo(_hCam, PARAM_LOGIC_OUTPUT, "Logic Output *new*");    
+    
+  displayParamIdInfo(_hCam, PARAM_PMODE, "P Mode *org*");      
+  uns32 u32pmode = ((iKinH != 0)? (uns32) PMODE_KINETICS : (uns32) PMODE_NORMAL);
+  PICAM::setAnyParam(_hCam, PARAM_PMODE, &u32pmode );    
+  displayParamIdInfo(_hCam, PARAM_PMODE, "P Mode");      
+    
+  if (iKinH != 0)
+  {
+    displayParamIdInfo(_hCam, PARAM_KIN_WIN_SIZE, "Kinetics Win Height *org*");    
+    uns16 u16kinSize = (uns16) iKinH;
+    PICAM::setAnyParam(_hCam, PARAM_KIN_WIN_SIZE, &u16kinSize );        
+  }        
+  displayParamIdInfo(_hCam, PARAM_KIN_WIN_SIZE, "Kinetics Win Height");    
 
+  displayParamIdInfo(_hCam, PARAM_CUSTOM_TIMING, "Custom Timing *org*");      
+  rs_bool iCustomTiming = ( fVssSpeed != 0 ? 1 : 0);
+  PICAM::setAnyParam(_hCam, PARAM_CUSTOM_TIMING, &iCustomTiming );    
+  displayParamIdInfo(_hCam, PARAM_CUSTOM_TIMING, "Custom Timing");    
+  
+  if (fVssSpeed != 0)
+  {
+    displayParamIdInfo(_hCam, PARAM_PAR_SHIFT_TIME, "Vertical Shift Speed *org*");           
+    int32 i32parShiftTime = selectVssSpeed(fVssSpeed * 1000);    
+    PICAM::setAnyParam(_hCam, PARAM_PAR_SHIFT_TIME, &i32parShiftTime );        
+  }    
+  displayParamIdInfo(_hCam, PARAM_PAR_SHIFT_TIME, "Vertical Shift Speed");    
+  
+  displayParamIdInfo(_hCam, PARAM_SER_SHIFT_TIME, "Serial Shift Speed");      
+  
+  displayParamIdInfo(_hCam, PARAM_CUSTOM_CHIP, "Custom Chip *org*");      
+  rs_bool iCustomChip = ((iCustW != 0 || iCustH != 0 )? 1 : 0);
+  PICAM::setAnyParam(_hCam, PARAM_CUSTOM_CHIP, &iCustomChip );    
+  displayParamIdInfo(_hCam, PARAM_CUSTOM_CHIP, "Custom Chip");    
+  
+  if (iCustomChip != 0)
+  {
+    if (iCustW != 0)
+    {
+      displayParamIdInfo(_hCam, PARAM_SER_SIZE, "Detecotr Width *org*");    
+      uns16 u16CustomW = (uns16) iCustW;
+      PICAM::setAnyParam(_hCam, PARAM_SER_SIZE, &u16CustomW );        
+    }        
+    displayParamIdInfo(_hCam, PARAM_SER_SIZE, "Detecotr Width");    
+    
+    if (iCustH != 0)
+    {
+      displayParamIdInfo(_hCam, PARAM_PAR_SIZE, "Detecotr Height *org*");    
+      uns16 u16CustomH = (uns16) iCustH;
+      PICAM::setAnyParam(_hCam, PARAM_PAR_SIZE, &u16CustomH );        
+    }        
+    displayParamIdInfo(_hCam, PARAM_PAR_SIZE, "Detecotr Height");    
+  }  
+
+  if (iTrgEdge >= 0)
+  {
+    displayParamIdInfo(_hCam, PARAM_EDGE_TRIGGER, "Trigger Edge *org*");           
+    uns32 u32TriggerEdge = (uns32) (iTrgEdge == 0 ? EDGE_TRIG_POS : EDGE_TRIG_NEG);
+    PICAM::setAnyParam(_hCam, PARAM_EDGE_TRIGGER, &u32TriggerEdge );        
+  }    
+  displayParamIdInfo(_hCam, PARAM_EDGE_TRIGGER, "Trigger Edge");        
+  
   return 0;
 }
 
@@ -470,10 +567,29 @@ int ImageCapture::setupCooling(float fTemperature)
   return 0;
 }
 
+int ImageCapture::selectVssSpeed(float fRawVssSpeed)
+{
+  int32 i32parShiftTimeMin, i32parShiftTimeMax, i32parShiftTimeInc;
+  PICAM::getAnyParam(_hCam, PARAM_PAR_SHIFT_TIME, &i32parShiftTimeMin, ATTR_MIN );        
+  PICAM::getAnyParam(_hCam, PARAM_PAR_SHIFT_TIME, &i32parShiftTimeMax, ATTR_MAX );        
+  PICAM::getAnyParam(_hCam, PARAM_PAR_SHIFT_TIME, &i32parShiftTimeInc, ATTR_INCREMENT );        
+  
+  float fRatio = (fRawVssSpeed - i32parShiftTimeMin) / i32parShiftTimeInc;
+  int i32parShiftTime = i32parShiftTimeMin + i32parShiftTimeInc * (int)(fRatio +  0.5);
+    
+  if (i32parShiftTime <= i32parShiftTimeMin)
+    return i32parShiftTimeMin;
+  if (i32parShiftTime >= i32parShiftTimeMax)
+    return i32parShiftTimeMax;
+    
+  return (int) i32parShiftTime;  
+}
+
 using namespace std;
 
 int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iMenu)
+  int iGainIndex, float fTemperature, int iStrip, int iKinH, float fVssSpeed, int iCustW, int iCustH, int iTrgEdge,
+  int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iTrgMode, int iMenu)
 {
   char cam_name[CAM_NAME_LEN];  /* camera name                    */
 
@@ -531,19 +647,19 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
   if (iReadoutPort < 0)
     iReadoutPort = u32MaxReadoutPort; 
     
-  int iWidth, iHeight;
-  PICAM::getAnyParam( _hCam, PARAM_SER_SIZE, &iWidth );
-  PICAM::getAnyParam( _hCam, PARAM_PAR_SIZE, &iHeight );    
+  uns16 u16Width, u16Height;
+  PICAM::getAnyParam( _hCam, PARAM_SER_SIZE, &u16Width );
+  PICAM::getAnyParam( _hCam, PARAM_PAR_SIZE, &u16Height );    
   if (iRoiW < 0 )
-    iRoiW = iWidth;
+    iRoiW = u16Width;
   if (iRoiH < 0 )
-    iRoiH = iHeight;
+    iRoiH = u16Height;
 
   printStatus();
     
   setupCooling(fTemperature);
 
-  updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
+  updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip, iKinH, fVssSpeed, iCustW, iCustH, iTrgEdge);
 
   printStatus();
   
@@ -562,13 +678,20 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
         //Show menu options
         cout << "======= Current Configuration ======="  << endl;
         printStatus();
-        cout << "Output Filename Prefix  : " << strFnPrefix   << endl;
-        cout << "Number Images per Acq   : " << iNumImages    << endl;
-        cout << "Exposure Time (sec)     : " << fExposureTime << endl;
-        cout << "Readout Port            : " << iReadoutPort  << endl;
-        cout << "Speed Index             : " << iSpeedIndex   <<  endl;
-        cout << "Gain Index              : " << iGainIndex    << endl;
-        cout << "Cooling Temperature (C) : " << fTemperature  << endl;
+        cout << "Output Filename Prefix   : " << strFnPrefix   << endl;
+        cout << "Number Images per Acq    : " << iNumImages    << endl;
+        cout << "Exposure Time (sec)      : " << fExposureTime << endl;
+        cout << "Readout Port             : " << iReadoutPort  << endl;
+        cout << "Speed Index              : " << iSpeedIndex   <<  endl;
+        cout << "Gain Index               : " << iGainIndex    << endl;
+        cout << "Cooling Temperature (C)  : " << fTemperature  << endl;
+        cout << "Strip per Clear          : " << iStrip        << endl;
+        cout << "Kinetcis Win Height      : " << iKinH         << endl;        
+        cout << "Vertical Shift Speed     : " << fVssSpeed     << endl;
+        cout << "Custom Width             : " << iCustW        << endl;
+        cout << "Custom Height            : " << iCustH        << endl;
+        cout << "Trigger Mode             : " << iTrgMode      << endl;        
+        cout << "Trigger Edge             : " << iTrgEdge      << endl;        
         cout << "ROI : x " << iRoiX << " y " <<  iRoiY << 
           " W " << iRoiW << " H " << iRoiH << 
           " binX " << iBinX << " binY " << iBinY << endl;    
@@ -580,7 +703,14 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
         cout << "p. Set Readout Port" << endl;
         cout << "s. Set Speed Index" << endl;
         cout << "g. Set Gain Index" << endl;
-        cout << "t. Set Cooling Temperature" << endl;
+        cout << "t. Set Cooling Temperature (C)" << endl;
+        cout << "1. Set Strip per Clear" << endl;    
+        cout << "k. Set Kinetics Win Height" << endl;            
+        cout << "h. Set Vertical Shift Speed (us)" << endl;    
+        cout << "2. Set Custom Width" << endl;            
+        cout << "3. Set Custom Height" << endl;                    
+        cout << "4. Set Trigger Mode" << endl;                    
+        cout << "5. Set Trigger Edge" << endl;                    
         cout << "r. Set ROI" << endl;
         cout << "b. Set Binning" << endl;    
         cout << "q. Quit Program" << endl;
@@ -589,7 +719,9 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
         //Get menu choice
         int choice = getchar();
 
-        switch(choice){
+        bool bReConfig = false;
+        switch(choice)
+        {
         case 'a': //Acquire    
           bQuitMenu = true;
           break;    
@@ -622,7 +754,7 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
           cout << endl << "Enter new Readout Port > ";
           cin >> iReadoutPort;
           printf("New Readout Port: %d\n", iReadoutPort);
-          updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
+          bReConfig = true;          
           break;
         }    
         case 's': 
@@ -630,7 +762,7 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
           cout << endl << "Enter new Speed Index > ";
           cin >> iSpeedIndex;
           printf("New Speed Index: %d\n", iSpeedIndex);
-          updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
+          bReConfig = true;
           break;
         }    
         case 'g': 
@@ -638,7 +770,7 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
           cout << endl << "Enter new Gain Index > ";
           cin >> iGainIndex;
           printf("New Gain Index: %d\n", iGainIndex);
-          updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip);
+          bReConfig = true;
           break;
         }    
         case 't': 
@@ -647,6 +779,61 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
           cin >> fTemperature;
           printf("New Cooling Temperature: %f\n", fTemperature);
           setupCooling(fTemperature);
+          break;
+        }    
+        case '1': 
+        {
+          cout << endl << "Enter new Strips per Clear > ";
+          cin >> iStrip;
+          printf("New Strips per Clear: %d\n", iStrip);
+          bReConfig = true;
+          break;
+        }    
+        case 'k': 
+        {
+          cout << endl << "Enter new Kinetics Win Height > ";
+          cin >> iKinH;
+          printf("New Kinetics Win Height: %d\n", iKinH);
+          bReConfig = true;
+          break;
+        }    
+        case 'h': 
+        {
+          cout << endl << "Enter new Veritical Shift Speed (us) > ";
+          cin >> fVssSpeed;
+          printf("New Veritical Shift Speed (us) : %f\n", fVssSpeed);
+          bReConfig = true;
+          break;
+        }            
+        case '2': 
+        {
+          cout << endl << "Enter new Custom Width > ";
+          cin >> iCustW;
+          printf("New Custom Width Width: %d\n", iCustW);
+          bReConfig = true;
+          break;
+        }    
+        case '3': 
+        {
+          cout << endl << "Enter new Custom Height > ";
+          cin >> iCustH;
+          printf("New Custom Height: %d\n", iCustH);
+          bReConfig = true;
+          break;
+        }    
+        case '4': 
+        {
+          cout << endl << "Enter new Trigger Mode > ";
+          cin >> iTrgMode;
+          printf("New Trigger Mode: %d\n", iTrgMode);
+          break;
+        }    
+        case '5': 
+        {
+          cout << endl << "Enter new Trigger Edge > ";
+          cin >> iTrgEdge;
+          printf("New Trigger Edge: %d\n", iTrgEdge);
+          bReConfig = true;
           break;
         }    
         case 'r':
@@ -690,17 +877,21 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
           cout << "!Invalid Option! Key = " << choice << endl;
         } 
         getchar();      
+        
+        if (bReConfig)
+          updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip, iKinH, fVssSpeed, iCustW, iCustH, iTrgEdge);        
       }
       while (!bQuitMenu);
     } // if (iMenu != 0)
-    
+          
     if (bQuitCapture) 
       break;
   
     const int iNumFrame         = iNumImages;
-    const int16 modeExposure    = TIMED_MODE;
+    const int16 modeExposure    = iTrgMode;
     //const int16 modeExposure = STROBED_MODE;  
     const uns32 u32ExposureTime = iExposureTime;
+    
     testImageCaptureStandard(strFnPrefix.c_str(), iNumFrame, modeExposure, u32ExposureTime, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
     
     if (iMenu == 0)
@@ -731,27 +922,32 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
 int ImageCapture::setupROI(rgn_type& region)
 {
   using PICAM::getAnyParam;
-  int iWidth, iHeight;
-  getAnyParam( _hCam, PARAM_SER_SIZE, &iWidth );
-  getAnyParam( _hCam, PARAM_PAR_SIZE, &iHeight );
+  uns16 u16Width, u16Height;
+  PICAM::getAnyParam( _hCam, PARAM_SER_SIZE, &u16Width );
+  PICAM::getAnyParam( _hCam, PARAM_PAR_SIZE, &u16Height );    
 
   // set the region to use full frame and 1x1 binning
   region.s1 = 0;
-  region.s2 = iWidth - 1;
+  region.s2 = u16Width - 1;
   region.sbin = 1;
   region.p1 = 0;
-  region.p2 = iHeight - 1;
+  region.p2 = u16Height - 1;
   region.pbin = 1;
 
   return 0;
 }
 
 int ImageCapture::setupROI(rgn_type& region, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY)
-{
+{  
   using PICAM::getAnyParam;
-  int iWidth, iHeight;
-  getAnyParam( _hCam, PARAM_SER_SIZE, &iWidth );
-  getAnyParam( _hCam, PARAM_PAR_SIZE, &iHeight );
+  uns16 u16Width, u16Height;
+  PICAM::getAnyParam( _hCam, PARAM_SER_SIZE, &u16Width );
+  PICAM::getAnyParam( _hCam, PARAM_PAR_SIZE, &u16Height );      
+
+  if (iRoiX < 0)
+    iRoiX = 0;
+  if (iRoiY < 0)
+    iRoiY = 0;  
   
   // set the region to use full frame and 1x1 binning
   region.s1 = iRoiX;
@@ -761,6 +957,11 @@ int ImageCapture::setupROI(rgn_type& region, int iRoiX, int iRoiY, int iRoiW, in
   region.p2 = iRoiY + iRoiH - 1;
   region.pbin = iBinY;
   
+  if (region.s2 >= u16Width)
+    region.s2 = u16Width-1;
+  if (region.p2 >= u16Height)
+    region.p2 = u16Height-1;
+     
   return 0;
 }
 
@@ -1175,8 +1376,8 @@ int ImageCapture::testImageCaptureContinous(int iNumFrame, int16 modeExposure, u
 
 int ImageCapture::printStatus()
 {
-  int16 i16DetectorWidth      = -1;
-  int16 i16DetectorHeight     = -1;  
+  uns16 u16DetectorWidth      = -1;
+  uns16 u16DetectorHeight     = -1;  
   int16 i16MaxSpeedTableIndex = -1;
   int16 i16SpeedTableIndex    = -1;
   int16 i16MaxGainIndex       = -1;
@@ -1185,8 +1386,8 @@ int ImageCapture::printStatus()
   uns32 u32ReadoutPort        = 0; 
   
   int16 i16TemperatureCurrent = -1;  
-  PICAM::getAnyParam(_hCam, PARAM_SER_SIZE, &i16DetectorWidth );
-  PICAM::getAnyParam(_hCam, PARAM_PAR_SIZE, &i16DetectorHeight );
+  PICAM::getAnyParam(_hCam, PARAM_SER_SIZE, &u16DetectorWidth );
+  PICAM::getAnyParam(_hCam, PARAM_PAR_SIZE, &u16DetectorHeight );
   PICAM::getAnyParam(_hCam, PARAM_SPDTAB_INDEX, &i16MaxSpeedTableIndex, ATTR_MAX);  
   PICAM::getAnyParam(_hCam, PARAM_SPDTAB_INDEX, &i16SpeedTableIndex);    
   PICAM::getAnyParam(_hCam, PARAM_GAIN_INDEX, &i16MaxGainIndex, ATTR_MAX, 0);  
@@ -1194,428 +1395,9 @@ int ImageCapture::printStatus()
   PICAM::getAnyParam(_hCam, PARAM_READOUT_PORT, &u32MaxReadoutPort, ATTR_MAX);    
   PICAM::getAnyParam(_hCam, PARAM_READOUT_PORT, &u32ReadoutPort);
   PICAM::getAnyParam(_hCam, PARAM_TEMP, &i16TemperatureCurrent );  
-  printf( "Detector Width %d Height %d Speed %d/%d Gain %d/%d Port %d/%d Temperature %.1f C\n", i16DetectorWidth, i16DetectorHeight, 
+  printf( "Detector Width %d Height %d Speed %d/%d Gain %d/%d Port %d/%d Temperature %.1f C\n", u16DetectorWidth, u16DetectorHeight, 
     i16SpeedTableIndex, i16MaxSpeedTableIndex, i16GainIndex, i16MaxGainIndex, 
     (int) u32ReadoutPort, (int) u32MaxReadoutPort, i16TemperatureCurrent/100.f );   
     
   return 0;
-}
-
-namespace PICAM
-{
-  
-char *lsParamAccessMode[] =
-{ "ACC_ERROR", "ACC_READ_ONLY", "ACC_READ_WRITE", "ACC_EXIST_CHECK_ONLY", "ACC_WRITE_ONLY"
-};
-
-void printPvError(const char *sPrefixMsg)
-{
-  char sErrorMsg[ERROR_MSG_LEN];
-
-  int16 iErrorCode = pl_error_code();
-  pl_error_message(iErrorCode, sErrorMsg);
-  printf("%s\n  PvCam library error code [%i] %s\n", sPrefixMsg,
-         iErrorCode, sErrorMsg);
-}
-
-/* this routine assumes the param id is an enumerated type, it will print out all the */
-/* enumerated values that are allowed with the param id and display the associated    */
-/* ASCII text.                                                                        */
-static void displayParamEnumInfo(int16 hCam, uns32 uParamId)
-{
-  boolean status;             /* status of pvcam functions.                */
-  uns32 count, index;         /* counters for enumerated types.            */
-  char enumStr[100];          /* string for enum text.                     */
-  int32 enumValue;            /* enum value returned for index & param id. */
-  uns32 uCurVal;
-
-  status = pl_get_param(hCam, uParamId, ATTR_CURRENT, (void *) &uCurVal);
-  if (status)
-    printf(" current value = %lu\n", uCurVal);
-  else
-  {
-    printf(" parameter %lu is not available\n", uParamId);
-  }
-
-  /* get number of enumerated values. */
-  status = pl_get_param(hCam, uParamId, ATTR_COUNT, (void *) &count);
-  printf(" count = %lu\n", count);
-  if (status)
-  {
-    for (index = 0; index < count; index++)
-    {
-      /* get enum value and enum string */
-      status = pl_get_enum_param(hCam, uParamId, index, &enumValue,
-                                 enumStr, 100);
-      /* if everything alright print out the results. */
-      if (status)
-      {
-        printf(" [%ld] enum value = %ld, text = %s\n",
-               index, enumValue, enumStr);
-      }
-      else
-      {
-        printf
-          ("functions failed pl_get_enum_param, with error code %d\n",
-           pl_error_code());
-      }
-    }
-  }
-  else
-  {
-    printf("functions failed pl_get_param, with error code %d\n",
-           pl_error_code());
-  }
-}                             /* end of function DisplayEnumInfo */
-
-static void displayParamValueInfo(int16 hCam, uns32 uParamId)
-{
-  /* current, min&max, & default values of parameter id */
-  union
-  {
-    double dval;
-    unsigned long ulval;
-    long lval;
-    unsigned short usval;
-    short sval;
-    unsigned char ubval;
-    signed char bval;
-  } currentVal, minVal, maxVal, defaultVal, incrementVal;
-  uns16 type;                 /* data type of paramater id */
-  boolean status = 0, status2 = 0, status3 = 0, status4 = 0, status5 = 0; /* status of pvcam functions */
-
-  /* get the data type of parameter id */
-  status = pl_get_param(hCam, uParamId, ATTR_TYPE, (void *) &type);
-  /* get the default, current, min and max values for parameter id. */
-  /* Note : since the data type for these depends on the parameter  */
-  /* id you have to call pl_get_param with the correct data type    */
-  /* passed for pParamValue.                                        */
-  if (status)
-  {
-    switch (type)
-    {
-    case TYPE_INT8:
-      status = pl_get_param(hCam, uParamId, ATTR_CURRENT,
-                            (void *) &currentVal.bval);
-      status2 = pl_get_param(hCam, uParamId, ATTR_DEFAULT,
-                             (void *) &defaultVal.bval);
-      status3 = pl_get_param(hCam, uParamId, ATTR_MAX,
-                             (void *) &maxVal.bval);
-      status4 = pl_get_param(hCam, uParamId, ATTR_MIN,
-                             (void *) &minVal.bval);
-      status5 = pl_get_param(hCam, uParamId, ATTR_INCREMENT,
-                             (void *) &incrementVal.bval);
-      printf(" current value = %c\n", currentVal.bval);
-      printf(" default value = %c\n", defaultVal.bval);
-      printf(" min = %c, max = %c\n", minVal.bval, maxVal.bval);
-      printf(" increment = %c\n", incrementVal.bval);
-      break;
-    case TYPE_UNS8:
-      status = pl_get_param(hCam, uParamId, ATTR_CURRENT,
-                            (void *) &currentVal.ubval);
-      status2 = pl_get_param(hCam, uParamId, ATTR_DEFAULT,
-                             (void *) &defaultVal.ubval);
-      status3 = pl_get_param(hCam, uParamId, ATTR_MAX,
-                             (void *) &maxVal.ubval);
-      status4 = pl_get_param(hCam, uParamId, ATTR_MIN,
-                             (void *) &minVal.ubval);
-      status5 = pl_get_param(hCam, uParamId, ATTR_INCREMENT,
-                             (void *) &incrementVal.ubval);
-      printf(" current value = %uc\n", currentVal.ubval);
-      printf(" default value = %uc\n", defaultVal.ubval);
-      printf(" min = %uc, max = %uc\n", minVal.ubval, maxVal.ubval);
-      printf(" increment = %uc\n", incrementVal.ubval);
-      break;
-    case TYPE_INT16:
-      status = pl_get_param(hCam, uParamId, ATTR_CURRENT,
-                            (void *) &currentVal.sval);
-      status2 = pl_get_param(hCam, uParamId, ATTR_DEFAULT,
-                             (void *) &defaultVal.sval);
-      status3 = pl_get_param(hCam, uParamId, ATTR_MAX,
-                             (void *) &maxVal.sval);
-      status4 = pl_get_param(hCam, uParamId, ATTR_MIN,
-                             (void *) &minVal.sval);
-      status5 = pl_get_param(hCam, uParamId, ATTR_INCREMENT,
-                             (void *) &incrementVal.sval);
-      printf(" current value = %i\n", currentVal.sval);
-      printf(" default value = %i\n", defaultVal.sval);
-      printf(" min = %i, max = %i\n", minVal.sval, maxVal.sval);
-      printf(" increment = %i\n", incrementVal.sval);
-      break;
-    case TYPE_UNS16:
-      status = pl_get_param(hCam, uParamId, ATTR_CURRENT,
-                            (void *) &currentVal.usval);
-      status2 = pl_get_param(hCam, uParamId, ATTR_DEFAULT,
-                             (void *) &defaultVal.usval);
-      status3 = pl_get_param(hCam, uParamId, ATTR_MAX,
-                             (void *) &maxVal.usval);
-      status4 = pl_get_param(hCam, uParamId, ATTR_MIN,
-                             (void *) &minVal.usval);
-      status5 = pl_get_param(hCam, uParamId, ATTR_INCREMENT,
-                             (void *) &incrementVal.usval);
-      printf(" current value = %u\n", currentVal.usval);
-      printf(" default value = %u\n", defaultVal.usval);
-      printf(" min = %u, max = %u\n", minVal.usval, maxVal.usval);
-      printf(" increment = %u\n", incrementVal.usval);
-      break;
-    case TYPE_INT32:
-      status = pl_get_param(hCam, uParamId, ATTR_CURRENT,
-                            (void *) &currentVal.lval);
-      status2 = pl_get_param(hCam, uParamId, ATTR_DEFAULT,
-                             (void *) &defaultVal.lval);
-      status3 = pl_get_param(hCam, uParamId, ATTR_MAX,
-                             (void *) &maxVal.lval);
-      status4 = pl_get_param(hCam, uParamId, ATTR_MIN,
-                             (void *) &minVal.lval);
-      status5 = pl_get_param(hCam, uParamId, ATTR_INCREMENT,
-                             (void *) &incrementVal.lval);
-      printf(" current value = %ld\n", currentVal.lval);
-      printf(" default value = %ld\n", defaultVal.lval);
-      printf(" min = %ld, max = %ld\n", minVal.lval, maxVal.lval);
-      printf(" increment = %ld\n", incrementVal.lval);
-      break;
-    case TYPE_UNS32:
-      status = pl_get_param(hCam, uParamId, ATTR_CURRENT,
-                            (void *) &currentVal.ulval);
-      status2 = pl_get_param(hCam, uParamId, ATTR_DEFAULT,
-                             (void *) &defaultVal.ulval);
-      status3 = pl_get_param(hCam, uParamId, ATTR_MAX,
-                             (void *) &maxVal.ulval);
-      status4 = pl_get_param(hCam, uParamId, ATTR_MIN,
-                             (void *) &minVal.ulval);
-      status5 = pl_get_param(hCam, uParamId, ATTR_INCREMENT,
-                             (void *) &incrementVal.ulval);
-      printf(" current value = %ld\n", currentVal.ulval);
-      printf(" default value = %ld\n", defaultVal.ulval);
-      printf(" min = %ld, max = %ld\n", minVal.ulval, maxVal.ulval);
-      printf(" increment = %ld\n", incrementVal.ulval);
-      break;
-    case TYPE_FLT64:
-      status = pl_get_param(hCam, uParamId, ATTR_CURRENT,
-                            (void *) &currentVal.dval);
-      status2 = pl_get_param(hCam, uParamId, ATTR_DEFAULT,
-                             (void *) &defaultVal.dval);
-      status3 = pl_get_param(hCam, uParamId, ATTR_MAX,
-                             (void *) &maxVal.dval);
-      status4 = pl_get_param(hCam, uParamId, ATTR_MIN,
-                             (void *) &minVal.dval);
-      status5 = pl_get_param(hCam, uParamId, ATTR_INCREMENT,
-                             (void *) &incrementVal.dval);
-      printf(" current value = %g\n", currentVal.dval);
-      printf(" default value = %g\n", defaultVal.dval);
-      printf(" min = %g, max = %g\n", minVal.dval, maxVal.dval);
-      printf(" increment = %g\n", incrementVal.dval);
-      break;
-    case TYPE_BOOLEAN:
-      status = pl_get_param(hCam, uParamId, ATTR_CURRENT,
-                            (void *) &currentVal.bval);
-      status2 = pl_get_param(hCam, uParamId, ATTR_DEFAULT,
-                             (void *) &defaultVal.bval);
-      printf(" current value = %d\n", (int) currentVal.bval);
-      printf(" default value = %d\n", (int) defaultVal.bval);
-      break;
-    default:
-      printf(" data type %d not supported in this functions\n", type );
-      break;
-    }
-    if (!status || !status2 || !status3 || !status4 || !status5)
-    {
-      printf("functions failed pl_get_param, with error code %d\n",
-             pl_error_code());
-    }
-  }
-  else
-  {
-    printf("functions failed pl_get_param, with error code %d\n",
-           pl_error_code());
-  }
-}
-
-void displayParamIdInfo(int16 hCam, uns32 uParamId,
-                        const char sDescription[])
-{
-  boolean status, status2;    /* status of pvcam functions                           */
-  boolean avail_flag;         /* ATTR_AVAIL, is param id available                   */
-  uns16 access = 0;           /* ATTR_ACCESS, get if param is read, write or exists. */
-  uns16 type;                 /* ATTR_TYPE, get data type.                           */
-
-  printf("%s (param id %lu):\n", sDescription, uParamId);
-  status = pl_get_param(hCam, uParamId, ATTR_AVAIL, (void *) &avail_flag);
-  /* check for errors */
-  if (status)
-  {
-/* check to see if paramater id is supported by hardware, software or system.  */
-    if (avail_flag)
-    {
-      /* we got a valid parameter, now get access writes and data type */
-      status = pl_get_param(hCam, uParamId, ATTR_ACCESS, (void *) &access);
-      status2 = pl_get_param(hCam, uParamId, ATTR_TYPE, (void *) &type);
-      if (status && status2)
-      {
-        printf(" access mode = %s\n", lsParamAccessMode[access]);
-
-        if (access == ACC_EXIST_CHECK_ONLY)
-        {
-          printf(" param id %lu exists\n", uParamId);
-        }
-        else if ((access == ACC_READ_ONLY) || (access == ACC_READ_WRITE))
-        {
-          /* now we can start displaying information. */
-          /* handle enumerated types separate from other data */
-          if (type == TYPE_ENUM)
-          {
-            displayParamEnumInfo(hCam, uParamId);
-          }
-          else
-          {                   /* take care of he rest of the data types currently used */
-            displayParamValueInfo(hCam, uParamId);
-          }
-        }
-        else
-        {
-          printf(" error in access check for param id %lu\n", uParamId);
-        }
-      }
-      else
-      {                       /* error occured calling function. */
-        printf
-          ("functions failed pl_get_param, with error code %d\n",
-           pl_error_code());
-      }
-
-    }
-    else
-    {                         /* parameter id is not available with current setup */
-      printf
-        (" parameter %ld is not available with current hardware or software setup\n",
-         uParamId);
-    }
-  }
-  else
-  {                           /* error occured calling function print out error and error code */
-    printf("functions failed pl_get_param, with error code %d\n",
-           pl_error_code());
-  }
-}                             /* end of function displayParamIdInfo */
-
-int getAnyParam(int16 hCam, uns32 uParamId, void *pParamValue, int16 iMode, int iErrorReport)
-{
-  if (pParamValue == NULL)
-  {
-    printf("getAnyParam(): Invalid parameter: pParamValue=%p\n", pParamValue );
-    return 1;
-  }
-
-  rs_bool bStatus, bParamAvailable;
-  uns16 uParamAccess;
-
-  bStatus =
-    pl_get_param(hCam, uParamId, ATTR_AVAIL, (void *) &bParamAvailable);
-  if (!bStatus)
-  {
-    printf("getAnyParam(): pl_get_param(param id = %lu, ATTR_AVAIL) failed\n",
-     uParamId);
-    return 2;
-  }
-  else if (!bParamAvailable)
-  {
-    if (iErrorReport >= 1)
-      printf("getAnyParam(): param id %lu is not available\n", uParamId);
-    return 3;
-  }
-
-  bStatus = pl_get_param(hCam, uParamId, ATTR_ACCESS, (void *) &uParamAccess);
-  if (!bStatus)
-  {
-    printf("getAnyParam(): pl_get_param(param id = %lu, ATTR_ACCESS) failed\n",
-     uParamId);
-    return 4;
-  }
-  else if (uParamAccess != ACC_READ_WRITE && uParamAccess != ACC_READ_ONLY)
-  {
-    printf("getAnyParam(): param id %lu is not writable, access mode = %s\n",
-     uParamId, lsParamAccessMode[uParamAccess]);
-    return 5;
-  }
-
-  bStatus = pl_get_param(hCam, uParamId, iMode, pParamValue);
-  if (!bStatus)
-  {
-    printf("getAnyParam(): pl_get_param(param id = %lu, ATTR_CURRENT) failed\n", uParamId);
-    return 6;
-  }
-
-  return 0;
-}
-
-int setAnyParam(int16 hCam, uns32 uParamId, void *pParamValue)
-{
-  rs_bool bStatus, bParamAvailable;
-  uns16 uParamAccess;
-
-  bStatus =
-    pl_get_param(hCam, uParamId, ATTR_AVAIL, (void *) &bParamAvailable);
-  if (!bStatus)
-  {
-    printf("setAnyParam(): pl_get_param(param id = %lu, ATTR_AVAIL) failed\n", uParamId);
-    return 2;
-  }
-  else if (!bParamAvailable)
-  {
-    printf("setAnyParam(): param id %lu is not available\n", uParamId);
-    return 3;
-  }
-
-  bStatus = pl_get_param(hCam, uParamId, ATTR_ACCESS, (void *) &uParamAccess);
-  if (!bStatus)
-  {
-    printf("setAnyParam(): pl_get_param(param id = %lu, ATTR_ACCESS) failed\n", uParamId);
-    return 4;
-  }
-  else if (uParamAccess != ACC_READ_WRITE && uParamAccess != ACC_WRITE_ONLY)
-  {
-    printf("setAnyParam(): param id %lu is not writable, access mode = %s\n",
-     uParamId, lsParamAccessMode[uParamAccess]);
-    return 5;
-  }
-
-  bStatus = pl_set_param(hCam, uParamId, pParamValue);
-  if (!bStatus)
-  {
-    printf("setAnyParam(): pl_set_param(param id = %lu) failed\n", uParamId);
-    return 6;
-  }
-
-  return 0;
-}
-
-void printROI(int iNumRoi, rgn_type* roi)
-{
-  for (int i = 0; i < iNumRoi; i++)
-  {
-    printf
-      ("ROI %i set to { s1 = %i, s2 = %i, sin = %i, p1 = %i, p2 = %i, pbin = %i }\n",
-       i, roi[i].s1, roi[i].s2, roi[i].sbin, roi[i].p1, roi[i].p2,
-       roi[i].pbin);
-  }
-}
-
-} // namespace PICAM
-
-// To avoid pvcam.so crappy dependency on firewire raw1394 shared library
-extern "C" {
-
-void raw1394_arm_register() {}
-void raw1394_new_handle_on_port() {}
-void raw1394_new_handle() {}
-void raw1394_get_nodecount() {}
-void raw1394_arm_get_buf() {}
-void raw1394_arm_unregister() {}
-void raw1394_destroy_handle() {}
-void raw1394_read() {}
-void raw1394_write() {}
-void raw1394_get_port_info() {}
-void raw1394_get_fd() {}
-void raw1394_loop_iterate() {}
-
 }
