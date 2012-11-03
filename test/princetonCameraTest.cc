@@ -15,7 +15,7 @@
 #include "pvcam/include/pvcam.h"
 
 int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip, int iKinH, float fVssSpeed, int iCustW, int iCustH, int iTrgEdge, 
+  int iGainIndex, float fTemperature, int iClearCycle, int iStrip, int iKinH, float fVsSpeed, int iCustW, int iCustH, int iTrgEdge, 
   int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iTrgMode, int iMenu);
 
 static const char sPrincetonCameraTestVersion[] = "1.50";
@@ -27,7 +27,7 @@ class ImageCapture
 public:
   
   int   start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-    int iGainIndex, float fTemperature, int iStrip, int iKinH, float fVssSpeed, int iCustW, int iCustH, int iTrgEdge, 
+    int iGainIndex, float fTemperature, int iClearCycle, int iStrip, int iKinH, float fVsSpeed, int iCustW, int iCustH, int iTrgEdge, 
     int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iTrgMode, int iMenu);
   int   getConfig(int& x, int& y, int& iWidth, int& iHeight, int& iBinning);
   int   lockCurrentFrame(unsigned char*& pCurrentFrame);
@@ -46,11 +46,11 @@ private:
   bool _bLockFrame;
   
   // private static functions
-  static int updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip, int iKinH, float fVssSpeed, 
+  static int updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iGainIndex, int iClearCycle, int iStrip, int iKinH, float fVsSpeed, 
     int iCustW, int iCustH, int iTrgEdge);
   static int setupCooling(float fTemperature);  
   static int printStatus();
-  static int selectVssSpeed(float fRawVssSpeed);
+  static int selectVsSpeed(float fRawVsSpeed);
   
 public:  
   static int16 getHcam() { return _hCam; }
@@ -78,7 +78,7 @@ static void showUsage()
       "    [-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time>]\n"
       "    [-p|--port <Rport>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
       "    [-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>]\n"
-      "    [--kinh <height>] [--vshift <speed(us)>] [--strip <strip cycle>]\n"
+      "    [--kinh <height>] [--vshift <speed(us)>] [--clc <cycle>] [--strip <strip>]\n"
       "    [--custw <width>] [--custh <height>] [--trgmode <triggerMode>] [--trgedge <triggerEdge>]\n"
       "    [-m|--menu] \n"
       "  Options:\n"
@@ -94,7 +94,8 @@ static void showUsage()
       "    -t|--temp      <temperature>       Temperature (in Celcius) (Default: 25 C)\n"            
       "    -r|--roi       <x,y,w,h>           Region of Interest\n"
       "    -b|--bin       <xbin,ybin>         Binning of X/Y\n"
-      "       --strip     <strip cycle>       Number of rows per clear cycle\n"
+      "       --clc       <clear cycle>       Number of clear cycles\n"
+      "       --strip     <strip per clear>   Number of rows per clear cycle\n"
       "       --kinh      <height>            Kinetics window height\n"
       "       --vss       <speed(us)>         Vertical shift speed\n"
       "       --custw     <width>             Custom detector width\n"
@@ -156,13 +157,14 @@ int main(int argc, char **argv)
      {"roi",      1, 0, 'r'},
      {"bin",      1, 0, 'b'},     
      {"menu",     0, 0, 'm'},     
-     {"strip",    1, 0,  1000},     
-     {"kinh",     1, 0,  1001},     
-     {"vss",      1, 0,  1002},     
-     {"custw",    1, 0,  1003},     
-     {"custh",    1, 0,  1004},     
-     {"trgmode",  1, 0,  1005},     
-     {"trgedge",  1, 0,  1006},     
+     {"clc",      1, 0,  1000},   
+     {"strip",    1, 0,  1001},     
+     {"kinh",     1, 0,  1002},     
+     {"vss",      1, 0,  1003},     
+     {"custw",    1, 0,  1004},     
+     {"custh",    1, 0,  1005},     
+     {"trgmode",  1, 0,  1006},     
+     {"trgedge",  1, 0,  1007},     
      {0,          0, 0,  0 }
   };    
   
@@ -180,13 +182,14 @@ int main(int argc, char **argv)
   int   iRoiH         = -1;
   int   iBinX         = 1;
   int   iBinY         = 1;  
-  int   iStrip        = -1;
+  int   iClearCycle   = 0;
+  int   iStrip        = 1;
   int   iKinH         = 0;
   int   iCustW        = 0;
   int   iCustH        = 0;
   int   iTrgMode      = 0;
-  int   iTrgEdge      = -1;
-  float fVssSpeed     = 0;
+  int   iTrgEdge      = 1;
+  float fVsSpeed      = 0;
   int   iMenu         = 0;
   
   int iOptionIndex = 0;
@@ -247,24 +250,27 @@ int main(int argc, char **argv)
           iMenu = 1;
           break;            
       case 1000:
-          iStrip        = strtoul(optarg, NULL, 0);
+          iClearCycle   = strtoul(optarg, NULL, 0);
           break;            
       case 1001:
-          iKinH         = strtoul(optarg, NULL, 0);
+          iStrip        = strtoul(optarg, NULL, 0);
           break;            
       case 1002:
-          fVssSpeed     = strtof(optarg, NULL);
+          iKinH         = strtoul(optarg, NULL, 0);
           break;            
       case 1003:
-          iCustW        = strtoul(optarg, NULL, 0);
+          fVsSpeed     = strtof(optarg, NULL);
           break;            
       case 1004:
-          iCustH        = strtoul(optarg, NULL, 0);
+          iCustW        = strtoul(optarg, NULL, 0);
           break;            
       case 1005:
-          iTrgMode      = strtoul(optarg, NULL, 0);
+          iCustH        = strtoul(optarg, NULL, 0);
           break;            
       case 1006:
+          iTrgMode      = strtoul(optarg, NULL, 0);
+          break;            
+      case 1007:
           iTrgEdge      = strtoul(optarg, NULL, 0);
           break;            
       case '?':               /* Terse output mode */
@@ -298,12 +304,12 @@ int main(int argc, char **argv)
     printf( "main(): Cannot register signal handler for SIGTERM\n" );  
 
   testPIDaq(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, iGainIndex, fTemperature, 
-    iStrip, iKinH, fVssSpeed, iCustW, iCustH, iTrgEdge,
+    iClearCycle, iStrip, iKinH, fVsSpeed, iCustW, iCustH, iTrgEdge,
     iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iTrgMode, iMenu);
 }
 
 int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip, int iKinH, float fVssSpeed, int iCustW, int iCustH, int iTrgEdge,
+  int iGainIndex, float fTemperature, int iClearCycle, int iStrip, int iKinH, float fVsSpeed, int iCustW, int iCustH, int iTrgEdge,
   int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iTrgMode,
   int iMenu)
 {
@@ -318,7 +324,7 @@ int testPIDaq(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, i
   }
     
   iFail = imageCapure.start(iCamera, sFnPrefix, iNumImages, iExposureTime, iReadoutPort, iSpeedIndex, 
-    iGainIndex, fTemperature, iStrip, iKinH, fVssSpeed, iCustW, iCustH, iTrgEdge,
+    iGainIndex, fTemperature, iClearCycle, iStrip, iKinH, fVsSpeed, iCustW, iCustH, iTrgEdge,
     iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iTrgMode, iMenu);
   if (0 != iFail)
   {    
@@ -370,7 +376,7 @@ void* TestDaqThread::sendDataThread(void *)
    return NULL;
 }
 
-int ImageCapture::updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iGainIndex, int iStrip, int iKinH, float fVssSpeed, 
+int ImageCapture::updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iGainIndex, int iClearCycle, int iStrip, int iKinH, float fVsSpeed, 
   int iCustW, int iCustH, int iTrgEdge)
 {
   using PICAM::displayParamIdInfo;
@@ -384,6 +390,13 @@ int ImageCapture::updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iG
   displayParamIdInfo(_hCam, PARAM_EXP_RES_INDEX, "Exposure Resolution Index");
 
   displayParamIdInfo(_hCam, PARAM_CLEAR_MODE  , "Clear Mode");
+    
+  if ( iClearCycle >= 0 )
+  {
+    displayParamIdInfo(_hCam, PARAM_CLEAR_CYCLES, "Clear Cycle *org*");
+    int16 i16ClearCycle = (int16) iClearCycle;
+    PICAM::setAnyParam(_hCam, PARAM_CLEAR_CYCLES, &i16ClearCycle );    
+  }    
   displayParamIdInfo(_hCam, PARAM_CLEAR_CYCLES, "Clear Cycles");  
     
   if ( iStrip >= 0 )
@@ -444,14 +457,14 @@ int ImageCapture::updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iG
   displayParamIdInfo(_hCam, PARAM_KIN_WIN_SIZE, "Kinetics Win Height");    
 
   displayParamIdInfo(_hCam, PARAM_CUSTOM_TIMING, "Custom Timing *org*");      
-  rs_bool iCustomTiming = ( fVssSpeed != 0 ? 1 : 0);
+  rs_bool iCustomTiming = ( fVsSpeed != 0 ? 1 : 0);
   PICAM::setAnyParam(_hCam, PARAM_CUSTOM_TIMING, &iCustomTiming );    
   displayParamIdInfo(_hCam, PARAM_CUSTOM_TIMING, "Custom Timing");    
   
-  if (fVssSpeed != 0)
+  if (fVsSpeed != 0)
   {
     displayParamIdInfo(_hCam, PARAM_PAR_SHIFT_TIME, "Vertical Shift Speed *org*");           
-    int32 i32parShiftTime = selectVssSpeed(fVssSpeed * 1000);    
+    int32 i32parShiftTime = selectVsSpeed(fVsSpeed * 1000);    
     PICAM::setAnyParam(_hCam, PARAM_PAR_SHIFT_TIME, &i32parShiftTime );        
   }    
   displayParamIdInfo(_hCam, PARAM_PAR_SHIFT_TIME, "Vertical Shift Speed");    
@@ -567,14 +580,14 @@ int ImageCapture::setupCooling(float fTemperature)
   return 0;
 }
 
-int ImageCapture::selectVssSpeed(float fRawVssSpeed)
+int ImageCapture::selectVsSpeed(float fRawVsSpeed)
 {
   int32 i32parShiftTimeMin, i32parShiftTimeMax, i32parShiftTimeInc;
   PICAM::getAnyParam(_hCam, PARAM_PAR_SHIFT_TIME, &i32parShiftTimeMin, ATTR_MIN );        
   PICAM::getAnyParam(_hCam, PARAM_PAR_SHIFT_TIME, &i32parShiftTimeMax, ATTR_MAX );        
   PICAM::getAnyParam(_hCam, PARAM_PAR_SHIFT_TIME, &i32parShiftTimeInc, ATTR_INCREMENT );        
   
-  float fRatio = (fRawVssSpeed - i32parShiftTimeMin) / i32parShiftTimeInc;
+  float fRatio = (fRawVsSpeed - i32parShiftTimeMin) / i32parShiftTimeInc;
   int i32parShiftTime = i32parShiftTimeMin + i32parShiftTimeInc * (int)(fRatio +  0.5);
     
   if (i32parShiftTime <= i32parShiftTimeMin)
@@ -588,7 +601,7 @@ int ImageCapture::selectVssSpeed(float fRawVssSpeed)
 using namespace std;
 
 int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExposureTime, int iReadoutPort, int iSpeedIndex, 
-  int iGainIndex, float fTemperature, int iStrip, int iKinH, float fVssSpeed, int iCustW, int iCustH, int iTrgEdge,
+  int iGainIndex, float fTemperature, int iClearCycle, int iStrip, int iKinH, float fVsSpeed, int iCustW, int iCustH, int iTrgEdge,
   int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iTrgMode, int iMenu)
 {
   char cam_name[CAM_NAME_LEN];  /* camera name                    */
@@ -659,7 +672,7 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
     
   setupCooling(fTemperature);
 
-  updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip, iKinH, fVssSpeed, iCustW, iCustH, iTrgEdge);
+  updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iClearCycle, iStrip, iKinH, fVsSpeed, iCustW, iCustH, iTrgEdge);
 
   printStatus();
   
@@ -685,13 +698,14 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
         cout << "Speed Index              : " << iSpeedIndex   <<  endl;
         cout << "Gain Index               : " << iGainIndex    << endl;
         cout << "Cooling Temperature (C)  : " << fTemperature  << endl;
+        cout << "Clear Cycle              : " << iClearCycle   << endl;
         cout << "Strip per Clear          : " << iStrip        << endl;
         cout << "Kinetcis Win Height      : " << iKinH         << endl;        
-        cout << "Vertical Shift Speed     : " << fVssSpeed     << endl;
-        cout << "Custom Width             : " << iCustW        << endl;
-        cout << "Custom Height            : " << iCustH        << endl;
+        cout << "Vertical Shift Speed     : " << fVsSpeed      << endl;
         cout << "Trigger Mode             : " << iTrgMode      << endl;        
         cout << "Trigger Edge             : " << iTrgEdge      << endl;        
+        cout << "Custom Width             : " << iCustW        << endl;
+        cout << "Custom Height            : " << iCustH        << endl;
         cout << "ROI : x " << iRoiX << " y " <<  iRoiY << 
           " W " << iRoiW << " H " << iRoiH << 
           " binX " << iBinX << " binY " << iBinY << endl;    
@@ -704,13 +718,14 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
         cout << "s. Set Speed Index" << endl;
         cout << "g. Set Gain Index" << endl;
         cout << "t. Set Cooling Temperature (C)" << endl;
-        cout << "1. Set Strip per Clear" << endl;    
         cout << "k. Set Kinetics Win Height" << endl;            
         cout << "h. Set Vertical Shift Speed (us)" << endl;    
-        cout << "2. Set Custom Width" << endl;            
-        cout << "3. Set Custom Height" << endl;                    
-        cout << "4. Set Trigger Mode" << endl;                    
-        cout << "5. Set Trigger Edge" << endl;                    
+        cout << "1. Set Trigger Mode" << endl;                    
+        cout << "2. Set Trigger Edge" << endl;                    
+        cout << "3. Set Clear Cycle" << endl;    
+        cout << "4. Set Strip per Clear" << endl;    
+        cout << "5. Set Custom Width" << endl;            
+        cout << "6. Set Custom Height" << endl;                    
         cout << "r. Set ROI" << endl;
         cout << "b. Set Binning" << endl;    
         cout << "q. Quit Program" << endl;
@@ -781,14 +796,6 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
           setupCooling(fTemperature);
           break;
         }    
-        case '1': 
-        {
-          cout << endl << "Enter new Strips per Clear > ";
-          cin >> iStrip;
-          printf("New Strips per Clear: %d\n", iStrip);
-          bReConfig = true;
-          break;
-        }    
         case 'k': 
         {
           cout << endl << "Enter new Kinetics Win Height > ";
@@ -800,12 +807,43 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
         case 'h': 
         {
           cout << endl << "Enter new Veritical Shift Speed (us) > ";
-          cin >> fVssSpeed;
-          printf("New Veritical Shift Speed (us) : %f\n", fVssSpeed);
+          cin >> fVsSpeed;
+          printf("New Veritical Shift Speed (us) : %f\n", fVsSpeed);
           bReConfig = true;
           break;
         }            
+        case '1': 
+        {
+          cout << endl << "Enter new Trigger Mode > ";
+          cin >> iTrgMode;
+          printf("New Trigger Mode: %d\n", iTrgMode);
+          break;
+        }    
         case '2': 
+        {
+          cout << endl << "Enter new Trigger Edge > ";
+          cin >> iTrgEdge;
+          printf("New Trigger Edge: %d\n", iTrgEdge);
+          bReConfig = true;
+          break;
+        }    
+        case '3': 
+        {
+          cout << endl << "Enter new Clear Cycle > ";
+          cin >> iClearCycle;
+          printf("New Clear Cycle: %d\n", iClearCycle);
+          bReConfig = true;
+          break;
+        }    
+        case '4': 
+        {
+          cout << endl << "Enter new Strips per Clear > ";
+          cin >> iStrip;
+          printf("New Strips per Clear: %d\n", iStrip);
+          bReConfig = true;
+          break;
+        }    
+        case '5': 
         {
           cout << endl << "Enter new Custom Width > ";
           cin >> iCustW;
@@ -813,26 +851,11 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
           bReConfig = true;
           break;
         }    
-        case '3': 
+        case '6': 
         {
           cout << endl << "Enter new Custom Height > ";
           cin >> iCustH;
           printf("New Custom Height: %d\n", iCustH);
-          bReConfig = true;
-          break;
-        }    
-        case '4': 
-        {
-          cout << endl << "Enter new Trigger Mode > ";
-          cin >> iTrgMode;
-          printf("New Trigger Mode: %d\n", iTrgMode);
-          break;
-        }    
-        case '5': 
-        {
-          cout << endl << "Enter new Trigger Edge > ";
-          cin >> iTrgEdge;
-          printf("New Trigger Edge: %d\n", iTrgEdge);
           bReConfig = true;
           break;
         }    
@@ -879,7 +902,7 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
         getchar();      
         
         if (bReConfig)
-          updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iStrip, iKinH, fVssSpeed, iCustW, iCustH, iTrgEdge);        
+          updateCameraSettings(iReadoutPort, iSpeedIndex, iGainIndex, iClearCycle, iStrip, iKinH, fVsSpeed, iCustW, iCustH, iTrgEdge);        
       }
       while (!bQuitMenu);
     } // if (iMenu != 0)
