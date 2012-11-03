@@ -10,7 +10,7 @@ CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
 libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc CspadShuffle.cc
 
-tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump
+tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump currentexp
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 liblibs_tools := pdsdata/cspaddata pdsdata/pnccddata
@@ -80,7 +80,12 @@ tgtsrcs_xtcdump := xtcdump.cc
 tgtlibs_xtcdump := $(commonlibs)
 tgtslib_xtcdump := $(USRLIBDIR)/rt
 
-
+tgtsrcs_currentexp := currentexp.cc
+tgtlibs_currentexp := $(commonlibs)
+tgtlibs_currentexp += pds/offlineclient
+tgtlibs_currentexp += offlinedb/mysqlclient offlinedb/offlinedb
+tgtslib_currentexp := $(USRLIBDIR)/rt
+tgtincs_currentexp := offlinedb/include offlineclient
 
 libnames += padmon
 libsrcs_padmon := PadMonServer.cc CspadShuffle.cc
