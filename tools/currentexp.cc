@@ -1,6 +1,8 @@
 // $Id$
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
@@ -22,6 +24,18 @@ void usage(char* progname) {
   fprintf(stderr,"  -h         help\n");
   fprintf(stderr,"  -v         verbose (may be repeated)\n");
   fprintf(stderr,"  -p <path>  database login path (default=%s)\n", DEFAULT_RCPATH);
+}
+
+static bool fileExists(const char *path) {
+  struct stat buf;
+  bool rv = false;
+
+  if (path && (stat(path, &buf) == 0)) {
+    if (S_ISREG(buf.st_mode)) {
+      rv = true;
+    }
+  }
+  return (rv);
 }
 
 int instrumentPrint(const char *offlinerc, std::string instr, unsigned verbose) {
@@ -85,7 +99,7 @@ int main(int argc, char* argv[]) {
   int parseErr = 0;
   char *inst = "";
   int station = -1;
-  char *path = NULL;
+  char *rcpath = DEFAULT_RCPATH;
   unsigned verbose = 0;
   std::vector<std::string> instList;
   std::vector<std::string>::iterator it;
@@ -96,7 +110,7 @@ int main(int argc, char* argv[]) {
       usage(argv[0]);
       exit(0);
     case 'p':
-      path = optarg;
+      rcpath = optarg;
       break;
     case 'v':
       ++verbose;
@@ -121,12 +135,17 @@ int main(int argc, char* argv[]) {
   }
 
   if (parseErr > 0) {
-      usage(argv[0]);
-      exit(1);
+    usage(argv[0]);
+    exit(1);
+  }
+
+  if (!fileExists(rcpath)) {
+    fprintf(stderr, "%s: %s: No such file\n", argv[0], rcpath);
+    exit(1);
   }
 
   for (it = instList.begin(); it != instList.end(); it++) {
-    instrumentPrint(path ? path : DEFAULT_RCPATH, *it, verbose);
+    instrumentPrint(rcpath, *it, verbose);
   }
 
   return 0;
