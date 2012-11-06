@@ -13,29 +13,52 @@
 #include "pds/service/Task.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
-
-#include "pds/camera/FrameServer.hh"
+#include "pds/camera/PimManager.hh"
+#include "pds/camera/TM6740Camera.hh"
 #include "pds/camera/Opal1kManager.hh"
 #include "pds/camera/Opal1kCamera.hh"
+#include "pds/camera/QuartzManager.hh"
+#include "pds/camera/QuartzCamera.hh"
+#include "pds/camera/FrameServer.hh"
 #include "pds/camera/PicPortCL.hh"
 
 #include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <dlfcn.h>
 
 static bool verbose = false;
 
 static void usage(const char* p)
 {
   printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -v\n",p);
-  printf("<detinfo> = integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Opal1000/1 or 22/0/1)\n");
+  printf("<detinfo> = integer/integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n");
 }
 
-static Pds::CameraDriver* _driver(int id, const Pds::Src& src) 
+static Pds::CameraDriver* _driver(int id, const Pds::Src& src)
 {
-  return new PdsLeutron::PicPortCL(*new Pds::Opal1kCamera(static_cast<const Pds::DetInfo&>(src)),id);
+  const Pds::DetInfo info = static_cast<const Pds::DetInfo&>(src);
+  switch(info.device()) {
+  case Pds::DetInfo::Opal1000:
+  case Pds::DetInfo::Opal2000:
+  case Pds::DetInfo::Opal4000:
+  case Pds::DetInfo::Opal1600:
+  case Pds::DetInfo::Opal8000:
+    return new PdsLeutron::PicPortCL(*new Pds::Opal1kCamera(info),id);
+  case Pds::DetInfo::TM6740  :
+    return new PdsLeutron::PicPortCL(*new Pds::TM6740Camera,id);
+  case Pds::DetInfo::Quartz4A150:
+    return new PdsLeutron::PicPortCL(*new Pds::QuartzCamera(info),id);
+  default:
+    printf("Unsupported camera %s\n",Pds::DetInfo::name(info.device()));
+    exit(1);
+    break;
+  }
+  return NULL;
 }
+
+typedef std::list<Pds::Appliance*> AppList;
 
 static void *thread_signals(void*)
 {
@@ -54,18 +77,41 @@ namespace Pds {
     SegTest(Task*                 task,
 	    unsigned              platform,
 	    const Src&            src,
-	    unsigned              grabberId) :
-      _task    (task),
-      _platform(platform),
-      _opal1k  (new Opal1kManager(src)),
-      _grabberId(grabberId)
+	    unsigned              grabberId,
+            const AppList&        user_apps) :
+      _task     (task),
+      _platform (platform),
+      _grabberId(grabberId),
+      _user_apps(user_apps)
     {
-      _sources.push_back(_opal1k->server().client());
+      const Pds::DetInfo info = static_cast<const Pds::DetInfo&>(src);
+      switch(info.device()) {
+      case DetInfo::Opal1000:
+      case DetInfo::Opal2000:
+      case DetInfo::Opal4000:
+      case DetInfo::Opal1600:
+      case DetInfo::Opal8000:
+        _camman  = new Opal1kManager(src); break;
+      case DetInfo::TM6740  :
+        _camman  = new PimManager(src); break;
+      case DetInfo::Quartz4A150:
+        _camman  = new QuartzManager(src); break;
+      default:
+        printf("Unsupported camera %s\n",DetInfo::name(info.device()));
+        exit(1);
+        break;
+      }
+
+      _sources.push_back(_camman->server().client());
     }
 
     virtual ~SegTest()
     {
-      delete _opal1k;
+      delete _camman;
+
+      for(AppList::iterator it=_user_apps.begin(); it!=_user_apps.end(); it++)
+        delete (*it);
+
       _task->destroy();
     }
 
@@ -75,14 +121,9 @@ namespace Pds {
 		  StreamParams::StreamType s,
 		  int interface)
     {
-      wire.add_input(&_opal1k->server());
+      wire.add_input(&_camman->server());
     }
-
-    const std::list<Src>& sources() const
-    {
-      return _sources;
-    }
-
+    const std::list<Src>& sources() const { return _sources; }
   private:
     // Implements EventCallback
     void attached(SetOfStreams& streams)
@@ -91,10 +132,12 @@ namespace Pds {
 	     _platform);
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
-      _opal1k->appliance().connect(frmk->inlet());
-      //      (new Decoder)->connect(frmk->inlet());
 
-      _opal1k->attach(_driver(_grabberId,_sources.front()));
+      for(AppList::iterator it=_user_apps.begin(); it!=_user_apps.end(); it++)
+        (*it)->connect(frmk->inlet());
+
+      _camman->appliance().connect(frmk->inlet());
+      _camman->attach(_driver(_grabberId, _sources.front()));
     }
     void failed(Reason reason)
     {
@@ -118,7 +161,7 @@ namespace Pds {
       printf("SegTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
 	     who.platform(), username, who.pid(), ipname);
       
-      _opal1k->detach();
+      _camman->detach();
 
       delete this;
     }
@@ -126,28 +169,31 @@ namespace Pds {
   private:
     Task*          _task;
     unsigned       _platform;
-    Opal1kManager* _opal1k;
+    CameraManager* _camman;
     int            _grabberId;
     std::list<Src> _sources;
+    AppList        _user_apps;
   };
 }
 
 using namespace Pds;
 
-
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  unsigned platform = -1UL;
+  const unsigned NO_PLATFORM = ~0;
+  unsigned platform = NO_PLATFORM;
   Arp* arp = 0;
 
   DetInfo info;
+  AppList user_apps;
 
   unsigned grabberId(0);
 
   extern char* optarg;
+  char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:L:v")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -162,15 +208,39 @@ int main(int argc, char** argv) {
       platform = strtoul(optarg, NULL, 0);
       break;
     case 'g':
-      grabberId = strtoul(optarg, NULL, 0);
+      grabberId = strtoul(optarg, &endPtr, 0);
       break;
+    case 'L':
+      { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
+          printf("dlopen %s\n",p);
+
+          void* handle = dlopen(p, RTLD_LAZY);
+          if (!handle) {
+            printf("dlopen failed : %s\n",dlerror());
+            break;
+          }
+
+          // reset errors
+          const char* dlsym_error;
+          dlerror();
+
+          // load the symbols
+          create_app* c_user = (create_app*) dlsym(handle, "create");
+          if ((dlsym_error = dlerror())) {
+            fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
+            break;
+          }
+          user_apps.push_back( c_user() );
+        }
+        break;
+      }
     case 'v':
       verbose = true;
       break;
     }
   }
 
-  if (platform == -1UL) {
+  if (platform == NO_PLATFORM) {
     printf("%s: platform required\n",argv[0]);
     return 0;
   }
@@ -204,12 +274,10 @@ int main(int argc, char** argv) {
   info = DetInfo(node.pid(), info.detector(), info.detId(), info.device(), info.devId());
 
   SegTest* segtest = new SegTest(task, 
-				 platform,
+				 platform, 
                                  info,
-				 grabberId);
-
-  if (info.device()==DetInfo::Opal4000)
-    ToEventWireScheduler::setMaximum(3);
+				 grabberId,
+                                 user_apps);
 
   printf("Creating segment level ...\n");
   SegmentLevel* segment = new SegmentLevel(platform, 

@@ -12,6 +12,8 @@
 #include "pds/service/Task.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
+
+#include "pds/camera/FrameServer.hh"
 #include "pds/camera/Opal1kManager.hh"
 #include "pds/camera/Opal1kCamera.hh"
 #include "pds/camera/EdtPdvCL.hh"

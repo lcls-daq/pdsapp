@@ -20,7 +20,7 @@ bool CmdLineTools::parseDetInfo(const char* args, DetInfo& info)
   det    = (DetInfo::Detector)strtoul(args, &p, 0);
   if (p != args) {
     detid  = strtoul(p+1 , &p, 0);
-    dev    = DetInfo::Opal1000;
+    dev    = (DetInfo::Device)strtoul(p+1 , &p, 0);
     devid  = strtoul(p+1 , &p, 0);
   }
   else {
@@ -31,20 +31,33 @@ bool CmdLineTools::parseDetInfo(const char* args, DetInfo& info)
         det = (DetInfo::Detector)i;
         break;
       }
-    if (det == DetInfo::NumDetector)
+    if (det == DetInfo::NumDetector) {
+      printf("Parsing detector %s failed\n", args);
+      printf("Choices are:");
+      for(int i=0; i<DetInfo::NumDetector; i++)
+        printf(" %s",DetInfo::name((DetInfo::Detector)i));
+      printf("\n");
       return false;
+    }
 
     detid  = strtoul(p+1 , &p, 0);
 
     args = p+1;
     n = (p=strchr(args,'/')) - args;
+    dev = DetInfo::NumDevice;
     for(int i=0; i<DetInfo::NumDevice; i++)
       if (strncasecmp(args,DetInfo::name((DetInfo::Device)i),n)==0) {
         dev = (DetInfo::Device)i;
         break;
       }
-    if (dev == DetInfo::NumDevice)
+    if (dev == DetInfo::NumDevice) {
+      printf("Parsing device %s failed\n", args);
+      printf("Choices are:");
+      for(int i=0; i<DetInfo::NumDevice; i++)
+        printf(" %s",DetInfo::name((DetInfo::Device)i));
+      printf("\n");
       return false;
+    }
 
     devid  = strtoul(p+1 , &p, 0);
   }

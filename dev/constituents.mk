@@ -8,7 +8,7 @@ CPPFLAGS += -D_ACQIRIS -D_LINUX
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
 tgtnames := opal1kedt quartzedt pimimageedt phasics \
-  oceanoptics fli andor usdusb
+  oceanoptics fli andor usdusb camedt
 else
 tgtnames :=  evr \
     evrstandalone \
@@ -37,7 +37,8 @@ tgtnames :=  evr \
     timetool \
     oceanoptics \
     fli \
-    andor
+    andor \
+    cam
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata pdsdata/camdata  pdsdata/compressdata
@@ -45,7 +46,7 @@ commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility p
 commonlibs  += pdsapp/devapp
 
 #  libconfigdb dependencies
-datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata pdsdata/andordata pdsdata/usdusbdata pdsdata/compressdata
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata pdsdata/andordata pdsdata/usdusbdata 
 
 tgtsrcs_fexamp := fexamp.cc
 tgtlibs_fexamp := $(commonlibs) pdsdata/fexampdata pds/fexamp pds/pgp
@@ -134,7 +135,24 @@ leutron_libs += leutron/LvSerialCommunication.34.${ARCHCODE}
 
 edt_libs := pds/camedt edt/pdv
 
-cam_libs := pdsdata/opal1kdata pdsdata/quartzdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata pdsdata/compressdata
+cam_libs := pdsdata/opal1kdata pdsdata/quartzdata pdsdata/fccddata pdsdata/pulnixdata pdsdata/camdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata 
+
+tgtsrcs_cam := cam.cc 
+tgtlibs_cam := $(commonlibs) $(cam_libs)
+tgtlibs_cam += pds/camera
+tgtlibs_cam += $(leutron_libs)
+tgtincs_cam := leutron/include
+
+tgtsrcs_camedt := camedt.cc 
+tgtlibs_camedt := pdsdata/xtcdata
+tgtlibs_camedt += $(cam_libs)
+tgtlibs_camedt += pds/service pds/collection pds/xtc pds/mon pds/vmon 
+tgtlibs_camedt += pds/utility pds/management pds/client pds/config 
+tgtlibs_camedt += pds/camera
+tgtlibs_camedt += pdsapp/devapp
+tgtlibs_camedt += $(edt_libs)
+tgtslib_camedt := $(USRLIBDIR)/rt/rt $(USRLIBDIR)/rt/dl
+tgtincs_camedt := edt/include
 
 tgtsrcs_opal1k := opal1k.cc 
 tgtlibs_opal1k := $(commonlibs) $(cam_libs)
@@ -231,8 +249,9 @@ tgtlibs_princetonsim += pdsapp/configdb qt/QtGui qt/QtCore # for accessing confi
 tgtslib_princetonsim := $(USRLIBDIR)/rt dl pthread
 
 tgtsrcs_simcam := simcam.cc 
-tgtlibs_simcam := $(commonlibs) pdsdata/pulnixdata pdsdata/camdata
-tgtslib_simcam := pthread rt
+tgtlibs_simcam := $(commonlibs) $(cam_libs)
+tgtlibs_simcam += pds/camera pds/epicstools epics/ca epics/Com
+tgtslib_simcam := pthread rt dl
 
 tgtsrcs_gsc16ai := gsc16ai.cc
 tgtlibs_gsc16ai := $(commonlibs) pdsdata/gsc16aidata pds/gsc16ai pdsdata/camdata
@@ -260,3 +279,4 @@ tgtlibs_andor += $(datalibs)
 tgtlibs_andor += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
 tgtlibs_andor += pdsdata/andordata pds/pdsandor andor/andor
 tgtslib_andor := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 
+

@@ -10,6 +10,7 @@
 #include "pds/service/Task.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pds/camera/FrameServer.hh"
 #include "pds/camera/TM6740Manager.hh"
 #include "pds/camera/TM6740Camera.hh"
 #include "pds/camera/PicPortCL.hh"

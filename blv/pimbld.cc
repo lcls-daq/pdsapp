@@ -4,6 +4,7 @@
 #include "pds/management/EventBuilder.hh"
 #include "pds/camera/PimManager.hh"
 #include "pds/camera/TM6740Camera.hh"
+#include "pds/camera/FrameServer.hh"
 #include "pds/camera/PicPortCL.hh"
 #include "pds/xtc/XtcType.hh"
 #include "pds/service/Task.hh"

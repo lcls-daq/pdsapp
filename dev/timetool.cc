@@ -17,6 +17,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/evr/DataV3.hh"
 
+#include "pds/camera/FrameServer.hh"
 #include "pds/camera/Opal1kManager.hh"
 #include "pds/camera/Opal1kCamera.hh"
 #include "pds/camera/PicPortCL.hh"

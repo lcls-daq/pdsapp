@@ -57,8 +57,6 @@ if __name__ == "__main__":
         daq.begin(controls=[('EXAMPLEPV1',cycle),('EXAMPLEPV2',100-cycle)],
                   labels=[('EXAMPLELABEL1','CYCLE%d'%cycle),('EXAMPLELABEL2','LCYCLE%d'%options.cycles)])
         # enable the EVR sequence, if necessary
-        time.sleep(2)
-        daq.stop()
 
         # wait for disabled, then disable the EVR sequence
         daq.end()
