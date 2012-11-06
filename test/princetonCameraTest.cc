@@ -470,30 +470,64 @@ int ImageCapture::updateCameraSettings(int iReadoutPort, int iSpeedIndex, int iG
   displayParamIdInfo(_hCam, PARAM_PAR_SHIFT_TIME, "Vertical Shift Speed");    
   
   displayParamIdInfo(_hCam, PARAM_SER_SHIFT_TIME, "Serial Shift Speed");      
-  
-  displayParamIdInfo(_hCam, PARAM_CUSTOM_CHIP, "Custom Chip *org*");      
-  rs_bool iCustomChip = ((iCustW != 0 || iCustH != 0 )? 1 : 0);
-  PICAM::setAnyParam(_hCam, PARAM_CUSTOM_CHIP, &iCustomChip );    
-  displayParamIdInfo(_hCam, PARAM_CUSTOM_CHIP, "Custom Chip");    
-  
-  if (iCustomChip != 0)
+    
+  if (iCustW != 0 || iCustH != 0 )
   {
+    rs_bool iCustomChip = 1;
+    PICAM::setAnyParam(_hCam, PARAM_CUSTOM_CHIP, &iCustomChip );    
+    
     if (iCustW != 0)
     {
       displayParamIdInfo(_hCam, PARAM_SER_SIZE, "Detecotr Width *org*");    
       uns16 u16CustomW = (uns16) iCustW;
       PICAM::setAnyParam(_hCam, PARAM_SER_SIZE, &u16CustomW );        
-    }        
-    displayParamIdInfo(_hCam, PARAM_SER_SIZE, "Detecotr Width");    
-    
+    }  
+    else
+    {
+      uns16 u16CustomH = 0;
+      PICAM::getAnyParam(_hCam, PARAM_SER_SIZE, &u16CustomH, ATTR_DEFAULT );    
+      PICAM::setAnyParam(_hCam, PARAM_SER_SIZE, &u16CustomH );            
+    }
+        
     if (iCustH != 0)
     {
       displayParamIdInfo(_hCam, PARAM_PAR_SIZE, "Detecotr Height *org*");    
       uns16 u16CustomH = (uns16) iCustH;
       PICAM::setAnyParam(_hCam, PARAM_PAR_SIZE, &u16CustomH );        
     }        
-    displayParamIdInfo(_hCam, PARAM_PAR_SIZE, "Detecotr Height");    
+    else
+    {
+      uns16 u16CustomH = 0;
+      PICAM::getAnyParam(_hCam, PARAM_PAR_SIZE, &u16CustomH, ATTR_DEFAULT );    
+      PICAM::setAnyParam(_hCam, PARAM_PAR_SIZE, &u16CustomH );            
+    }
+
+    rs_bool iSkipSRegClean = 1;
+    PICAM::setAnyParam(_hCam, PARAM_SKIP_SREG_CLEAN, &iSkipSRegClean );        
   }  
+  else
+  {    
+    rs_bool iCustomChip = 1;
+    PICAM::setAnyParam(_hCam, PARAM_CUSTOM_CHIP, &iCustomChip );    
+
+    uns16 u16CustomW = 0;
+    PICAM::getAnyParam(_hCam, PARAM_SER_SIZE, &u16CustomW, ATTR_DEFAULT );    
+    PICAM::setAnyParam(_hCam, PARAM_SER_SIZE, &u16CustomW );            
+
+    uns16 u16CustomH = 0;
+    PICAM::getAnyParam(_hCam, PARAM_PAR_SIZE, &u16CustomH, ATTR_DEFAULT );    
+    PICAM::setAnyParam(_hCam, PARAM_PAR_SIZE, &u16CustomH );            
+    
+    rs_bool iSkipSRegClean = 0;
+    PICAM::setAnyParam(_hCam, PARAM_SKIP_SREG_CLEAN, &iSkipSRegClean );            
+    
+    iCustomChip = 0;
+    PICAM::setAnyParam(_hCam, PARAM_CUSTOM_CHIP, &iCustomChip );        
+  }
+  displayParamIdInfo(_hCam, PARAM_CUSTOM_CHIP, "Custom Chip");      
+  displayParamIdInfo(_hCam, PARAM_SER_SIZE, "Detecotr Width");    
+  displayParamIdInfo(_hCam, PARAM_PAR_SIZE, "Detecotr Height");      
+  displayParamIdInfo(_hCam, PARAM_SKIP_SREG_CLEAN, "Skip Serial Reg Clean");
 
   if (iTrgEdge >= 0)
   {

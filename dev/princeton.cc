@@ -62,15 +62,14 @@ public:
     
     bool IsAttached() { return _bAttached; }    
     
-private:
     void reset()
     {
         delete _princetonManager;
         _princetonManager = NULL;
         
         _bAttached = false;
-    }
-    
+    }    
+private:    
     // Implements EventCallback
     virtual void attached(SetOfStreams& streams)        
     {        
@@ -81,6 +80,7 @@ private:
         try
         {            
         _princetonManager = new PrincetonManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iSleepInt, _iDebugLevel);
+        _princetonManager->initServer();
         }
         catch ( PrincetonManagerException& eManager )
         {
@@ -166,13 +166,19 @@ static void showVersion()
 
 static int    iSignalCaught   = 0;
 static Task*  taskMainThread  = NULL;
+static EventCallBackPrinceton* pEventCallbackPrinceton = NULL;
 void princetonSignalIntHandler( int iSignalNo )
 {
   printf( "\nprincetonSignalIntHandler(): signal %d received. Stopping all activities\n", iSignalNo );
   iSignalCaught = 1;
   
-  if (taskMainThread != NULL) 
-    taskMainThread->destroy();     
+  if (pEventCallbackPrinceton)
+    pEventCallbackPrinceton->reset();
+    
+  exit(1);
+    
+  //if (taskMainThread != NULL) 
+  //  taskMainThread->destroy();     
 }
 
 int main(int argc, char** argv) 
@@ -299,6 +305,8 @@ int main(int argc, char** argv)
     
     EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iDebugLevel);
     SegmentLevel segmentLevel(iPlatform, settings, eventCallBackPrinceton, NULL);
+    
+    pEventCallbackPrinceton = &eventCallBackPrinceton;
     
     segmentLevel.attach();    
     if ( eventCallBackPrinceton.IsAttached() )    

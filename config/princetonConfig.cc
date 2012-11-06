@@ -10,17 +10,20 @@ namespace Pds_ConfigDb {
   class princetonConfig::Private_Data {
   public:
     Private_Data() :
-      _uWidth               ("Width",               16, 1,    2048),
-      _uHeight              ("Height",              16, 1,    2048),
+      _uWidth               ("Width",               16,   1,    2048),
+      _uHeight              ("Height",              16,   1,    2048),
       _uOrgX                ("Orgin X",             0,    0,    2047),
       _uOrgY                ("Orgin Y",             0,    0,    2047),
       _uBinX                ("Binning X",           1,    1,    64),
-      _uBinY                ("Binning Y",           1,    1,    64),
+      _uBinY                ("Binning Y",           1,    1,    64),     
       // Note: Here the min exposure time need to set 9.99e-4 to allow user to input 1e-3, due to floating points imprecision
       _f32ExposureTime      ("Exposure time (sec)", 1e-3, 9.99e-4, 3600),
       _f32CoolingTemp       ("Cooling Temp (C)",    25,   -100,  25),      
       _u8GainIndex          ("Gain Index",          3,    0,    5),
       _u8ReadoutSpeedIndex  ("Readout Speed",       1,    0,    5),
+      _uMaskedHeight        ("Masked Height",       0,    0,    2048),    
+      _uKineticHeight       ("Kinetic Height",      0,    0,    2048),    
+      _f32VsSpeed           ("VShift Speed",        0,    0,    60),      
       _u16ExposureEventCode ("Exposure Event Code", 1,    1,    255),
       _u32NumDelayShots     ("Number Delay Shots",  1,    0,    0x7FFFFFFF)
     {}
@@ -36,6 +39,9 @@ namespace Pds_ConfigDb {
       pList.insert(&_f32CoolingTemp);
       pList.insert(&_u8GainIndex);
       pList.insert(&_u8ReadoutSpeedIndex);
+      pList.insert(&_uMaskedHeight);
+      pList.insert(&_uKineticHeight);
+      pList.insert(&_f32VsSpeed);
       pList.insert(&_u16ExposureEventCode);
       pList.insert(&_u32NumDelayShots);
     }
@@ -48,12 +54,15 @@ namespace Pds_ConfigDb {
       _uOrgY                .value = tc.orgY    ();
       _uBinX                .value = tc.binX    ();
       _uBinY                .value = tc.binY    ();
-      _f32ExposureTime      .value = tc.exposureTime();
-      _f32CoolingTemp       .value = tc.coolingTemp ();
-      _u8GainIndex          .value = tc.gainIndex();
+      _f32ExposureTime      .value = tc.exposureTime ();
+      _f32CoolingTemp       .value = tc.coolingTemp  ();
+      _u8GainIndex          .value = tc.gainIndex        ();
       _u8ReadoutSpeedIndex  .value = tc.readoutSpeedIndex();
+      _uMaskedHeight        .value = tc.maskedHeight ();
+      _uKineticHeight       .value = tc.kineticHeight();
+      _f32VsSpeed           .value = tc.vsSpeed      ();
       _u16ExposureEventCode .value = tc.exposureEventCode();
-      _u32NumDelayShots     .value = tc.numDelayShots();
+      _u32NumDelayShots     .value = tc.numDelayShots    ();
       return tc.size();
     }
 
@@ -65,6 +74,9 @@ namespace Pds_ConfigDb {
         _uOrgY                .value,
         _uBinX                .value,
         _uBinY                .value,
+        _uMaskedHeight        .value,
+        _uKineticHeight       .value,
+        _f32VsSpeed           .value,
         _f32ExposureTime      .value,
         _f32CoolingTemp       .value,
         _u8GainIndex          .value,
@@ -85,11 +97,14 @@ namespace Pds_ConfigDb {
     NumericInt<uint32_t>    _uOrgX;
     NumericInt<uint32_t>    _uOrgY;    
     NumericInt<uint32_t>    _uBinX;
-    NumericInt<uint32_t>    _uBinY;    
+    NumericInt<uint32_t>    _uBinY;
     NumericFloat<float>     _f32ExposureTime;    
     NumericFloat<float>     _f32CoolingTemp;        
     NumericInt<uint8_t>     _u8GainIndex;        
     NumericInt<uint8_t>     _u8ReadoutSpeedIndex;        
+    NumericInt<uint32_t>    _uMaskedHeight;    
+    NumericInt<uint32_t>    _uKineticHeight;    
+    NumericFloat<float>     _f32VsSpeed;    
     NumericInt<uint16_t>    _u16ExposureEventCode;
     NumericInt<uint32_t>    _u32NumDelayShots;
   };
