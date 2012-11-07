@@ -10,12 +10,15 @@
 #include "pds/offlineclient/OfflineClient.hh"
 
 #define MAXLINE 255
-#define DEFAULT_STATION 0
+#define DEFAULT_STATION 0u
 
 #define DEFAULT_RCPATH  "/reg/g/pcds/dist/pds/amo/misc/.offlinereader"
 
 #include <string>
 #include <vector>
+#include <utility>
+
+typedef std::vector< std::pair<std::string,unsigned int> > instList_t;
 
 using namespace Pds;
 
@@ -38,14 +41,25 @@ static bool fileExists(const char *path) {
   return (rv);
 }
 
-int instrumentPrint(const char *offlinerc, std::string instr, unsigned verbose) {
+//
+// instrumentPrint -
+//
+// RETURNS: 1 on error, otherwise 0.
+//
+int instrumentPrint(const char *offlinerc, std::string instr, unsigned int station, unsigned int verbose, const char *argv0) {
+  int rv = 1;   // return error by default
 
   const char *partition = instr.c_str();
   OfflineClient* offlineclient;
 
-  offlineclient = new OfflineClient(offlinerc, partition, 0u, (verbose > 1));
+  offlineclient = new OfflineClient(offlinerc, partition, station, (verbose > 1));
 
-  if (offlineclient) {
+  if (offlineclient == NULL) {
+    fprintf(stderr,"%s: failed to instantiate OfflineClient\n", argv0);
+  } else if (offlineclient->GetExperimentName() == NULL) {
+    fprintf(stderr,"%s: failed to find current experiment name\n", argv0);
+  } else {
+    rv = 0;         // return OK
     if (verbose) {
       printf("Instrument name: %s\n", offlineclient->GetInstrumentName());
       printf("Station number: %u\n", offlineclient->GetStationNumber());
@@ -58,19 +72,22 @@ int instrumentPrint(const char *offlinerc, std::string instr, unsigned verbose) 
                                offlineclient->GetExperimentNumber());
     }
     delete offlineclient;
-  } else {
-    fprintf(stderr,"%s: failed to instantiate OfflineClient\n", __FUNCTION__);
   }
 
-  return (0);
+  return (rv);
 }
 
-int instrumentParse(char *inbuf, char **inst, int *station)
+//
+// instrumentParse -
+//
+// RETURNS: 1 on error, otherwise 0.
+//
+int instrumentParse(char *inbuf, char **inst, unsigned int *station)
 {
   char *saveptr, *token1, *token2;
   token1 = token2 = NULL;
   static char line[MAXLINE+1];
-  int rv = 0;
+  int rv = 0; // return value
 
   strncpy(line, inbuf, MAXLINE);
   token1 = strtok_r(line, ":", &saveptr);
@@ -82,7 +99,7 @@ int instrumentParse(char *inbuf, char **inst, int *station)
     }
     token2 = strtok_r(NULL, ":", &saveptr);
     if (token2) {
-      if (sscanf(token2, "%d", station) != 1) {
+      if (sscanf(token2, "%u", station) != 1) {
         rv = 1; // error
       }
     } else {
@@ -98,11 +115,11 @@ int main(int argc, char* argv[]) {
   int ii;
   int parseErr = 0;
   char *inst = "";
-  int station = -1;
+  unsigned int station = DEFAULT_STATION;
   char *rcpath = DEFAULT_RCPATH;
-  unsigned verbose = 0;
-  std::vector<std::string> instList;
-  std::vector<std::string>::iterator it;
+  unsigned int verbose = 0;
+  instList_t instList;
+  instList_t::iterator it;
 
   while ((ii = getopt(argc, argv, "hp:v")) != -1) {
     switch (ii) {
@@ -129,7 +146,7 @@ int main(int argc, char* argv[]) {
         parseErr++;
         break;
       } else {
-        instList.push_back(inst);
+        instList.push_back(std::make_pair(inst, station));
       }
     }
   }
@@ -144,9 +161,14 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
+  int rv = 0;
+
   for (it = instList.begin(); it != instList.end(); it++) {
-    instrumentPrint(rcpath, *it, verbose);
+    if (instrumentPrint(rcpath, it->first, it->second, verbose, argv[0]) != 0) {
+      rv = 1;
+      break;
+    }
   }
 
-  return 0;
+  return (rv);
 }
