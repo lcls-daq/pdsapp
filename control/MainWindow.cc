@@ -243,7 +243,8 @@ MainWindow::MainWindow(unsigned          platform,
       _offlineclient = new OfflineClient(offlinerc, partition, experiment);
     }
     else {
-      _offlineclient = new OfflineClient(offlinerc, partition);
+      printf("%s: Couldn't initialize offline client without experiment name\n",
+             __PRETTY_FUNCTION__);
     }
     // option A: run number maintained in a mysql database
     _runallocator = new MySqlRunAllocator(_offlineclient);
