@@ -139,20 +139,22 @@ cam_libs := pdsdata/opal1kdata pdsdata/quartzdata pdsdata/fccddata pdsdata/pulni
 
 tgtsrcs_cam := cam.cc 
 tgtlibs_cam := $(commonlibs) $(cam_libs)
-tgtlibs_cam += pds/camera
+tgtlibs_cam += pds/camera pds/epicstools epics/ca epics/Com
 tgtlibs_cam += $(leutron_libs)
 tgtincs_cam := leutron/include
+tgtincs_cam += epics/include epics/include/os/Linux
 
 tgtsrcs_camedt := camedt.cc 
 tgtlibs_camedt := pdsdata/xtcdata
 tgtlibs_camedt += $(cam_libs)
 tgtlibs_camedt += pds/service pds/collection pds/xtc pds/mon pds/vmon 
 tgtlibs_camedt += pds/utility pds/management pds/client pds/config 
-tgtlibs_camedt += pds/camera
+tgtlibs_camedt += pds/camera pds/epicstools epics/ca epics/Com
 tgtlibs_camedt += pdsapp/devapp
 tgtlibs_camedt += $(edt_libs)
 tgtslib_camedt := $(USRLIBDIR)/rt/rt $(USRLIBDIR)/rt/dl
 tgtincs_camedt := edt/include
+tgtincs_camedt += epics/include epics/include/os/Linux
 
 tgtsrcs_opal1k := opal1k.cc 
 tgtlibs_opal1k := $(commonlibs) $(cam_libs)
