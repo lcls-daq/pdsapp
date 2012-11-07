@@ -66,6 +66,7 @@ tgtslib_bldClientTest := $(USRLIBDIR)/rt
 
 tgtsrcs_bldServerTest := bldServerTest.cpp bldServerTest.h
 tgtlibs_bldServerTest := pds/service
+tgtlibs_bldServerTest += $(commonlibs)
 tgtslib_bldServerTest := $(USRLIBDIR)/rt
 
 tgtsrcs_bldMonitor := bldMonitor.cc bldMonitor.hh 
