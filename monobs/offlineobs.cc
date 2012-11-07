@@ -103,18 +103,13 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (platform == -1UL || !partition || !offlinerc) {
+  if (platform == -1UL || !partition || !offlinerc || !experiment_name) {
     fprintf(stderr, "Missing parameters!\n");
     usage(argv[0]);
     return 1;
   }
 
-  if (!experiment_name) {
-    offlineclient = new OfflineClient(offlinerc, partition);
-  }
-  else {
-    offlineclient = new OfflineClient(offlinerc, partition, experiment_name);
-  }
+  offlineclient = new OfflineClient(offlinerc, partition, experiment_name);
 
   app = new OfflineAppliance(offlineclient, parm_list_file);
   if (app) {
