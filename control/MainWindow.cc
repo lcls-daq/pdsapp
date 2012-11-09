@@ -222,8 +222,10 @@ MainWindow::MainWindow(unsigned          platform,
            const char*       db_path,
            const char*       offlinerc,
            const char*       runNumberFile,
-           const char*       experiment,
-                       unsigned          sequencer_id) :
+           unsigned          station,
+           unsigned          sequencer_id,
+           const char*       instr,
+           bool              verbose) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
   _control  (new QualifiedControl(platform, *_controlcb, new ControlTimeout(*this))),
@@ -238,17 +240,18 @@ MainWindow::MainWindow(unsigned          platform,
   unsigned int      experiment_number = 0;
 
   if (offlinerc) {
-    // offline database
-    if (experiment) {
-      _offlineclient = new OfflineClient(offlinerc, partition, experiment);
-    }
-    else {
-      printf("%s: Couldn't initialize offline client without experiment name\n",
-             __PRETTY_FUNCTION__);
-    }
     // option A: run number maintained in a mysql database
-    _runallocator = new MySqlRunAllocator(_offlineclient);
+    _offlineclient = new OfflineClient(offlinerc, instr, station, verbose);
     experiment_number = _offlineclient->GetExperimentNumber();
+    const char *expname = _offlineclient->GetExperimentName();
+    if (expname) {
+      printf("%s: instrument %s:%u experiment %s (#%u)\n", __FUNCTION__,
+             instr, station, expname, experiment_number);
+    } else {
+      fprintf(stderr, "%s: failed to find current experiment for %s:%u\n",
+              __FUNCTION__, instr, station);
+    }
+    _runallocator = new MySqlRunAllocator(_offlineclient);
     _control->set_experiment(experiment_number);
   } else if (runNumberFile) {
     // option B: run number maintained in a simple file

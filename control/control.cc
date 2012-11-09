@@ -11,6 +11,12 @@
 using namespace Pds;
 using Pds_ConfigDb::Experiment;
 
+static void usage(char *argv0)
+{
+  printf("usage: %s -p <platform> -P <partition_description> -D <db name> [-b <bld>]\n"
+         "             [-L <offlinerc> | -R <run_number_file>]\n", argv0);
+}
+
 int main(int argc, char** argv)
 {
   unsigned platform = -1UL;
@@ -20,12 +26,12 @@ int main(int argc, char** argv)
   const char* dbpath    = "none";
   const char* offlinerc = (char *)NULL;
   const char* runNumberFile = (char *)NULL;
-  const char* experiment = (char *)NULL;
   unsigned    sequencer_id = 0;
   unsigned key=0;
+  int verbose = 0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:b:P:D:L:R:E:S:")) != -1) {
+  while ((c = getopt(argc, argv, "p:b:P:D:L:R:E:S:v")) != -1) {
     char* endPtr;
     switch (c) {
     case 'b':
@@ -51,17 +57,34 @@ int main(int argc, char** argv)
       runNumberFile = optarg;
       break;
     case 'E':
-      experiment = optarg;
+      printf("%s: -E flag ignored\n", argv[0]);
       break;
     case 'S':
       sequencer_id = strtoul(optarg, &endPtr, 0);
       break;
+    case 'v':
+      ++verbose;
+      break;
     }
   }
-  if ((platform==-1UL || !partition || !dbpath) || (!offlinerc && experiment) || (offlinerc && runNumberFile)) {
-    printf("usage: %s -p <platform> -P <partition_description> -D <db name> [-b <bld>]\n"
-           "             [-L <offlinerc> | -R <run_number_file>] [-E <experiment_name>]\n", argv[0]);
+  if ((platform==-1UL || !partition || !dbpath) || (offlinerc && runNumberFile)) {
+    usage(argv[0]);
     return 0;
+  }
+  // Parse instrument name for optional station number.
+  // Examples: "AMO", "SXR:0", "CXI:0", "CXI:1" 
+  char instr[64];
+  unsigned station = 0u;
+  char *pColon;
+  strncpy(instr, partition, sizeof(instr));
+  pColon = index(instr, ':');
+  if (pColon) {
+    *pColon++ = '\0';
+    if (sscanf(pColon, "%u", &station) != 1) {
+      fprintf(stderr, "%s: Error parsing instrument name '%s'\n", argv[0], partition);
+      usage(argv[0]);
+      return 0;
+    }
   }
 
   int _argc=1;
@@ -73,8 +96,10 @@ int main(int argc, char** argv)
                                       dbpath,
                                       offlinerc,
                                       runNumberFile,
-                                      experiment,
-                                      sequencer_id);
+                                      station,
+                                      sequencer_id,
+                                      instr,
+                                      (verbose > 0));
   window->show();
   app.exec();
 

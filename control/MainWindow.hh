@@ -23,12 +23,14 @@ namespace Pds {
     Q_OBJECT
   public:
     MainWindow(unsigned          platform,
-	       const char*       partition,
-	       const char*       dbpath,
-	       const char*       offlinerc,
-         const char*       runNumberFile,
-	       const char*       experiment,
-               unsigned          sequencer_id);
+               const char*       partition,
+               const char*       dbpath,
+               const char*       offlinerc,
+               const char*       runNumberFile,
+               unsigned          station,
+               unsigned          sequencer_id,
+               const char*       instr,
+               bool              verbose);
     ~MainWindow();
 
     // Unix signal handlers.
