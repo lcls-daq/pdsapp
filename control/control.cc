@@ -14,7 +14,7 @@ using Pds_ConfigDb::Experiment;
 static void usage(char *argv0)
 {
   printf("usage: %s -p <platform> -P <partition_description> -D <db name> [-b <bld>]\n"
-         "             [-L <offlinerc> | -R <run_number_file>]\n", argv0);
+         "             [-L <offlinerc> | -R <run_number_file>] [-v]\n", argv0);
 }
 
 int main(int argc, char** argv)
