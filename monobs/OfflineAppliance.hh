@@ -56,6 +56,7 @@ namespace Pds {
     const char * _experiment_name;
     unsigned int _experiment_number;
     unsigned int _run_number;
+    unsigned int _station;
     const char * _parm_list_file;
     bool         _parm_list_initialized;
     parm_channel_t  *_channels;

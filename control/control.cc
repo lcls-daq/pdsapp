@@ -71,21 +71,6 @@ int main(int argc, char** argv)
     usage(argv[0]);
     return 0;
   }
-  // Parse instrument name for optional station number.
-  // Examples: "AMO", "SXR:0", "CXI:0", "CXI:1" 
-  char instr[64];
-  unsigned station = 0u;
-  char *pColon;
-  strncpy(instr, partition, sizeof(instr));
-  pColon = index(instr, ':');
-  if (pColon) {
-    *pColon++ = '\0';
-    if (sscanf(pColon, "%u", &station) != 1) {
-      fprintf(stderr, "%s: Error parsing instrument name '%s'\n", argv[0], partition);
-      usage(argv[0]);
-      return 0;
-    }
-  }
 
   int _argc=1;
   char* _argv[] = { "DAQ Control", NULL };
@@ -96,9 +81,7 @@ int main(int argc, char** argv)
                                       dbpath,
                                       offlinerc,
                                       runNumberFile,
-                                      station,
                                       sequencer_id,
-                                      instr,
                                       (verbose > 0));
   window->show();
   app.exec();

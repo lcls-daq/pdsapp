@@ -27,6 +27,7 @@ OfflineAppliance::OfflineAppliance(OfflineClient* offlineclient, const char *par
 {
   _path = offlineclient->GetPath();
   _instrument_name = offlineclient->GetInstrumentName();
+  _station = offlineclient->GetStationNumber();
   _experiment_name = offlineclient->GetExperimentName();
 }
 
@@ -82,8 +83,8 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
       _parm_list_initialized = true;
     }
 
-    printf("Storing BeginRun LogBook information for %s/%s Run #%u\n",
-            _instrument_name, _experiment_name, _run_number);
+    printf("Storing BeginRun LogBook information for %s:%u/%s Run #%u\n",
+            _instrument_name, _station, _experiment_name, _run_number);
     try {
       conn = LogBook::Connection::open(_path);
 
@@ -145,8 +146,8 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
   else if ((tr->id()==TransitionId::EndRun) &&
            (_run_number != NotRecording)) {
 
-    printf("Storing EndRun LogBook information for %s/%s Run #%u\n",
-            _instrument_name, _experiment_name, _run_number);
+    printf("Storing EndRun LogBook information for %s:%u/%s Run #%u\n",
+            _instrument_name, _station, _experiment_name, _run_number);
     try {
       conn = LogBook::Connection::open(_path);
 

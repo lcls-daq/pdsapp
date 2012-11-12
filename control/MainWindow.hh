@@ -27,9 +27,7 @@ namespace Pds {
                const char*       dbpath,
                const char*       offlinerc,
                const char*       runNumberFile,
-               unsigned          station,
                unsigned          sequencer_id,
-               const char*       instr,
                bool              verbose);
     ~MainWindow();
 

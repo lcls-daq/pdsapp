@@ -222,9 +222,7 @@ MainWindow::MainWindow(unsigned          platform,
            const char*       db_path,
            const char*       offlinerc,
            const char*       runNumberFile,
-           unsigned          station,
            unsigned          sequencer_id,
-           const char*       instr,
            bool              verbose) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
@@ -241,17 +239,23 @@ MainWindow::MainWindow(unsigned          platform,
 
   if (offlinerc) {
     // option A: run number maintained in a mysql database
-    _offlineclient = new OfflineClient(offlinerc, instr, station, verbose);
-    experiment_number = _offlineclient->GetExperimentNumber();
-    const char *expname = _offlineclient->GetExperimentName();
-    if (expname) {
-      printf("%s: instrument %s:%u experiment %s (#%u)\n", __FUNCTION__,
-             instr, station, expname, experiment_number);
+    PartitionDescriptor pd(partition);
+    if (pd.valid()) {
+      _offlineclient = new OfflineClient(offlinerc, pd, verbose);
+      experiment_number = _offlineclient->GetExperimentNumber();
+      const char *expname = _offlineclient->GetExperimentName();
+      if (expname) {
+        printf("%s: partition '%s' experiment '%s' (#%u)\n", __FUNCTION__,
+               partition, expname, experiment_number);
+      } else {
+        fprintf(stderr, "%s: failed to find current experiment for partition '%s'\n",
+                __FUNCTION__, partition);
+      }
+      _runallocator = new MySqlRunAllocator(_offlineclient);
     } else {
-      fprintf(stderr, "%s: failed to find current experiment for %s:%u\n",
-              __FUNCTION__, instr, station);
+      fprintf(stderr, "%s: partition '%s' is not valid\n",
+              __FUNCTION__, partition);
     }
-    _runallocator = new MySqlRunAllocator(_offlineclient);
     _control->set_experiment(experiment_number);
   } else if (runNumberFile) {
     // option B: run number maintained in a simple file

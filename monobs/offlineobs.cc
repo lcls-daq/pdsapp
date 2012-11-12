@@ -114,25 +114,18 @@ int main(int argc, char** argv) {
 
   // Parse instrument name for optional station number.
   // Examples: "AMO", "SXR:0", "CXI:0", "CXI:1" 
-  char instr[64];
-  unsigned station = 0u;
-  char *pColon;
-  strncpy(instr, partition, sizeof(instr));
-  pColon = index(instr, ':');
-  if (pColon) {
-    *pColon++ = '\0';
-    if (sscanf(pColon, "%u", &station) != 1) {
-      fprintf(stderr, "%s: Error parsing instrument name '%s'\n", argv[0], partition);
-      usage(argv[0]);
-      return 1;
-    }
+  PartitionDescriptor pd(partition);
+  if (!pd.valid()) {
+    fprintf(stderr, "%s: Error parsing partition '%s'\n", argv[0], partition);
+    usage(argv[0]);
+    return 1;
   }
-  offlineclient = new OfflineClient(offlinerc, instr, station, (verbose > 0));
+  offlineclient = new OfflineClient(offlinerc, pd, (verbose > 0));
 
   const char *expname = offlineclient->GetExperimentName();
   if (expname) {
     printf("%s: instrument %s:%u experiment %s (#%u)\n", argv[0],
-           instr, station, expname, offlineclient->GetExperimentNumber());
+           pd.GetInstrumentName().c_str(), pd.GetStationNumber(), expname, offlineclient->GetExperimentNumber());
     app = new OfflineAppliance(offlineclient, parm_list_file);
   } else {
     fprintf(stderr, "%s: failed to find current experiment\n", argv[0]);

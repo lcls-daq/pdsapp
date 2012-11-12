@@ -115,7 +115,12 @@ ParasiticRecorder::ParasiticRecorder(Task*         task,
   if (_offlinerc) {
     _expname = options.expname;
     if (_expname) {
-      _offlineclient = new OfflineClient(_offlinerc, _partition, _expname);
+      PartitionDescriptor pd(_partition);
+      if (pd.valid()) {
+        _offlineclient = new OfflineClient(_offlinerc, pd, true);
+      } else {
+        printf("%s: partition '%s' not valid\n", __FUNCTION__, _partition);
+      }
     }
   }
 }

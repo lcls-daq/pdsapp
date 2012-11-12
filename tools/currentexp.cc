@@ -18,9 +18,9 @@
 #include <vector>
 #include <utility>
 
-typedef std::vector< std::pair<std::string,unsigned int> > instList_t;
-
 using namespace Pds;
+
+typedef std::vector<PartitionDescriptor> descList_t;
 
 void usage(char* progname) {
   fprintf(stderr,"Usage: %s [OPTION]... <instrument name>[:<station #>]...\n", progname);
@@ -46,13 +46,10 @@ static bool fileExists(const char *path) {
 //
 // RETURNS: 1 on error, otherwise 0.
 //
-int instrumentPrint(const char *offlinerc, std::string instr, unsigned int station, unsigned int verbose, const char *argv0) {
+int instrumentPrint(const char *offlinerc, PartitionDescriptor& desc, unsigned int verbose, const char *argv0) {
   int rv = 1;   // return error by default
 
-  const char *partition = instr.c_str();
-  OfflineClient* offlineclient;
-
-  offlineclient = new OfflineClient(offlinerc, partition, station, (verbose > 1));
+  OfflineClient* offlineclient = new OfflineClient(offlinerc, desc, (verbose > 1));
 
   if (offlineclient == NULL) {
     fprintf(stderr,"%s: failed to instantiate OfflineClient\n", argv0);
@@ -71,55 +68,22 @@ int instrumentPrint(const char *offlinerc, std::string instr, unsigned int stati
                                offlineclient->GetExperimentName(),
                                offlineclient->GetExperimentNumber());
     }
+  }
+
+  if (offlineclient != NULL) {
     delete offlineclient;
   }
 
   return (rv);
 }
 
-//
-// instrumentParse -
-//
-// RETURNS: 1 on error, otherwise 0.
-//
-int instrumentParse(char *inbuf, char **inst, unsigned int *station)
-{
-  char *saveptr, *token1, *token2;
-  token1 = token2 = NULL;
-  static char line[MAXLINE+1];
-  int rv = 0; // return value
-
-  strncpy(line, inbuf, MAXLINE);
-  token1 = strtok_r(line, ":", &saveptr);
-  if (token1) {
-    *inst = token1;
-    while (*token1) {
-      *token1 = toupper(*token1);
-      token1++;
-    }
-    token2 = strtok_r(NULL, ":", &saveptr);
-    if (token2) {
-      if (sscanf(token2, "%u", station) != 1) {
-        rv = 1; // error
-      }
-    } else {
-      *station = DEFAULT_STATION;
-    }
-  } else {
-    rv = 1; // error
-  }
-  return (rv);
-}
-
 int main(int argc, char* argv[]) {
   int ii;
   int parseErr = 0;
-  char *inst = "";
-  unsigned int station = DEFAULT_STATION;
   char *rcpath = DEFAULT_RCPATH;
   unsigned int verbose = 0;
-  instList_t instList;
-  instList_t::iterator it;
+  descList_t descList;
+  descList_t::iterator it;
 
   while ((ii = getopt(argc, argv, "hp:v")) != -1) {
     switch (ii) {
@@ -142,11 +106,12 @@ int main(int argc, char* argv[]) {
     parseErr++;
   } else {
     for (ii = optind; ii < argc; ii++) {
-      if (instrumentParse(argv[ii], &inst, &station) != 0) {
+      PartitionDescriptor pd(argv[ii]);
+      if (!pd.valid()) {
         parseErr++;
         break;
       } else {
-        instList.push_back(std::make_pair(inst, station));
+        descList.push_back(pd);
       }
     }
   }
@@ -163,8 +128,8 @@ int main(int argc, char* argv[]) {
 
   int rv = 0;
 
-  for (it = instList.begin(); it != instList.end(); it++) {
-    if (instrumentPrint(rcpath, it->first, it->second, verbose, argv[0]) != 0) {
+  for (it = descList.begin(); it != descList.end(); it++) {
+    if (instrumentPrint(rcpath, *it, verbose, argv[0]) != 0) {
       rv = 1;
       break;
     }
