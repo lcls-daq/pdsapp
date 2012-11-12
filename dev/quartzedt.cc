@@ -23,6 +23,7 @@
 #include <stdio.h>
 
 static bool verbose = false;
+static Pds::QuartzCamera::CLMode _mode = Pds::QuartzCamera::Full;
 
 static void usage(const char* p)
 {
@@ -30,9 +31,10 @@ static void usage(const char* p)
   printf("<detinfo> = integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Quartz4A150/1 or 22/0/1)\n");
 }
 
-static Pds::CameraDriver* _driver(int id, const Pds::Src& src) 
+static Pds::CameraDriver* _driver(int id, const Pds::Src& src)
 {
-  return new Pds::EdtPdvCL(*new Pds::QuartzCamera(static_cast<const Pds::DetInfo&>(src)),0,id);
+  return new Pds::EdtPdvCL(*new Pds::QuartzCamera(static_cast<const Pds::DetInfo&>(src),_mode),
+                           0,id);
 }
 
 namespace Pds {
@@ -139,7 +141,7 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:vBMF")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -159,6 +161,9 @@ int main(int argc, char** argv) {
     case 'v':
       verbose = true;
       break;
+    case 'B': _mode = Pds::QuartzCamera::Base  ; break;
+    case 'M': _mode = Pds::QuartzCamera::Medium; break;
+    case 'F': _mode = Pds::QuartzCamera::Full  ; break;
     }
   }
 
