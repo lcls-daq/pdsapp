@@ -109,7 +109,7 @@ class caconn {
             // vertical_remap = true, enable_pixel_creation = false.
             if (binned) {
                 new ((void *)cfg->alloc(sizeof(Opal1k::ConfigV1)))
-                    Opal1k::ConfigV1(32, 100, Opal1k::ConfigV1::Eight_bit, Opal1k::ConfigV1::x2,
+                    Opal1k::ConfigV1(32, 100, Opal1k::ConfigV1::Twelve_bit, Opal1k::ConfigV1::x1,
                                      Opal1k::ConfigV1::None, true, false);
             } else {
                 new ((void *)cfg->alloc(sizeof(Opal1k::ConfigV1)))
@@ -136,7 +136,7 @@ class caconn {
             break;
         case DetInfo::Opal1000:
             if (binned)
-                f = new ((char *)hdr->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(512, 512, 8, 32);
+                f = new ((char *)hdr->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(256, 1024, 12, 32);
             else
                 f = new ((char *)hdr->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 1024, 12, 32);
             break;

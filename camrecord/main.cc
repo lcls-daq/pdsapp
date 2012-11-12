@@ -201,16 +201,29 @@ void cleanup(void)
 {
     double runtime;
 
+    gettimeofday(&stop, NULL);
+
     cleanup_bld();
     cleanup_ca();
     cleanup_xtc();
 
-    gettimeofday(&stop, NULL);
     runtime = (1000000LL * stop.tv_sec + stop.tv_usec) - 
               (1000000LL * start.tv_sec + start.tv_usec);
     runtime /= 1000000.;
     fprintf(stderr, "Runtime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
             runtime, record_cnt, ((double) record_cnt) / runtime);
+}
+
+void usage(void)
+{
+    fprintf(stderr, "Usage: camrecord [ OPTION ]...\n");
+    fprintf(stderr, "Record camera PVs and BLDs into a file.  Options are:\n");
+    fprintf(stderr, "    -h, --help                       = Print this help text.\n");
+    fprintf(stderr, "    -c FILE, --config FILE           = Specify the configuration file.\n");
+    fprintf(stderr, "    -o FILE, --output FILE           = The name of the XTC file to be saved.\n");
+    fprintf(stderr, "    -t SECS, --timeout SECS          = Seconds to record after connecting.\n");
+    fprintf(stderr, "If no timeout is specified, recording will continue until interrupted with ^C.\n");
+    exit(0);
 }
 
 int main(int argc, char **argv)
@@ -230,14 +243,8 @@ int main(int argc, char **argv)
     while ((c = getopt_long(argc, argv, "hc:o:t:", long_options, &idx)) != -1) {
         switch (c) {
         case 'h':
-            fprintf(stderr, "Usage: camrecord [ OPTION ]...\n");
-            fprintf(stderr, "Record camera PVs and BLDs into a file.  Options are:\n");
-            fprintf(stderr, "    -h, --help                       = Print this help text.\n");
-            fprintf(stderr, "    -c FILE, --config FILE           = Specify the configuration file.\n");
-            fprintf(stderr, "    -o FILE, --output FILE           = The name of the XTC file to be saved.\n");
-            fprintf(stderr, "    -t SECS, --timeout SECS          = Seconds to record after connecting.\n");
-            fprintf(stderr, "If no timeout is specified, recording will continue until interrupted with ^C.\n");
-            exit(0);
+            usage();
+            break;
         case 'c':
             config = optarg;
             break;
@@ -250,6 +257,11 @@ int main(int argc, char **argv)
         }
     }
 
+    if (!outfile) {
+        fprintf(stderr, "No output file specified!\n\n");
+        usage();
+        /* No return! */
+    }
     initialize(config, outfile);
 
     signal(SIGINT, int_handler);
