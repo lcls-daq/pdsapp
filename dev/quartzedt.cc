@@ -27,14 +27,14 @@ static Pds::QuartzCamera::CLMode _mode = Pds::QuartzCamera::Full;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -v\n",p);
+  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -c <channel> -v\n",p);
   printf("<detinfo> = integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Quartz4A150/1 or 22/0/1)\n");
 }
 
-static Pds::CameraDriver* _driver(int id, const Pds::Src& src)
+static Pds::CameraDriver* _driver(int id, int channel, const Pds::Src& src)
 {
   return new Pds::EdtPdvCL(*new Pds::QuartzCamera(static_cast<const Pds::DetInfo&>(src),_mode),
-                           0,id);
+                           id,channel);
 }
 
 namespace Pds {
@@ -48,11 +48,13 @@ namespace Pds {
     SegTest(Task*                 task,
 	    unsigned              platform,
 	    const Src&            src,
-	    unsigned              grabberId) :
+	    unsigned              grabberId,
+            unsigned              channel) :
       _task    (task),
       _platform(platform),
       _quartz  (new QuartzManager(src)),
-      _grabberId(grabberId)
+      _grabberId(grabberId),
+      _channel  (channel)
     {
       _sources.push_back(_quartz->server().client());
     }
@@ -88,7 +90,7 @@ namespace Pds {
       _quartz->appliance().connect(frmk->inlet());
       //      (new Decoder)->connect(frmk->inlet());
 
-      _quartz->attach(_driver(_grabberId,_sources.front()));
+      _quartz->attach(_driver(_grabberId,_channel,_sources.front()));
     }
     void failed(Reason reason)
     {
@@ -122,6 +124,7 @@ namespace Pds {
     unsigned       _platform;
     QuartzManager* _quartz;
     int            _grabberId;
+    int            _channel;
     std::list<Src> _sources;
   };
 }
@@ -138,10 +141,11 @@ int main(int argc, char** argv) {
   DetInfo info;
 
   unsigned grabberId(0);
+  unsigned channel  (0);
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:vBMF")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:c:vBMF")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -157,6 +161,9 @@ int main(int argc, char** argv) {
       break;
     case 'g':
       grabberId = strtoul(optarg, NULL, 0);
+      break;
+    case 'c':
+      channel = strtoul(optarg, NULL, 0);
       break;
     case 'v':
       verbose = true;
@@ -191,7 +198,8 @@ int main(int argc, char** argv) {
   SegTest* segtest = new SegTest(task, 
 				 platform, 
                                  info,
-				 grabberId);
+				 grabberId,
+                                 channel);
 
   printf("Creating segment level ...\n");
   SegmentLevel* segment = new SegmentLevel(platform, 

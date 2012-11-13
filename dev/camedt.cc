@@ -32,11 +32,11 @@ static bool verbose = false;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -v\n",p);
+  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -c <channel> -v\n",p);
   printf("<detinfo> = integer/integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n");
 }
 
-static Pds::CameraDriver* _driver(int id, const Pds::Src& src)
+static Pds::CameraDriver* _driver(int id, int channel, const Pds::Src& src)
 {
   const Pds::DetInfo info = static_cast<const Pds::DetInfo&>(src);
   switch(info.device()) {
@@ -45,11 +45,11 @@ static Pds::CameraDriver* _driver(int id, const Pds::Src& src)
   case Pds::DetInfo::Opal4000:
   case Pds::DetInfo::Opal1600:
   case Pds::DetInfo::Opal8000:
-    return new Pds::EdtPdvCL(*new Pds::Opal1kCamera(info),0,id);
+    return new Pds::EdtPdvCL(*new Pds::Opal1kCamera(info),id,channel);
   case Pds::DetInfo::TM6740  :
-    return new Pds::EdtPdvCL(*new Pds::TM6740Camera,0,id);
+    return new Pds::EdtPdvCL(*new Pds::TM6740Camera,id,channel);
   case Pds::DetInfo::Quartz4A150:
-    return new Pds::EdtPdvCL(*new Pds::QuartzCamera(info),0,id);
+    return new Pds::EdtPdvCL(*new Pds::QuartzCamera(info),id,channel);
   default:
     printf("Unsupported camera %s\n",Pds::DetInfo::name(info.device()));
     exit(1);
@@ -72,10 +72,12 @@ namespace Pds {
 	    unsigned              platform,
 	    const Src&            src,
 	    unsigned              grabberId,
+	    unsigned              channel,
             const AppList&        user_apps) :
       _task     (task),
       _platform (platform),
       _grabberId(grabberId),
+      _channel  (channel),
       _user_apps(user_apps)
     {
       const Pds::DetInfo info = static_cast<const Pds::DetInfo&>(src);
@@ -131,7 +133,7 @@ namespace Pds {
         (*it)->connect(frmk->inlet());
 
       _camman->appliance().connect(frmk->inlet());
-      _camman->attach(_driver(_grabberId, _sources.front()));
+      _camman->attach(_driver(_grabberId, _channel, _sources.front()));
     }
     void failed(Reason reason)
     {
@@ -165,6 +167,7 @@ namespace Pds {
     unsigned       _platform;
     CameraManager* _camman;
     int            _grabberId;
+    int            _channel;
     std::list<Src> _sources;
     AppList        _user_apps;
   };
@@ -183,11 +186,12 @@ int main(int argc, char** argv) {
   AppList user_apps;
 
   unsigned grabberId(0);
+  unsigned channel  (0);
 
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:L:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:c:L:v")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -203,6 +207,9 @@ int main(int argc, char** argv) {
       break;
     case 'g':
       grabberId = strtoul(optarg, &endPtr, 0);
+      break;
+    case 'c':
+      channel = strtoul(optarg, &endPtr, 0);
       break;
     case 'L':
       { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
@@ -259,6 +266,7 @@ int main(int argc, char** argv) {
 				 platform, 
                                  info,
 				 grabberId,
+				 channel,
                                  user_apps);
 
   if (info.device()==DetInfo::Opal4000)
