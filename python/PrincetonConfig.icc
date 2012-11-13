@@ -15,6 +15,7 @@ DefineXtcType(PrincetonConfig) ;
 #include "pdsdata/princeton/ConfigV1.hh"
 #include "pdsdata/princeton/ConfigV2.hh"
 #include "pdsdata/princeton/ConfigV3.hh"
+#include "pdsdata/princeton/ConfigV4.hh"
 #include <new>
 
 
@@ -76,6 +77,28 @@ PyObject* pds_PrincetonConfig_get (PyObject*   self, PyObject* args)
     SetDictMember(orgY,false); 
     SetDictMember(binX,false);
     SetDictMember(binY,false);
+    SetDictMember(exposureTime,true);
+    SetDictMember(coolingTemp,true);
+    SetDictMember(gainIndex,false);
+    SetDictMember(readoutSpeedIndex,false);
+    SetDictMember(exposureEventCode,false);
+    SetDictMember(numDelayShots,false);
+
+    return o;
+  }
+  else if (xtc->contains.version()==4) {
+    const Pds::Princeton::ConfigV4* cfg =
+      reinterpret_cast<const Pds::Princeton::ConfigV4*>(xtc->payload);
+
+    SetDictMember(width,false);
+    SetDictMember(height,false);
+    SetDictMember(orgX,false);
+    SetDictMember(orgY,false); 
+    SetDictMember(binX,false);
+    SetDictMember(binY,false);
+    SetDictMember(maskedHeight,false);
+    SetDictMember(kineticHeight,false);
+    SetDictMember(vsSpeed,true);
     SetDictMember(exposureTime,true);
     SetDictMember(coolingTemp,true);
     SetDictMember(gainIndex,false);
@@ -199,6 +222,43 @@ PyObject* pds_PrincetonConfig_set    (PyObject*   self, PyObject* args)
                       (uint32_t) orgY,
                       (uint32_t) binX,
                       (uint32_t) binY,
+                      (float) exposureTime,
+                      (float) coolingTemp,
+                      (uint8_t) gainIndex,
+                      (uint8_t) readoutSpeedIndex,
+                      (uint16_t) exposureEventCode,
+                      (uint16_t) numDelayShots); 
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else if (xtc->contains.version()==4) {
+    const Pds::Princeton::ConfigV4* cfg =
+      reinterpret_cast<const Pds::Princeton::ConfigV4*>(xtc->payload);
+
+    SetDictMember(width);
+    SetDictMember(height);
+    SetDictMember(orgX);
+    SetDictMember(orgY);
+    SetDictMember(binX);
+    SetDictMember(binY);
+    SetDictMember(maskedHeight);
+    SetDictMember(kineticHeight);
+    SetDictMember(vsSpeed);
+    SetDictMember(exposureTime);
+    SetDictMember(coolingTemp);
+    SetDictMember(gainIndex);
+    SetDictMember(readoutSpeedIndex);
+    SetDictMember(exposureEventCode);
+    SetDictMember(numDelayShots);
+    new(xtc->payload) Pds::Princeton::ConfigV4((uint32_t) width,
+                      (uint32_t) height,
+                      (uint32_t) orgX,
+                      (uint32_t) orgY,
+                      (uint32_t) binX,
+                      (uint32_t) binY,
+                      (uint32_t) maskedHeight,
+                      (uint32_t) kineticHeight,
+                      (float) vsSpeed,
                       (float) exposureTime,
                       (float) coolingTemp,
                       (uint8_t) gainIndex,
