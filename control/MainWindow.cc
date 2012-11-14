@@ -239,14 +239,16 @@ MainWindow::MainWindow(unsigned          platform,
 
   if (offlinerc) {
     // option A: run number maintained in a mysql database
-    PartitionDescriptor pd(partition);
-    if (pd.valid()) {
-      _offlineclient = new OfflineClient(offlinerc, pd, verbose);
+    _pd = new PartitionDescriptor(partition);
+    if (_pd->valid()) {
+      _offlineclient = new OfflineClient(offlinerc, *_pd, verbose);
       experiment_number = _offlineclient->GetExperimentNumber();
       const char *expname = _offlineclient->GetExperimentName();
+      const char *instname = _offlineclient->GetInstrumentName();
+      unsigned station     = _offlineclient->GetStationNumber();
       if (expname) {
-        printf("%s: partition '%s' experiment '%s' (#%u)\n", __FUNCTION__,
-               partition, expname, experiment_number);
+        printf("%s: instrument '%s:%u' experiment '%s' (#%u)\n", __FUNCTION__,
+               instname, station, expname, experiment_number);
       } else {
         fprintf(stderr, "%s: failed to find current experiment for partition '%s'\n",
                 __FUNCTION__, partition);
@@ -326,6 +328,9 @@ MainWindow::~MainWindow()
   delete _pvmanager;
   if (_offlineclient) {
     delete _offlineclient;
+  }
+  if (_pd) {
+    delete _pd;
   }
 }
 
