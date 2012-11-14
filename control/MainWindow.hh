@@ -60,7 +60,6 @@ namespace Pds {
     OfflineClient*    _offlineclient;
     RunAllocator*     _runallocator;
     PartitionSelect*  _partition;
-    PartitionDescriptor*  _pd;
 
     // signal handler support
     QSocketNotifier *snInt;

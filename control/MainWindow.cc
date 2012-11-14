@@ -239,9 +239,9 @@ MainWindow::MainWindow(unsigned          platform,
 
   if (offlinerc) {
     // option A: run number maintained in a mysql database
-    _pd = new PartitionDescriptor(partition);
-    if (_pd->valid()) {
-      _offlineclient = new OfflineClient(offlinerc, *_pd, verbose);
+    PartitionDescriptor pd(partition);
+    if (pd.valid()) {
+      _offlineclient = new OfflineClient(offlinerc, pd, verbose);
       experiment_number = _offlineclient->GetExperimentNumber();
       const char *expname = _offlineclient->GetExperimentName();
       const char *instname = _offlineclient->GetInstrumentName();
@@ -328,9 +328,6 @@ MainWindow::~MainWindow()
   delete _pvmanager;
   if (_offlineclient) {
     delete _offlineclient;
-  }
-  if (_pd) {
-    delete _pd;
   }
 }
 
