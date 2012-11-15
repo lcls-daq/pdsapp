@@ -1,5 +1,5 @@
 #define EXACT_TS_MATCH
-//#define TRACE
+// #define TRACE
 #include<stdio.h>
 #include<signal.h>
 #include<string.h>
@@ -72,9 +72,30 @@ static struct event {
 } events[MAX_EVENTS];
 static struct event *evlist = NULL; // The oldest event.  Its prev is the newest event.
 
+void debug_list(struct event *ev)
+{
+    struct event *e = ev;
+
+    do {
+        printf("%2d: %08x:%08x\n", e->id, e->sec, e->nsec);
+        e = e->next;
+    } while (e != ev);
+}
+
+int length_list(struct event *ev)
+{
+    struct event *e = ev;
+    int i = 0;
+    do {
+        i++;
+        e = e->next;
+    } while (e != ev);
+    return i;
+}
+
 #ifdef EXACT_TS_MATCH
 #define ts_match(_ev, _sec, _nsec)          \
-    (int)(((_ev)->sec != (_sec)) ? ((_ev)->sec - (_sec)) : ((int)(_ev)->nsec - (_nsec)))
+    (int)(((_ev)->sec != (_sec)) ? ((_ev)->sec - (_sec)) : (0x1ffff & ((int)(_ev)->nsec - (_nsec))))
 #else
 static int ts_match(struct event *_ev, int _sec, int _nsec)
 {
@@ -228,6 +249,9 @@ static void reset_event(struct event *ev)
 {
     int i;
 
+#ifdef TRACE
+    printf("%08x:%08x R %d\n", ev->sec, ev->nsec, ev->id);
+#endif
     for (i = 0; i < numsrc; i++) {
         if (ev->data[i]) {
             if (!ev->ref[i])
@@ -323,13 +347,13 @@ static struct event *find_event(unsigned int sec, unsigned int nsec)
         /* Unlink tmp (evlist) from the list and move ahead evlist. */
         evlist = tmp->next;
         tmp->prev->next = evlist;
-        tmp->next->prev = tmp->prev;
+        evlist->prev = tmp->prev;
 
         /* Link tmp into the list after ev. */
         tmp->next = ev->next;
         ev->next->prev = tmp;
         tmp->prev = ev;
-        ev->prev->next = tmp;
+        ev->next = tmp;
 
         /* Let ev point to the new element. */
         ev = tmp;
@@ -337,6 +361,10 @@ static struct event *find_event(unsigned int sec, unsigned int nsec)
     ev->sec = sec;
     ev->nsec = nsec;
     ev->valid = 1;
+    if (length_list(evlist) != MAX_EVENTS) {
+        printf("OOPS! length=%d\n", length_list(evlist));
+        debug_list(evlist);
+    }
     return ev;
 }
 

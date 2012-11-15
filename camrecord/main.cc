@@ -24,7 +24,7 @@ class symbol {
         syms.push_back(this);
     };
     /* BLD */
-    symbol(string _name, int addr) : name(_name), address(addr), is_bld(1) {
+    symbol(string _name, int addr, int _revtime) : name(_name), address(addr), is_bld(1), revtime(_revtime) {
         syms.push_back(this);
     };
     static symbol *find(string _name) {
@@ -46,6 +46,7 @@ class symbol {
     int address;
     int is_bld;
     int binned;
+    int revtime;
 };
 
 vector<symbol *> symbol::syms;
@@ -119,7 +120,7 @@ static void record(string name, const char *arg)
         }
         if (s->is_bld) {
             printf("Found %s -> BLD at 239.255.24.%d\n", name.c_str(), s->address);
-            create_bld(s->name, s->address, (string)(arg ? arg : "eth0"));
+            create_bld(s->name, s->address, (string)(arg ? arg : "eth0"), s->revtime);
         } else {
             printf("Found %s -> CA to (%s,%s) at %s.\n", name.c_str(), 
                    s->detector.c_str(), s->camtype.c_str(), s->pvname.c_str());
@@ -156,8 +157,10 @@ static void read_config_file(const char *name)
                 new symbol(arrayTokens[1], arrayTokens[2], arrayTokens[3], arrayTokens[4], binned);
             }
         } else if (arrayTokens[0] == "bld") {
-            if (arrayTokens.size() >= 3 && isdigit(arrayTokens[2][0]))
-                new symbol(arrayTokens[1], atoi(arrayTokens[2].c_str()));
+            if (arrayTokens.size() >= 3 && isdigit(arrayTokens[2][0])) {
+                int revtime = (arrayTokens.size() >= 4 && arrayTokens[3] == "revtime");
+                new symbol(arrayTokens[1], atoi(arrayTokens[2].c_str()), revtime);
+            }
         } else if (arrayTokens[0] == "record") {
             if (arrayTokens.size() == 2)
                 record(arrayTokens[1], NULL);

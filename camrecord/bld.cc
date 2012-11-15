@@ -252,8 +252,8 @@ using namespace Pds;
 
 class bldconn {
  public:
-    bldconn(string _name, int _address, string _device)
-        : cfgdone(0), name(_name), address(_address | uDefaultAddr), device(_device) {
+    bldconn(string _name, int _address, string _device, int _revtime)
+        : cfgdone(0), revtime(_revtime), name(_name), address(_address | uDefaultAddr), device(_device) {
         id = conns.size();
         conns.push_back(this);
         bldServer = new BldServerSlim(address, uDefaultPort, uDefaultMaxDataSize,
@@ -282,6 +282,7 @@ class bldconn {
     int cfgdone;
     int id;
     int xid;
+    int revtime;
     BldServerSlim *bldServer;
  private:
     static vector<bldconn *> conns;
@@ -297,9 +298,9 @@ void initialize_bld(void)
     // We're good.
 }
 
-void create_bld(string name, int address, string device)
+void create_bld(string name, int address, string device, int revtime)
 {
-    new bldconn(name, address, device);
+    new bldconn(name, address, device, revtime);
 }
 
 void handle_bld(fd_set *rfds)
@@ -319,9 +320,14 @@ void handle_bld(fd_set *rfds)
                 c->cfgdone = 1;
             } else {
                 // Make sure the BLD puts the fiducial in the timestamp!
-                data_xtc(c->xid, dg2->seq.clock().seconds() - POSIX_TIME_AT_EPICS_EPOCH,
-                         (dg2->seq.clock().nanoseconds() & ~0x1ffff) | dg2->seq.stamp().fiducials(),
-                         &dg2->xtc, dg2->xtc.extent, NULL);
+                if (c->revtime)
+                    data_xtc(c->xid, dg2->seq.clock().nanoseconds() - POSIX_TIME_AT_EPICS_EPOCH,
+                             (dg2->seq.clock().seconds() & ~0x1ffff) | dg2->seq.stamp().fiducials(),
+                             &dg2->xtc, dg2->xtc.extent, NULL);
+                else
+                    data_xtc(c->xid, dg2->seq.clock().seconds() - POSIX_TIME_AT_EPICS_EPOCH,
+                             (dg2->seq.clock().nanoseconds() & ~0x1ffff) | dg2->seq.stamp().fiducials(),
+                             &dg2->xtc, dg2->xtc.extent, NULL);
             }
         }
     }

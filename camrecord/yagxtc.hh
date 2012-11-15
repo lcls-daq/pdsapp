@@ -12,7 +12,7 @@ extern int record_cnt;
 
 /* bld.cc */
 extern void initialize_bld(void);
-extern void create_bld(std::string name, int address, std::string device);
+extern void create_bld(std::string name, int address, std::string device, int revtime);
 extern void handle_bld(fd_set *rfds);
 extern void cleanup_bld(void);
 
