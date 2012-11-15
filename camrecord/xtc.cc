@@ -1,4 +1,7 @@
-#define EXACT_TS_MATCH
+#define EXACT_TS_MATCH       0
+#define FIDUCIAL_MATCH       1
+#define APPROXIMATE_MATCH    2
+#define MATCH_TYPE           FIDUCIAL_MATCH
 // #define TRACE
 #include<stdio.h>
 #include<signal.h>
@@ -93,16 +96,28 @@ int length_list(struct event *ev)
     return i;
 }
 
-#ifdef EXACT_TS_MATCH
-#define ts_match(_ev, _sec, _nsec)          \
-    (int)(((_ev)->sec != (_sec)) ? ((_ev)->sec - (_sec)) : (0x1ffff & ((int)(_ev)->nsec - (_nsec))))
-#else
 static int ts_match(struct event *_ev, int _sec, int _nsec)
 {
+#if MATCH_TYPE == EXACT_TS_MATCH
+    /* Exactly match the timestamps */
+    return (_ev->sec != _sec) ? ((int)_ev->sec - _sec) : ((int)_ev->nsec - _nsec);
+#endif
+
+#if MATCH_TYPE == FIDUCIAL_MATCH
+    /* Exactly match the fiducials, and make the seconds be close. */
+    int diff = _ev->sec - _sec;
+    if (abs(diff) <= 1) /* Close to the same second! */
+        return (0x1ffff & (int)_ev->nsec) - (0x1ffff & _nsec);
+    else
+        return diff;
+#endif
+
+#if MATCH_TYPE == APPROXIMATE_MATCH
+    /* Come within 6ms */
     double diff = (double)((int)(_ev->sec - _sec)) + ((double)(int)(_ev->nsec - _nsec))*1.0e-9;
     return (fabs(diff) < 6.0e-3) ? 0 : ((diff < 0) ? -1 : 0);
-}
 #endif
+}
 
 static void setup_datagram(TransitionId::Value val)
 {
@@ -331,6 +346,10 @@ static struct event *find_event(unsigned int sec, unsigned int nsec)
         }
         send_event(evlist);
     }
+#ifdef TRACE
+    else if (evlist->valid)
+        printf("%08x:%08x M %d\n", evlist->sec, evlist->nsec, evlist->id);
+#endif
     reset_event(evlist);
     /*
      * In the most common case, ev == evlist->prev and we don't have to
