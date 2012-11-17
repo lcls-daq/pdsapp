@@ -70,8 +70,8 @@ namespace Pds {
     Transition* transitions(Transition* tr) {
       if (tr->id()==TransitionId::Map) {
         const Allocation& alloc = reinterpret_cast<const Allocate*>(tr)->allocation(); 
-        unsigned m = alloc.bld_mask();
-#define CheckType(bldType)  (m & (1<<BldInfo::bldType))
+        uint64_t m = alloc.bld_mask();
+#define CheckType(bldType)  (m & (1ULL<<BldInfo::bldType))
 #define SizeType(dataType)  (sizeof(Xtc) + sizeof(dataType))
 #define AddType(bldType,idType,dataType) {                                                                       \
         Xtc& xtc = *new(p) Xtc(TypeId(TypeId::idType,(uint32_t)dataType::version), BldInfo(0,BldInfo::bldType)); \
@@ -117,6 +117,13 @@ namespace Pds {
       if (CheckType(MecXt2Ipm03))     extent += SizeType(BldDataIpimb);
       if (CheckType(MecHxmIpm01))     extent += SizeType(BldDataIpimb);
       if (CheckType(GMD))             extent += SizeType(BldDataGMD);
+      if (CheckType(CxiDg1Imb01))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(CxiDg2Imb01))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(CxiDg2Imb02))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(CxiDg4Imb01))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(CxiDg1Pim  ))     extent += SizeCamType;
+      if (CheckType(CxiDg2Pim  ))     extent += SizeCamType;
+      if (CheckType(CxiDg4Pim  ))     extent += SizeCamType;
       
       _configtc.extent = sizeof(Xtc)+extent;
       if (extent) {
@@ -143,12 +150,19 @@ namespace Pds {
         if (CheckType(HfxMonImb02))     AddType(HfxMonImb02,     Id_SharedIpimb,     BldDataIpimb); 
         if (CheckType(HfxMonImb03))     AddType(HfxMonImb03,     Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecLasEm01))      AddType(MecLasEm01,      Id_SharedIpimb,     BldDataIpimb);
-        if (CheckType(MecTctrPip01))     AddType(MecTctrPip01,    Id_SharedIpimb,     BldDataIpimb);
+        if (CheckType(MecTctrPip01))    AddType(MecTctrPip01,    Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecTcTrDio01))    AddType(MecTcTrDio01,    Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecXt2Ipm02))     AddType(MecXt2Ipm02,     Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecXt2Ipm03))     AddType(MecXt2Ipm03,     Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(MecHxmIpm01))     AddType(MecHxmIpm01,     Id_SharedIpimb,     BldDataIpimb);
         if (CheckType(GMD))             AddType(GMD,             Id_GMD,             BldDataGMD);
+        if (CheckType(CxiDg1Imb01))     AddType(CxiDg1Imb01,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(CxiDg2Imb01))     AddType(CxiDg2Imb01,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(CxiDg2Imb02))     AddType(CxiDg2Imb02,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(CxiDg4Imb01))     AddType(CxiDg4Imb01,     Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(CxiDg1Pim  ))     AddCamType(CxiDg1Pim);
+        if (CheckType(CxiDg2Pim  ))     AddCamType(CxiDg2Pim);
+        if (CheckType(CxiDg4Pim  ))     AddCamType(CxiDg4Pim);
       }
 #undef CheckType
 #undef SizeType
@@ -192,7 +206,7 @@ namespace Pds {
   public:
     BldCallback(Task*      task,
     unsigned   platform,
-    unsigned   mask) :
+    uint64_t   mask) :
       _task    (task),
       _platform(platform)
     {
@@ -201,7 +215,7 @@ namespace Pds {
          DetInfo::BldEb, 0,
          DetInfo::NoDevice, 0));
       for(unsigned i=0; i<BldInfo::NumberOf; i++)
-        if ( (1<<i)&mask ) 
+        if ( (1ULL<<i)&mask ) 
           _sources.push_back(BldInfo(node.pid(),(BldInfo::Type)i));
     }
 
@@ -432,7 +446,7 @@ namespace Pds {
       //  add segment level EVR
       unsigned partition = alloc.partitionid();
       unsigned nnodes    = alloc.nnodes();
-      unsigned bldmask   = alloc.bld_mask();
+      uint64_t bldmask   = alloc.bld_mask();
       InletWire & inlet  = *_streams->wire(StreamParams::FrameWork);
 
       for (unsigned n = 0; n < nnodes; n++) {
@@ -455,7 +469,7 @@ namespace Pds {
       }
 
       for(int i=0; i<BldInfo::NumberOf; i++) {
-        if (bldmask & (1<<i)) {
+        if (bldmask & (1ULL<<i)) {
           Node node(Level::Reporter, 0);
           node.fixup(StreamPorts::bld(i).address(),Ether());
           Ins ins( node.ip(), StreamPorts::bld(0).portId());
@@ -515,7 +529,7 @@ int main(int argc, char** argv) {
   const unsigned NO_PLATFORM = unsigned(-1);
   // parse the command line for our boot parameters
   unsigned platform = NO_PLATFORM;
-  unsigned mask = (1<<BldInfo::NumberOf)-1;
+  uint64_t mask = (1<<BldInfo::NumberOf)-1;
 
   extern char* optarg;
   int c;
@@ -525,7 +539,7 @@ int main(int argc, char** argv) {
       platform = strtoul(optarg, NULL, 0);
       break;
     case 'm':
-      mask = strtoul(optarg, NULL, 0);
+      mask = strtoull(optarg, NULL, 0);
       break;
     default:
       usage(argv[0]);

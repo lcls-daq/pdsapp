@@ -4,15 +4,18 @@
 
 #libsrcs_blv := ShmOutlet.cc IdleStream.cc
 
+#  What is this for?
+CPPFLAGS += -D_ACQIRIS -D_LINUX
+
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
 tgtnames    := pimblvedt
-tgtnames    += evrbld pimbldedt
+tgtnames    += evrbld pimbldedt ipmbld
 tgtnames    += netfifo netfwd
 endif
 
 ifneq ($(findstring i386-linux,$(tgt_arch)),)
 tgtnames    := evrblv pimblv
-tgtnames    += evrbld pimbld
+tgtnames    += evrbld pimbld ipmbld acqbld
 tgtnames    += netfifo netfwd
 endif
 
@@ -64,6 +67,18 @@ tgtlibs_evrbld += pdsapp/configdb qt/QtGui qt/QtCore
 tgtlibs_evrbld += evgr/evr evgr/evg
 tgtlibs_evrbld += pds/evgr
 tgtincs_evrbld := evgr
+
+tgtsrcs_acqbld := acqbld.cc ToAcqBldEventWire.cc EvrBldServer.cc PipeStream.cc
+tgtincs_acqbld := acqiris
+tgtlibs_acqbld := $(commonlibs) $(datalibs) pds/acqiris acqiris/AqDrv4
+tgtlibs_acqbld += pdsapp/configdb qt/QtGui qt/QtCore
+tgtlibs_acqbld += pds/ipimb
+tgtslib_acqbld := $(USRLIBDIR)/rt
+
+tgtsrcs_ipmbld := ipmbld.cc ToIpmBldEventWire.cc EvrBldServer.cc PipeStream.cc
+tgtlibs_ipmbld := $(commonlibs) $(datalibs)
+tgtlibs_ipmbld += pdsapp/configdb qt/QtGui qt/QtCore
+tgtlibs_ipmbld += pds/ipimb
 
 tgtsrcs_pimbld := pimbld.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_pimbld := $(commonlibs) $(datalibs)

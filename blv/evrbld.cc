@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
 
   DetInfo det(node.pid(), 
               (DetInfo::Detector)detector, detector_id,
-              DetInfo::TM6740, device_id);
+              DetInfo::Evr, device_id);
   evrBldMgr = new EvrBldManager(det,evrid,evr_write_fd);
   evrBldMgr->appliance().connect(idle->inlet());
 

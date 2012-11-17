@@ -8,11 +8,12 @@
 #include "pds/client/Action.hh" 
 #include "pdsdata/xtc/DetInfo.hh"
 
-#include "EvrConfigType.hh" 
+//#include "EvrConfigType.hh" 
+#include "pds/config/EvrConfigType.hh" 
 
 #include <string>
 
-//#define DBUG
+#define DBUG
 
 using namespace Pds;
 

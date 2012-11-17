@@ -14,6 +14,24 @@ using std::endl;
 #include <glob.h>
 #include <libgen.h>
 
+#define DBG
+
+namespace Pds_ConfigDb {
+  class TimeProfile {
+  public:
+    TimeProfile() { clock_gettime(CLOCK_REALTIME,&_tp); }
+    void interval(const char* s1, const char* s2) { 
+      timespec tp;
+      clock_gettime(CLOCK_REALTIME,&tp);
+      double dt = double(tp.tv_sec - _tp.tv_sec)+1.e-9*(double(tp.tv_nsec)-double(_tp.tv_nsec));
+      _tp = tp;
+      printf("%s::%s = %f seconds\n",s1,s2,dt);
+    }
+  private:
+    timespec _tp; 
+  };
+};
+
 using namespace Pds_ConfigDb;
 
 const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
@@ -165,6 +183,9 @@ void Experiment::import_data(const string& device,
 
 bool Experiment::update_key(const TableEntry& entry)
 {
+#ifdef DBUG
+  TimeProfile profile;
+#endif
   //
   //  First, check if each device's configuration is valid in the db.
   //  This means that the device's configuration is up-to-date (current datatype versions)
@@ -176,6 +197,9 @@ bool Experiment::update_key(const TableEntry& entry)
       valid++;
     else
       printf("%s/%s not valid\n",iter->name().c_str(),iter->entry().c_str());
+#ifdef DBUG
+    profile.interval(iter->name(),"validate_key");
+#endif
   }
   if (valid != entry.entries().size()) {
     cerr << "Cannot update " << entry.name() << '[' << entry.key() << ']' << endl;
@@ -192,6 +216,10 @@ bool Experiment::update_key(const TableEntry& entry)
     if (device(iter->name())->update_key(iter->entry(),_path.base())) {
       changed++;
       //      printf("%s/%s changed\n",iter->name().c_str(),iter->entry().c_str());
+
+#ifdef DBUG
+      profile.interval(iter->name(),"update_key");
+#endif
     }
 
   mode_t mode = _fmode;
@@ -211,8 +239,15 @@ bool Experiment::update_key(const TableEntry& entry)
   if (invalid < g.gl_pathc) invalid = g.gl_pathc; // number of devices included
   globfree(&g);
 
+#ifdef DBUG
+  profile.interval("glob",gpath.c_str());
+#endif
+
   struct stat s;
   if (!stat(kpath.c_str(),&s)) {   // the key exists
+#ifdef DBUG
+    profile.interval("stat",kpath.c_str());
+#endif
     //  check each device
     for(list<FileEntry>::const_iterator iter=entry.entries().begin();
 	iter !=entry.entries().end(); iter++) {
@@ -225,19 +260,32 @@ bool Experiment::update_key(const TableEntry& entry)
 	  siter != slist.end(); siter++) {
 	string spath = kpath + "/" + Pds::CfgPath::src_key(*siter);
 	if (!stat(spath.c_str(),&s)) {
+#ifdef DBUG
+          profile.interval("stat",spath.c_str());
+#endif
 	  int sz=readlink(spath.c_str(),buff,line_size);
+#ifdef DBUG
+          profile.interval("readlink",spath.c_str());
+#endif
 	  if (sz>0) {
 	    buff[sz] = 0;
 	    if (!strcmp(buff,dpath.c_str()))
 	      --invalid_device;
 	  }
 	}
+#ifdef DBUG
+        else
+          profile.interval("stat",spath.c_str());
+#endif
       }
       if (invalid_device==0)  // this device is valid
 	--invalid;
     }
   }
   else {
+#ifdef DBUG
+    profile.interval("stat",kpath.c_str());
+#endif
     printf("The top key file (%s) doesn't yet exist\n", kpath.c_str());
   }
   
@@ -247,6 +295,9 @@ bool Experiment::update_key(const TableEntry& entry)
     TableEntry te = TableEntry(entry.name(),key,entry.entries());
     kpath = _path.key_path(key);
     mkdir(kpath.c_str(),mode);
+#ifdef DBUG
+    profile.interval("mkdir",kpath.c_str());
+#endif
     for(list<FileEntry>::const_iterator iter=te.entries().begin();
 	iter!=te.entries().end(); iter++) {
       Device* d = device(iter->name());
@@ -256,6 +307,9 @@ bool Experiment::update_key(const TableEntry& entry)
 	  siter != slist.end(); siter++) {
 	string spath = kpath + "/" + Pds::CfgPath::src_key(*siter);
 	symlink(dpath.c_str(),spath.c_str());
+#ifdef DBUG
+        profile.interval("symlink",dpath.c_str());
+#endif
       }
     }
     _table.set_top_entry(te);

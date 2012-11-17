@@ -61,7 +61,9 @@ public:
   SeqFinder(Xtc* xtc) : XtcIterator(xtc) { memset(&seq, 0, sizeof(seq)); }
 public:
   int process(Xtc* xtc) {
-    if (xtc->contains.id()==TypeId::Id_EvrData)
+    if (xtc->contains.id()==TypeId::Id_Xtc)
+      iterate(xtc);
+    else if (xtc->contains.id()==TypeId::Id_EvrData)
       seq = reinterpret_cast<EvrDatagram*>(xtc->payload())->seq;
     return 1;
   }

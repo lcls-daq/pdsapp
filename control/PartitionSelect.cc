@@ -92,9 +92,9 @@ void PartitionSelect::select_dialog()
     _segments  = dialog->segments ();
     _reporters = dialog->reporters();
 
-    unsigned bld_mask = 0 ;
+    uint64_t bld_mask = 0 ;
     foreach(BldInfo n, _reporters) {
-      bld_mask |= 1<<n.type();
+      bld_mask |= 1ULL<<n.type();
     }
 
     if (_validate(bld_mask)) {
@@ -129,7 +129,7 @@ const QList<ProcInfo>& PartitionSelect::segments () const { return _segments ; }
 
 const QList<BldInfo >& PartitionSelect::reporters() const { return _reporters ; }
 
-bool PartitionSelect::_validate(unsigned bld_mask) 
+bool PartitionSelect::_validate(uint64_t bld_mask) 
 {
   bool lEvent  =false;
   bool lError  =false;

@@ -17,8 +17,10 @@ namespace Pds {
   class ConnectRoutine : public Routine {
   public:
     ConnectRoutine( char* skt, char* fifo, bool laccept) :
-      _skt(skt), _fifo(fifo), _laccept(laccept) 
+      _laccept(laccept) 
     {
+      strcpy(_skt,skt);
+      strcpy(_fifo,fifo);
       printf("ConnectRoutine skt %s  fifo %s\n", skt, fifo);
     }
   public:
@@ -139,8 +141,8 @@ namespace Pds {
       delete this;
     }
   private:
-    char* _skt;
-    char* _fifo;
+    char  _skt [128];
+    char  _fifo[128];
     bool  _laccept;
   };
 };

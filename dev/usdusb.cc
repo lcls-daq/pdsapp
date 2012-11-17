@@ -157,9 +157,10 @@ static void usage(const char* p)
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  unsigned detid = -1UL;
+  const unsigned no_entry = -1U;
+  unsigned detid = no_entry;
   unsigned devid = 0;
-  unsigned platform = -1UL;
+  unsigned platform = no_entry;
   bool lzero = false;
 
   extern char* optarg;
@@ -232,7 +233,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if ((platform == -1UL) || (detid == -1UL)) {
+  if ((platform == no_entry) || (detid == no_entry)) {
     printf("Platform and detid required\n");
     printf("Usage: %s -i <detid> -p <platform> [-a <arp process id>]\n", argv[0]);
     close_usb(0);

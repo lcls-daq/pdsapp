@@ -34,7 +34,7 @@ namespace Pds {
     void display      ();
     void change_state(QString);
   private:
-    bool _validate(unsigned);
+    bool _validate(uint64_t);
     bool _checkReadGroupEnable();
   private:
     PartitionControl&  _pcontrol;
