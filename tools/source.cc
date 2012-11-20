@@ -1,4 +1,5 @@
 #include "pds/management/SourceLevel.hh"
+#include "pds/service/Task.hh"
 
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -25,27 +26,12 @@ int main(int argc, char** argv)
     return 0;    
   }
 
+  Task* task = new Task(Task::MakeThisATask);
+
   SourceLevel source;
   source.start();
-  bool connected = source.connect(interface);
-  if (connected) {
-    fprintf(stdout, "Commands: {s=Show partitions, EOF=quit}\n");
-    while (true) {
-      const int maxlen=128;
-      char line[maxlen];
-      char* result = fgets(line, maxlen, stdin);
-      if (!result) {
-        fprintf(stdout, "\nExiting\n");
-        break;
-      }  
-      else if (result[0]=='s') {
-	source.dump();
-      }
-    }
-  } else {
-    printf("*** Unable to connect: no interface 0x%x found\n", interface);
-  }
-  source.cancel();
+  if (source.connect(interface)) 
+    task->mainLoop();
 
   return 0;
 }

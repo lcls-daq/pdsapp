@@ -135,8 +135,13 @@ void usage(char* progname) {
 LiveMonitorServer* apps;
 
 void sigfunc(int sig_no) {
-   delete apps;
-   exit(EXIT_SUCCESS);
+  printf("handling signal %d\n",sig_no);
+  if (apps) {
+    delete apps;
+    apps = 0;
+    printf("done with signal %d\n",sig_no);
+    exit(EXIT_SUCCESS);
+  }
 }
 
 int main(int argc, char** argv) {
@@ -151,8 +156,26 @@ int main(int argc, char** argv) {
   char partitionTag[80] = "";
   const char* uniqueID = 0;
 
-  (void) signal(SIGINT, sigfunc);
-  if (prctl(PR_SET_PDEATHSIG, SIGINT) < 0) printf("Changing death signal failed!\n");
+  struct sigaction int_action;
+  
+  int_action.sa_handler = sigfunc;
+  sigemptyset(&int_action.sa_mask);
+  int_action.sa_flags = 0;
+  int_action.sa_flags |= SA_RESTART;
+
+#define REGISTER(t) {                                           \
+    if (sigaction(t, &int_action, 0) > 0)                       \
+      printf("Couldn't set up #t handler\n");                   \
+  }
+
+  REGISTER(SIGINT);
+  REGISTER(SIGKILL);
+  REGISTER(SIGSEGV);
+  REGISTER(SIGABRT);
+  REGISTER(SIGTERM);
+  
+#undef REGISTER
+
   int c;
   while ((c = getopt(argc, argv, "p:i:n:P:s:c:q:u:")) != -1) {
     errno = 0;
