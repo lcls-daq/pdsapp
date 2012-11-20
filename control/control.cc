@@ -14,7 +14,7 @@ using Pds_ConfigDb::Experiment;
 static void usage(char *argv0)
 {
   printf("usage: %s -p <platform> -P <partition_description> -D <db name> [-b <bld>]\n"
-         "             [-L <offlinerc> | -R <run_number_file>] [-v]\n", argv0);
+         "             [-L <offlinerc> [-E <experiment_name>] | -R <run_number_file>] [-v]\n", argv0);
 }
 
 int main(int argc, char** argv)
@@ -26,6 +26,7 @@ int main(int argc, char** argv)
   const char* dbpath    = "none";
   const char* offlinerc = (char *)NULL;
   const char* runNumberFile = (char *)NULL;
+  const char* experiment = (char *)NULL;
   unsigned    sequencer_id = 0;
   unsigned key=0;
   int verbose = 0;
@@ -57,7 +58,7 @@ int main(int argc, char** argv)
       runNumberFile = optarg;
       break;
     case 'E':
-      printf("%s: -E flag ignored\n", argv[0]);
+      experiment = optarg;
       break;
     case 'S':
       sequencer_id = strtoul(optarg, &endPtr, 0);
@@ -67,7 +68,7 @@ int main(int argc, char** argv)
       break;
     }
   }
-  if ((platform==-1UL || !partition || !dbpath) || (offlinerc && runNumberFile)) {
+  if ((platform==-1UL || !partition || !dbpath) || (!offlinerc && experiment) || (offlinerc && runNumberFile)) {
     usage(argv[0]);
     return 0;
   }
@@ -81,6 +82,7 @@ int main(int argc, char** argv)
                                       dbpath,
                                       offlinerc,
                                       runNumberFile,
+                                      experiment,
                                       sequencer_id,
                                       (verbose > 0));
   window->show();

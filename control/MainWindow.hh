@@ -27,6 +27,7 @@ namespace Pds {
                const char*       dbpath,
                const char*       offlinerc,
                const char*       runNumberFile,
+               const char*       experiment,
                unsigned          sequencer_id,
                bool              verbose);
     ~MainWindow();
@@ -60,7 +61,6 @@ namespace Pds {
     OfflineClient*    _offlineclient;
     RunAllocator*     _runallocator;
     PartitionSelect*  _partition;
-    PartitionDescriptor*  _pd;
 
     // signal handler support
     QSocketNotifier *snInt;

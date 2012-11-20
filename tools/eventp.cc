@@ -9,7 +9,7 @@ void usage(const char* p)
 {
   printf("Usage: %s -p <platform#> -P <partition name> -i <node mask> \n", p);
   printf("\t[-f <output path>] [-s <sliceID>] [-c <chunkSize>] [-t <file lifetime sec>]\n");
-  printf("\t[-L <offlinerc> -E <experiment name>]\n");
+  printf("\t[-L <offlinerc> [-E <experiment name>]]\n");
 }
 
 int main(int argc, char** argv) 
@@ -56,9 +56,6 @@ int main(int argc, char** argv)
   }
   if (offlinerc == 0) {
     printf("Offlinerc path (-L) not specified.  Database notifications will not be sent.\n");
-  } else if (options.expname == 0) {
-    printf("Experiment name (-E) not specified, required when -L (offlinerc path) is specified.\n");
-    err++;
   }
 
   if (err) 

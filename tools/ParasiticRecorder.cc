@@ -114,13 +114,17 @@ ParasiticRecorder::ParasiticRecorder(Task*         task,
 {
   if (_offlinerc) {
     _expname = options.expname;
-    if (_expname) {
-      PartitionDescriptor pd(_partition);
-      if (pd.valid()) {
-        _offlineclient = new OfflineClient(_offlinerc, pd, true);
+    PartitionDescriptor pd(_partition);
+    if (pd.valid()) {
+      if (_expname) {
+        // experiment name specified by caller
+        _offlineclient = new OfflineClient(_offlinerc, pd, _expname, true);
       } else {
-        printf("%s: partition '%s' not valid\n", __FUNCTION__, _partition);
+        // current experiment retrieved from database
+        _offlineclient = new OfflineClient(_offlinerc, pd, true);
       }
+    } else {
+      printf("%s: partition '%s' not valid\n", __FUNCTION__, _partition);
     }
   }
 }

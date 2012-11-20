@@ -46,7 +46,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-V <parm_list_file>] [-v]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <parm_list_file>] [-v]\n", progname);
 }
 
 // Appliance* app;
@@ -72,6 +72,7 @@ int main(int argc, char** argv) {
 
   unsigned platform=-1UL;
   const char* partition = 0;
+  const char* experiment_name = 0;
   const char* offlinerc = 0;
   const char* parm_list_file = 0;
   unsigned nodes =  0;
@@ -90,7 +91,7 @@ int main(int argc, char** argv) {
       partition = optarg;
       break;
     case 'E':
-      printf("%s: -E flag is ignored, current experiment will be used\n", argv[0]);
+      experiment_name = optarg;
       break;
     case 'L':
       offlinerc = optarg;
@@ -120,16 +121,30 @@ int main(int argc, char** argv) {
     usage(argv[0]);
     return 1;
   }
-  offlineclient = new OfflineClient(offlinerc, pd, (verbose > 0));
+  if (experiment_name) {
+    offlineclient = new OfflineClient(offlinerc, pd, experiment_name, (verbose > 0));
 
-  const char *expname = offlineclient->GetExperimentName();
-  if (expname) {
-    printf("%s: instrument %s:%u experiment %s (#%u)\n", argv[0],
-           pd.GetInstrumentName().c_str(), pd.GetStationNumber(), expname, offlineclient->GetExperimentNumber());
-    app = new OfflineAppliance(offlineclient, parm_list_file);
+    unsigned expnum = offlineclient->GetExperimentNumber();
+    if (expnum != OFFLINECLIENT_DEFAULT_EXPNUM) {
+      printf("%s: instrument %s:%u experiment %s (#%u)\n", argv[0],
+             pd.GetInstrumentName().c_str(), pd.GetStationNumber(), offlineclient->GetExperimentName(), expnum);
+      app = new OfflineAppliance(offlineclient, parm_list_file);
+    } else {
+      fprintf(stderr, "%s: failed to find experiment '%s'\n", argv[0], experiment_name);
+      app = NULL;
+    }
   } else {
-    fprintf(stderr, "%s: failed to find current experiment\n", argv[0]);
-    app = NULL;
+    offlineclient = new OfflineClient(offlinerc, pd, (verbose > 0));
+
+    const char *expname = offlineclient->GetExperimentName();
+    if (expname) {
+      printf("%s: instrument %s:%u experiment %s (#%u)\n", argv[0],
+             pd.GetInstrumentName().c_str(), pd.GetStationNumber(), expname, offlineclient->GetExperimentNumber());
+      app = new OfflineAppliance(offlineclient, parm_list_file);
+    } else {
+      fprintf(stderr, "%s: failed to find current experiment\n", argv[0]);
+      app = NULL;
+    }
   }
   if (app) {
     Task* task = new Task(Task::MakeThisATask);

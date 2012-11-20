@@ -222,6 +222,7 @@ MainWindow::MainWindow(unsigned          platform,
            const char*       db_path,
            const char*       offlinerc,
            const char*       runNumberFile,
+           const char*       experiment_name,
            unsigned          sequencer_id,
            bool              verbose) :
   QWidget(0),
@@ -239,21 +240,39 @@ MainWindow::MainWindow(unsigned          platform,
 
   if (offlinerc) {
     // option A: run number maintained in a mysql database
-    _pd = new PartitionDescriptor(partition);
-    if (_pd->valid()) {
-      _offlineclient = new OfflineClient(offlinerc, *_pd, verbose);
-      experiment_number = _offlineclient->GetExperimentNumber();
-      const char *expname = _offlineclient->GetExperimentName();
-      const char *instname = _offlineclient->GetInstrumentName();
-      unsigned station     = _offlineclient->GetStationNumber();
-      if (expname) {
+    PartitionDescriptor pd(partition);
+    if (pd.valid()) {
+      if (experiment_name) {
+        // A.1: experiment name passed in
+        _offlineclient = new OfflineClient(offlinerc, pd, experiment_name, verbose);
+        experiment_number = _offlineclient->GetExperimentNumber();
+        if (experiment_number == OFFLINECLIENT_DEFAULT_EXPNUM) {
+          fprintf(stderr, "%s: failed to find experiment '%s'\n", __FUNCTION__,
+                  experiment_name);
+        }
+      } else {
+        // A.2: current experiment retrieved from database
+        _offlineclient = new OfflineClient(offlinerc, pd, verbose);
+        experiment_number = _offlineclient->GetExperimentNumber();
+        if (experiment_number == OFFLINECLIENT_DEFAULT_EXPNUM) {
+          fprintf(stderr, "%s: failed to find current experiment for partition '%s'\n",
+                  __FUNCTION__, partition);
+        }
+      }
+      if (experiment_number != OFFLINECLIENT_DEFAULT_EXPNUM) {
+        // success: run number allocated from database
+        const char *expname = _offlineclient->GetExperimentName();
+        const char *instname = _offlineclient->GetInstrumentName();
+        unsigned station     = _offlineclient->GetStationNumber();
         printf("%s: instrument '%s:%u' experiment '%s' (#%u)\n", __FUNCTION__,
                instname, station, expname, experiment_number);
+        _runallocator = new MySqlRunAllocator(_offlineclient);
       } else {
-        fprintf(stderr, "%s: failed to find current experiment for partition '%s'\n",
-                __FUNCTION__, partition);
+        // error: run number fixed at 0
+        _runallocator = new RunAllocator;
+        // NULL offline database
+        _offlineclient = (OfflineClient*)NULL;
       }
-      _runallocator = new MySqlRunAllocator(_offlineclient);
     } else {
       fprintf(stderr, "%s: partition '%s' is not valid\n",
               __FUNCTION__, partition);
@@ -328,9 +347,6 @@ MainWindow::~MainWindow()
   delete _pvmanager;
   if (_offlineclient) {
     delete _offlineclient;
-  }
-  if (_pd) {
-    delete _pd;
   }
 }
 
