@@ -1,5 +1,6 @@
 #include "pdsapp/config/EvrScan.hh"
 
+#include "pdsapp/config/EventcodeTiming.hh"
 #include "pds/config/EvrConfigType.hh"
 #include "pdsdata/evr/PulseConfigV3.hh"
 
@@ -76,7 +77,15 @@ int EvrScan::write(unsigned step, unsigned nsteps, char* buff) const
   //  change the pulse configuration
   const Pds::EvrData::PulseConfigV3& pulse = cfg.pulse(_pulse_id->currentIndex());
 
-  uint32_t delay = uint32_t(control_v * 119.e6 / double(pulse.prescale()));
+  int offs = 0;
+  for(unsigned i=0; i<cfg.neventcodes(); i++)
+    if (cfg.eventcode(i).maskTrigger() & (1<<pulse.pulseId())) {
+      offs = int(Pds_ConfigDb::EventcodeTiming::timeslot(cfg.eventcode(i).code())) 
+	-    int(Pds_ConfigDb::EventcodeTiming::timeslot(140));
+      break;
+    }
+
+  uint32_t delay = uint32_t(control_v * 119.e6 / double(pulse.prescale())) - offs;
   uint32_t width = uint32_t(_width->text().toDouble() * 119.e6 / double(pulse.prescale()));
 
   new (const_cast<Pds::EvrData::PulseConfigV3*>(&pulse))
@@ -127,8 +136,16 @@ void EvrScan::set_pulse(int index)
   const Pds::EvrData::PulseConfigV3& pulse = cfg.pulse(index);
   printf("EvrScan::set_pulse %d\n", index);
 
+  int offs = 0;
+  for(unsigned i=0; i<cfg.neventcodes(); i++)
+    if (cfg.eventcode(i).maskTrigger() & (1<<index)) {
+      offs = int(Pds_ConfigDb::EventcodeTiming::timeslot(cfg.eventcode(i).code())) 
+	-    int(Pds_ConfigDb::EventcodeTiming::timeslot(140));
+      break;
+    }
+
   double scale = double(pulse.prescale())/119.e6;
   _width   ->setText(QString::number(double(pulse.width())*scale));
-  _delay_lo->setText(QString::number(double(pulse.delay())*scale));
-  _delay_hi->setText(QString::number(double(pulse.delay())*scale));
+  _delay_lo->setText(QString::number(double(pulse.delay()+offs)*scale));
+  _delay_hi->setText(QString::number(double(pulse.delay()+offs)*scale));
 }

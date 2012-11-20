@@ -208,9 +208,17 @@ void ControlScan::read(const char* ifile)
     struct stat sstat;
     if (stat(buff,&sstat)) {
       printf("ControlScan::read stat failed on controlconfig file %s\n",buff);
-      return;
+
+      // Create it
+      sprintf(buff,"%s",qPrintable(file));
+      printf("ControlScan::creating %s\n",buff);
+      FILE* f = fopen(buff,"w");
+      ControlConfigType* cfg = new (buff)ControlConfigType(ControlConfigType::Default);
+      fwrite(cfg, cfg->size(), 1, f);
+      fclose(f);
     }
 
+    sprintf(buff,"%s",qPrintable(file));
     FILE* f = fopen(buff,"r");
 
     char* dbuf = new char[sstat.st_size];
