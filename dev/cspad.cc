@@ -121,9 +121,9 @@ void sigHandler( int signal ) {
   if (server != 0) {
     server->die();
   }
-  if (server != 0) {
-    server->dumpFrontEnd();
-  }
+//  if (server != 0) {
+//    server->dumpFrontEnd();
+//  }
   printf("Signal handler pulling the plug\n");
   ::exit(signal);
 }
