@@ -29,8 +29,8 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   _reconfig = new Pds_ConfigDb::Reconfig_Ui(this, _expt);
   _scan     = new Pds_ConfigDb::ControlScan(this, _expt);
 
-  QPushButton* bEdit = new QPushButton("Edit");
-  QPushButton* bScan = new QPushButton("Scan");
+  _bEdit = new QPushButton("Edit");
+  _bScan = new QPushButton("Scan");
 
   QVBoxLayout* layout = new QVBoxLayout;
   { QHBoxLayout* layout1 = new QHBoxLayout;
@@ -41,35 +41,55 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
     layout->addLayout(layout1); }
   { QHBoxLayout* layout1 = new QHBoxLayout;
     layout1->addStretch();
-    layout1->addWidget(bEdit);
+    layout1->addWidget(_bEdit);
     layout1->addStretch();
     layout->addLayout(layout1); }
   { QHBoxLayout* layout1 = new QHBoxLayout;
     layout1->addStretch();
-    layout1->addWidget(bScan);
+    layout1->addWidget(_bScan);
     layout1->addStretch();
     layout->addLayout(layout1); }
   setLayout(layout);
 
-  connect(bEdit   , SIGNAL(clicked()),                 _reconfig, SLOT(show()));
-  connect(bScan   , SIGNAL(clicked(bool)),	       this, SLOT(enable_scan(bool)));
+  connect(_bEdit  , SIGNAL(clicked()),                 _reconfig, SLOT(show()));
+  connect(_bScan  , SIGNAL(clicked(bool)),	       this, SLOT(enable_scan(bool)));
   connect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
   connect(_reconfig,SIGNAL(changed()),                 this, SLOT(update()));
   connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
-  connect(_scan    ,SIGNAL(deactivate()),              bScan, SLOT(click()));
+  connect(_scan    ,SIGNAL(deactivate()),              _bScan, SLOT(click()));
 
   read_db();
   set_run_type(_runType->currentText());
 
-  bScan->setCheckable(true);
+  _bScan->setCheckable(true);
 
   _readSettings();
 
-  bScan->setChecked  (_scanIsActive);
+  _bScan->setChecked  (_scanIsActive);
 }
 
 ConfigSelect::~ConfigSelect() 
 {
+}
+
+void ConfigSelect::enable_control(bool v)
+{
+  if (!v) {
+    // optional
+    _reconfig->setVisible(false);
+    _bEdit->setEnabled(false);
+    // necessary
+    _bScan->setEnabled(false);
+    enable_scan(false);
+  }
+  else {
+    _bEdit->setEnabled(true); 
+
+    update();
+    _bScan->setEnabled(true);
+    if (_bScan->isChecked())
+      enable_scan(true);
+  }
 }
 
 void ConfigSelect::set_run_type(const QString& run_type)

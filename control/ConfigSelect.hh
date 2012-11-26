@@ -6,6 +6,7 @@
 #include "pdsapp/config/Experiment.hh"
 
 class QComboBox;
+class QPushButton;
 
 namespace Pds_ConfigDb {
   class Reconfig_Ui;
@@ -28,6 +29,7 @@ namespace Pds {
     void update      ();  // the latest key for the selected run type has changed
     void configured  (bool);
     void enable_scan (bool);
+    void enable_control(bool);
   private:
     void _readSettings ();
     void _writeSettings();
@@ -39,6 +41,8 @@ namespace Pds {
     QComboBox*                 _runType;
     unsigned                   _run_key;
     bool                       _scanIsActive;
+    QPushButton*               _bEdit;
+    QPushButton*               _bScan;
   };
 };
 

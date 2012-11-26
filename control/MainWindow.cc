@@ -313,7 +313,7 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(state);
   _controlcb->add_appliance(new SeqAppliance(*_control, *state, *_config,
                  *_pvmanager, sequencer_id));
-  _controlcb->add_appliance(new RemoteSeqApp(*_control, *state,*_pvmanager,
+  _controlcb->add_appliance(new RemoteSeqApp(*_control, *state, *config, *_pvmanager,
                _config->src()));
   _control->attach();
 

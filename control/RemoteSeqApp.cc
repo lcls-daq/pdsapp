@@ -1,5 +1,6 @@
 #include "RemoteSeqApp.hh"
 #include "StateSelect.hh"
+#include "ConfigSelect.hh"
 #include "PVManager.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/utility/Transition.hh"
@@ -32,10 +33,12 @@ using namespace Pds;
 
 RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
 			   StateSelect&      manual,
+                           ConfigSelect&     cselect,
 			   PVManager&        pvmanager,
 			   const Src&        src) :
   _control      (control),
   _manual       (manual),
+  _select       (cselect),
   _pvmanager    (pvmanager),
   _configtc     (_controlConfigType, src),
   _config_buffer(new char[MaxConfigSize]),
@@ -156,6 +159,7 @@ void RemoteSeqApp::routine()
             bool lrecord = _manual.record_state();
 
             _manual.disable_control();
+            _select.enable_control(false);
 
             //  First, send the current configdb and run key
             length = strlen(_control.partition().dbpath());
@@ -215,16 +219,18 @@ void RemoteSeqApp::routine()
             //  replace the configuration with default running
             new(_config_buffer) ControlConfigType(ControlConfigType::Default);
             _configtc.extent = sizeof(Xtc) + config.size();
+
             _control.set_transition_env    (TransitionId::Configure,old_key);
             _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
             _control.set_transition_env    (TransitionId::Enable, 
                                             config.uses_duration() ?
                                             EnableEnv(config.duration()).value() :
                                             EnableEnv(config.events()).value());
+            _control.set_target_state(PartitionControl::Configured);
+            //            _control.reconfigure();
 
             _manual.enable_control();
-            _control.set_target_state(PartitionControl::Configured);
-            _control.reconfigure();
+            _select.enable_control(true);
 	  
             _manual.set_record_state(lrecord);
           }
