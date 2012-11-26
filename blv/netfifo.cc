@@ -117,8 +117,8 @@ namespace Pds {
           printf("Connecting [%x.%d].\n",interface,port);
           if (::connect(skt_fd, (sockaddr*)&sa, sizeof(sa))) {
             perror("Error connecting");
-            printf("Retry in 5 seconds...\n");
-            timespec ts; ts.tv_sec = 5; ts.tv_nsec = 0;
+            printf("Retry in 1 second...\n");
+            timespec ts; ts.tv_sec = 1; ts.tv_nsec = 0;
             nanosleep(&ts,0);
           }
           else {
