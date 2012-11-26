@@ -76,8 +76,8 @@ void ConfigSelect::enable_control(bool v)
 {
   if (!v) {
     // optional
-    _reconfig->setVisible(false);
-    _bEdit->setEnabled(false);
+    //    _reconfig->setVisible(false);
+    //    _bEdit->setEnabled(false);
     // necessary
     _bScan->setEnabled(false);
     enable_scan(false);
