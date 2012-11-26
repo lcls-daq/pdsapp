@@ -29,9 +29,10 @@ namespace Pds {
       char* skt    = _skt;
       char* fifo   = _fifo;
       bool laccept = _laccept;
+      char* ptok   = 0;
 
-      char* addr = strtok(skt,":");
-      int port = strtoul(strtok(0,":"), NULL, 0);
+      char* addr = strtok_r(skt,":", &ptok);
+      int port = strtoul(strtok_r(0,":",&ptok), NULL, 0);
       const unsigned BUFF_SIZE = 4096;
       char* buff = new char[BUFF_SIZE];
 
