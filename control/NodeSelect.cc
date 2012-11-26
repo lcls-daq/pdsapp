@@ -198,7 +198,10 @@ void NodeGroup::add_node(int index)
     bool bEvrNode = ( 
       node.src().level() == Level::Source &&
       static_cast<const DetInfo&>(node.src()).device() == DetInfo::Evr);          
-    int iNodeGroup = (bEvrNode? 0:1);
+    bool bBldNode = ( 
+      node.src().level() == Level::Source &&
+      static_cast<const DetInfo&>(node.src()).detector() == DetInfo::BldEb);            
+    int iNodeGroup = ( (bEvrNode||bBldNode) ? 0:1);
     setGroup(iNodeIndex, iNodeGroup);          
     
     l->insertWidget(index,button); 
@@ -215,9 +218,12 @@ void NodeGroup::add_node(int index)
             
     bool bEvrNode = ( 
       node.src().level() == Level::Source &&
-      static_cast<const DetInfo&>(node.src()).device() == DetInfo::Evr);                
+      static_cast<const DetInfo&>(node.src()).device() == DetInfo::Evr);               
+    bool bBldNode = ( 
+      node.src().level() == Level::Source &&
+      static_cast<const DetInfo&>(node.src()).detector() == DetInfo::BldEb);      
     int iNodeGroup;
-    if ( bEvrNode )
+    if ( bEvrNode || bBldNode )
     {
       iNodeGroup = 0;
       ciUseReadoutGroup->addItem(QString().setNum(0));
