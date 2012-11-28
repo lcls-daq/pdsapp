@@ -314,7 +314,7 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(new SeqAppliance(*_control, *state, *_config,
                  *_pvmanager, sequencer_id));
   _controlcb->add_appliance(new RemoteSeqApp(*_control, *state, *config, *_pvmanager,
-               _config->src()));
+               _config->src(), *run));
   _control->attach();
 
   QObject::connect(state , SIGNAL(configured(bool)), config, SLOT(configured(bool)));

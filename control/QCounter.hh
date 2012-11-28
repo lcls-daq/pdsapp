@@ -27,6 +27,7 @@ namespace Pds {
     void update_count() { _widget->setText(QString::number(_count)); }
     void update_time () { _widget->setText(QString("%1:%2:%3").arg(_count/3600).arg((_count%3600)/60).arg(_count%60)); }
     void update_mask () { _widget->setText(QString::number(_count,0x10)); }
+    unsigned long long get_count() { return _count; }
   private:
     QLabel* _widget;
     unsigned long long _count;

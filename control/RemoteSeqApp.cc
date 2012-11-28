@@ -32,14 +32,16 @@ static const unsigned DbKeyMask     = 0x0ffff;
 using namespace Pds;
 
 RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
-			   StateSelect&      manual,
+         StateSelect&      manual,
                            ConfigSelect&     cselect,
-			   PVManager&        pvmanager,
-			   const Src&        src) :
+         PVManager&        pvmanager,
+         const Src&        src,
+         RunStatus&        runStatus) :
   _control      (control),
   _manual       (manual),
   _select       (cselect),
   _pvmanager    (pvmanager),
+  _runStatus    (runStatus),
   _configtc     (_controlConfigType, src),
   _config_buffer(new char[MaxConfigSize]),
   _cfgmon_buffer(new char[MaxConfigSize]),
@@ -63,13 +65,28 @@ bool RemoteSeqApp::readTransition()
   ControlConfigType& config = 
     *reinterpret_cast<ControlConfigType*>(_config_buffer);
 
-  int len = ::recv(_socket, &config, sizeof(config), MSG_WAITALL);
+  //int len = ::recv(_socket, &config, sizeof(config), MSG_WAITALL);
+  
+  RemoteSeqCmd cmd;
+  int len = ::recv(_socket, &cmd, sizeof(cmd), MSG_WAITALL);
+  
+  if (len == (int) sizeof(RemoteSeqCmd))
+  {    
+    if (cmd.IsValid())
+      return processTransitionCmd(cmd);
+  }
+  
+  memcpy((char*) &config, (char*) &cmd, sizeof(cmd));
+  char* pConfigRemain = (char*) &config + sizeof(cmd);
+  int len2 = ::recv(_socket, pConfigRemain, sizeof(config) - sizeof(cmd), MSG_WAITALL);  
+  len += len2;
+  
   if (len != sizeof(config)) {
     if (errno==0)
       printf("RemoteSeqApp: remote end closed\n");
     else
       printf("RemoteSeqApp failed to read config hdr(%d/%d) : %s\n",
-	     len,sizeof(config),strerror(errno));
+       len,sizeof(config),strerror(errno));
     return false;
   }
   int payload = config.size()-sizeof(config);
@@ -77,7 +94,7 @@ bool RemoteSeqApp::readTransition()
     len = ::recv(_socket, &config+1, payload, MSG_WAITALL);
     if (len != payload) {
       printf("RemoteSeqApp failed to read config payload(%d/%d) : %s\n",
-	     len,payload,strerror(errno));
+       len,payload,strerror(errno));
       return false;
     }
   }
@@ -107,6 +124,19 @@ bool RemoteSeqApp::readTransition()
   return true;
 }
 
+bool RemoteSeqApp::processTransitionCmd(RemoteSeqCmd& cmd)
+{  
+  switch (cmd.u32Type)
+  {
+  case RemoteSeqCmd::CMD_GET_CUR_EVENT_NUM:
+    int64_t iEventNum = _runStatus.getEventNum();
+    ::write(_socket,&iEventNum,sizeof(iEventNum));
+    break;
+  }
+  
+  return true; // keep DAQ running
+}
+
 void RemoteSeqApp::routine()
 {
   ControlConfigType& config = 
@@ -117,35 +147,35 @@ void RemoteSeqApp::routine()
   _configtc.extent = sizeof(Xtc) + config.size();
   _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
   _control.set_transition_env(TransitionId::Enable, 
-			      config.uses_duration() ?
-			      EnableEnv(config.duration()).value() :
-			      EnableEnv(config.events()).value());
+            config.uses_duration() ?
+            EnableEnv(config.duration()).value() :
+            EnableEnv(config.events()).value());
 
   int listener;
   if ((listener = ::socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     printf("RemoteSeqApp::routine failed to allocate socket : %s\n",
-	   strerror(errno));
+     strerror(errno));
   }
   else {
     int optval=1;
     if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
       printf("RemoteSeqApp::routine failed to setsockopt : %s\n",
-	     strerror(errno));
+       strerror(errno));
       close(listener);
     }
     else {
       Ins src(_port);
       Sockaddr sa(src);
       if (::bind(listener, sa.name(), sa.sizeofName()) < 0) {
-	printf("RemoteSeqApp::routine failed to bind to %x/%d : %s\n",
-	       src.address(),src.portId(),strerror(errno));
+  printf("RemoteSeqApp::routine failed to bind to %x/%d : %s\n",
+         src.address(),src.portId(),strerror(errno));
         close(listener);
       }
       else {
-	while(::listen(listener, 5) >= 0) {
+  while(::listen(listener, 5) >= 0) {
           Sockaddr name;
-	  unsigned length = name.sizeofName();
-	  _socket = accept(listener, name.name(), &length);
+    unsigned length = name.sizeofName();
+    _socket = accept(listener, name.name(), &length);
           if (_control.current_state()==PartitionControl::Unmapped) {
             printf("RemoteSeqApp rejected connection while unmapped\n");
             close(_socket);
@@ -194,7 +224,7 @@ void RemoteSeqApp::routine()
                 _manual.set_record_state( options & RecordValMask );
 
               while(1) {
-                if (!readTransition())  break;
+                if (!readTransition())  break; 
                 //
                 //  A request for a cycle of zero duration is an EndCalib
                 //
@@ -231,13 +261,13 @@ void RemoteSeqApp::routine()
 
             _manual.enable_control();
             _select.enable_control(true);
-	  
+    
             _manual.set_record_state(lrecord);
           }
         }
-	printf("RemoteSeqApp::routine listen failed : %s\n",
-	       strerror(errno));
-	close(listener);
+  printf("RemoteSeqApp::routine listen failed : %s\n",
+         strerror(errno));
+  close(listener);
       }
     }
   }
@@ -248,9 +278,9 @@ Transition* RemoteSeqApp::transitions(Transition* tr)
   if (_socket >= 0) {
     if (tr->id()==TransitionId::BeginRun) {
       if (tr->size() == sizeof(Transition))
-	_last_run = RunInfo(0,0);
+  _last_run = RunInfo(0,0);
       else
-	_last_run = *reinterpret_cast<RunInfo*>(tr);
+  _last_run = *reinterpret_cast<RunInfo*>(tr);
     }
     else if (tr->id()==TransitionId::BeginCalibCycle)
       _pvmanager.configure(*reinterpret_cast<ControlConfigType*>(_cfgmon_buffer));
@@ -283,12 +313,12 @@ InDatagram* RemoteSeqApp::events     (InDatagram* dg)
     }
     else if (_wait_for_configure) {
       if (id==TransitionId::Configure) {
-	::write(_socket,&info,sizeof(info));
-	_wait_for_configure = false;
+  ::write(_socket,&info,sizeof(info));
+  _wait_for_configure = false;
       }
     }
     else if (id==TransitionId::Enable ||
-	     id==TransitionId::EndCalibCycle)
+       id==TransitionId::EndCalibCycle)
       ::write(_socket,&info,sizeof(info));
   }
   return dg;

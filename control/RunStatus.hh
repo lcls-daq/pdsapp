@@ -16,9 +16,9 @@ namespace Pds {
   class DamageStats;
 
   class RunStatus : public QGroupBox,
-		    public Appliance,
-		    public Timer,
-		    public XtcIterator {
+        public Appliance,
+        public Timer,
+        public XtcIterator {
     Q_OBJECT
   public:
     RunStatus(QWidget*, PartitionSelect&);
@@ -41,6 +41,10 @@ namespace Pds {
     void reset_s();
     void changed();
     void damage_alarm_changed(bool);
+    
+  public:
+    unsigned long long getEventNum();
+    
   private:
     Task*     _task;
     GenericPool _pool;

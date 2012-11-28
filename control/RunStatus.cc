@@ -181,3 +181,8 @@ unsigned RunStatus::repetitive() const { return 1; }
 
 void RunStatus::set_damage_alarm(bool alarm)
 { _detailsB->setPalette(alarm ? *_red : *_green); }
+
+unsigned long long RunStatus::getEventNum()
+{
+  return _events->get_count();
+}

@@ -1,11 +1,14 @@
 #ifndef Pds_RemoteSeqApp_hh
 #define Pds_RemoteSeqApp_hh
 
+#include "RunStatus.hh"
 #include "pds/utility/Appliance.hh"
 #include "pds/service/Routine.hh"
 
 #include "pds/config/ControlConfigType.hh"
 #include "pdsdata/xtc/Xtc.hh"
+
+#include "pdsapp/control/RemoteSeqCmd.hh"
 
 namespace Pds {
   class PartitionControl;
@@ -16,13 +19,14 @@ namespace Pds {
   class Task;
   
   class RemoteSeqApp : public Appliance,
-		       public Routine {
+           public Routine {
   public:
     RemoteSeqApp(PartitionControl& control,
-		 StateSelect&      manual,
-		 ConfigSelect&     cselect,
-		 PVManager&        pvmanager,
-		 const Src&        src);
+     StateSelect&      manual,
+     ConfigSelect&     cselect,
+     PVManager&        pvmanager,
+     const Src&        src,
+     RunStatus&        run);
     ~RemoteSeqApp();
   public:
     virtual Transition* transitions(Transition*);
@@ -31,11 +35,13 @@ namespace Pds {
     virtual void        routine    ();
   private:
     bool readTransition();
+    bool processTransitionCmd(RemoteSeqCmd& cmd);
   private:
     PartitionControl&  _control;
     StateSelect&       _manual;
     ConfigSelect&      _select;
     PVManager&         _pvmanager;
+    RunStatus&         _runStatus;
     Xtc                _configtc;
     char*              _config_buffer;
     char*              _cfgmon_buffer;

@@ -136,49 +136,6 @@ EvrPulseTable::~EvrPulseTable()
 
 void EvrPulseTable::pull(const EvrConfigType& tc) {  
   unsigned npulses     = 0;
-  //int      delay_offset= 0;
-  //int      lDelayOffset[EvrConfigType::EventCodeType::MaxReadoutGroup];
-  
-  //for (int i=0; i<EvrConfigType::EventCodeType::MaxReadoutGroup; ++i)
-  //  lDelayOffset[i] = -1;
-  
-  //for(unsigned i=0; i<tc.neventcodes(); i++) {
-  //  const EvrConfigType::EventCodeType& ec = tc.eventcode(i);
-  //  if (ec.isReadout()) {
-  //    printf( "EvrPulseTable::pull(): event code [%d] %d readout group %d maskTrigger 0x%x\n", 
-  //      i, ec.code(), ec.readoutGroup(), ec.maskTrigger());
-  //    if ( lDelayOffset[ec.readoutGroup()] == -1 )
-  //      lDelayOffset[ec.readoutGroup()] = 
-  //      //delay_offset =
-  //        EventcodeTiming::timeslot(140) -
-  //        EventcodeTiming::timeslot(ec.code());        
-  //    else
-  //    {
-  //      int delay = lDelayOffset[ec.readoutGroup()] -
-  //        (EventcodeTiming::timeslot(140) -
-  //         EventcodeTiming::timeslot(ec.code()));
-  //      QString msg = QString("In readout group %1, secondary readout eventcode [%2] %3 will produce pulses %4 ticks (%5 ns)\n")
-  //        .arg(ec.readoutGroup())
-  //        .arg(i)
-  //        .arg(ec.code())
-  //        .arg(delay)
-  //        .arg(delay*EvrPeriod*1e9);
-  //      msg += QString("delayed with respect to primary readout eventcode\n");
-  //      QMessageBox::warning(0,"",msg);                  
-  //    }        
-  //    
-  //    uint32_t uPulseBit = (1 << iPulseStartId);
-  //    for (unsigned uPulse = 0; uPulse < MaxPulses; ++uPulse, uPulseBit<<=1)
-  //      if ( ec.maskTrigger() & uPulseBit )
-  //      {
-  //        Pulse& p = *_pulses[uPulse];
-  //        p._group->setCurrentIndex(ec.readoutGroup());
-  //        
-  //        printf( "EvrPulseTable::pull(): event code [%d] %d readout group %d set pulse %d group %d\n", 
-  //          i, ec.code(), ec.readoutGroup(), uPulse, p._group->currentIndex());          
-  //      }
-  //  }
-  //}  
   for(unsigned j=0; j<tc.npulses(); j++) {
     Pulse& p = *_pulses[npulses];
 
@@ -206,17 +163,19 @@ void EvrPulseTable::pull(const EvrConfigType& tc) {
       if (ec.isReadout() && ( ec.maskTrigger() & uPulseBit ) != 0) {
         //printf( "EvrPulseTable::pull(): pulse %d event code [%d] %d readout group %d maskTrigger 0x%x\n", 
         //  j, i, ec.code(), ec.readoutGroup(), ec.maskTrigger()); //!!!debug
-        if ( pCodeReadout == NULL )
-          pCodeReadout = &ec;          
-        else
-        {
-          QString msg = QString("Pulse %1: Secondary readout eventcode [%2] %3 found. Conflict with primary readout %4\n")
-            .arg(j)
-            .arg(i)
-            .arg(ec.code())
-            .arg(pCodeReadout->code());
-          QMessageBox::warning(0,"",msg);                  
-        }                
+
+        // !!! don't warn about secondary readout eventcode
+        //if ( pCodeReadout == NULL )
+        //  pCodeReadout = &ec;          
+        //else
+        //{
+        //  QString msg = QString("Pulse %1: Secondary readout eventcode [%2] %3 found. Conflict with primary readout %4\n")
+        //    .arg(j)
+        //    .arg(i)
+        //    .arg(ec.code())
+        //    .arg(pCodeReadout->code());
+        //  QMessageBox::warning(0,"",msg);                  
+        //}                
       }
     }
 
@@ -276,42 +235,11 @@ bool EvrPulseTable::validate(unsigned ncodes,
     if (p._polarity->state() == PolarityButton::None)
       continue;
 
-    //int adjusted_delay = p._delay.value + delay_offset;
-
-    //if (adjusted_delay < 0) {
-    //  QString msg = QString("Pulse %1 delay too small (by %2 ticks, %3 sec)\n")
-    //    .arg(i)
-    //    .arg(-adjusted_delay)
-    //    .arg(double(-adjusted_delay)*EvrPeriod);
-    //  QMessageBox::warning(0,"Input Error",msg);
-    //  return false;
-    //}
-
-    //
-    // MRF EVR limited to 16-bit pulse width
-    //
-    /**
-    if (npt>=4 && p._width.value>0xffff) {
-      QString msg = QString("Pulse %1 width exceeds EVR limits (%3 sec) for pulse id >= 4\n")
-        .arg(i)
-        .arg(double(0xffff)*EvrPeriod);
-      QMessageBox::warning(0,"Input Error",msg);
-      return false;
-    }
-    **/
-
-    //*new(&pt[npt]) EvrConfigType::PulseType(npt+p0, 
-    //                                        p._polarity->state() == PolarityButton::Pos ? 0 : 1,
-    //                                        1,
-    //                                        adjusted_delay,
-    //                                        p._width.value);
-
     for(unsigned j=0; j<MaxOutputs; j++) {
       if (p._outputs[j]->isChecked())
         *new(&om[nom++]) EvrConfigType::OutputMapType( EvrConfigType::OutputMapType::Pulse, npt+p0,
                                                        EvrConfigType::OutputMapType::UnivIO, j, _id );
-    }
-    
+    }    
     
     int delay_offset = 0;
     int primary_readout = -1;
@@ -337,19 +265,20 @@ bool EvrPulseTable::validate(unsigned ncodes,
           printf("Adjusting pulse [%d] for readout event code [%d] %d, delays %+d ticks (%lg ns)\n",
                  npt, i, codes[i].code(), delay_offset, (double)(delay_offset*EvrPeriod*1e9));
         }
-        else
-        {
-          int delay = delay_offset -
-            (EventcodeTiming::timeslot(140) -
-             EventcodeTiming::timeslot(codes[i].code()));
-          QString msg = QString("Secondary readout eventcode [%1] %2 will produce pulses %3 ticks (%4 ns)\n")
-            .arg(i)
-            .arg(codes[i].code())
-            .arg(delay)
-            .arg(delay*EvrPeriod*1e9);
-          msg += QString("delayed with respect to primary readout eventcode %1\n").arg(primary_readout);
-          QMessageBox::warning(0,"",msg);          
-        }
+        //!!! dont warn about the secondary readout eventcode
+        //else
+        //{
+        //  int delay = delay_offset -
+        //    (EventcodeTiming::timeslot(140) -
+        //     EventcodeTiming::timeslot(codes[i].code()));
+        //  QString msg = QString("Secondary readout eventcode [%1] %2 will produce pulses %3 ticks (%4 ns)\n")
+        //    .arg(i)
+        //    .arg(codes[i].code())
+        //    .arg(delay)
+        //    .arg(delay*EvrPeriod*1e9);
+        //  msg += QString("delayed with respect to primary readout eventcode %1\n").arg(primary_readout);
+        //  QMessageBox::warning(0,"",msg);          
+        //}
       }
                                         
     int adjusted_delay = p._delay.value + delay_offset;
@@ -371,16 +300,6 @@ bool EvrPulseTable::validate(unsigned ncodes,
     
     npt++;
   }
-
-  //uint32_t pm = ((1<<npt)-1)<<p0;
-  //uint32_t fill = 0;
-  //for(unsigned i=0; i<ncodes; i++)
-  //  if (codes[i].isReadout() && codes[i].readoutGroup() == 0 )
-  //    *new(const_cast<EvrConfigType::EventCodeType*>(&codes[i]))
-  //         EvrConfigType::EventCodeType(codes[i].code(),
-  //                                      codes[i].readoutGroup(),
-  //                                      codes[i].desc(),
-  //                                      codes[i].maskTrigger()|pm,fill,fill);
            
   _npulses  = npt;
   _noutputs = nom;
@@ -605,42 +524,6 @@ bool EvrPulseTables::validate(unsigned ncodes,
                   const EvrConfigType::EventCodeType* codes)
 {
   bool result  = true;
-
-//      int  delay_offset(0);
-//      int primaryReadout=-1;
-//      for(unsigned i=0; i<ncodes; i++) {
-//        if (codes[i].isReadout()) {
-
-//          if (primaryReadout<0) {
-//            primaryReadout=codes[i].code();
-//            delay_offset =
-//              EventcodeTiming::timeslot(140) -
-//              EventcodeTiming::timeslot(codes[i].code());
-//            printf("Adjusting pulse delays %+d ticks for readout eventcode %d\n",
-//                   delay_offset, codes[i].code());
-//          }
-//          else {
-//#if 0
-//            QString msg = QString("Found more than one READOUT code (%1, %2, ...)\n")
-//              .arg(primaryReadout)
-//              .arg(codes[i].code());
-//            msg += QString("Remove all but one.\n");
-//            QMessageBox::warning(0,"",msg);
-//            result = false;
-//#else
-//            int delay = delay_offset -
-//              (EventcodeTiming::timeslot(140) -
-//               EventcodeTiming::timeslot(codes[i].code()));
-//            QString msg = QString("Secondary readout eventcode %1 will produce pulses %2 ticks [%3 ns]\n")
-//              .arg(codes[i].code())
-//              .arg(delay)
-//              .arg(delay*EvrPeriod*1e9);
-//            msg += QString("delayed with respect to primary readout eventcode %1\n").arg(primaryReadout);
-//            QMessageBox::warning(0,"",msg);
-//#endif
-//          }
-//        }
-//      }
 
   unsigned npt = 0;
   EvrConfigType::PulseType*     pt = 

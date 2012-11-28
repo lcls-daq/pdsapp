@@ -8,6 +8,7 @@
 #include <structmember.h>
 
 #include "pdsapp/python/pydaq.hh"
+#include "pdsapp/control/RemoteSeqCmd.hh"
 #include "pds/config/ControlConfigType.hh"
 #include "pdsdata/control/PVControl.hh"
 #include "pdsdata/control/PVMonitor.hh"
@@ -53,6 +54,7 @@ static PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds
 static PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_end      (PyObject* self);
 static PyObject* pdsdaq_stop     (PyObject* self);
+static PyObject* pdsdaq_eventnum (PyObject* self);
 static PyObject* pdsdaq_rcv      (PyObject* self);
 
 static PyMethodDef pdsdaq_methods[] = {
@@ -64,6 +66,7 @@ static PyMethodDef pdsdaq_methods[] = {
   {"begin"     , (PyCFunction)pdsdaq_begin     , METH_KEYWORDS, "Configure the cycle"},
   {"end"       , (PyCFunction)pdsdaq_end       , METH_NOARGS  , "Wait for the cycle end"},
   {"stop"      , (PyCFunction)pdsdaq_stop      , METH_NOARGS  , "End the current cycle"},
+  {"eventnum"  , (PyCFunction)pdsdaq_eventnum  , METH_NOARGS  , "Get current event number"},
   {"connect"   , (PyCFunction)pdsdaq_connect   , METH_NOARGS  , "Connect to control"},
   {"disconnect", (PyCFunction)pdsdaq_disconnect, METH_NOARGS  , "Disconnect from control"},
   {NULL},
@@ -570,6 +573,27 @@ PyObject* pdsdaq_stop     (PyObject* self)
 
   Py_INCREF(Py_None);
   return Py_None;
+}
+
+PyObject* pdsdaq_eventnum(PyObject* self)
+{
+  int64_t iEventNum = -1;
+  
+  pdsdaq* daq = (pdsdaq*)self;
+  if (daq->state >= Configured) {    
+    Pds::RemoteSeqCmd cmd(Pds::RemoteSeqCmd::CMD_GET_CUR_EVENT_NUM);
+    ::write(daq->socket, &cmd, sizeof(cmd));
+        
+    if (::recv(daq->socket,&iEventNum,sizeof(iEventNum),MSG_WAITALL) < 0)
+    {
+      ostringstream o;
+      o << "pdsdap_eventnum(): recv() failed... disconnecting.";
+      PyErr_SetString(PyExc_RuntimeError,o.str().c_str());
+      Py_DECREF(pdsdaq_disconnect(self));      
+    }    
+  }
+
+  return PyLong_FromLong(iEventNum);
 }
 
 PyObject* pdsdaq_rcv      (PyObject* self)
