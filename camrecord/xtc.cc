@@ -37,7 +37,7 @@ class xtcsrc {
                                  len(0), ref(NULL), sec(0), nsec(0), ev(NULL) {};
     int   id;
     int   sync;                   // Is this a synchronous source?
-    char *val;
+    unsigned char *val;
     int   len;
     int  *ref;                    // Reference count of this value (if asynchronous!)
     unsigned int sec, nsec;       // Timestamp of this value
@@ -69,7 +69,7 @@ static struct event {
     int    synccnt;               // How many synchronous sources do we have?
     int    asynccnt;              // How many asynchronous sources do we have?
     unsigned int sec, nsec;       // Timestamp of this event.
-    char **data;                  // Array of numsrc data records.
+    unsigned char **data;         // Array of numsrc data records.
     int  **ref;                   // An array of reference counts for asynchronous data.
     struct event *prev, *next;    // Linked list, sorted by timestamp.
 } events[MAX_EVENTS];
@@ -200,7 +200,7 @@ void initialize_xtc(char *outfile)
         events[i].asynccnt = 0;
         events[i].sec = 0;
         events[i].nsec = 0;
-        events[i].data = (char **) calloc(numsrc, sizeof(char *));
+        events[i].data = (unsigned char **) calloc(numsrc, sizeof(char *));
         events[i].ref  = (int **)  calloc(numsrc, sizeof(int *));
         events[i].prev = (i == 0) ? &events[MAX_EVENTS - 1] : &events[i - 1];
         events[i].next = (i == MAX_EVENTS - 1) ? &events[0] : &events[i + 1];
@@ -245,7 +245,7 @@ int register_xtc(int sync)
 void configure_xtc(int id, Pds::Xtc *xtc)
 {
     int size = xtc->extent;
-    src[id]->val = new char[size];
+    src[id]->val = new unsigned char[size];
     src[id]->len = size;
     totalcfglen += size;
     memcpy((void *)src[id]->val, (void *)xtc, size);
@@ -408,7 +408,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
     /*
      * Make the data buffer.
      */
-    char *buf = new char[hdr->extent];
+    unsigned char *buf = new unsigned char[hdr->extent];
     memcpy(buf, hdr, hdrlen);
     if (data)
         memcpy(&buf[hdrlen], data, hdr->extent - hdrlen);
@@ -445,13 +445,31 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
         return;
     }
     if (s->sync) {
-        ev->data[id] = buf;
+        if (!ev->data[id]) {
+            ev->data[id] = buf;
 #ifdef TRACE
-        printf("%08x:%08x S%d -> event %d\n", sec, nsec, id, ev->id);
+            printf("%08x:%08x S%d -> event %d\n", sec, nsec, id, ev->id);
 #endif
-        if (ev->valid && ++ev->synccnt == syncsrc && ev->asynccnt == asyncsrc) {
-            send_event(ev);
-            reset_event(ev);
+            if (ev->valid && ++ev->synccnt == syncsrc && ev->asynccnt == asyncsrc) {
+                send_event(ev);
+                reset_event(ev);
+            }
+        } else {
+            /* This is *not* good! */
+#if 0
+            printf("%08x:%08x S%d -> DUPLICATE event %d\n", sec, nsec, id, ev->id);
+            printf("OLD: %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                   ev->data[id][0], ev->data[id][1], ev->data[id][2], ev->data[id][3], 
+                   ev->data[id][4], ev->data[id][5], ev->data[id][6], ev->data[id][7],
+                   ev->data[id][8], ev->data[id][9], ev->data[id][10], ev->data[id][11], 
+                   ev->data[id][12], ev->data[id][13], ev->data[id][14], ev->data[id][15]);
+            printf("NEW: %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                   buf[0], buf[1], buf[2], buf[3], 
+                   buf[4], buf[5], buf[6], buf[7],
+                   buf[8], buf[9], buf[10], buf[11], 
+                   buf[12], buf[13], buf[14], buf[15]);
+#endif
+            delete buf;
         }
     } else {
         struct event *cur = s->ev;
