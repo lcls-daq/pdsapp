@@ -34,7 +34,7 @@ Reconfig_Ui::Reconfig_Ui(QWidget* parent,
   setModal(false);
   Parameter::allowEdit(true);
 
-  QPushButton* applyB = new QPushButton("Apply");
+  _applyB = new QPushButton("Apply");
   QPushButton* closeB = new QPushButton("Close");
 
   QVBoxLayout* l = new QVBoxLayout;
@@ -56,7 +56,7 @@ Reconfig_Ui::Reconfig_Ui(QWidget* parent,
     l->addLayout(layout); }
   { QHBoxLayout* layout = new QHBoxLayout;
     layout->addStretch();
-    layout->addWidget(applyB);
+    layout->addWidget(_applyB);
     layout->addWidget(closeB);
     layout->addStretch();
     l->addLayout(layout); }
@@ -64,10 +64,25 @@ Reconfig_Ui::Reconfig_Ui(QWidget* parent,
 
   connect(_devlist, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(update_component_list()));
   connect(_cmplist, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(change_component()));
-  connect(applyB  , SIGNAL(clicked()), this, SLOT(apply()));
+  connect(_applyB , SIGNAL(clicked()), this, SLOT(apply()));
   connect(closeB  , SIGNAL(clicked()), this, SLOT(hide()));
 
   update_device_list();
+}
+
+void Reconfig_Ui::enable(bool v)
+{
+  if (v) {
+    _applyB->setPalette(QPalette());
+    _applyB->setFont(QFont());
+    _applyB->setText("Apply");
+    _applyB->setEnabled(true);
+  }
+  else {
+    _applyB->setFont(QFont("Helvetica", 8));
+    _applyB->setText("Apply\n( Inactive during\n  remote control )");
+    _applyB->setEnabled(false);
+  }
 }
 
 Device* Reconfig_Ui::_device() const 

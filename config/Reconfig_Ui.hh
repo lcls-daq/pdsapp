@@ -11,6 +11,7 @@ using std::string;
 
 class QListWidget;
 class QListWidgetItem;
+class QPushButton;
 
 namespace Pds_ConfigDb {
 
@@ -24,6 +25,8 @@ namespace Pds_ConfigDb {
     Q_OBJECT
   public:
     Reconfig_Ui(QWidget*, Experiment&);
+  public:
+    void enable(bool);
   public slots:
     void apply();
     void set_run_type(const QString&);
@@ -45,6 +48,7 @@ namespace Pds_ConfigDb {
     ExpertDictionary     _xdict;
     QListWidget* _devlist;
     QListWidget* _cmplist;
+    QPushButton* _applyB;
     bool _expert_mode;
   };
 };
