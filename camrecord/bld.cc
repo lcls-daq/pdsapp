@@ -316,7 +316,7 @@ void handle_bld(fd_set *rfds)
             c->bldServer->fetch(sizeof(buf), buf, msgsize);
             // The first packet, we treat as configuration information.
             if (!c->cfgdone) {
-                configure_xtc(c->xid, &dg2->xtc);
+                configure_xtc(c->xid, (char *) &dg2->xtc, dg2->xtc.extent);
                 c->cfgdone = 1;
             } else {
                 // Make sure the BLD puts the fiducial in the timestamp!

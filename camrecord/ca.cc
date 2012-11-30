@@ -10,6 +10,8 @@
 #include"pdsdata/xtc/ProcInfo.hh"
 #include"pdsdata/pulnix/TM6740ConfigV2.hh"
 #include"pdsdata/opal1k/ConfigV1.hh"
+#include"pdsdata/camera/FrameFexConfigV1.hh"
+#include"pdsdata/lusi/PimImageConfigV1.hh"
 #include"pdsdata/camera/FrameV1.hh"
 #include"pdsdata/epics/EpicsPvData.hh"
 #include"yagxtc.hh"
@@ -43,16 +45,24 @@ class caconn {
  public:
     caconn(string _name, string _det, string _camtype, string _pvname, int _binned)
         : name(_name), detector(_det), camtype(_camtype), pvname(_pvname), connected(0), event(0), binned(_binned) {
-        DetInfo::Detector det = find_detector(detector.c_str());
-        DetInfo::Device   dev = find_device(camtype.c_str());
+        const char       *ds  = detector.c_str();
+        int               bld = !strncmp(ds, "BLD-", 4);
+        DetInfo::Detector det = bld ? DetInfo::BldEb : find_detector(ds);
+        DetInfo::Device   ctp = find_device(camtype.c_str());
+        DetInfo::Device   dev = bld ? DetInfo::NoDevice : ctp;
         char             *buf = NULL;
+        char             *bf2 = NULL;
         Xtc              *cfg = NULL;
+        Xtc              *frm = NULL;
+        Xtc              *r1  = NULL;
+        Xtc              *r2  = NULL;
         Camera::FrameV1  *f   = NULL;
 
         if (det == DetInfo::NumDetector || (det != DetInfo::EpicsArch && dev == DetInfo::NumDevice)) {
             fprintf(stderr, "Cannot find (%s, %s) values!\n", detector.c_str(), camtype.c_str());
             exit(1);
         }
+        bld = bld ? atoi(ds + 4) : -1;
 
         num = conns.size();
         conns.push_back(this);
@@ -75,13 +85,24 @@ class caconn {
         } else
             is_cam = 1;
 
-        int               pid = getpid();
+        int               pid = getpid(), size;
         DetInfo sourceInfo(pid, det, 0, dev, 0);
+        ProcInfo bldInfo(Level::Reporter, pid, bld);
+        Camera::FrameCoord origin(0, 0);
 
-        switch (dev) {
+        switch (ctp) {
         case DetInfo::TM6740:
-            buf = (char *) calloc(1, sizeof(Xtc) + sizeof(Pulnix::TM6740ConfigV2));
-            cfg = new (buf) Xtc(TypeId(TypeId::Id_TM6740Config, 2), sourceInfo);
+            size = ((bld < 0) ? 3 : 4) * sizeof(Xtc) + sizeof(Pulnix::TM6740ConfigV2) +
+                   sizeof(Camera::FrameFexConfigV1) + sizeof(Lusi::PimImageConfigV1);
+            buf = (char *) calloc(1, size);
+            if (bld < 0) {
+                cfg = new (buf) Xtc(TypeId(TypeId::Id_TM6740Config, 2), sourceInfo);
+            } else {
+                cfg = new (buf) Xtc(TypeId(TypeId::Id_Xtc, 1), sourceInfo);
+                cfg = new ((char *)cfg->alloc(size - sizeof(Xtc)))
+                          Xtc(TypeId(TypeId::Id_TM6740Config, 2), bldInfo);
+                r1 = cfg;
+            }
             // Fake a configuration!
             // black_level_a = black_level_b = 32, gaina = gainb = 0x1e8 (max, min is 0x42),
             // gain_balance = false, Depth = 10 bit, hbinning = vbinning = x1, LookupTable = linear.
@@ -102,8 +123,17 @@ class caconn {
             }
             break;
         case DetInfo::Opal1000:
-            buf = (char *) calloc(1, sizeof(Xtc) + sizeof(Opal1k::ConfigV1));
-            cfg = new (buf) Xtc(TypeId(TypeId::Id_Opal1kConfig, 1), sourceInfo);
+            size = ((bld < 0) ? 3 : 4) * sizeof(Xtc) + sizeof(Pulnix::TM6740ConfigV2) +
+                   sizeof(Camera::FrameFexConfigV1) + sizeof(Lusi::PimImageConfigV1);
+            buf = (char *) calloc(1, size);
+            if (bld < 0) {
+                cfg = new (buf) Xtc(TypeId(TypeId::Id_Opal1kConfig, 1), sourceInfo);
+            } else {
+                cfg = new (buf) Xtc(TypeId(TypeId::Id_Xtc, 1), sourceInfo);
+                cfg = new ((char *)cfg->alloc(size - sizeof(Xtc)))
+                           Xtc(TypeId(TypeId::Id_Opal1kConfig, 2), bldInfo);
+                r1 = cfg;
+            }
             // Fake a configuration!
             // black = 32, gain = 100, Depth = 12 bit, binning = x1, mirroring = None,
             // vertical_remap = true, enable_pixel_creation = false.
@@ -118,33 +148,67 @@ class caconn {
             }
             break;
         default:
-            fprintf(stderr, "Unknown device: %s!\n", DetInfo::name(dev));
+            fprintf(stderr, "Unknown device: %s!\n", DetInfo::name(ctp));
             exit(1);
         }
-        configure_xtc(xid, cfg);
-        free(buf); /* delete ~cfg? */
+        // These are on every camera.
+        if (bld < 0)
+            cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), sourceInfo);
+        else
+            cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), bldInfo);
+        new ((void *)cfg->alloc(sizeof(Camera::FrameFexConfigV1)))
+            Camera::FrameFexConfigV1(Camera::FrameFexConfigV1::FullFrame, 1,
+                                     Camera::FrameFexConfigV1::NoProcessing, origin, origin, 0, 0, NULL);
 
-        hdrlen = sizeof(Xtc) + sizeof(Camera::FrameV1);
-        buf = (char *) calloc(1, hdrlen);
-        hdr = new (buf) Xtc(TypeId(TypeId::Id_Frame, 1), sourceInfo);
-        switch (dev) {
+        if (bld < 0)
+            cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_PimImageConfig, 1), sourceInfo);
+        else {
+            cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_PimImageConfig, 1), bldInfo);
+            r2 = cfg;
+        }
+        new ((void *)cfg->alloc(sizeof(Lusi::PimImageConfigV1)))
+            Lusi::PimImageConfigV1(1.0, 1.0);   // What should these be?!?
+        configure_xtc(xid, buf, size);
+
+        if (buf < 0) {
+            hdrlen = sizeof(Xtc) + sizeof(Camera::FrameV1);
+            bf2 = (char *) calloc(1, hdrlen);
+            frm = hdr = new (bf2) Xtc(TypeId(TypeId::Id_Frame, 1), sourceInfo);
+        } else {
+            hdrlen = size - sizeof(Camera::FrameFexConfigV1) + sizeof(Camera::FrameV1);
+            bf2 = (char *) calloc(1, hdrlen);
+            hdr = new (bf2) Xtc(TypeId(TypeId::Id_Xtc, 1), bldInfo);
+
+            // Copy the configuration xtc.
+            memcpy((void *)hdr->alloc(r1->extent), (void *)r1, r1->extent);
+
+            // Copy the PimImageConfig xtc.
+            memcpy((void *)hdr->alloc(r2->extent), (void *)r2, r2->extent);
+
+            frm = new ((char *)hdr->alloc(sizeof(Xtc) + sizeof(Camera::FrameV1)))
+                Xtc(TypeId(TypeId::Id_Frame, 1), bldInfo);
+        }
+        switch (ctp) {
         case DetInfo::TM6740:
             if (binned)
-                f = new ((char *)hdr->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(320, 240, 8, 32);
+                f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(320, 240, 8, 32);
             else
-                f = new ((char *)hdr->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(640, 480, 10, 32);
+                f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(640, 480, 10, 32);
             break;
         case DetInfo::Opal1000:
             if (binned)
-                f = new ((char *)hdr->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(256, 1024, 12, 32);
+                f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(256, 1024, 12, 32);
             else
-                f = new ((char *)hdr->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 1024, 12, 32);
+                f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 1024, 12, 32);
             break;
         default:
             /* This is to keep the compiler happy.  We never get here! */
             exit(1);
         }
-        hdr->alloc(f->data_size()); // This is in the data packet, not the header!
+        frm->alloc(f->data_size());
+        if (bld >= 0)
+            hdr->alloc(f->data_size());
+        free(buf); /* We're done with r, which lives in buf. */
 
         int result = ca_create_channel(pvname.c_str(),
                                        connection_handler,
@@ -202,8 +266,8 @@ class caconn {
     int    binned;
     int    is_cam;
     int    caid;
-    chid   chan;}
-;
+    chid   chan;
+};
 
 vector<caconn *> caconn::conns;
 int caconn::nxtcaid = 0;
@@ -249,7 +313,7 @@ static void get_handler(struct event_handler_args args)
     new ((char *)cfg->alloc(hdrsize)) EpicsPvCtrlHeader(c->caid, args.type, 1, c->getpvname());
     void             *buf2 = cfg->alloc(ctrlsize);
     memcpy(buf2, args.dbr, ctrlsize);
-    configure_xtc(c->xid, cfg);
+    configure_xtc(c->xid, (char *) cfg, cfg->extent);
     free(buf); /* delete ~cfg? */
 
     hdrsize = sizeof(EpicsPvHeader);

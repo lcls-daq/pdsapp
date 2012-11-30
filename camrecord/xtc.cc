@@ -242,9 +242,8 @@ int register_xtc(int sync)
 /*
  * Give the configuration Xtc for a particular source.
  */
-void configure_xtc(int id, Pds::Xtc *xtc)
+void configure_xtc(int id, char *xtc, int size)
 {
-    int size = xtc->extent;
     src[id]->val = new unsigned char[size];
     src[id]->len = size;
     totalcfglen += size;
