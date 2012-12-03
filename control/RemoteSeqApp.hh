@@ -17,7 +17,7 @@ namespace Pds {
   class StateSelect;
   class Src;
   class Task;
-  
+
   class RemoteSeqApp : public Appliance,
            public Routine {
   public:
@@ -26,7 +26,8 @@ namespace Pds {
      ConfigSelect&     cselect,
      PVManager&        pvmanager,
      const Src&        src,
-     RunStatus&        run);
+     RunStatus&        run,
+     PartitionSelect&   pselect);
     ~RemoteSeqApp();
   public:
     virtual Transition* transitions(Transition*);
@@ -42,6 +43,7 @@ namespace Pds {
     ConfigSelect&      _select;
     PVManager&         _pvmanager;
     RunStatus&         _runStatus;
+    PartitionSelect&   _pselect;
     Xtc                _configtc;
     char*              _config_buffer;
     char*              _cfgmon_buffer;

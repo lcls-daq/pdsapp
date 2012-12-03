@@ -11,6 +11,7 @@ typedef struct {
   int      socket;
   int      state;
   char*    dbpath;
+  char*    dbalias;
   int32_t  dbkey;
   char*    buffer;
   int32_t  runinfo;

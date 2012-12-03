@@ -102,6 +102,11 @@ void ConfigSelect::set_run_type(const QString& run_type)
   }
 }
 
+string ConfigSelect::getType()
+{
+  return qPrintable(_runType->currentText());
+}
+
 void ConfigSelect::update()
 {
   read_db();

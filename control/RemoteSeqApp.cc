@@ -33,15 +33,17 @@ using namespace Pds;
 
 RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
          StateSelect&      manual,
-                           ConfigSelect&     cselect,
+         ConfigSelect&     cselect,
          PVManager&        pvmanager,
          const Src&        src,
-         RunStatus&        runStatus) :
+         RunStatus&        runStatus,
+         PartitionSelect&  pselect) :
   _control      (control),
   _manual       (manual),
   _select       (cselect),
   _pvmanager    (pvmanager),
   _runStatus    (runStatus),
+  _pselect      (pselect),
   _configtc     (_controlConfigType, src),
   _config_buffer(new char[MaxConfigSize]),
   _cfgmon_buffer(new char[MaxConfigSize]),
@@ -62,25 +64,21 @@ RemoteSeqApp::~RemoteSeqApp()
 
 bool RemoteSeqApp::readTransition()
 {
-  ControlConfigType& config = 
-    *reinterpret_cast<ControlConfigType*>(_config_buffer);
-
-  //int len = ::recv(_socket, &config, sizeof(config), MSG_WAITALL);
-  
-  RemoteSeqCmd cmd;
+  RemoteSeqCmd&       cmd =
+    *reinterpret_cast<RemoteSeqCmd*>(_config_buffer);
   int len = ::recv(_socket, &cmd, sizeof(cmd), MSG_WAITALL);
-  
+
   if (len == (int) sizeof(RemoteSeqCmd))
-  {    
+  {
     if (cmd.IsValid())
       return processTransitionCmd(cmd);
   }
-  
-  memcpy((char*) &config, (char*) &cmd, sizeof(cmd));
-  char* pConfigRemain = (char*) &config + sizeof(cmd);
-  int len2 = ::recv(_socket, pConfigRemain, sizeof(config) - sizeof(cmd), MSG_WAITALL);  
+
+  ControlConfigType&  config =
+    *reinterpret_cast<ControlConfigType*>(_config_buffer);
+  int len2 = ::recv(_socket, (char*) (&cmd + 1), sizeof(config) - sizeof(cmd), MSG_WAITALL);
   len += len2;
-  
+
   if (len != sizeof(config)) {
     if (errno==0)
       printf("RemoteSeqApp: remote end closed\n");
@@ -125,7 +123,7 @@ bool RemoteSeqApp::readTransition()
 }
 
 bool RemoteSeqApp::processTransitionCmd(RemoteSeqCmd& cmd)
-{  
+{
   switch (cmd.u32Type)
   {
   case RemoteSeqCmd::CMD_GET_CUR_EVENT_NUM:
@@ -133,20 +131,20 @@ bool RemoteSeqApp::processTransitionCmd(RemoteSeqCmd& cmd)
     ::write(_socket,&iEventNum,sizeof(iEventNum));
     break;
   }
-  
+
   return true; // keep DAQ running
 }
 
 void RemoteSeqApp::routine()
 {
-  ControlConfigType& config = 
+  ControlConfigType& config =
     *reinterpret_cast<ControlConfigType*>(_config_buffer);
 
   //  replace the configuration with default running
   new(_config_buffer) ControlConfigType(ControlConfigType::Default);
   _configtc.extent = sizeof(Xtc) + config.size();
   _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
-  _control.set_transition_env(TransitionId::Enable, 
+  _control.set_transition_env(TransitionId::Enable,
             config.uses_duration() ?
             EnableEnv(config.duration()).value() :
             EnableEnv(config.events()).value());
@@ -199,6 +197,12 @@ void RemoteSeqApp::routine()
             unsigned old_key = _control.get_transition_env(TransitionId::Configure);
             ::write(_socket,&old_key,sizeof(old_key));
 
+            // send the current config type (alias)
+            string sType = _select.getType();
+            length = sType.size();
+            ::write(_socket,&length,sizeof(length));
+            ::write(_socket,sType.c_str(),length);
+
             //  Receive the requested run key and recording option
             uint32_t options;
             int len = ::recv(_socket, &options, sizeof(options), MSG_WAITALL);
@@ -224,7 +228,7 @@ void RemoteSeqApp::routine()
                 _manual.set_record_state( options & RecordValMask );
 
               while(1) {
-                if (!readTransition())  break; 
+                if (!readTransition())  break;
                 //
                 //  A request for a cycle of zero duration is an EndCalib
                 //
@@ -234,7 +238,7 @@ void RemoteSeqApp::routine()
                 }
                 else {
                   _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
-                  _control.set_transition_env(TransitionId::Enable, 
+                  _control.set_transition_env(TransitionId::Enable,
                                               config.uses_duration() ?
                                               EnableEnv(config.duration()).value() :
                                               EnableEnv(config.events()).value());
@@ -252,7 +256,7 @@ void RemoteSeqApp::routine()
 
             _control.set_transition_env    (TransitionId::Configure,old_key);
             _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
-            _control.set_transition_env    (TransitionId::Enable, 
+            _control.set_transition_env    (TransitionId::Enable,
                                             config.uses_duration() ?
                                             EnableEnv(config.duration()).value() :
                                             EnableEnv(config.events()).value());
@@ -261,7 +265,7 @@ void RemoteSeqApp::routine()
 
             _manual.enable_control();
             _select.enable_control(true);
-    
+
             _manual.set_record_state(lrecord);
           }
         }
@@ -273,8 +277,8 @@ void RemoteSeqApp::routine()
   }
 }
 
-Transition* RemoteSeqApp::transitions(Transition* tr) 
-{ 
+Transition* RemoteSeqApp::transitions(Transition* tr)
+{
   if (_socket >= 0) {
     if (tr->id()==TransitionId::BeginRun) {
       if (tr->size() == sizeof(Transition))
@@ -291,7 +295,7 @@ Transition* RemoteSeqApp::transitions(Transition* tr)
   return tr;
 }
 
-Occurrence* RemoteSeqApp::occurrences(Occurrence* occ) 
+Occurrence* RemoteSeqApp::occurrences(Occurrence* occ)
 {
   if (_socket >= 0)
     if (occ->id() == OccurrenceId::SequencerDone) {
@@ -299,11 +303,11 @@ Occurrence* RemoteSeqApp::occurrences(Occurrence* occ)
       return 0;
     }
 
-  return occ; 
+  return occ;
 }
 
-InDatagram* RemoteSeqApp::events     (InDatagram* dg) 
-{ 
+InDatagram* RemoteSeqApp::events     (InDatagram* dg)
+{
   if (_socket >= 0) {
     int id   = dg->datagram().seq.service();
     int info = _last_run.run() | (_last_run.experiment()<<16);

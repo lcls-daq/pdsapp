@@ -50,21 +50,21 @@ namespace Pds {
     void failed   (Reason reason   ) { _w.platform_error(); }
     void dissolved(const Node& node) {}
   public:
-    void add_appliance(Appliance* app) { 
+    void add_appliance(Appliance* app) {
       if (!_apps) _apps = app;
       else        app->connect(_apps); }
   private:
     MainWindow& _w;
     Appliance*  _apps;
   };
-  
+
   class ControlTimeout : public Routine {
   public:
     ControlTimeout(MainWindow& w) : _w(w) {}
     ~ControlTimeout() {}
   public:
-    void routine() { 
-      _w.controleb_tmo(); 
+    void routine() {
+      _w.controleb_tmo();
     }
   private:
     MainWindow& _w;
@@ -76,7 +76,7 @@ namespace Pds {
     ~ControlDamage() {}
   public:
     Transition* transitions(Transition* tr) { return tr; }
-    InDatagram* events     (InDatagram* dg) 
+    InDatagram* events     (InDatagram* dg)
     { if (dg->datagram().xtc.damage.value())
   _w.transition_damaged(*dg);
       return dg;
@@ -96,7 +96,7 @@ namespace Pds {
         _w.insert_message(msg);
         _w.require_shutdown();
       }
-      return occ; 
+      return occ;
     }
   private:
     MainWindow& _w;
@@ -117,7 +117,7 @@ namespace Pds {
       if (tr->id()==TransitionId::BeginRun) {
   if (tr->size() == sizeof(Transition)) {  // No RunInfo
     char fname[256];
-    sprintf(fname, "e%d/e%d-r%04d-sNN-cNN.xtc", 
+    sprintf(fname, "e%d/e%d-r%04d-sNN-cNN.xtc",
       0, 0, tr->env().value());
     _log.appendText(QString("%1: Not recording. Transient data file: %2\n")
         .arg(QTime::currentTime().toString("hh:mm:ss"))
@@ -126,7 +126,7 @@ namespace Pds {
   else {
           RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
     char fname[256];
-    sprintf(fname, "e%d/e%d-r%04d-s00-c00.xtc", 
+    sprintf(fname, "e%d/e%d-r%04d-s00-c00.xtc",
       rinfo.experiment(), rinfo.experiment(), rinfo.run());
     _experiment = rinfo.experiment();
     _log.appendText(QString("%1: Recording run %2. Transient data file: %3\n")
@@ -140,7 +140,7 @@ namespace Pds {
 
     InDatagram* events     (InDatagram* dg) { return dg; }
 
-    Occurrence* occurrences(Occurrence* occ) 
+    Occurrence* occurrences(Occurrence* occ)
     {
       if (occ->id() == OccurrenceId::DataFileOpened) {
         char fname[256];
@@ -150,7 +150,7 @@ namespace Pds {
                 .arg(QTime::currentTime().toString("hh:mm:ss"))
                 .arg(fname));
       }
-      return occ; 
+      return occ;
     }
 
   private:
@@ -203,7 +203,7 @@ namespace Pds {
     ShutdownTest(QualifiedControl& c) : _c(c) {}
     ~ShutdownTest() {}
   public:
-    Transition* transitions(Transition* tr) 
+    Transition* transitions(Transition* tr)
     { if (tr->id()==TransitionId::Unmap)
         _c.enable(PartitionControl::Mapped,true);
       return tr; }
@@ -314,12 +314,12 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(new SeqAppliance(*_control, *state, *_config,
                  *_pvmanager, sequencer_id));
   _controlcb->add_appliance(new RemoteSeqApp(*_control, *state, *config, *_pvmanager,
-               _config->src(), *run));
+               _config->src(), *run, *_partition));
   _control->attach();
 
   QObject::connect(state , SIGNAL(configured(bool)), config, SLOT(configured(bool)));
   QObject::connect(state , SIGNAL(state_changed(QString)), _partition, SLOT(change_state(QString)));
-  QObject::connect(this  , SIGNAL(message_received(const QString&, bool))   , 
+  QObject::connect(this  , SIGNAL(message_received(const QString&, bool))   ,
        this  , SLOT(handle_message(const QString&, bool)));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));
 
@@ -337,13 +337,13 @@ MainWindow::MainWindow(unsigned          platform,
     connect(snTerm, SIGNAL(activated(int)), this, SLOT(handle_sigterm()));
   }
 }
-  
+
 MainWindow::~MainWindow()
 {
-  _control->detach(); 
+  _control->detach();
   delete _config;
-  delete _control; 
-  delete _controlcb; 
+  delete _control;
+  delete _controlcb;
   delete _pvmanager;
   if (_offlineclient) {
     delete _offlineclient;
@@ -366,7 +366,7 @@ void MainWindow::controleb_tmo()
       msg += s.label() + QString("\n");
     }
     msg += QString("Need to restart.\n");
-    
+
     emit message_received(msg,true);
   }
 }

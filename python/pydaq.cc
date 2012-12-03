@@ -29,6 +29,7 @@ using std::ostringstream;
 using std::list;
 
 static const int MaxPathSize   = 0x100;
+static const int MaxAliasSize   = 0x100;
 static const int MaxConfigSize = 0x100000;
 static const int Control_Port  = 10130;
 
@@ -45,6 +46,7 @@ static void      pdsdaq_dealloc(pdsdaq* self);
 static PyObject* pdsdaq_new    (PyTypeObject* type, PyObject* args, PyObject* kwds);
 static int       pdsdaq_init   (pdsdaq* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_dbpath   (PyObject* self);
+static PyObject* pdsdaq_dbalias  (PyObject* self);
 static PyObject* pdsdaq_dbkey    (PyObject* self);
 static PyObject* pdsdaq_runnum   (PyObject* self);
 static PyObject* pdsdaq_expt     (PyObject* self);
@@ -59,6 +61,7 @@ static PyObject* pdsdaq_rcv      (PyObject* self);
 
 static PyMethodDef pdsdaq_methods[] = {
   {"dbpath"    , (PyCFunction)pdsdaq_dbpath    , METH_NOARGS  , "Get database path"},
+  {"dbalias"   , (PyCFunction)pdsdaq_dbalias   , METH_NOARGS  , "Get database alias"},
   {"dbkey"     , (PyCFunction)pdsdaq_dbkey     , METH_NOARGS  , "Get database key"},
   {"runnumber" , (PyCFunction)pdsdaq_runnum    , METH_NOARGS  , "Get run number"},
   {"experiment", (PyCFunction)pdsdaq_expt      , METH_NOARGS  , "Get experiment number"},
@@ -76,7 +79,7 @@ static PyMethodDef pdsdaq_methods[] = {
 //  Register pdsdaq members
 //
 static PyMemberDef pdsdaq_members[] = {
-  {NULL} 
+  {NULL}
 };
 
 static PyTypeObject pdsdaq_type = {
@@ -133,6 +136,7 @@ void pdsdaq_dealloc(pdsdaq* self)
 
   if (self->buffer) {
     delete[] self->dbpath;
+    delete[] self->dbalias;
     delete[] self->buffer;
   }
 
@@ -150,6 +154,7 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
     self->socket   = -1;
     self->state    = Disconnected;
     self->dbpath   = new char[MaxPathSize];
+    self->dbalias  = new char[MaxAliasSize];
     self->dbkey    = 0;
     self->buffer   = new char[MaxConfigSize];
     self->runinfo  = 0;
@@ -233,21 +238,41 @@ PyObject* pdsdaq_connect(PyObject* self)
     if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
       break;
 
+    /*
+     * Get dbpath
+     */
     if (len==0)
       break;
-
     char buff[256];
     if (::recv(s, buff, len, MSG_WAITALL) != len)
       break;
     buff[len] = 0;
     *strrchr(buff,'/') = 0;
+    strcpy(daq->dbpath,buff);
 
+    /*
+     * Get dbkey
+     */
     uint32_t key;
     if (::recv(s, &key, sizeof(key), MSG_WAITALL) < 0)
       break;
 
-    strcpy(daq->dbpath,buff);
     daq->dbkey  = key;
+
+    /*
+     * Get dbalias
+     */
+    len=0;
+    if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
+      break;
+
+    if (len==0)
+      break;
+
+    if (::recv(s, buff, len, MSG_WAITALL) != len)
+      break;
+    buff[len] = 0;
+    strcpy(daq->dbalias,buff);
 
     daq->state  = Connected;
 
@@ -265,6 +290,12 @@ PyObject* pdsdaq_dbpath   (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
   return PyString_FromString(daq->dbpath);
+}
+
+PyObject* pdsdaq_dbalias   (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  return PyString_FromString(daq->dbalias);
 }
 
 PyObject* pdsdaq_dbkey    (PyObject* self)
@@ -456,7 +487,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     for(unsigned i=0; i<PyList_Size(controls); i++) {
       PyObject* item = PyList_GetItem(controls,i);
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
-      list<PVControl>::iterator it=clist.begin(); 
+      list<PVControl>::iterator it=clist.begin();
       do {
         if (strcmp(name,it->name())==0) {
           (*it) = PVControl(name,PyFloat_AsDouble (PyTuple_GetItem(item,1)));
@@ -480,7 +511,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     for(unsigned i=0; i<PyList_Size(monitors); i++) {
       PyObject* item = PyList_GetItem(monitors,i);
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
-      list<PVMonitor>::iterator it=mlist.begin(); 
+      list<PVMonitor>::iterator it=mlist.begin();
       do {
         if (strcmp(name,it->name())==0) {
           (*it) = PVMonitor(name,
@@ -506,7 +537,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     for(unsigned i=0; i<PyList_Size(labels); i++) {
       PyObject* item = PyList_GetItem(labels,i);
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
-      list<PVLabel>::iterator it=llist.begin(); 
+      list<PVLabel>::iterator it=llist.begin();
       do {
         if (strcmp(name,it->name())==0) {
           (*it) = PVLabel(name, PyString_AsString(PyTuple_GetItem(item,1)));
@@ -578,19 +609,19 @@ PyObject* pdsdaq_stop     (PyObject* self)
 PyObject* pdsdaq_eventnum(PyObject* self)
 {
   int64_t iEventNum = -1;
-  
+
   pdsdaq* daq = (pdsdaq*)self;
-  if (daq->state >= Configured) {    
+  if (daq->state >= Configured) {
     Pds::RemoteSeqCmd cmd(Pds::RemoteSeqCmd::CMD_GET_CUR_EVENT_NUM);
     ::write(daq->socket, &cmd, sizeof(cmd));
-        
+
     if (::recv(daq->socket,&iEventNum,sizeof(iEventNum),MSG_WAITALL) < 0)
     {
       ostringstream o;
       o << "pdsdap_eventnum(): recv() failed... disconnecting.";
       PyErr_SetString(PyExc_RuntimeError,o.str().c_str());
-      Py_DECREF(pdsdaq_disconnect(self));      
-    }    
+      Py_DECREF(pdsdaq_disconnect(self));
+    }
   }
 
   return PyLong_FromLong(iEventNum);
@@ -631,7 +662,7 @@ PyMODINIT_FUNC
 initpydaq(void)
 {
   if (PyType_Ready(&pdsdaq_type) < 0)
-    return; 
+    return;
 
   PyObject *m = Py_InitModule("pydaq", PydaqMethods);
   if (m == NULL)
