@@ -91,7 +91,8 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
   _expname(expname),
   _run(0),
   _occPool(new GenericPool(sizeof(DataFileOpened),5)),
-  _offlineclient(offlineclient)
+  _offlineclient(offlineclient),
+  _open_data_file_error(false)
 {
   struct stat st;
 
@@ -155,7 +156,13 @@ InDatagram* Recorder::events(InDatagram* in) {
     _write_error=false;
     _chunk_requested=false;
   default:  // write this transition
-    if (_f) {
+    if (_path_error || _open_data_file_error) {
+      // use flag to avoid flood of occurrences
+      if (!_write_error) {
+        _write_error = true;
+        _postDataFileError();
+      }
+    } else if (_f) {
       struct stat st;
       
       int64_t i64Offset = lseek64( fileno(_f), 0, SEEK_CUR);
@@ -247,6 +254,9 @@ Transition* Recorder::transitions(Transition* tr) {
     if (tr->size() == sizeof(Transition)) {  // No RunInfo
       _f = 0;
       printf("No RunInfo.  Not recording.\n");
+      // ignore file writing errors when not recording
+      _path_error = false;
+      _open_data_file_error = false;
     }
     else {
       RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
@@ -374,6 +384,7 @@ int Recorder::_openOutputFile(bool verbose) {
     }
   }
   else {
+    _open_data_file_error = true;
     if (verbose) {
       printf("Error opening file %s : %s\n",_fnamerunning,strerror(errno));
     }

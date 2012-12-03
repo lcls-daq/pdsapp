@@ -58,6 +58,7 @@ private:
   char     _indexfname[SizeofName];
   char     _host_name[SizeofName];
   OfflineClient *_offlineclient;
+  bool     _open_data_file_error;
 };
 
 }
