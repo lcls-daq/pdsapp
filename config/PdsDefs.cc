@@ -28,7 +28,7 @@
 #include "pds/config/AndorConfigType.hh"
 #include "pds/config/UsdUsbConfigType.hh"
 #include "pds/config/OrcaConfigType.hh"
-#include "pds/config/ProjectionConfigType.hh"
+//#include "pds/config/ProjectionConfigType.hh"
 //#include "pds/config/SeqConfigType.hh"
 
 #include <sstream>
@@ -90,7 +90,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case Andor        : type = &_andorConfigType; break;
   case UsdUsb       : type = &_usdusbConfigType; break;
   case Orca         : type = &_orcaConfigType; break;
-  case Projection   : type = &_projectionConfigType; break;
+    //  case Projection   : type = &_projectionConfigType; break;
   default: 
     printf("PdsDefs::typeId id %d not found\n",unsigned(id));
     break;
@@ -131,7 +131,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_andorConfigType);    
   test(_usdusbConfigType);    
   test(_orcaConfigType);    
-  test(_projectionConfigType);    
+  //  test(_projectionConfigType);    
 #undef test
   //  database-only types
   //  if (name==_eventCodeSetName) return &_eventCodeSetType;
@@ -172,7 +172,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_fliConfigType);    
   test(_andorConfigType);    
   test(_usdusbConfigType);    
-  test(_projectionConfigType);    
+  //  test(_projectionConfigType);    
 #undef test
   //  database-only types
   //  if (name==_eventCodeSetName) return &_eventCodeSetType;
