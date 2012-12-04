@@ -32,6 +32,7 @@ namespace Pds_ConfigDb {
     int  current_key(const string&) const;
   public:
     void add_device(const string&, const list<DeviceEntry>&);
+    void remove_device(const Device&);
     void import_data(const string& device,
 		     const UTypeName& type,
 		     const string& file,

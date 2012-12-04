@@ -28,6 +28,7 @@ namespace Pds_ConfigDb {
   public slots:
     void update_device_list();
     void new_device();
+    void remove_device();
     void edit_device();
     void update_config_list();
     void update_component_list();
@@ -36,6 +37,7 @@ namespace Pds_ConfigDb {
     void change_component();
     void view_component();
     void add_component(const QString& type);
+    void remove_component(const QString& type);
     void db_update();
     void expert_mode();
     void user_mode();
@@ -52,13 +54,15 @@ namespace Pds_ConfigDb {
     QLineEdit*   _devnewedit;
     QPushButton* _devnewbutton;
     QPushButton* _deveditbutton;
+    QPushButton* _devrembutton;
     QListWidget* _cfglist;
     QLineEdit*   _cfgnewedit;
     QPushButton* _cfgnewbutton;
     QLineEdit*   _cfgcpyedit;
     QPushButton* _cfgcpybutton;
     QListWidget* _cmplist;
-    QComboBox*   _cmpcfglist;
+    QComboBox*   _cmpaddlist;
+    QComboBox*   _cmpremlist;
     bool         _expert_mode;
   };
 };

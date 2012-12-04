@@ -43,12 +43,12 @@ FileEntry::FileEntry(const string& name, const string& entry) :
 
 bool FileEntry::operator==(const FileEntry& e) const
 {
-  return _name==e._name;
+  return name()==e.name();
 }
 
 bool FileEntry::operator< (const FileEntry& e) const
 {
-  return _name<e._name;
+  return name()<e.name();
 }
 
 void FileEntry::read(istream& i)
@@ -56,6 +56,23 @@ void FileEntry::read(istream& i)
   i >> _name >> _entry;
 }
 
+string FileEntry::name() const
+{
+  return enabled() ? _name : _name.substr(0,_name.size()-1);
+}
+
+bool FileEntry::enabled() const
+{
+  return _name[_name.size()-1]!='_';
+}
+
+void FileEntry::enable(bool v)
+{
+  if (v)
+    _name = name();
+  else if (enabled())
+    _name += "_";
+}
 
 //===============
 //  TableEntry 
@@ -72,6 +89,11 @@ TableEntry::TableEntry(const string& name, const string& key,
 		       const list<FileEntry>& entries) :
   _name(name), _key(key), _entries(entries)
 {}
+
+bool TableEntry::operator==(const TableEntry& e) const
+{
+  return _name == e._name;
+}
 
 void TableEntry::set_entry(const FileEntry& e)
 {
@@ -161,6 +183,11 @@ void Table::new_top_entry(const string& name)
   _entries.push_back(TableEntry(name));
 }
 
+void Table::remove_top_entry(const TableEntry& e)
+{
+  _entries.remove(e);
+}
+
 void Table::copy_top_entry(const string& dst, const string& src)
 {
   for(list<TableEntry>::iterator iter=_entries.begin(); iter!=_entries.end(); iter++)
@@ -179,5 +206,12 @@ void Table::set_entry(const string& top, const FileEntry& e)
     TableEntry te(top,"Unassigned",e);
     _entries.push_back(te);
   }
+}
+
+void Table::clear_entry(const string& top, const FileEntry& e)
+{
+  TableEntry* entry = const_cast<TableEntry*>(get_top_entry(top));
+  if (entry)
+    entry->remove(e);
 }
 

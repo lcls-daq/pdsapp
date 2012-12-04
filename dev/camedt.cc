@@ -17,6 +17,8 @@
 #include "pds/camera/TM6740Camera.hh"
 #include "pds/camera/Opal1kManager.hh"
 #include "pds/camera/Opal1kCamera.hh"
+#include "pds/camera/OrcaManager.hh"
+#include "pds/camera/OrcaCamera.hh"
 #include "pds/camera/QuartzManager.hh"
 #include "pds/camera/QuartzCamera.hh"
 #include "pds/camera/FrameServer.hh"
@@ -50,6 +52,8 @@ static Pds::CameraDriver* _driver(int id, int channel, const Pds::Src& src)
     return new Pds::EdtPdvCL(*new Pds::TM6740Camera,id,channel);
   case Pds::DetInfo::Quartz4A150:
     return new Pds::EdtPdvCL(*new Pds::QuartzCamera(info),id,channel);
+  case Pds::DetInfo::OrcaFl40:
+    return new Pds::EdtPdvCL(*new Pds::OrcaCamera(info),id,channel);
   default:
     printf("Unsupported camera %s\n",Pds::DetInfo::name(info.device()));
     exit(1);
@@ -92,6 +96,8 @@ namespace Pds {
         _camman  = new PimManager(src); break;
       case DetInfo::Quartz4A150:
         _camman  = new QuartzManager(src); break;
+      case DetInfo::OrcaFl40:
+	_camman = new OrcaManager(src); break;
       default:
         printf("Unsupported camera %s\n",DetInfo::name(info.device()));
         exit(1);

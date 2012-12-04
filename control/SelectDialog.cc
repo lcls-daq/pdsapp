@@ -32,6 +32,8 @@ SelectDialog::SelectDialog(QWidget* parent,
   layoutb->addWidget(rejectb);
   layout->addLayout(layoutb, 3, 0, 1, 3);
   setLayout(layout);
+
+  connect(this    , SIGNAL(changed()), this, SLOT(update_layout()));
 #else
   QVBoxLayout* layout = new QVBoxLayout(this);
   layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, _pcontrol.header().platform(), 
@@ -90,6 +92,11 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
   default: break;
   }
 
+  emit changed();
+}
+
+void SelectDialog::update_layout()
+{
 #ifdef BALANCE_LAYOUT
   //
   //  Balance the layout

@@ -55,10 +55,14 @@ Devices_Ui::Devices_Ui(QWidget* parent,
     { QVBoxLayout* layout1 = new QVBoxLayout;
       layout1->addWidget(new QLabel("Device", this));
       layout1->addWidget(_devlist = new QListWidget(this));
-      layout1->addWidget(_deveditbutton = new QPushButton("Edit", this));
       { QHBoxLayout* layout1a = new QHBoxLayout;
 	layout1a->addWidget(_devnewedit   = new QLineEdit(this));
 	layout1a->addWidget(_devnewbutton = new QPushButton("New", this));
+	layout1->addLayout(layout1a); }
+      { QHBoxLayout* layout1a = new QHBoxLayout;
+	layout1a->addWidget(_deveditbutton = new QPushButton("Edit", this));
+	layout1a->addStretch();
+	layout1a->addWidget(_devrembutton = new QPushButton("Remove", this));
 	layout1->addLayout(layout1a); }
       layout->addLayout(layout1); }
     { QVBoxLayout* layout1 = new QVBoxLayout;
@@ -80,7 +84,13 @@ Devices_Ui::Devices_Ui(QWidget* parent,
 	QLabel* label = new QLabel("Add", this);
 	label->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter );
 	layout1a->addWidget(label);
-	layout1a->addWidget(_cmpcfglist = new QComboBox(this));
+	layout1a->addWidget(_cmpaddlist = new QComboBox(this));
+	layout1->addLayout(layout1a); }
+      { QHBoxLayout* layout1a = new QHBoxLayout;
+	QLabel* label = new QLabel("Remove", this);
+	label->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter );
+	layout1a->addWidget(label);
+	layout1a->addWidget(_cmpremlist = new QComboBox(this));
 	layout1->addLayout(layout1a); }
       layout->addLayout(layout1); }
     vbox->addLayout(layout); }
@@ -89,12 +99,14 @@ Devices_Ui::Devices_Ui(QWidget* parent,
   if (edit) {
     connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_config_list()));
     connect(_deveditbutton, SIGNAL(clicked()), this, SLOT(edit_device()));
+    connect(_devrembutton, SIGNAL(clicked()), this, SLOT(remove_device()));
     connect(_devnewbutton, SIGNAL(clicked()), this, SLOT(new_device()));
     connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
     connect(_cfgnewbutton, SIGNAL(clicked()), this, SLOT(new_config()));
     connect(_cfgcpybutton, SIGNAL(clicked()), this, SLOT(copy_config()));
     connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
-    connect(_cmpcfglist, SIGNAL(activated(const QString&)), this, SLOT(add_component(const QString&)));
+    connect(_cmpaddlist, SIGNAL(activated(const QString&)), this, SLOT(add_component(const QString&)));
+    connect(_cmpremlist, SIGNAL(activated(const QString&)), this, SLOT(remove_component(const QString&)));
   }
   else {
     connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_config_list()));
@@ -150,6 +162,15 @@ void Devices_Ui::edit_device()
   }
 }
 
+void Devices_Ui::remove_device()
+{
+  Device* device(_device());
+  if (device) {
+    _expt.remove_device(*device);
+    update_device_list();
+  }
+}
+
 void Devices_Ui::new_device()
 {
   string device(_devnewedit->text().toAscii());
@@ -199,7 +220,8 @@ void Devices_Ui::update_component_list()
   bool ok_change = disconnect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
   bool ok_view   = disconnect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(view_component()));
   _cmplist->clear();
-  _cmpcfglist->clear();
+  _cmpaddlist->clear();
+  _cmpremlist->clear();
     
   list<UTypeName> unassigned;
   for(unsigned i=0; i<PdsDefs::NumberOf; i++)
@@ -217,6 +239,7 @@ void Devices_Ui::update_component_list()
 	string label = iter->name() + " [" + iter->entry() + "]";
 	*new QListWidgetItem(label.c_str(),_cmplist);
 	unassigned.remove(UTypeName(iter->name()));
+	_cmpremlist->addItem(UTypeName(iter->name()).c_str());
       }
     }
     //  List global entries here
@@ -227,13 +250,14 @@ void Devices_Ui::update_component_list()
 	string label = iter->name() + " [" + iter->entry() + "](G)";
 	*new QListWidgetItem(label.c_str(),_cmplist);
 	unassigned.remove(UTypeName(iter->name()));
+	_cmpremlist->addItem(UTypeName(iter->name()).c_str());
       }
     }
   }
 
   for(list<UTypeName>::const_iterator iter=unassigned.begin(); 
       iter!= unassigned.end(); iter++)
-    _cmpcfglist->addItem(iter->c_str());
+    _cmpaddlist->addItem(iter->c_str());
 
   if (ok_change) connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
   if (ok_view  ) connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(view_component()));
@@ -313,7 +337,7 @@ void Devices_Ui::view_component()
     QMessageBox::warning(this, "Read file failed", msg);
   }
   else {
-    Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath, qpath, qfile);
+    Dialog* d = new Dialog(_cmpaddlist, lookup(stype), qpath, qpath, qfile);
     d->exec();
     delete d;
   }
@@ -371,7 +395,7 @@ void Devices_Ui::add_component(const QString& type)
       string path(_expt.path().data_path("",stype));
       QString qpath(path.c_str());
 
-      Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath, qpath);
+      Dialog* d = new Dialog(_cmpaddlist, lookup(stype), qpath, qpath);
       d->exec();
       QString file(d->file());
       delete d;
@@ -387,7 +411,7 @@ void Devices_Ui::add_component(const QString& type)
       QString qchoice = qpath + "/" + choice;
 
       //      Parameter::allowEdit(false);
-      Dialog* d = new Dialog(_cmpcfglist, lookup(stype), qpath, qpath, qchoice);
+      Dialog* d = new Dialog(_cmpaddlist, lookup(stype), qpath, qpath, qchoice);
       d->exec();
       delete d;
       //      Parameter::allowEdit(true);
@@ -396,6 +420,34 @@ void Devices_Ui::add_component(const QString& type)
       _expt.device(det)->table().set_entry(cfg,entry);
     }
   }
+  update_component_list();
+}
+
+void Devices_Ui::remove_component(const QString& type)
+{
+  string strtype(qPrintable(type));
+  UTypeName stype(strtype);
+
+  QListWidgetItem* item;
+  item = _devlist->currentItem();
+  if (!item) return;
+  string det(qPrintable(item->text()));
+
+  string cfg;
+  if (GlobalCfg::contains(stype)) {  // create the global alias
+    cfg = string(GlobalCfg::name());
+    if (_expt.device(det)->table().get_top_entry(cfg) == 0)
+      _expt.device(det)->table().new_top_entry(cfg);
+  }
+  else {
+    item = _cfglist->currentItem();
+    if (!item) return;
+    cfg = string(qPrintable(item->text()));
+  }
+
+  FileEntry entry(stype,"");
+  _expt.device(det)->table().clear_entry(cfg, entry);
+
   update_component_list();
 }
 

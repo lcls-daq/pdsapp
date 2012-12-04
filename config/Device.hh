@@ -21,6 +21,8 @@ namespace Pds_ConfigDb {
     Device( const string& path, const string& name,
 	    const list<DeviceEntry>& src_list );
   public:
+    bool operator==(const Device&) const;
+  public:
     const string& name() const { return _name; }
 
     //  Table of {device alias, key, {config_type,filename}}

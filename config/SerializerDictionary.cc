@@ -25,6 +25,7 @@
 #include "pdsapp/config/UsdUsbConfig.hh"
 #include "pdsapp/config/Opal1kConfig.hh"
 #include "pdsapp/config/QuartzConfig.hh"
+#include "pdsapp/config/OrcaConfig.hh"
 #include "pdsapp/config/FccdConfig.hh"
 #include "pdsapp/config/TM6740Config.hh"
 #include "pdsapp/config/TM6740ConfigV1.hh"
@@ -58,6 +59,7 @@
 #include "pds/config/UsdUsbConfigType.hh"
 #include "pds/config/Opal1kConfigType.hh"
 #include "pds/config/QuartzConfigType.hh"
+#include "pds/config/OrcaConfigType.hh"
 #include "pds/config/FccdConfigType.hh"
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/pnCCDConfigType.hh"
@@ -104,6 +106,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(_evrIOConfigType       ,new EvrIOConfig);
   enroll(_opal1kConfigType      ,new Opal1kConfig);
   enroll(_quartzConfigType      ,new QuartzConfig);
+  enroll(_orcaConfigType        ,new OrcaConfig);
   enroll(_fccdConfigType        ,new FccdConfig);
   enroll(_tm6740ConfigType      ,new TM6740Config);  
   enroll(_pnCCDConfigType       ,new pnCCDConfig);

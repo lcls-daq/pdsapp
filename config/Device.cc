@@ -31,6 +31,11 @@ Device::Device(const string& path,
 {
 }
 
+bool Device::operator==(const Device& d) const
+{
+  return name() == d.name(); 
+}
+
 string Device::keypath(const string& path, const string& key)
 {
   ostringstream o;
@@ -109,7 +114,8 @@ bool Device::_check_config(const TableEntry* entry, const string& path, const st
     string tlink = typelink(utype,iter->entry());
     if (!stat(tpath.c_str(),&s)) {
       int sz=readlink(tpath.c_str(),buff,line_size);
-      if (sz<0) { outofdate=true; }
+      if (!iter->enabled()) { outofdate=true; }
+      else if (sz<0) { outofdate=true; }
       else {
 	//
 	//  Test that the symbolic link points to file equivalent to the xtc file
@@ -153,10 +159,12 @@ bool Device::_check_config(const TableEntry* entry, const string& path, const st
 	}
       }
     }
-    else {
+    else if (iter->enabled()) {
       //      printf("No %s path\n",tpath.c_str());
       outofdate=true;
     }
+    else   // disabled component should be absent
+      ;
   }
   return outofdate;
 }
@@ -164,6 +172,9 @@ bool Device::_check_config(const TableEntry* entry, const string& path, const st
 void Device::_make_config(const TableEntry* entry, const string& path, const string& key)
 {
   for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
+    if (!iter->enabled())
+      continue;
+
     UTypeName utype(iter->name());
     string tpath = typepath(path,key,utype);
     //

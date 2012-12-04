@@ -144,6 +144,12 @@ void Experiment::add_device(const string& name,
   cout << "Added dir " << device.keypath(_path.base(),"") << endl;
 }
 
+void Experiment::remove_device(const Device& device)
+{
+  cout << "Removing device " << device.name() << endl;
+  _devices.remove(device);
+}
+
 void Experiment::import_data(const string& device,
 			     const UTypeName& type,
 			     const string& file,
@@ -234,12 +240,14 @@ bool Experiment::update_key(const TableEntry& entry)
   unsigned invalid = entry.entries().size();   // number of expected devices 
 
   glob_t g;
-  string gpath = kpath + "/*";
+  string gpath = kpath + "/[0-9,a-f]*";
   glob(gpath.c_str(),0,0,&g);
   if (invalid < g.gl_pathc) invalid = g.gl_pathc; // number of devices included
   globfree(&g);
 
 #ifdef DBUG
+  printf("Check %d/%d devices\n",invalid,entry.entries().size());
+
   profile.interval("glob",gpath.c_str());
 #endif
 
@@ -254,7 +262,6 @@ bool Experiment::update_key(const TableEntry& entry)
       const Device* d = device(iter->name());
       string dpath = "../" + iter->name() + "/" + d->table().get_top_entry(iter->entry())->key();
       const list<DeviceEntry>& slist = d->src_list();
-      int invalid_device = slist.size();
       //  Check each <src> entry for the device
       for(list<DeviceEntry>::const_iterator siter = slist.begin();
 	  siter != slist.end(); siter++) {
@@ -270,7 +277,14 @@ bool Experiment::update_key(const TableEntry& entry)
 	  if (sz>0) {
 	    buff[sz] = 0;
 	    if (!strcmp(buff,dpath.c_str()))
-	      --invalid_device;
+	      --invalid;
+#ifdef DBUG
+	    else
+	      printf("link(%s) incorrect %s != %s\n",
+		     spath.c_str(),
+		     buff,
+		     dpath.c_str());
+#endif
 	  }
 	}
 #ifdef DBUG
@@ -278,8 +292,6 @@ bool Experiment::update_key(const TableEntry& entry)
           profile.interval("stat",spath.c_str());
 #endif
       }
-      if (invalid_device==0)  // this device is valid
-	--invalid;
     }
   }
   else {
@@ -288,7 +300,11 @@ bool Experiment::update_key(const TableEntry& entry)
 #endif
     printf("The top key file (%s) doesn't yet exist\n", kpath.c_str());
   }
-  
+
+#ifdef DBUG
+  printf("Still %d devices invalid\n",invalid);
+#endif
+
   if (invalid) {
     sprintf(buff,"%08x",next_key());
     string key(buff);

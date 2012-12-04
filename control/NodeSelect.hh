@@ -15,7 +15,7 @@
 class QButtonGroup;
 class QPalette;
 
-//#define BALANCE_LAYOUT
+#define BALANCE_LAYOUT
 
 namespace Pds {
   class PingReply;

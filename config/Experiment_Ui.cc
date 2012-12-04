@@ -27,6 +27,7 @@ Experiment_Ui::Experiment_Ui(QWidget* parent,
   _expt    (expt)
 {
   QHBoxLayout* layout = new QHBoxLayout(this);
+  QPushButton* cfgrembutton = new QPushButton("Remove");
 
   { QVBoxLayout* layout1 = new QVBoxLayout;
     layout1->addWidget(new QLabel("Config Name", this));
@@ -34,6 +35,8 @@ Experiment_Ui::Experiment_Ui(QWidget* parent,
     { QHBoxLayout* layout1a = new QHBoxLayout;
       layout1a->addWidget(_cfgnewedit   = new QLineEdit(this));
       layout1a->addWidget(_cfgnewbutton = new QPushButton("New", this));
+      layout1a->addStretch();
+      layout1a->addWidget(cfgrembutton);
       layout1->addLayout(layout1a); }
     { QHBoxLayout* layout1b = new QHBoxLayout;
       layout1b->addWidget(_cfgcopyedit   = new QLineEdit(this));
@@ -63,6 +66,7 @@ Experiment_Ui::Experiment_Ui(QWidget* parent,
   connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_device_list()));
   if (edit) {
     connect(_cfgnewbutton, SIGNAL(clicked()), this, SLOT(new_config()));
+    connect( cfgrembutton, SIGNAL(clicked()), this, SLOT(remove_config()));
     connect(_cfgcopybutton, SIGNAL(clicked()), this, SLOT(copy_config()));
     connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(device_changed()));
     connect(_adddevlist, SIGNAL(activated(const QString&)), this, SLOT(add_device(const QString&)));
@@ -140,6 +144,15 @@ void Experiment_Ui::new_config()
     cout << "New config name \"" << name << "\" rejected" << endl;
 
   _cfgnewedit->clear();
+}
+
+void Experiment_Ui::remove_config()
+{
+  if (_cfglist->currentItem()) {
+    string name(qPrintable(_cfglist->currentItem()->text()));
+    _expt.table().remove_top_entry( *_expt.table().get_top_entry(name) );
+    update_config_list();
+  }
 }
 
 void Experiment_Ui::copy_config()

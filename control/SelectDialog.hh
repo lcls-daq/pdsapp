@@ -35,6 +35,9 @@ namespace Pds {
   public slots:
     void select();
     void check_ready();
+    void update_layout();
+  signals:
+    void changed();
   private:
     void _clearLayout();
   private:

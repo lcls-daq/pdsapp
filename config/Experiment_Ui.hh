@@ -25,6 +25,7 @@ namespace Pds_ConfigDb {
   public slots:
     void update_device_list();
     void new_config();
+    void remove_config();
     void copy_config();
     void device_changed();
     void add_device   (const QString& name);

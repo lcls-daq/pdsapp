@@ -16,12 +16,14 @@ namespace Pds_ConfigDb {
     FileEntry(istream&);
     FileEntry(const string& name, const string& entry);
   public:
-    const string& name () const { return _name; }
+    bool enabled() const;
+    string name () const;
     const string& entry() const { return _entry; }
   public:
     bool operator==(const FileEntry&) const;
     bool operator< (const FileEntry&) const;
     void read(istream&);
+    void enable(bool);
   private:
     string _name;
     string _entry;
@@ -38,6 +40,7 @@ namespace Pds_ConfigDb {
     const string& name() const { return _name; }
     const string& key () const { return _key; }
     const list<FileEntry>& entries() const { return _entries; }
+    bool  operator==(const TableEntry&) const;
   public:
     void set_entry(const FileEntry& entry);
     void remove   (const FileEntry& entry);
@@ -57,12 +60,14 @@ namespace Pds_ConfigDb {
 
     std::list<string> get_top_names() const;
     const TableEntry* get_top_entry(const string&) const;
-
+    
     void write(const string&) const;
     void set_top_entry(const TableEntry&);
     void new_top_entry(const string&);
+    void remove_top_entry(const TableEntry&);
     void copy_top_entry(const string&,const string&);
     void set_entry(const string&, const FileEntry&);
+    void clear_entry(const string&, const FileEntry&);
 
     void dump(const string&) const;
   private:

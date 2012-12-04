@@ -28,6 +28,7 @@ libsrcs_configdbg += ExpertDictionary.cc
 libsrcs_configdbg += Serializer.cc
 libsrcs_configdbg += Opal1kConfig.cc
 libsrcs_configdbg += QuartzConfig.cc
+libsrcs_configdbg += OrcaConfig.cc
 libsrcs_configdbg += FccdConfig.cc
 libsrcs_configdbg += pnCCDConfig.cc
 libsrcs_configdbg += princetonConfig.cc
@@ -36,6 +37,7 @@ libsrcs_configdbg += AndorConfig.cc
 libsrcs_configdbg += TM6740Config.cc
 libsrcs_configdbg += TM6740ConfigV1.cc
 libsrcs_configdbg += FrameFexConfig.cc
+#libsrcs_configdbg += ProjectionConfig.cc ProjectionConfigQ.cc ProjectionConfigQ_moc.cc
 libsrcs_configdbg += EvrOutputMap.cc EvrOutputMap_V1.cc
 libsrcs_configdbg += EvrPulseConfig.cc EvrPulseConfig_V1.cc EvrEventCodeV3.cc EvrEventCode.cc
 libsrcs_configdbg += EvrIOChannel.cc EvrIOChannel_moc.cc
@@ -109,7 +111,7 @@ tgtnames       += configdb_readxtc
 
 # executable python modules: configdb_gui.py
 
-datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata pdsdata/andordata pdsdata/usdusbdata pdsdata/compressdata
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata pdsdata/andordata pdsdata/usdusbdata pdsdata/orcadata
 
 tgtsrcs_configdb := configdb.cc
 #tgtincs_configdb := $(qtincdir)
