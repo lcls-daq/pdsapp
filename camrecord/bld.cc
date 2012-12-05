@@ -310,24 +310,25 @@ void handle_bld(fd_set *rfds)
     char buf[uDefaultMaxDataSize];
     unsigned int msgsize;
     Dgram *dg2 = (Dgram *)buf;
+    Xtc   *inner = (Xtc *)(sizeof(Xtc) + (char *) &dg2->xtc);
 
     for (i = 0, c = bldconn::index(i); c; c = bldconn::index(++i)) {
         if (FD_ISSET(c->fd, rfds)) {
             c->bldServer->fetch(sizeof(buf), buf, msgsize);
             // The first packet, we treat as configuration information.
             if (!c->cfgdone) {
-                configure_xtc(c->xid, (char *) &dg2->xtc, dg2->xtc.extent);
+                configure_xtc(c->xid, (char *) inner, dg2->xtc.extent);
                 c->cfgdone = 1;
             } else {
                 // Make sure the BLD puts the fiducial in the timestamp!
                 if (c->revtime)
                     data_xtc(c->xid, dg2->seq.clock().nanoseconds() - POSIX_TIME_AT_EPICS_EPOCH,
                              (dg2->seq.clock().seconds() & ~0x1ffff) | dg2->seq.stamp().fiducials(),
-                             &dg2->xtc, dg2->xtc.extent, NULL);
+                             inner, dg2->xtc.extent, NULL);
                 else
                     data_xtc(c->xid, dg2->seq.clock().seconds() - POSIX_TIME_AT_EPICS_EPOCH,
                              (dg2->seq.clock().nanoseconds() & ~0x1ffff) | dg2->seq.stamp().fiducials(),
-                             &dg2->xtc, dg2->xtc.extent, NULL);
+                             inner, dg2->xtc.extent, NULL);
             }
         }
     }
