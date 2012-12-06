@@ -1,7 +1,7 @@
 #include"pdsdata/xtc/Xtc.hh"
 #include<string>
 
-#define DEFAULT_DIR "/reg/neh/home/mcbrowne/lib"
+#define DEFAULT_DIR "/reg/neh/home1/mcbrowne/lib"
 #define DEFAULT_CFG ".camrecord"
 
 /* main.cc */
