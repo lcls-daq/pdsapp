@@ -192,6 +192,7 @@ void ControlScan::read(const char* ifile)
 
   const int bufsize = 0x1000;
   char* buff = new char[bufsize];
+  char namebuf[256];
 
   {
     //
@@ -201,25 +202,27 @@ void ControlScan::read(const char* ifile)
     string path = _expt.path().data_path("",utype);
     QString file = QString("%1/%2").arg(path.c_str()).arg(ifile);
 
-    sprintf(buff,"%s",qPrintable(file));
+    snprintf(namebuf,sizeof(namebuf),"%s",qPrintable(file));
 
-    printf("ControlScan::read %s\n",buff);
+    printf("ControlScan::read %s\n",namebuf);
 
     struct stat sstat;
-    if (stat(buff,&sstat)) {
-      printf("ControlScan::read stat failed on controlconfig file %s\n",buff);
+    if (stat(namebuf,&sstat)) {
+      printf("ControlScan::read stat failed on controlconfig file %s\n",namebuf);
 
       // Create it
-      sprintf(buff,"%s",qPrintable(file));
-      printf("ControlScan::creating %s\n",buff);
-      FILE* f = fopen(buff,"w");
+      printf("ControlScan::creating %s\n",namebuf);
+      FILE* f = fopen(namebuf,"w");
       ControlConfigType* cfg = new (buff)ControlConfigType(ControlConfigType::Default);
       fwrite(cfg, cfg->size(), 1, f);
       fclose(f);
+      // retry stat()
+      if (stat(namebuf,&sstat)) {
+        printf("ControlScan::read stat failed on controlconfig file %s\n",namebuf);
+      }
     }
 
-    sprintf(buff,"%s",qPrintable(file));
-    FILE* f = fopen(buff,"r");
+    FILE* f = fopen(namebuf,"r");
 
     char* dbuf = new char[sstat.st_size];
     int len = fread(dbuf, 1, sstat.st_size, f);
