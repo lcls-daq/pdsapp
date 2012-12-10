@@ -24,101 +24,102 @@
 
 using std::string;
 
-namespace Pds 
+namespace Pds
 {
 static const char sFliVersion[] = "0.9";
-    
-class SegWireSettingsFli : public SegWireSettings 
+
+class SegWireSettingsFli : public SegWireSettings
 {
 public:
     SegWireSettingsFli(const Src& src) { _sources.push_back(src); }
     virtual ~SegWireSettingsFli() {}
-    void connect (InletWire& wire, StreamParams::StreamType s, int interface) {}        
+    void connect (InletWire& wire, StreamParams::StreamType s, int interface) {}
     const std::list<Src>& sources() const { return _sources; }
-     
+
 private:
     std::list<Src> _sources;
 };
-    
+
 //
 //    Implements the callbacks for attaching/dissolving.
 //    Appliances can be added to the stream here.
 //
-class EventCallBackFli : public EventCallback 
+class EventCallBackFli : public EventCallback
 {
 public:
-    EventCallBackFli(int iPlatform, CfgClientNfs& cfgService, int iCamera, bool bDelayMode, 
+    EventCallBackFli(int iPlatform, CfgClientNfs& cfgService, int iCamera, bool bDelayMode,
       bool bInitTest, string sConfigDb, int iSleepInt, int iDebugLevel) :
-      _iPlatform(iPlatform), _cfg(cfgService), _iCamera(iCamera), 
-      _bDelayMode(bDelayMode), _bInitTest(bInitTest), 
+      _iPlatform(iPlatform), _cfg(cfgService), _iCamera(iCamera),
+      _bDelayMode(bDelayMode), _bInitTest(bInitTest),
       _sConfigDb(sConfigDb), _iSleepInt(iSleepInt), _iDebugLevel(iDebugLevel),
-      _bAttached(false), _fliManager(NULL) 
+      _bAttached(false), _fliManager(NULL)
     {
     }
 
-    virtual ~EventCallBackFli() 
+    virtual ~EventCallBackFli()
     {
         reset();
     }
-    
-    bool IsAttached() { return _bAttached; }    
-    
+
+    bool IsAttached() { return _bAttached; }
+
 private:
     void reset()
     {
-        delete _fliManager;        
+        delete _fliManager;
         _bAttached = false;
     }
-    
+
     // Implements EventCallback
-    virtual void attached(SetOfStreams& streams)        
-    {        
+    virtual void attached(SetOfStreams& streams)
+    {
         printf("Connected to iPlatform %d\n", _iPlatform);
-             
-        reset();        
-        
+
+        reset();
+
         try
-        { 
+        {
         _fliManager = new FliManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iSleepInt, _iDebugLevel);
+        _fliManager->initServer();
         }
         catch ( FliManagerException& eManager )
         {
           printf( "EventCallBackFli::attached(): FliManager init failed, error message = \n  %s\n", eManager.what() );
           return;
-        }        
-        
+        }
+
         Stream* streamFramework = streams.stream(StreamParams::FrameWork);
         _fliManager->appliance().connect(streamFramework->inlet());
         _bAttached = true;
     }
-    
-    virtual void failed(Reason reason)    
+
+    virtual void failed(Reason reason)
     {
-        static const char* reasonname[] = { "platform unavailable", 
-                                        "crates unavailable", 
+        static const char* reasonname[] = { "platform unavailable",
+                                        "crates unavailable",
                                         "fcpm unavailable" };
-        printf("Seg: unable to allocate crates on iPlatform 0x%x : %s\n", 
+        printf("Seg: unable to allocate crates on iPlatform 0x%x : %s\n",
              _iPlatform, reasonname[reason]);
-             
-        reset();        
+
+        reset();
     }
-    
+
     virtual void dissolved(const Node& who)
     {
         const unsigned userlen = 12;
         char username[userlen];
         Node::user_name(who.uid(),username,userlen);
-        
+
         const unsigned iplen = 64;
         char ipname[iplen];
         Node::ip_name(who.ip(),ipname, iplen);
-        
-        printf("Seg: platform 0x%x dissolved by user %s, pid %d, on node %s", 
-             who.platform(), username, who.pid(), ipname);        
-        
+
+        printf("Seg: platform 0x%x dissolved by user %s, pid %d, on node %s",
+             who.platform(), username, who.pid(), ipname);
+
         reset();
     }
-        
+
 private:
     int                 _iPlatform;
     CfgClientNfs&       _cfg;
@@ -129,11 +130,11 @@ private:
     int                 _iSleepInt;
     int                 _iDebugLevel;
     bool                _bAttached;
-    FliManager*   _fliManager;    
+    FliManager*   _fliManager;
 }; // class EventCallBackFli
 
 
-} // namespace Pds 
+} // namespace Pds
 
 
 using namespace Pds;
@@ -143,7 +144,7 @@ static void showUsage()
 {
     printf( "Usage:  fli  [-v|--version] [-h|--help] [-c|--camera <0-9> ] "
       "[-i|--id <id>] [-d|--delay] [-n|--init] [-g|--config <db_path>] [-s|--sleep <ms>] "
-      "[-l|--debug <level>] [-i|--id <id>] -p|--platform <platform id>\n" 
+      "[-l|--debug <level>] [-i|--id <id>] -p|--platform <platform id>\n"
       "  Options:\n"
       "    -v|--version                 Show file version.\n"
       "    -h|--help                    Show usage.\n"
@@ -169,15 +170,15 @@ void fliSignalIntHandler( int iSignalNo )
 {
   printf( "\nfliSignalIntHandler(): signal %d received. Stopping all activities\n", iSignalNo );
   iSignalCaught = 1;
-  
-  if (taskMainThread != NULL) 
-    taskMainThread->destroy();     
+
+  if (taskMainThread != NULL)
+    taskMainThread->destroy();
 }
 
-int main(int argc, char** argv) 
+int main(int argc, char** argv)
 {
     const char*   strOptions    = ":vhp:c:i:dnl:g:s:";
-    const struct option loOptions[]   = 
+    const struct option loOptions[]   =
     {
        {"ver",      0, 0, 'v'},
        {"help",     0, 0, 'h'},
@@ -190,8 +191,8 @@ int main(int argc, char** argv)
        {"sleep" ,   1, 0, 's'},
        {"debug" ,   1, 0, 'l'},
        {0,          0, 0,  0 }
-    };    
-    
+    };
+
     // parse the command line for our boot parameters
     int               iCamera       = 0;
     DetInfo::Detector detector      = DetInfo::NoDetector;
@@ -200,108 +201,108 @@ int main(int argc, char** argv)
     bool              bDelayMode    = false;
     bool              bInitTest     = false;
     int               iDebugLevel   = 0;
-    int               iPlatform     = -1;    
+    int               iPlatform     = -1;
     string            sConfigDb;
     int               iSleepInt     = 0; // 0 ms
-        
+
     int               iOptionIndex  = 0;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
-            
+
         switch(opt)
-        {            
+        {
         case 'v':               /* Print usage */
             showVersion();
-            return 0;            
+            return 0;
         case 'p':
             iPlatform = strtoul(optarg, NULL, 0);
             break;
         case 'c':
             iCamera = strtoul(optarg, NULL, 0);
-            break;       
+            break;
         case 'i':
             char* pNextToken;
-            detector    = (DetInfo::Detector) strtoul(optarg, &pNextToken, 0); ++pNextToken;            
+            detector    = (DetInfo::Detector) strtoul(optarg, &pNextToken, 0); ++pNextToken;
             if ( *pNextToken == 0 ) break;
-            iDetectorId = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;            
+            iDetectorId = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;
             if ( *pNextToken == 0 ) break;
             iDeviceId   = strtoul(pNextToken, &pNextToken, 0);
-            break;            
+            break;
         case 'd':
             bDelayMode = true;
-            break;            
+            break;
         case 'n':
             bInitTest = true;
-            break;            
+            break;
         case 'l':
             iDebugLevel = strtoul(optarg, NULL, 0);
-            break;       
+            break;
         case 'g':
             sConfigDb = optarg;
-            break;       
+            break;
         case 's':
             iSleepInt = strtoul(optarg, NULL, 0);
-            break;       
+            break;
         case '?':               /* Terse output mode */
             printf( "fli:main(): Unknown option: %c\n", optopt );
             break;
         case ':':               /* Terse output mode */
             printf( "fli:main(): Missing argument for %c\n", optopt );
             break;
-        default:            
+        default:
         case 'h':               /* Print usage */
             showUsage();
-            return 0;            
+            return 0;
         }
-    } 
+    }
 
     argc -= optind;
     argv += optind;
 
-    if ( iPlatform == -1 ) 
-    {   
+    if ( iPlatform == -1 )
+    {
         printf( "fli:main(): Please specify platform in command line options\n" );
         showUsage();
         return 1;
-    }        
-   
+    }
+
     /*
      * Register singal handler
      */
     struct sigaction sigActionSettings;
     sigemptyset(&sigActionSettings.sa_mask);
     sigActionSettings.sa_handler = fliSignalIntHandler;
-    sigActionSettings.sa_flags   = SA_RESTART;    
+    sigActionSettings.sa_flags   = SA_RESTART;
 
-    if (sigaction(SIGINT, &sigActionSettings, 0) != 0 ) 
+    if (sigaction(SIGINT, &sigActionSettings, 0) != 0 )
       printf( "main(): Cannot register signal handler for SIGINT\n" );
-    if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 ) 
+    if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 )
       printf( "main(): Cannot register signal handler for SIGTERM\n" );
-    
+
     try
-    {   
+    {
     printf("Settings:\n");
 
-    printf("  Platform: %d  Camera: %d\n", iPlatform, iCamera);        
-    
-    const DetInfo detInfo( getpid(), detector, iDetectorId, DetInfo::Fli, iDeviceId);    
-    printf("  DetInfo: %s  ConfigDb: %s  Sleep: %d ms\n", DetInfo::name(detInfo), sConfigDb.c_str(), iSleepInt );    
+    printf("  Platform: %d  Camera: %d\n", iPlatform, iCamera);
+
+    const DetInfo detInfo( getpid(), detector, iDetectorId, DetInfo::Fli, iDeviceId);
+    printf("  DetInfo: %s  ConfigDb: %s  Sleep: %d ms\n", DetInfo::name(detInfo), sConfigDb.c_str(), iSleepInt );
     printf("  Delay Mode: %s  Init Test: %s  Debug Level: %d\n", (bDelayMode?"Yes":"No"), (bInitTest?"Yes":"No"),
       iDebugLevel);
-      
+
     Task* task = new Task(Task::MakeThisATask);
     taskMainThread = task;
-    
+
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsFli settings(detInfo);
-    
+
     EventCallBackFli  eventCallBackFli(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iDebugLevel);
     SegmentLevel segmentLevel(iPlatform, settings, eventCallBackFli, NULL);
-    
-    segmentLevel.attach();    
-    if ( eventCallBackFli.IsAttached() )    
-        task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)        
+
+    segmentLevel.attach();
+    if ( eventCallBackFli.IsAttached() )
+        task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)
     }
     catch (...)
     {
@@ -310,6 +311,6 @@ int main(int argc, char** argv)
       else
         printf( "main(): Unknown exception\n" );
     }
-    
+
     return 0;
 }
