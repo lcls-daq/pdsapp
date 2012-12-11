@@ -58,20 +58,7 @@ void FileEntry::read(istream& i)
 
 string FileEntry::name() const
 {
-  return enabled() ? _name : _name.substr(0,_name.size()-1);
-}
-
-bool FileEntry::enabled() const
-{
-  return _name[_name.size()-1]!='_';
-}
-
-void FileEntry::enable(bool v)
-{
-  if (v)
-    _name = name();
-  else if (enabled())
-    _name += "_";
+  return _name;
 }
 
 //===============

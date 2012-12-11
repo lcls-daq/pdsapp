@@ -16,14 +16,12 @@ namespace Pds_ConfigDb {
     FileEntry(istream&);
     FileEntry(const string& name, const string& entry);
   public:
-    bool enabled() const;
     string name () const;
     const string& entry() const { return _entry; }
   public:
     bool operator==(const FileEntry&) const;
     bool operator< (const FileEntry&) const;
     void read(istream&);
-    void enable(bool);
   private:
     string _name;
     string _entry;
