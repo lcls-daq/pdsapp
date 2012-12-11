@@ -235,10 +235,14 @@ void Dialog::write()
 #else
   int i = 0;
 #endif
-  delete _cycles[i];
   Cycle* cycle = new Cycle(_s.dataSize());
   _s.writeParameters(cycle->buffer);
-  _cycles[i] = cycle;
+  if (_cycles.size()) {
+    delete _cycles[i];
+    _cycles[i] = cycle;
+  }
+  else
+    _cycles.insert(_cycles.begin(),cycle);
 
   const int bufsize = 128;
   char* buff = new char[bufsize];
@@ -341,7 +345,13 @@ void Dialog::append(const QString& file)
 {
   // perform the read
   struct stat file_stat;
-  if (stat(qPrintable(file),&file_stat)) return;
+  if (stat(qPrintable(file),&file_stat)) {
+    char msg[256];
+    sprintf(msg,"System error opening %s : %s",qPrintable(file),strerror(errno));
+    printf("%s\n",msg);
+    QMessageBox::critical(this,"Load Error",msg);
+    return;
+  }
   char* buff = new char[file_stat.st_size];
   FILE* input = fopen(qPrintable(file),"r");
   fread(buff, file_stat.st_size, 1, input);
