@@ -14,7 +14,7 @@ using std::endl;
 #include <glob.h>
 #include <libgen.h>
 
-#define DBG
+//#define DBUG
 
 namespace Pds_ConfigDb {
   class TimeProfile {
@@ -25,8 +25,9 @@ namespace Pds_ConfigDb {
       clock_gettime(CLOCK_REALTIME,&tp);
       double dt = double(tp.tv_sec - _tp.tv_sec)+1.e-9*(double(tp.tv_nsec)-double(_tp.tv_nsec));
       _tp = tp;
-      printf("%s::%s = %f seconds\n",s1,s2,dt);
+      //      printf("%s::%s = %f seconds\n",s1,s2,dt);
     }
+    void interval(const std::string s1, const char* s2) { interval(s1.c_str(),s2); }
   private:
     timespec _tp; 
   };

@@ -206,10 +206,11 @@ void Devices_Ui::update_config_list()
   if (device) {
     const list<TableEntry>& entries = device->table().entries();
     for(list<TableEntry>::const_iterator iter=entries.begin();
-	iter!=entries.end(); iter++)
+	iter!=entries.end(); iter++) {
       // exclude global configuration from direct editing
       if (iter->name() != string(GlobalCfg::name()))
 	*new QListWidgetItem(iter->name().c_str(),_cfglist);
+    }
   }
   if (ok) connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
   update_component_list();
