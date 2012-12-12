@@ -164,9 +164,9 @@ void EvrPulseTable::pull(const EvrConfigType& tc) {
         //printf( "EvrPulseTable::pull(): pulse %d event code [%d] %d readout group %d maskTrigger 0x%x\n", 
         //  j, i, ec.code(), ec.readoutGroup(), ec.maskTrigger()); //!!!debug
 
-        // !!! don't warn about secondary readout eventcode
         if ( pCodeReadout == NULL )
           pCodeReadout = &ec;          
+        // !!! don't warn about secondary readout eventcode
         //else
         //{
         //  QString msg = QString("Pulse %1: Secondary readout eventcode [%2] %3 found. Conflict with primary readout %4\n")
