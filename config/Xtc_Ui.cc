@@ -8,6 +8,7 @@
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/Dgram.hh"
+#include "pdsdata/xtc/XtcFileIterator.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -16,6 +17,10 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QMenu>
 #include <QtGui/QMenuBar>
+#include <QtCore/QDateTime>
+
+#include <stdlib.h>
+#include <fcntl.h>
 
 #include <list>
 
@@ -103,19 +108,15 @@ namespace Pds_ConfigDb {
 
 using namespace Pds_ConfigDb;
 
-Xtc_Ui::Xtc_Ui(QWidget* parent,
-               Dgram&   dgram) :
-  QDialog(parent),
-  _dgram (dgram)
+Xtc_Ui::Xtc_Ui(QWidget* parent) :
+  QWidget      (parent),
+  _dgram_buffer(0),
+  _dgram       (0)
 {
-  setWindowTitle("Read Xtc");
-  setAttribute(::Qt::WA_DeleteOnClose, true);
-  setModal(false);
   Parameter::allowEdit(false);
 
-  QPushButton* closeB = new QPushButton("Close");
-
   QVBoxLayout* l = new QVBoxLayout;
+  l->addWidget(_runInfo = new QLabel);
   { QHBoxLayout* layout = new QHBoxLayout;
     { QVBoxLayout* layout1 = new QVBoxLayout;
       layout1->addWidget(new QLabel("Device", this));
@@ -126,16 +127,56 @@ Xtc_Ui::Xtc_Ui(QWidget* parent,
       layout1->addWidget(_cmplist = new QListWidget(this));
       layout->addLayout(layout1); }
     l->addLayout(layout); }
-  { QHBoxLayout* layout = new QHBoxLayout;
-    layout->addStretch();
-    layout->addWidget(closeB);
-    layout->addStretch();
-    l->addLayout(layout); }
   setLayout(l);
 
   connect(_devlist, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(update_component_list()));
   connect(_cmplist, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(change_component()));
-  connect(closeB  , SIGNAL(clicked()), this, SLOT(close()));
+}
+
+Xtc_Ui::~Xtc_Ui()
+{
+  if (_dgram_buffer)
+    delete[] _dgram_buffer;
+}
+
+void Xtc_Ui::set_file(QString fname)
+{
+  int fd = ::open(qPrintable(fname),O_LARGEFILE,O_RDONLY);
+  if (fd == -1) {
+    char buff[256];
+    sprintf(buff,"Error opening file %s\n",qPrintable(fname));
+    perror(buff);
+    return;
+  }
+
+  Pds::XtcFileIterator iter(fd,0x2000000);
+  Pds::Dgram* dg;
+  
+  while((dg = iter.next())) {
+    if (dg->seq.service()==Pds::TransitionId::Configure)
+      break;
+  }
+  
+  if (!dg) {
+    printf("Configure transition not found!\n");
+    return;
+  }
+
+  if (_dgram_buffer)
+    delete[] _dgram_buffer;
+
+  int size = sizeof(*dg)+dg->xtc.sizeofPayload();
+  _dgram_buffer = new char[size];
+  memcpy(_dgram_buffer, (char*)dg, size); 
+  _dgram = reinterpret_cast<Pds::Dgram*>(_dgram_buffer);
+
+  const Pds::ClockTime& time = _dgram->seq.clock();
+  QDateTime datime; datime.setTime_t(time.seconds());
+  QString info = QString("%1.%2")
+    .arg(datime.toString("MMM dd,yyyy hh:mm:ss"))
+    .arg(QString::number(time.nanoseconds()/1000000),3,QChar('0'));
+
+  _runInfo->setText(info);
 
   update_device_list();
 }
@@ -143,11 +184,11 @@ Xtc_Ui::Xtc_Ui(QWidget* parent,
 //  Parse XTC for all devices
 void Xtc_Ui::update_device_list()
 {
-  bool ok = disconnect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
+  disconnect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
   _devlist->clear();
 
   DeviceIterator iter(*_devlist);
-  iter.iterate(&_dgram.xtc);
+  iter.iterate(&_dgram->xtc);
 
   connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
   update_component_list();
@@ -162,7 +203,7 @@ void Xtc_Ui::update_component_list()
   QListWidgetItem* item = _devlist->currentItem();
   if (item) {
     ComponentIterator iter(*_cmplist,item->text());
-    iter.iterate(&_dgram.xtc);
+    iter.iterate(&_dgram->xtc);
   }
 
   if (ok_change) connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
@@ -174,7 +215,7 @@ void Xtc_Ui::change_component()
   ConfigIterator iter(this, 
                       _devlist->currentItem()->text(), 
                       _cmplist->currentItem()->text());
-  iter.iterate(&_dgram.xtc);
+  iter.iterate(&_dgram->xtc);
 }
 
 Serializer& Xtc_Ui::lookup(const Pds::TypeId& stype)

@@ -155,6 +155,7 @@ tgtslib_create_scan := $(USRLIBDIR)/rt
 
 tgtsrcs_configdb_readxtc := configdb_readxtc.cc
 tgtsrcs_configdb_readxtc += Xtc_Ui.cc Xtc_Ui_moc.cc
+tgtsrcs_configdb_readxtc += XtcFileServer.cc XtcFileServer_moc.cc
 tgtincs_configdb_readxtc := $(qtincdir)
 tgtlibs_configdb_readxtc := $(datalibs)
 tgtlibs_configdb_readxtc += qt/QtGui qt/QtCore
