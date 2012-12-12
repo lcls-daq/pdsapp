@@ -28,9 +28,9 @@ using namespace Pds;
 
 static void local_mkdir (const char * path)
 {
-  struct stat buf;
+  struct stat64 buf;
 
-  if (path && (stat(path, &buf) != 0)) {
+  if (path && (stat64(path, &buf) != 0)) {
     if (mkdir(path, 0777)) {
       perror("Recorder:: mkdir");
     }
@@ -55,9 +55,9 @@ static int call(char *cmd)
 
 static void local_mkdir_with_acls (const char * path, const char *expname)
 {
-  struct stat buf;
+  struct stat64 buf;
 
-  if (path && (stat(path, &buf) != 0)) {
+  if (path && (stat64(path, &buf) != 0)) {
     if (mkdir(path, 0770)) {
       perror("Recorder:: mkdir");
     } else {
@@ -94,9 +94,9 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
   _offlineclient(offlineclient),
   _open_data_file_error(false)
 {
-  struct stat st;
+  struct stat64 st;
 
-  if (stat(path,&st)) {
+  if (stat64(path,&st)) {
     printf("Cannot stat %s : %s\n",path,strerror(errno));
     printf("Error: Data will not be recorded.\n");
     _path_error = true;
@@ -163,7 +163,7 @@ InDatagram* Recorder::events(InDatagram* in) {
         _postDataFileError();
       }
     } else if (_f) {
-      struct stat st;
+      struct stat64 st;
       
       int64_t i64Offset = lseek64( fileno(_f), 0, SEEK_CUR);
       if (_writeOutputFile(&(in->datagram()),sizeof(in->datagram()),1) != 0) {
@@ -182,7 +182,7 @@ InDatagram* Recorder::events(InDatagram* in) {
           }
           remaining -= isize;
         }
-        if ((rv = fstat(fileno(_f), &st)) != 0) {
+        if ((rv = fstat64(fileno(_f), &st)) != 0) {
           perror("fstat");
           // error
           in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
@@ -238,7 +238,7 @@ InDatagram* Recorder::events(InDatagram* in) {
 }
 
 Transition* Recorder::transitions(Transition* tr) {
-  struct stat st;
+  struct stat64 st;
   if (tr->id()==TransitionId::Map) {
     const Allocation& alloc = reinterpret_cast<const Allocate*>(tr)->allocation();
 
@@ -309,7 +309,7 @@ Transition* Recorder::transitions(Transition* tr) {
     }
   }
   else if (tr->id()==TransitionId::Enable && _f &&
-           fstat(fileno(_f), &st) == 0 && 
+           fstat64(fileno(_f), &st) == 0 && 
            ((uint64_t)st.st_size >= _chunkSize/2)) {
     // chunking: close the current output file and open the next one
     ++_chunk;     // should _chunk have an upper limit?

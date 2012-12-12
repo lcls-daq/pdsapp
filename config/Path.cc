@@ -41,14 +41,14 @@ void Path::create()
 
 bool Path::is_valid() const
 {
-  struct stat s;
-  if (stat(_path.c_str(),&s)) return false;
+  struct stat64 s;
+  if (stat64(_path.c_str(),&s)) return false;
 
   char buff[128];
-  sprintf(buff,"%s/db"  ,_path.c_str());  if (stat(buff,&s)) return false;
-  sprintf(buff,"%s/desc",_path.c_str());  if (stat(buff,&s)) return false;
-  sprintf(buff,"%s/keys",_path.c_str());  if (stat(buff,&s)) return false;
-  sprintf(buff,"%s/xtc" ,_path.c_str());  if (stat(buff,&s)) return false;
+  sprintf(buff,"%s/db"  ,_path.c_str());  if (stat64(buff,&s)) return false;
+  sprintf(buff,"%s/desc",_path.c_str());  if (stat64(buff,&s)) return false;
+  sprintf(buff,"%s/keys",_path.c_str());  if (stat64(buff,&s)) return false;
+  sprintf(buff,"%s/xtc" ,_path.c_str());  if (stat64(buff,&s)) return false;
   return true;
 }
 
@@ -78,8 +78,8 @@ string Path::data_path(const string& device,
 		       const UTypeName& type) const
 {
   string path = _path + "/xtc/" + PdsDefs::qtypeName(type);
-  struct stat s;
-  if (stat(path.c_str(),&s)) {
+  struct stat64 s;
+  if (stat64(path.c_str(),&s)) {
     //    mode_t mode = S_IRWXU | S_IRWXG;
     mode_t mode = _fmode;
     mkdir(path.c_str(),mode);
@@ -90,8 +90,8 @@ string Path::data_path(const string& device,
 string Path::data_path(const QTypeName& type) const
 {
   string path = _path + "/xtc/" + type;
-  struct stat s;
-  if (stat(path.c_str(),&s)) {
+  struct stat64 s;
+  if (stat64(path.c_str(),&s)) {
     //    mode_t mode = S_IRWXU | S_IRWXG;
     mode_t mode = _fmode;
     mkdir(path.c_str(),mode);
@@ -103,8 +103,8 @@ string Path::desc_path(const string& device,
 		       const UTypeName& type) const
 {
   string path = _path + "/desc/" + PdsDefs::qtypeName(type);
-  struct stat s;
-  if (stat(path.c_str(),&s)) {
+  struct stat64 s;
+  if (stat64(path.c_str(),&s)) {
     //    mode_t mode = S_IRWXU | S_IRWXG;
     mode_t mode = _fmode;
     mkdir(path.c_str(),mode);

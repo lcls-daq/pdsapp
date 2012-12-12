@@ -344,8 +344,8 @@ void Dialog::set_cycle(int index)
 void Dialog::append(const QString& file)
 {
   // perform the read
-  struct stat file_stat;
-  if (stat(qPrintable(file),&file_stat)) {
+  struct stat64 file_stat;
+  if (stat64(qPrintable(file),&file_stat)) {
     char msg[256];
     sprintf(msg,"System error opening %s : %s",qPrintable(file),strerror(errno));
     printf("%s\n",msg);

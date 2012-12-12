@@ -90,8 +90,8 @@ int       pdsxtc_read  (PyObject*     self,
   xtc->contains = contains;
   xtc->extent   = 0;
 
-  struct stat file_stat;
-  if (stat(fname,&file_stat)) {
+  struct stat64 file_stat;
+  if (stat64(fname,&file_stat)) {
     char buff[128];
     sprintf(buff,"Error opening %s\n",fname);
     printf("%s\n",buff);

@@ -90,6 +90,10 @@ void RunStatus::reset()
   _events  ->reset();
   _damaged ->reset();
   _bytes   ->reset();
+
+  _prev_events  = 0;
+  _prev_damaged = 0;
+  
   update_stats();
 
   if (_details) {
@@ -130,15 +134,6 @@ InDatagram* RunStatus::events     (InDatagram* dg)
     iterate(dg->datagram().xtc,iter);
     delete iter;
 
-    const double DamageAlarmFraction = 0.2;
-    unsigned thresh = unsigned(_events->value()*DamageAlarmFraction) + 20;
-    bool alarm = _damaged->value() > thresh;
-    if (alarm && !_alarm)
-      emit damage_alarm_changed(true);
-    else if (!alarm && _alarm)
-      emit damage_alarm_changed(false);
-    _alarm = alarm;
-
     return 0;
   }
   return dg; 
@@ -173,6 +168,23 @@ void RunStatus::update_stats()
   _events  ->update_count();
   _damaged ->update_count();
   _bytes   ->update_bytes();
+
+  const double DamageAlarmFraction = 0.2;
+  unsigned uevents  = _events ->get_count();
+  unsigned udamaged = _damaged->get_count();
+  unsigned uthresh  = unsigned(double(uevents)*DamageAlarmFraction) + 20;
+  double events   = uevents  - _prev_events;
+  double damaged  = udamaged - _prev_damaged;
+  double thresh = events*DamageAlarmFraction;
+  bool alarm = (damaged > thresh) || (udamaged > uthresh);
+  if (alarm && !_alarm)
+    emit damage_alarm_changed(true);
+  else if (!alarm && _alarm)
+    emit damage_alarm_changed(false);
+
+  _alarm = alarm;
+  _prev_events  = uevents;
+  _prev_damaged = udamaged;
 }
 
 Task* RunStatus::task() { return _task; }

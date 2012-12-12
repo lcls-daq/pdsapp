@@ -1,3 +1,4 @@
+#include "pdsapp/dev/CmdLineTools.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 
 #include "pds/management/SegmentLevel.hh"
@@ -150,28 +151,29 @@ using namespace Pds;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detector> -d <device> -p <platform> [-z]\n"
+  printf("Usage: %s -i <detinfo> -p <platform> [-z]\n"
 	 "  -z zeroes encoder counts\n", p);
+  printf("<detinfo> = integer/integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/USDUSB/1 or 22/0/26/1)\n");
 }
 
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
   const unsigned no_entry = -1U;
-  unsigned detid = no_entry;
-  unsigned devid = 0;
   unsigned platform = no_entry;
   bool lzero = false;
+  Node node(Level::Source,platform);
+  DetInfo detInfo(node.pid(), Pds::DetInfo::NoDetector, 0, DetInfo::USDUSB, 0);
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:d:p:z")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:z")) != EOF ) {
     switch(c) {
     case 'i':
-      detid  = strtoul(optarg, NULL, 0);
-      break;
-    case 'd':
-      devid  = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseDetInfo(optarg,detInfo)) {
+        usage(argv[0]);
+        return -1;
+      }
       break;
     case 'p':
       platform = strtoul(optarg, NULL, 0);
@@ -233,19 +235,16 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if ((platform == no_entry) || (detid == no_entry)) {
+  if ((platform == no_entry) || (detInfo.detector() == Pds::DetInfo::NoDetector)) {
     printf("Platform and detid required\n");
     printf("Usage: %s -i <detid> -p <platform> [-a <arp process id>]\n", argv[0]);
     close_usb(0);
     return 0;
   }
 
-  Node node(Level::Source,platform);
-
   std::list<UsdUsb::Server*>  servers;
   std::list<UsdUsb::Manager*> managers;
 
-  DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::USDUSB, devid);
   UsdUsb::Server* srv = new UsdUsb::Server(detInfo);
   servers   .push_back(srv);
   managers.push_back(new UsdUsb::Manager(0, *srv, *new CfgClientNfs(detInfo)));

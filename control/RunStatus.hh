@@ -58,6 +58,8 @@ namespace Pds {
     bool         _alarm;
     QPalette*    _green;
     QPalette*    _red;
+    unsigned  _prev_events;
+    unsigned  _prev_damaged;
   };
 };
 

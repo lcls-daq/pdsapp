@@ -44,8 +44,8 @@ ListUi::ListUi(const Path& path) :
   glob_t g;
   glob(kpath.c_str(),0,0,&g);
   for(unsigned k=0; k<g.gl_pathc; k++) {
-    struct stat s;
-    stat(g.gl_pathv[k],&s);
+    struct stat64 s;
+    stat64(g.gl_pathv[k],&s);
     QString entry(basename(g.gl_pathv[k]));
     entry += "  [" + QString(ctime(&s.st_mtime)).remove('\n') + "]";
 

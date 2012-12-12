@@ -206,8 +206,8 @@ void ControlScan::read(const char* ifile)
 
     printf("ControlScan::read %s\n",namebuf);
 
-    struct stat sstat;
-    if (stat(namebuf,&sstat)) {
+    struct stat64 sstat;
+    if (stat64(namebuf,&sstat)) {
       printf("ControlScan::read stat failed on controlconfig file %s\n",namebuf);
 
       // Create it
@@ -217,7 +217,7 @@ void ControlScan::read(const char* ifile)
       fwrite(cfg, cfg->size(), 1, f);
       fclose(f);
       // retry stat()
-      if (stat(namebuf,&sstat)) {
+      if (stat64(namebuf,&sstat)) {
         printf("ControlScan::read stat failed on controlconfig file %s\n",namebuf);
       }
     }
@@ -227,7 +227,7 @@ void ControlScan::read(const char* ifile)
     char* dbuf = new char[sstat.st_size];
     int len = fread(dbuf, 1, sstat.st_size, f);
     if (len != sstat.st_size) {
-      printf("Read %d/%ld bytes from %s\n",len,sstat.st_size,buff);
+      printf("Read %d/%lld bytes from %s\n",len,sstat.st_size,buff);
     }
     else {
       const ControlConfigType& cfg = 
@@ -279,8 +279,8 @@ void ControlScan::read(const char* ifile)
 
 	printf("ControlScan::read %s\n",buff);
 
-	struct stat sstat;
-	if (stat(buff,&sstat)) {
+	struct stat64 sstat;
+	if (stat64(buff,&sstat)) {
 	  printf("ControlScan::read stat failed on evrconfig file %s\n",buff);
 	  return;
 	}
@@ -290,7 +290,7 @@ void ControlScan::read(const char* ifile)
 	char* dbuf = new char[sstat.st_size];
 	int len = fread(dbuf, 1, sstat.st_size, f);
 	if (len != sstat.st_size) {
-	  printf("Read %d/%ld bytes from %s\n",len,sstat.st_size,buff);
+	  printf("Read %d/%lld bytes from %s\n",len,sstat.st_size,buff);
 	}
         else {
           _evr->read(dbuf, len);

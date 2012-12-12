@@ -30,10 +30,10 @@ void usage(char* progname) {
 }
 
 static bool fileExists(const char *path) {
-  struct stat buf;
+  struct stat64 buf;
   bool rv = false;
 
-  if (path && (stat(path, &buf) == 0)) {
+  if (path && (stat64(path, &buf) == 0)) {
     if (S_ISREG(buf.st_mode)) {
       rv = true;
     }

@@ -103,8 +103,8 @@ Table::Table()
 
 Table::Table(const string& path) 
 {
-  struct stat s;
-  if (!stat(path.c_str(),&s)) {
+  struct stat64 s;
+  if (!stat64(path.c_str(),&s)) {
     char buff[line_size];
     list<FileEntry> top(_read_table(path));
     for(list<FileEntry>::iterator iter = top.begin(); iter != top.end(); iter++) {

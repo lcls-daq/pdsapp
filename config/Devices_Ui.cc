@@ -32,7 +32,6 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-#include <sys/stat.h>
 #include <libgen.h>
 
 using namespace Pds_ConfigDb;
@@ -332,8 +331,8 @@ void Devices_Ui::view_component()
   QString qpath(path.c_str());
   QString qfile = qpath + "/" + qname;
 
-  struct stat s;
-  if (stat(qPrintable(qfile),&s)) {
+  struct stat64 s;
+  if (stat64(qPrintable(qfile),&s)) {
     QString msg = QString("File \'%1\' is either old configuration version or missing.\n  Try \'Browse Keys\' to read old version.").arg(qname);
     QMessageBox::warning(this, "Read file failed", msg);
   }

@@ -164,14 +164,14 @@ void Experiment::import_data(const string& device,
   mode_t mode = _fmode;
   const char* base = basename(const_cast<char*>(file.c_str()));
   string dst = _path.data_path(device,type)+"/"+base;
-  struct stat s;
-  if (!stat(dst.c_str(),&s)) {
+  struct stat64 s;
+  if (!stat64(dst.c_str(),&s)) {
     cerr << dst << " already exists." << endl 
 	 << "Rename the source file and try again." << endl;
     return;
   }
   const char* dir = dirname(const_cast<char*>(dst.c_str()));
-  if (stat(dir,&s)) {
+  if (stat64(dir,&s)) {
     mkdir(dir,mode);
   }
 
@@ -181,7 +181,7 @@ void Experiment::import_data(const string& device,
 
   dst = _path.desc_path(device,type)+"/"+base;
   dir = dirname(const_cast<char*>(dst.c_str()));
-  if (stat(dir,&s)) {
+  if (stat64(dir,&s)) {
     mkdir(dir,mode);
   }
   ofstream f(dst.c_str());
@@ -252,8 +252,8 @@ bool Experiment::update_key(const TableEntry& entry)
   profile.interval("glob",gpath.c_str());
 #endif
 
-  struct stat s;
-  if (!stat(kpath.c_str(),&s)) {   // the key exists
+  struct stat64 s;
+  if (!stat64(kpath.c_str(),&s)) {   // the key exists
 #ifdef DBUG
     profile.interval("stat",kpath.c_str());
 #endif
@@ -267,7 +267,7 @@ bool Experiment::update_key(const TableEntry& entry)
       for(list<DeviceEntry>::const_iterator siter = slist.begin();
 	  siter != slist.end(); siter++) {
 	string spath = kpath + "/" + Pds::CfgPath::src_key(*siter);
-	if (!stat(spath.c_str(),&s)) {
+	if (!stat64(spath.c_str(),&s)) {
 #ifdef DBUG
           profile.interval("stat",spath.c_str());
 #endif

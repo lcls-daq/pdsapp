@@ -71,13 +71,13 @@ string Device::xtcpath(const string& path, const UTypeName& uname, const string&
 bool Device::validate_key(const string& config, const string& path)
 {    
   bool invalid  = false;
-  struct stat s;
+  struct stat64 s;
   const TableEntry* entry = _table.get_top_entry(config);
   if (!entry) return false;
   for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
     UTypeName utype(iter->name());
     string tlink = typelink(utype,iter->entry());
-    if (!stat(tlink.c_str(),&s)) {
+    if (!stat64(tlink.c_str(),&s)) {
       cerr << "Found archaic type entry " << _name << "/" << utype << "/" << iter->entry() << endl
 	   << "The " << _name << " version may have changed." << endl;
       invalid = true;
@@ -89,7 +89,7 @@ bool Device::validate_key(const string& config, const string& path)
     for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
       UTypeName utype(iter->name());
       string tlink = typelink(utype,iter->entry());
-      if (!stat(tlink.c_str(),&s)) {
+      if (!stat64(tlink.c_str(),&s)) {
 	cerr << "Found archaic type entry " << _name << "/" << utype << "/" << iter->entry() << endl
 	     << "The " << _name << " version may have changed." << endl;
 	invalid = true;
@@ -106,13 +106,13 @@ bool Device::_check_config(const TableEntry* entry, const string& path, const st
   char buff[line_size];
   bool outofdate = false;
   string kpath = keypath(path,key);
-  struct stat s;
-  if (stat(kpath.c_str(),&s)) { outofdate=true; }
+  struct stat64 s;
+  if (stat64(kpath.c_str(),&s)) { outofdate=true; }
   for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
     UTypeName utype(iter->name());
     string tpath = typepath(path,key,utype);
     string tlink = typelink(utype,iter->entry());
-    if (!stat(tpath.c_str(),&s)) {
+    if (!stat64(tpath.c_str(),&s)) {
       int sz=readlink(tpath.c_str(),buff,line_size);
       if (sz<0) { outofdate=true; }
       else {
@@ -120,8 +120,8 @@ bool Device::_check_config(const TableEntry* entry, const string& path, const st
 	//  Test that the symbolic link points to file equivalent to the xtc file
 	//
 	string tlinkpath = tpath.substr(0,tpath.find_last_of("/"))+"/"+tlink;
-	struct stat ls;
-	if (!stat(tlinkpath.c_str(),&ls) && s.st_size==ls.st_size) {
+	struct stat64 ls;
+	if (!stat64(tlinkpath.c_str(),&ls) && s.st_size==ls.st_size) {
 	  FILE* f_link = fopen(tlinkpath.c_str(),"r");
 	  if (!f_link) {
 	    perror(tlinkpath.c_str());
@@ -188,9 +188,9 @@ void Device::_make_config(const TableEntry* entry, const string& path, const str
 	o  << "." << nv-1;
 	sext = o.str(); }
       string talnk = tbase + sext;  // path from cwd
-      struct stat s, ls;
-      stat(tpath.c_str(),&s);
-      stat(talnk.c_str(),&ls);
+      struct stat64 s, ls;
+      stat64(tpath.c_str(),&s);
+      stat64(talnk.c_str(),&ls);
       if (s.st_size==ls.st_size) {
 	FILE* f_base = fopen(tbase.c_str(),"r");
 	FILE* f_link = fopen(talnk.c_str(),"r");
