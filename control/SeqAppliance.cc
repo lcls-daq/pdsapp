@@ -154,7 +154,7 @@ InDatagram* SeqAppliance::events     (InDatagram* dg)
 	_cur_config = reinterpret_cast<ControlConfigType*>(_config_buffer);
 	printf("SeqAppliance endcalib stop at tc %p  done %c\n",
 	       _cur_config, _done ? 't':'f');
-	if (_done) _control.set_target_state(PartitionControl::Unmapped);
+	if (_done) _control.set_target_state(PartitionControl::Configured);
       }
       _configtc.extent = sizeof(Xtc) + _cur_config->size();
     }
