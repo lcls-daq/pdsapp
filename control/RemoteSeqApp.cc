@@ -50,7 +50,8 @@ RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
   _task         (new Task(TaskObject("remseq"))),
   _port         (Control_Port + control.header().platform()),
   _last_run     (0,0),
-  _socket       (-1)
+  _socket       (-1),
+  _wait_for_configure(false)
 {
   _task->call(this);
 }
@@ -172,7 +173,7 @@ void RemoteSeqApp::routine()
       else {
   while(::listen(listener, 5) >= 0) {
           Sockaddr name;
-    unsigned length = name.sizeofName();
+    uint32_t length = name.sizeofName();
     _socket = accept(listener, name.name(), &length);
           if (_control.current_state()==PartitionControl::Unmapped) {
             printf("RemoteSeqApp rejected connection while unmapped\n");
@@ -194,7 +195,7 @@ void RemoteSeqApp::routine()
             ::write(_socket,&length,sizeof(length));
             ::write(_socket,_control.partition().dbpath(),length);
 
-            unsigned old_key = _control.get_transition_env(TransitionId::Configure);
+            uint32_t old_key = _control.get_transition_env(TransitionId::Configure);
             ::write(_socket,&old_key,sizeof(old_key));
 
             // send the current config type (alias)

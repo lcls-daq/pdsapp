@@ -20,7 +20,7 @@ namespace Pds_ConfigDb {
   class TimeProfile {
   public:
     TimeProfile() { clock_gettime(CLOCK_REALTIME,&_tp); }
-    void interval(const char* s1, const char* s2) { 
+    void interval(const char* s1, const char* s2) {
       timespec tp;
       clock_gettime(CLOCK_REALTIME,&tp);
       double dt = double(tp.tv_sec - _tp.tv_sec)+1.e-9*(double(tp.tv_nsec)-double(_tp.tv_nsec));
@@ -29,7 +29,7 @@ namespace Pds_ConfigDb {
     }
     void interval(const std::string s1, const char* s2) { interval(s1.c_str(),s2); }
   private:
-    timespec _tp; 
+    timespec _tp;
   };
 };
 
@@ -67,7 +67,7 @@ void Experiment::read()
     _devices.push_back(Device(path,name,args));
   }
 }
-        
+
 void Experiment::write() const
 {
   _table.write(_path.expt());
@@ -100,12 +100,12 @@ Experiment* Experiment::branch(const string& p) const
     //  Load the device data files
     for(list<TableEntry>::const_iterator ait=t.begin(); ait!=t.end(); ait++) {
       for(list<FileEntry>::const_iterator fit=(*ait).entries().begin(); fit!=(*ait).entries().end(); fit++) {
-	Pds_ConfigDb::UTypeName utype((*fit).name());
-	string file_path = (*it).xtcpath(_path.base(), utype, (*fit).entry());
-	newdb->import_data((*it).name(),
-			   utype,
-			   file_path,
-			   string(""));
+  Pds_ConfigDb::UTypeName utype((*fit).name());
+  string file_path = (*it).xtcpath(_path.base(), utype, (*fit).entry());
+  newdb->import_data((*it).name(),
+         utype,
+         file_path,
+         string(""));
       }
     }
   }
@@ -130,7 +130,7 @@ Device* Experiment::device(const string& name)
 }
 
 void Experiment::add_device(const string& name,
-			    const list<DeviceEntry>& slist) 
+          const list<DeviceEntry>& slist)
 {
   cout << "Adding device " << name << endl;
   for(list<DeviceEntry>::const_iterator iter = slist.begin(); iter!=slist.end(); iter++)
@@ -152,9 +152,9 @@ void Experiment::remove_device(const Device& device)
 }
 
 void Experiment::import_data(const string& device,
-			     const UTypeName& type,
-			     const string& file,
-			     const string& desc)
+           const UTypeName& type,
+           const string& file,
+           const string& desc)
 {
   if (PdsDefs::typeId(type)==0) {
     cerr << type << " not registered as valid configuration data type" << endl;
@@ -166,8 +166,8 @@ void Experiment::import_data(const string& device,
   string dst = _path.data_path(device,type)+"/"+base;
   struct stat64 s;
   if (!stat64(dst.c_str(),&s)) {
-    cerr << dst << " already exists." << endl 
-	 << "Rename the source file and try again." << endl;
+    cerr << dst << " already exists." << endl
+   << "Rename the source file and try again." << endl;
     return;
   }
   const char* dir = dirname(const_cast<char*>(dst.c_str()));
@@ -238,7 +238,7 @@ bool Experiment::update_key(const TableEntry& entry)
   const int line_size=128;
   char buff[line_size];
   string kpath = _path.key_path(entry.key());
-  unsigned invalid = entry.entries().size();   // number of expected devices 
+  unsigned invalid = entry.entries().size();   // number of expected devices
 
   glob_t g;
   string gpath = kpath + "/[0-9,a-f]*";
@@ -259,35 +259,35 @@ bool Experiment::update_key(const TableEntry& entry)
 #endif
     //  check each device
     for(list<FileEntry>::const_iterator iter=entry.entries().begin();
-	iter !=entry.entries().end(); iter++) {
+  iter !=entry.entries().end(); iter++) {
       const Device* d = device(iter->name());
       string dpath = "../" + iter->name() + "/" + d->table().get_top_entry(iter->entry())->key();
       const list<DeviceEntry>& slist = d->src_list();
       //  Check each <src> entry for the device
       for(list<DeviceEntry>::const_iterator siter = slist.begin();
-	  siter != slist.end(); siter++) {
-	string spath = kpath + "/" + Pds::CfgPath::src_key(*siter);
-	if (!stat64(spath.c_str(),&s)) {
+    siter != slist.end(); siter++) {
+  string spath = kpath + "/" + Pds::CfgPath::src_key(*siter);
+  if (!stat64(spath.c_str(),&s)) {
 #ifdef DBUG
           profile.interval("stat",spath.c_str());
 #endif
-	  int sz=readlink(spath.c_str(),buff,line_size);
+    int sz=readlink(spath.c_str(),buff,line_size);
 #ifdef DBUG
           profile.interval("readlink",spath.c_str());
 #endif
-	  if (sz>0) {
-	    buff[sz] = 0;
-	    if (!strcmp(buff,dpath.c_str()))
-	      --invalid;
+    if (sz>0) {
+      buff[sz] = 0;
+      if (!strcmp(buff,dpath.c_str()))
+        --invalid;
 #ifdef DBUG
-	    else
-	      printf("link(%s) incorrect %s != %s\n",
-		     spath.c_str(),
-		     buff,
-		     dpath.c_str());
+      else
+        printf("link(%s) incorrect %s != %s\n",
+         spath.c_str(),
+         buff,
+         dpath.c_str());
 #endif
-	  }
-	}
+    }
+  }
 #ifdef DBUG
         else
           profile.interval("stat",spath.c_str());
@@ -316,14 +316,14 @@ bool Experiment::update_key(const TableEntry& entry)
     profile.interval("mkdir",kpath.c_str());
 #endif
     for(list<FileEntry>::const_iterator iter=te.entries().begin();
-	iter!=te.entries().end(); iter++) {
+  iter!=te.entries().end(); iter++) {
       Device* d = device(iter->name());
       string dpath = "../" + iter->name() + "/" + d->table().get_top_entry(iter->entry())->key();
       const list<DeviceEntry>& slist = d->src_list();
       for(list<DeviceEntry>::const_iterator siter=slist.begin();
-	  siter != slist.end(); siter++) {
-	string spath = kpath + "/" + Pds::CfgPath::src_key(*siter);
-	symlink(dpath.c_str(),spath.c_str());
+    siter != slist.end(); siter++) {
+  string spath = kpath + "/" + Pds::CfgPath::src_key(*siter);
+  symlink(dpath.c_str(),spath.c_str());
 #ifdef DBUG
         profile.interval("symlink",dpath.c_str());
 #endif
@@ -364,14 +364,14 @@ int Experiment::current_key(const string& alias) const
 }
 
 void Experiment::dump() const
-{  
+{
   cout << "Experiment " << endl;
   _table.dump(_path.expt());
   cout << endl << _path.devices() << endl;
   for(list<Device>::const_iterator iter=_devices.begin(); iter!=_devices.end(); iter++) {
     cout << iter->name();
     for(list<DeviceEntry>::const_iterator diter=iter->src_list().begin();
-	diter!=iter->src_list().end(); diter++)
+  diter!=iter->src_list().end(); diter++)
       cout << '\t' << diter->id();
     cout << endl;
   }

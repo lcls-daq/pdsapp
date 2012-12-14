@@ -236,16 +236,27 @@ PyObject* pdsdaq_connect(PyObject* self)
 
     uint32_t len=0;
     if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
+    {
+      printf("pdsdaq_connect(): get dbpath len failed\n");
       break;
+    }
 
     /*
      * Get dbpath
      */
     if (len==0)
+    {
+      printf("pdsdaq_connect(): get dbpath len = 0\n");
       break;
+    }
+
     char buff[256];
     if (::recv(s, buff, len, MSG_WAITALL) != len)
+    {
+      printf("pdsdaq_connect(): get dbpath string failed\n");
       break;
+    }
+
     buff[len] = 0;
     *strrchr(buff,'/') = 0;
     strcpy(daq->dbpath,buff);
@@ -255,7 +266,10 @@ PyObject* pdsdaq_connect(PyObject* self)
      */
     uint32_t key;
     if (::recv(s, &key, sizeof(key), MSG_WAITALL) < 0)
+    {
+      printf("pdsdaq_connect(): get dbkey failed\n");
       break;
+    }
 
     daq->dbkey  = key;
 
@@ -264,13 +278,23 @@ PyObject* pdsdaq_connect(PyObject* self)
      */
     len=0;
     if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
+    {
+      printf("pdsdaq_connect(): get alias len failed\n");
       break;
+    }
 
     if (len==0)
+    {
+      printf("pdsdaq_connect(): get alias len = 0\n");
       break;
+    }
 
     if (::recv(s, buff, len, MSG_WAITALL) != len)
+    {
+      printf("pdsdaq_connect(): get alias string failed\n");
       break;
+    }
+
     buff[len] = 0;
     strcpy(daq->dbalias,buff);
 

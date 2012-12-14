@@ -12,7 +12,7 @@ liblibs_pycdb += pdsdata/controldata pdsdata/epics
 liblibs_pycdb += pdsdata/cspaddata pdsdata/lusidata
 liblibs_pycdb += pdsdata/cspad2x2data
 liblibs_pycdb += pdsapp/configdb
-libslib_pycdb := $(USRLIBDIR)/rt
+libslib_pycdb := $(USRLIBDIR)/rt 
 
 libsrcs_pydaq := pydaq.cc
 libincs_pydaq := python/include/python2.5
