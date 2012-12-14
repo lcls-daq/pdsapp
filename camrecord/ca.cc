@@ -170,7 +170,7 @@ class caconn {
             Lusi::PimImageConfigV1(1.0, 1.0);   // What should these be?!?
         configure_xtc(xid, buf, size);
 
-        if (buf < 0) {
+        if (bld < 0) {
             hdrlen = sizeof(Xtc) + sizeof(Camera::FrameV1);
             bf2 = (char *) calloc(1, hdrlen);
             frm = hdr = new (bf2) Xtc(TypeId(TypeId::Id_Frame, 1), sourceInfo);

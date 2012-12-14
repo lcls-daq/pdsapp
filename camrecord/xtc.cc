@@ -44,7 +44,13 @@ class xtcsrc {
     struct event *ev;             // Event for this value (if asynchronous!)
 };
 
+#define CHUNK_SIZE 107374182400LL
+// #define CHUNK_SIZE      100000000LL  // For debug!
 FILE *fp = NULL;
+static char *fname;            // The current output file name.
+static char *cpos;             // Where in the current file name to change the chunk number.
+static int chunk = 0;          // The current chunk number.
+static long long fsize = 0;    // The size of the current file, so far.
 static sigset_t blockset;
 static int started = 0;        // We are actually running.
 static int numsrc = 0;         // Total number of sources.
@@ -121,6 +127,7 @@ static int ts_match(struct event *_ev, int _sec, int _nsec)
 
 static void setup_datagram(TransitionId::Value val)
 {
+
     new ((void *) &dg->seq) Sequence(Sequence::Event, val, ClockTime(0, 0), TimeStamp(0, 0x1ffff, 0, 0));
     new ((void *) &dg->env) Env(0);
     new ((char *) &dg->xtc) Xtc(TypeId(TypeId::Id_Xtc, 1), *evtInfo);
@@ -142,6 +149,7 @@ static void write_datagram(TransitionId::Value val, int extra)
         fprintf(stderr, "Write failed!\n");
         exit(1);
     }
+    fsize += sizeof(Dgram) + sizeof(Xtc);
     fflush(fp);
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
 }
@@ -169,6 +177,7 @@ static void write_xtc_config(void)
             fprintf(stderr, "Cannot write to file!\n");
             exit(1);
         }
+        fsize += src[i]->len;
         fflush(fp);
         delete src[i]->val;
         src[i]->val = NULL;
@@ -207,12 +216,28 @@ void initialize_xtc(char *outfile)
     }
     evlist = &events[0];
 
-    if (!strcmp(outfile, "-"))
-        fp = stdout;
-    else if (!(fp = fopen(outfile, "w"))) {
-        fprintf(stderr, "Cannot open %s for output!\n", outfile);
-        exit(0);
+    /*
+     * outfile can either end in ".xtc" or not.  If it doesn't, we will add
+     * "-c00.xtc" to the first file.  If it does, the first file will have
+     * exactly this name, but if we go to a second, we will insert "-cNN".
+     */
+    i = strlen(outfile) - 4;
+    if (i < 0 || strcmp(outfile + i, ".xtc")) {
+        /* No final ".xtc" */
+        fname = new char[i + 12]; // Add space for "-cNN.xtc"
+        sprintf(fname, "%s-c00.xtc", outfile);
+        cpos = fname + i + 4;
+    } else {
+        /* Final ".xtc" */
+        fname = new char[i + 8];  // Add space for "-cNN.xtc"
+        strcpy(fname, outfile);
+        cpos = fname + i;
     }
+    if (!(fp = fopen(fname, "w"))) {
+        fprintf(stderr, "Cannot open %s for output!\n", fname);
+        exit(0);
+    } else
+        printf("Opened %s for writing.\n", fname);
 
     sigemptyset(&blockset);
     sigaddset(&blockset, SIGALRM);
@@ -298,14 +323,35 @@ void send_event(struct event *ev)
         fprintf(stderr, "Write failed!\n");
         exit(1);
     }
+    fsize += sizeof(Dgram) + sizeof(Xtc);
     for (int i = 0; i < numsrc; i++) {
         if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
             fprintf(stderr, "Write failed!\n");
             exit(1);
         }
+        fsize += src[i]->len;
     }
     fflush(fp);
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
+    if (fsize >= CHUNK_SIZE) { /* Next chunk! */
+#ifdef DO_DISABLE
+        write_datagram(TransitionId::Disable, 0);
+#endif
+        fclose(fp);
+        sprintf(cpos, "-c%02d.xtc", ++chunk);
+        if (!(fp = fopen(fname, "w"))) {
+            fprintf(stderr, "Cannot open %s for output!\n", fname);
+            exit(0);
+        } else
+            printf("Opened %s for writing.\n", fname);
+        fsize = 0;
+#ifdef DO_DISABLE
+        write_datagram(TransitionId::Enable, 0);
+        setup_datagram(TransitionId::L1Accept);
+        seg->extent    += totaldlen;
+        dg->xtc.extent += totaldlen;
+#endif
+    }
     record_cnt++;
 }
 
