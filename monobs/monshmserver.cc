@@ -137,7 +137,7 @@ LiveMonitorServer* apps;
 void sigfunc(int sig_no) {
   printf("handling signal %d\n",sig_no);
   if (apps) {
-    delete apps;
+    apps->unlink();
     apps = 0;
     printf("done with signal %d\n",sig_no);
     exit(EXIT_SUCCESS);
