@@ -171,14 +171,13 @@ void RemoteSeqApp::routine()
         close(listener);
       }
       else {
-  while(::listen(listener, 5) >= 0) {
+        while(::listen(listener, 5) >= 0) {
           Sockaddr name;
-    uint32_t length = name.sizeofName();
-    _socket = accept(listener, name.name(), &length);
+          uint32_t length = name.sizeofName();
+          int s = accept(listener, name.name(), &length);
           if (_control.current_state()==PartitionControl::Unmapped) {
             printf("RemoteSeqApp rejected connection while unmapped\n");
-            close(_socket);
-            _socket = -1;
+            close(s);
           }
           else {
             printf("RemoteSeqApp accepted connection from %x/%d\n",
@@ -189,6 +188,8 @@ void RemoteSeqApp::routine()
 
             _manual.disable_control();
             _select.enable_control(false);
+
+            _socket = s;
 
             //  First, send the current configdb and run key
             length = strlen(_control.partition().dbpath());
