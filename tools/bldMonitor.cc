@@ -34,7 +34,7 @@ namespace Pds {
   public:
     MyLevel(unsigned       platform,
 	    const char*    partition,
-	    unsigned       mask,
+	    uint64_t       mask,
 	    EventCallback& callback) :
       CollectionObserver(platform, partition),
       _mask    (mask),
@@ -50,7 +50,7 @@ namespace Pds {
     void     post      (const Transition&);
     void     post      (const InDatagram&);
   private:
-    unsigned       _mask;
+    uint64_t       _mask;
     EventCallback& _callback;         // object to notify
     ObserverStreams * _streams;          // appliance streams
     OutletWire*    _outlets[StreamParams::NumberOfStreams];
@@ -235,7 +235,7 @@ bool MyLevel::attach()
     n.fixup(header().ip(),Ether());
     alloc.add(n); }
   for(int i=0; i<BldInfo::NumberOf; i++) {
-    if (_mask & (1<<i)) {
+    if (_mask & (1ULL<<i)) {
       Node n(Level::Reporter, 0);
       n.fixup(StreamPorts::bld(i).address(),Ether());
       alloc.add(n);
@@ -314,7 +314,7 @@ int main(int argc, char** argv) {
 
   unsigned platform=-1UL;
   const char* partition = 0;
-  unsigned mask=(1<<BldInfo::NumberOf)-1;
+  uint64_t mask=(1<<BldInfo::NumberOf)-1;
   bool decode=false;
 
   int c;
@@ -330,7 +330,7 @@ int main(int argc, char** argv) {
       partition = optarg;
       break;
     case 'm':
-      mask = strtoul(optarg, &endPtr, 0);
+      mask = strtoull(optarg, &endPtr, 0);
       break;
     case 'e':
       decode=true;
