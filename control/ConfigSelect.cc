@@ -53,12 +53,13 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
 
   connect(_bEdit  , SIGNAL(clicked()),                 _reconfig, SLOT(show()));
   connect(_bScan  , SIGNAL(clicked(bool)),	       this, SLOT(enable_scan(bool)));
+  connect(this    , SIGNAL(control_enabled(bool)),     this, SLOT(enable_control(bool)));
   connect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
   connect(_reconfig,SIGNAL(changed()),                 this, SLOT(update()));
   connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
   connect(_scan    ,SIGNAL(deactivate()),              _bScan, SLOT(click()));
 
-  read_db();
+  _read_db();
   set_run_type(_runType->currentText());
 
   _bScan->setCheckable(true);
@@ -73,6 +74,11 @@ ConfigSelect::~ConfigSelect()
 }
 
 void ConfigSelect::enable_control(bool v)
+{
+  emit control_enabled(v);
+}
+
+void ConfigSelect::enable_control_(bool v)
 {
   if (!v) {
     _reconfig->enable(false);
@@ -109,7 +115,7 @@ string ConfigSelect::getType()
 
 void ConfigSelect::update()
 {
-  read_db();
+  _read_db();
   if (_scanIsActive) {
     _run_key = _scan->update_key();
   }
@@ -121,7 +127,7 @@ void ConfigSelect::update()
   _pcontrol.reconfigure();
 }
 
-void ConfigSelect::read_db()
+void ConfigSelect::_read_db()
 {
   QString type(_runType->currentText());
 

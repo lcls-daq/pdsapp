@@ -23,17 +23,20 @@ namespace Pds {
      const char*       db_path);
     ~ConfigSelect();
   public:
-    void read_db();
     string getType();
+    void enable_control(bool);
   public slots:
     void set_run_type(const QString&); // a run type has been selected
     void update      ();  // the latest key for the selected run type has changed
-    void configured  (bool);
-    void enable_scan (bool);
-    void enable_control(bool);    
+    void configured     (bool);
+    void enable_scan    (bool);
+    void enable_control_(bool);    
   private:  
+    void _read_db      ();
     void _readSettings ();
     void _writeSettings();
+  signals:
+    void control_enabled(bool);
   private:
     PartitionControl&          _pcontrol;
     Pds_ConfigDb::Experiment   _expt;
