@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
   bool  bTurnOffBeamCodes = false;
   
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:r:d:n")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:r:d:nR")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -158,6 +158,9 @@ int main(int argc, char** argv) {
       break;
     case 'd':
       //      EvrManager::drop_pulses(strtoul(optarg, NULL, 0));
+      break;
+    case 'R':
+      EvrManager::randomize_nodes(true);
       break;
     case 'n':
       bTurnOffBeamCodes = true;
