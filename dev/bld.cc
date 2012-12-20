@@ -124,6 +124,14 @@ namespace Pds {
       if (CheckType(CxiDg1Pim  ))     extent += SizeCamType;
       if (CheckType(CxiDg2Pim  ))     extent += SizeCamType;
       if (CheckType(CxiDg4Pim  ))     extent += SizeCamType;
+      if (CheckType(XppMonPim0 ))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(XppMonPim1 ))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(XppSb2Ipm  ))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(XppSb3Ipm  ))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(XppSb3Pim  ))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(XppSb4Pim  ))     extent += SizeType(BldDataIpimb);   
+      if (CheckType(XppEndstation0))  extent += SizeType(BldDataIpimb);   
+      if (CheckType(XppEndstation1))  extent += SizeType(BldDataIpimb);   
       
       _configtc.extent = sizeof(Xtc)+extent;
       if (extent) {
@@ -163,6 +171,14 @@ namespace Pds {
         if (CheckType(CxiDg1Pim  ))     AddCamType(CxiDg1Pim);
         if (CheckType(CxiDg2Pim  ))     AddCamType(CxiDg2Pim);
         if (CheckType(CxiDg4Pim  ))     AddCamType(CxiDg4Pim);
+        if (CheckType(XppMonPim0 ))     AddType(XppMonPim0,      Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(XppMonPim1 ))     AddType(XppMonPim1,      Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(XppSb2Ipm  ))     AddType(XppSb2Ipm ,      Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(XppSb3Ipm  ))     AddType(XppSb3Ipm ,      Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(XppSb3Pim  ))     AddType(XppSb3Pim ,      Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(XppSb4Pim  ))     AddType(XppSb4Pim ,      Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(XppEndstation0))  AddType(XppEndstation0,  Id_SharedIpimb,     BldDataIpimb); 
+        if (CheckType(XppEndstation1))  AddType(XppEndstation1,  Id_SharedIpimb,     BldDataIpimb); 
       }
 #undef CheckType
 #undef SizeType

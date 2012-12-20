@@ -1,7 +1,8 @@
 #include "pdsapp/monobs/ShmClient.hh"
 #include "pdsapp/monobs/CspadMon.hh"
+#include "pdsapp/monobs/PrincetonMon.hh"
+#include "pdsapp/dev/CmdLineTools.hh"
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/xtc/BldInfo.hh"
 
 using namespace PdsCas;
 
@@ -50,8 +51,7 @@ int main(int argc, char* argv[])
     perror(buff);
   }
 
-  int    detid;
-  char*  pvbase = new char[64];
+  DetInfo info;
   //float  chbase[4];
 
   size_t line_sz = 256;
@@ -59,28 +59,36 @@ int main(int argc, char* argv[])
 
   while(getline(&line, &line_sz, f) != -1) {
     if (line[0]!='#') {
-      if (sscanf(line,"%d\t%s",
-		 &detid,pvbase) < 2) {
-	fprintf(stderr,"Error scanning line: %s\n",line);
+      char* args = strtok(line,"\t ");
+      if (!CmdLineTools::parseDetInfo(args,info))
+        return -1;
+
+      char* pvbase = strtok(NULL,"\t ");
+      if (!pvbase) {
+        printf("No PV field for %s\n",args);
+        return -1;
       }
-      else {
-	switch(detid) {
-        case Pds::DetInfo::XcsEndstation:
-          CspadMon::monitor(client, 
-                            pvbase,
-                            Pds::DetInfo(0, Pds::DetInfo::Detector(detid), 0, 
-                                         Pds::DetInfo::Cspad,0));
-          break;
-	default:
-	  fprintf(stderr,"Error in lookup of detector index %d\n",detid);
-	  break;
-	}
+
+      switch(info.device()) {
+      case DetInfo::Cspad:
+      case DetInfo::Cspad2x2:
+        CspadMon::monitor(client, 
+                          pvbase,
+                          info);
+        break;
+      case DetInfo::Princeton:
+        PrincetonMon::monitor(client,
+                              pvbase,
+                              info);
+        break;
+      default:
+        fprintf(stderr,"Error in lookup of detector %d\n",DetInfo::name(info));
+        break;
       }
     }
     line_sz = 256;
   }
 
-  delete[] pvbase;
   if (line) {
     free(line);
   }

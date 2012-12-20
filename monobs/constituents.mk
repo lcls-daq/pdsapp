@@ -6,7 +6,7 @@ endif
 
 libnames := 
 
-commonlibs := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/acqdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata pdsdata/compressdata
+commonlibs := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/acqdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata pdsdata/princetondata
 liblibs_tools := pdsdata/cspaddata pdsdata/pnccddata
 
 tgtsrcs_monobs := monobs.cc CamDisplay.cc AcqDisplay.cc
@@ -57,11 +57,12 @@ tgtlibs_cximon += $(tgtlibs_common)
 tgtslib_cximon := $(USRLIBDIR)/rt
 tgtincs_cximon := epics/include epics/include/os/Linux
 
-tgtsrcs_xcsmon := xcsmon.cc CspadMon.cc $(tgtsrcs_common)
+tgtsrcs_xcsmon := xcsmon.cc CspadMon.cc PrincetonMon.cc $(tgtsrcs_common)
 tgtlibs_xcsmon := pdsdata/xtcdata pdsdata/appdata
 tgtlibs_xcsmon += pdsdata/evrdata pdsdata/cspaddata
 tgtlibs_xcsmon += pds/service
 tgtlibs_xcsmon += $(tgtlibs_common)
+tgtlibs_xcsmon += pdsapp/devapp
 tgtslib_xcsmon := $(USRLIBDIR)/rt
 tgtincs_xcsmon := epics/include epics/include/os/Linux
 
