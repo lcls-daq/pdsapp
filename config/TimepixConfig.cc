@@ -12,7 +12,7 @@ namespace Pds_ConfigDb {
 
   // these must end in NULL
   static const char* readoutSpeed_to_name[] = { "62.5 MHz", "125 MHz", NULL };
-  static const char* timepixSpeed_to_name[] = { "100 MHz", "80 MHz", "40 MHz", "10 MHz", "2.5 MHz", NULL };
+  static const char* timepixSpeed_to_name[] = { "100 MHz", "80 MHz", "40 MHz", "10 MHz", NULL };
 
   // ------- expert mode ---------
   class TimepixExpertConfig::Private_Data {
@@ -81,7 +81,9 @@ namespace Pds_ConfigDb {
       _dac3Gnd        ("DAC3 gnd",          TIMEPIX_DAC_GND_DEFAULT,        0, 255),
       _dac3Ths        ("DAC3 ths",          TIMEPIX_DAC_THS_DEFAULT,        0, 255),
       _dac3BiasLvds   ("DAC3 bias lvds",    TIMEPIX_DAC_BIASLVDS_DEFAULT,   0, 255),
-      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255)
+      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255),
+      _dacBias        ("Bias voltage (50-100)", TIMEPIX_DAC_BIAS_DEFAULT,  50, 100),
+      _flags          ("Flags (hex)",       TIMEPIX_FLAGS_DEFAULT,          0, 0xff, Hex)
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
@@ -92,8 +94,8 @@ namespace Pds_ConfigDb {
       pList.insert(&_dac1ThlFine);
       pList.insert(&_dac2ThlFine);
       pList.insert(&_dac3ThlFine);
-      // the mode is frequently changed
       pList.insert(&_timepixMode);
+      pList.insert(&_dacBias);
       // remaining values are NOT frequently changed
       pList.insert(&_dac0Ikrum);
       pList.insert(&_dac0Disc);
@@ -147,6 +149,7 @@ namespace Pds_ConfigDb {
       pList.insert(&_dac3Ths);
       pList.insert(&_dac3BiasLvds);
       pList.insert(&_dac3RefLvds);
+      pList.insert(&_flags);
     }
 
     int pull(void* from) {
@@ -210,7 +213,9 @@ namespace Pds_ConfigDb {
       _dac3Ths.value = tc.dac3Ths();
       _dac3BiasLvds.value = tc.dac3BiasLvds();
       _dac3RefLvds.value = tc.dac3RefLvds();
-      _timepixMode.value = tc.triggerMode();  // ext/neg assumed for trigger, so pass timepix mode here
+      _timepixMode.value = tc.timepixMode();
+      _dacBias.value = tc.dacBias();
+      _flags.value = tc.flags();
       return tc.size();
     }
 
@@ -274,7 +279,9 @@ namespace Pds_ConfigDb {
         _dac3Gnd.value,
         _dac3Ths.value,
         _dac3BiasLvds.value,
-        _dac3RefLvds.value
+        _dac3RefLvds.value,
+        _dacBias.value,
+        _flags.value
       );
 
       return tc.size();
@@ -344,6 +351,8 @@ namespace Pds_ConfigDb {
     NumericInt<int32_t> _dac3Ths;
     NumericInt<int32_t> _dac3BiasLvds;
     NumericInt<int32_t> _dac3RefLvds;
+    NumericInt<uint8_t> _dacBias;
+    NumericInt<uint8_t> _flags;
   };
 
   // ------- user mode ---------
@@ -414,7 +423,9 @@ namespace Pds_ConfigDb {
       _dac3Gnd        ("DAC3 gnd",          TIMEPIX_DAC_GND_DEFAULT,        0, 255),
       _dac3Ths        ("DAC3 ths",          TIMEPIX_DAC_THS_DEFAULT,        0, 255),
       _dac3BiasLvds   ("DAC3 bias lvds",    TIMEPIX_DAC_BIASLVDS_DEFAULT,   0, 255),
-      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255)
+      _dac3RefLvds    ("DAC3 ref lvds",     TIMEPIX_DAC_REFLVDS_DEFAULT,    0, 255),
+      _dacBias        ("Bias voltage (50-100)", TIMEPIX_DAC_BIAS_DEFAULT,  50, 100),
+      _flags          ("Flags (hex)",       TIMEPIX_FLAGS_DEFAULT,          0, 0xff, Hex)
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
@@ -424,6 +435,7 @@ namespace Pds_ConfigDb {
       pList.insert(&_dac2ThlFine);
       pList.insert(&_dac3ThlFine);
       pList.insert(&_timepixMode);
+      pList.insert(&_dacBias);
     }
 
     int pull(void* from) {
@@ -488,14 +500,16 @@ namespace Pds_ConfigDb {
       _dac3Ths.value = tc.dac3Ths();
       _dac3BiasLvds.value = tc.dac3BiasLvds();
       _dac3RefLvds.value = tc.dac3RefLvds();
-      _timepixMode.value = tc.triggerMode();  // ext/neg assumed for trigger, so pass timepix mode here
+      _timepixMode.value = tc.timepixMode();
+      _dacBias.value = tc.dacBias();
+      _flags.value = tc.flags();
       return tc.size();
     }
 
     int push(void* to) {
       TimepixConfigType& tc = *new(to) TimepixConfigType(
         _readoutSpeed.value,
-        _timepixMode.value,   // ext/neg assumed for trigger, so pass timepix mode here
+        _timepixMode.value,
         _timepixSpeed.value,
         _dac0Ikrum.value,
         _dac0Disc.value,
@@ -552,7 +566,9 @@ namespace Pds_ConfigDb {
         _dac3Gnd.value,
         _dac3Ths.value,
         _dac3BiasLvds.value,
-        _dac3RefLvds.value
+        _dac3RefLvds.value,
+        _dacBias.value,
+        _flags.value
       );
 
       return tc.size();
@@ -622,6 +638,8 @@ namespace Pds_ConfigDb {
     NumericInt<int32_t> _dac3Ths;
     NumericInt<int32_t> _dac3BiasLvds;
     NumericInt<int32_t> _dac3RefLvds;
+    NumericInt<uint8_t> _dacBias;
+    NumericInt<uint8_t> _flags;
   };
 };
 
