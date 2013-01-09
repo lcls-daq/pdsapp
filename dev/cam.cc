@@ -27,13 +27,24 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dlfcn.h>
+#include <errno.h>
 
 static bool verbose = false;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -v\n",p);
-  printf("<detinfo> = integer/integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n");
+  printf("Usage: %s -i <detinfo> -p <platform> [-g <grabberId>] [-v] [-h]\n",p);
+}
+
+static void help()
+{
+  printf("Options:\n"
+         "  -i <detinfo>          integer/integer/integer/integer or string/integer/string/integer\n"
+         "                          (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
+         "  -p <platform>         platform number\n"
+         "  -g <grabberId>        grabber ID (default=0)\n"
+         "  -v                    be verbose (default=false)\n"
+         "  -h                    help: print this message and exit\n");
 }
 
 static Pds::CameraDriver* _driver(int id, const Pds::Src& src)
@@ -189,11 +200,13 @@ int main(int argc, char** argv) {
   AppList user_apps;
 
   unsigned grabberId(0);
+  bool infoFlag = false;
+  bool helpFlag = false;
 
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:L:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:L:vh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -202,13 +215,29 @@ int main(int argc, char** argv) {
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
         usage(argv[0]);
         return -1;
+      } else {
+        infoFlag = true;
       }
       break;
     case 'p':
-      platform = strtoul(optarg, NULL, 0);
+      errno = 0;
+      endPtr = NULL;
+      platform = strtoul(optarg, &endPtr, 0);
+      if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
+        printf("Error: failed to parse platform number\n");
+        usage(argv[0]);
+        return -1;
+      }
       break;
     case 'g':
+      errno = 0;
+      endPtr = NULL;
       grabberId = strtoul(optarg, &endPtr, 0);
+      if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
+        printf("Error: failed to parse grabber ID\n");
+        usage(argv[0]);
+        return -1;
+      }
       break;
     case 'L':
       { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
@@ -237,11 +266,19 @@ int main(int argc, char** argv) {
     case 'v':
       verbose = true;
       break;
+    case 'h':
+      helpFlag = true;
+      break;
     }
   }
 
-  if (platform == NO_PLATFORM) {
-    printf("%s: platform required\n",argv[0]);
+  if (helpFlag) {
+    usage(argv[0]);
+    help();
+    return 0;
+  } else if (!infoFlag || (platform == NO_PLATFORM)) {
+    printf("Error: Platform and detinfo required\n");
+    usage(argv[0]);
     return 0;
   }
 

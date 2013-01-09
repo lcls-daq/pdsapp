@@ -28,8 +28,18 @@ static bool verbose = false;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -v\n",p);
-  printf("<detinfo> = integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Opal1000/1 or 22/0/1)\n");
+  printf("Usage: %s -i <detinfo> -p <platform> [-g <grabberId>] [-v] [-h]\n",p);
+}
+
+static void help()
+{
+  printf("Options:\n"
+         "  -i <detinfo>          integer/integer/integer or string/integer/string/integer\n"
+         "                          (e.g. XppEndStation/0/Opal1000/1 or 22/0/1)\n"
+         "  -p <platform>         platform number\n"
+         "  -g <grabberId>        grabber ID (default=0)\n"
+         "  -v                    be verbose (default=false)\n"
+         "  -h                    help: print this message and exit\n");
 }
 
 static Pds::CameraDriver* _driver(int id, const Pds::Src& src) 
@@ -142,12 +152,14 @@ int main(int argc, char** argv) {
   Arp* arp = 0;
 
   DetInfo info;
+  bool infoFlag = false;
+  bool helpFlag = false;
 
   unsigned grabberId(0);
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:vh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -156,6 +168,8 @@ int main(int argc, char** argv) {
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
         usage(argv[0]);
         return -1;
+      } else {
+        infoFlag = true;
       }
       break;
     case 'p':
@@ -167,11 +181,19 @@ int main(int argc, char** argv) {
     case 'v':
       verbose = true;
       break;
+    case 'h':
+      helpFlag = true;
+      break;
     }
   }
 
-  if (platform == -1UL) {
-    printf("%s: platform required\n",argv[0]);
+  if (helpFlag) {
+    usage(argv[0]);
+    help();
+    return 0;
+  } else if (!infoFlag || (platform == -1UL)) {
+    printf("Error: Platform and detinfo required\n");
+    usage(argv[0]);
     return 0;
   }
 
