@@ -15,6 +15,20 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
+
+static void usage(const char* p)
+{
+  printf("Usage: %s -i <detid> -p <platform> [-h]\n",p);
+}
+
+static void help()
+{
+  printf("Options:\n"
+         "  -i <detid>            detector ID\n"
+         "  -p <platform>         platform number\n"
+         "  -h                    help: print this message and exit\n");
+}
 
 namespace Pds
 {
@@ -152,29 +166,51 @@ int main( int argc, char** argv )
    unsigned detid = -1UL;
    unsigned platform = -1UL;
    Arp* arp = 0;
+   bool helpFlag = false;
+   char *endPtr;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "a:i:p:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "a:i:p:h" ) ) != EOF ) {
       switch(c) {
          case 'a':
             arp = new Arp(optarg);
             break;
          case 'i':
-            detid  = strtoul(optarg, NULL, 0);
+            errno = 0;
+            endPtr = NULL;
+            detid = strtoul(optarg, &endPtr, 0);
+            if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
+              printf("Error: failed to parse detector ID\n");
+              usage(argv[0]);
+              return -1;
+            }
             break;
          case 'p':
-            platform = strtoul(optarg, NULL, 0);
+            errno = 0;
+            endPtr = NULL;
+            platform = strtoul(optarg, &endPtr, 0);
+            if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
+              printf("Error: failed to parse platform number\n");
+              usage(argv[0]);
+              return -1;
+            }
+            break;
+         case 'h':
+            helpFlag = true;
             break;
       }
    }
 
-   if( (platform==-1UL) || ( detid == -1UL ) ) {
-      printf( "Error: Platform and detid required\n" );
-      printf( "Usage: %s -i <detid> -p <platform> [-a <arp process id>]\n",
-              argv[0] );
-      return 0;
-   }
+  if (helpFlag) {
+    usage(argv[0]);
+    help();
+    return 0;
+  } else if ((platform == -1UL) || (detid == -1UL)) {
+    printf("Error: Platform and detid required\n");
+    usage(argv[0]);
+    return 0;
+  }
 
    if( arp )
    {
