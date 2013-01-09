@@ -155,10 +155,28 @@ int main(int argc, char** argv) {
       arp = new Arp(optarg);
       break;
     case 'i':
+      errno = 0;
+      endPtr = NULL;
       det    = (DetInfo::Detector)strtoul(optarg, &endPtr, 0);
+      if (errno || (endPtr == NULL) || (*endPtr != '/')) {
+        printf("Error: failed to parse detinfo\n");
+        usage(argv[0]);
+        return -1;
+      }
       detid  = strtoul(endPtr+1, &endPtr, 0);
+      if (errno || (endPtr == NULL) || (*endPtr != '/')) {
+        printf("Error: failed to parse detinfo\n");
+        usage(argv[0]);
+        return -1;
+      }
       devid  = strtoul(endPtr+1, &endPtr, 0);
+      if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
+        printf("Error: failed to parse detinfo\n");
+        usage(argv[0]);
+        return -1;
+      }
       infoFlag = true;
+      printf(" *** %u/%u/%u ***\n", det, detid, devid); // FIXME
       break;
     case 'p':
       errno = 0;
