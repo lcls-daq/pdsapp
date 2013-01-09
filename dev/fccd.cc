@@ -18,8 +18,23 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 
 static bool verbose = false;
+
+static void usage(const char* p)
+{
+  printf("Usage: %s -i <detinfo> -p <platform> [-v] [-h]\n",p);
+}
+
+static void help()
+{
+  printf("Options:\n"
+         "  -i <detinfo>          integer/integer/integer\n"
+         "  -p <platform>         platform number\n"
+         "  -v                    be verbose (default=false)\n"
+         "  -h                    help: print this message and exit\n");
+}
 
 static Pds::CameraDriver* _driver()
 {
@@ -132,7 +147,9 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:v")) != EOF ) {
+  bool helpFlag = false;
+  bool infoFlag = false;
+  while ( (c=getopt( argc, argv, "a:i:p:vh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -141,18 +158,34 @@ int main(int argc, char** argv) {
       det    = (DetInfo::Detector)strtoul(optarg, &endPtr, 0);
       detid  = strtoul(endPtr+1, &endPtr, 0);
       devid  = strtoul(endPtr+1, &endPtr, 0);
+      infoFlag = true;
       break;
     case 'p':
-      platform = strtoul(optarg, NULL, 0);
+      errno = 0;
+      endPtr = NULL;
+      platform = strtoul(optarg, &endPtr, 0);
+      if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
+        printf("Error: failed to parse platform number\n");
+        usage(argv[0]);
+        return -1;
+      }
       break;
     case 'v':
       verbose = true;
       break;
+    case 'h':
+      helpFlag = true;
+      break;
     }
   }
 
-  if (platform == -1UL) {
-    printf("%s: platform required\n",argv[0]);
+  if (helpFlag) {
+    usage(argv[0]);
+    help();
+    return 0;
+  } else if (!infoFlag || (platform == -1UL)) {
+    printf("Error: Platform and detinfo required\n");
+    usage(argv[0]);
     return 0;
   }
 
