@@ -138,11 +138,11 @@ namespace Pds_ConfigDb
       _rampCurrR2      ( NULL, 0x25, 0, 0xff, Decimal),
       _rampCurrRef     ( NULL, 0, 0, 0xff, Decimal),
       _rampVoltRef     ( NULL, 0x61, 0, 0xff, Decimal),
-      _compBias1       ( NULL, 0xff, 0, 0xff, Decimal),
-      _compBias2       ( NULL, 0xc8, 0, 0xff, Decimal),
-      _iss2            ( NULL, 0x3c, 0, 0xff, Decimal),
-      _iss5            ( NULL, 0x25, 0, 0xff, Decimal),
-      _analogPrst      ( NULL, 0xfc, 0, 0xff, Decimal)
+      _compBias1       ( NULL, 0xff, 0, 0xff, Hex),
+      _compBias2       ( NULL, 0xc8, 0, 0xff, Hex),
+      _iss2            ( NULL, 0x3c, 0, 0xff, Hex),
+      _iss5            ( NULL, 0x25, 0, 0xff, Hex),
+      _analogPrst      ( NULL, 0xfc, 0, 0xff, Hex)
     {
     }
     public:
@@ -213,11 +213,11 @@ namespace Pds_ConfigDb
         ADDP("RampCurrR2");
         ADDP("RampCurrRef");
         ADDP("RampVoltRef");
-        ADDP("CompBias1");
-        ADDP("CompBias2");
-        ADDP("Iss2");
-        ADDP("Iss5");
-        ADDP("Analog Prst");
+        ADDP("CompBias1 (hex)");
+        ADDP("CompBias2 (hex)");
+        ADDP("Iss2 (hex)");
+        ADDP("Iss5 (hex)");
+        ADDP("Analog Prst (hex)");
 #undef ADDP
       }
 
@@ -284,12 +284,12 @@ namespace Pds_ConfigDb
         _acqDelay        ( NULL, 0x118, 0, 0x7fffffff, Decimal),
         _intTime         ( NULL, 0x5dc, 0, 0x7fffffff, Decimal),
         _digDelay        ( NULL, 0x3c0, 0, 0x7fffffff, Decimal),
-        _ampIdle         ( NULL, 0, 0, 0x7fffffff, Decimal),
+        _ampIdle         ( NULL, 0, 0, 0xffffffff, Hex),
         _injTotal        ( NULL, 0, 0, 0x7fffffff, Decimal),
         _rowColShiftPer  ( NULL, 5, 0, 0x7fffffff, Decimal),
         _ampReset        ( NULL, 0, 0, 1, Decimal),
         _digCount        ( NULL, 0x3fff, 0, 0x3fff, Hex),
-        _digPeriod       ( NULL, 0xc, 0, 0xff, Hex),
+        _digPeriod       ( NULL, 0xc, 0, 0xff, Decimal),
         _PeltierEnable   ( NULL, 0, 0, 1, Decimal),
         _kpConstant      ( NULL, 100, 0, 0xfff, Decimal),
         _kiConstant      ( NULL, 0, 0, 0xf, Decimal),
@@ -381,12 +381,12 @@ namespace Pds_ConfigDb
         ADDP("Acq Delay");
         ADDP("Int Time");
         ADDP("Dig Delay");
-        ADDP("Amp Idle");
+        ADDP("Amp Idle (hex)");
         ADDP("Inj Total");
         ADDP("Row/Col Shift");
         ADDP("Amp Reset");
         ADDP("Dig Count (hex)");
-        ADDP("Dig Period (hex)");
+        ADDP("Dig Period");
         ADDP("Peltier Enable");
         ADDP("kpConstant");
         ADDP("kiConstant");
