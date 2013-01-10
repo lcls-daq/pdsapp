@@ -176,7 +176,6 @@ int main(int argc, char** argv) {
         return -1;
       }
       infoFlag = true;
-      printf(" *** %u/%u/%u ***\n", det, detid, devid); // FIXME
       break;
     case 'p':
       errno = 0;
