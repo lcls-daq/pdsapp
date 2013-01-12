@@ -42,6 +42,7 @@
 #include "pdsapp/config/FexampConfig.hh"
 #include "pdsapp/config/Gsc16aiConfig.hh"
 #include "pdsapp/config/TimepixConfig.hh"
+#include "pdsapp/config/TimepixConfig_V2.hh"
 #include "pdsapp/config/PhasicsConfig.hh"
 #include "pdsapp/config/Cspad2x2Config.hh"
 #include "pdsapp/config/OceanOpticsConfig.hh"
@@ -143,6 +144,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(Pds::TypeId(Pds::TypeId::Id_IpmFexConfig,1), new IpmFexConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_DiodeFexConfig,1), new DiodeFexConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,1),new ControlConfig_V1);
+  enroll(Pds::TypeId(Pds::TypeId::Id_TimepixConfig,2),new TimepixConfig_V2);
 }
 
 SerializerDictionary::~SerializerDictionary()
