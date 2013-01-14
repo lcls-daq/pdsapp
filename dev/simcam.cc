@@ -119,6 +119,8 @@ public:
   { 
     switch(tr->id()) {
     case TransitionId::Configure:
+      { FrameV1* f = reinterpret_cast<FrameV1*>(_evttc->payload());
+	memset(const_cast<unsigned char*>(f->data()),0,f->data_size()); }
       break;
     case TransitionId::L1Accept:
       break;
@@ -148,6 +150,9 @@ public:
 	idrop=0;
 	return 0;
       }
+
+      FrameV1* f = reinterpret_cast<FrameV1*>(_evttc->payload());
+      reinterpret_cast<uint16_t*>(const_cast<unsigned char*>(f->data()))[0]++;
 
       dg->insert(*_evttc,_evttc->payload());
       break;

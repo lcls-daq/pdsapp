@@ -64,11 +64,23 @@ public:
       // Event data
       _evttc[i] = Xtc(TypeId(TypeId::Id_IpimbData,2), ipms[i].det_info);
       _evttc[i].extent += sizeof(Pds::Ipimb::DataV2);
-      memset(&_data[i],0,sizeof(Pds::Ipimb::DataV2));
+
+      *reinterpret_cast<uint64_t*>(&_data[i]) = 0;    // triggerCounter
+
+      uint16_t* v = reinterpret_cast<uint16_t*>(&_data[i])+7;
+      for(unsigned j=0; j<4; j++)
+	v[j] = 0x1000;
 
       _fexevttc[i] = Xtc(TypeId(TypeId::Id_IpmFex,1), ipms[i].det_info);
       _fexevttc[i].extent += sizeof(Pds::Lusi::IpmFexV1);
-      memset(&_fexdata[i],0,sizeof(Pds::Lusi::IpmFexV1));
+
+      float* p = reinterpret_cast<float*>(&_fexdata[i]);
+      float sum = 0;
+      for(unsigned j=0; j<4; j++)
+	sum += (p[j] = 0.2+0.1*float(j));
+      p[4] = sum;
+      p[5] = (p[2]-p[0])/(p[2]+p[0]);
+      p[6] = (p[3]-p[1])/(p[3]+p[1]);
     }
   }
   ~SimApp() {}
@@ -102,6 +114,21 @@ public:
       }
 
       for(unsigned i=0; i<_evttc.size(); i++) {
+	//  generate non-trivial data
+	reinterpret_cast<uint64_t&>(_data[i])++;    // triggerCounter
+
+	uint16_t* v = reinterpret_cast<uint16_t*>(&_data[i])+7;
+	for(unsigned j=0; j<4; j++)
+	  v[j] = 0x7fff-v[j];
+
+	float* p = reinterpret_cast<float*>(&_fexdata[i]);
+	float sum = 0;
+	for(unsigned j=0; j<4; j++)
+	  sum += (p[j] = (1-p[j]));
+	p[4] = sum;
+	p[5] = (p[2]-p[0])/(p[2]+p[0]);
+	p[6] = (p[3]-p[1])/(p[3]+p[1]);
+
 	dg->insert(_evttc   [i], &_data   [i]);
 	dg->insert(_fexevttc[i], &_fexdata[i]);
       }
