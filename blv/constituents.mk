@@ -17,6 +17,7 @@ ifneq ($(findstring i386-linux,$(tgt_arch)),)
 tgtnames    := evrblv pimblv
 tgtnames    += evrbld pimbld ipmbld acqbld
 tgtnames    += netfifo netfwd
+tgtnames    += ipmbldsim
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata pdsdata/camdata pdsdata/compressdata
@@ -79,6 +80,11 @@ tgtsrcs_ipmbld := ipmbld.cc ToIpmBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_ipmbld := $(commonlibs) $(datalibs)
 tgtlibs_ipmbld += pdsapp/configdb qt/QtGui qt/QtCore
 tgtlibs_ipmbld += pds/ipimb
+
+tgtsrcs_ipmbldsim := ipmbldsim.cc ToIpmBldEventWire.cc EvrBldServer.cc PipeStream.cc
+tgtlibs_ipmbldsim := $(commonlibs) $(datalibs)
+tgtlibs_ipmbldsim += pdsapp/configdb qt/QtGui qt/QtCore
+tgtlibs_ipmbldsim += pds/ipimb
 
 tgtsrcs_pimbld := pimbld.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_pimbld := $(commonlibs) $(datalibs)

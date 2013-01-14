@@ -231,7 +231,7 @@ tgtlibs_epicsArch := $(commonlibs) pdsdata/epics pds/epicsArch epics/ca epics/Co
 tgtslib_epicsArch := $(USRLIBDIR)/rt
 
 tgtsrcs_bld := bld.cc 
-tgtlibs_bld := $(commonlibs) pdsdata/evrdata
+tgtlibs_bld := $(commonlibs) pdsdata/evrdata pdsdata/acqdata pdsdata/ipimbdata pdsdata/pulnixdata pdsdata/lusidata
 tgtslib_bld := $(USRLIBDIR)/rt
 
 tgtsrcs_rceProxy := rceProxy.cc
