@@ -34,7 +34,7 @@ namespace Pds_ConfigDb
   public:
     void enable(bool v) 
     {
-      bool allowEdit = Parameter::allowEdit();
+      bool allowEdit = _delay.allowEdit();
       _eventCode.enable(v);
       _eventCode.widget()->setVisible(v);
       _rdelay   .enable(v);
@@ -123,7 +123,7 @@ namespace Pds_ConfigDb
       for(unsigned i=0; i<10; i++)
 	::QObject::connect(_polarity, SIGNAL(toggled(bool)), _outputs[i], SLOT(setVisible(bool)));
 
-      _enable->setEnabled(Parameter::allowEdit());
+      _enable->setEnabled(_delay.allowEdit());
 
       reset();
       enable(false);
@@ -458,7 +458,7 @@ QLayout* EvrPulseTable_V4::initialize(QWidget* parent)
   ::QObject::connect(_enable_group    , SIGNAL(buttonClicked(int)), _qlink, SLOT(update_enable(int)));
   ::QObject::connect(_terminator_group, SIGNAL(buttonClicked(int)), _qlink, SLOT(update_terminator(int)));
   ::QObject::connect(_outputs_group   , SIGNAL(buttonClicked(int)), _qlink, SLOT(update_output(int)));
-  if (Parameter::allowEdit())
+  if (allowEdit())
     for(unsigned i=0; i<MaxPulses; i++)
       ::QObject::connect(_pulses[i]->_eventCode._input, SIGNAL(editingFinished()), _qlink, SLOT(update_eventcode()));
 

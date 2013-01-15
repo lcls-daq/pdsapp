@@ -32,19 +32,21 @@ static const char* rateList[] = { "120 Hz", "60 Hz", "30 Hz", "10 Hz",
 
 static void setInputValue(QWidget* w, int v)
 {
-  if (Pds_ConfigDb::Parameter::allowEdit())
-    static_cast<QLineEdit*>(w)->setText(QString::number(v));
-  else
-    static_cast<QLabel*>(w)->setText(QString::number(v));
+  { QLineEdit* l = dynamic_cast<QLineEdit*>(w);
+    if (l) l->setText(QString::number(v)); }
+
+  { QLabel* l = dynamic_cast<QLabel*>(w);
+    if (l) l->setText(QString::number(v)); }
 }
 
 static int getInputValue(QWidget* w)
 {
   int v;
-  if (Pds_ConfigDb::Parameter::allowEdit())
-    v = static_cast<QLineEdit*>(w)->text().toInt();
-  else
-    v = static_cast<QLabel*>(w)->text().toInt();
+  { QLineEdit* l = dynamic_cast<QLineEdit*>(w);
+    if (l) v = l->text().toInt(); }
+
+  { QLabel* l = dynamic_cast<QLabel*>(w);
+    if (l) v = l->text().toInt(); }
   return v;
 }
 
@@ -125,8 +127,8 @@ QLayout* SequencerConfig::initialize(QWidget*) {
   { QVBoxLayout* vl = new QVBoxLayout;
     QRadioButton* detail  = new QRadioButton("Details");
     QRadioButton* disable = new QRadioButton("External");
-    detail ->setEnabled(Parameter::allowEdit());
-    disable->setEnabled(Parameter::allowEdit());
+    detail ->setEnabled(allowEdit());
+    disable->setEnabled(allowEdit());
     _mode = new QButtonGroup;
     _mode->addButton(detail ,Detail);
     _mode->addButton(disable,External);
@@ -220,14 +222,14 @@ SeqEntryInput::SeqEntryInput(const EvrEventCodeTable& t) :
     layout->addWidget(new QLabel("Delay\nTotal"),0,2,::Qt::AlignCenter);
     vl->addLayout(layout); }
   setLayout(vl);
-  if (Parameter::allowEdit())
+  if (_code_table.allowEdit())
     connect(_length._input, SIGNAL(editingFinished()), this, SLOT(update_length()));
   connect(&_code_table, SIGNAL(update_codes(bool)), this, SLOT(update_codes(bool)));
 }
 
 void SeqEntryInput::pull(const SeqConfigType&     c) {
 
-  if (Parameter::allowEdit())
+  if (_code_table.allowEdit())
     disconnect(_length._input, SIGNAL(editingFinished()), this, SLOT(update_length()));
   _length.value = c.length();
 
@@ -249,7 +251,7 @@ void SeqEntryInput::pull(const SeqConfigType&     c) {
     }
   }
 
-  if (Parameter::allowEdit())
+  if (_code_table.allowEdit())
     connect(_length._input, SIGNAL(editingFinished()), this, SLOT(update_length()));
 
   update_totals();
@@ -313,7 +315,7 @@ void SeqEntryInput::update_length()
     event->setMinimumWidth(140);
     event->addItems(code_names);
 
-    if (Parameter::allowEdit()) {
+    if (_code_table.allowEdit()) {
       QLineEdit* step  = new QLineEdit("0");
       step->setMaximumWidth(40);
       step->setValidator(new QIntValidator(0,1024,this));

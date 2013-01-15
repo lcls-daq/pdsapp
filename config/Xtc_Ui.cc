@@ -93,6 +93,7 @@ namespace Pds_ConfigDb {
         iterate(xtc);
       else if (_cmp==QString(PdsDefs::utypeName(xtc->contains).c_str()) &&
                _dev==QString(Pds::DetInfo::name(static_cast<const Pds::DetInfo&>(xtc->src)))) {
+	Parameter::allowEdit(false);
         Dialog* d = new Dialog(_ui, _ui->lookup(xtc->contains), xtc->payload(), xtc->sizeofPayload());
         d->exec();
         return 0;
@@ -113,8 +114,6 @@ Xtc_Ui::Xtc_Ui(QWidget* parent) :
   _dgram_buffer(0),
   _dgram       (0)
 {
-  Parameter::allowEdit(false);
-
   QVBoxLayout* l = new QVBoxLayout;
   l->addWidget(_runInfo = new QLabel);
   { QHBoxLayout* layout = new QHBoxLayout;

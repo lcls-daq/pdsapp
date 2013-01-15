@@ -99,6 +99,20 @@ bool SerializerDEntry::operator==(const SerializerDEntry& s) const
 
 SerializerDictionary::SerializerDictionary()
 {
+}
+
+SerializerDictionary::~SerializerDictionary()
+{
+}
+
+void SerializerDictionary::enroll(const Pds::TypeId& type,
+				  Serializer* s)
+{
+}
+
+Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
+{
+#define enroll(_type, v) { if (type.value()==_type.value()) return v; }
   enroll(_encoderConfigType     ,new EncoderConfig);
   enroll(_usdusbConfigType      ,new UsdUsbConfig);
   enroll(_acqConfigType         ,new AcqConfig);
@@ -145,29 +159,7 @@ SerializerDictionary::SerializerDictionary()
   enroll(Pds::TypeId(Pds::TypeId::Id_DiodeFexConfig,1), new DiodeFexConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,1),new ControlConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_TimepixConfig,2),new TimepixConfig_V2);
-}
-
-SerializerDictionary::~SerializerDictionary()
-{
-  for(list<SerializerDEntry>::iterator iter=_list.begin();
-      iter!=_list.end(); iter++)
-    delete iter->serializer;
-}
-
-void SerializerDictionary::enroll(const Pds::TypeId& type,
-          Serializer* s)
-{
-  SerializerDEntry entry(type,s);
-  _list.remove(entry);
-  _list.push_back(entry);
-}
-
-Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
-{
-  for(list<SerializerDEntry>::iterator iter=_list.begin();
-      iter!=_list.end(); iter++)
-    if (iter->type.value()==type.value())
-      return iter->serializer;
+#undef enroll
   return 0;
 }
 

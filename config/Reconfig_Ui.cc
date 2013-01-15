@@ -32,7 +32,6 @@ Reconfig_Ui::Reconfig_Ui(QWidget* parent,
   setWindowTitle("Reconfigure");
   setAttribute(::Qt::WA_DeleteOnClose, false);
   setModal(false);
-  Parameter::allowEdit(true);
 
   _applyB = new QPushButton("Apply");
   QPushButton* closeB = new QPushButton("Close");
@@ -181,6 +180,7 @@ void Reconfig_Ui::change_component()
     printf("Error looking up %s\n", t.c_str());
   else {
     //  edit the contents of the file	
+    Parameter::allowEdit(true);
     Dialog* d = new Dialog(this, lookup(stype), qchoice);
     d->exec();
     delete d;

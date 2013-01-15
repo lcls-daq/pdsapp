@@ -2,6 +2,7 @@
 
 #include "pdsapp/config/DeviceEntry.hh"
 #include "pdsapp/config/Dialog.hh"
+#include "pdsapp/config/Parameters.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -135,7 +136,8 @@ void ListUi::view_xtc()
 
   QString qfile(_types[_xtclist->currentRow()].c_str());
 
-  Dialog* d = new Dialog(_xtclist, *_dict.lookup(t), qpath, qpath, qfile);
+  Parameter::allowEdit(false);
+  Dialog* d = new Dialog(_xtclist, *_dict.lookup(t), qpath, qpath, qfile, false);
   //  d->exec();
   //  delete d;
   d->setAttribute(::Qt::WA_DeleteOnClose, true);

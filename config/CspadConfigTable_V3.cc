@@ -154,7 +154,7 @@ namespace Pds_ConfigDb
           layout->addLayout(gl);
 
           _qlink = new CspadConfigTableQ_V3(*this,parent);
-          if (Parameter::allowEdit())
+          if (_runDelay.allowEdit())
             ::QObject::connect(_sectors._input, SIGNAL(editingFinished()), _qlink, SLOT(update_readout()));
 
           update_readout();

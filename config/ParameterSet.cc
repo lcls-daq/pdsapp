@@ -35,7 +35,7 @@ QLayout* ParameterSet::initialize(QWidget* parent)
   layout->addWidget(_box);
   flush();
   layout->setContentsMargins(0,0,0,0);               
-  if (Parameter::allowEdit())
+  if (allowEdit())
     _count.connect(*this);
   QObject::connect(_box, SIGNAL(activated(int)), 
 		   _qset, SLOT(launch(int)));

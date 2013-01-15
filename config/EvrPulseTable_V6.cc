@@ -29,7 +29,7 @@ namespace Pds_ConfigDb {
     public:
       void enable(bool v) 
       {
-        bool allowEdit = Parameter::allowEdit();
+        bool allowEdit = _delay.allowEdit();
         _polarity  ->setEnabled(v && allowEdit);
         _polarity  ->setVisible(v);
         v &= (_polarity->state()!=PolarityButton::None);
@@ -83,7 +83,7 @@ namespace Pds_ConfigDb {
         for(unsigned i=0; i<MaxOutputs; i++)
           ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _outputs[i], SLOT(setVisible(bool)));
 
-        _enable->setEnabled(Parameter::allowEdit());
+        _enable->setEnabled(_delay.allowEdit());
 
         reset();
         enable(false);

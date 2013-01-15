@@ -45,7 +45,6 @@ int main(int argc, char** argv)
   }
 
   Experiment db(path);
-  Parameter::allowEdit(edit);
 
   Ui* ui = new Ui(db,edit);
   ui->show();

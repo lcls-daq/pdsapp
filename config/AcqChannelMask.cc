@@ -33,8 +33,10 @@ QLayout* AcqChannelMask::initialize(QWidget* parent)
       grid->addWidget(box = new QCheckBox,row,col,::Qt::AlignHCenter);
       if (allowEdit())
         QObject::connect(box, SIGNAL(stateChanged(int)), this, SLOT(boxChanged(int)));
-      else
+      else {
         box->setCheckState((value>>k)&1 ? ::Qt::Checked : ::Qt::Unchecked);
+	box->setEnabled(false);
+      }
       _box[k++] = box;
     }
   }

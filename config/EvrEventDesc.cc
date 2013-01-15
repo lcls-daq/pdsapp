@@ -76,7 +76,7 @@ void EvrEventDesc::initialize(QGridLayout* l, unsigned row)
     _stack->addWidget(w); }
   l->addWidget(_stack, row, column++, Qt::AlignCenter);
 
-  if (Parameter::allowEdit()) {
+  if (_desc.allowEdit()) {
     ::QObject::connect(_desc._input, SIGNAL(editingFinished()), this, SLOT(update_p()));
     ::QObject::connect(_type, SIGNAL(currentIndexChanged(int)), _stack, SLOT(setCurrentIndex(int)));
     ::QObject::connect(_enable, SIGNAL(toggled(bool)), this, SLOT(enable(bool)));

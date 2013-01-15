@@ -7,6 +7,7 @@
 #include "pdsapp/config/PdsDefs.hh"
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/GlobalCfg.hh"
+#include "pdsapp/config/Parameters.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -41,7 +42,8 @@ Devices_Ui::Devices_Ui(QWidget* parent,
            bool edit) :
   QGroupBox("Devices Configuration", parent),
   _expt    (expt),
-  _expert_mode(false)
+  _expert_mode(false),
+  _edit       (edit)
 {
   QVBoxLayout* vbox = new QVBoxLayout;
   { QMenuBar* menu_bar = new QMenuBar;
@@ -337,7 +339,8 @@ void Devices_Ui::view_component()
     QMessageBox::warning(this, "Read file failed", msg);
   }
   else {
-    Dialog* d = new Dialog(_cmpaddlist, lookup(stype), qpath, qpath, qfile);
+    Dialog* d = new Dialog(_cmpaddlist, lookup(stype,_edit), 
+			   qpath, qpath, qfile, _edit);
     d->exec();
     delete d;
   }
@@ -395,7 +398,8 @@ void Devices_Ui::add_component(const QString& type)
       string path(_expt.path().data_path("",stype));
       QString qpath(path.c_str());
 
-      Dialog* d = new Dialog(_cmpaddlist, lookup(stype), qpath, qpath);
+      Dialog* d = new Dialog(_cmpaddlist, lookup(stype,true), 
+			     qpath, qpath, true);
       d->exec();
       QString file(d->file());
       delete d;
@@ -410,11 +414,10 @@ void Devices_Ui::add_component(const QString& type)
       QString qpath(path.c_str());
       QString qchoice = qpath + "/" + choice;
 
-      //      Parameter::allowEdit(false);
-      Dialog* d = new Dialog(_cmpaddlist, lookup(stype), qpath, qpath, qchoice);
+      Dialog* d = new Dialog(_cmpaddlist, lookup(stype,true), 
+			     qpath, qpath, qchoice, true);
       d->exec();
       delete d;
-      //      Parameter::allowEdit(true);
 
       FileEntry entry(stype,schoice);
       _expt.device(det)->table().set_entry(cfg,entry);
@@ -454,8 +457,9 @@ void Devices_Ui::remove_component(const QString& type)
 void Devices_Ui::expert_mode() { _expert_mode=true; }
 void Devices_Ui::user_mode  () { _expert_mode=false; }
 
-Serializer& Devices_Ui::lookup(const UTypeName& stype)
+Serializer& Devices_Ui::lookup(const UTypeName& stype, bool edit)
 { 
+  Parameter::allowEdit(edit);
   Serializer& s = _expert_mode ?
     *_xdict.lookup(*PdsDefs::typeId(stype)) :
     *_dict .lookup(*PdsDefs::typeId(stype));

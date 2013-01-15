@@ -26,12 +26,14 @@ namespace Pds_ConfigDb {
     Dialog(QWidget* parent,
 	   Serializer& s,
 	   const QString& read_dir,
-	   const QString& write_dir);
+	   const QString& write_dir,
+	   bool lEdit);
     Dialog(QWidget* parent,
 	   Serializer& s,
 	   const QString& read_dir,
 	   const QString& write_dir,
-	   const QString& file);
+	   const QString& file,
+	   bool lEdit);
     ~Dialog();
   public:
     const QString& file() const { return _file; }
@@ -40,11 +42,8 @@ namespace Pds_ConfigDb {
     void replace  ();
     void append   ();
     void write    ();
-    void set_cycle   (int);
-    void insert_cycle();
-    void remove_cycle();
   private:
-    void layout();
+    void layout(bool);
     void append(const QString&);
     void append(const void*, unsigned);
   private:
@@ -52,7 +51,6 @@ namespace Pds_ConfigDb {
     const QString&      _read_dir;
     const QString&      _write_dir;
     QString             _file;
-    QComboBox*          _cycleBox;
     std::vector<Cycle*> _cycles;
     unsigned            _current;
   };

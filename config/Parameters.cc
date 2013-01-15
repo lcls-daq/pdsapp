@@ -15,8 +15,11 @@ const char* Enums::Disabled_Names[] = { "Disable", "Enable", NULL };
 
 static bool _edit = false;
 
+Parameter::Parameter() : _label(0), _allowEdit(_edit) {}
+Parameter::Parameter(const char* l) : _label(l), _allowEdit(_edit) {}
+
 void Parameter::allowEdit(bool edit) { _edit = edit; }
-bool Parameter::allowEdit() { return _edit; }
+bool Parameter::allowEdit() const { return _allowEdit; }
 
 TextParameter::TextParameter(const char* label, const char* val, unsigned size) :
   Parameter(label),

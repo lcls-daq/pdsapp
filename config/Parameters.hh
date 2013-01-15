@@ -28,8 +28,8 @@ namespace Pds_ConfigDb {
 
   class Parameter : public Pds::LinkedList<Parameter> {
   public:
-    Parameter() : _label(0) {}
-    Parameter(const char* label) : _label(label) {}
+    Parameter();
+    Parameter(const char* label);
     virtual ~Parameter() {}
 
     //
@@ -50,9 +50,10 @@ namespace Pds_ConfigDb {
     virtual void     enable(bool) = 0;
 
     static void allowEdit(bool);
-    static bool allowEdit();
+    bool allowEdit() const;
   protected:
     const char* _label;
+    bool        _allowEdit;
   };
 
   enum IntMode { Decimal, Hex, Scaled };

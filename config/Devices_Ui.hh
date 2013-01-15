@@ -45,7 +45,7 @@ namespace Pds_ConfigDb {
     bool validate_config_name(const string& name);
   private:
     Device* _device() const;
-    Serializer& lookup(const UTypeName&);
+    Serializer& lookup(const UTypeName&, bool);
   private:
     Experiment&  _expt;
     SerializerDictionary _dict;
@@ -64,6 +64,7 @@ namespace Pds_ConfigDb {
     QComboBox*   _cmpaddlist;
     QComboBox*   _cmpremlist;
     bool         _expert_mode;
+    bool         _edit;
   };
 };
 
