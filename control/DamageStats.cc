@@ -123,7 +123,12 @@ void DamageStats::dump() const
   int i=0;
   while( i<_segments.size() ) {
     const Src& info = _segments.at(i);
-    printf("%08x.%08x: %lld\n", info.phy(), info.log(), _counts.at(i)->value());
+    printf("%20.20s.%08x: %lld\n", 
+           info.level()==Level::Source ? 
+           DetInfo::name(reinterpret_cast<const DetInfo&>(info)) :
+           BldInfo::name(reinterpret_cast<const BldInfo&>(info)),
+           info.phy(),
+           _counts.at(i)->value());
     i++;
   }
 }
