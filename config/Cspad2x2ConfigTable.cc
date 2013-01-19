@@ -32,6 +32,7 @@ namespace Pds_ConfigDb
       GlobalP2x2() :
         _inactiveRunMode ( "Inact Run Mode", Pds::CsPad2x2::RunButDrop, RunModeText),
         _activeRunMode   ( "Activ Run Mode", Pds::CsPad2x2::RunAndSendTriggeredByTTL, RunModeText),
+        _runTriggerDelay ( "Run Trig Delay", 0, 0, 0x7fffffff, Decimal),
         _testDataIndex   ( "Test Data Indx", 4, 0, 7, Decimal ),
         _badAsicMask     ( "Bad ASIC Mask (hex)" , 0, 0, 15, Hex),
         _sectors         ( "Sector Mask (hex)"   , 0x3, 0, 0x3, Hex),
@@ -46,6 +47,7 @@ namespace Pds_ConfigDb
       {
         _inactiveRunMode.value = Pds::CsPad2x2::RunButDrop;
         _activeRunMode  .value = Pds::CsPad2x2::RunAndSendTriggeredByTTL;
+        _runTriggerDelay.value = 0;
         _testDataIndex  .value = 4;
         _badAsicMask    .value = 0;
         _sectors        .value = 0x3;
@@ -56,6 +58,7 @@ namespace Pds_ConfigDb
       {
         _inactiveRunMode.value = (Pds::CsPad2x2::RunModes)p.inactiveRunMode();
         _activeRunMode  .value = (Pds::CsPad2x2::RunModes)p.activeRunMode();
+        _runTriggerDelay.value = p.runTriggerDelay();
         _testDataIndex  .value = p.tdi();
         _badAsicMask    .value = p.badAsicMask();
         _sectors        .value = p.roiMask(0);
@@ -69,6 +72,7 @@ namespace Pds_ConfigDb
         *new (p) CsPad2x2ConfigType(
              _inactiveRunMode.value,
              _activeRunMode  .value,
+             _runTriggerDelay.value,
              _testDataIndex  .value,
              sizeof(Pds::CsPad2x2::ElementV1) + sizeof(uint32_t),  // space for the last word
             _badAsicMask    .value,
@@ -83,10 +87,11 @@ namespace Pds_ConfigDb
       {
         layout->addLayout(_inactiveRunMode.initialize(parent));
         layout->addLayout(_activeRunMode  .initialize(parent));
+        layout->addLayout(_runTriggerDelay.initialize(parent));
         layout->addLayout(_testDataIndex  .initialize(parent));
-        layout->addLayout(_protQ0AdcThr  .initialize(parent));
+        layout->addLayout(_protQ0AdcThr   .initialize(parent));
         layout->addLayout(_protQ0PixelThr .initialize(parent));
-         layout->addLayout(_badAsicMask    .initialize(parent));
+        layout->addLayout(_badAsicMask    .initialize(parent));
         layout->addLayout(_sectors        .initialize(parent));
 
         QGridLayout* gl = new QGridLayout;
@@ -103,6 +108,7 @@ namespace Pds_ConfigDb
       void insert(Pds::LinkedList<Parameter>& pList) {
         pList.insert(&_inactiveRunMode);
         pList.insert(&_activeRunMode);
+        pList.insert(&_runTriggerDelay);
         pList.insert(&_testDataIndex);
         pList.insert(&_badAsicMask);
         pList.insert(&_sectors);
@@ -118,6 +124,7 @@ namespace Pds_ConfigDb
     public:
       Enumerated<Pds::CsPad2x2::RunModes> _inactiveRunMode;
       Enumerated<Pds::CsPad2x2::RunModes> _activeRunMode;
+      NumericInt<unsigned>             _runTriggerDelay;
       NumericInt<unsigned>             _testDataIndex;
       NumericInt<unsigned>             _badAsicMask;
       NumericInt<unsigned>             _sectors;
@@ -153,7 +160,7 @@ namespace Pds_ConfigDb
       {
       }
 
-      void pull   (const Pds::CsPad2x2::ConfigV1QuadReg& p)
+      void pull   (const Pds::CsPad2x2::ConfigV2QuadReg& p)
       {
         const uint8_t* pots = &p.dp().pots[0];
         _vref.value        = pots[0];
@@ -169,7 +176,7 @@ namespace Pds_ConfigDb
         _iss5       .value = pots[64];
       }
 
-      void push   (Pds::CsPad2x2::ConfigV1QuadReg* p)
+      void push   (Pds::CsPad2x2::ConfigV2QuadReg* p)
       {
         uint8_t* pots = &p->dp().pots[0];
         *pots++ = _vref.value;
@@ -213,10 +220,10 @@ namespace Pds_ConfigDb
         ADDP("RampCurrR2");
         ADDP("RampCurrRef");
         ADDP("RampVoltRef");
-        ADDP("CompBias1 (hex)");
-        ADDP("CompBias2 (hex)");
         ADDP("Iss2 (hex)");
         ADDP("Iss5 (hex)");
+        ADDP("CompBias1 (hex)");
+        ADDP("CompBias2 (hex)");
         ADDP("Analog Prst (hex)");
 #undef ADDP
       }
@@ -232,10 +239,10 @@ namespace Pds_ConfigDb
         ADDP(_rampCurrR2);
         ADDP(_rampCurrRef);
         ADDP(_rampVoltRef);
-        ADDP(_compBias1);
-        ADDP(_compBias2);
         ADDP(_iss2);
         ADDP(_iss5);
+        ADDP(_compBias1);
+        ADDP(_compBias2);
         ADDP(_analogPrst);
         row++;
 #undef ADDP
@@ -249,10 +256,10 @@ namespace Pds_ConfigDb
         ADDP(_rampCurrR2);
         ADDP(_rampCurrRef);
         ADDP(_rampVoltRef);
-        ADDP(_compBias1);
-        ADDP(_compBias2);
         ADDP(_iss2);
         ADDP(_iss5);
+        ADDP(_compBias1);
+        ADDP(_compBias2);
         ADDP(_analogPrst);
 #undef ADDP
       }
@@ -279,7 +286,7 @@ namespace Pds_ConfigDb
         _edgeSelect      ( NULL, 0, 0, 0x7fffffff, Decimal),
         _readClkSet      ( NULL, 2, 0, 0x7fffffff, Decimal),
         _readClkHold     ( NULL, 1, 0, 0x7fffffff, Decimal),
-        _dataMode        ( NULL, 0, 0, 0x7fffffff, Decimal),
+        _dataMode        ( NULL, 0, 0, 0xffffffff, Hex),
         _prstSel         ( NULL, 1, 0, 0x7fffffff, Decimal),
         _acqDelay        ( NULL, 0x118, 0, 0x7fffffff, Decimal),
         _intTime         ( NULL, 0x5dc, 0, 0x7fffffff, Decimal),
@@ -295,7 +302,8 @@ namespace Pds_ConfigDb
         _kiConstant      ( NULL, 0, 0, 0xf, Decimal),
         _kdConstant      ( NULL, 0, 0, 0xf, Decimal),
         _humidThold      ( NULL, 0, 0, 0xfff, Decimal),
-        _setPoint        ( NULL, 20, -12, 40, Decimal)
+        _setPoint        ( NULL, 20, -12, 40, Decimal),
+        _biasTuning      ( NULL, 0, 0, 0x3fff, Hex)
       {
       }
     public:
@@ -305,13 +313,11 @@ namespace Pds_ConfigDb
       void reset ()
       {
       }
-      void pull   (const Pds::CsPad2x2::ConfigV1QuadReg& p, Pds::CsPad2x2::CsPad2x2GainMapCfg* gm)
+      void pull   (const Pds::CsPad2x2::ConfigV2QuadReg& p, Pds::CsPad2x2::CsPad2x2GainMapCfg* gm)
       {
         Cspad2x2Temp temp;
-        for(int i=0; i<Pds::CsPad2x2::TwoByTwosPerQuad; i++) {
-          _shiftSelect.value[i] = p.shiftSelect()[i];
-          _edgeSelect .value[i] = p.edgeSelect()[i];
-        }
+        _shiftSelect     .value = p.shiftSelect();
+        _edgeSelect      .value = p.edgeSelect();
         _readClkSet      .value = p.readClkSet();
         _readClkHold     .value = p.readClkHold();
         _dataMode        .value = p.dataMode();
@@ -332,15 +338,16 @@ namespace Pds_ConfigDb
         _humidThold      .value = p.humidThold();
         temp.adcValue = p.setPoint();
         _setPoint        .value = (int) nearbyint(temp.getTemp());
+        _biasTuning      .value = p.biasTuning();
 
         memcpy(gm, p.gm(), sizeof(*p.gm()));
       }
 
-      void push   (Pds::CsPad2x2::ConfigV1QuadReg* p, Pds::CsPad2x2::CsPad2x2GainMapCfg* gm)
+      void push   (Pds::CsPad2x2::ConfigV2QuadReg* p, Pds::CsPad2x2::CsPad2x2GainMapCfg* gm)
       {
         Cspad2x2Temp temp;
         uint32_t setPoint = temp.tempToAdc(_setPoint.value);
-        *new(p) Pds::CsPad2x2::ConfigV1QuadReg(
+        *new(p) Pds::CsPad2x2::ConfigV2QuadReg(
             _shiftSelect     .value,
             _edgeSelect      .value,
             _readClkSet      .value,
@@ -361,7 +368,10 @@ namespace Pds_ConfigDb
             _kiConstant      .value,
             _kdConstant      .value,
             _humidThold      .value,
-            setPoint);
+            setPoint,
+            _biasTuning      .value,
+            0  // pdpmndnmBalancing
+            );
 
         memcpy(p->gm(), gm, sizeof(*p->gm()));
       }
@@ -376,7 +386,7 @@ namespace Pds_ConfigDb
         ADDP("Edge Sel");
         ADDP("Read Clk Set");
         ADDP("Read Clk Hold");
-        ADDP("Data Mode");
+        ADDP("Data Mode (hex)");
         ADDP("PRst Sel");
         ADDP("Acq Delay");
         ADDP("Int Time");
@@ -393,6 +403,7 @@ namespace Pds_ConfigDb
         ADDP("kdConstant");
         ADDP("humidThold");
         ADDP("setPoint (deg C)");
+        ADDP("Bias Tuning (hex)");
 #undef ADDP
       }
 
@@ -401,8 +412,8 @@ namespace Pds_ConfigDb
         unsigned col=1;
         unsigned row=2;
 #define ADDP(t) layout->addLayout(t.initialize(parent), row++, col)
-        ADDP(_shiftSelect);  //   _shiftSelect.setWidth(40);
-        ADDP(_edgeSelect);   //   _edgeSelect .setWidth(40);
+        ADDP(_shiftSelect);
+        ADDP(_edgeSelect);
         ADDP(_readClkSet);
         ADDP(_readClkHold);
         ADDP(_dataMode);
@@ -422,6 +433,7 @@ namespace Pds_ConfigDb
         ADDP(_kdConstant);
         ADDP(_humidThold);
         ADDP(_setPoint);
+        ADDP(_biasTuning);
         row++;
 #undef ADDP      
       }
@@ -449,12 +461,13 @@ namespace Pds_ConfigDb
         ADDP(_kdConstant);
         ADDP(_humidThold);
         ADDP(_setPoint);
+        ADDP(_biasTuning);
 #undef ADDP
       }
 
     public:
-      NumericIntArray<uint32_t,Pds::CsPad2x2::TwoByTwosPerQuad> _shiftSelect;
-      NumericIntArray<uint32_t,Pds::CsPad2x2::TwoByTwosPerQuad> _edgeSelect;
+      NumericInt<uint32_t> _shiftSelect;
+      NumericInt<uint32_t> _edgeSelect;
       NumericInt<uint32_t> _readClkSet;
       NumericInt<uint32_t> _readClkHold;
       NumericInt<uint32_t> _dataMode;
@@ -474,6 +487,7 @@ namespace Pds_ConfigDb
       NumericInt<uint32_t> _kdConstant;
       NumericInt<uint32_t> _humidThold;
       NumericInt<int>      _setPoint;
+      NumericInt<uint32_t> _biasTuning;
   };
 };
 
@@ -485,7 +499,7 @@ Cspad2x2ConfigTable::Cspad2x2ConfigTable(const Cspad2x2Config& c) :
 {
   _globalP = new GlobalP2x2;
   _gainMap = new Cspad2x2GainMap;
-  _quadP[0] = new QuadP2x2;
+  _quadP = new QuadP2x2;
   _quadPotsP2x2 = new QuadPotsP2x2;
 }
 
@@ -499,7 +513,7 @@ void Cspad2x2ConfigTable::insert(Pds::LinkedList<Parameter>& pList)
 
   _globalP->insert(_pList);
   _gainMap->insert(_pList);
-  _quadP[0]->insert(_pList);
+  _quadP->insert(_pList);
   _quadPotsP2x2->insert(_pList);
 }
 
@@ -507,8 +521,8 @@ int Cspad2x2ConfigTable::pull(const void* from) {
   const CsPad2x2ConfigType& tc = *reinterpret_cast<const CsPad2x2ConfigType*>(from);
 
   _globalP->pull(tc);
-  _quadP[0]->pull(tc.quad()[0],_gainMap->quad());
-  _quadPotsP2x2->pull(tc.quad()[0]);
+  _quadP->pull(*tc.quad(),_gainMap->quad());
+  _quadPotsP2x2->pull(*tc.quad());
   _gainMap->flush();
 
   return sizeof(tc);
@@ -518,8 +532,8 @@ int Cspad2x2ConfigTable::push(void* to) const {
 
   CsPad2x2ConfigType& tc = *reinterpret_cast<CsPad2x2ConfigType*>(to);
   _globalP->push(&tc);
-  _quadP[0]->push(&(tc.quad()[0]),_gainMap->quad());
-  _quadPotsP2x2->push(&(tc.quad()[0]));
+  _quadP->push(tc.quad(),_gainMap->quad());
+  _quadPotsP2x2->push(tc.quad());
 
   return sizeof(tc);
 }
@@ -545,7 +559,7 @@ QLayout* Cspad2x2ConfigTable::initialize(QWidget* parent)
 
   { QGridLayout* ql = new QGridLayout;
   QuadP2x2::layoutHeader(ql);
-  _quadP[0]->initialize(parent,ql);
+  _quadP->initialize(parent,ql);
   layout->addLayout(ql); }
 
   layout->addSpacing(40);

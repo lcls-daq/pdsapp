@@ -34,7 +34,7 @@ namespace Pds_ConfigDb
     const Cspad2x2Config&         _cfg;
     Pds::LinkedList<Parameter>    _pList;
     GlobalP2x2*                   _globalP;
-    QuadP2x2*                     _quadP[1];
+    QuadP2x2*                     _quadP;
     QuadPotsP2x2*                 _quadPotsP2x2;
     Cspad2x2GainMap*              _gainMap;
   };
