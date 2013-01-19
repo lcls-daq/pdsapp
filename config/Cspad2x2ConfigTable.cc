@@ -139,16 +139,16 @@ namespace Pds_ConfigDb
     public:
       QuadPotsP2x2() :
       // digital pots fields
-      _vref            ( NULL, 0xba, 0, 0xff, Decimal),
-      _vinj            ( NULL, 0xba, 0, 0xff, Decimal),
-      _rampCurrR1      ( NULL, 0x04, 0, 0xff, Decimal),
-      _rampCurrR2      ( NULL, 0x25, 0, 0xff, Decimal),
-      _rampCurrRef     ( NULL, 0, 0, 0xff, Decimal),
-      _rampVoltRef     ( NULL, 0x61, 0, 0xff, Decimal),
-      _compBias1       ( NULL, 0xff, 0, 0xff, Hex),
-      _compBias2       ( NULL, 0xc8, 0, 0xff, Hex),
-      _iss2            ( NULL, 0x3c, 0, 0xff, Hex),
-      _iss5            ( NULL, 0x25, 0, 0xff, Hex),
+      _vref            ( NULL, 175, 0, 0xff, Decimal),
+      _vinj            ( NULL, 175, 0, 0xff, Decimal),
+      _rampCurrR1      ( NULL,   4, 0, 0xff, Decimal),
+      _rampCurrR2      ( NULL,  37, 0, 0xff, Decimal),
+      _rampCurrRef     ( NULL,   0, 0, 0xff, Decimal),
+      _rampVoltRef     ( NULL, 120, 0, 0xff, Decimal),
+      _compBias1       ( NULL, 0xf0, 0, 0xff, Hex),
+      _compBias2       ( NULL, 0xf0, 0, 0xff, Hex),
+      _iss2            ( NULL, 0x70, 0, 0xff, Hex),
+      _iss5            ( NULL, 0xa0, 0, 0xff, Hex),
       _analogPrst      ( NULL, 0xfc, 0, 0xff, Hex)
     {
     }
@@ -282,28 +282,28 @@ namespace Pds_ConfigDb
   class QuadP2x2 {
     public:
       QuadP2x2() :
-        _shiftSelect     ( NULL, 4, 0, 0x7fffffff, Decimal),
-        _edgeSelect      ( NULL, 0, 0, 0x7fffffff, Decimal),
-        _readClkSet      ( NULL, 2, 0, 0x7fffffff, Decimal),
-        _readClkHold     ( NULL, 1, 0, 0x7fffffff, Decimal),
-        _dataMode        ( NULL, 0, 0, 0xffffffff, Hex),
-        _prstSel         ( NULL, 1, 0, 0x7fffffff, Decimal),
-        _acqDelay        ( NULL, 0x118, 0, 0x7fffffff, Decimal),
-        _intTime         ( NULL, 0x5dc, 0, 0x7fffffff, Decimal),
-        _digDelay        ( NULL, 0x3c0, 0, 0x7fffffff, Decimal),
-        _ampIdle         ( NULL, 0, 0, 0xffffffff, Hex),
-        _injTotal        ( NULL, 0, 0, 0x7fffffff, Decimal),
-        _rowColShiftPer  ( NULL, 5, 0, 0x7fffffff, Decimal),
-        _ampReset        ( NULL, 0, 0, 1, Decimal),
-        _digCount        ( NULL, 0x3fff, 0, 0x3fff, Hex),
-        _digPeriod       ( NULL, 0xc, 0, 0xff, Decimal),
-        _PeltierEnable   ( NULL, 0, 0, 1, Decimal),
-        _kpConstant      ( NULL, 100, 0, 0xfff, Decimal),
-        _kiConstant      ( NULL, 0, 0, 0xf, Decimal),
-        _kdConstant      ( NULL, 0, 0, 0xf, Decimal),
-        _humidThold      ( NULL, 0, 0, 0xfff, Decimal),
-        _setPoint        ( NULL, 20, -12, 40, Decimal),
-        _biasTuning      ( NULL, 0, 0, 0x3fff, Hex)
+        _shiftSelect     ( NULL,      4,   0, 0x7fffffff, Decimal),
+        _edgeSelect      ( NULL,      0,   0, 0x7fffffff, Decimal),
+        _readClkSet      ( NULL,      2,   0, 0x7fffffff, Decimal),
+        _readClkHold     ( NULL,      1,   0, 0x7fffffff, Decimal),
+        _dataMode        ( NULL,      0,   0, 0xffffffff, Hex),
+        _prstSel         ( NULL,      1,   0, 0x7fffffff, Decimal),
+        _acqDelay        ( NULL,    280,   0, 0x7fffffff, Decimal),
+        _intTime         ( NULL,   2500,   0, 0x7fffffff, Decimal),
+        _digDelay        ( NULL,    960,   0, 0x7fffffff, Decimal),
+        _ampIdle         ( NULL,      1,   0, 0xffffffff, Hex),
+        _injTotal        ( NULL,      0,   0, 0x7fffffff, Decimal),
+        _rowColShiftPer  ( NULL,      5,   0, 0x7fffffff, Decimal),
+        _ampReset        ( NULL,      0,   0,          1, Decimal),
+        _digCount        ( NULL, 0x3fff,   0,     0x3fff, Hex),
+        _digPeriod       ( NULL,     12,   0,       0xff, Decimal),
+        _PeltierEnable   ( NULL,      0,   0,          1, Decimal),
+        _kpConstant      ( NULL,    250,   0,      0xfff, Decimal),
+        _kiConstant      ( NULL,      1,   0,        0xf, Decimal),
+        _kdConstant      ( NULL,      0,   0,        0xf, Decimal),
+        _humidThold      ( NULL,      0,   0,      0xfff, Decimal),
+        _setPoint        ( NULL,     20, -12,         40, Decimal),
+        _biasTuning      ( NULL, 0x3333,   0,     0x3fff, Hex)
       {
       }
     public:
