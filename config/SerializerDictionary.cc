@@ -44,6 +44,7 @@
 #include "pdsapp/config/TimepixConfig.hh"
 #include "pdsapp/config/TimepixConfig_V2.hh"
 #include "pdsapp/config/PhasicsConfig.hh"
+#include "pdsapp/config/Cspad2x2Config_V1.hh"
 #include "pdsapp/config/Cspad2x2Config.hh"
 #include "pdsapp/config/OceanOpticsConfig.hh"
 #include "pdsapp/config/FliConfig.hh"
@@ -141,8 +142,9 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_CsPad2x2ConfigType    ,new Cspad2x2Config);
   enroll(_oceanOpticsConfigType ,new OceanOpticsConfig);  
   enroll(_fliConfigType         ,new FliConfig);  
-  enroll(_andorConfigType         ,new AndorConfig);  
+  enroll(_andorConfigType       ,new AndorConfig);
   //  retired
+  enroll(Pds::TypeId(Pds::TypeId::Id_Cspad2x2Config,1),new Cspad2x2Config_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,3) , new CspadConfig_V3);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,2) , new CspadConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  
