@@ -120,12 +120,28 @@ void DamageStats::update_stats()
 
 void DamageStats::dump() const
 {
-  int i=0;
-  while( i<_segments.size() ) {
-    const Src& info = _segments.at(i);
-    printf("%08x.%08x: %lld\n",
-           info.log(),info.phy(),
-           _counts.at(i)->value());
-    i++;
+  unsigned bldProcess=0;
+  int row=0;
+  for(int i=0; i<_partition.detectors().size(); i++) {
+    const DetInfo&  det  = _partition.detectors().at(i);
+    const ProcInfo& proc = _partition.segments ().at(i);
+    if (det.detector() != DetInfo::BldEb) {
+      printf("%20.20s.%08x: %lld\n", DetInfo::name(det), det.phy(), _counts.at(row)->value());
+      row++;
+    }
+    else
+      bldProcess = proc.processId();
+  }
+  if (bldProcess) {
+    for(int i=0; i<_partition.reporters().size(); i++) {
+      const BldInfo& info = _partition.reporters().at(i);
+      printf("%20.20s.%08x: %lld\n", BldInfo::name(info), info.phy(), _counts.at(row)->value());
+      row++;
+    }
+    //
+    //  Special EBeam BPM damage counter
+    //
+    printf("%20.20s.%08x: %lld\n", "EBeam Low Curr", EBeamBPM.phy(), _counts.at(row)->value());
+    row++;
   }
 }

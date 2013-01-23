@@ -43,6 +43,8 @@ namespace Pds_ConfigDb {
   public:
     bool update_key(const TableEntry&);
     unsigned next_key() const;
+
+    static void log_threshold(double);
   private:
     Path _path;
     Table  _table;

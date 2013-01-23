@@ -13,31 +13,32 @@ using Pds_ConfigDb::Experiment;
 
 static void usage(char *argv0)
 {
-  printf("usage: %s -p <platform> -P <partition_description> -D <db name> [-b <bld>]\n"
-         "             [-L <offlinerc> [-E <experiment_name>] | -R <run_number_file>] [-v]\n", argv0);
+  printf("usage: %s -p <platform> -P <partition_description> -D <db name> [options]\n"
+	 "Options: -L <offlinerc>        : offline db access\n"
+	 "         -E <experiment_name>  : offline db experiment\n"
+	 "         -R <run_number_file>  : no offline db\n"
+	 "         -N <seconds>          : log long NFS accesses\n"
+	 "         -v\n", 
+	 argv0);
 }
 
 int main(int argc, char** argv)
 {
   unsigned platform = -1UL;
-  unsigned bldList[32];
-  unsigned nbld = 0;
   const char* partition = "partition";
   const char* dbpath    = "none";
   const char* offlinerc = (char *)NULL;
   const char* runNumberFile = (char *)NULL;
   const char* experiment = (char *)NULL;
+  double nfs_log_threshold = -1;
   unsigned    sequencer_id = 0;
   unsigned key=0;
   int verbose = 0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:b:P:D:L:R:E:S:v")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:S:v")) != -1) {
     char* endPtr;
     switch (c) {
-    case 'b':
-      bldList[nbld++] = strtoul(optarg, &endPtr, 0);
-      break;
     case 'p':
       platform = strtoul(optarg, &endPtr, 0);
       if (errno != 0 || endPtr == optarg) platform = 0;
@@ -60,6 +61,9 @@ int main(int argc, char** argv)
     case 'E':
       experiment = optarg;
       break;
+    case 'N':
+      nfs_log_threshold = strtod(optarg, NULL);
+      break;
     case 'S':
       sequencer_id = strtoul(optarg, &endPtr, 0);
       break;
@@ -72,6 +76,8 @@ int main(int argc, char** argv)
     usage(argv[0]);
     return 0;
   }
+
+  Experiment::log_threshold(nfs_log_threshold);
 
   int _argc=1;
   char* _argv[] = { "DAQ Control", NULL };
