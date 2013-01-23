@@ -14,22 +14,37 @@ using std::endl;
 #include <glob.h>
 #include <libgen.h>
 
-//#define DBUG
+#define DBUG
 
 namespace Pds_ConfigDb {
   class TimeProfile {
   public:
-    TimeProfile() { clock_gettime(CLOCK_REALTIME,&_tp); }
+    TimeProfile() : _n(0) { clock_gettime(CLOCK_REALTIME,&_tp); }
+    ~TimeProfile() {
+      printf(" == NFS access periods ==\n");
+      for(unsigned i=0; i<_n; i++)
+	printf("%f%c",_times[i],(i%10)==9 ? '\n':',');
+      printf("\n");
+    }
     void interval(const char* s1, const char* s2) {
       timespec tp;
       clock_gettime(CLOCK_REALTIME,&tp);
       double dt = double(tp.tv_sec - _tp.tv_sec)+1.e-9*(double(tp.tv_nsec)-double(_tp.tv_nsec));
       _tp = tp;
-      //      printf("%s::%s = %f seconds\n",s1,s2,dt);
+
+      const double threshold = 0.1;
+      if (dt > threshold)
+	printf("%s::%s = %f seconds\n",s1,s2,dt);
+
+      if (_n<MAX_N)
+	_times[_n++] = dt;
     }
     void interval(const std::string s1, const char* s2) { interval(s1.c_str(),s2); }
   private:
     timespec _tp;
+    enum { MAX_N=100 };
+    double   _times[MAX_N];
+    unsigned _n;
   };
 };
 
