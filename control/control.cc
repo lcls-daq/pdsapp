@@ -18,6 +18,7 @@ static void usage(char *argv0)
 	 "         -E <experiment_name>  : offline db experiment\n"
 	 "         -R <run_number_file>  : no offline db\n"
 	 "         -N <seconds>          : log long NFS accesses\n"
+	 "         -O                    : override errors\n"
 	 "         -v\n", 
 	 argv0);
 }
@@ -34,9 +35,10 @@ int main(int argc, char** argv)
   unsigned    sequencer_id = 0;
   unsigned key=0;
   int verbose = 0;
+  bool override = false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:S:v")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:OS:v")) != -1) {
     char* endPtr;
     switch (c) {
     case 'p':
@@ -63,6 +65,9 @@ int main(int argc, char** argv)
       break;
     case 'N':
       nfs_log_threshold = strtod(optarg, NULL);
+      break;
+    case 'O':
+      override = true;
       break;
     case 'S':
       sequencer_id = strtoul(optarg, &endPtr, 0);
@@ -91,6 +96,7 @@ int main(int argc, char** argv)
                                       experiment,
                                       sequencer_id,
                                       (verbose > 0));
+  window->override_errors(override);
   window->show();
   app.exec();
 

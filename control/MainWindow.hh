@@ -38,11 +38,13 @@ namespace Pds {
 
   signals:
     void message_received(const QString&,bool);
+    void override_received(const QString&);
     //    void platform_failed();
   public slots:
     void handle_message(const QString&,bool);
     void handle_sigint();
     void handle_sigterm();
+    void handle_override(const QString&);
     //    void handle_platform_error();
   public:
     ControlLog& log();
@@ -51,6 +53,7 @@ namespace Pds {
     void insert_message(const char*);
     void platform_error();
     void require_shutdown();
+    void override_errors(bool);
   private:
     friend class ControlTimeout;
     CCallback*        _controlcb;
@@ -65,6 +68,8 @@ namespace Pds {
     // signal handler support
     QSocketNotifier *snInt;
     QSocketNotifier *snTerm;
+
+    bool _override_errors;
   };
 };
 
