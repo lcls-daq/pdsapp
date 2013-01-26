@@ -43,8 +43,10 @@ DetInfo::Device find_device(const char *name)
 
 class caconn {
  public:
-    caconn(string _name, string _det, string _camtype, string _pvname, int _binned)
-        : name(_name), detector(_det), camtype(_camtype), pvname(_pvname), connected(0), event(0), binned(_binned) {
+    caconn(string _name, string _det, string _camtype, string _pvname,
+           int _binned, int strict)
+        : name(_name), detector(_det), camtype(_camtype), pvname(_pvname),
+          connected(0), event(0), binned(_binned) {
         const char       *ds  = detector.c_str();
         int               bld = !strncmp(ds, "BLD-", 4);
         DetInfo::Detector det = bld ? DetInfo::BldEb : find_detector(ds);
@@ -59,14 +61,14 @@ class caconn {
         Camera::FrameV1  *f   = NULL;
 
         if (det == DetInfo::NumDetector || (det != DetInfo::EpicsArch && dev == DetInfo::NumDevice)) {
-            fprintf(stderr, "Cannot find (%s, %s) values!\n", detector.c_str(), camtype.c_str());
+            printf("Cannot find (%s, %s) values!\n", detector.c_str(), camtype.c_str());
             exit(1);
         }
         bld = bld ? atoi(ds + 4) : -1;
 
         num = conns.size();
         conns.push_back(this);
-        xid = register_xtc(det != DetInfo::EpicsArch);
+        xid = register_xtc(strict);
         if (det == DetInfo::EpicsArch) {
             caid = nxtcaid++;
             is_cam = 0;
@@ -76,7 +78,7 @@ class caconn {
                                            50, /* priority?!? */
                                            &chan);
             if (result != ECA_NORMAL) {
-                fprintf(stderr, "CA error %s while creating channel to %s!\n",
+                printf("CA error %s while creating channel to %s!\n",
                         ca_message(result), pvname.c_str());
                 exit(0);
             }
@@ -148,7 +150,7 @@ class caconn {
             }
             break;
         default:
-            fprintf(stderr, "Unknown device: %s!\n", DetInfo::name(ctp));
+            printf("Unknown device: %s!\n", DetInfo::name(ctp));
             exit(1);
         }
         // These are on every camera.
@@ -216,7 +218,7 @@ class caconn {
                                        50, /* priority?!? */
                                        &chan);
         if (result != ECA_NORMAL) {
-            fprintf(stderr, "CA error %s while creating channel to %s!\n",
+            printf("CA error %s while creating channel to %s!\n",
                     ca_message(result), pvname.c_str());
             exit(0);
         }
@@ -277,7 +279,7 @@ static void event_handler(struct event_handler_args args)
     caconn *c = (caconn *)args.usr;
 
     if (args.status != ECA_NORMAL) {
-        fprintf(stderr, "Bad status: %d\n", args.status);
+        printf("Bad status: %d\n", args.status);
     } else if (args.type == c->dbrtype && args.count == c->nelem) {
         struct dbr_time_short *d = (struct dbr_time_short *) args.dbr;
         if (c->is_cam) {
@@ -292,7 +294,7 @@ static void event_handler(struct event_handler_args args)
                      c->hdr, c->hdrlen, const_cast<void *>(args.dbr));
         }
     } else {
-        fprintf(stderr, "type = %ld, count = %ld -> expected type = %ld, count = %d\n",
+        printf("type = %ld, count = %ld -> expected type = %ld, count = %d\n",
                 args.type, args.count, c->dbrtype, c->nelem);
     }
     fflush(stdout);
@@ -328,7 +330,7 @@ static void get_handler(struct event_handler_args args)
     int status = ca_create_subscription(c->dbrtype, c->nelem, c->chan, DBE_VALUE | DBE_ALARM,
                                         event_handler, (void *) c, &c->event);
     if (status != ECA_NORMAL) {
-        fprintf(stderr, "Failed to create subscription! error %d!\n", status);
+        printf("Failed to create subscription! error %d!\n", status);
         exit(0);
     }
 }
@@ -350,17 +352,17 @@ static void connection_handler(struct connection_handler_args args)
             int status = ca_create_subscription(c->dbrtype, c->nelem, args.chid, DBE_VALUE | DBE_ALARM,
                                                 event_handler, (void *) c, &c->event);
             if (status != ECA_NORMAL) {
-                fprintf(stderr, "Failed to create subscription! error %d!\n", status);
+                printf("Failed to create subscription! error %d!\n", status);
                 exit(0);
             }
         } else {
             if (c->nelem != 1) {
-                fprintf(stderr, "%s is not a scalar PV!\n", c->getpvname());
+                printf("%s is not a scalar PV!\n", c->getpvname());
                 exit(0);
             }
             int status = ca_get_callback(dbf_type_to_DBR_CTRL(c->dbftype), args.chid, get_handler, (void *) c);
             if (status != ECA_NORMAL) {
-                fprintf(stderr, "Get failed! error %d!\n", status);
+                printf("Get failed! error %d!\n", status);
                 exit(0);
             }
         }
@@ -384,9 +386,9 @@ void initialize_ca(void)
     ca_context_create(ca_disable_preemptive_callback);
 }
 
-void create_ca(string name, string detector, string camtype, string pvname, int binned)
+void create_ca(string name, string detector, string camtype, string pvname, int binned, int strict)
 {
-    new caconn(name, detector, camtype, pvname, binned);
+    new caconn(name, detector, camtype, pvname, binned, strict);
 }
 
 void handle_ca(fd_set *rfds)

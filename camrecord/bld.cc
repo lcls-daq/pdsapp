@@ -14,26 +14,10 @@
 
 using namespace std;
 
-// Code shamelessly stolen from bldServerTest.{cpp,h}, with removals bracketed by ifdef MCB.
+// Code shamelessly stolen from bldServerTest.{cpp,h}
 static const unsigned int uDefaultAddr = 239<<24 | 255<<16 | 24<<8; /// multicast address without low byte
 static const unsigned int uDefaultPort = 10148;
 static const unsigned int uDefaultMaxDataSize = 512; /// in bytes
-
-#ifdef MCB
-static string addressToStr( unsigned int uAddr )
-{
-    unsigned int uNetworkAddr = htonl(uAddr);
-    const unsigned char* pcAddr = (const unsigned char*) &uNetworkAddr;
-    std::stringstream sstream;
-    sstream << 
-      (int) pcAddr[0] << "." <<
-      (int) pcAddr[1] << "." <<
-      (int) pcAddr[2] << "." <<
-      (int) pcAddr[3];
-      
-     return sstream.str();
-}
-#endif
 
 class BldServerSlim 
 {
@@ -89,13 +73,6 @@ try
       setsockopt(_iSocket, SOL_SOCKET, SO_RCVBUF, (char*)&iRecvBufSize, sizeof(iRecvBufSize)) 
       == -1)
        throw string("BldServerSlim::BldServerSlim() : setsockopt(...SO_RCVBUF) failed");
-
-    //int iQueriedRecvBufSize, iLenQueriedRecvBufSize;
-    //if(
-    //  getsockopt(_iSocket, SOL_SOCKET, SO_RCVBUF, (char*)&iQueriedRecvBufSize, (socklen_t*) &iLenQueriedRecvBufSize) 
-    //  == -1)
-    //    throw string("BldServerSlim::BldServerSlim() : getsockopt(...SO_RCVBUF) failed");
-    //printf( "Org Buffer Size = %d, Queried Buffer Size = %d\n", iRecvBufSize, iQueriedRecvBufSize);
         
     int iYes = 1;
     
@@ -129,15 +106,7 @@ try
     int iLength = sizeof(sockaddrName);
 #endif      
 
-    if(getsockname(_iSocket, (sockaddr*)&sockaddrName, &iLength) == 0) 
-    {
-#ifdef MCB
-        unsigned int uSockAddr = ntohl(sockaddrName.sin_addr.s_addr);
-        unsigned int uSockPort = (unsigned int )ntohs(sockaddrName.sin_port);
-        printf( "Server addr: %s  Port %u  Buffer Size %u\n", addressToStr(uSockAddr).c_str(), uSockPort, iRecvBufSize );
-#endif
-    }
-    else
+    if(getsockname(_iSocket, (sockaddr*)&sockaddrName, &iLength) != 0) 
         throw string("BldServerSlim::BldServerSlim() : getsockname() failed");
 
     /*
@@ -181,10 +150,6 @@ try
 
     if ( uiInterface != 0 )
     {
-#if 0
-      printf( "multicast interface IP: %s\n", addressToStr(uiInterface).c_str() );
-#endif
-      
       struct ip_mreq ipMreq;
       memset((char*)&ipMreq, 0, sizeof(ipMreq));
       ipMreq.imr_multiaddr.s_addr = htonl(_uAddr);

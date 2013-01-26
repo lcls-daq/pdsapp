@@ -11,6 +11,7 @@
 #include<sstream>  //for std::istringstream
 #include<iterator> //for std::istream_iterator
 #include<vector>   //for std::vector
+#include<iostream>
 
 #include"yagxtc.hh"
 
@@ -18,13 +19,21 @@ using namespace std;
 
 class symbol {
  public:
+    enum symtype { CAMERA_TYPE, BLD_TYPE, PV_TYPE };
     /* Camera */
     symbol(string _name, string _det, string _camtype, string _pvname, int _binned)
-        : name(_name), detector(_det), camtype(_camtype), pvname(_pvname), address(-1), is_bld(0), binned(_binned) {
+        : name(_name), detector(_det), camtype(_camtype), pvname(_pvname),
+          address(-1), stype(CAMERA_TYPE), binned(_binned) {
         syms.push_back(this);
     };
     /* BLD */
-    symbol(string _name, int addr, int _revtime) : name(_name), address(addr), is_bld(1), revtime(_revtime) {
+    symbol(string _name, int addr, int _revtime)
+        : name(_name), address(addr), stype(BLD_TYPE), revtime(_revtime) {
+        syms.push_back(this);
+    };
+    /* PV */
+    symbol(string _name, string _pvname, int _strict)
+        : name(_name), pvname(_pvname), address(-1), stype(PV_TYPE), strict(_strict) {
         syms.push_back(this);
     };
     static symbol *find(string _name) {
@@ -44,9 +53,10 @@ class symbol {
     string camtype;
     string pvname;
     int address;
-    int is_bld;
+    enum symtype stype;
     int binned;
     int revtime;
+    int strict;
 };
 
 vector<symbol *> symbol::syms;
@@ -54,9 +64,13 @@ static int haveint = 0;
 static fd_set all_fds;
 static int maxfds = -1;
 static int delay = 0;
+static int keepalive = 0;
 static struct timeval start, stop;
 int record_cnt = 0;
 static int nrec = 0;
+int verbose = 1;
+static char *outfile = NULL;
+string hostname = "";
 
 static void int_handler(int signal)
 {
@@ -79,17 +93,25 @@ void remove_socket(int s)
 
 void begin_run(void)
 {
-    if (delay)
-        alarm(delay);
+    fprintf(stderr, "%sinitialized, recording...\n", hostname.c_str());
+    fflush(stderr);
     gettimeofday(&start, NULL);
+    stop = start;
+    if (delay)
+        stop.tv_sec += delay;
+    // Set the alarm to the minimum of keepalive and delay
+    if (keepalive)
+        alarm(keepalive);
+    else if (delay)
+        alarm(delay);
 }
 
-static ifstream *open_config_file(char *name)
+static istream *open_config_file(char *name)
 {
     char buf[512];
 
     if (!name)
-        name = DEFAULT_CFG;
+        return &cin;
     ifstream *res = new ifstream(name);
     if (res->good())
         return res;
@@ -109,23 +131,26 @@ static ifstream *open_config_file(char *name)
 
 static void record(string name, const char *arg)
 {
-    if (name == "pv" || name == "PV") {
-        printf("Found PV -> CA to (EpicsArch, NoDevice) at %s.\n", arg);
-        create_ca((string) arg, "EpicsArch", "NoDevice", (string) arg, 0);
-    } else {
-        symbol *s = symbol::find(name);
-        if (!s) {
-            printf("Can't find symbol %s!\n", name.c_str());
-            exit(1);
-        }
-        if (s->is_bld) {
-            printf("Found %s -> BLD at 239.255.24.%d\n", name.c_str(), s->address);
-            create_bld(s->name, s->address, (string)(arg ? arg : "eth0"), s->revtime);
-        } else {
-            printf("Found %s -> CA to (%s,%s) at %s.\n", name.c_str(), 
-                   s->detector.c_str(), s->camtype.c_str(), s->pvname.c_str());
-            create_ca(s->name, s->detector, s->camtype, s->pvname, s->binned);
-        }
+    symbol *s = symbol::find(name);
+    if (!s) {
+        printf("Can't find symbol %s!\n", name.c_str());
+        exit(1);
+    }
+    switch (s->stype) {
+    case symbol::BLD_TYPE:
+        printf("Found %s -> BLD at 239.255.24.%d\n", name.c_str(), s->address);
+        create_bld(s->name, s->address, (string)(arg ? arg : "eth0"), s->revtime);
+        break;
+    case symbol::CAMERA_TYPE:
+        printf("Found %s -> CA to (%s,%s) at %s.\n", name.c_str(), 
+               s->detector.c_str(), s->camtype.c_str(), s->pvname.c_str());
+        create_ca(s->name, s->detector, s->camtype, s->pvname, s->binned, 1);
+        break;
+    case symbol::PV_TYPE:
+        printf("Found %s -> CA to (EpicsArch, NoDevice) at %s.\n",
+               name.c_str(), s->pvname.c_str());
+        create_ca(s->name, "EpicsArch", "NoDevice", s->pvname, 0, s->strict);
+        break;
     }
     nrec++;
 }
@@ -133,7 +158,7 @@ static void record(string name, const char *arg)
 static void read_config_file(const char *name)
 {
     string line;
-    ifstream *in = open_config_file(const_cast<char *>(name));
+    istream *in = open_config_file(const_cast<char *>(name));
     int lineno = 0;
 
     if (!in)
@@ -144,8 +169,21 @@ static void read_config_file(const char *name)
         vector<string> arrayTokens(begin, end); 
         lineno++;
 
-        if (arrayTokens.size() == 0 || arrayTokens[0] == "#") {
+        if (arrayTokens.size() == 0 || arrayTokens[0] == "#" || 
+            arrayTokens[0] == "cpr" || arrayTokens[0] == "bpr" ||
+            arrayTokens[0] == "ppr" || arrayTokens[0] == "host") {
+            /* Ignore blank lines, comments, and client commands! */
             continue;
+        } else if (arrayTokens[0] == "end") {
+            break;
+        } else if (arrayTokens[0] == "output") {
+            outfile = strdup(arrayTokens[1].c_str());
+        } else if (arrayTokens[0] == "hostname") {
+            hostname = arrayTokens[1] + " ";
+        } else if (arrayTokens[0] == "timeout") {
+            delay = atoi(arrayTokens[1].c_str());
+        } else if (arrayTokens[0] == "keepalive") {
+            keepalive = atoi(arrayTokens[1].c_str());
         } else if (arrayTokens[0] == "include") {
             if (arrayTokens.size() >= 1)
                 read_config_file(arrayTokens[1].c_str());
@@ -155,6 +193,11 @@ static void read_config_file(const char *name)
             if (arrayTokens.size() >= 5) {
                 int binned = (arrayTokens.size() >= 6 && arrayTokens[5] == "binned");
                 new symbol(arrayTokens[1], arrayTokens[2], arrayTokens[3], arrayTokens[4], binned);
+            }
+        } else if (arrayTokens[0] == "pv") {
+            if (arrayTokens.size() >= 3) {
+                int strict = (arrayTokens.size() >= 4 && arrayTokens[3] == "strict");
+                new symbol(arrayTokens[1], arrayTokens[2].c_str(), strict);
             }
         } else if (arrayTokens[0] == "bld") {
             if (arrayTokens.size() >= 3 && isdigit(arrayTokens[2][0])) {
@@ -174,16 +217,81 @@ static void read_config_file(const char *name)
                 record(arrayTokens[0], arrayTokens[1].c_str());
         }
     }
-    delete in;
+    if (in != &cin)
+        delete in;
 }
 
-static void initialize(char *config, char *outfile)
+static void usage(void)
 {
+    printf("Usage: camrecord [ OPTION ]...\n");
+    printf("Record camera PVs and BLDs into a file.  Options are:\n");
+    printf("    -h, --help                       = Print this help text.\n");
+    printf("    -c FILE, --config FILE           = Specify the configuration file.\n");
+    printf("    -o FILE, --output FILE           = The name of the XTC file to be saved.\n");
+    printf("    -t SECS, --timeout SECS          = Seconds to record after connecting.\n");
+    printf("    -d DIRECTORY                     = Change to the specified directory.\n");
+    printf("    -k SECS, --keepalive SECS        = Seconds to wait for input before closing down.\n");
+    printf("    -s                               = Run silently (for use as a daemon).\n");
+    printf("If no timeout is specified, recording will continue until interrupted with ^C.\n");
+    exit(0);
+}
+
+static void initialize(char *config)
+{
+    char *s;
+
     FD_ZERO(&all_fds);
+    add_socket(0);
     initialize_bld();
     initialize_ca();
     read_config_file(config);
+    if (!outfile) {
+        printf("No output file specified!\n\n");
+        usage();
+        /* No return! */
+    }
+    if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
+        char buf[1024];
+        *s = 0;
+        sprintf(buf, "mkdir -p %s", outfile);
+        *s = '/';
+        system(buf);
+    }
     initialize_xtc(outfile);
+}
+
+static void stats(void)
+{
+    double runtime;
+
+    gettimeofday(&stop, NULL);
+
+    runtime = (1000000LL * stop.tv_sec + stop.tv_usec) - 
+              (1000000LL * start.tv_sec + start.tv_usec);
+    runtime /= 1000000.;
+    fprintf(stderr, "%sruntime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
+           hostname.c_str(), runtime, record_cnt, ((double) record_cnt) / runtime);
+    fflush(stderr);
+}
+
+static void handle_stdin(fd_set *rfds)
+{
+    if (FD_ISSET(0, rfds)) {
+        char buf[1024];
+        int cnt = read(0, buf, sizeof(buf) - 1);
+        if (cnt > 0) {
+            buf[cnt - 1] = 0; // Kill the newline!
+            printf("%s\n", buf);
+            if (!strcmp(buf, "stop")) {
+                printf("Got stop!\n");
+                haveint = 1;
+            } else
+                stats();
+        } else {
+            printf("Standard input is closed, terminating!\n");
+            haveint = 1;
+        }
+    }
 }
 
 static void do_poll(void)
@@ -196,6 +304,7 @@ static void do_poll(void)
     timeout.tv_usec = 100000; /* 1ms */
     if ((nfds = select(maxfds, &rfds, NULL, NULL, &timeout)) < 0)   // If we got a signal, the masks are bad!
         return;
+    handle_stdin(&rfds);
     handle_bld(&rfds);
     handle_ca(&rfds);
 }
@@ -213,37 +322,28 @@ void cleanup(void)
     runtime = (1000000LL * stop.tv_sec + stop.tv_usec) - 
               (1000000LL * start.tv_sec + start.tv_usec);
     runtime /= 1000000.;
-    fprintf(stderr, "Runtime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
-            runtime, record_cnt, ((double) record_cnt) / runtime);
-}
-
-void usage(void)
-{
-    fprintf(stderr, "Usage: camrecord [ OPTION ]...\n");
-    fprintf(stderr, "Record camera PVs and BLDs into a file.  Options are:\n");
-    fprintf(stderr, "    -h, --help                       = Print this help text.\n");
-    fprintf(stderr, "    -c FILE, --config FILE           = Specify the configuration file.\n");
-    fprintf(stderr, "    -o FILE, --output FILE           = The name of the XTC file to be saved.\n");
-    fprintf(stderr, "    -t SECS, --timeout SECS          = Seconds to record after connecting.\n");
-    fprintf(stderr, "If no timeout is specified, recording will continue until interrupted with ^C.\n");
-    exit(0);
+    fprintf(stderr, "%sstopped, runtime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
+            hostname.c_str(), runtime, record_cnt, ((double) record_cnt) / runtime);
+    fflush(stderr);
 }
 
 int main(int argc, char **argv)
 {
     int c;
     char *config = NULL;
-    char *outfile = NULL;
     int idx = 0;
     static struct option long_options[] = {
-        {"help",     0, 0, 'h'},
-        {"config",   1, 0, 'c'},
-        {"output",   1, 0, 'o'},
-        {"timeout",  1, 0, 't'},
+        {"help",      0, 0, 'h'},
+        {"config",    1, 0, 'c'},
+        {"output",    1, 0, 'o'},
+        {"timeout",   1, 0, 't'},
+        {"directory", 1, 0, 'd'},
+        {"silent",    0, 0, 's'},
+        {"keepalive", 1, 0, 's'},
         {NULL, 0, NULL, 0}
     };
 
-    while ((c = getopt_long(argc, argv, "hc:o:t:", long_options, &idx)) != -1) {
+    while ((c = getopt_long(argc, argv, "hc:o:t:d:sk:", long_options, &idx)) != -1) {
         switch (c) {
         case 'h':
             usage();
@@ -252,20 +352,24 @@ int main(int argc, char **argv)
             config = optarg;
             break;
         case 'o':
-            outfile = optarg;
+            outfile = strdup(optarg);
             break;
         case 't':
             delay = atoi(optarg);
             break;
+        case 'k':
+            keepalive = atoi(optarg);
+            break;
+        case 'd':
+            chdir(optarg);
+            break;
+        case 's':
+            verbose = 0;
+            break;
         }
     }
 
-    if (!outfile) {
-        fprintf(stderr, "No output file specified!\n\n");
-        usage();
-        /* No return! */
-    }
-    initialize(config, outfile);
+    initialize(config);
 
     signal(SIGINT, int_handler);
     signal(SIGALRM, int_handler);
@@ -275,4 +379,5 @@ int main(int argc, char **argv)
     }
 
     cleanup();
+    printf("Exiting.\n");
 }

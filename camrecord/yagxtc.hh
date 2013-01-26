@@ -1,5 +1,6 @@
 #include"pdsdata/xtc/Xtc.hh"
 #include<string>
+#include<iostream>
 
 #define DEFAULT_DIR "/reg/neh/home1/mcbrowne/lib"
 #define DEFAULT_CFG ".camrecord"
@@ -9,6 +10,8 @@ extern void add_socket(int s);
 extern void remove_socket(int s);
 extern void begin_run(void);
 extern int record_cnt;
+extern int verbose;
+extern std::string hostname;
 
 /* bld.cc */
 extern void initialize_bld(void);
@@ -18,7 +21,8 @@ extern void cleanup_bld(void);
 
 /* ca.cc */
 extern void initialize_ca(void);
-extern void create_ca(std::string name, std::string detector, std::string camtype, std::string pvname, int binned);
+extern void create_ca(std::string name, std::string detector, std::string camtype,
+                      std::string pvname, int binned, int strict);
 extern void handle_ca(fd_set *rfds);
 extern void cleanup_ca(void);
 

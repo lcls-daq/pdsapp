@@ -146,7 +146,7 @@ static void write_datagram(TransitionId::Value val, int extra)
 
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
     if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
-        fprintf(stderr, "Write failed!\n");
+        printf("Write failed!\n");
         exit(1);
     }
     fsize += sizeof(Dgram) + sizeof(Xtc);
@@ -174,7 +174,7 @@ static void write_xtc_config(void)
     write_datagram(TransitionId::Configure, totalcfglen);
     for (i = 0; i < numsrc; i++) {
         if (!fwrite(src[i]->val, src[i]->len, 1, fp)) {
-            fprintf(stderr, "Cannot write to file!\n");
+            printf("Cannot write to file!\n");
             exit(1);
         }
         fsize += src[i]->len;
@@ -234,7 +234,7 @@ void initialize_xtc(char *outfile)
         cpos = fname + i;
     }
     if (!(fp = fopen(fname, "w"))) {
-        fprintf(stderr, "Cannot open %s for output!\n", fname);
+        printf("Cannot open %s for output!\n", fname);
         exit(0);
     } else
         printf("Opened %s for writing.\n", fname);
@@ -320,13 +320,13 @@ void send_event(struct event *ev)
 
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
     if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
-        fprintf(stderr, "Write failed!\n");
+        printf("Write failed!\n");
         exit(1);
     }
     fsize += sizeof(Dgram) + sizeof(Xtc);
     for (int i = 0; i < numsrc; i++) {
         if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
-            fprintf(stderr, "Write failed!\n");
+            printf("Write failed!\n");
             exit(1);
         }
         fsize += src[i]->len;
@@ -340,7 +340,7 @@ void send_event(struct event *ev)
         fclose(fp);
         sprintf(cpos, "-c%02d.xtc", ++chunk);
         if (!(fp = fopen(fname, "w"))) {
-            fprintf(stderr, "Cannot open %s for output!\n", fname);
+            printf("Cannot open %s for output!\n", fname);
             exit(0);
         } else
             printf("Opened %s for writing.\n", fname);
@@ -557,9 +557,12 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
 
 void cleanup_xtc(void)
 {
-    write_datagram(TransitionId::Disable,       0);
-    write_datagram(TransitionId::EndCalibCycle, 0);
-    write_datagram(TransitionId::EndRun,        0);
-    write_datagram(TransitionId::Unconfigure,   0);
-    fclose(fp);
+    if (dg) {
+        write_datagram(TransitionId::Disable,       0);
+        write_datagram(TransitionId::EndCalibCycle, 0);
+        write_datagram(TransitionId::EndRun,        0);
+        write_datagram(TransitionId::Unconfigure,   0);
+    }
+    if (fp)
+        fclose(fp);
 }
