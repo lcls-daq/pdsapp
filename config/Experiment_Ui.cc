@@ -32,16 +32,13 @@ Experiment_Ui::Experiment_Ui(QWidget* parent,
   { QVBoxLayout* layout1 = new QVBoxLayout;
     layout1->addWidget(new QLabel("Config Name", this));
     layout1->addWidget(_cfglist = new QListWidget(this));
-    { QHBoxLayout* layout1a = new QHBoxLayout;
-      layout1a->addWidget(_cfgnewedit   = new QLineEdit(this));
-      layout1a->addWidget(_cfgnewbutton = new QPushButton("New", this));
-      layout1a->addStretch();
-      layout1a->addWidget(cfgrembutton);
+    { QGridLayout* layout1a = new QGridLayout;
+      layout1a->addWidget(_cfgnewedit = new QLineEdit(this), 0, 0 );
+      layout1a->addWidget(_cfgnewbutton = new QPushButton("New", this), 0, 1 );
+      layout1a->addWidget(_cfgcopyedit   = new QLineEdit(this), 1, 0 );
+      layout1a->addWidget(_cfgcopybutton = new QPushButton("Copy To", this), 1, 1);
+      layout1a->addWidget(cfgrembutton, 0, 2, 2, 1);
       layout1->addLayout(layout1a); }
-    { QHBoxLayout* layout1b = new QHBoxLayout;
-      layout1b->addWidget(_cfgcopyedit   = new QLineEdit(this));
-      layout1b->addWidget(_cfgcopybutton = new QPushButton("Copy To", this));
-      layout1->addLayout(layout1b); }
     layout->addLayout(layout1); }
 
   { QVBoxLayout* layout2 = new QVBoxLayout;

@@ -69,13 +69,12 @@ Devices_Ui::Devices_Ui(QWidget* parent,
     { QVBoxLayout* layout1 = new QVBoxLayout;
       layout1->addWidget(new QLabel("Config Name", this));
       layout1->addWidget(_cfglist = new QListWidget(this));
-      { QHBoxLayout* layout1a = new QHBoxLayout;
-	layout1a->addWidget(_cfgnewedit   = new QLineEdit(this));
-	layout1a->addWidget(_cfgnewbutton = new QPushButton("New", this));
-	layout1->addLayout(layout1a); }
-      { QHBoxLayout* layout1a = new QHBoxLayout;
-	layout1a->addWidget(_cfgcpyedit   = new QLineEdit(this));
-	layout1a->addWidget(_cfgcpybutton = new QPushButton("Copy To", this));
+      { QGridLayout* layout1a = new QGridLayout;
+	layout1a->addWidget(_cfgnewedit   = new QLineEdit(this), 0, 0 );
+	layout1a->addWidget(_cfgnewbutton = new QPushButton("New", this), 0, 1 );
+	layout1a->addWidget(_cfgcpyedit   = new QLineEdit(this), 1, 0 );
+	layout1a->addWidget(_cfgcpybutton = new QPushButton("Copy To", this), 1, 1 );
+	layout1a->addWidget(_cfgrembutton = new QPushButton("Remove"), 0, 2, 2, 1 );
 	layout1->addLayout(layout1a); }
       layout->addLayout(layout1); }
     { QVBoxLayout* layout1 = new QVBoxLayout;
@@ -105,6 +104,7 @@ Devices_Ui::Devices_Ui(QWidget* parent,
     connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
     connect(_cfgnewbutton, SIGNAL(clicked()), this, SLOT(new_config()));
     connect(_cfgcpybutton, SIGNAL(clicked()), this, SLOT(copy_config()));
+    connect(_cfgrembutton, SIGNAL(clicked()), this, SLOT(remove_config()));
     connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
     connect(_cmpaddlist, SIGNAL(activated(const QString&)), this, SLOT(add_component(const QString&)));
     connect(_cmpremlist, SIGNAL(activated(const QString&)), this, SLOT(remove_component(const QString&)));
@@ -311,6 +311,19 @@ void Devices_Ui::copy_config()
   else
     cout << "No device selected" << endl;
   _cfgcpyedit->clear();
+}
+
+void Devices_Ui::remove_config()
+{
+  Device* device(_device());
+  if (device) {
+    Table& table = device->table();
+    string cfg(qPrintable(_cfglist->currentItem()->text()));
+    table.remove_top_entry( *table.get_top_entry(cfg) );
+    update_config_list();
+  }
+  else
+    cout << "No device selected" << endl;
 }
 
 void Devices_Ui::change_component()

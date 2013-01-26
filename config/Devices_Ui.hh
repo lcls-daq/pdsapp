@@ -34,6 +34,7 @@ namespace Pds_ConfigDb {
     void update_component_list();
     void new_config();
     void copy_config();
+    void remove_config();
     void change_component();
     void view_component();
     void add_component(const QString& type);
@@ -60,6 +61,7 @@ namespace Pds_ConfigDb {
     QPushButton* _cfgnewbutton;
     QLineEdit*   _cfgcpyedit;
     QPushButton* _cfgcpybutton;
+    QPushButton* _cfgrembutton;
     QListWidget* _cmplist;
     QComboBox*   _cmpaddlist;
     QComboBox*   _cmpremlist;
