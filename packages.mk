@@ -4,7 +4,7 @@ packages := tools config dev devtest mon monobs control epics blv bldIpimb test 
 endif
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-packages := config dev python blv bldIpimb test camrecord
+packages := tools config dev python blv bldIpimb test camrecord
 endif
 
 ifneq ($(findstring ppc-rtems-rce,$(tgt_arch)),)
