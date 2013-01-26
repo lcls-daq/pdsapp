@@ -94,7 +94,7 @@ static Dgram* insert(Dgram*              dg,
   timespec tv;
   clock_gettime(CLOCK_REALTIME, &tv);
 
-  unsigned fiducials = ((unsigned)dg)&0x1ffff;
+  unsigned fiducials = (dg - (Dgram*)0)&0x1ffff;
   new((void*)&dg->seq) Sequence(Sequence::Event, 
                                 tr, 
                                 ClockTime(tv.tv_sec,tv.tv_nsec), 
