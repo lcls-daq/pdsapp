@@ -26,11 +26,11 @@
 using namespace Pds;
 
 class LiveMonitorServer : public Appliance,
-			  public XtcMonitorServer {
+                          public XtcMonitorServer {
 public:
   LiveMonitorServer(const char* tag,
-		    unsigned sizeofBuffers, 
-		    int numberofEvBuffers, 
+                    unsigned sizeofBuffers, 
+                    int numberofEvBuffers, 
                     unsigned numberofEvQueues) : 
     XtcMonitorServer(tag, sizeofBuffers, numberofEvBuffers, numberofEvQueues),
     _pool           (new GenericPool(sizeof(ZcpDatagramIterator),2))
@@ -128,7 +128,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c|-q <# event queues>] [-d] [-u <uniqueID>]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c|-q <# event queues>] [-d] [-u <uniqueID>] [-h]\n", progname);
 }
 
 LiveMonitorServer* apps;
@@ -149,7 +149,7 @@ int main(int argc, char** argv) {
   const char* partition = 0;
   int numberOfBuffers = 0;
   unsigned sizeOfBuffers = 0;
-  unsigned nevqueues = 0;
+  unsigned nevqueues = 1;
   unsigned node =  0xffff0;
   char partitionTag[80] = "";
   const char* uniqueID = 0;
@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
 #undef REGISTER
 
   int c;
-  while ((c = getopt(argc, argv, "p:i:n:P:s:c:q:u:d")) != -1) {
+  while ((c = getopt(argc, argv, "p:i:n:P:s:c:q:u:dh")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -205,6 +205,11 @@ int main(int argc, char** argv) {
       break;
     case 'd':
       ldist = true;
+      break;
+    case 'h':
+      // help
+      usage(argv[0]);
+      return 0;
       break;
     default:
       printf("Unrecogized parameter\n");
