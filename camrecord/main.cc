@@ -65,7 +65,8 @@ static fd_set all_fds;
 static int maxfds = -1;
 static int delay = 0;
 static int keepalive = 0;
-static struct timeval start, stop;
+static struct timeval start, limit;
+static struct itimerval timer;
 int record_cnt = 0;
 static int nrec = 0;
 int verbose = 1;
@@ -75,7 +76,11 @@ string hostname = "";
 static void int_handler(int signal)
 {
     haveint = 1;
-    printf("^C\n");
+    if (signal == SIGALRM) {
+        fprintf(stderr, "%salarm expired!\n", hostname.c_str());
+        fflush(stderr);
+    } else
+        printf("^C\n");
     fflush(stdout);
 }
 
@@ -95,15 +100,19 @@ void begin_run(void)
 {
     fprintf(stderr, "%sinitialized, recording...\n", hostname.c_str());
     fflush(stderr);
-    gettimeofday(&start, NULL);
-    stop = start;
-    if (delay)
-        stop.tv_sec += delay;
-    // Set the alarm to the minimum of keepalive and delay
+    timer.it_interval.tv_sec = 0;
+    timer.it_interval.tv_usec = 0;
     if (keepalive)
-        alarm(keepalive);
-    else if (delay)
-        alarm(delay);
+        timer.it_value.tv_sec = keepalive;
+    else
+        timer.it_value.tv_sec = delay;
+    timer.it_value.tv_usec = 0;
+    gettimeofday(&start, NULL);
+    limit = start;
+    if (delay)
+        limit.tv_sec += delay - keepalive;
+    if (delay || keepalive)
+        setitimer(ITIMER_REAL, &timer, NULL);
 }
 
 static istream *open_config_file(char *name)
@@ -170,8 +179,8 @@ static void read_config_file(const char *name)
         lineno++;
 
         if (arrayTokens.size() == 0 || arrayTokens[0] == "#" || 
-            arrayTokens[0] == "cpr" || arrayTokens[0] == "bpr" ||
-            arrayTokens[0] == "ppr" || arrayTokens[0] == "host") {
+            arrayTokens[0] == "camera-per-row" || arrayTokens[0] == "bld-per-row" ||
+            arrayTokens[0] == "pv-per-row" || arrayTokens[0] == "host") {
             /* Ignore blank lines, comments, and client commands! */
             continue;
         } else if (arrayTokens[0] == "end") {
@@ -182,8 +191,12 @@ static void read_config_file(const char *name)
             hostname = arrayTokens[1] + " ";
         } else if (arrayTokens[0] == "timeout") {
             delay = atoi(arrayTokens[1].c_str());
+            if (delay < 0)
+                delay = 0;
         } else if (arrayTokens[0] == "keepalive") {
             keepalive = atoi(arrayTokens[1].c_str());
+            if (keepalive < 0)
+                keepalive = 0;
         } else if (arrayTokens[0] == "include") {
             if (arrayTokens.size() >= 1)
                 read_config_file(arrayTokens[1].c_str());
@@ -250,6 +263,9 @@ static void initialize(char *config)
         usage();
         /* No return! */
     }
+    if (delay && keepalive >= delay) {
+        keepalive = 0;
+    }
     if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
         char buf[1024];
         *s = 0;
@@ -263,10 +279,11 @@ static void initialize(char *config)
 static void stats(void)
 {
     double runtime;
+    struct timeval now;
 
-    gettimeofday(&stop, NULL);
+    gettimeofday(&now, NULL);
 
-    runtime = (1000000LL * stop.tv_sec + stop.tv_usec) - 
+    runtime = (1000000LL * now.tv_sec + now.tv_usec) - 
               (1000000LL * start.tv_sec + start.tv_usec);
     runtime /= 1000000.;
     fprintf(stderr, "%sruntime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
@@ -276,6 +293,7 @@ static void stats(void)
 
 static void handle_stdin(fd_set *rfds)
 {
+    struct timeval now;
     if (FD_ISSET(0, rfds)) {
         char buf[1024];
         int cnt = read(0, buf, sizeof(buf) - 1);
@@ -285,8 +303,24 @@ static void handle_stdin(fd_set *rfds)
             if (!strcmp(buf, "stop")) {
                 printf("Got stop!\n");
                 haveint = 1;
-            } else
+            } else {
+                gettimeofday(&now, NULL);
+                if (delay && (now.tv_sec > limit.tv_sec || 
+                              (now.tv_sec = limit.tv_sec && now.tv_usec > limit.tv_usec))) {
+                    if (now.tv_usec <= limit.tv_usec) {
+                        timer.it_value.tv_usec = limit.tv_usec - now.tv_usec;
+                        timer.it_value.tv_sec = keepalive + limit.tv_sec - now.tv_sec;
+                    } else {
+                        timer.it_value.tv_usec = 1000000 + limit.tv_usec - now.tv_usec;
+                        timer.it_value.tv_sec = keepalive - 1 + limit.tv_sec - now.tv_sec;
+                    }
+                } else {
+                    timer.it_value.tv_sec = keepalive;
+                    timer.it_value.tv_usec = 0;
+                }
+                setitimer(ITIMER_REAL, &timer, NULL);
                 stats();
+            }
         } else {
             printf("Standard input is closed, terminating!\n");
             haveint = 1;
@@ -312,6 +346,7 @@ static void do_poll(void)
 void cleanup(void)
 {
     double runtime;
+    struct timeval stop;
 
     gettimeofday(&stop, NULL);
 

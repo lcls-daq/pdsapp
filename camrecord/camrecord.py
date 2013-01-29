@@ -6,6 +6,8 @@ import sys
 import socket
 import os
 
+keepalive = 60
+
 class DummyCheckBox(QtGui.QLabel):
     def __init__(self, parent):
         QtGui.QLabel.__init__(self, parent)
@@ -243,7 +245,8 @@ class GraphicUserInterface(QtGui.QMainWindow):
         self.connect(self.ui.record, QtCore.SIGNAL("clicked()"), self.doRecord)
         self.connect(self.ui.clearLog, QtCore.SIGNAL("clicked()"), self.doClearLog)
         self.connect(self.timer, QtCore.SIGNAL("timeout()"), self.doTimer)
-        self.timer.start(5000);
+        if keepalive != 0:
+            self.timer.start(keepalive * 800) # 0.8 * keepalive sec
 
         self.log("Initialized!")
 
@@ -262,21 +265,21 @@ class GraphicUserInterface(QtGui.QMainWindow):
                 self.defhost = sln[1].strip()
             elif (kind == "host"):
                 host = sln[1].strip()
-            elif (kind == "cpr"):
+            elif (kind == "camera-per-row"):
                 try:
                     self.ui.cpr = int(sln[1].strip())
                 except:
                     pass
                 if (self.ui.cpr <= 0):
                     self.ui.cpr = 1
-            elif (kind == "bpr"):
+            elif (kind == "bld-per-row"):
                 try:
                     self.ui.bpr = int(sln[1].strip())
                 except:
                     pass
                 if (self.ui.bpr <= 0):
                     self.ui.bpr = 1
-            elif (kind == "ppr"):
+            elif (kind == "pv-per-row"):
                 try:
                     self.ui.ppr = int(sln[1].strip())
                 except:
@@ -354,6 +357,7 @@ class GraphicUserInterface(QtGui.QMainWindow):
                     sock.connect((host, self.port))
                     sock.sendall("hostname " + host + "\n")
                     sock.sendall("timeout " + str(t) + "\n")
+                    sock.sendall("keepalive " + str(keepalive) + "\n")
                     #
                     # Generate a real filename here!
                     #
@@ -438,7 +442,7 @@ def crrun(config, port):
   return retval
 
 if __name__ == '__main__':
-  options = Options(['config'], ['port'], [])
+  options = Options(['config'], ['port', 'keepalive'], [])
   try:
     options.parse()
   except Exception, msg:
@@ -448,5 +452,11 @@ if __name__ == '__main__':
       port = int(options.port)
   else:
       port = 9999
+  if options.port != None:
+      port = int(options.port)
+  else:
+      port = 9999
+  #if options.keepalive != None:
+  #    keepalive = int(options.keepalive)
   retval = crrun(options.config, port)
   sys.exit(retval)
