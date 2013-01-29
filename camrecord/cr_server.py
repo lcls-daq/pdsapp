@@ -5,7 +5,7 @@ import os
 import sys
 import time
 
-options = Options(['dir', 'port'], ['log'], [])
+options = Options(['dir', 'port'], ['log', 'prog'], [])
 
 class MyTCPHandler(SocketServer.StreamRequestHandler):
     def handle(self):
@@ -18,10 +18,10 @@ class MyTCPHandler(SocketServer.StreamRequestHandler):
                 os.dup2(fd, 1)
                 os.close(fd)
             os.dup2(self.wfile.fileno(), 2)
-            os.execv("/reg/neh/home1/mcbrowne/daq_release/build/pdsapp/bin/x86_64-linux-opt/camrecord",
-                     ["camrecord", "-s"])
+            os.execv(options.prog, ["camrecord", "-s"])
 
 if __name__ == "__main__":
+    pathname = os.path.abspath(os.path.dirname(sys.argv[0]))
     try:
         options.parse()
     except Exception, msg:
@@ -33,8 +33,11 @@ if __name__ == "__main__":
         fd=os.open(options.log, os.O_WRONLY)
         os.dup2(fd, 1)
         os.close(fd)
-
+    if options.prog == None:
+        # No path to camrecord specified, build one from the script location!
+        options.prog = os.path.dirname(os.path.dirname(pathname)) + "/build/pdsapp/bin/x86_64-linux-opt/camrecord"
+    print "Using executable %s" % options.prog
+    
     # Create the server.
     server = SocketServer.TCPServer((HOST, PORT), MyTCPHandler)
-    server.log = options.log
     server.serve_forever()
