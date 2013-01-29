@@ -67,6 +67,7 @@ static int delay = 0;
 static int keepalive = 0;
 static struct timeval start, limit;
 static struct itimerval timer;
+static int running = 0;
 int record_cnt = 0;
 static int nrec = 0;
 int verbose = 1;
@@ -100,6 +101,7 @@ void begin_run(void)
 {
     fprintf(stderr, "%sinitialized, recording...\n", hostname.c_str());
     fflush(stderr);
+    running = 1;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
     if (keepalive)
@@ -281,14 +283,19 @@ static void stats(void)
     double runtime;
     struct timeval now;
 
-    gettimeofday(&now, NULL);
+    if (running) {
+        gettimeofday(&now, NULL);
 
-    runtime = (1000000LL * now.tv_sec + now.tv_usec) - 
-              (1000000LL * start.tv_sec + start.tv_usec);
-    runtime /= 1000000.;
-    fprintf(stderr, "%sruntime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
-           hostname.c_str(), runtime, record_cnt, ((double) record_cnt) / runtime);
-    fflush(stderr);
+        runtime = (1000000LL * now.tv_sec + now.tv_usec) - 
+                  (1000000LL * start.tv_sec + start.tv_usec);
+        runtime /= 1000000.;
+        fprintf(stderr, "%sruntime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
+                hostname.c_str(), runtime, record_cnt, ((double) record_cnt) / runtime);
+        fflush(stderr);
+    } else {
+        fprintf(stderr, "%sstill waiting to initialize.\n", hostname.c_str());
+        fflush(stderr);
+    }
 }
 
 static void handle_stdin(fd_set *rfds)
@@ -354,12 +361,18 @@ void cleanup(void)
     cleanup_ca();
     cleanup_xtc();
 
-    runtime = (1000000LL * stop.tv_sec + stop.tv_usec) - 
-              (1000000LL * start.tv_sec + start.tv_usec);
-    runtime /= 1000000.;
-    fprintf(stderr, "%sstopped, runtime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
-            hostname.c_str(), runtime, record_cnt, ((double) record_cnt) / runtime);
-    fflush(stderr);
+    if (running) {
+        runtime = (1000000LL * stop.tv_sec + stop.tv_usec) - 
+                  (1000000LL * start.tv_sec + start.tv_usec);
+        runtime /= 1000000.;
+        fprintf(stderr, "%sstopped, runtime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
+                hostname.c_str(), runtime, record_cnt, ((double) record_cnt) / runtime);
+        fflush(stderr);
+    } else {
+        fprintf(stderr, "%sstopped, failed to initialize, no data recorded!\n",
+                hostname.c_str());
+        fflush(stderr);
+    }
 }
 
 int main(int argc, char **argv)

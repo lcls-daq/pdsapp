@@ -246,7 +246,7 @@ class GraphicUserInterface(QtGui.QMainWindow):
         self.connect(self.ui.clearLog, QtCore.SIGNAL("clicked()"), self.doClearLog)
         self.connect(self.timer, QtCore.SIGNAL("timeout()"), self.doTimer)
         if keepalive != 0:
-            self.timer.start(keepalive * 800) # 0.8 * keepalive sec
+            self.timer.start(keepalive * 1000)
 
         self.log("Initialized!")
 
@@ -357,7 +357,7 @@ class GraphicUserInterface(QtGui.QMainWindow):
                     sock.connect((host, self.port))
                     sock.sendall("hostname " + host + "\n")
                     sock.sendall("timeout " + str(t) + "\n")
-                    sock.sendall("keepalive " + str(keepalive) + "\n")
+                    sock.sendall("keepalive " + str(int(keepalive * 3 / 2)) + "\n")
                     #
                     # Generate a real filename here!
                     #
