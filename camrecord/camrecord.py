@@ -331,7 +331,7 @@ class GraphicUserInterface(QtGui.QMainWindow):
             self.ui.get_camera(d, w)
             self.ui.get_bld(d, w)
             self.ui.get_pv(d, w)
-            self.dumpConfig(d, w)
+            # self.dumpConfig(d, w)
             try:
                 t = int(self.ui.recordTime.text())
                 self.log("Recording for %d seconds." % t)
