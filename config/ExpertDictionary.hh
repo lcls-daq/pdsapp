@@ -9,6 +9,8 @@ namespace Pds_ConfigDb {
   public:
     ExpertDictionary();
     ~ExpertDictionary();
+  public:
+    virtual Serializer* lookup(const Pds::TypeId& type);
   };
 
 };

@@ -84,30 +84,11 @@
 
 using namespace Pds_ConfigDb;
 
-SerializerDEntry::SerializerDEntry(const Pds::TypeId& t,
-           Serializer* s) :
-  type(t), serializer(s) {}
-
-SerializerDEntry::~SerializerDEntry()
-{
-}
-
-bool SerializerDEntry::operator==(const SerializerDEntry& s) const
-{
-  return type.value()==s.type.value();
-}
-
-
 SerializerDictionary::SerializerDictionary()
 {
 }
 
 SerializerDictionary::~SerializerDictionary()
-{
-}
-
-void SerializerDictionary::enroll(const Pds::TypeId& type,
-				  Serializer* s)
 {
 }
 

@@ -11,11 +11,18 @@ using namespace Pds_ConfigDb;
 
 ExpertDictionary::ExpertDictionary()
 {
-  enroll(_evrConfigType   , new EvrConfig);
-  enroll(_PhasicsConfigType   ,new PhasicsExpertConfig);
-  enroll(_timepixConfigType   ,new TimepixExpertConfig);
 }
 
 ExpertDictionary::~ExpertDictionary()
 {
+}
+
+Serializer* ExpertDictionary::lookup(const Pds::TypeId& type)
+{
+#define enroll(_type, v) { if (type.value()==_type.value()) return v; }
+  enroll(_evrConfigType   , new EvrConfig);
+  enroll(_PhasicsConfigType   ,new PhasicsExpertConfig);
+  enroll(_timepixConfigType   ,new TimepixExpertConfig);
+#undef enroll
+  return SerializerDictionary::lookup(type);
 }
