@@ -140,7 +140,8 @@ namespace Pds {
     BldParseApp(BldConfigCache& cache) :
       _pool (MAX_EVENT_SIZE, NetBufferDepth), 
       _occ  (sizeof(UserMessage),4),
-      _cache(cache)
+      _cache(cache),
+      _pid  (getpid())
     {}
     ~BldParseApp() {}
   public:
@@ -175,13 +176,13 @@ namespace Pds {
 #define TEST_CREAT(mask, idType, dataType)				\
 	if (im & mask) {						\
 	  Xtc tc(TypeId(TypeId::idType,dataType::version),		\
-		 BldInfo(0,BldInfo::Type(i)));				\
+		 BldInfo(_pid,BldInfo::Type(i)));                       \
 	  tc.extent += sizeof(dataType);				\
 	  dg->insert(tc,_tc_init);					\
 	}
 #define TEST_CACHE(mask, idType, dataType)				\
 	if (im & mask) {						\
-	  Xtc tc(idType, BldInfo(0,BldInfo::Type(i)));			\
+	  Xtc tc(idType, BldInfo(_pid,BldInfo::Type(i)));               \
 	  tc.extent += sizeof(dataType);				\
 	  char* p = _cache.fetch(tc);					\
 	  if (p)							\
@@ -197,14 +198,14 @@ namespace Pds {
 	    TEST_CREAT(GMDMask        ,Id_GMD              ,BldDataGMD);
 	    TEST_CACHE(IpimbMask      ,_ipimbConfigType    ,IpimbConfigType);
 	    if (im & IpimbMask) {
-	      Xtc tc(_ipmFexConfigType, BldInfo(0,BldInfo::Type(i)));
+	      Xtc tc(_ipmFexConfigType, BldInfo(_pid,BldInfo::Type(i)));
 	      tc.extent += sizeof(IpmFexConfigType);
 	      dg->insert(tc,_tc_init);
 	    }
 	    TEST_CACHE(PimMask        ,_tm6740ConfigType   ,TM6740ConfigType);
 	    TEST_CACHE(PimMask        ,_pimImageConfigType ,PimImageConfigType);
 	    if (im & PimMask) {
-	      Xtc tc(_frameFexConfigType, BldInfo(0,BldInfo::Type(i)));
+	      Xtc tc(_frameFexConfigType, BldInfo(_pid,BldInfo::Type(i)));
 	      tc.extent += sizeof(FrameFexConfigType);
 	      dg->insert(tc,&_frameFexConfig);
 	    }
@@ -230,6 +231,19 @@ namespace Pds {
       _dg->insert(tc,&v);						\
     }
     int process(Xtc* xtc) {
+      //  Change the Src process ID to this one
+      switch(xtc->src.level()) {
+      case Level::Segment:
+        { const DetInfo& info = static_cast<const DetInfo&>(xtc->src);
+          xtc->src = DetInfo(_pid, info.detector(), info.detId(), info.device(), info.devId());
+          break; }
+      case Level::Reporter: 
+        { const BldInfo& info = static_cast<const BldInfo&>(xtc->src);
+          xtc->src = BldInfo(_pid, info.type());
+          break; }
+      default:
+        break;
+      }
       switch(xtc->contains.id()) {
 	//  Iterate through hierarchy
       case TypeId::Id_Xtc: iterate(xtc); break;
@@ -360,6 +374,7 @@ namespace Pds {
     CDatagram*  _dg;
     uint64_t    _mask;
     bool        _reconfigure_requested;
+    unsigned    _pid;
   };
 
   //
