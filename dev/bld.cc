@@ -96,10 +96,9 @@ namespace Pds {
       return _map[key].payload;
     }
 
-    void update(const Xtc& tc, const char* payload) {
+    void update(const Xtc& tc, const char* payload, unsigned len) {
       uint64_t key = tc.contains.value();
       key = (key<<32) | tc.src.phy();
-      unsigned len = tc.sizeofPayload();
       char* p = new char[len];
       memcpy(p,payload,len);
       _map[key] = Entry(len,p);
@@ -313,7 +312,7 @@ namespace Pds {
     bool _require(const Xtc& xtc, const IpimbConfigType& c) {
       char* p = _cache.fetch(xtc);
       if (!p || memcmp(p,&c,sizeof(c))) {
-	_cache.update(xtc,(const char*)&c);
+	_cache.update(xtc,(const char*)&c, sizeof(c));
 	if (!p) _reconfigure(xtc);
 	return true;
       }
@@ -323,7 +322,7 @@ namespace Pds {
     bool _require(const Xtc& xtc, const PimImageConfigType& c) {
       void* p = _cache.fetch(xtc);
       if (!p || memcmp(p,&c,sizeof(c))) {
-	_cache.update(xtc, (const char*)&c);
+	_cache.update(xtc, (const char*)&c, sizeof(c));
 	if (!p) _reconfigure(xtc);
 	return true;
       }
@@ -334,7 +333,7 @@ namespace Pds {
 		  const TM6740ConfigType& c) {
       void* p = _cache.fetch(xtc);
       if (!p || memcmp(p,&c,sizeof(c))) {
-	_cache.update(xtc, (const char*)&c);
+	_cache.update(xtc, (const char*)&c, sizeof(c));
 	_reconfigure(xtc);
 	return true;
       }
@@ -345,7 +344,7 @@ namespace Pds {
 		  const AcqConfigType& c) {
       char* p = _cache.fetch(xtc);
       if (!p || memcmp(p,&c,sizeof(c))) {
-	_cache.update(xtc, (const char*)&c);
+	_cache.update(xtc, (const char*)&c, sizeof(c));
 	_reconfigure(xtc);
 	return true;
       }
