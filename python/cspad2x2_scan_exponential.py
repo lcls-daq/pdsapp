@@ -14,13 +14,13 @@ if __name__ == "__main__":
                       help="connect to DAQ at HOST", metavar="HOST")
     parser.add_option("-p","--platform",dest="platform",type="int",default=3,
                       help="connect to DAQ at PLATFORM", metavar="PLATFORM")
-    parser.add_option("-D","--detector",dest="detector",type="int",default=0x19000d02,
+    parser.add_option("-D","--detector",dest="detector",type="int",default=0x18000d02,
                       help="detector ID to scan",metavar="ID")
-    parser.add_option("-t","--typeID",dest="typeID",type="int",default=0x1002b,
+    parser.add_option("-t","--typeID",dest="typeID",type="int",default=0x2002b,
                       help="type ID to generate",metavar="TYPEID")
     parser.add_option("-P","--parameter",dest="parameter",type="string",
                       help="cspad2x2 quad parameter to scan", metavar="PARAMETER")
-    parser.add_option("-s","--start",dest="start",type="int",nargs=1,default=[2],
+    parser.add_option("-s","--start",dest="start",type="int", default=2,
                       help="parameter start", metavar="START")
     parser.add_option("-m","--multiplier",dest="multiplier",type="float",nargs=1,default=2.0,
                       help="parameter multiplier, (float)", metavar="MULT")
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     print 'host', options.host
     print 'platform', options.platform
     print 'parameter', options.parameter
-    print 'start', options.start
+    print 'start', options.start, hex(options.start)
     print 'steps', options.steps
     print 'multiplier', options.multiplier
     print 'events', options.events
@@ -65,13 +65,24 @@ if __name__ == "__main__":
     print 'xtc is', xtc
     cspad = xtc.get(0)
     foundParameter = 'FALSE'
+    parameterType = 'none'
     for member in cspad['quad'][0] :
         if member == options.parameter :
-            print 'Found the', options.parameter, 'parameter'
+            print 'Found the', options.parameter, 'quad parameter'
             foundParameter = 'TRUE'
+            parameterType = 'quad'
+    for member in cspad :
+        if member == options.parameter :
+            print 'Found the', options.parameter, 'concentrator parameter'
+            foundParameter = 'TRUE'
+            parameterType = 'concentrator'
     if foundParameter == 'FALSE' :
         print 'Parameter', options.parameter, 'not found!'
-        print '    Allowed parameters : current values'
+        print '    Allowed concentrator parameters : current values'
+        for member in cspad :
+            if member!='quad' and not member.endswith('System') and not member.endswith('Version') and not member.endswith('Mask') and not member.endswith('Enable') : 
+                print '        ', member, cspad[member]
+        print '    Allowed quad parameters : current values'
         for member in cspad['quad'][0] :
             if member!='gain' and member!='pots' and not member.endswith('Select') :
 		print '        ', member, ':',   cspad['quad'][0][member]
@@ -80,7 +91,10 @@ if __name__ == "__main__":
         print 'Now we will start scanning ...'
         value = options.start
         for cycle in range(options.limit+1):
-            cspad['quad'][0][options.parameter]=value
+            if parameterType == 'quad' :
+                cspad['quad'][0][options.parameter]=value
+            if parameterType == 'concentrator' :
+		cspad[options.parameter]=value
             xtc.set(cspad,cycle)
 	    value = int(value * options.multiplier)
         cdb.substitute(newkey,xtc)

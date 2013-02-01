@@ -15,6 +15,7 @@ DefineXtcType(Cspad2x2Config) ;
 
 
 #include "pdsdata/cspad2x2/ConfigV1.hh"
+#include "pdsdata/cspad2x2/ConfigV2.hh"
 #include <new>
 
 using namespace Pds::CsPad2x2;
@@ -57,6 +58,53 @@ static PyObject* get_quad(const Pds::CsPad2x2::ConfigV1QuadReg* cfg)
   SetMember(kdConstant);
   SetMember(humidThold);
   SetMember(setPoint);
+
+  PyDict_SetItemString(o,"shiftTest",PyLong_FromLong(cfg->ro().shiftTest));
+  PyDict_SetItemString(o,"version"  ,PyLong_FromLong(cfg->ro().version));
+
+  { PyObject* l = PyList_New(Pds::CsPad2x2::PotsPerQuad);
+  for(unsigned i=0; i<Pds::CsPad2x2::PotsPerQuad; i++)
+    PyList_SetItem(l,i,PyLong_FromLong(cfg->dp().value(i)));
+  PyDict_SetItemString(o,"pots",l); }
+
+  { PyObject* columns = PyList_New(Pds::CsPad2x2::ColumnsPerASIC);
+  for(unsigned i=0; i<Pds::CsPad2x2::ColumnsPerASIC; i++) {
+    PyObject* row = PyList_New(Pds::CsPad2x2::MaxRowsPerASIC);
+    for(unsigned j=0; j<Pds::CsPad2x2::MaxRowsPerASIC; j++)
+      PyList_SetItem(row,j,PyLong_FromLong((*cfg->gm()->map())[i][j]));
+    PyList_SetItem(columns,i,row); 
+  }
+  PyDict_SetItemString(o,"gain",columns); }
+
+  return o;
+}
+
+static PyObject* get_quad(const Pds::CsPad2x2::ConfigV2QuadReg* cfg)
+{
+  PyObject* o = PyDict_New();
+
+  SetMember(shiftSelect);
+  SetMember(edgeSelect);
+  SetMember(readClkSet);
+  SetMember(readClkHold);
+  SetMember(dataMode);
+  SetMember(prstSel);
+  SetMember(acqDelay);
+  SetMember(intTime);
+  SetMember(digDelay);
+  SetMember(ampIdle);
+  SetMember(injTotal);
+  SetMember(rowColShiftPer);
+  SetMember(ampReset);
+  SetMember(digCount);
+  SetMember(digPeriod);
+  SetMember(PeltierEnable);
+  SetMember(kpConstant);
+  SetMember(kiConstant);
+  SetMember(kdConstant);
+  SetMember(humidThold);
+  SetMember(setPoint);
+  SetMember(biasTuning);
 
   PyDict_SetItemString(o,"shiftTest",PyLong_FromLong(cfg->ro().shiftTest));
   PyDict_SetItemString(o,"version"  ,PyLong_FromLong(cfg->ro().version));
@@ -133,7 +181,47 @@ PyObject* pds_Cspad2x2Config_get    (PyObject*   self, PyObject* args)
 
     return o;
   }
-  //  Throw an exception
+  else if (xtc->contains.version()==2) {
+    const Pds::CsPad2x2::ConfigV2* cfg = 
+        reinterpret_cast<const Pds::CsPad2x2::ConfigV2*>(ubegin);
+
+    PyObject* o = PyDict_New();
+    SetMember(concentratorVersion);
+    SetMember(inactiveRunMode);
+    SetMember(activeRunMode);
+    SetMember(runTriggerDelay);
+    SetMember(tdi);
+    SetMember(payloadSize);
+    SetMember(badAsicMask);
+    SetMember(asicMask);
+
+    { PyObject* l = PyList_New(MaxQuadsPerSensor);
+    for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+      PyList_SetItem(l,i,PyLong_FromLong(cfg->roiMask(i)));
+    PyDict_SetItemString(o,"roiMask",l); }
+
+    { PyObject* l = PyList_New(MaxQuadsPerSensor);
+    for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+      PyList_SetItem(l,i,get_quad(&cfg->quad()[i]));
+    PyDict_SetItemString(o,"quad",l); }
+
+    { PyObject* l = PyList_New(MaxQuadsPerSensor);
+    const Pds::CsPad2x2::ProtectionSystemThreshold* pst = cfg->protectionThreshold();
+    for(unsigned i=0; i<MaxQuadsPerSensor; i++) {
+      PyObject* p = PyDict_New();
+      PyDict_SetItemString(p,"adcThreshold",
+          PyLong_FromLong(pst[i].adcThreshold));
+      PyDict_SetItemString(p,"pixelCountThreshold",
+          PyLong_FromLong(pst[i].pixelCountThreshold));
+      PyList_SetItem(l,i,p); 
+    }
+    PyDict_SetItemString(o,"protectionEnable",
+        PyLong_FromLong(cfg->protectionEnable()));
+    PyDict_SetItemString(o,"protectionSystem",l); }
+
+    return o;
+  }
+ //  Throw an exception
   return NULL;
 }
 #undef SetMember
@@ -238,6 +326,74 @@ static bool set_quad(Pds::CsPad2x2::ConfigV1QuadReg* cfg,
   return true;
 }
 
+static bool set_quad(Pds::CsPad2x2::ConfigV2QuadReg* cfg,
+    PyObject* o)
+{
+
+  SetMember(shiftSelect);
+  SetMember(edgeSelect);
+  SetMember(readClkSet);
+  SetMember(readClkHold);
+  SetMember(dataMode);
+  SetMember(prstSel);
+  SetMember(acqDelay);
+  SetMember(intTime);
+  SetMember(digDelay);
+  SetMember(ampIdle);
+  SetMember(injTotal);
+  SetMember(rowColShiftPer);
+  SetMember(ampReset);
+  SetMember(digCount);
+  SetMember(digPeriod);
+  SetMember(PeltierEnable);
+  SetMember(kpConstant);
+  SetMember(kiConstant);
+  SetMember(kdConstant);
+  SetMember(humidThold);
+  SetMember(setPoint);
+  SetMember(biasTuning);
+
+  *cfg= Pds::CsPad2x2::ConfigV2QuadReg(shiftSelect,
+      edgeSelect,
+      readClkSet,
+      readClkHold,
+      dataMode,
+      prstSel,
+      acqDelay,
+      intTime,
+      digDelay,
+      ampIdle,
+      injTotal,
+      rowColShiftPer,
+      ampReset,
+      digCount,
+      digPeriod,
+      PeltierEnable,
+      kpConstant,
+      kiConstant,
+      kdConstant,
+      humidThold,
+      setPoint,
+      biasTuning,
+      0
+      );
+//  printf("Cspad2x2Config.icc intTime %u  cfg intTime %u\n", intTime, cfg->intTime());
+
+  PyObject* l;
+  if ((l = PyDict_GetItemString(o,"pots")))
+    for(unsigned i=0; i<Pds::CsPad2x2::PotsPerQuad; i++)
+      cfg->dp().pots[i] = PyLong_AsLong(PyList_GetItem(l,i));
+
+  if ((l = PyDict_GetItemString(o,"gain")))
+    for(unsigned i=0; i<Pds::CsPad2x2::ColumnsPerASIC; i++) {
+      PyObject* row = PyList_GetItem(l,i);
+      for(unsigned j=0; j<Pds::CsPad2x2::MaxRowsPerASIC; j++)
+        (*cfg->gm()->map())[i][j] = PyLong_AsLong(PyList_GetItem(row,j));
+    }
+
+  return true;
+}
+
 PyObject* pds_Cspad2x2Config_set    (PyObject*   self, PyObject* args)
 {
   PyObject* o = 0;
@@ -311,7 +467,59 @@ PyObject* pds_Cspad2x2Config_set    (PyObject*   self, PyObject* args)
     if((i=PyDict_GetItemString(o,"protectionEnable")))
       cfg->protectionEnable(PyLong_AsLong(i));
   }
-  else {
+  else if (xtc->contains.version()==2) {
+    Pds::CsPad2x2::ConfigV2* cfg = 
+        reinterpret_cast<Pds::CsPad2x2::ConfigV2*>(ubegin);
+
+    SetMember(inactiveRunMode);
+    SetMember(activeRunMode);
+    SetMember(runTriggerDelay);
+    SetMember(tdi);
+    SetMember(payloadSize);
+    SetMember(badAsicMask);
+    SetMember(asicMask);
+
+    unsigned roiMask = 0;
+    PyObject* l = PyDict_GetItemString(o,"roiMask");
+    if (l) {
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+        roiMask |= PyLong_AsLong(PyList_GetItem(l,i)) << (i*Pds::CsPad2x2::ASICsPerQuad/2);
+    }
+    else {
+      for(unsigned i=0; i<MaxQuadsPerSensor; i++)
+        roiMask |= cfg->roiMask(i)<<(i*Pds::CsPad2x2::ASICsPerQuad/2);
+    }
+
+    new(ubegin) Pds::CsPad2x2::ConfigV2(inactiveRunMode,
+        activeRunMode,
+        runTriggerDelay,
+        tdi,
+        payloadSize, 
+        badAsicMask,
+        asicMask,
+        roiMask);
+
+    PyObject* i = PyDict_GetItemString(o,"quad");
+    if (i) {
+      if (!set_quad(&cfg->quad()[0],PyList_GetItem(i,0))) {
+        Py_DECREF(o);
+        return NULL;
+      }
+    }
+
+    PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
+    if (pst) {
+      PyObject* it = PyList_GetItem(pst,0);
+      if ((i=PyDict_GetItemString(it,"adcThreshold")))
+        cfg->protectionThreshold()[0].adcThreshold = PyLong_AsLong(i);
+      if ((i=PyDict_GetItemString(it,"pixelCountThreshold")))
+        cfg->protectionThreshold()[0].pixelCountThreshold = PyLong_AsLong(i);
+    }    
+
+    if((i=PyDict_GetItemString(o,"protectionEnable")))
+      cfg->protectionEnable(PyLong_AsLong(i));
+  } else
+  {
     return NULL;
   }
 
@@ -326,7 +534,8 @@ unsigned pds_Cspad2x2Config_size(PyObject* self)
   if (xtc->contains.id() == Pds::TypeId::Id_Cspad2x2Config) {
     switch(xtc->contains.version()) {
       case 1:  return sizeof(Pds::CsPad2x2::ConfigV1);
-      default: break;
+      case 2:  return sizeof(Pds::CsPad2x2::ConfigV2);
+     default: break;
     }
   }
 
