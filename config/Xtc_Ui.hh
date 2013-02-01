@@ -12,7 +12,7 @@ class QLabel;
 class QListWidget;
 class QListWidgetItem;
 
-namespace Pds { class Dgram; class TypeId; }
+namespace Pds { class TypeId; }
 
 namespace Pds_ConfigDb {
 
@@ -33,8 +33,8 @@ namespace Pds_ConfigDb {
   signals:
     void changed();
   private:
-    char*                _dgram_buffer;
-    Pds::Dgram*          _dgram;
+    char*                _cfgdg_buffer;
+    char*                _l1adg_buffer;
     SerializerDictionary _dict;
     QLabel*      _runInfo;
     QListWidget* _devlist;

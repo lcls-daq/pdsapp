@@ -9,6 +9,7 @@
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/Dgram.hh"
 #include "pdsdata/xtc/XtcFileIterator.hh"
+#include "pdsdata/xtc/BldInfo.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -26,6 +27,22 @@
 
 using std::list;
 
+static QString sname(const Pds::Src& src)
+{
+  QString r;
+  switch(src.level()) {
+  case Pds::Level::Source:
+    r = QString(Pds::DetInfo::name(static_cast<const Pds::DetInfo&>(src)));
+    break;
+  case Pds::Level::Reporter:
+    r = QString(Pds::BldInfo::name(static_cast<const Pds::BldInfo&>(src)));
+    break;
+  default:
+    break;
+  }
+  return r;
+}
+
 namespace Pds_ConfigDb {
 
   class DeviceIterator : public Pds::XtcIterator {
@@ -34,13 +51,13 @@ namespace Pds_ConfigDb {
     ~DeviceIterator() {}
   public:
     int process(Xtc* xtc) {
-      if (xtc->src.level()==Pds::Level::Source) {
-        QString name(Pds::DetInfo::name(static_cast<const Pds::DetInfo&>(xtc->src)));
-        if (_list.findItems(name,::Qt::MatchExactly).size()==0)
+      if (xtc->contains.id()==Pds::TypeId::Id_Xtc)
+        iterate(xtc);
+      else {
+        QString name = sname(xtc->src);
+        if (!name.isEmpty() && _list.findItems(name,::Qt::MatchExactly).size()==0)
           _list.addItem(new QListWidgetItem(name));
       }
-      else if (xtc->contains.id()==Pds::TypeId::Id_Xtc)
-        iterate(xtc);
       return 1;
     }
   private:
@@ -54,23 +71,32 @@ namespace Pds_ConfigDb {
     ~ComponentIterator() {}
   public:
     int process(Xtc* xtc) {
-      if (xtc->src.level()==Pds::Level::Source &&
-          QString(Pds::DetInfo::name(static_cast<const Pds::DetInfo&>(xtc->src)))==_name) {
-        UTypeName          u = PdsDefs::utypeName(xtc->contains);
-        if (PdsDefs::typeId(u)) {
-          QTypeName          q = PdsDefs::qtypeName(u);
-          const Pds::TypeId* t = PdsDefs::typeId(q);
-          PdsDefs::ConfigType ctype = PdsDefs::configType(*t);
-          if (ctype!=PdsDefs::NumberOf)
-            _list.addItem(new QListWidgetItem(QString(PdsDefs::utypeName(ctype).c_str())));
-          else
-            printf("Failed to lookup %s (v%d)\n",
-                   Pds::TypeId::name(xtc->contains.id()),
-                   xtc->contains.version());
+      if (xtc->contains.id()==Pds::TypeId::Id_Xtc)
+        iterate(xtc);
+      else {
+        QString name = sname(xtc->src);
+        if (name == _name) {
+          UTypeName          u = PdsDefs::utypeName(xtc->contains);
+          if (PdsDefs::typeId(u)) {
+            QTypeName          q = PdsDefs::qtypeName(u);
+            const Pds::TypeId* t = PdsDefs::typeId(q);
+            PdsDefs::ConfigType ctype = PdsDefs::configType(*t);
+            if (ctype!=PdsDefs::NumberOf) {
+              QString cname(PdsDefs::utypeName(ctype).c_str());
+              int i;
+              for(i=0; i<_list.count(); i++)
+                if (_list.item(i)->text()==cname)
+                  break;
+              if (i==_list.count())
+                _list.addItem(new QListWidgetItem(cname));
+            }
+            else
+              printf("Failed to lookup %s (v%d)\n",
+                     Pds::TypeId::name(xtc->contains.id()),
+                     xtc->contains.version());
+          }
         }
       }
-      else if (xtc->contains.id()==Pds::TypeId::Id_Xtc)
-        iterate(xtc);
       return 1;
     }
   private:
@@ -85,34 +111,47 @@ namespace Pds_ConfigDb {
                    const QString& cmp) :
       _ui (ui),
       _dev(dev),
-      _cmp(cmp)    {}
+      _cmp(cmp),
+      _found(false) {}
     ~ConfigIterator()    {}
   public:
     int process(Xtc* xtc) {
       if (xtc->contains.id()==Pds::TypeId::Id_Xtc)
         iterate(xtc);
       else if (_cmp==QString(PdsDefs::utypeName(xtc->contains).c_str()) &&
-               _dev==QString(Pds::DetInfo::name(static_cast<const Pds::DetInfo&>(xtc->src)))) {
+               _dev==sname(xtc->src)) {
 	Parameter::allowEdit(false);
         Dialog* d = new Dialog(_ui, _ui->lookup(xtc->contains), xtc->payload(), xtc->sizeofPayload());
         d->exec();
+        _found = true;
         return 0;
       }
       return 1;
     }
+    bool found() const { return _found; }
   private:
     Xtc_Ui* _ui;
     QString _dev;
     QString _cmp;
+    bool    _found;
   };
 };
+
+static void _copy_to_buffer(const Dgram* dg,
+                            char*&       buffer)
+{
+  if (buffer) delete[] buffer;
+  int size = sizeof(*dg)+dg->xtc.sizeofPayload();
+  buffer = new char[size];
+  memcpy(buffer, (char*)dg, size); 
+}
 
 using namespace Pds_ConfigDb;
 
 Xtc_Ui::Xtc_Ui(QWidget* parent) :
   QWidget      (parent),
-  _dgram_buffer(0),
-  _dgram       (0)
+  _cfgdg_buffer(0),
+  _l1adg_buffer(0)
 {
   QVBoxLayout* l = new QVBoxLayout;
   l->addWidget(_runInfo = new QLabel);
@@ -134,8 +173,10 @@ Xtc_Ui::Xtc_Ui(QWidget* parent) :
 
 Xtc_Ui::~Xtc_Ui()
 {
-  if (_dgram_buffer)
-    delete[] _dgram_buffer;
+  if (_cfgdg_buffer)
+    delete[] _cfgdg_buffer;
+  if (_l1adg_buffer)
+    delete[] _l1adg_buffer;
 }
 
 void Xtc_Ui::set_file(QString fname)
@@ -152,24 +193,16 @@ void Xtc_Ui::set_file(QString fname)
   Pds::Dgram* dg;
   
   while((dg = iter.next())) {
-    if (dg->seq.service()==Pds::TransitionId::Configure)
+    if (dg->seq.service()==Pds::TransitionId::Configure) {
+      _copy_to_buffer(dg, _cfgdg_buffer);
+    }
+    else if (dg->seq.service()==Pds::TransitionId::L1Accept) {
+      _copy_to_buffer(dg, _l1adg_buffer);
       break;
+    }
   }
   
-  if (!dg) {
-    printf("Configure transition not found!\n");
-    return;
-  }
-
-  if (_dgram_buffer)
-    delete[] _dgram_buffer;
-
-  int size = sizeof(*dg)+dg->xtc.sizeofPayload();
-  _dgram_buffer = new char[size];
-  memcpy(_dgram_buffer, (char*)dg, size); 
-  _dgram = reinterpret_cast<Pds::Dgram*>(_dgram_buffer);
-
-  const Pds::ClockTime& time = _dgram->seq.clock();
+  const Pds::ClockTime& time = reinterpret_cast<const Pds::Dgram*>(_cfgdg_buffer)->seq.clock();
   QDateTime datime; datime.setTime_t(time.seconds());
   QString info = QString("%1.%2")
     .arg(datime.toString("MMM dd,yyyy hh:mm:ss"))
@@ -187,7 +220,8 @@ void Xtc_Ui::update_device_list()
   _devlist->clear();
 
   DeviceIterator iter(*_devlist);
-  iter.iterate(&_dgram->xtc);
+  iter.iterate(&reinterpret_cast<Pds::Dgram*>(_cfgdg_buffer)->xtc);
+  iter.iterate(&reinterpret_cast<Pds::Dgram*>(_l1adg_buffer)->xtc);
 
   connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
   update_component_list();
@@ -202,7 +236,8 @@ void Xtc_Ui::update_component_list()
   QListWidgetItem* item = _devlist->currentItem();
   if (item) {
     ComponentIterator iter(*_cmplist,item->text());
-    iter.iterate(&_dgram->xtc);
+    iter.iterate(&reinterpret_cast<Pds::Dgram*>(_cfgdg_buffer)->xtc);
+    iter.iterate(&reinterpret_cast<Pds::Dgram*>(_l1adg_buffer)->xtc);
   }
 
   if (ok_change) connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(change_component()));
@@ -214,7 +249,9 @@ void Xtc_Ui::change_component()
   ConfigIterator iter(this, 
                       _devlist->currentItem()->text(), 
                       _cmplist->currentItem()->text());
-  iter.iterate(&_dgram->xtc);
+  iter.iterate(&reinterpret_cast<Pds::Dgram*>(_l1adg_buffer)->xtc);
+  if (!iter.found())
+    iter.iterate(&reinterpret_cast<Pds::Dgram*>(_cfgdg_buffer)->xtc);
 }
 
 Serializer& Xtc_Ui::lookup(const Pds::TypeId& stype)
