@@ -361,7 +361,7 @@ class GraphicUserInterface(QtGui.QMainWindow):
                     #
                     # Generate a real filename here!
                     #
-                    sock.sendall("output " + self.user + "/" + host + "/eXXX-r" + self.current_run + "\n")
+                    sock.sendall("output " + self.user + "/" + host + "/e000-r" + self.current_run + "\n")
                     #
                     # Send the wildcards to the first.  We might want to spread
                     # them out somehow.
