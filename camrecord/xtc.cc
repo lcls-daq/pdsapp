@@ -64,6 +64,8 @@ static int totalcfglen = 0;    // Total number of bytes in all of the configurat
 static int totaldlen   = 0;    // Total number of bytes in all of the data records.
 static unsigned int csec = 0;  // Configuration timestamp.
 static unsigned int cnsec = 0;
+static unsigned int dsec = 0;  // Last data timestamp.
+static unsigned int dnsec = 0;
 static vector<xtcsrc *> src;
 
 static Dgram *dg = NULL;
@@ -336,6 +338,8 @@ void send_event(struct event *ev)
     new ((void *) &dg->seq) Sequence(Sequence::Event, TransitionId::L1Accept, 
                                      ClockTime(ev->sec, ev->nsec), 
                                      TimeStamp(0, ev->nsec & 0x1ffff, 0, 0));
+    dsec = ev->sec;
+    dnsec = ev->nsec;
 
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
     if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
@@ -592,6 +596,8 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
 void cleanup_xtc(void)
 {
     if (dg) {
+        csec = dsec;
+        cnsec = dnsec;
         write_datagram(TransitionId::Disable,       0);
         write_datagram(TransitionId::EndCalibCycle, 0);
         write_datagram(TransitionId::EndRun,        0);
