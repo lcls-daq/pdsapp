@@ -170,7 +170,7 @@ class caconn {
         }
         new ((void *)cfg->alloc(sizeof(Lusi::PimImageConfigV1)))
             Lusi::PimImageConfigV1(1.0, 1.0);   // What should these be?!?
-        configure_xtc(xid, buf, size);
+        configure_xtc(xid, buf, size, 0, 0);
 
         if (bld < 0) {
             hdrlen = sizeof(Xtc) + sizeof(Camera::FrameV1);
@@ -315,7 +315,7 @@ static void get_handler(struct event_handler_args args)
     new ((char *)cfg->alloc(hdrsize)) EpicsPvCtrlHeader(c->caid, args.type, 1, c->getpvname());
     void             *buf2 = cfg->alloc(ctrlsize);
     memcpy(buf2, args.dbr, ctrlsize);
-    configure_xtc(c->xid, (char *) cfg, cfg->extent);
+    configure_xtc(c->xid, (char *) cfg, cfg->extent, 0, 0);
     free(buf); /* delete ~cfg? */
 
     hdrsize = sizeof(EpicsPvHeader);

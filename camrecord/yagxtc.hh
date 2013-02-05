@@ -29,6 +29,6 @@ extern void cleanup_ca(void);
 /* xtc.cc */
 extern void initialize_xtc(char *outfile);
 extern int register_xtc(int sync);
-extern void configure_xtc(int id, char *buf, int size);
+extern void configure_xtc(int id, char *buf, int size, unsigned int secs, unsigned int nsecs);
 extern void data_xtc(int id, unsigned int secs, unsigned int nsecs, Pds::Xtc *hdr, int hdrlen, void *data);
 extern void cleanup_xtc(void);

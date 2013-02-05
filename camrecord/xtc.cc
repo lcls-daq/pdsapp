@@ -7,6 +7,7 @@
 #include<signal.h>
 #include<string.h>
 #include<math.h>
+#include<netdb.h>
 
 #include<new>
 #include<vector>
@@ -61,6 +62,8 @@ static int haveasync = 0;      // Number of asynchronous sources that sent us a 
 static int cfgcnt = 0;         // Number of sources that sent us their configuration.
 static int totalcfglen = 0;    // Total number of bytes in all of the configuration records.
 static int totaldlen   = 0;    // Total number of bytes in all of the data records.
+static unsigned int csec = 0;  // Configuration timestamp.
+static unsigned int cnsec = 0;
 static vector<xtcsrc *> src;
 
 static Dgram *dg = NULL;
@@ -128,7 +131,8 @@ static int ts_match(struct event *_ev, int _sec, int _nsec)
 static void setup_datagram(TransitionId::Value val)
 {
 
-    new ((void *) &dg->seq) Sequence(Sequence::Event, val, ClockTime(0, 0), TimeStamp(0, 0x1ffff, 0, 0));
+    new ((void *) &dg->seq) Sequence(Sequence::Event, val, ClockTime(csec, cnsec),
+                                     TimeStamp(0, cnsec & 0x1ffff, 0, 0));
     new ((void *) &dg->env) Env(0);
     new ((char *) &dg->xtc) Xtc(TypeId(TypeId::Id_Xtc, 1), *evtInfo);
 
@@ -165,7 +169,18 @@ static void write_xtc_config(void)
     dg = (Dgram *) malloc(sizeof(Dgram) + sizeof(Xtc));
     
     int pid = getpid();
-    int ipaddr = 0x7f000001;
+    int ipaddr = 0x7f000001;  // Default to 127.0.0.1, if we can't find better.
+    char hostname[256];
+    if (!gethostname(hostname, sizeof(hostname))) {
+        struct hostent *host = gethostbyname(hostname);
+        if (host->h_addrtype == AF_INET && host->h_length == 4) {
+            ipaddr =
+                (((unsigned char *)host->h_addr)[0] << 24) |
+                (((unsigned char *)host->h_addr)[1] << 16) |
+                (((unsigned char *)host->h_addr)[2] << 8) | 
+                ((unsigned char *)host->h_addr)[3];
+        }
+    }
 
     evtInfo = new ProcInfo(Level::Event, pid, ipaddr);
     segInfo = new ProcInfo(Level::Segment, pid, ipaddr);
@@ -246,7 +261,7 @@ void initialize_xtc(char *outfile)
     /*
      * If all of the configuration information has come in, write it!
      */
-    if (cfgcnt == numsrc) {
+    if (cfgcnt == numsrc && csec != 0) {
         write_xtc_config();
     }
 }
@@ -267,19 +282,23 @@ int register_xtc(int sync)
 /*
  * Give the configuration Xtc for a particular source.
  */
-void configure_xtc(int id, char *xtc, int size)
+void configure_xtc(int id, char *xtc, int size, unsigned int secs, unsigned int nsecs)
 {
     src[id]->val = new unsigned char[size];
     src[id]->len = size;
     totalcfglen += size;
     memcpy((void *)src[id]->val, (void *)xtc, size);
     cfgcnt++;
+    if (csec == 0 && cnsec == 0) {
+        csec = secs;
+        cnsec = nsecs;
+    }
 
     /*
      * If we have already finished initialization and were waiting for this,
      * write the configuration!
      */
-    if (fp != NULL && cfgcnt == numsrc) {
+    if (fp != NULL && cfgcnt == numsrc && csec != 0) {
         write_xtc_config();
     }
 }
@@ -447,8 +466,23 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
      *    - We aren't running yet.
      *    - We don't have all of the asynchronous PVs.
      */
-    if (!started || (s->sync && haveasync != asyncsrc))
+    if (s->sync && haveasync != asyncsrc)
         return;
+    if (!started) {
+        /*
+         * Only BLD configurations give us a timestamp.  So if we are only recording
+         * cameras and PVs, we have delayed writing the configuration until now.
+         * In this case, we have finished with initialize_xtc (fp != NULL) and
+         * we have all of the configuration information (cfgcnt == numsrc), but
+         * we don't have a timestamp (csec == 0).
+         */
+        if (fp != NULL && cfgcnt == numsrc && csec == 0) {
+            csec = sec;
+            cnsec = nsec;
+            write_xtc_config();
+        } else
+            return;
+    }
 
     /*
      * Make the data buffer.
