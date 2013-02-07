@@ -180,7 +180,7 @@ static void read_config_file(const char *name)
         vector<string> arrayTokens(begin, end); 
         lineno++;
 
-        if (arrayTokens.size() == 0 || arrayTokens[0] == "#" || 
+        if (arrayTokens.size() == 0 || arrayTokens[0][0] == '#' || 
             arrayTokens[0] == "camera-per-row" || arrayTokens[0] == "bld-per-row" ||
             arrayTokens[0] == "pv-per-row" || arrayTokens[0] == "host" ||
             arrayTokens[0] == "defhost") {

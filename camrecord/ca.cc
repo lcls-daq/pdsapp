@@ -16,6 +16,8 @@
 #include"pdsdata/epics/EpicsPvData.hh"
 #include"yagxtc.hh"
 
+#define POSIX_TIME_AT_EPICS_EPOCH 631152000u
+
 using namespace std;
 using namespace Pds;
 
@@ -283,14 +285,14 @@ static void event_handler(struct event_handler_args args)
     } else if (args.type == c->dbrtype && args.count == c->nelem) {
         struct dbr_time_short *d = (struct dbr_time_short *) args.dbr;
         if (c->is_cam) {
-            data_xtc(c->xid, d->stamp.secPastEpoch, d->stamp.nsec,
+            data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
                      c->hdr, c->hdrlen, &d->value);
         } else {
             /*
              * This is totally cheating, since we aren't looking at the actual dbr_time_* type.
              * But we know they all start status, severity, stamp, so...
              */
-            data_xtc(c->xid, d->stamp.secPastEpoch, d->stamp.nsec,
+            data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
                      c->hdr, c->hdrlen, const_cast<void *>(args.dbr));
         }
     } else {

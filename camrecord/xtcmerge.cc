@@ -34,12 +34,15 @@ int   fd[3]              = {-1,   -1,   -1};
 long long off[3]         = {0,    0,    0};
 XtcFileIterator *iter[2] = {NULL, NULL};
 Dgram *dg[2]             = {NULL, NULL};
+char   transition_xtc[sizeof(Xtc)];
 int verbose = 0;
 int next_dg(int n);
 
 void usage(void)
 {
-    printf("xtcmerge -o OUTPUT XTC1 XTC2\n");
+    printf("xtcmerge -o OUTPUT XTC1 XTC2\n\n");
+    printf("Note that the merged file will only contain the transitions from the\n");
+    printf("*FIRST* file, but will contain the data from both.\n");
     exit(1);
 }
 
@@ -112,11 +115,12 @@ int do_write(int fd, char *buf, int size)
  * Combine dg[0] and dg[1] and write it into fd[2].
  *
  * So what do we have here?
- *    dg0 -> Seq0, Env0, Xtc0 (segment), Xtc0a (source), payload0a
- *    dg1 -> Seq1, Env1, Xtc1 (segment), Xtc1a (source), payload1a
+ *           |---------- Dgram -------------|
+ *    dg0 -> Seq0, Env0, Xtc0 (segment level), payload0
+ *    dg1 -> Seq1, Env1, Xtc1 (segment level), payload1
  * What we want to write:
- *    Seq0, Env0, XtcN(payload = Xtc0.payload + Xtc1.payload),
- *                Xtc0a(payload = Xtc, payload0a, ... payload0b, ...
+ *    Seq0, Env0, XtcN(payloadsize = Xtc0.payloadsize + Xtc1.payloadsize),
+ *                payload0, payload1
  * This assumes that the Seq and Env are "close enough".
  */
 void output(void)
@@ -138,6 +142,49 @@ void output(void)
     do_write(fd[2], dg[1]->xtc.payload(), dg[1]->xtc.sizeofPayload());
 }
 
+/*
+ * Combine dg[0] and transition_xtc and write it into fd[2].
+ *
+ * So what do we have here?
+ *           |---------- Dgram -------------|
+ *    dg0 -> Seq0, Env0, Xtc0 (segment level), payload0
+ *    transition_xtc is the payload of any transition in the second file.
+ * What we want to write:
+ *    Seq0, Env0, XtcN(payloadsize = Xtc0.payloadsize + sizeof(transition_xtc)
+ *                payload0, transition_xtc
+ */
+void output_transition(void)
+{
+    char buf[sizeof(Dgram)];
+    Dgram *dgnew = (Dgram *)buf;
+    memcpy(buf, dg[0], sizeof(Dgram));
+    dgnew->xtc.extent += sizeof(transition_xtc);
+    if (off[2] + dgnew->xtc.extent >= CHUNK_SIZE) {
+        if (!open_out()) {
+            printf("Cannot create new chunk for output!\n");
+            exit(1);
+        }
+        off[2] = 0;
+    }
+    off[2] += dgnew->xtc.extent + sizeof(Dgram) - sizeof(Xtc);
+    do_write(fd[2], buf, sizeof(buf));
+    do_write(fd[2], dg[0]->xtc.payload(), dg[0]->xtc.sizeofPayload());
+    do_write(fd[2], transition_xtc, sizeof(transition_xtc));
+}
+
+void get_transition_xtc()
+{
+    while (dg[1]->seq.service() != TransitionId::BeginRun) {
+        if (!next_dg(1)) {
+            printf("EOF while scanning for BeginRun transition?!?\n");
+            exit(0);
+        }
+    }
+    memcpy(transition_xtc, dg[1]->xtc.payload(), dg[1]->xtc.sizeofPayload());
+    chunk[1] = 0; /* Reopen the input file! */
+    open_in(1);
+}
+
 int main(int argc, char **argv)
 {
     int c;
@@ -149,6 +196,7 @@ int main(int argc, char **argv)
     };
     int fid0, fid1;
     int idx = 0;
+    int done = 0;
 
     while ((c = getopt_long(argc, argv, "ho:v", long_options, &idx)) != -1) {
         switch (c) {
@@ -187,46 +235,54 @@ int main(int argc, char **argv)
         printf("Cannot create %s!\n", fname[2]);
         exit(1);
     }
+    get_transition_xtc();
 
-    for (;;) {
+    while (!done) {
         // We have two datagrams.  Check for a match!
-        if (dg[0]->seq.service() != dg[1]->seq.service()) {
-            /*
-             * Different types.  This should only happen when one 
-             * runs out of L1Accepts before the other.
-             */
-            if (dg[0]->seq.service() != TransitionId::L1Accept &&
-                dg[0]->seq.service() != TransitionId::L1Accept) {
-                printf("IN1 %s transition does not match IN2 %s transition!\n",
-                       TransitionId::name(dg[0]->seq.service()),
-                       TransitionId::name(dg[1]->seq.service()));
-                exit(1);
+        switch (dg[0]->seq.service()) {
+        case TransitionId::Configure:
+            if (dg[1]->seq.service() != TransitionId::Configure) {
+                printf("No Configure transition in second input file?!?\n");
+                exit(0);
             }
-            if (dg[0]->seq.service() == TransitionId::L1Accept) {
-                if (!next_dg(0))
-                    break;
-            } else {
-                if (!next_dg(1))
-                    break;
-            }
-            continue;
-        }
-        if (dg[0]->seq.service() == TransitionId::L1Accept &&
-            (fid0 = dg[0]->seq.stamp().fiducials()) != 
-            (fid1 = dg[1]->seq.stamp().fiducials())) {
-            if (FID_GT(fid0, fid1)) {
-                if (!next_dg(1))
-                    break;
-            } else {
-                if (!next_dg(0))
-                    break;
-            }
-            continue;
-        }
-        // Match!
-        output();
-        if (!next_dg(0) || !next_dg(1))
+            output();
+            if (!next_dg(0) || !next_dg(1))
+                done = 1;
             break;
-        continue;
+        case TransitionId::L1Accept:
+            if (dg[1]->seq.service() != TransitionId::L1Accept) {
+                /* We don't care about transitions in the second file! */
+                if (!next_dg(1))
+                    done = 1;
+                break;
+            }
+            /* If fiducials don't match, advance one stream. Check time here?!? */
+            if ((fid0 = dg[0]->seq.stamp().fiducials()) != 
+                (fid1 = dg[1]->seq.stamp().fiducials())) {
+                if (FID_GT(fid0, fid1)) {
+                    if (!next_dg(1))
+                        done = 1;
+                } else {
+                    if (!next_dg(0))
+                        done = 1;
+                }
+                break;
+            }
+            output();
+            if (!next_dg(0) || !next_dg(1))
+                done = 1;
+            break;
+        default:
+            output_transition();
+            if (!next_dg(0))
+                done = 1;
+            break;
+        }
+    }
+    /* If we still have transitions in the first file, output all of them! */
+    while (dg[0] != NULL) {
+        if (dg[0]->seq.service() != TransitionId::L1Accept)
+            output_transition();
+        next_dg(0);
     }
 }
