@@ -57,7 +57,7 @@ StateSelect::StateSelect(QWidget* parent,
     sprintf(buff,".%s for platform %u",qPrintable(title()), _control.header().platform());
     FILE* f = fopen(buff,"r");
     if (f) {
-      unsigned linesz = BUFF_SIZE;
+      size_t linesz = BUFF_SIZE;
       if (getline(&buff,&linesz,f)!=-1)
 	do_record = strncmp(buff,YES_STR,sizeof(YES_STR))==0;
       fclose(f);
@@ -76,6 +76,9 @@ StateSelect::StateSelect(QWidget* parent,
 		   this, SLOT(populate(QString)));
   QObject::connect(_select, SIGNAL(activated(const QString&)), 
 		   this, SLOT(selected(const QString&)));
+  QObject::connect(this, SIGNAL(_enable_control(bool)),
+		   _select, SLOT(setEnabled(bool)));
+		   
 }
 
 StateSelect::~StateSelect()
@@ -85,8 +88,8 @@ StateSelect::~StateSelect()
 }
 
 bool StateSelect::control_enabled() const { return _select->isEnabled(); }
-void StateSelect::enable_control () { _select->setEnabled(true ); }
-void StateSelect::disable_control() { _select->setEnabled(false); }
+void StateSelect::enable_control () { emit _enable_control(true); }
+void StateSelect::disable_control() { emit _enable_control(false); }
 bool StateSelect::record_state() const { return _record->isChecked(); }
 void StateSelect::set_record_state(bool r) { emit remote_record(r); }
 

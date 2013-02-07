@@ -34,6 +34,7 @@ namespace Pds {
     void remote_record(bool);
     void state_changed(QString);
     void configured   (bool);
+    void _enable_control(bool);
   public slots:
     void populate(QString);
     void selected(const QString&);

@@ -412,7 +412,7 @@ void NodeGroup::_read_pref(const QString&  title,
   FILE* f = open_pref(qPrintable(title), _platform, "r");
   if (f) {
     char* lptr=buff;
-    unsigned linesz = NODE_BUFF_SIZE;         // initialize for getline
+    size_t linesz = NODE_BUFF_SIZE;         // initialize for getline
     
     const char* lsReadGroupDesc[] = 
       { "", "with Readout Group (UI)", "with default Readout Group (No UI)" };

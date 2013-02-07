@@ -1,6 +1,6 @@
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
 qtincdir  := qt/include_64
-tgtnames := catest
+tgtnames := control_gui catest
 else
 qtincdir  := qt/include
 tgtnames := control_gui catest

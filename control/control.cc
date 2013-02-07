@@ -25,7 +25,8 @@ static void usage(char *argv0)
 
 int main(int argc, char** argv)
 {
-  unsigned platform = -1UL;
+  const unsigned NO_PLATFORM = (unsigned)-1;
+  unsigned platform = NO_PLATFORM;
   const char* partition = "partition";
   const char* dbpath    = "none";
   const char* offlinerc = (char *)NULL;
@@ -77,7 +78,7 @@ int main(int argc, char** argv)
       break;
     }
   }
-  if ((platform==-1UL || !partition || !dbpath) || (!offlinerc && experiment) || (offlinerc && runNumberFile)) {
+  if ((platform==NO_PLATFORM || !partition || !dbpath) || (!offlinerc && experiment) || (offlinerc && runNumberFile)) {
     usage(argv[0]);
     return 0;
   }

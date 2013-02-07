@@ -197,7 +197,7 @@ void ConfigSelect::_readSettings()
     if (f) {
       printf("Opened %s\n",buff);
       char* lptr=buff;
-      unsigned linesz = SETTINGS_SIZE;         // initialize for getline
+      size_t linesz = SETTINGS_SIZE;         // initialize for getline
       if (getline(&lptr,&linesz,f)!=-1) {
         QString p(lptr);
         p.chop(1);  // remove new-line
