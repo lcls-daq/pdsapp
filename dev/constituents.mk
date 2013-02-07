@@ -8,7 +8,8 @@ CPPFLAGS += -D_ACQIRIS -D_LINUX
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
 tgtnames := opal1kedt quartzedt pimimageedt phasics \
-  oceanoptics fli andor usdusb camedt simcam
+  oceanoptics fli andor usdusb camedt simcam \
+  bld evr
 else
 tgtnames :=  evr \
     evrstandalone \
