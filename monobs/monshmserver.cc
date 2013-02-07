@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <dlfcn.h>
 #include <errno.h>
 #include <unistd.h>
 #include <signal.h>
@@ -154,6 +155,7 @@ int main(int argc, char** argv) {
   char partitionTag[80] = "";
   const char* uniqueID = 0;
   bool ldist = false;
+  Appliance* uapps = 0;
 
   struct sigaction int_action;
   
@@ -176,7 +178,7 @@ int main(int argc, char** argv) {
 #undef REGISTER
 
   int c;
-  while ((c = getopt(argc, argv, "p:i:n:P:s:c:q:u:dh")) != -1) {
+  while ((c = getopt(argc, argv, "p:i:n:P:s:c:q:u:L:dh")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -206,6 +208,33 @@ int main(int argc, char** argv) {
     case 'd':
       ldist = true;
       break;
+    case 'L':
+      { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
+	  printf("dlopen %s\n",p);
+
+	  void* handle = dlopen(p, RTLD_LAZY);
+	  if (!handle) {
+	    printf("dlopen failed : %s\n",dlerror());
+	    break;
+	  }
+
+	  // reset errors
+	  const char* dlsym_error;
+	  dlerror();
+
+	  // load the symbols
+	  create_app* c_user = (create_app*) dlsym(handle, "create");
+	  if ((dlsym_error = dlerror())) {
+	    fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
+	    break;
+	  }
+	  if (uapps)
+	    c_user()->connect(uapps);
+	  else
+	    uapps = c_user();
+	}
+	break;
+      }
     case 'h':
       // help
       usage(argv[0]);
@@ -237,13 +266,18 @@ int main(int argc, char** argv) {
   strcat(partitionTag, partition);
   printf("\nPartition Tag:%s\n", partitionTag);
 
-
   apps = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nevqueues);
   apps->distribute(ldist);
+  
+  if (uapps)
+    apps->connect(uapps);
+  else
+    uapps = apps;
+
   if (apps) {
     Task* task = new Task(Task::MakeThisATask);
     MyCallback* display = new MyCallback(task, 
-                 apps);
+					 uapps);
 
     ObserverLevel* event = new ObserverLevel(platform,
                                              partition,
@@ -254,13 +288,13 @@ int main(int argc, char** argv) {
     if (event->attach()) {
       task->mainLoop();
       event->detach();
-      delete apps;
+      delete uapps;
       delete event;
       delete display;
     }
     else {
       printf("Observer failed to attach to platform\n");
-      delete apps;
+      delete uapps;
       delete event;
     }
   } else {
