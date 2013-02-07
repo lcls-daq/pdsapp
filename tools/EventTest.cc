@@ -54,6 +54,11 @@ void EventTest::attached(SetOfStreams& streams)
     (new RecorderQ(_options.outfile, _options.sliceID, _options.chunkSize, _options.delayXfer, false, NULL, _options.expname))->connect(frmk->inlet());
   }
 
+  printf("EventTest options %p apps %p\n",&_options,_options.apps);
+  if (_options.apps) {
+    _options.apps->connect(frmk->inlet());
+  }
+  
   switch (_options.mode) {
   case EventOptions::Counter:
     {

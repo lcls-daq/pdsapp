@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 namespace Pds {
+  class Appliance;
 class EventOptions {
 public:
   EventOptions();
@@ -27,6 +28,7 @@ public:
   uint64_t chunkSize;
   bool     delayXfer;
   const char* expname;
+  Appliance*  apps;
 }; 
 }
 

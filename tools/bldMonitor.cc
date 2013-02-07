@@ -312,9 +312,10 @@ void usage(char* p)
 
 int main(int argc, char** argv) {
 
-  unsigned platform=-1UL;
+  const unsigned NO_PLATFORM = (unsigned)-1;
+  unsigned platform=NO_PLATFORM;
   const char* partition = 0;
-  uint64_t mask=(1<<BldInfo::NumberOf)-1;
+  uint64_t mask=(1ULL<<BldInfo::NumberOf)-1;
   bool decode=false;
 
   int c;
@@ -324,7 +325,7 @@ int main(int argc, char** argv) {
     switch (c) {
     case 'p':
       platform = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) platform = -1UL;
+      if (errno != 0 || endPtr == optarg) platform = NO_PLATFORM;
       break;
     case 'P':
       partition = optarg;
@@ -340,7 +341,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (platform == -1UL || !partition) {
+  if (platform == NO_PLATFORM || !partition) {
     fprintf(stderr, "Missing parameters!\n");
     usage(argv[0]);
     return 1;
