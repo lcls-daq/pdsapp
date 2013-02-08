@@ -23,21 +23,39 @@ using namespace Pds;
 
 static void connection_handler(struct connection_handler_args args);
 
-static DetInfo::Detector find_detector(const char *name)
+static DetInfo::Detector find_detector(const char *name, int &version)
 {
     int i;
+    const char *s = index(name, '-');
+    unsigned int n;
+    if (s != NULL) {
+        n = (s - name);
+        version = atoi(s + 1);
+    } else {
+        n = strlen(name);
+    }
     for (i = 0; i != (int)DetInfo::NumDetector; i++) {
-        if (!strcmp(name, DetInfo::name((DetInfo::Detector)i)))
+        s = DetInfo::name((DetInfo::Detector)i);
+        if (strlen(s) == n && !strncmp(name, s, n))
             break;
     }
     return (DetInfo::Detector)i;
 }
 
-DetInfo::Device find_device(const char *name)
+DetInfo::Device find_device(const char *name, int &version)
 {
     int i;
+    const char *s = index(name, '-');
+    unsigned int n;
+    if (s != NULL) {
+        n = (s - name);
+        version = atoi(s + 1);
+    } else {
+        n = strlen(name);
+    }
     for (i = 0; i != (int)DetInfo::NumDevice; i++) {
-        if (!strcmp(name, DetInfo::name((DetInfo::Device)i)))
+        s = DetInfo::name((DetInfo::Device)i);
+        if (strlen(s) == n && !strncmp(name, s, n))
             break;
     }
     return (DetInfo::Device)i;
@@ -51,8 +69,10 @@ class caconn {
           connected(0), event(0), binned(_binned) {
         const char       *ds  = detector.c_str();
         int               bld = !strncmp(ds, "BLD-", 4);
-        DetInfo::Detector det = bld ? DetInfo::BldEb : find_detector(ds);
-        DetInfo::Device   ctp = find_device(camtype.c_str());
+        int               detversion = 0;
+        DetInfo::Detector det = bld ? DetInfo::BldEb : find_detector(ds, detversion);
+        int               devversion = 0;
+        DetInfo::Device   ctp = find_device(camtype.c_str(), devversion);
         DetInfo::Device   dev = bld ? DetInfo::NoDevice : ctp;
         char             *buf = NULL;
         char             *bf2 = NULL;
@@ -90,7 +110,7 @@ class caconn {
             is_cam = 1;
 
         int               pid = getpid(), size;
-        DetInfo sourceInfo(pid, det, 0, dev, 0);
+        DetInfo sourceInfo(pid, det, detversion, dev, devversion);
         ProcInfo bldInfo(Level::Reporter, pid, bld);
         Camera::FrameCoord origin(0, 0);
 

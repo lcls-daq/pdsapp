@@ -256,9 +256,26 @@ int main(int argc, char **argv)
                     done = 1;
                 break;
             }
-            /* If fiducials don't match, advance one stream. Check time here?!? */
-            if ((fid0 = dg[0]->seq.stamp().fiducials()) != 
-                (fid1 = dg[1]->seq.stamp().fiducials())) {
+            /*
+             * If the time doesn't match, advance one stream.  But the times
+             * may differ slightly in the low bits... so instead, we make sure
+             * that the seconds are close, and if so, compare the fiducials.
+             *
+             * (We should be off by a fraction of a second, at most.  But since
+             * this could take us to the next second, a difference of 1 might be
+             * normal.)
+             */
+            if (abs(dg[0]->seq.clock().seconds() - dg[1]->seq.clock().seconds()) > 2) {
+                if (dg[0]->seq.clock().seconds() > dg[1]->seq.clock().seconds()) {
+                    if (!next_dg(1))
+                        done = 1;
+                } else {
+                    if (!next_dg(0))
+                        done = 1;
+                }
+                break;
+            } else if ((fid0 = dg[0]->seq.stamp().fiducials()) != 
+                       (fid1 = dg[1]->seq.stamp().fiducials())) {
                 if (FID_GT(fid0, fid1)) {
                     if (!next_dg(1))
                         done = 1;
