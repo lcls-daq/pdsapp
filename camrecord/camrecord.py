@@ -359,7 +359,6 @@ class GraphicUserInterface(QtGui.QMainWindow):
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
                     sock.settimeout(1.0)
-                    print "Connecting to %s:%d" % (hp[0], int(hp[1]))
                     sock.connect((hp[0], int(hp[1])))
                     sock.sendall("hostname " + hp[0] + "\n")
                     sock.sendall("timeout " + str(t) + "\n")
