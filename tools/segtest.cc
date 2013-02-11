@@ -1,5 +1,6 @@
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/TypeId.hh"
 
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
@@ -541,6 +542,7 @@ void resTest() {
 
 void listAll() {
   unsigned index;
+  printf("DetInfo format Bytes:DIdi where D is Det, I is DetId, d is dev and i is devid\n");
   printf("Detector Names are:\n");
   for (index=0; index<DetInfo::NumDetector; index++) {
     printf("\t0x%x\t%s\n", index, DetInfo::name((DetInfo::Detector)index));
@@ -548,6 +550,11 @@ void listAll() {
   printf("Device Names are:\n");
   for (index=0; index<DetInfo::NumDevice; index++) {
     printf("\t0x%x\t%s\n", index, DetInfo::name((DetInfo::Device)index));
+  }
+  printf("TypeId format Bytes:vvtt where v is version and t is Type Id (msb of version is compressed)\n");
+  printf("Type  ID Names are:\n");
+  for (index=0; index<TypeId::NumberOf; index++) {
+    printf("\t0x%x\t%s\n", index, TypeId::name((TypeId::Type)index));
   }
 }
 
