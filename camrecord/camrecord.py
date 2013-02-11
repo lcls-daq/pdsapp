@@ -361,7 +361,7 @@ class GraphicUserInterface(QtGui.QMainWindow):
                     sock.settimeout(1.0)
                     print "Connecting to %s:%d" % (hp[0], int(hp[1]))
                     sock.connect((hp[0], int(hp[1])))
-                    sock.sendall("hostname " + host + "\n")
+                    sock.sendall("hostname " + hp[0] + "\n")
                     sock.sendall("timeout " + str(t) + "\n")
                     sock.sendall("keepalive " + str(int(keepalive * 3 / 2)) + "\n")
                     #
