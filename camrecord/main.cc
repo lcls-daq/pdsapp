@@ -183,7 +183,7 @@ static void read_config_file(const char *name)
         if (arrayTokens.size() == 0 || arrayTokens[0][0] == '#' || 
             arrayTokens[0] == "camera-per-row" || arrayTokens[0] == "bld-per-row" ||
             arrayTokens[0] == "pv-per-row" || arrayTokens[0] == "host" ||
-            arrayTokens[0] == "defhost") {
+            arrayTokens[0] == "defhost" || arrayTokens[0] == "defport") {
             /* Ignore blank lines, comments, and client commands! */
             continue;
         } else if (arrayTokens[0] == "end") {

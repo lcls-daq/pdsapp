@@ -227,12 +227,12 @@ class GraphicUserInterface(QtGui.QMainWindow):
     def log(self, s):
         self.ui.status.appendPlainText(s)
         
-    def __init__(self, app, config, port):
+    def __init__(self, app, config):
         QtGui.QMainWindow.__init__(self)
         self.__app = app
-        self.port = port;
         self.notifiers = {}
         self.defhost = ""
+        self.defport = 9999
         self.timer = QtCore.QTimer()
         self.user = os.getenv("USER")
         self.runfile = os.getenv("HOME") + "/.camrecordrc"
@@ -263,8 +263,12 @@ class GraphicUserInterface(QtGui.QMainWindow):
             kind = sln[0].strip()
             if (kind == "defhost"):
                 self.defhost = sln[1].strip()
+            elif (kind == "defport"):
+                self.defport = int(sln[1].strip())
             elif (kind == "host"):
                 host = sln[1].strip()
+                if not ((":" in host) or (host == "*")):
+                    host = host + ":" + str(self.defport)
             elif (kind == "camera-per-row"):
                 try:
                     self.ui.cpr = int(sln[1].strip())
@@ -345,16 +349,18 @@ class GraphicUserInterface(QtGui.QMainWindow):
                 return
             if keys == [] and w != []:
                 # Use the default host!
-                d[self.defhost] = w
+                d[self.defhost + ":" + str(self.defport)] = w
             else:
                 # Do we want to spread these around?!?
                 d[keys[0]].extend(w)
             self.current_run = "%04d" % self.getRunNo()
             for host in d.keys():
+                hp = host.split(":")
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
                     sock.settimeout(1.0)
-                    sock.connect((host, self.port))
+                    print "Connecting to %s:%d" % (hp[0], int(hp[1]))
+                    sock.connect((hp[0], int(hp[1])))
                     sock.sendall("hostname " + host + "\n")
                     sock.sendall("timeout " + str(t) + "\n")
                     sock.sendall("keepalive " + str(int(keepalive * 3 / 2)) + "\n")
@@ -428,9 +434,9 @@ class GraphicUserInterface(QtGui.QMainWindow):
     def shutdown(self):
         print "Done!"
 
-def crrun(config, port):
+def crrun(config):
   app = QtGui.QApplication([''])
-  gui = GraphicUserInterface(app, config, port)
+  gui = GraphicUserInterface(app, config)
   try:
 #    sys.setcheckinterval(1000) # default is 100
     gui.show()
@@ -442,7 +448,7 @@ def crrun(config, port):
   return retval
 
 if __name__ == '__main__':
-  options = Options(['config'], ['port', 'keepalive'], [])
+  options = Options(['config'], [], [])
   try:
     options.parse()
   except Exception, msg:
@@ -456,7 +462,5 @@ if __name__ == '__main__':
       port = int(options.port)
   else:
       port = 9999
-  #if options.keepalive != None:
-  #    keepalive = int(options.keepalive)
-  retval = crrun(options.config, port)
+  retval = crrun(options.config)
   sys.exit(retval)
