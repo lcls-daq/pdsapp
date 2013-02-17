@@ -590,7 +590,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,dur);
   }
   else {
-    unsigned events = cfg->events();
+    events = cfg->events();
     cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,events);
   }
 
