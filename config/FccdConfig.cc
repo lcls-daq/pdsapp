@@ -10,7 +10,7 @@ namespace Pds_ConfigDb {
   class FccdConfig::Private_Data {
   public:
     Private_Data() :
-      _outputMode  ("Output Mode (0=FIFO)",  0,    0,    4),
+      _outputMode  ("Output Mode (0=FIFO,1=DoNotReconfig)",  0,    0,    4),
       _ccdEnable ("CCD Enable", Enums::True, Enums::Bool_Names),
       // Focus Mode OFF for external triggering
       _focusMode ("Focus Mode (internal trigger)", Enums::False, Enums::Bool_Names),
