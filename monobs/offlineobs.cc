@@ -27,13 +27,13 @@ using namespace Pds;
 class MyCallback : public EventCallback {
 public:
   MyCallback(Task* task, Appliance* app) :
-    _task(task), 
+    _task(task),
     _app(app)
   {
   }
   ~MyCallback() {}
 
-  void attached (SetOfStreams& streams) 
+  void attached (SetOfStreams& streams)
   {
     Stream* frmk = streams.stream(StreamParams::FrameWork);
     _app->connect(frmk->inlet());
@@ -46,7 +46,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <parm_list_file>] [-v]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <parm_list_file>] [-w <slow readout:0/1] [-v]\n", progname);
 }
 
 // Appliance* app;
@@ -76,10 +76,11 @@ int main(int argc, char** argv) {
   const char* offlinerc = 0;
   const char* parm_list_file = 0;
   unsigned nodes =  0;
+  int      slowReadout = 0;
   int verbose = 0;
   (void) signal(SIGINT, sigfunc);
   int c;
-  while ((c = getopt(argc, argv, "p:P:E:L:V:v")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:E:L:V:w:v")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -102,6 +103,9 @@ int main(int argc, char** argv) {
     case 'v':
       ++verbose;
       break;
+    case 'w':
+      slowReadout = strtoul(optarg, &endPtr, 0);
+      break;
     default:
       break;
     }
@@ -114,7 +118,7 @@ int main(int argc, char** argv) {
   }
 
   // Parse instrument name for optional station number.
-  // Examples: "AMO", "SXR:0", "CXI:0", "CXI:1" 
+  // Examples: "AMO", "SXR:0", "CXI:0", "CXI:1"
   PartitionDescriptor pd(partition);
   if (!pd.valid()) {
     fprintf(stderr, "%s: Error parsing partition '%s'\n", argv[0], partition);
@@ -153,7 +157,10 @@ int main(int argc, char** argv) {
     ObserverLevel* event = new ObserverLevel(platform,
                partition,
                nodes,
-               *display);
+               *display,
+               slowReadout,
+               0 // max event size = default
+               );
 
     if (event->attach()) {
       if (verbose) {

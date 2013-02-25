@@ -26,7 +26,8 @@ EventOptions::EventOptions() :
   chunkSize(DefaultChunkSize),
   delayXfer(false),
   expname(NULL),
-  apps   (NULL)
+  apps   (NULL),
+  slowReadout (0)
 {
   printf("(%p) apps = %p\n",this,this->apps);
 }
@@ -42,7 +43,8 @@ EventOptions::EventOptions(int argc, char** argv) :
   chunkSize(DefaultChunkSize),
   delayXfer(false),
   expname(NULL),
-  apps   (NULL)
+  apps   (NULL),
+  slowReadout (0)
 {
   int c;
   while ((c = getopt(argc, argv, opt_string())) != -1) {
@@ -51,9 +53,9 @@ EventOptions::EventOptions(int argc, char** argv) :
   printf("(%p) apps = %p\n",this,this->apps);
 }
 
-const char* EventOptions::opt_string() 
+const char* EventOptions::opt_string()
 {
-  return "f:p:b:a:s:c:n:edDE:L:";
+  return "f:p:b:a:s:c:n:edDE:L:w:";
 }
 
 bool        EventOptions::parse_opt (int c)
@@ -75,6 +77,10 @@ bool        EventOptions::parse_opt (int c)
   case 's':
     sliceID = strtoul(optarg, &endPtr, 0);
     if (errno != 0 || endPtr == optarg) sliceID = 0;
+    break;
+  case 'w':
+    slowReadout = strtoul(optarg, &endPtr, 0);
+    if (errno != 0 || endPtr == optarg) slowReadout = 0;
     break;
   case 'a':
     arpsuidprocess = optarg;
@@ -101,35 +107,35 @@ bool        EventOptions::parse_opt (int c)
     break;
   case 'L':
     { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
-	printf("dlopen %s\n",p);
+  printf("dlopen %s\n",p);
 
-	void* handle = dlopen(p, RTLD_LAZY);
-	if (!handle) {
-	  printf("dlopen failed : %s\n",dlerror());
-	  break;
-	}
+  void* handle = dlopen(p, RTLD_LAZY);
+  if (!handle) {
+    printf("dlopen failed : %s\n",dlerror());
+    break;
+  }
 
-	// reset errors
-	const char* dlsym_error;
-	dlerror();
+  // reset errors
+  const char* dlsym_error;
+  dlerror();
 
-	// load the symbols
-	create_app* c_user = (create_app*) dlsym(handle, "create");
-	if ((dlsym_error = dlerror())) {
-	  fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
-	  break;
-	}
-	if (apps != NULL)
-	  c_user()->connect(apps);
-	else
-	  apps = c_user();
+  // load the symbols
+  create_app* c_user = (create_app*) dlsym(handle, "create");
+  if ((dlsym_error = dlerror())) {
+    fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
+    break;
+  }
+  if (apps != NULL)
+    c_user()->connect(apps);
+  else
+    apps = c_user();
       }
       break;
     }
   default:
     return false;
   }
-  
+
   return true;
 }
 
@@ -138,18 +144,19 @@ int EventOptions::validate(const char* arg0) const
 {
   if (platform==(unsigned)-1) {
     printf("Usage: %s -p <platform>\n"
-	   "options: -e decodes each transition (no FSM is connected)\n"
-	   "         -d displays transition summaries and eb statistics\n"
-	   "         -D delay transfer to offline until file is closed\n"
-	   "         -n <nbuffers>\n"
-	   "         -b <buffer_size>\n"
-           "         -a <arp_suid_executable>\n"
-           "         -f <outputfilename>\n"
-           "         -c <chunk_size>\n"
-           "         -s <slice_ID>\n"
-           "         -E <experimentname>\n"
-           "         -L <plugin>\n",
-	   arg0);
+     "options: -e decodes each transition (no FSM is connected)\n"
+     "         -d displays transition summaries and eb statistics\n"
+     "         -D delay transfer to offline until file is closed\n"
+     "         -n <nbuffers>\n"
+     "         -b <buffer_size>\n"
+     "         -a <arp_suid_executable>\n"
+     "         -f <outputfilename>\n"
+     "         -c <chunk_size>\n"
+     "         -s <slice_ID>\n"
+     "         -E <experimentname>\n"
+     "         -L <plugin>\n"
+     "         -w <0/1> : enable slow readout support\n",
+     arg0);
     return 0;
   }
   return 1;

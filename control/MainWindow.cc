@@ -224,10 +224,11 @@ MainWindow::MainWindow(unsigned          platform,
            const char*       runNumberFile,
            const char*       experiment_name,
            unsigned          sequencer_id,
+           int               slowReadout,
            bool              verbose) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
-  _control  (new QualifiedControl(platform, *_controlcb, new ControlTimeout(*this))),
+  _control  (new QualifiedControl(platform, *_controlcb, slowReadout, new ControlTimeout(*this))),
   _config   (new CfgClientNfs(Node(Level::Control,platform).procInfo())),
   _override_errors(false)
 {
@@ -321,9 +322,9 @@ MainWindow::MainWindow(unsigned          platform,
   QObject::connect(state , SIGNAL(configured(bool)), config, SLOT(configured(bool)));
   QObject::connect(state , SIGNAL(state_changed(QString)), _partition, SLOT(change_state(QString)));
   QObject::connect(this  , SIGNAL(message_received(const QString&, bool))   ,
-		   this  , SLOT(handle_message(const QString&, bool)));
+       this  , SLOT(handle_message(const QString&, bool)));
   QObject::connect(this  , SIGNAL(override_received(const QString&)),
-		   this  , SLOT(handle_override(const QString&)));
+       this  , SLOT(handle_override(const QString&)));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));
 
   // Unix signal support
@@ -378,7 +379,7 @@ void MainWindow::transition_damaged(const InDatagram& dg)
 {
   DamageBrowser b(dg);
   const std::list<Xtc>& damaged = b.damaged();
-  
+
   QString msg = QString("%1 damaged (0x%2):").
     arg(TransitionId::name(dg.datagram().seq.service())).
     arg(QString::number(dg.datagram().xtc.damage.value(),16));
@@ -392,28 +393,28 @@ void MainWindow::transition_damaged(const InDatagram& dg)
       const ProcInfo& info = static_cast<const ProcInfo&>(xtc.src);
       DetInfo dinfo(-1,DetInfo::NoDetector,0,DetInfo::NoDevice,0);
       for(int i=0; i<_partition->segments().size();i++) {
-	if (_partition->segments().at(i)==info) {
-	  dinfo = _partition->detectors().at(i);
-	  break;
-	}
+  if (_partition->segments().at(i)==info) {
+    dinfo = _partition->detectors().at(i);
+    break;
+  }
       }
       struct in_addr inaddr;
       inaddr.s_addr = ntohl(info.ipAddr());
       msg += QString("\n  %1 [%2 : %3] : 0x%4").
-	arg(DetInfo::name(dinfo)).
-	arg(inet_ntoa(inaddr)).
-	arg(info.processId()).
-	arg(QString::number(xtc.damage.value(),16));
+  arg(DetInfo::name(dinfo)).
+  arg(inet_ntoa(inaddr)).
+  arg(info.processId()).
+  arg(QString::number(xtc.damage.value(),16));
     }
     else {
       const ProcInfo& info = static_cast<const ProcInfo&>(xtc.src);
       struct in_addr inaddr;
       inaddr.s_addr = ntohl(info.ipAddr());
       msg += QString("\n  %1 : %2 : %3 : 0x%4").
-	arg(Level::name(xtc.src.level())).
-	arg(inet_ntoa(inaddr)).
-	arg(info.processId()).
-	arg(QString::number(xtc.damage.value(),16));
+  arg(Level::name(xtc.src.level())).
+  arg(inet_ntoa(inaddr)).
+  arg(info.processId()).
+  arg(QString::number(xtc.damage.value(),16));
     }
   }
 

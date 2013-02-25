@@ -623,7 +623,7 @@ namespace Pds {
      unsigned eventsize,
      unsigned eventpooldepth,
      VmonEb* vmoneb=0) :
-      EbS(id, ctns, level, inlet, outlet, stream, ipaddress, eventsize, eventpooldepth, vmoneb) {}
+      EbS(id, ctns, level, inlet, outlet, stream, ipaddress, eventsize, eventpooldepth, 0 /* slow readout = 0 */, vmoneb) {}
     ~BldEvBuilder() {}
   public:
     int processIo(Server* s) { EbS::processIo(s); return 1; }

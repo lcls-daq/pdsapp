@@ -34,27 +34,27 @@ namespace Pds {
     void available(const Node& hdr, const PingReply& msg) {
       printf("Node [0x%08x] %x/%d/%d\n",(1<<_nnodes),hdr.ip(),hdr.level(),hdr.pid());
       if (msg.nsources()) {
-	for(unsigned k=0; k<msg.nsources(); k++) {
-	  const DetInfo& src = static_cast<const DetInfo&>(msg.source(k));
-	  printf("  %s/%d/%s/%d",
-		 src.name(src.detector()), src.detId(),
-		 src.name(src.device()),   src.devId());
-	}
-	printf("\n");
+  for(unsigned k=0; k<msg.nsources(); k++) {
+    const DetInfo& src = static_cast<const DetInfo&>(msg.source(k));
+    printf("  %s/%d/%s/%d",
+     src.name(src.detector()), src.detId(),
+     src.name(src.device()),   src.devId());
+  }
+  printf("\n");
       }
-     _nodes[_nnodes++] = hdr; 
+     _nodes[_nnodes++] = hdr;
     }
   public:
     void        select(unsigned m) {  // Note that this overwrites the platform list
       unsigned n=0;
-      for(unsigned k=0; k<_nnodes; k++) 
-	if (m & (1<<k))
-	  _nodes[n++] = _nodes[k];
+      for(unsigned k=0; k<_nnodes; k++)
+  if (m & (1<<k))
+    _nodes[n++] = _nodes[k];
       _nnodes = n;
 
       printf("Partition Selected:\n");
       for(unsigned k=0; k<_nnodes; k++)
-	printf(" %x/%d/%d\n",_nodes[k].ip(), _nodes[k].level(), _nodes[k].pid());
+  printf(" %x/%d/%d\n",_nodes[k].ip(), _nodes[k].level(), _nodes[k].pid());
     }
     unsigned    nnodes() const { return _nnodes; }
     const Node* nodes () const { return _nodes; }
@@ -78,9 +78,10 @@ int main(int argc, char** argv)
   const char* dbpath    = "none";
   const unsigned NO_KEY = (unsigned)-1;
   unsigned key = NO_KEY;
+  int      slowReadout = 0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:b:P:D:k:")) != -1) {
+  while ((c = getopt(argc, argv, "p:b:P:D:k:w:")) != -1) {
     char* endPtr;
     switch (c) {
     case 'b':
@@ -99,6 +100,9 @@ int main(int argc, char** argv)
     case 'k':
       key = strtoul(optarg, &endPtr, 0);
       break;
+    case 'w':
+      slowReadout = strtoul(optarg, &endPtr, 0);
+      break;
     }
   }
   if (!platform || !partition || !dbpath || (key==NO_KEY)) {
@@ -109,7 +113,7 @@ int main(int argc, char** argv)
   CCallback controlcb;
   PCallback platformcb;
   PartitionControl control(platform,
-			   controlcb);
+         controlcb, slowReadout);
   /*
   while(nbld--) {
     unsigned id = bldList[nbld];
@@ -125,47 +129,47 @@ int main(int argc, char** argv)
     fprintf(stdout, "Commands: EOF=quit\n");
     while (true) {
       printf("Commands (p)ing, (a)llocate [nodes],\n"
-	     "(u)nmapped, (m)apped, (c)onfigured, (r)unning, (e)nabled,\n");
+       "(u)nmapped, (m)apped, (c)onfigured, (r)unning, (e)nabled,\n");
       const int maxlen=128;
       char line[maxlen];
       char* result = fgets(line, maxlen, stdin);
       if (!result) {
         fprintf(stdout, "\nExiting\n");
         break;
-      } 
+      }
       else {
         int len = strlen(result)-1;
         if (len <= 0) continue;
         while (*result && *result != '\n') {
           char cmd = *result++;
-	  unsigned env = strtoul(result,&result,16);
-	  switch(cmd) {
-	  case 'p': 
-	    platformcb.clear();
-	    control.platform_rollcall(&platformcb); 
-	    break;
-	  case 'a':
-	    if (control.current_state()==PartitionControl::Unmapped) {
-	      platformcb.select(env); 
-	      control.set_partition(partition,
-				    dbpath, 
-				    platformcb.nodes(),
-				    platformcb.nnodes(),
+    unsigned env = strtoul(result,&result,16);
+    switch(cmd) {
+    case 'p':
+      platformcb.clear();
+      control.platform_rollcall(&platformcb);
+      break;
+    case 'a':
+      if (control.current_state()==PartitionControl::Unmapped) {
+        platformcb.select(env);
+        control.set_partition(partition,
+            dbpath,
+            platformcb.nodes(),
+            platformcb.nnodes(),
                                     0);
-	    }
-	    else
-	      printf(" partition already mapped\n");
-	    break;
-	  case 'm': control.set_target_state(PartitionControl::Mapped); break;
-	  case 'c': control.set_target_state(PartitionControl::Configured); break;
-	  case 'r': control.set_target_state(PartitionControl::Running); break;
-	  case 'e': control.set_target_state(PartitionControl::Enabled); break;
-	  case 'u': control.set_target_state(PartitionControl::Unmapped); break;
-	  default:  printf("Error parsing command %c\n",cmd); break;
-	  }
+      }
+      else
+        printf(" partition already mapped\n");
+      break;
+    case 'm': control.set_target_state(PartitionControl::Mapped); break;
+    case 'c': control.set_target_state(PartitionControl::Configured); break;
+    case 'r': control.set_target_state(PartitionControl::Running); break;
+    case 'e': control.set_target_state(PartitionControl::Enabled); break;
+    case 'u': control.set_target_state(PartitionControl::Unmapped); break;
+    default:  printf("Error parsing command %c\n",cmd); break;
+    }
         }
-      }  
-    } 
+      }
+    }
   }
 
   control.detach();

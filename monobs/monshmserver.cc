@@ -30,30 +30,30 @@ class LiveMonitorServer : public Appliance,
                           public XtcMonitorServer {
 public:
   LiveMonitorServer(const char* tag,
-                    unsigned sizeofBuffers, 
-                    int numberofEvBuffers, 
-                    unsigned numberofEvQueues) : 
+                    unsigned sizeofBuffers,
+                    int numberofEvBuffers,
+                    unsigned numberofEvQueues) :
     XtcMonitorServer(tag, sizeofBuffers, numberofEvBuffers, numberofEvQueues),
     _pool           (new GenericPool(sizeof(ZcpDatagramIterator),2))
   {
   }
-  ~LiveMonitorServer() 
-  { 
+  ~LiveMonitorServer()
+  {
     delete _pool;
   }
 
 public:
-  Transition* transitions(Transition* tr) 
+  Transition* transitions(Transition* tr)
   {
     printf("LiveMonitorServer tr %s\n",TransitionId::name(tr->id()));
-    if (tr->id() == TransitionId::Unmap) 
+    if (tr->id() == TransitionId::Unmap)
       _pop_transition();
     return tr;
   }
 
   InDatagram* occurrences(InDatagram* dg) { return dg; }
-  
-  InDatagram* events     (InDatagram* dg) 
+
+  InDatagram* events     (InDatagram* dg)
   {
     Dgram& dgrm = reinterpret_cast<Dgram&>(dg->datagram());
     return
@@ -62,7 +62,7 @@ public:
   }
 
 private:
-  void _copyDatagram(Dgram* dg, char* b) 
+  void _copyDatagram(Dgram* dg, char* b)
   {
     Datagram& dgrm = *reinterpret_cast<Datagram*>(dg);
     InDatagram* indg = static_cast<InDatagram*>(&dgrm);
@@ -109,13 +109,13 @@ private:
 class MyCallback : public EventCallback {
 public:
   MyCallback(Task* task, Appliance* app) :
-    _task(task), 
+    _task(task),
     _appliances(app)
   {
   }
   ~MyCallback() {}
 
-  void attached (SetOfStreams& streams) 
+  void attached (SetOfStreams& streams)
   {
     Stream* frmk = streams.stream(StreamParams::FrameWork);
     _appliances->connect(frmk->inlet());
@@ -156,9 +156,10 @@ int main(int argc, char** argv) {
   const char* uniqueID = 0;
   bool ldist = false;
   Appliance* uapps = 0;
+  int slowReadout = 0;
 
   struct sigaction int_action;
-  
+
   int_action.sa_handler = sigfunc;
   sigemptyset(&int_action.sa_mask);
   int_action.sa_flags = 0;
@@ -174,11 +175,11 @@ int main(int argc, char** argv) {
   REGISTER(SIGSEGV);
   REGISTER(SIGABRT);
   REGISTER(SIGTERM);
-  
+
 #undef REGISTER
 
   int c;
-  while ((c = getopt(argc, argv, "p:i:n:P:s:c:q:u:L:dh")) != -1) {
+  while ((c = getopt(argc, argv, "p:i:n:P:s:c:q:u:L:w:dh")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -208,32 +209,35 @@ int main(int argc, char** argv) {
     case 'd':
       ldist = true;
       break;
+    case 'w':
+      slowReadout = strtoul(optarg, NULL, 0);
+      break;
     case 'L':
       { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
-	  printf("dlopen %s\n",p);
+    printf("dlopen %s\n",p);
 
-	  void* handle = dlopen(p, RTLD_LAZY);
-	  if (!handle) {
-	    printf("dlopen failed : %s\n",dlerror());
-	    break;
-	  }
+    void* handle = dlopen(p, RTLD_LAZY);
+    if (!handle) {
+      printf("dlopen failed : %s\n",dlerror());
+      break;
+    }
 
-	  // reset errors
-	  const char* dlsym_error;
-	  dlerror();
+    // reset errors
+    const char* dlsym_error;
+    dlerror();
 
-	  // load the symbols
-	  create_app* c_user = (create_app*) dlsym(handle, "create");
-	  if ((dlsym_error = dlerror())) {
-	    fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
-	    break;
-	  }
-	  if (uapps)
-	    c_user()->connect(uapps);
-	  else
-	    uapps = c_user();
-	}
-	break;
+    // load the symbols
+    create_app* c_user = (create_app*) dlsym(handle, "create");
+    if ((dlsym_error = dlerror())) {
+      fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
+      break;
+    }
+    if (uapps)
+      c_user()->connect(uapps);
+    else
+      uapps = c_user();
+  }
+  break;
       }
     case 'h':
       // help
@@ -268,7 +272,7 @@ int main(int argc, char** argv) {
 
   apps = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nevqueues);
   apps->distribute(ldist);
-  
+
   if (uapps)
     apps->connect(uapps);
   else
@@ -276,13 +280,14 @@ int main(int argc, char** argv) {
 
   if (apps) {
     Task* task = new Task(Task::MakeThisATask);
-    MyCallback* display = new MyCallback(task, 
-					 uapps);
+    MyCallback* display = new MyCallback(task,
+           uapps);
 
     ObserverLevel* event = new ObserverLevel(platform,
                                              partition,
                                              node,
                                              *display,
+                                             slowReadout,
                                              sizeOfBuffers);
 
     if (event->attach()) {

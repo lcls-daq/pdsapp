@@ -22,14 +22,14 @@ public:
 public:
   Transition* transitions(Transition* tr) { return tr; }
   InDatagram* occurrences(InDatagram* dg) { return dg; }
-  InDatagram* events     (InDatagram* dg) 
+  InDatagram* events     (InDatagram* dg)
   { if (dg->datagram().seq.isEvent())
       if (++_count == _prescale) {
-	_count = 0;
-	return dg;
+  _count = 0;
+  return dg;
       }
-      else 
-	return 0;
+      else
+  return 0;
     return dg;
   }
 private:
@@ -40,13 +40,13 @@ private:
 class MyCallback : public EventCallback {
 public:
   MyCallback(Task* task, Appliance* app) :
-    _task(task), 
+    _task(task),
     _appliances(app)
   {
   }
   ~MyCallback() {}
 
-  void attached (SetOfStreams& streams) 
+  void attached (SetOfStreams& streams)
   {
     Stream* frmk = streams.stream(StreamParams::FrameWork);
     _appliances->connect(frmk->inlet());
@@ -69,8 +69,9 @@ int main(int argc, char** argv) {
   const char* arpsuidprocess = 0;
   const char* partition = 0;
   unsigned nodes = 0;
+  int      slowReadout = 0;
   int c;
-  while ((c = getopt(argc, argv, "d:p:a:i:P:s:")) != -1) {
+  while ((c = getopt(argc, argv, "d:p:a:i:P:s:w:")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -95,6 +96,9 @@ int main(int argc, char** argv) {
     case 's':
       prescale = strtoul(optarg, &endPtr, 0);
       break;
+    case 'w':
+      slowReadout = strtoul(optarg, &endPtr, 0);
+      break;
     default:
       break;
     }
@@ -103,7 +107,7 @@ int main(int argc, char** argv) {
   if (platform == NO_PLATFORM) {
     printf("Platform required\n");
     printf("Usage: %s -p <platform> -P <partition> -d <detector_id> -i <node mask> [-a <arp process id>]\n",
-	   argv[0]);
+     argv[0]);
     return 1;
   }
 
@@ -112,8 +116,8 @@ int main(int argc, char** argv) {
     arp = new Arp(arpsuidprocess);
     if (arp->error()) {
       char message[128];
-      sprintf(message, "failed to create Arp for `%s': %s", 
-	      arpsuidprocess, strerror(arp->error()));
+      sprintf(message, "failed to create Arp for `%s': %s",
+        arpsuidprocess, strerror(arp->error()));
       printf("%s: %s\n", argv[0], message);
       delete arp;
       return 0;
@@ -137,13 +141,16 @@ int main(int argc, char** argv) {
   acqdisp->connect(apps);
 
   Task* task = new Task(Task::MakeThisATask);
-  MyCallback* display = new MyCallback(task, 
-				       apps);
+  MyCallback* display = new MyCallback(task,
+               apps);
 
   ObserverLevel* event = new ObserverLevel(platform,
-					   partition,
-					   nodes,
-					   *display);
+             partition,
+             nodes,
+             *display,
+             slowReadout,
+             0 // max event size = default
+             );
 
   if (event->attach())
     task->mainLoop();

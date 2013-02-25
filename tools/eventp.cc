@@ -12,7 +12,7 @@ void usage(const char* p)
   printf("\t[-L <offlinerc> [-E <experiment name>]]\n");
 }
 
-int main(int argc, char** argv) 
+int main(int argc, char** argv)
 {
   EventOptions options;
   const char* partition = 0;
@@ -22,7 +22,7 @@ int main(int argc, char** argv)
 
   char opt_string[64];
   sprintf(opt_string,"%sP:L:i:t:",EventOptions::opt_string());
-  
+
   int c;
   while ((c = getopt(argc, argv, opt_string)) != -1) {
     char* endPtr;
@@ -58,15 +58,18 @@ int main(int argc, char** argv)
     printf("Offlinerc path (-L) not specified.  Database notifications will not be sent.\n");
   }
 
-  if (err) 
+  if (err)
     exit(1);
 
   Task* task = new Task(Task::MakeThisATask);
   ParasiticRecorder* test = new ParasiticRecorder(task, options, lifetime, partition, offlinerc);
   ObserverLevel* event = new ObserverLevel(options.platform,
-					   partition,
-					   nodes,
-					   *test);
+             partition,
+             nodes,
+             *test,
+             options.slowReadout,
+             0 // max event size = default
+             );
   if (event->attach())
     task->mainLoop();
 

@@ -15,7 +15,7 @@ public:
   bool parse_opt(int);
   int  validate (const char*) const;
 
-public:  
+public:
   unsigned platform;
   unsigned sliceID;
   unsigned nbuffers;
@@ -29,7 +29,8 @@ public:
   bool     delayXfer;
   const char* expname;
   Appliance*  apps;
-}; 
+  int      slowReadout;
+};
 }
 
 #endif

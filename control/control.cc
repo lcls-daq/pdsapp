@@ -14,13 +14,14 @@ using Pds_ConfigDb::Experiment;
 static void usage(char *argv0)
 {
   printf("usage: %s -p <platform> -P <partition_description> -D <db name> [options]\n"
-	 "Options: -L <offlinerc>        : offline db access\n"
-	 "         -E <experiment_name>  : offline db experiment\n"
-	 "         -R <run_number_file>  : no offline db\n"
-	 "         -N <seconds>          : log long NFS accesses\n"
-	 "         -O                    : override errors\n"
-	 "         -v\n", 
-	 argv0);
+   "Options: -L <offlinerc>        : offline db access\n"
+   "         -E <experiment_name>  : offline db experiment\n"
+   "         -R <run_number_file>  : no offline db\n"
+   "         -N <seconds>          : log long NFS accesses\n"
+   "         -O                    : override errors\n"
+   "         -w <0/1>              : slow readout\n"
+   "         -v\n",
+   argv0);
 }
 
 int main(int argc, char** argv)
@@ -34,12 +35,13 @@ int main(int argc, char** argv)
   const char* experiment = (char *)NULL;
   double nfs_log_threshold = -1;
   unsigned    sequencer_id = 0;
+  int         slowReadout = 0;
   unsigned key=0;
   int verbose = 0;
   bool override = false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:OS:v")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:OS:w:v")) != -1) {
     char* endPtr;
     switch (c) {
     case 'p':
@@ -73,6 +75,9 @@ int main(int argc, char** argv)
     case 'S':
       sequencer_id = strtoul(optarg, &endPtr, 0);
       break;
+    case 'w':
+      slowReadout = strtoul(optarg, &endPtr, 0);
+      break;
     case 'v':
       ++verbose;
       break;
@@ -88,7 +93,7 @@ int main(int argc, char** argv)
   int _argc=1;
   char* _argv[] = { "DAQ Control", NULL };
   QApplication app(_argc, _argv);
-  
+
   MainWindow* window = new MainWindow(platform,
                                       partition,
                                       dbpath,
@@ -96,6 +101,7 @@ int main(int argc, char** argv)
                                       runNumberFile,
                                       experiment,
                                       sequencer_id,
+                                      slowReadout,
                                       (verbose > 0));
   window->override_errors(override);
   window->show();

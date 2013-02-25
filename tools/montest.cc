@@ -35,11 +35,11 @@ class CamDisplay : public Appliance, XtcIterator {
   enum { BinShift=1 };
 public:
   CamDisplay(unsigned detectorId,
-	     MonServerManager& monsrv) :
+       MonServerManager& monsrv) :
     _detectorId(detectorId),
     _iter      (sizeof(ZcpDatagramIterator),1),
     _monsrv    (monsrv)
-  {	
+  {
     MonGroup* group = new MonGroup("Image Group");
     monsrv.cds().add(group);
     MonDescImage desc("Image",Columns>>BinShift,Rows>>BinShift,1<<BinShift,1<<BinShift);
@@ -50,7 +50,7 @@ public:
   }
 
   int process(const Xtc& xtc,
-	      InDatagramIterator* iter)
+        InDatagramIterator* iter)
   {
     if (xtc.contains.id()==TypeId::Id_Xtc)
       return iterate(xtc,iter);
@@ -69,14 +69,14 @@ public:
       unsigned ix=0,iy=0;
       //  Ignoring the possibility of fragmenting on an odd-byte
       while(remaining) {
-	int len = iter->read(&iov,1,remaining);
-	remaining -= len;
-	const unsigned short* w = (const unsigned short*)iov.iov_base;
-	const unsigned short* end = w + (len>>1);
-	while(w < end) {
-	  _entry->addcontent(*w++,(ix++)>>BinShift,iy>>BinShift);
-	  if (ix==frame.width()) { ix=0; iy++; }
-	}
+  int len = iter->read(&iov,1,remaining);
+  remaining -= len;
+  const unsigned short* w = (const unsigned short*)iov.iov_base;
+  const unsigned short* end = w + (len>>1);
+  while(w < end) {
+    _entry->addcontent(*w++,(ix++)>>BinShift,iy>>BinShift);
+    if (ix==frame.width()) { ix=0; iy++; }
+  }
       }
       _entry->time(_now);
 
@@ -95,7 +95,7 @@ public:
       iterate(in->datagram().xtc,in_iter);
       delete in_iter;
     }
-    return in; 
+    return in;
   }
 private:
   unsigned          _detectorId;
@@ -107,13 +107,13 @@ private:
 
 class MyCallback : public EventCallback {
 public:
-  MyCallback(Task* task, const DetInfo& detInfo, MonServerManager& monsrv) : 
-    _task(task), 
-    _display(new CamDisplay(detInfo.phy(),monsrv)) 
+  MyCallback(Task* task, const DetInfo& detInfo, MonServerManager& monsrv) :
+    _task(task),
+    _display(new CamDisplay(detInfo.phy(),monsrv))
   {}
   ~MyCallback() {}
 
-  void attached (SetOfStreams& streams) 
+  void attached (SetOfStreams& streams)
   {
     Stream* frmk = streams.stream(StreamParams::FrameWork);
     _display->connect(frmk->inlet());
@@ -134,7 +134,8 @@ int main(int argc, char** argv) {
 
   const char* arpsuidprocess = 0;
   const char* partition = 0;
-  unsigned nodes = 0;
+  unsigned    nodes = 0;
+  int         slowReadout = 0;
   int c;
   while ((c = getopt(argc, argv, "d:p:a:i:P:")) != -1) {
     errno = 0;
@@ -155,6 +156,9 @@ int main(int argc, char** argv) {
     case 'i':
       nodes = strtoul(optarg, &endPtr, 0);
       break;
+    case 'w':
+      slowReadout = strtoul(optarg, &endPtr, 0);
+      break;
     case 'P':
       partition = optarg;
       break;
@@ -166,7 +170,7 @@ int main(int argc, char** argv) {
   if (platform == NO_PLATFORM) {
     printf("Platform required\n");
     printf("Usage: %s -p <platform> -P <partition> -d <detector_id> -i <node mask> [-a <arp process id>]\n",
-	   argv[0]);
+     argv[0]);
     return 1;
   }
 
@@ -175,8 +179,8 @@ int main(int argc, char** argv) {
     arp = new Arp(arpsuidprocess);
     if (arp->error()) {
       char message[128];
-      sprintf(message, "failed to create Arp for `%s': %s", 
-	      arpsuidprocess, strerror(arp->error()));
+      sprintf(message, "failed to create Arp for `%s': %s",
+        arpsuidprocess, strerror(arp->error()));
       printf("%s: %s\n", argv[0], message);
       delete arp;
       return 0;
@@ -185,17 +189,20 @@ int main(int argc, char** argv) {
 
   MonServerManager* manager = new MonServerManager(MonPort::Mon);
   Task* task = new Task(Task::MakeThisATask);
-  MyCallback* display = new MyCallback(task, 
-				       DetInfo(0,
-					       det, detid,
-					       DetInfo::Opal1000, devid),
-				       *manager);
+  MyCallback* display = new MyCallback(task,
+               DetInfo(0,
+                 det, detid,
+                 DetInfo::Opal1000, devid),
+               *manager);
   manager->serve();
 
   ObserverLevel* event = new ObserverLevel(platform,
-					   partition,
-					   nodes,
-					   *display);
+             partition,
+             nodes,
+             *display,
+             slowReadout,
+             0 // max event size = default
+             );
 
   if (event->attach())
     task->mainLoop();

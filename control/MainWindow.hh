@@ -29,6 +29,7 @@ namespace Pds {
                const char*       runNumberFile,
                const char*       experiment,
                unsigned          sequencer_id,
+               int               slowReadout,
                bool              verbose);
     ~MainWindow();
 

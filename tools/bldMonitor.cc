@@ -23,8 +23,8 @@ namespace Pds {
   class MyServer : public BldServer {
   public:
     MyServer(const Ins& ins,
-	     const Src& src,
-	     unsigned   maxbuf) : BldServer(ins,src,maxbuf) {}
+       const Src& src,
+       unsigned   maxbuf) : BldServer(ins,src,maxbuf) {}
     ~MyServer() {}
   public:
     bool isValued() const { return true; }
@@ -33,9 +33,9 @@ namespace Pds {
   class MyLevel : public CollectionObserver {
   public:
     MyLevel(unsigned       platform,
-	    const char*    partition,
-	    uint64_t       mask,
-	    EventCallback& callback) :
+      const char*    partition,
+      uint64_t       mask,
+      EventCallback& callback) :
       CollectionObserver(platform, partition),
       _mask    (mask),
       _callback(callback),
@@ -63,12 +63,12 @@ namespace Pds {
   public:
     void dump() const {
       if (counts) {
-	printf("%20s : dmg 0x%08x  events %d\n",
-	       BldInfo::name(BldInfo(0,BldInfo::Type(id))),
-	       mask, counts);
-	for(int i=0; i<32; i++)
-	  if (damage[i])
-	    printf("%*c%8d : %d\n",22,' ',i,damage[i]);
+  printf("%20s : dmg 0x%08x  events %d\n",
+         BldInfo::name(BldInfo(0,BldInfo::Type(id))),
+         mask, counts);
+  for(int i=0; i<32; i++)
+    if (damage[i])
+      printf("%*c%8d : %d\n",22,' ',i,damage[i]);
       }
     }
   public:
@@ -86,27 +86,27 @@ namespace Pds {
   public:
     void accumulate(unsigned pid) {
       if (pid >= MaxPulse)
-	printf("Bad Pulse ID 0x%x\n",pid);
+  printf("Bad Pulse ID 0x%x\n",pid);
       else {
-	if (_last != NO_PULSE) {
-	  int index = pid-_last;
-	  if (index < 0) 
-	    index += MaxPulse;
-	  index += ZeroBin;
-	  if (index<0) 
-	    index=0;
-	  else if (index>=NumBins) 
-	    index=NumBins-1;
-	  _counts[index]++;
-	}
-	_sum++;
-	_last = pid;
+  if (_last != NO_PULSE) {
+    int index = pid-_last;
+    if (index < 0)
+      index += MaxPulse;
+    index += ZeroBin;
+    if (index<0)
+      index=0;
+    else if (index>=NumBins)
+      index=NumBins-1;
+    _counts[index]++;
+  }
+  _sum++;
+  _last = pid;
       }
     }
     void dump() const {
       if (_sum)
-	for(unsigned i=0; i<NumBins; i++)
-	  printf("%08d%c",_counts[i],(i%8)==7?'\n':' ');
+  for(unsigned i=0; i<NumBins; i++)
+    printf("%08d%c",_counts[i],(i%8)==7?'\n':' ');
     }
   private:
     enum { NumBins=32 };
@@ -119,46 +119,46 @@ namespace Pds {
 
   class MyStats : public Appliance, public XtcIterator {
   public:
-    MyStats(int n) : _n(n > 0 ? n : 1), _count(_n), _pool(sizeof(ZcpDatagramIterator),1) 
+    MyStats(int n) : _n(n > 0 ? n : 1), _count(_n), _pool(sizeof(ZcpDatagramIterator),1)
     {
       for(int i=0; i<BldInfo::NumberOf; i++)
-	_stats[i].id = i;
+  _stats[i].id = i;
     }
     ~MyStats() {}
   public:
     int process(const Xtc& xtc, InDatagramIterator* iter) {
       int advance = 0;
       if (xtc.contains.id() == TypeId::Id_Xtc)
-	advance += iterate(xtc,iter);
+  advance += iterate(xtc,iter);
       else if (xtc.src.level() == Level::Reporter) {
-	const BldInfo& info = static_cast<const BldInfo&>(xtc.src);
-	_stats[info.type()].counts++;
-	_hists[info.type()].accumulate(_seq.stamp().fiducials());
-	unsigned dmg = xtc.damage.value();
-	_stats[info.type()].mask |= dmg;
-	for(int i=0; i<32; i++) {
-	  if (dmg & (0x1<<i))
-	    _stats[info.type()].damage[i]++;
-	}
+  const BldInfo& info = static_cast<const BldInfo&>(xtc.src);
+  _stats[info.type()].counts++;
+  _hists[info.type()].accumulate(_seq.stamp().fiducials());
+  unsigned dmg = xtc.damage.value();
+  _stats[info.type()].mask |= dmg;
+  for(int i=0; i<32; i++) {
+    if (dmg & (0x1<<i))
+      _stats[info.type()].damage[i]++;
+  }
 #ifdef DUMP
-	printf("%s ",BldInfo::name(info));
-	const unsigned* d = reinterpret_cast<const unsigned*>(&xtc);
-	const unsigned* e = d + (xtc.extent>>2);
-	for(unsigned i=0; d<e; i++,d++)
-	  printf(":%08x",*d);
-	printf("\n");
+  printf("%s ",BldInfo::name(info));
+  const unsigned* d = reinterpret_cast<const unsigned*>(&xtc);
+  const unsigned* e = d + (xtc.extent>>2);
+  for(unsigned i=0; d<e; i++,d++)
+    printf(":%08x",*d);
+  printf("\n");
 #endif
-      }	
+      }
       return advance;
     }
 
     Transition* transitions(Transition* in) { return in; }
 
     InDatagram* events     (InDatagram* in) {
-      
+
       const Sequence& seq = in->datagram().seq;
-      if (seq.stamp() <= _seq.stamp()) 
-	printf("%x follows %x\n",seq.stamp().fiducials(),_seq.stamp().fiducials());
+      if (seq.stamp() <= _seq.stamp())
+  printf("%x follows %x\n",seq.stamp().fiducials(),_seq.stamp().fiducials());
 
       _seq = seq;
 
@@ -170,12 +170,12 @@ namespace Pds {
       delete iter;
 
       if (--_count == 0) {
-	printf("== seq %05x ==\n", seq.stamp().fiducials());
-	for(int i=0; i<BldInfo::NumberOf; i++) {
-	  _stats[i].dump();
-	  _hists[i].dump();
-	}
-	_count = _n;
+  printf("== seq %05x ==\n", seq.stamp().fiducials());
+  for(int i=0; i<BldInfo::NumberOf; i++) {
+    _stats[i].dump();
+    _hists[i].dump();
+  }
+  _count = _n;
       }
       return in;
     }
@@ -195,12 +195,12 @@ namespace Pds {
     {
     }
     ~MyCallback() {}
-    
-    void attached (SetOfStreams& streams) 
+
+    void attached (SetOfStreams& streams)
     {
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       if (_decode)
-	(new Decoder(Level::Event))->connect(frmk->inlet());
+  (new Decoder(Level::Event))->connect(frmk->inlet());
       (new MyStats(100))->connect(frmk->inlet());
     }
     void failed   (Reason reason)   { _task->destroy(); delete this; }
@@ -221,16 +221,18 @@ bool MyLevel::attach()
     return false;
   }
 
-  _streams = new ObserverStreams(*this);
+  _streams = new ObserverStreams(*this,
+                                0 // slow readout = 0
+                                );
   for (int s = 0; s < StreamParams::NumberOfStreams; s++) {
     delete _streams->stream(s)->outlet()->wire();
     _outlets[s] = new OpenOutlet(*_streams->stream(s)->outlet());
   }
   _streams->connect();
-  
+
   Allocation alloc("private partition",
-		   "no database",
-		   0);
+       "no database",
+       0);
   { Node n(Level::Observer, 0);
     n.fixup(header().ip(),Ether());
     alloc.add(n); }
@@ -248,7 +250,7 @@ bool MyLevel::attach()
   allocated(*_allocation);
 
   _callback.attached(*_streams);
-  
+
   return true;
 }
 
@@ -265,22 +267,22 @@ void MyLevel::allocated(const Allocation& alloc)
       Ins ins(node.ip(), StreamPorts::bld(0).portId());
 
       MyServer* srv = new MyServer(ins,
-				   node.procInfo(),
-				   netbufdepth*MaxSize);
+           node.procInfo(),
+           netbufdepth*MaxSize);
       wire->add_input(srv);
       Ins mcastIns(ins.address());
       srv->server().join(mcastIns, Ins(header().ip()));
 
       printf("MyLevel::allocated assign fragment %d  %x/%d\n",
-	     srv->id(),mcastIns.address(),srv->server().portId());
+       srv->id(),mcastIns.address(),srv->server().portId());
     }
   }
 }
 
-void MyLevel::post     (const Transition& tr) 
+void MyLevel::post     (const Transition& tr)
 { _streams->wire(StreamParams::FrameWork)->post(tr); }
 
-void MyLevel::post     (const InDatagram& tr) 
+void MyLevel::post     (const InDatagram& tr)
 { _streams->wire(StreamParams::FrameWork)->post(tr); }
 
 void MyLevel::dissolved()
@@ -352,9 +354,9 @@ int main(int argc, char** argv) {
   MyCallback* display = new MyCallback(task, decode);
 
   MyLevel* event = new MyLevel(platform,
-			       partition,
-			       mask,
-			       *display);
+             partition,
+             mask,
+             *display);
 
   if (event->attach())
     task->mainLoop();

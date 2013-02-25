@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
     arp = new Arp(options.arpsuidprocess);
     if (arp->error()) {
       char message[128];
-      sprintf(message, "failed to create Arp for `%s': %s", 
+      sprintf(message, "failed to create Arp for `%s': %s",
         options.arpsuidprocess, strerror(arp->error()));
       printf("%s: %s\n", argv[0], message);
       delete arp;
@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
   EventTest* test = new EventTest(task, options, arp);
   EventLevel* event = new EventLevel(options.platform,
                                      *test,
+                                     options.slowReadout,
                                      arp,
                                      options.buffersize,
                                      options.nbuffers);

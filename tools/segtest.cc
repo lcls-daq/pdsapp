@@ -71,7 +71,7 @@ namespace Pds {
 
   class MySeqServer : public EvrServer, private Routine {
     public:
-    MySeqServer(unsigned   platform, 
+    MySeqServer(unsigned   platform,
                 int        fd,
                 InletWire& inlet) :
           EvrServer(StreamPorts::event(platform,Level::Segment),
@@ -88,7 +88,7 @@ namespace Pds {
 
     ~MySeqServer() { _task->destroy(); }
 
-    void routine() 
+    void routine()
     {
       _sleepTime.tv_sec = 0;
       _sleepTime.tv_nsec = 0;
@@ -566,10 +566,11 @@ int main(int argc, char** argv) {
   unsigned detid = 0;
   unsigned platform = 0;
   bool noPlatform = true;
+  int      slowReadout = 0;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:s:r:vhTL")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:s:r:w:vhTL")) != EOF ) {
     switch(c) {
       case 'T':
         resTest();
@@ -595,6 +596,9 @@ int main(int argc, char** argv) {
       case 'v':
         verbose = true;
         break;
+      case 'w':
+        slowReadout = strtoul(optarg, NULL, 0);
+        break;
       case '?':
         printf("Unrecognized option %c\n",c);
       case 'h':
@@ -619,14 +623,15 @@ int main(int argc, char** argv) {
 
   Task* task = new Task(Task::MakeThisATask);
   Node node(Level::Source,platform);
-  SegTest* segtest = new SegTest(task, platform, 
+  SegTest* segtest = new SegTest(task, platform,
       size1, size2,
       DetInfo(node.pid(),DetInfo::NoDetector,
           detid,DetInfo::NoDevice,0));
-  SegmentLevel* segment = new SegmentLevel(platform, 
+  SegmentLevel* segment = new SegmentLevel(platform,
       *segtest,
       *segtest,
-      (Arp*)0);
+      (Arp*)0,
+      slowReadout);
 
   if (segment->attach())
     task->mainLoop();

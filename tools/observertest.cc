@@ -23,12 +23,18 @@ int main(int argc, char** argv) {
 
   const char* partition = 0;
   unsigned nodes =  0;
+  int      slowReadout = 0;
+
   char* endPtr;
   char** aarg  = argv;
   char** aarge = aarg+argc;
   while(++aarg < aarge) {
     if (strcmp(*aarg,"-i")==0) {
       nodes = strtoul(*++aarg, &endPtr, 0);
+      break;
+    }
+    else if (strcmp(*aarg,"-w")==0) {
+      slowReadout = strtoul(*++aarg, &endPtr, 0);
       break;
     }
     else if (strcmp(*aarg,"-P")==0)
@@ -50,9 +56,12 @@ int main(int argc, char** argv) {
   EventTest* test = new EventTest(task, options, 0);
 
   ObserverLevel* event = new ObserverLevel(options.platform,
-					   partition,
-					   nodes,
-					   *test);
+             partition,
+             nodes,
+             *test,
+             slowReadout,
+             0 // max event size = default
+             );
 
   if (event->attach())
     task->mainLoop();
