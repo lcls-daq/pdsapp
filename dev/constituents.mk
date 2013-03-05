@@ -3,6 +3,9 @@
 libnames := devapp
 libsrcs_devapp := CmdLineTools.cc
 
+libnames += simcam
+libsrcs_simcam := SimCam.cc
+
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 #CPPFLAGS += -DBLD_DELAY # for tolerating BLD delays up to 0.5 seconds
 

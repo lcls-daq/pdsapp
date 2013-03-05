@@ -13,6 +13,7 @@
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/Opal1kConfigType.hh"
 #include "pds/config/QuartzConfigType.hh"
+#include "pds/config/FccdConfigType.hh"
 
 #include "pds/service/Task.hh"
 
@@ -48,6 +49,8 @@ public:
     _evtpayload = new char[EvtSize];
     _evttc = new(_evtpayload) Xtc(TypeId(TypeId::Id_Frame,1),src);
 
+    unsigned width,height,depth,offset;
+
     const DetInfo& info = static_cast<const DetInfo&>(src);
     switch(info.device()) {
     case DetInfo::Opal1000:
@@ -62,9 +65,10 @@ public:
 							       Opal1kConfigType::None,
 							       true,
 							       false))->size();
-      _evttc->extent += (new(_evttc->next()) FrameV1(Opal1kConfigType::max_column_pixels(info),
-						     Opal1kConfigType::max_row_pixels(info),
-						     12, 32))->data_size()+sizeof(FrameV1);
+      width  = Opal1kConfigType::max_column_pixels(info);
+      height = Opal1kConfigType::max_row_pixels(info);
+      depth  = 12;
+      offset = 32;
       break;
     case DetInfo::TM6740:
       _cfgtc = new(_cfgpayload) Xtc(_tm6740ConfigType,src);
@@ -73,9 +77,10 @@ public:
                                                                       TM6740ConfigType::x1,
                                                                       TM6740ConfigType::x1,
                                                                       TM6740ConfigType::Linear));
-      _evttc->extent += (new (_evttc->next()) FrameV1(TM6740ConfigType::Column_Pixels,
-                                                      TM6740ConfigType::Row_Pixels,
-                                                      10, 32))->data_size()+sizeof(FrameV1);
+      width  = TM6740ConfigType::Column_Pixels;
+      height = TM6740ConfigType::Row_Pixels;
+      depth  = 10;
+      offset = 32;
       break;
     case DetInfo::Quartz4A150:
       _cfgtc = new(_cfgpayload) Xtc(_quartzConfigType,src);
@@ -85,14 +90,33 @@ public:
                                                                QuartzConfigType::x1,
                                                                QuartzConfigType::None,
                                                                false))->size();
-      _evttc->extent += (new (_evttc->next()) FrameV1(QuartzConfigType::Column_Pixels,
-                                                      QuartzConfigType::Row_Pixels,
-                                                      8, 32))->data_size()+sizeof(FrameV1);
+      width  = QuartzConfigType::Column_Pixels;
+      height = QuartzConfigType::Row_Pixels;
+      depth  = 8;
+      offset = 32;
+      break;
+    case DetInfo::Fccd:
+      _cfgtc = new(_cfgpayload) Xtc(_fccdConfigType,src);
+      _cfgtc->extent += sizeof(*new (_cfgtc->next()) FccdConfigType(0, true, false, 0,
+								    0, 0, 0, 0, 0, 0,
+								    0, 0, 0, 0, 0, 0,
+								    0, 0, 0, 0, 0,
+								    0, 0, 0, 0, 0,
+								    0, 0, 0, 0, 0,
+								    0, 0, 0, 0, 0));
+      width  = FccdConfigType::Trimmed_Column_Pixels;
+      height = FccdConfigType::Trimmed_Row_Pixels;
+      depth  = 16;
+      offset = 0;
       break;
     default:
       printf("Unsupported camera %s\n",Pds::DetInfo::name(info.device()));
       exit(1);
     }
+
+    FrameV1* f = new(_evttc->next()) FrameV1(width, height, depth, offset);
+    memset(const_cast<unsigned char*>(f->data()),0,f->data_size());
+    _evttc->extent += f->data_size()+sizeof(FrameV1);
 
     _fexpayload = new char[FexSize];
     _fextc = new(_fexpayload) Xtc(_frameFexConfigType,src);
