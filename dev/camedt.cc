@@ -53,6 +53,7 @@ static Pds::CameraDriver* _driver(int id, int channel, const Pds::Src& src)
   case Pds::DetInfo::Quartz4A150:
     return new Pds::EdtPdvCL(*new Pds::QuartzCamera(info),id,channel);
   case Pds::DetInfo::OrcaFl40:
+    Pds::EdtPdvCL::set_nbuffers(16);
     return new Pds::EdtPdvCL(*new Pds::OrcaCamera(info),id,channel);
   default:
     printf("Unsupported camera %s\n",Pds::DetInfo::name(info.device()));
