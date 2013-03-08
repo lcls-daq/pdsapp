@@ -134,7 +134,7 @@ void DetInfoDialog_Ui::remove()
 {
   int idx = _srclist->currentRow();
   if (idx>=0) {
-    _srclist->takeItem(idx);
+    delete _srclist->takeItem(idx);
     list<Pds::Src>::iterator iter = _list.begin();
     while(idx--) iter++;
     _list.erase(iter);
