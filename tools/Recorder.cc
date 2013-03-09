@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <sys/acl.h>
 
 #define DELAY_XFER
     
@@ -367,6 +368,17 @@ int Recorder::_openOutputFile(bool verbose) {
         return rv;
       }
     }
+
+    //  Set ACL for datamover
+    const char* sacl = "user::rw-\nuser:psdatmgr:rwx\ngroup::r--\nmask::rwx\nother::r--\n";
+    acl_t acl = acl_from_text(sacl);
+    if ( (rv = acl_set_fd(fileno(_f),acl)) ) {
+      perror(_fname);
+      acl_free((void*)acl);
+      return rv;
+    }
+    acl_free((void*)acl);
+
     //    rv = 0;
     //  Set disk buffering as a multiple of RAID stripe size (256kB)
     rv = setvbuf(_f, NULL, _IOFBF, 4*1024*1024);
