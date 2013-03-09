@@ -20,7 +20,7 @@ tgtslib_monshm := $(USRLIBDIR)/rt
 tgtsrcs_monshmserver := monshmserver.cc
 tgtlibs_monshmserver := pdsdata/appdata pds/offlineclient offlinedb/mysqlclient offlinedb/offlinedb
 tgtlibs_monshmserver += $(commonlibs) pds/mon $(liblibs_tools) pdsapp/tools pdsdata/indexdata pdsdata/evrdata
-tgtslib_monshmserver := $(USRLIBDIR)/rt $(USRLIBDIR)/acl
+tgtslib_monshmserver := $(USRLIBDIR)/rt
 
 tgtsrcs_offlineobs := offlineobs.cc OfflineAppliance.cc
 tgtlibs_offlineobs := $(commonlibs) pds/mon pds/offlineclient

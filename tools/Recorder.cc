@@ -28,17 +28,6 @@
     
 using namespace Pds;
 
-static void local_mkdir (const char * path)
-{
-  struct stat64 buf;
-
-  if (path && (stat64(path, &buf) != 0)) {
-    if (mkdir(path, 0777)) {
-      perror("Recorder:: mkdir");
-    }
-  }
-}
-
 static int call(char *cmd)
 {
   int rv;
@@ -53,6 +42,23 @@ static int call(char *cmd)
   }
   
   return 0;
+}
+
+static void local_mkdir (const char * path)
+{
+  struct stat64 buf;
+
+  if (path && (stat64(path, &buf) != 0)) {
+    if (mkdir(path, 0777)) {
+      perror("Recorder:: mkdir");
+    }
+    // set ACLs
+    char cmdbuf[200];
+    snprintf(cmdbuf, sizeof(cmdbuf), "setfacl -m user:psdatmgr:rwx %s", path);
+    call(cmdbuf);
+    snprintf(cmdbuf, sizeof(cmdbuf), "setfacl -d -m user:psdatmgr:rwx %s", path);
+    call(cmdbuf);
+  }
 }
 
 static void local_mkdir_with_acls (const char * path, const char *expname)
@@ -368,16 +374,6 @@ int Recorder::_openOutputFile(bool verbose) {
         return rv;
       }
     }
-
-    //  Set ACL for datamover
-    const char* sacl = "user::rw-\nuser:psdatmgr:rwx\ngroup::r--\nmask::rwx\nother::r--\n";
-    acl_t acl = acl_from_text(sacl);
-    if ( (rv = acl_set_fd(fileno(_f),acl)) ) {
-      perror(_fname);
-      acl_free((void*)acl);
-      return rv;
-    }
-    acl_free((void*)acl);
 
     //    rv = 0;
     //  Set disk buffering as a multiple of RAID stripe size (256kB)
