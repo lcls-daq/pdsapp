@@ -152,10 +152,10 @@ int main(int argc, char** argv)
       if (control.current_state()==PartitionControl::Unmapped) {
         platformcb.select(env);
         control.set_partition(partition,
-            dbpath,
-            platformcb.nodes(),
-            platformcb.nnodes(),
-                                    0);
+			      dbpath,
+			      platformcb.nodes(),
+			      platformcb.nnodes(),
+			      0, 0);
       }
       else
         printf(" partition already mapped\n");

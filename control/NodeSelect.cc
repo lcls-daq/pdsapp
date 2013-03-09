@@ -53,6 +53,8 @@ static QList<int> _bldOrder =
          << BldInfo::CxiDg4Pim
          << BldInfo::NumberOf;
 
+static const char* cTransient = "Monitor";
+
 static FILE* open_pref(const char* title, unsigned platform, char* mode)
 {
   const int BUFF_SIZE=256;
@@ -75,39 +77,39 @@ static FILE* open_pref(const char* title, unsigned platform, char* mode)
   return f;
 }
 
-NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, int iUseReadoutGroup) :
-#ifdef BALANCE_LAYOUT
+NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, int iUseReadoutGroup, bool useTransient) :
   QWidget  (parent),
   _group   (new QGroupBox(label)),
-#else
-  QGroupBox(label, parent),
-#endif
   _buttons (new QButtonGroup(parent)),
   _ready   (new QPalette(Qt::green)),
   _notready(new QPalette(Qt::red)),
   _platform(platform),
-  _iUseReadoutGroup(iUseReadoutGroup)
+  _iUseReadoutGroup(iUseReadoutGroup),
+  _useTransient    (useTransient)
 {
-  if ( _iUseReadoutGroup < 0 )
-    _iUseReadoutGroup = 0;
-  else if ( _iUseReadoutGroup > 2 )
-    _iUseReadoutGroup = 2;
-    
   //  Read persistent selected nodes
-  _read_pref(title(), _persist, _persistGroup);
-  _read_pref(QString("%1 required").arg(title()), _require, _requireGroup);
+  if ( _iUseReadoutGroup <= 0 ) {
+    _iUseReadoutGroup = 0;
+    _read_pref(title(), 
+	       _persist, _persistTrans);
+    _read_pref(QString("%1 required").arg(title()), 
+	       _require, _requireTrans);
+  }
+  else {
+    if ( _iUseReadoutGroup > 2 ) _iUseReadoutGroup = 2;
+    _read_pref(title(), 
+	       _persist, _persistGroup, _persistTrans);
+    _read_pref(QString("%1 required").arg(title()), 
+	       _require, _requireGroup, _requireTrans);
+  }    
 
   _buttons->setExclusive(false);
 
-#ifdef BALANCE_LAYOUT
   _group->setLayout(new QVBoxLayout);
   QVBoxLayout* l = new QVBoxLayout;
   l->addWidget(_group);
   l->addStretch();
   setLayout(l);
-#else
-  setLayout(new QVBoxLayout(this));
-#endif
 
   connect(this, SIGNAL(node_added(int)), 
           this, SLOT(add_node(int)));
@@ -119,9 +121,13 @@ NodeGroup::~NodeGroup()
 {
   delete _buttons; 
   
-  CallbackNodeGroup* pCallback;
-  foreach (pCallback, _lCallback)
-    delete pCallback;
+  { CallbackNodeGroup* pCallback;
+    foreach (pCallback, _lCallback)
+      delete pCallback; }
+
+  { NodeTransientCb* pCallback;
+    foreach (pCallback, _lTransientCb)
+      delete pCallback; }
 }
 
 void NodeGroup::addNode(const NodeSelect& node)
@@ -138,7 +144,6 @@ void NodeGroup::addNode(const NodeSelect& node)
   }
 }
 
-#ifdef BALANCE_LAYOUT
 unsigned NodeGroup::nodes() const
 {
   return _nodes.size();
@@ -148,7 +153,6 @@ QString NodeGroup::title() const
 {
   return _group->title();
 }
-#endif
 
 void NodeGroup::add_node(int index)
 { 
@@ -164,11 +168,7 @@ void NodeGroup::add_node(int index)
   _buttons->addButton(button,index); 
   QObject::connect(button, SIGNAL(clicked()), this, SIGNAL(list_changed()));
   
-#ifdef BALANCE_LAYOUT
   QBoxLayout* l = static_cast<QBoxLayout*>(_group->layout());
-#else
-  QBoxLayout* l = static_cast<QBoxLayout*>(layout());
-#endif
   if (node.src().level()==Level::Reporter) {
     int order = _bldOrder.indexOf(node.src().phy());
     for(index = 0; index < l->count(); index++) {
@@ -179,41 +179,61 @@ void NodeGroup::add_node(int index)
   }
   else {
     for(index = 0; index < l->count(); index++) {
-      QString sLabel;
-      if (_iUseReadoutGroup == 1)
-        sLabel = static_cast<QCheckBox*>(
-                    static_cast<QHBoxLayout*>(l->itemAt(index)->layout())
-                   ->itemAt(0)->widget()) ->text();
-      else
-        sLabel = static_cast<QCheckBox*>(l->itemAt(index)->widget())->text();
-      //if (node.label() < static_cast<QCheckBox*>(l->itemAt(index)->widget())->text())
+      QLayout* h = l->itemAt(index)->layout();
+      QString sLabel = static_cast<QCheckBox*>(static_cast<QHBoxLayout*>(h)
+					       ->itemAt(0)->widget()) ->text();
       if (node.label() < sLabel)
         break;
     }
   }
   
+  QHBoxLayout* layoutButton = new QHBoxLayout;
+  layoutButton->addWidget(button); 
+
+  bool bEvrNode = (node.src().level() == Level::Source &&
+		   static_cast<const DetInfo&>(node.src()).device() == DetInfo::Evr);          
+
+  if (_useTransient) {
+
+    QComboBox* transientBox = new QComboBox(this);
+    transientBox->addItem("Rec");
+    transientBox->addItem("Mon");
+    layoutButton->addStretch(1);
+    layoutButton->addWidget(transientBox);
+
+    _lTransientCb.append(new NodeTransientCb(*this, iNodeIndex, *transientBox, button->checkState()==Qt::Checked));
+
+    if (bEvrNode) {
+      transientBox->setCurrentIndex(0);
+      _lTransientCb.last()->stateChanged(0);
+      transientBox->setEnabled(false);
+    }
+    else {
+      connect(button,       SIGNAL(toggled(bool)),            _lTransientCb.last(), SLOT(selectChanged(bool)));
+      connect(transientBox, SIGNAL(currentIndexChanged(int)), _lTransientCb.last(), SLOT(stateChanged(int)));    
+
+      bool lTr = (indexPersist>=0) ? _persistTrans[indexPersist] : false;
+      int cIndex = lTr ? 1:0;
+      transientBox->setCurrentIndex(cIndex);
+      _lTransientCb.last()->stateChanged(cIndex);
+      transientBox->setEnabled(true);
+    }
+  }
+    
   //!!! readout group
   if (_iUseReadoutGroup == 2)
   {
-    bool bEvrNode = ( 
-      node.src().level() == Level::Source &&
-      static_cast<const DetInfo&>(node.src()).device() == DetInfo::Evr);          
     bool bBldNode = ( 
       node.src().level() == Level::Source &&
       static_cast<const DetInfo&>(node.src()).detector() == DetInfo::BldEb);            
     int iNodeGroup = ( (bEvrNode||bBldNode) ? 0:1);
-    setGroup(iNodeIndex, iNodeGroup);          
+    this->node(iNodeIndex).setGroup(iNodeGroup);          
     
-    l->insertWidget(index,button); 
     printf("Added node %s Group (Default) %d\n",qPrintable(node.plabel()), iNodeGroup);
   }
   else
   if (_iUseReadoutGroup == 1)
   {    
-        
-    QHBoxLayout* layoutButton = new QHBoxLayout;
-    layoutButton->addWidget(button); 
-    
     QComboBox* ciUseReadoutGroup = new QComboBox(this);
             
     bool bEvrNode = ( 
@@ -238,23 +258,22 @@ void NodeGroup::add_node(int index)
       ciUseReadoutGroup->setCurrentIndex( iNodeGroup-1 );    
     }
         
-    layoutButton->addStretch(1);         
+    layoutButton->addStretch();         
     layoutButton->addWidget(ciUseReadoutGroup); 
     
-    setGroup(iNodeIndex, iNodeGroup);    
+    this->node(iNodeIndex).setGroup(iNodeGroup);    
     
     _lCallback.append(new CallbackNodeGroup(*this, iNodeIndex));
     connect(ciUseReadoutGroup, SIGNAL(currentIndexChanged(int)), _lCallback.last(), SLOT(currentIndexChanged(int)));    
-    
-    l->insertLayout(index,layoutButton);   
     printf("Added node %s Group %d\n",qPrintable(node.plabel()), iNodeGroup);
   }
   else
   {
-    l->insertWidget(index,button); 
     printf("Added node %s\n",qPrintable(node.plabel()));
   }    
-  
+
+  l->insertLayout(index,layoutButton); 
+    
   emit list_changed();
 }
 
@@ -272,6 +291,7 @@ QList<Node> NodeGroup::selected()
 {
   _persist.clear();
   _persistGroup.clear();
+  _persistTrans.clear();
   QList<Node> nodes;
   QList<QAbstractButton*> buttons = _buttons->buttons();
   Node* master_evr = 0;
@@ -280,6 +300,7 @@ QList<Node> NodeGroup::selected()
       int id = _buttons->id(b);
       _persist.push_back(_nodes[id].plabel().replace('\n','\t'));
       _persistGroup.push_back(_nodes[id].node().group());
+      _persistTrans.push_back(_nodes[id].node().transient());
       
       //printf("node %d %s group %d\n", id, qPrintable(_persist[id]), _persistGroup[id]); //!!!debug
       
@@ -308,9 +329,17 @@ QList<Node> NodeGroup::selected()
         //fprintf(f,"%s;%d\n",qPrintable(p), _persistGroup);
         
       if (_iUseReadoutGroup != 0)
-        fprintf(f,"%s;%d\n",qPrintable(_persist[iNode]), _persistGroup[iNode]);
+        fprintf(f,"%s;%d;%s\n",
+		qPrintable(_persist[iNode]), 
+		_persistGroup[iNode], 
+		_persistTrans[iNode]?cTransient:"Record");
+      else if (_useTransient)
+        fprintf(f,"%s;%s\n",
+		qPrintable(_persist[iNode]),
+		_persistTrans[iNode]?cTransient:"Record");
       else
-        fprintf(f,"%s\n",qPrintable(_persist[iNode]));      
+        fprintf(f,"%s\n",
+		qPrintable(_persist[iNode]));      
     }
     fclose(f);
   }
@@ -362,9 +391,23 @@ QList<BldInfo> NodeGroup::reporters()
   return dets;
 }
 
+QList<BldInfo> NodeGroup::transients() 
+{
+  QList<BldInfo> dets;
+  QList<QAbstractButton*> buttons = _buttons->buttons();
+  foreach(QAbstractButton* b, buttons) {
+    if (b->isChecked()) {
+      int id = _buttons->id(b);
+      if (_nodes[id].node().transient())
+	dets.push_back(_nodes[id].bld());
+    }
+  }
+  return dets;
+}
+
 NodeGroup* NodeGroup::freeze()
 {
-  NodeGroup* g = new NodeGroup(title(),(QWidget*)this, _platform, _iUseReadoutGroup);
+  NodeGroup* g = new NodeGroup(title(),(QWidget*)this, _platform, _iUseReadoutGroup, _useTransient);
 
   {
     QList<QAbstractButton*> buttons = _buttons->buttons();
@@ -393,15 +436,14 @@ bool NodeGroup::ready() const
   return true;
 }
 
-void NodeGroup::setGroup(int iNodeIndex, int iGroup)
+Node& NodeGroup::node(int i)
 {
-  //printf("set node %d group %d\n", iNodeIndex, iGroup);//!!! debug
-  ((Node&) _nodes[iNodeIndex].node()).setGroup(iGroup);
+  return (Node&)_nodes[i].node();
 }
 
 void NodeGroup::_read_pref(const QString&  title,
-                           QList<QString>& l, 
-                           QList<int>&     lg)
+                           QList<QString>& l,
+                           QList<bool>&    lt)
 {
   char *buff = (char *)malloc(NODE_BUFF_SIZE);  // use malloc w/ getline
   if (buff == (char *)NULL) {
@@ -414,30 +456,73 @@ void NodeGroup::_read_pref(const QString&  title,
     char* lptr=buff;
     size_t linesz = NODE_BUFF_SIZE;         // initialize for getline
     
-    const char* lsReadGroupDesc[] = 
-      { "", "with Readout Group (UI)", "with default Readout Group (No UI)" };
-    printf("Reading pref file \"%s\" %s\n", qPrintable(title), lsReadGroupDesc[_iUseReadoutGroup]);      
+    printf("Reading pref file \"%s\"\n", qPrintable(title));
     while(getline(&lptr,&linesz,f)!=-1) {
       QString p(lptr);
       p.chop(1);  // remove new-line
       p.replace('\t','\n');        
-      
-      if (_iUseReadoutGroup != 0)
-      {          
-        QStringList ls = p.split(';');                    
-        if (ls.size()>0)
-        {
-          int iGroup = ( ls.size() <= 1 ? 0 : ls[1].toInt() );            
-          l .push_back(ls[0]);
-          lg.push_back(iGroup);
-          
-          printf("Persist %s Group %d\n",qPrintable(ls[0]), iGroup);
-        }        
+
+      QStringList ls = p.split(';');
+
+      switch (ls.size()) {
+      case 1:
+	l .push_back(ls[0]);
+	lt.push_back(false);
+	break;
+      case 2:
+	l .push_back(ls[0]);
+	lt.push_back(ls[1].compare(cTransient,::Qt::CaseInsensitive)==0);
+	break;
+      default:
+	break;
       }
-      else
-      {
-        l.push_back(p);
-        printf("Persist %s\n",qPrintable(p));
+    }
+    fclose(f);
+  }
+}
+
+
+void NodeGroup::_read_pref(const QString&  title,
+                           QList<QString>& l, 
+                           QList<int>&     lg,
+			   QList<bool>&    lt)
+{
+  char *buff = (char *)malloc(NODE_BUFF_SIZE);  // use malloc w/ getline
+  if (buff == (char *)NULL) {
+    printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, NODE_BUFF_SIZE, errno);
+    return;
+  }
+    
+  FILE* f = open_pref(qPrintable(title), _platform, "r");
+  if (f) {
+    char* lptr=buff;
+    size_t linesz = NODE_BUFF_SIZE;         // initialize for getline
+    
+    while(getline(&lptr,&linesz,f)!=-1) {
+      QString p(lptr);
+      p.chop(1);  // remove new-line
+      p.replace('\t','\n');        
+
+      QStringList ls = p.split(';');
+
+      switch (ls.size()) {
+      case 1:
+	l .push_back(ls[0]);
+	lg.push_back(0);
+	lt.push_back(false);
+	break;
+      case 2:
+	l .push_back(ls[0]);
+	lg.push_back(ls[1].toInt());
+	lt.push_back(false);
+	break;
+      case 3:
+	l .push_back(ls[0]);
+	lg.push_back(ls[1].toInt());
+	lt.push_back(ls[2].compare(cTransient,::Qt::CaseInsensitive)==0);
+	break;
+      default:
+	break;
       }
     }
     fclose(f);
@@ -537,6 +622,27 @@ CallbackNodeGroup::CallbackNodeGroup(NodeGroup& nodeGroup, int iNodeIndex) :
 
 void CallbackNodeGroup::currentIndexChanged(int iGroupIndex)
 {
-  _nodeGroup.setGroup(_iNodeIndex, iGroupIndex + 1);
+  _nodeGroup.node(_iNodeIndex).setGroup(iGroupIndex+1);
+}
+
+NodeTransientCb::NodeTransientCb(NodeGroup& nodeGroup, int iNodeIndex, QWidget& button, bool sel) :
+  _nodeGroup(nodeGroup), _iNodeIndex(iNodeIndex), _button(button), _selected(sel)
+{
+}
+
+void NodeTransientCb::selectChanged(bool v)
+{
+  _selected = v;
+  if (v)
+    _button.setPalette(_nodeGroup.node(_iNodeIndex).transient() ? QPalette(Qt::yellow) : QPalette(Qt::green));
+  else
+    _button.setPalette(QPalette());
+}
+
+void NodeTransientCb::stateChanged(int i)
+{
+ _nodeGroup.node(_iNodeIndex).setTransient(i!=0);
+  if (_selected)
+    _button.setPalette(i!=0 ? QPalette(Qt::yellow) : QPalette(Qt::green));
 }
 

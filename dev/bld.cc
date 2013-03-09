@@ -17,6 +17,7 @@
 #include "pds/utility/SetOfStreams.hh"
 #include "pds/utility/StreamPorts.hh"
 #include "pds/utility/BldServer.hh"
+#include "pds/utility/BldServerTransient.hh"
 #include "pds/utility/NullServer.hh"
 #include "pds/utility/EbBase.hh"
 #include "pds/service/Task.hh"
@@ -382,7 +383,7 @@ namespace Pds {
   class BldConfigApp : public Appliance {
   public:
     BldConfigApp(const Src& src) :
-      _configtc       (TypeId(TypeId::Id_Xtc,1), src),
+      _configtc       (_xtcType, src),
       _config_payload (0) {}
     ~BldConfigApp() { if (_config_payload) delete[] _config_payload; }
   public:
@@ -785,8 +786,18 @@ namespace Pds {
       unsigned partition = alloc.partitionid();
       unsigned nnodes    = alloc.nnodes();
       uint64_t bldmask   = alloc.bld_mask();
+      uint64_t bldmaskt  = alloc.bld_mask_mon();
       InletWire & inlet  = *_streams->wire(StreamParams::FrameWork);
 
+      for (unsigned n = 0; n < nnodes; n++) {
+        const Node & node = *alloc.node(n);
+        if (node.level() == Level::Segment &&
+	    node == _header) {
+	  _contains = node.transient()?_transientXtcType:_xtcType;  // transitions
+	  static_cast<EbBase&>(inlet).contains(_contains);  // l1accepts
+	}
+      }
+	  
       for (unsigned n = 0; n < nnodes; n++) {
         const Node & node = *alloc.node(n);
         if (node.level() == Level::Segment) {
@@ -811,7 +822,11 @@ namespace Pds {
           Node node(Level::Reporter, 0);
           node.fixup(StreamPorts::bld(i).address(),Ether());
           Ins ins( node.ip(), StreamPorts::bld(0).portId());
-          BldServer* srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
+	  BldServer* srv;
+	  if (bldmaskt & (1ULL<<i))
+	    srv = new BldServerTransient(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
+	  else
+	    srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
           inlet.add_input(srv);
           _inputs.push_back(srv);
           srv->server().join(ins, header().ip());

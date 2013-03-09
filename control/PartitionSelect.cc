@@ -97,8 +97,14 @@ void PartitionSelect::select_dialog()
       bld_mask |= 1ULL<<n.type();
     }
 
+    uint64_t bld_mask_mon = 0 ;
+    QList<BldInfo> transients = dialog->transients();
+    foreach(BldInfo n, transients) {
+      bld_mask_mon |= 1ULL<<n.type();
+    }
+
     if (_validate(bld_mask)) {
-      _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes, bld_mask);
+      _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes, bld_mask, bld_mask_mon);
       _pcontrol.set_target_state(PartitionControl::Configured);
     }
 

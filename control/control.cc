@@ -1,4 +1,5 @@
 #include "pdsapp/control/MainWindow.hh"
+#include "pdsapp/control/SelectDialog.hh"
 #include "pdsapp/config/Experiment.hh"
 
 #include <QtGui/QApplication>
@@ -19,6 +20,7 @@ static void usage(char *argv0)
    "         -R <run_number_file>  : no offline db\n"
    "         -N <seconds>          : log long NFS accesses\n"
    "         -O                    : override errors\n"
+   "         -T                    : collect transient data\n"
    "         -w <0/1>              : slow readout\n"
    "         -v\n",
    argv0);
@@ -41,7 +43,7 @@ int main(int argc, char** argv)
   bool override = false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:OS:w:v")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:OTS:w:v")) != -1) {
     char* endPtr;
     switch (c) {
     case 'p':
@@ -74,6 +76,9 @@ int main(int argc, char** argv)
       break;
     case 'S':
       sequencer_id = strtoul(optarg, &endPtr, 0);
+      break;
+    case 'T':
+      SelectDialog::useTransient(true);
       break;
     case 'w':
       slowReadout = strtoul(optarg, &endPtr, 0);

@@ -31,7 +31,10 @@ namespace Pds {
     const std::set<std::string>& deviceNames() const;
     const QList<ProcInfo>& segments () const;
     const QList<BldInfo >& reporters() const;
+    const QList<BldInfo >& transients() const;
     QWidget*               display ();
+  public:
+    static void useTransient(bool);
   public slots:
     void select();
     void check_ready();
@@ -56,6 +59,7 @@ namespace Pds {
     std::set<std::string> _deviceNames;
     QList<ProcInfo> _seginfo;
     QList<BldInfo > _rptinfo;
+    QList<BldInfo > _trninfo;
     QPushButton*   _acceptb;
   };
 };

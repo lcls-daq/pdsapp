@@ -13,6 +13,7 @@
 #include "pdsdata/pnCCD/fformat.h"
 #include "pds/service/GenericPool.hh"
 #include "pds/xtc/Datagram.hh"
+#include "pds/xtc/XtcType.hh"
 
 Datagram* outdg;
 int       Filedes = -1;           // file descriptor
@@ -31,14 +32,12 @@ private:
 
 class pnCcdRceConf : public Xtc {
 public:
-  pnCcdRceConf() : Xtc(TypeId(TypeId::Id_Xtc,Version),ProcInfo(Level::Segment, 0xbead, 0x7f000001)) { 
+  pnCcdRceConf() : Xtc(_xtcType,ProcInfo(Level::Segment, 0xbead, 0x7f000001)) { 
     alloc(sizeof(*this)-sizeof(Xtc));
     //printf(" .%d. ", p.extent);
   }
 public:
   pnCCDconf p;
-private:
-  enum {Version=1};
 };
 
 
@@ -56,14 +55,12 @@ private:
 
 class pnCcdRce : public Xtc {
 public:
-  pnCcdRce() : Xtc(TypeId(TypeId::Id_Xtc,Version),ProcInfo(Level::Segment, 0xbead, 0x7f000001)) { 
+  pnCcdRce() : Xtc(_xtcType,ProcInfo(Level::Segment, 0xbead, 0x7f000001)) { 
     alloc(sizeof(*this)-sizeof(Xtc));
     //printf(" .%d. ", p.extent);
   }
 public:
   pnCCDdata p;
-private:
-  enum {Version=1};
 };
 
 class myLevelIter : public XtcIterator {

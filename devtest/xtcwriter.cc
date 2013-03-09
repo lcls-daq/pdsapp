@@ -5,6 +5,7 @@
 #include <math.h>
 #include <new>
 #include "pds/xtc/Datagram.hh"
+#include "pds/xtc/XtcType.hh"
 #include "pds/utility/Transition.hh"
 #include "pds/service/GenericPool.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -63,7 +64,7 @@ static double ranuni() { return double(random())/double(RAND_MAX); }
 class EbitTdcConfig : public Xtc {
 public:
   EbitTdcConfig() :
-    Xtc(TypeId(TypeId::Id_Xtc,1),Src(Level::Segment)) 
+    Xtc(_xtcType,Src(Level::Segment)) 
   {
   }
 };
@@ -71,7 +72,7 @@ public:
 class EbitAdcConfig : public Xtc {
 public:
   EbitAdcConfig() :
-    Xtc(TypeId(TypeId::Id_Xtc,1),Src(Level::Segment)) 
+    Xtc(_xtcType,Src(Level::Segment)) 
   {
     Xtc* xtc = new(this) Xtc(_adcCType,_adcSrc);
     new(xtc->alloc(sizeof(AdcCType)))
@@ -83,7 +84,7 @@ public:
 class EbitTdcData : public Xtc {
 public:
   EbitTdcData() :
-    Xtc(TypeId(TypeId::Id_Xtc,1),Src(Level::Segment)) 
+    Xtc(_xtcType,Src(Level::Segment)) 
   {
     Xtc* xtc = new(this) Xtc(_tdcType,_tdcSrc);
     uint32_t* common = new(alloc(4)) uint32_t;
@@ -176,7 +177,7 @@ private:
 class EbitAdcData : public Xtc {
 public:
   EbitAdcData() : 
-    Xtc(TypeId(TypeId::Id_Xtc,1),Src(Level::Segment)) 
+    Xtc(_xtcType,Src(Level::Segment)) 
   {
     Xtc* txtc = new(this) Xtc(_adcType,_adcSrc);
 
@@ -193,7 +194,7 @@ public:
 static Datagram* createTransition(Pool& pool, TransitionId::Value id)
 {
   Transition tr(id, Env(0));
-  Datagram* dg = new(&pool) Datagram(tr, TypeId(TypeId::Id_Xtc,1), Src(Level::Event));
+  Datagram* dg = new(&pool) Datagram(tr, _xtcType, Src(Level::Event));
   return dg;
 }
 

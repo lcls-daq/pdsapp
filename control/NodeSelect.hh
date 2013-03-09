@@ -15,8 +15,6 @@
 class QButtonGroup;
 class QPalette;
 
-#define BALANCE_LAYOUT
-
 namespace Pds {
   class PingReply;
 
@@ -49,15 +47,13 @@ namespace Pds {
   };
   
   class CallbackNodeGroup;
+  class NodeTransientCb;
 
-#ifdef BALANCE_LAYOUT
   class NodeGroup : public QWidget {
-#else
-  class NodeGroup : public QGroupBox {
-#endif
     Q_OBJECT
   public:
-    NodeGroup(const QString& label, QWidget* parent, unsigned platform, int iUseReadoutGroup = 0);
+    NodeGroup(const QString& label, QWidget* parent, unsigned platform, 
+	      int iUseReadoutGroup = 0, bool useTransient=false);
     ~NodeGroup();
   public slots:
     void add_node    (int);
@@ -68,39 +64,48 @@ namespace Pds {
     void list_changed ();
   public:
     void addNode(const NodeSelect&);
-#ifdef BALANCE_LAYOUT
     QString        title() const;
     unsigned       nodes() const;
-#endif
     QList<Node>    selected();
     QList<DetInfo> detectors();
     std::set<std::string>  deviceNames();
     QList<BldInfo> reporters();
+    QList<BldInfo> transients();
     NodeGroup*     freeze  ();
     bool           ready   () const;
-    void           setGroup(int iNodeIndex, int iGroup);    
   private:
-    void _read_pref(const QString&, QList<QString>&, QList<int>&);
+    void _read_pref(const QString&, QList<QString>&, QList<bool>&);
+    void _read_pref(const QString&, QList<QString>&, QList<int>&, QList<bool>&);
   private:
-#ifdef BALANCE_LAYOUT
     QGroupBox*     _group;
-#endif
     QButtonGroup*  _buttons;
     QList<NodeSelect> _nodes;
     QList<QString> _persist;
     QList<int>     _persistGroup;
+    QList<bool>    _persistTrans;
     QList<QString> _require;
     QList<int>     _requireGroup;
+    QList<bool>    _requireTrans;
     QList<int>     _order;
     QPalette*      _ready;
     QPalette*      _notready;
+    QPalette*      _warn;
     unsigned       _platform;
+  private:
+    Node& node(int);
+
     /*
      * _iUseReadoutGroup : 0: No readout group, 1: Readout group UI, 2: Default readout group without UI
      */
     int            _iUseReadoutGroup;
     QList<CallbackNodeGroup*>
                    _lCallback;
+
+    bool                    _useTransient;
+    QList<NodeTransientCb*> _lTransientCb;
+
+    friend class CallbackNodeGroup;
+    friend class NodeTransientCb;
   };
 
   class CallbackNodeGroup : public QObject
@@ -108,13 +113,26 @@ namespace Pds {
     Q_OBJECT
   public:
     CallbackNodeGroup(NodeGroup& nodeGroup, int iNodeIndex);
-    
   public slots:    
     void currentIndexChanged(int iGroupIndex);
-    
   private:
     NodeGroup& _nodeGroup;
     int        _iNodeIndex;
+  };
+
+  class NodeTransientCb : public QObject
+  {
+    Q_OBJECT
+  public:
+    NodeTransientCb(NodeGroup& nodeGroup, int iNodeIndex, QWidget& button, bool selected);
+  public slots:    
+    void selectChanged(bool);
+    void stateChanged(int);
+  private:
+    NodeGroup& _nodeGroup;
+    int        _iNodeIndex;
+    QWidget&   _button;
+    bool       _selected;
   };
 
 }; // namespace Pds

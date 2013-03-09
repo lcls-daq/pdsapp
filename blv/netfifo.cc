@@ -125,7 +125,7 @@ namespace Pds {
             printf("Connected [%x.%d].  Opening FIFO for reading... [%s]\n",
                    interface,port,fifo);
             // now open the fifo for input
-            int fifo_fd  = ::open(fifo,O_RDONLY);
+            int fifo_fd  = ::open(fifo,O_RDONLY | O_NONBLOCK);
             printf("FIFO open for reading [%s].\n",fifo);
             int len;
             while((len = ::read(fifo_fd, buff, BUFF_SIZE))>=0) {

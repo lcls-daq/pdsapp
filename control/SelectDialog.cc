@@ -7,6 +7,8 @@
 
 using namespace Pds;
 
+static bool _useTransient = false;
+
 SelectDialog::SelectDialog(QWidget* parent,
          PartitionControl& control, bool bReadGroupEnable) :
   QDialog  (parent),
@@ -15,14 +17,14 @@ SelectDialog::SelectDialog(QWidget* parent,
 {
   setWindowTitle("Partition Selection");
 
-#ifdef BALANCE_LAYOUT
   QGridLayout* layout = new QGridLayout(this);
   layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, _pcontrol.header().platform(), 
-                                            (_bReadGroupEnable? 1:2) ), 
+                                            (_bReadGroupEnable? 1:2), _useTransient ), 
                     0, 0);
   layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this, _pcontrol.header().platform()), 
                     1, 0);
-  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this, _pcontrol.header().platform()),
+  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this, _pcontrol.header().platform(),
+					    0, _useTransient ),
                     2, 0);
 
   _acceptb = new QPushButton("Ok",this);
@@ -34,22 +36,6 @@ SelectDialog::SelectDialog(QWidget* parent,
   setLayout(layout);
 
   connect(this    , SIGNAL(changed()), this, SLOT(update_layout()));
-#else
-  QVBoxLayout* layout = new QVBoxLayout(this);
-  layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, _pcontrol.header().platform(), 
-                                            (_bReadGroupEnable? 1:2) ));
-  layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this, _pcontrol.header().platform()));
-  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this, _pcontrol.header().platform()));
-
-  _acceptb = new QPushButton("Ok",this);
-  QPushButton* rejectb = new QPushButton("Cancel",this);
-  QHBoxLayout* layoutb = new QHBoxLayout;
-  layoutb->addWidget(_acceptb);
-  layoutb->addWidget(rejectb);
-  layout->addLayout(layoutb);
-  setLayout(layout);
-#endif
-
   connect(_acceptb, SIGNAL(clicked()), this, SLOT(select()));
   connect( rejectb, SIGNAL(clicked()), this, SLOT(reject()));
   connect(_segbox , SIGNAL(list_changed()), this, SLOT(check_ready()));
@@ -97,7 +83,6 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
 
 void SelectDialog::update_layout()
 {
-#ifdef BALANCE_LAYOUT
   //
   //  Balance the layout
   //
@@ -133,7 +118,6 @@ void SelectDialog::update_layout()
     }
   }
   updateGeometry();
-#endif
 }
 
 const QList<Node    >& SelectDialog::selected () const { return _selected; }
@@ -145,6 +129,8 @@ const std::set<std::string>& SelectDialog::deviceNames() const { return _deviceN
 const QList<ProcInfo>& SelectDialog::segments () const { return _seginfo; }
 
 const QList<BldInfo >& SelectDialog::reporters() const { return _rptinfo; }
+
+const QList<BldInfo >& SelectDialog::transients() const { return _trninfo; }
 
 QWidget* SelectDialog::display() {
   QWidget* d = new QWidget((QWidget*)0);
@@ -172,6 +158,7 @@ void SelectDialog::select() {
   }
 
   _rptinfo = _rptbox->reporters();
+  _trninfo = _rptbox->transients();
 
   accept();
 }
@@ -188,3 +175,5 @@ void SelectDialog::_clearLayout()
   layout()->removeWidget(_evtbox);
   layout()->removeWidget(_rptbox);
 }
+
+void SelectDialog::useTransient(bool v) { _useTransient=v; }
