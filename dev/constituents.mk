@@ -20,7 +20,6 @@ tgtnames :=  evr \
     acq \
     opal1k \
     epicsArch \
-    rceProxy \
     encoder \
     usdusb \
     bld \
@@ -237,10 +236,6 @@ tgtslib_epicsArch := $(USRLIBDIR)/rt
 tgtsrcs_bld := bld.cc 
 tgtlibs_bld := $(commonlibs) pdsdata/evrdata pdsdata/acqdata pdsdata/ipimbdata pdsdata/pulnixdata pdsdata/lusidata
 tgtslib_bld := $(USRLIBDIR)/rt
-
-tgtsrcs_rceProxy := rceProxy.cc
-tgtlibs_rceProxy := $(commonlibs) pdsdata/pnccddata pds/rceProxy
-tgtslib_rceProxy := $(USRLIBDIR)/rt
 
 tgtsrcs_princeton := princeton.cc
 tgtlibs_princeton := $(commonlibs) pds/princeton pvcam/pvcam 
