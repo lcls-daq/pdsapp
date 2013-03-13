@@ -43,3 +43,6 @@ tgtslib_xcasttest := $(USRLIB)/rt
 
 tgtsrcs_acltest := acltest.cc
 tgtslib_acltest := $(USRLIB)/rt $(USRLIB)/acl
+
+tgtsrcs_xcasttest := xcasttest.cc
+tgtslib_xcasttest := $(USRLIB)/rt

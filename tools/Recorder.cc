@@ -22,7 +22,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <sys/acl.h>
 
 #define DELAY_XFER
     
@@ -52,12 +51,6 @@ static void local_mkdir (const char * path)
     if (mkdir(path, 0777)) {
       perror("Recorder:: mkdir");
     }
-    // set ACLs
-    char cmdbuf[200];
-    snprintf(cmdbuf, sizeof(cmdbuf), "setfacl -m user:psdatmgr:rwx %s", path);
-    call(cmdbuf);
-    snprintf(cmdbuf, sizeof(cmdbuf), "setfacl -d -m user:psdatmgr:rwx %s", path);
-    call(cmdbuf);
   }
 }
 
