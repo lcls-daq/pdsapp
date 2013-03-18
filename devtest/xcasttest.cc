@@ -10,8 +10,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <netinet/ip.h>
+#include <netinet/udp.h>
 
 #include <vector>
+
+//#define USE_RAW
 
 static unsigned parse_ip(const char* ipString) {
   unsigned ip = 0;
@@ -87,11 +91,32 @@ int main(int argc, char **argv)
     printf("dst[%d] : %x.%d\n",i,uaddr[i],port);
   }
 
+#ifdef USE_RAW
+  int fd;
+  if (lreceiver) {
+    if ((fd = ::socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+      perror("socket");
+      return -1;
+    }
+  }
+  else {
+    if ((fd = ::socket(AF_INET, SOCK_RAW, IPPROTO_UDP)) < 0) {
+      perror("socket");
+      return -1;
+    }
+    int y=1;
+    if (setsockopt(fd, IPPROTO_IP, IP_HDRINCL, (char*)&y, sizeof(y)) == -1) {
+      perror("set ip_hdrincl");
+      return -1;
+    }
+  }
+#else
   int fd;
   if ((fd = ::socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
     perror("socket");
     return -1;
   }
+#endif
   
   unsigned skb_size = 0x100000;
 
@@ -141,17 +166,58 @@ int main(int argc, char **argv)
       return -1;
     }
 
-    in_addr addr;
-    addr.s_addr = htonl(interface);
-    if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, (char*)&addr,
-                   sizeof(in_addr)) < 0) {
-      perror("set ip_mc_if");
-      return -1;
+#ifdef USE_RAW
+#else
+    { sockaddr_in sa;
+      sa.sin_family      = AF_INET;
+      sa.sin_addr.s_addr = htonl(interface|0xff);
+      sa.sin_port        = htons(port);
+      memset(sa.sin_zero,0,sizeof(sa.sin_zero));
+      printf("binding to %x.%d\n",ntohl(sa.sin_addr.s_addr),ntohs(sa.sin_port));
+      if (::bind(fd, (sockaddr*)&sa, sizeof(sockaddr_in)) < 0) {
+        perror("bind");
+        return -1;
+      }
+      sockaddr_in name;
+      socklen_t name_len=sizeof(name);
+      if (::getsockname(fd,(sockaddr*)&name,&name_len) == -1) {
+        perror("getsockname");
+        return -1;
+      }
+      printf("bound to %x.%d\n",ntohl(name.sin_addr.s_addr),ntohs(name.sin_port));
+    }
+#endif    
+
+    if ((uaddr[0]>>28) == 0xe) {
+      in_addr addr;
+      addr.s_addr = htonl(interface);
+      if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, (char*)&addr,
+                     sizeof(in_addr)) < 0) {
+        perror("set ip_mc_if");
+        return -1;
+      }
     }
   }
 
   uint64_t nbytes = 0, tbytes = 0;
   char* buff = new char[sz];
+  iphdr* ip = (iphdr*)buff;
+  ip->ihl = 5;
+  ip->version = 4;
+  ip->tos = 0;
+  ip->tot_len = sz + sizeof(udphdr) + sizeof(iphdr);
+  ip->id = 0;
+  ip->frag_off = 0;
+  ip->ttl = 1;
+  ip->protocol = IPPROTO_UDP;
+  ip->check = 0;
+  ip->saddr = htonl(interface|0xff);
+
+  udphdr* udp = (udphdr*)(ip+1);
+  udp->source = 0;
+  udp->dest   = htons(port);
+  udp->len    = htons(sz+sizeof(udphdr));
+  udp->check  = 0;
 
   timespec tv_begin;
   clock_gettime(CLOCK_REALTIME,&tv_begin);
@@ -166,7 +232,13 @@ int main(int argc, char **argv)
       bytes = ::recv(fd, buff, sz, 0);
     else {
       const sockaddr_in& sa = address[iaddr];
+#ifdef USE_RAW
+      ip->id++;
+      ip->daddr = sa.sin_addr.s_addr;
+      bytes = ::sendto(fd, buff, sz+sizeof(iphdr), 0, (const sockaddr*)&sa, sizeof(sockaddr_in));
+#else
       bytes = ::sendto(fd, buff, sz, 0, (const sockaddr*)&sa, sizeof(sockaddr_in));
+#endif
       iaddr = (iaddr+1)%address.size();
     }
 
@@ -183,9 +255,12 @@ int main(int argc, char **argv)
     if (dt > 1) {
       t += dt;
       nbytes += tbytes;
-      printf("\t%uMB/s\t%uMB/s\n",
+      printf("\t%uMB/s\t%uMB/s\t%dMB\t%d.%09d\n",
 	     unsigned(double(nbytes)/ t*1.e-6),
-	     unsigned(double(tbytes)/dt*1.e-6));
+	     unsigned(double(tbytes)/dt*1.e-6),
+             unsigned(double(tbytes)*1.e-6),
+             tv.tv_sec, tv.tv_nsec);
+                      
       tv_begin = tv;
       tbytes = 0;
     }
