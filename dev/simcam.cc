@@ -274,7 +274,8 @@ void printUsage(char* s) {
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  unsigned platform = -1UL;
+  const unsigned NO_PLATFORM = -1UL;
+  unsigned platform = NO_PLATFORM;
 
   DetInfo info;
   AppList user_apps;
@@ -282,8 +283,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:vD:T:L:h")) != EOF ) {
-    bool     found;
+  while ( (c=getopt( argc, argv, "i:p:vD:T:L:S:h")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
@@ -329,6 +329,9 @@ int main(int argc, char** argv) {
         }
         break;
       }
+    case 'S':
+      ToEventWireScheduler::setMaximum(strtoul(optarg,NULL,0));
+      break;
     case 'h':
       printUsage(argv[0]);
       return 0;
@@ -339,7 +342,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (platform == -1UL) {
+  if (platform == NO_PLATFORM) {
     printf("%s: platform required\n",argv[0]);
     return 0;
   }
