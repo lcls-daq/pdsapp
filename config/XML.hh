@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace Pds {
+namespace Pds_ConfigDb {
   namespace XML {
     class StartTag {
     public:
@@ -56,9 +56,9 @@ namespace Pds {
   };
 }
 
-#define XML_iterate_open(pvar,tvar)                      \
-  for(Pds::XML::TagIterator it(pvar); !it.end(); it++) { \
-    const Pds::XML::StartTag& tvar = *it;                
+#define XML_iterate_open(pvar,tvar)                               \
+  for(Pds_ConfigDb::XML::TagIterator it(pvar); !it.end(); it++) { \
+    const Pds_ConfigDb::XML::StartTag& tvar = *it;                
 
 #define XML_iterate_close(where,tvar)           \
   else                                          \
@@ -67,10 +67,10 @@ namespace Pds {
            tvar.name.c_str());                  \
   }
 
-#define XML_insert( p, element, name, routine ) {               \
-    QtPersistent::insert(p, Pds::XML::StartTag(element,name));  \
-    { routine; }                                                \
-    QtPersistent::insert(p, Pds::XML::StopTag (element)); }
+#define XML_insert( p, element, name, routine ) {                  \
+    XML::IO::insert(p, Pds_ConfigDb::XML::StartTag(element,name)); \
+    { routine; }                                                   \
+    XML::IO::insert(p, Pds_ConfigDb::XML::StopTag (element)); }
 
 
 #endif

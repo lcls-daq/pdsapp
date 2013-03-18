@@ -1,6 +1,6 @@
-#include "pdsapp/tools/XML.hh"
+#include "pdsapp/config/XML.hh"
 
-using namespace Pds::XML;
+using namespace Pds_ConfigDb::XML;
 
 const int StringSize = 64;
 const int IntSize = 16;
@@ -9,8 +9,8 @@ const int DoubleSize = 16;
 static unsigned indent   = 0;
 static bool     tag_open = false;
 
-static const char ESC = '\';
-static const char* SPECIAL = "\<";
+static const char ESC = '\\';
+static const char* SPECIAL = "\\<";
 static const char* CTRUE  = "True";
 static const char* CFALSE = "False";
 
@@ -73,12 +73,13 @@ void IO::insert(char*& p, const StopTag& tag)
   tag_open = false;
 }
 
-void IO::insert(char*& p, const std::string& s)
+void IO::insert(char*& p, const std::string& i)
 {
   // escape special characters
-  int pos = std::string::npos;
-  while((pos = s.find_last_of(SPECIAL,pos)) != std::string::npos) {
-    s.insert(pos,ESC);
+  std::string s(i);
+  size_t pos = std::string::npos;
+  while((pos = s.find_last_of(SPECIAL,pos)) != std::string::npos)
+    s.insert(pos,1,ESC);
   p += sprintf(p, "%s", s.c_str());
 }
 
@@ -133,7 +134,7 @@ std::string IO::extract_s(const char*& p)
   std::string v;
   while(*p != '<') {
     if (*p == ESC) p++;
-    v.append(*p++);
+    v.append(1,*p++);
   }
   return v;
 }
