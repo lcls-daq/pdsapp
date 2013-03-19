@@ -314,7 +314,7 @@ static void handle_stdin(fd_set *rfds)
             } else {
                 gettimeofday(&now, NULL);
                 if (delay && (now.tv_sec > limit.tv_sec || 
-                              (now.tv_sec = limit.tv_sec && now.tv_usec > limit.tv_usec))) {
+                              (now.tv_sec == limit.tv_sec && now.tv_usec > limit.tv_usec))) {
                     if (now.tv_usec <= limit.tv_usec) {
                         timer.it_value.tv_usec = limit.tv_usec - now.tv_usec;
                         timer.it_value.tv_sec = keepalive + limit.tv_sec - now.tv_sec;
