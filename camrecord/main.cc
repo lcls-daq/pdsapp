@@ -65,7 +65,7 @@ static fd_set all_fds;
 static int maxfds = -1;
 static int delay = 0;
 static int keepalive = 0;
-static struct timeval start, limit;
+static struct timeval start, ka_finish, finish;
 static struct itimerval timer;
 static int running = 0;
 int record_cnt = 0;
@@ -104,15 +104,18 @@ void begin_run(void)
     running = 1;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
-    if (keepalive)
+    if (keepalive && (!delay || keepalive < delay))
         timer.it_value.tv_sec = keepalive;
     else
         timer.it_value.tv_sec = delay;
     timer.it_value.tv_usec = 0;
     gettimeofday(&start, NULL);
-    limit = start;
-    if (delay)
-        limit.tv_sec += delay - keepalive;
+    finish = start;
+    ka_finish = start;
+    if (delay) {
+        ka_finish.tv_sec += delay - keepalive;
+        finish.tv_sec += delay;
+    }
     if (delay || keepalive)
         setitimer(ITIMER_REAL, &timer, NULL);
 }
@@ -266,9 +269,6 @@ static void initialize(char *config)
         usage();
         /* No return! */
     }
-    if (delay && keepalive >= delay) {
-        keepalive = 0;
-    }
     if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
         char buf[1024];
         *s = 0;
@@ -313,14 +313,19 @@ static void handle_stdin(fd_set *rfds)
                 haveint = 1;
             } else {
                 gettimeofday(&now, NULL);
-                if (delay && (now.tv_sec > limit.tv_sec || 
-                              (now.tv_sec == limit.tv_sec && now.tv_usec > limit.tv_usec))) {
-                    if (now.tv_usec <= limit.tv_usec) {
-                        timer.it_value.tv_usec = limit.tv_usec - now.tv_usec;
-                        timer.it_value.tv_sec = keepalive + limit.tv_sec - now.tv_sec;
+                if (delay && (now.tv_sec > ka_finish.tv_sec || 
+                              (now.tv_sec == ka_finish.tv_sec && now.tv_usec > ka_finish.tv_usec))) {
+                    if (now.tv_sec > finish.tv_sec || 
+                        (now.tv_sec == finish.tv_sec && now.tv_usec > finish.tv_usec)) {
+                        int_handler(SIGALRM);      /* Past the time?!? */
+                        timer.it_value.tv_sec = keepalive;
+                        timer.it_value.tv_usec = 0;
+                    } else if (now.tv_usec <= ka_finish.tv_usec) {
+                        timer.it_value.tv_usec = ka_finish.tv_usec - now.tv_usec;
+                        timer.it_value.tv_sec = keepalive + ka_finish.tv_sec - now.tv_sec;
                     } else {
-                        timer.it_value.tv_usec = 1000000 + limit.tv_usec - now.tv_usec;
-                        timer.it_value.tv_sec = keepalive - 1 + limit.tv_sec - now.tv_sec;
+                        timer.it_value.tv_usec = 1000000 + ka_finish.tv_usec - now.tv_usec;
+                        timer.it_value.tv_sec = keepalive - 1 + ka_finish.tv_sec - now.tv_sec;
                     }
                 } else {
                     timer.it_value.tv_sec = keepalive;
