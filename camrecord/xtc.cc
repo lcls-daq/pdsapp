@@ -34,10 +34,12 @@ struct event;
 
 class xtcsrc {
  public:
-    xtcsrc(int _id, int _sync) : id(_id), sync(_sync), val(NULL),
+    xtcsrc(int _id, int _sync, string _name) : id(_id), sync(_sync), name(_name), cnt(0), val(NULL),
                                  len(0), ref(NULL), sec(0), nsec(0), ev(NULL) {};
     int   id;
     int   sync;                   // Is this a synchronous source?
+    string name;
+    int   cnt;
     unsigned char *val;
     int   len;
     int  *ref;                    // Reference count of this value (if asynchronous!)
@@ -57,6 +59,7 @@ static int started = 0;        // We are actually running.
 static int numsrc = 0;         // Total number of sources.
 static int syncsrc = 0;        // Number of synchronous sources.
 static int asyncsrc = 0;       // Number of asynchronous sources.
+static unsigned int maxname = 0;// Maximum name length.
 static int havedata = 0;       // Number of sources that sent us a value.
 static int haveasync = 0;      // Number of asynchronous sources that sent us a value.
 static int cfgcnt = 0;         // Number of sources that sent us their configuration.
@@ -271,9 +274,19 @@ void initialize_xtc(char *outfile)
 /*
  * Generate a unique id for this source.
  */
-int register_xtc(int sync)
+int register_xtc(int sync, string name)
 {
-    src.push_back(new xtcsrc(numsrc, sync));
+    // Make all of the names equal length!
+    if (name.length() > maxname) {
+        maxname = name.length();
+        for (int i = 0; i < numsrc; i++) {
+            while (src[i]->name.length() != maxname)
+                src[i]->name.append(" ");
+        }
+    }
+    while (name.length() != maxname)
+        name.append(" ");
+    src.push_back(new xtcsrc(numsrc, sync, name));
     if (sync)
         syncsrc++;
     else
@@ -286,6 +299,7 @@ int register_xtc(int sync)
  */
 void configure_xtc(int id, char *xtc, int size, unsigned int secs, unsigned int nsecs)
 {
+    src[id]->cnt++;
     src[id]->val = new unsigned char[size];
     src[id]->len = size;
     totalcfglen += size;
@@ -465,6 +479,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
     xtcsrc *s = src[id];
     struct event *ev;
 
+    s->cnt++;
     /*
      * Just go home if:
      *    - We aren't running yet.
@@ -605,4 +620,12 @@ void cleanup_xtc(void)
     }
     if (fp)
         fclose(fp);
+}
+
+void xtc_stats(void)
+{
+    for (int i = 0; i < numsrc; i++) {
+        fprintf(stderr, "     %s     %5d received\n", src[i]->name.c_str(), src[i]->cnt);
+    }
+    fflush(stderr);
 }

@@ -90,7 +90,7 @@ class caconn {
 
         num = conns.size();
         conns.push_back(this);
-        xid = register_xtc(strict);
+        xid = register_xtc(strict, name);
         if (det == DetInfo::EpicsArch) {
             caid = nxtcaid++;
             is_cam = 0;

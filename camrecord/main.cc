@@ -279,7 +279,7 @@ static void initialize(char *config)
     initialize_xtc(outfile);
 }
 
-static void stats(void)
+static void stats(int verbose)
 {
     double runtime;
     struct timeval now;
@@ -297,6 +297,8 @@ static void stats(void)
         fprintf(stderr, "%sstill waiting to initialize.\n", hostname.c_str());
         fflush(stderr);
     }
+    if (verbose)
+        xtc_stats();
 }
 
 static void handle_stdin(fd_set *rfds)
@@ -311,7 +313,7 @@ static void handle_stdin(fd_set *rfds)
             if (!strcmp(buf, "stop")) {
                 printf("Got stop!\n");
                 haveint = 1;
-            } else {
+            } else if (buf[0] == 0 || !strcmp(buf, "stats")) {
                 gettimeofday(&now, NULL);
                 if (delay && (now.tv_sec > ka_finish.tv_sec || 
                               (now.tv_sec == ka_finish.tv_sec && now.tv_usec > ka_finish.tv_usec))) {
@@ -332,7 +334,9 @@ static void handle_stdin(fd_set *rfds)
                     timer.it_value.tv_usec = 0;
                 }
                 setitimer(ITIMER_REAL, &timer, NULL);
-                stats();
+                stats(buf[0] != 0);
+            } else {
+                // This is an error, which we will silently ignore.
             }
         } else {
             printf("Standard input is closed, terminating!\n");
