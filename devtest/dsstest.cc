@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
   for(unsigned i=0; i<nevents; i++) {
 
     if (i%(nevents/10)==0)
-      printf("%d \% \n",i*100/nevents);
+      printf("%d %% \n",i*100/nevents);
 
     while(buffers.empty()) 
       usleep(1000);

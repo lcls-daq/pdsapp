@@ -1,7 +1,7 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
 #tgtnames    := evgr xtcwriter pnccd xtctruncate pnccdreader
-tgtnames    := evgr pnccd xtctruncate pnccdreader dsstest xcasttest
+tgtnames    := evgr pnccd xtctruncate pnccdreader dsstest xcasttest xtccompress
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
@@ -46,3 +46,8 @@ tgtslib_acltest := $(USRLIB)/rt $(USRLIB)/acl
 
 tgtsrcs_xcasttest := xcasttest.cc
 tgtslib_xcasttest := $(USRLIB)/rt
+
+tgtsrcs_xtccompress := xtccompress.cc
+tgtlibs_xtccompress := pdsdata/xtcdata pdsdata/acqdata pdsdata/compressdata pdsdata/cspaddata pdsdata/timepixdata pdsdata/camdata pdsdata/cspad2x2data
+tgtlibs_xtccompress += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client pds/clientcompress 
+tgtslib_xtccompress := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread 

@@ -259,7 +259,7 @@ int main(int argc, char **argv)
 	     unsigned(double(nbytes)/ t*1.e-6),
 	     unsigned(double(tbytes)/dt*1.e-6),
              unsigned(double(tbytes)*1.e-6),
-             tv.tv_sec, tv.tv_nsec);
+             unsigned(tv.tv_sec), unsigned(tv.tv_nsec));
                       
       tv_begin = tv;
       tbytes = 0;
