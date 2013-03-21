@@ -198,7 +198,6 @@ int main(int argc, char** argv) {
   unsigned interface(0);
   unsigned client(0);
   std::vector<IpmParams> ipms;
-  int baselineSubtraction = 1;
 
   Node node(Level::Source,0);
 

@@ -105,9 +105,9 @@ int main(int argc, char** argv) {
   while(1) {
     int len = srv.fetch(buff,0);
     
-    int result = cli.send(const_cast<char*>(srv.datagram()),
-                          buff,
-                          len);
+    cli.send(const_cast<char*>(srv.datagram()),
+             buff,
+             len);
   }
   
   return 0;
