@@ -10,6 +10,8 @@
 #include "pds/management/EventCallback.hh"
 #include "pds/management/EventStreams.hh"
 
+#include "pds/client/FrameCompApp.hh"
+
 #include "pds/utility/SegWireSettings.hh"
 #include "pds/utility/InletWireServer.hh"
 #include "pds/utility/InletWireIns.hh"
@@ -550,12 +552,14 @@ namespace Pds {
           public SegWireSettings {
   public:
     BldCallback(Task*      task,
-    unsigned   platform,
-    uint64_t   mask,
-    BldConfigCache& cache) :
+                unsigned   platform,
+                uint64_t   mask,
+                BldConfigCache& cache,
+                bool       lCompress) :
       _task    (task),
       _platform(platform),
-      _cache   (cache)
+      _cache   (cache),
+      _lCompress(lCompress)
     {
       Node node(Level::Source,platform);
       _sources.push_back(DetInfo(node.pid(),
@@ -577,6 +581,8 @@ namespace Pds {
     void attached(SetOfStreams& streams)
     {
       Inlet* inlet = streams.stream()->inlet();
+      if (_lCompress)
+        (new FrameCompApp(TM6740ConfigType::Row_Pixels*TM6740ConfigType::Column_Pixels*2))->connect(inlet);
       (new BldParseApp(_cache))->connect(inlet);
       //      (new BldConfigApp(_sources.front()))->connect(inlet);
       (new BldDbg(static_cast<EbBase*>(streams.wire())))->connect(inlet);
@@ -610,6 +616,7 @@ namespace Pds {
     unsigned       _platform;
     BldConfigCache& _cache;
     std::list<Src> _sources;
+    bool           _lCompress;
   };
 
   class BldEvBuilder : public EbS {
@@ -882,7 +889,8 @@ static void sigintHandler(int iSignal)
 }
 
 void usage(const char* p) {
-  printf("Usage: %s -p <platform> [-m <mask>]\n",p);
+  printf("Usage: %s -p <platform> [-m <mask>] [-C]\n"
+         "       -C : compress images\n",p);
 }
 
 int main(int argc, char** argv) {
@@ -890,17 +898,21 @@ int main(int argc, char** argv) {
   const unsigned NO_PLATFORM = unsigned(-1);
   // parse the command line for our boot parameters
   unsigned platform = NO_PLATFORM;
+  bool lCompress = false;
   uint64_t mask = (1ULL<<BldInfo::NumberOf)-1;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "p:m:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "p:m:C")) != EOF ) {
     switch(c) {
     case 'p':
       platform = strtoul(optarg, NULL, 0);
       break;
     case 'm':
       mask = strtoull(optarg, NULL, 0);
+      break;
+    case 'C':
+      lCompress = true;
       break;
     default:
       usage(argv[0]);
@@ -935,7 +947,7 @@ int main(int argc, char** argv) {
     printf("Couldn't set up SIGTERM handler\n");
 
   Task*               task = new Task(Task::MakeThisATask);
-  BldCallback*          cb = new BldCallback(task, platform, mask, *cache);
+  BldCallback*          cb = new BldCallback(task, platform, mask, *cache, lCompress);
   BldSegmentLevel* segment = new BldSegmentLevel(platform, *cb);
   if (segment->attach())
     task->mainLoop();

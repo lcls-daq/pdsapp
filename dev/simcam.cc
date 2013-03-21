@@ -1,5 +1,7 @@
 #include "pdsapp/dev/CmdLineTools.hh"
 
+#include "pds/client/FrameCompApp.hh"
+
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 
@@ -186,6 +188,7 @@ public:
     }
     return dg; 
   }
+  size_t max_size() const { return _evttc->sizeofPayload(); }
 private:
   Xtc*  _cfgtc;
   char* _cfgpayload;
@@ -204,12 +207,16 @@ public:
   SegTest(Task*                 task,
           unsigned              platform,
           const Src&            src,
-          const AppList&        user_apps) :
+          const AppList&        user_apps,
+          bool                  lCompress) :
     _task     (task),
     _platform (platform),
     _app      (new SimApp(src)),
     _user_apps(user_apps)
   {
+    if (lCompress)
+      _user_apps.push_front(new FrameCompApp(_app->max_size()));
+
     _sources.push_back(src);
   }
 
@@ -265,6 +272,7 @@ void printUsage(char* s) {
       "    -p      Set platform id           [required]\n"
       "    -i      Set device info\n"
       "    -v      Toggle verbose mode\n"
+      "    -C      Compress frames\n"
       "    -D <N>  Drop every N events\n"
       "    -T <S>,<N>  Delay S seconds every N events\n",
       s
@@ -274,8 +282,9 @@ void printUsage(char* s) {
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  const unsigned NO_PLATFORM = -1UL;
+  const unsigned NO_PLATFORM = unsigned(-1UL);
   unsigned platform = NO_PLATFORM;
+  bool lCompress = false;
 
   DetInfo info;
   AppList user_apps;
@@ -283,7 +292,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:vD:T:L:S:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:vCD:T:L:S:h")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
@@ -297,6 +306,9 @@ int main(int argc, char** argv) {
     case 'v':
       verbose = !verbose;
       printf("Verbose mode now %s\n", verbose ? "true" : "false");
+      break;
+    case 'C':
+      lCompress = true;
       break;
     case 'D':
       ndrop = strtoul(optarg, NULL, 0);
@@ -353,7 +365,8 @@ int main(int argc, char** argv) {
   SegTest* segtest = new SegTest(task, 
                                  platform, 
                                  info,
-                                 user_apps);
+                                 user_apps,
+                                 lCompress);
 
   SegmentLevel* segment = new SegmentLevel(platform, 
              *segtest,

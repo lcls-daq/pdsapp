@@ -3,6 +3,7 @@
 
 #include "pds/utility/Appliance.hh"
 #include "pds/service/Semaphore.hh"
+#include "pdsdata/xtc/XtcIterator.hh"
 
 namespace Pds {
   class SimCam : public Appliance {
@@ -14,6 +15,11 @@ namespace Pds {
     InDatagram* events     (InDatagram*);
     Occurrence* occurrences(Occurrence*);
   private:
+    class MyIter : public XtcIterator {
+    public:
+      MyIter() {}
+      int process(Xtc*);
+    };
   };
 };
 

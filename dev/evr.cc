@@ -127,7 +127,8 @@ using namespace Pds;
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  uint32_t  platform  = -1UL;
+  const uint32_t NO_PLATFORM = uint32_t(-1UL);
+  uint32_t  platform  = NO_PLATFORM;
   Arp*      arp       = 0;
   char*     evrid     = 0;
 
@@ -168,7 +169,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (platform==-1UL) {
+  if (platform==NO_PLATFORM) {
     printf("%s: platform required\n",argv[0]);
     return 0;
   }

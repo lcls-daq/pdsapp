@@ -1,4 +1,5 @@
 #include "pdsapp/dev/CmdLineTools.hh"
+#include "pds/client/FrameCompApp.hh"
 
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
@@ -22,6 +23,10 @@
 #include "pds/camera/FrameServer.hh"
 #include "pds/camera/PicPortCL.hh"
 
+#include "pds/config/Opal1kConfigType.hh"
+#include "pds/config/TM6740ConfigType.hh"
+#include "pds/config/QuartzConfigType.hh"
+
 #include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -33,7 +38,8 @@ static bool verbose = false;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> [-g <grabberId>] [-v] [-h]\n",p);
+  printf("Usage: %s -i <detinfo> -p <platform> [-g <grabberId>] [-C] [-v] [-h]\n"
+         "       -C : compress data\n", p);
 }
 
 static void help()
@@ -89,12 +95,14 @@ namespace Pds {
 	    unsigned              platform,
 	    const Src&            src,
 	    unsigned              grabberId,
-            const AppList&        user_apps) :
+            const AppList&        user_apps,
+            bool                  lCompress) :
       _task     (task),
       _platform (platform),
       _grabberId(grabberId),
       _user_apps(user_apps)
     {
+      size_t max_size;
       const Pds::DetInfo info = static_cast<const Pds::DetInfo&>(src);
       switch(info.device()) {
       case DetInfo::Opal1000:
@@ -102,16 +110,22 @@ namespace Pds {
       case DetInfo::Opal4000:
       case DetInfo::Opal1600:
       case DetInfo::Opal8000:
+        max_size = Opal1kConfigType::max_row_pixels(info)*Opal1kConfigType::max_column_pixels(info)*2;
         _camman  = new Opal1kManager(src); break;
       case DetInfo::TM6740  :
+        max_size = TM6740ConfigType::Row_Pixels*TM6740ConfigType::Column_Pixels*2;
         _camman  = new PimManager(src); break;
       case DetInfo::Quartz4A150:
+        max_size = QuartzConfigType::Row_Pixels*QuartzConfigType::Column_Pixels*2;
         _camman  = new QuartzManager(src); break;
       default:
         printf("Unsupported camera %s\n",DetInfo::name(info.device()));
         exit(1);
         break;
       }
+
+      if (lCompress)
+        _user_apps.push_front(new FrameCompApp(max_size));
 
       _sources.push_back(_camman->server().client());
     }
@@ -194,6 +208,7 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   const unsigned NO_PLATFORM = ~0;
   unsigned platform = NO_PLATFORM;
+  bool lCompress = false;
   Arp* arp = 0;
 
   DetInfo info;
@@ -206,7 +221,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:L:vh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:L:Cvh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -238,6 +253,9 @@ int main(int argc, char** argv) {
         usage(argv[0]);
         return -1;
       }
+      break;
+    case 'C':
+      lCompress = true;
       break;
     case 'L':
       { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
@@ -314,7 +332,8 @@ int main(int argc, char** argv) {
 				 platform, 
                                  info,
 				 grabberId,
-                                 user_apps);
+                                 user_apps,
+                                 lCompress);
 
   printf("Creating segment level ...\n");
   SegmentLevel* segment = new SegmentLevel(platform, 

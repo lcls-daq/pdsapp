@@ -3,14 +3,11 @@
 libnames := devapp
 libsrcs_devapp := CmdLineTools.cc
 
-libnames += simcam
-libsrcs_simcam := SimCam.cc
-
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 #CPPFLAGS += -DBLD_DELAY # for tolerating BLD delays up to 0.5 seconds
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames := opal1kedt quartzedt pimimageedt phasics \
+tgtnames := phasics \
   oceanoptics fli andor usdusb camedt simcam \
   bld evr
 else
@@ -18,7 +15,6 @@ tgtnames :=  evr \
     evrstandalone \
     evrsnoop \
     acq \
-    opal1k \
     epicsArch \
     encoder \
     usdusb \
@@ -27,8 +23,6 @@ tgtnames :=  evr \
     princetonsim \
     ipimb \
     lusidiag \
-    tm6740 \
-    pimimage \
     fccd     \
     cspad    \
     xamps    \
@@ -37,14 +31,13 @@ tgtnames :=  evr \
     timepix  \
     simcam   \
     cspad2x2 \
-    timetool \
     oceanoptics \
     fli \
     andor \
     cam
 endif
 
-commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata pdsdata/camdata  pdsdata/compressdata
+commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata pdsdata/camdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
 commonlibs  += pdsapp/devapp
 
@@ -143,75 +136,22 @@ cam_libs := pdsdata/opal1kdata pdsdata/quartzdata pdsdata/fccddata pdsdata/pulni
 tgtsrcs_cam := cam.cc 
 tgtlibs_cam := $(commonlibs) $(cam_libs)
 tgtlibs_cam += pds/camera pds/epicstools epics/ca epics/Com
+tgtlibs_cam += pds/clientcompress pdsdata/compressdata
 tgtlibs_cam += $(leutron_libs)
 tgtincs_cam := leutron/include
 tgtincs_cam += epics/include epics/include/os/Linux
 
 tgtsrcs_camedt := camedt.cc 
-tgtlibs_camedt := pdsdata/xtcdata
+tgtlibs_camedt := pdsdata/xtcdata pdsdata/compressdata
 tgtlibs_camedt += $(cam_libs)
 tgtlibs_camedt += pds/service pds/collection pds/xtc pds/mon pds/vmon 
 tgtlibs_camedt += pds/utility pds/management pds/client pds/config 
 tgtlibs_camedt += pds/camera pds/epicstools epics/ca epics/Com
-tgtlibs_camedt += pdsapp/devapp
+tgtlibs_camedt += pds/clientcompress pdsdata/compressdata
 tgtlibs_camedt += $(edt_libs)
 tgtslib_camedt := $(USRLIBDIR)/rt/rt $(USRLIBDIR)/rt/dl
 tgtincs_camedt := edt/include
 tgtincs_camedt += epics/include epics/include/os/Linux
-
-tgtsrcs_opal1k := opal1k.cc 
-tgtlibs_opal1k := $(commonlibs) $(cam_libs)
-tgtlibs_opal1k += pds/camera
-tgtlibs_opal1k += $(leutron_libs)
-tgtincs_opal1k := leutron/include
-
-tgtsrcs_opal1kedt := opal1kedt.cc 
-tgtlibs_opal1kedt := pdsdata/xtcdata
-tgtlibs_opal1kedt += $(cam_libs)
-tgtlibs_opal1kedt += pds/service pds/collection pds/xtc pds/mon pds/vmon 
-tgtlibs_opal1kedt += pds/utility pds/management pds/client pds/config 
-tgtlibs_opal1kedt += pds/camera
-tgtlibs_opal1kedt += pdsapp/devapp
-tgtlibs_opal1kedt += $(edt_libs)
-tgtslib_opal1kedt := $(USRLIBDIR)/rt/rt $(USRLIBDIR)/rt/dl
-tgtincs_opal1kedt := edt/include
-
-tgtsrcs_quartzedt := quartzedt.cc 
-tgtlibs_quartzedt := pdsdata/xtcdata
-tgtlibs_quartzedt += $(cam_libs)
-tgtlibs_quartzedt += pds/service pds/collection pds/xtc pds/mon pds/vmon 
-tgtlibs_quartzedt += pds/utility pds/management pds/client pds/config 
-tgtlibs_quartzedt += pds/camera
-tgtlibs_quartzedt += pdsapp/devapp
-tgtlibs_quartzedt += $(edt_libs)
-tgtslib_quartzedt := $(USRLIBDIR)/rt/rt $(USRLIBDIR)/rt/dl
-tgtincs_quartzedt := edt/include
-
-tgtsrcs_timetool := timetool.cc TimeTool.cc
-tgtlibs_timetool := $(commonlibs) $(cam_libs)
-tgtlibs_timetool += pds/camera pds/epicstools epics/ca epics/Com
-tgtlibs_timetool += $(leutron_libs)
-tgtincs_timetool := leutron/include
-tgtincs_timetool += epics/include epics/include/os/Linux
-
-tgtsrcs_tm6740 := tm6740.cc 
-tgtlibs_tm6740 := $(commonlibs) $(cam_libs)
-tgtlibs_tm6740 += pds/camera
-tgtlibs_tm6740 += $(leutron_libs)
-tgtincs_tm6740 := leutron/include
-
-tgtsrcs_pimimage := pimimage.cc 
-tgtlibs_pimimage := $(commonlibs) $(cam_libs)
-tgtlibs_pimimage += pds/camera
-tgtlibs_pimimage += $(leutron_libs)
-tgtincs_pimimage := leutron/include
-
-tgtsrcs_pimimageedt := pimimageedt.cc 
-tgtlibs_pimimageedt := $(commonlibs) $(cam_libs)
-tgtlibs_pimimageedt += pds/camera
-tgtlibs_pimimageedt += $(edt_libs)
-tgtslib_pimimageedt := $(USRLIBDIR)/rt/rt $(USRLIBDIR)/rt/dl
-tgtincs_pimimageedt := edt/include
 
 tgtsrcs_fccd := fccd.cc
 tgtlibs_fccd := $(commonlibs) $(cam_libs)
@@ -235,6 +175,7 @@ tgtslib_epicsArch := $(USRLIBDIR)/rt
 
 tgtsrcs_bld := bld.cc 
 tgtlibs_bld := $(commonlibs) pdsdata/evrdata pdsdata/acqdata pdsdata/ipimbdata pdsdata/pulnixdata pdsdata/lusidata
+tgtlibs_bld += pds/clientcompress pdsdata/compressdata
 tgtslib_bld := $(USRLIBDIR)/rt
 
 tgtsrcs_princeton := princeton.cc
@@ -250,7 +191,9 @@ tgtlibs_princetonsim += pdsapp/configdb qt/QtGui qt/QtCore # for accessing confi
 tgtslib_princetonsim := $(USRLIBDIR)/rt dl pthread
 
 tgtsrcs_simcam := simcam.cc 
+tgtsrcs_simcam += SimCam.cc
 tgtlibs_simcam := $(commonlibs) $(cam_libs)
+tgtlibs_simcam += pds/clientcompress pdsdata/compressdata
 tgtlibs_simcam += pds/camera pds/epicstools epics/ca epics/Com
 tgtslib_simcam := pthread rt dl
 

@@ -4,7 +4,6 @@
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/Dgram.hh"
 #include "pdsdata/camera/FrameV1.hh"
-#include "pdsdata/xtc/XtcIterator.hh"
 
 template <class T>
 static void _stuffIt(Pds::Camera::FrameV1& f)
@@ -20,28 +19,6 @@ static void _stuffIt(Pds::Camera::FrameV1& f)
   _p = (p) | (_p<<31);
 }
 
-namespace Pds {
-  class MyIter : public XtcIterator {
-  public:
-    MyIter() {}
-  public:
-    int process(Xtc* xtc)
-    {
-      if (xtc->contains.id()==TypeId::Id_Xtc)
-	iterate(xtc);
-      else if (xtc->contains.id()==TypeId::Id_Frame) {
-	Camera::FrameV1& f = *reinterpret_cast<Camera::FrameV1*>(xtc->payload());
-	switch(f.depth_bytes()) {
-	case 1: _stuffIt<uint8_t >(f); break;
-	case 2: _stuffIt<uint16_t>(f); break;
-	default:
-	  break;
-	}
-      }
-      return 0;
-    }
-  };
-};
 
 using namespace Pds;
 
@@ -61,7 +38,7 @@ Transition* SimCam::transitions(Transition* tr)
 InDatagram* SimCam::events(InDatagram* dg)
 {
   if (dg->datagram().seq.service()==TransitionId::L1Accept) {
-    MyIter it;
+    SimCam::MyIter it;
     it.iterate(&dg->datagram().xtc);
   }
   return dg;
@@ -70,6 +47,23 @@ InDatagram* SimCam::events(InDatagram* dg)
 Occurrence* SimCam::occurrences(Occurrence* occ) {
   return occ;
 }
+
+int SimCam::MyIter::process(Xtc* xtc)
+{
+  if (xtc->contains.id()==TypeId::Id_Xtc)
+    iterate(xtc);
+  else if (xtc->contains.id()==TypeId::Id_Frame) {
+    Camera::FrameV1& f = *reinterpret_cast<Camera::FrameV1*>(xtc->payload());
+    switch(f.depth_bytes()) {
+    case 1: _stuffIt<uint8_t >(f); break;
+    case 2: _stuffIt<uint16_t>(f); break;
+    default:
+      break;
+    }
+  }
+  return 0;
+}
+
 
 //
 //  Plug-in module creator
