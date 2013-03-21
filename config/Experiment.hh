@@ -18,10 +18,16 @@ namespace Pds_ConfigDb {
   public:
     Experiment(const Path&);
   public:
+    void load(const char*&);
+    void save(char*&) const;
+  public:
     void create();
     void read();
     void write() const;
     Experiment* branch(const string&) const;
+  public:
+    void read_file();
+    void write_file() const;
   public:
     const Path& path() const { return _path; }
     const Table& table() const { return _table; }
@@ -37,18 +43,22 @@ namespace Pds_ConfigDb {
 		     const UTypeName& type,
 		     const string& file,
 		     const string& desc);
-    void update_keys();
-
     void dump() const;
+
   public:
-    bool update_key(const TableEntry&);
-    unsigned next_key() const;
+    void     update_keys();
+    unsigned next_key   () const;
+  public:
+    bool     update_key_file(const TableEntry&);
+    unsigned next_key_file() const;
 
     static void log_threshold(double);
   private:
     Path _path;
     Table  _table;
     list<Device> _devices;
+    mutable time_t   _time_db;
+    time_t   _time_key;
   };
 };
 

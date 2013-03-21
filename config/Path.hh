@@ -20,6 +20,7 @@ namespace Pds_ConfigDb {
     string expt() const;
     string devices() const;
     string device (const string&) const;
+    string xtc() const;
 
     string data_path(const string& device, const UTypeName& type) const;
     string data_path(const QTypeName& type) const;

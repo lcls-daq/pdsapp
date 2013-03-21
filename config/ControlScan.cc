@@ -4,6 +4,7 @@
 #include "pdsapp/config/PdsDefs.hh"
 #include "pdsapp/config/PvScan.hh"
 #include "pdsapp/config/EvrScan.hh"
+#include "pdsapp/config/XtcTable.hh"
 
 #include "pdsdata/control/PVControl.hh"
 #include "pdsdata/control/PVMonitor.hh"
@@ -127,6 +128,8 @@ void ControlScan::set_run_type(const QString& runType)
 
 void ControlScan::write()
 {
+  XtcTable xtc(_expt.path().base());
+
   const int bufsize = 0x1000;
   char* buff = new char[bufsize];
 
@@ -158,6 +161,8 @@ void ControlScan::write()
 	fwrite(buff, _pv->write(k, steps, usePvs, _events_value->text().toInt(), buff), 1, output);
     }
     fclose(output);
+
+    xtc.update_xtc(PdsDefs::qtypeName(utype), scan_file);
   }
   //
   //  Create EVR Config xtc file
@@ -180,9 +185,13 @@ void ControlScan::write()
       fwrite(buff, _evr->write(k,steps,buff), 1, output);
 
     fclose(output);
+
+    xtc.update_xtc(PdsDefs::qtypeName(utype), scan_file);
   }
 
   delete[] buff;
+
+  xtc.write(_expt.path().base());
 }
 
 
@@ -308,6 +317,8 @@ int ControlScan::update_key()
 {
   static const char* cfg_name = "SCAN";
 
+  _expt.write();  // Save the state to disk
+
   {
     const char* dev_name = "Control";
     UTypeName utype = PdsDefs::utypeName(PdsDefs::RunControl);
@@ -322,11 +333,12 @@ int ControlScan::update_key()
     _expt.device(dev_name)->table().set_entry(cfg_name, FileEntry(utype, scan_file));
   }
 
-  _expt.update_key(*_expt.table().get_top_entry(_run_type));
+  //  _expt.update_key(*_expt.table().get_top_entry(_run_type));
+  _expt.update_keys();
 
   int key = strtoul(_expt.table().get_top_entry(_run_type)->key().c_str(),NULL,16);
 
-  _expt.read();
+  _expt.read();  // erase the changes in memory
 
   return key;
 }

@@ -1,5 +1,6 @@
 #include "Dialog.hh"
 #include "Serializer.hh"
+#include "XtcTable.hh"
 
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QFileDialog>
@@ -225,6 +226,13 @@ void Dialog::write()
     for(unsigned k=0; k<_cycles.size(); k++)
       fwrite(_cycles[k]->buffer, _cycles[k]->size, 1, output);
     fclose(output);
+
+    QStringList pathl = QString(buff).split('/');
+    string xtcp(qPrintable(QStringList(pathl.mid(0,pathl.size()-3)).join("/")));
+    XtcTable xtc(xtcp);
+    xtc.update_xtc(string(qPrintable(pathl[pathl.size()-2])),
+                   string(qPrintable(pathl[pathl.size()-1])));
+    xtc.write(xtcp);
   }
   else {
     char msg[256];

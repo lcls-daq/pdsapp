@@ -41,7 +41,7 @@ static void setInputValue(QWidget* w, int v)
 
 static int getInputValue(QWidget* w)
 {
-  int v;
+  int v=-1;
   { QLineEdit* l = dynamic_cast<QLineEdit*>(w);
     if (l) v = l->text().toInt(); }
 

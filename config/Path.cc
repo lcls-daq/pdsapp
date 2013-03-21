@@ -26,6 +26,7 @@ Path::~Path()
 string Path::expt   () const { return _path + "/db/expt"; }
 string Path::devices() const { return _path + "/db/devices"; }
 string Path::device (const string& dev) const { return _path + "/db/devices." + dev; }
+string Path::xtc    () const { return _path + "/db/xtc"; }
 
 void Path::create()
 {
@@ -53,12 +54,12 @@ bool Path::is_valid() const
 }
 
 string Path::key_path(const string& device, const string& key) const
-{ return _path+"/xtc/"+device+"/"+key; }
+{ return _path+"/keys/"+device+"/"+key; }
 
 string Path::key_path(const string& device, unsigned key) const
 { 
   ostringstream o; 
-  o << _path << "/xtc/" << device 
+  o << _path << "/keys/" << device << "/"
     << hex << setw(8) << setfill('0') << key;
   return o.str(); 
 }

@@ -1,6 +1,7 @@
 #include "pdsapp/config/PdsDefs.hh"
 #include "pdsapp/config/Path.hh"
 #include "pdsapp/config/Experiment.hh"
+#include "pdsapp/config/XtcTable.hh"
 
 #include <string>
 #include <vector>
@@ -365,6 +366,11 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
     fwrite(xtc->payload,xtc->extent,1,f);
     fclose(f);
 
+    XtcTable xfs(self->path->base());
+    xfs.update_xtc(PdsDefs::qtypeName(xtc->contains),
+                   string(file));
+    xfs.write(self->path->base());
+
     Py_INCREF(Py_None);
     return Py_None;
   }
@@ -411,7 +417,13 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
           FILE* xfile = fopen(xpath.c_str(),"w");
           fwrite(xtc->payload, xtc->extent, 1, xfile);
           fclose(xfile);
-      Py_INCREF(Py_None);
+
+	  XtcTable xfs(self->path->base());
+	  xfs.update_xtc(PdsDefs::qtypeName(xtc->contains),
+        	         it->entry());
+	  xfs.write(self->path->base());
+
+	  Py_INCREF(Py_None);
           return Py_None;
         }
       }

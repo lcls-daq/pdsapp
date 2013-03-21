@@ -7,12 +7,14 @@ endif
 libnames       := configdb configdbg
 libsrcs_configdb := Path.cc
 libsrcs_configdb += Table.cc
+libsrcs_configdb += XtcTable.cc
 libsrcs_configdb += Device.cc
 libsrcs_configdb += DeviceEntry.cc
 libsrcs_configdb += Experiment.cc
 libsrcs_configdb += GlobalCfg.cc
 libsrcs_configdb += PdsDefs.cc
 libsrcs_configdb += EventcodeTiming.cc
+libsrcs_configdb += XML.cc
 
 libsrcs_configdbg := ControlScan.cc ControlScan_moc.cc
 libsrcs_configdbg += PvScan.cc PvScan_moc.cc
@@ -81,7 +83,7 @@ libsrcs_configdbg += XampsCopyAsicDialog.cc XampsCopyAsicDialog_moc.cc
 libsrcs_configdbg += FexampConfig.cc FexampConfig_moc.cc
 libsrcs_configdbg += FexampCopyChannelDialog.cc FexampCopyChannelDialog_moc.cc
 libsrcs_configdbg += FexampCopyAsicDialog.cc FexampCopyAsicDialog_moc.cc
-libsrcs_configdbg += PhasicsConfig.cc PhasicsConfig_moc.cc
+libsrcs_configdbg += PhasicsConfig.cc
 libsrcs_configdbg += PVControl.cc PVMonitor.cc
 libsrcs_configdbg += ControlConfig_V1.cc
 libsrcs_configdbg += ControlConfig.cc

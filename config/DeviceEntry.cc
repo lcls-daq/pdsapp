@@ -1,4 +1,5 @@
 #include "pdsapp/config/DeviceEntry.hh"
+#include "pdsapp/config/XML.hh"
 
 #include <sstream>
 using std::istringstream;
@@ -30,6 +31,22 @@ DeviceEntry::DeviceEntry(const string& id)
   char sep;
   istringstream i(id);
   i >> std::hex >> _log >> sep >> _phy;
+}
+
+void DeviceEntry::load(const char*& p)
+{
+  XML_iterate_open(p,tag)
+    if      (tag.name == "_log")
+      _log = XML::IO::extract_i(p);
+    else if (tag.name == "_phy")
+      _phy = XML::IO::extract_i(p);
+  XML_iterate_close(DeviceEntry,tag);
+}
+
+void DeviceEntry::save(char*& p) const
+{
+  XML_insert(p, "unsigned", "_log" , XML::IO::insert(p,_log));
+  XML_insert(p, "unsigned", "_phy" , XML::IO::insert(p,_phy));
 }
 
 string DeviceEntry::id() const

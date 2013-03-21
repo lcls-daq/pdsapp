@@ -332,17 +332,24 @@ void Devices_Ui::change_component()
   add_component(QString(type.substr(0,type.find(' ')).c_str()));
 }
 
-void Devices_Ui::view_component()
+void Devices_Ui::_current_component(string& utype,
+                                    string& uname)
 {
   string type(qPrintable(_cmplist->currentItem()->text()));
-  QString qtype(type.substr(0,type.find(' ')).c_str());
-  string strtype(qPrintable(qtype));
-  UTypeName stype(strtype);
+  utype = type.substr(0,type.find(' '));
+  UTypeName stype(utype);
   size_t fs  = type.find('[') + 1;
   size_t len = type.find(']') - fs; 
-  QString qname(type.substr(fs,len).c_str());
+  uname = type.substr(fs,len);
+}
 
-  string path(_expt.path().data_path("",stype));
+void Devices_Ui::view_component()
+{
+  string utype, uname;
+  _current_component(utype,uname);
+  QString qname(uname.c_str());
+
+  string path(_expt.path().data_path("",UTypeName(utype)));
   QString qpath(path.c_str());
   QString qfile = qpath + "/" + qname;
 
@@ -352,7 +359,7 @@ void Devices_Ui::view_component()
     QMessageBox::warning(this, "Read file failed", msg);
   }
   else {
-    Dialog* d = new Dialog(_cmpaddlist, lookup(stype,_edit), 
+    Dialog* d = new Dialog(_cmpaddlist, lookup(UTypeName(utype),_edit), 
 			   qpath, qpath, qfile, _edit);
     d->exec();
     delete d;
@@ -389,11 +396,17 @@ void Devices_Ui::add_component(const QString& type)
   const string import_str("-IMPORT-");
   choices << create_str.c_str();
   choices << import_str.c_str();
+
+  int current;
+  { string utype, uname;
+    _current_component(utype,uname);
+    current = choices.indexOf(QString(uname.c_str())); }
+
   bool ok;
   QString choice = QInputDialog::getItem(_devlist,
            "Component Data",
            "Select File",
-           choices, 0, 0, &ok);
+           choices, current, 0, &ok);
   if (ok) {
     string schoice(qPrintable(choice));
     if (schoice==import_str) {

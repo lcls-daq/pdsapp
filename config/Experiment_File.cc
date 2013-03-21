@@ -1,7 +1,5 @@
-#include "pdsapp/config/Experiment.hh"
+#include "pdsapp/config/Experiment_File.hh"
 #include "pdsapp/config/PdsDefs.hh"
-#include "pdsapp/config/XtcTable.hh"
-#include "pdsapp/config/XML.hh"
 #include "pds/config/CfgPath.hh"
 
 #include <sys/stat.h>
@@ -58,6 +56,7 @@ namespace Pds_ConfigDb {
 };
 
 using namespace Pds_ConfigDb;
+using Pds_ConfigDb::File::Experiment;
 
 const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
 
@@ -66,93 +65,7 @@ Experiment::Experiment(const Path& path) :
 {
 }
 
-void Experiment::load(const char*& p)
-{
-  _devices.clear();
-
-  XML_iterate_open(p,tag)
-    if      (tag.name == "_table") {
-      _table = Table();
-      _table.load(p); 
-    }
-    else if (tag.name == "_devices") {
-      Device d;
-      d.load(p);
-      _devices.push_back(d);
-    }
-    else if (tag.name == "_time_db")
-      _time_db  = XML::IO::extract_i(p);
-    else if (tag.name == "_time_key")
-      _time_key = XML::IO::extract_i(p);
-  XML_iterate_close(Experiment,tag);
-}
-
-void Experiment::save(char*& p) const
-{
-  XML_insert(p, "Table"   , "_table", _table.save(p));
-  XML_insert(p, "time_t"  , "_time_db" , XML::IO::insert(p, (unsigned)_time_db));
-  XML_insert(p, "time_t"  , "_time_key", XML::IO::insert(p, (unsigned)_time_key));
-  for(list<Device>::const_iterator it=_devices.begin(); it!=_devices.end(); it++) {
-    XML_insert(p, "Device", "_devices", it->save(p) );
-  }
-}
-
-void Experiment::read() 
-{
-  string fname = _path.expt() + ".xml";
-  FILE* f = fopen(fname.c_str(),"r");
-  if (!f) {
-    perror("fopen expt.xml");
-    read_file();
-  }
-  else {
-    struct stat64 s;
-    if (fstat64(fileno(f),&s))
-      perror("fstat64 expt.xml");
-    else {
-      const char* TRAILER = "</Document>";
-      char* buff = new char[s.st_size+strlen(TRAILER)+1];
-      if (fread(buff, 1, s.st_size, f) != size_t(s.st_size))
-        perror("fread expt.xml");
-      else {
-        strcpy(buff+s.st_size,TRAILER);
-        const char* p = buff;
-        load(p);
-      }
-      delete[] buff;
-    }
-    fclose(f);
-  }
-}
-
-void Experiment::write() const
-{
-  time_t time_db = _time_db;
-
-  string fname = _path.expt() + ".xml";
-  FILE* f = fopen(fname.c_str(),"w");
-  if (!f)
-    perror("fopen expt.xml");
-  else {
-    const int MAX_SIZE = 0x100000;
-    char* buff = new char[MAX_SIZE];
-    char* p = buff;
-
-    _time_db = time(0);
-    save(p);
-
-    if (p > buff+MAX_SIZE) {
-      perror("save overwrites array");
-      _time_db = time_db;
-    } 
-    else 
-      fwrite(buff, 1, p-buff, f);
-
-    fclose(f);
-  }
-}
-
-void Experiment::read_file()
+void Experiment::read()
 {
   const int line_size=1024;
   char buff[line_size];
@@ -176,18 +89,9 @@ void Experiment::read_file()
       args.push_back(DeviceEntry(string(p)));
     _devices.push_back(Device(path,name,args));
   }
-
-  _table._next_key = next_key_file();
-
-  struct stat64 s;
-  if (!stat64(path.c_str(),&s))
-    _time_db = s.st_mtime;
-
-  if (!stat64(_path.key_path(_table._next_key-1).c_str(),&s))
-    _time_key = s.st_mtime;
 }
 
-void Experiment::write_file() const
+void Experiment::write() const
 {
   _table.write(_path.expt());
   string fp = _path.devices();
@@ -219,12 +123,12 @@ Experiment* Experiment::branch(const string& p) const
     //  Load the device data files
     for(list<TableEntry>::const_iterator ait=t.begin(); ait!=t.end(); ait++) {
       for(list<FileEntry>::const_iterator fit=(*ait).entries().begin(); fit!=(*ait).entries().end(); fit++) {
-        Pds_ConfigDb::UTypeName utype((*fit).name());
-        string file_path = (*it).xtcpath(_path.base(), utype, (*fit).entry());
-        newdb->import_data((*it).name(),
-                           utype,
-                           file_path,
-                           string(""));
+  Pds_ConfigDb::UTypeName utype((*fit).name());
+  string file_path = (*it).xtcpath(_path.base(), utype, (*fit).entry());
+  newdb->import_data((*it).name(),
+         utype,
+         file_path,
+         string(""));
       }
     }
   }
@@ -234,9 +138,9 @@ Experiment* Experiment::branch(const string& p) const
   newdb = new Experiment(_path);
   newdb->read();
   newdb->_path = newpath;
-  newdb->update_keys();
   newdb->write();
 
+  newdb->update_keys();
   return newdb;
 }
 
@@ -280,9 +184,9 @@ void Experiment::remove_device(const Device& device)
 }
 
 void Experiment::import_data(const string& device,
-                             const UTypeName& type,
-                             const string& file,
-                             const string& desc)
+           const UTypeName& type,
+           const string& file,
+           const string& desc)
 {
   if (PdsDefs::typeId(type)==0) {
     cerr << type << " not registered as valid configuration data type" << endl;
@@ -303,7 +207,7 @@ void Experiment::import_data(const string& device,
     mkdir(dir,mode);
   }
 
-  char buff[256];
+  char buff[128];
   sprintf(buff,"cp %s %s",file.c_str(),dst.c_str());
   system(buff);
 
@@ -316,7 +220,7 @@ void Experiment::import_data(const string& device,
   f << desc << std::endl;
 }
 
-bool Experiment::update_key_file(const TableEntry& entry)
+bool Experiment::update_key(const TableEntry& entry)
 {
 #ifdef DBUG
   TimeProfile profile;
@@ -328,7 +232,7 @@ bool Experiment::update_key_file(const TableEntry& entry)
   unsigned valid=0;
   for(list<FileEntry>::const_iterator iter=entry.entries().begin();
       iter != entry.entries().end(); iter++) {
-    if (device(iter->name())->validate_key_file(iter->entry(),_path.base()))
+    if (device(iter->name())->validate_key(iter->entry(),_path.base()))
       valid++;
     else
       printf("%s/%s not valid\n",iter->name().c_str(),iter->entry().c_str());
@@ -348,7 +252,7 @@ bool Experiment::update_key_file(const TableEntry& entry)
   int changed=0;
   for(list<FileEntry>::const_iterator iter=entry.entries().begin();
       iter != entry.entries().end(); iter++)
-    if (device(iter->name())->update_key_file(iter->entry(),_path.base())) {
+    if (device(iter->name())->update_key(iter->entry(),_path.base())) {
       changed++;
       //      printf("%s/%s changed\n",iter->name().c_str(),iter->entry().c_str());
 
@@ -375,8 +279,8 @@ bool Experiment::update_key_file(const TableEntry& entry)
   globfree(&g);
 
 #ifdef DBUG
-  printf("Check %d/%d devices\n",invalid,int(entry.entries().size()));
- 
+  printf("Check %d/%d devices\n",invalid,entry.entries().size());
+
   profile.interval("glob",gpath.c_str());
 #endif
 
@@ -435,7 +339,7 @@ bool Experiment::update_key_file(const TableEntry& entry)
 #endif
 
   if (invalid) {
-    sprintf(buff,"%08x",next_key_file());
+    sprintf(buff,"%08x",next_key());
     string key(buff);
     TableEntry te = TableEntry(entry.name(),key,entry.entries());
     kpath = _path.key_path(key);
@@ -468,7 +372,7 @@ bool Experiment::update_key_file(const TableEntry& entry)
   return invalid;
 }
 
-unsigned Experiment::next_key_file() const
+unsigned Experiment::next_key() const
 {
   string kpath = _path.key_path(string("[0-9]*"));
   glob_t g;
@@ -478,86 +382,11 @@ unsigned Experiment::next_key_file() const
   return key;
 }
 
-unsigned Experiment::next_key() const { return _table._next_key; }
-
 void Experiment::update_keys()
 {
-#ifdef DBUG
-  printf("expt:update_keys %u\n",unsigned(_time_key));
-#endif
-
-  //  Flag all xtc files that have been modified since the last update
-  XtcTable xtc(_path.base());
-  xtc.update(_path,_time_key);
-
-#ifdef DBUG
-  xtc.dump();
-#endif
-
-  //  Generate device keys
-  for(list<Device>::iterator it=_devices.begin(); it!=_devices.end(); it++)
-    it->update_keys(_path,xtc,_time_key);
-
-  //  Generate experiment keys
   for(list<TableEntry>::iterator iter=_table.entries().begin();
-      iter!=_table.entries().end(); iter++) {
-    bool changed = false;
-    for(list<FileEntry>::const_iterator it=iter->entries().begin(); it!=iter->entries().end(); it++) {
-      const Device* dev = device(it->name());
-      if (!dev) {
-        printf("No device %s found for key %s\n",it->name().c_str(),iter->name().c_str()); 
-        continue;
-      }
-      
-      const TableEntry* te = dev->table().get_top_entry(it->entry());
-      if (!te) {
-        printf("No alias %s/%s found for key %s\n",it->name().c_str(),it->entry().c_str(),iter->name().c_str()); 
-        continue;
-      }
-
-      changed |= te->updated();
-#ifdef DBUG
-      if (te->updated())
-        printf("expt:%s dev:%s:%s %s\n", iter->name().c_str(), it->name().c_str(), it->entry().c_str(),
-               te->updated() ? "changed" : "unchanged");
-#endif
-    }
-
-    if (changed) {
-      // make the key
-      mode_t mode = _fmode;
-      string kpath = _path.key_path(_table._next_key);
-#ifdef DBUG
-      printf("mkdir %s\n",kpath.c_str());
-#endif
-      mkdir(kpath.c_str(),mode);
-      iter->update(_table._next_key++);
-
-      for(list<FileEntry>::const_iterator it=iter->entries().begin(); it!=iter->entries().end(); it++) {
-        const Device* dev = device(it->name());
-        if (!dev) continue;
-        const TableEntry* te = dev->table().get_top_entry(it->entry());
-        if (!te) continue;
-
-        ostringstream o;
-        o << "../" << it->name() << "/" << te->key();
-
-        for(list<DeviceEntry>::const_iterator src=dev->src_list().begin(); src!=dev->src_list().end(); src++) {
-          ostringstream t;
-          t << kpath << "/" << src->path();
-#ifdef DBUG
-          printf("symlink %s -> %s\n",t.str().c_str(), o.str().c_str());
-#endif
-          symlink(o.str().c_str(),t.str().c_str());
-        }
-      }
-    }
-  }
-
-  _time_key = time(0);
-  //  write();
-
-  xtc.write(_path.base());
+      iter!=_table.entries().end(); iter++)
+    update_key(*iter);
 }
 
 int Experiment::current_key(const string& alias) const

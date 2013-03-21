@@ -63,6 +63,8 @@ int main(int argc, char** argv)
   Path path(dbname);
   Experiment db(dbname);
 
+  bool lwrite = true;
+
   if (!path.is_valid()) {
     if (cmd==create_cmd)
       path.create();
@@ -80,6 +82,7 @@ int main(int argc, char** argv)
     if (cmd==update_cmd)
       db.update_keys();
     else if (cmd==branch_cmd || strcmp(cmd.c_str(),branch_cmd.c_str())==0) {
+      lwrite = false;
       Experiment* newdb = db.branch(string(argv[3]));
       newdb->read();
       printf("\n==NEWDB==\n");
@@ -124,8 +127,9 @@ int main(int argc, char** argv)
     }
   }
 
-  printf("\n==AFTER==\n");
-  db.dump();
-
-  db.write();
+  if (lwrite) {
+    printf("\n==AFTER==\n");
+    db.dump();
+    db.write();
+  }
 }

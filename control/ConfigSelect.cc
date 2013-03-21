@@ -53,7 +53,7 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
 
   connect(_bEdit  , SIGNAL(clicked()),                 _reconfig, SLOT(show()));
   connect(_bScan  , SIGNAL(clicked(bool)),	       this, SLOT(enable_scan(bool)));
-  connect(this    , SIGNAL(control_enabled(bool)),     this, SLOT(enable_control(bool)));
+  connect(this    , SIGNAL(control_enabled(bool)),     this, SLOT(enable_control_(bool)));
   connect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
   connect(_reconfig,SIGNAL(changed()),                 this, SLOT(update()));
   connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));

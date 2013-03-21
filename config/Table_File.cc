@@ -1,5 +1,4 @@
-#include "pdsapp/config/Table.hh"
-#include "pdsapp/config/XML.hh"
+#include "pdsapp/config/Table_File.hh"
 
 #include <sys/stat.h>
 
@@ -7,15 +6,10 @@
 using std::ifstream;
 using std::ofstream;
 
-#include <iomanip>
-#include <sstream>
-
-using std::ostringstream;
-using std::hex;
-using std::setw;
-using std::setfill;
-
 using namespace Pds_ConfigDb;
+using Pds_ConfigDb::File::Table;
+using Pds_ConfigDb::File::TableEntry;
+using Pds_ConfigDb::File::FileEntry;
 
 const int line_size=128;
 
@@ -50,22 +44,6 @@ FileEntry::FileEntry(istream& i)
 FileEntry::FileEntry(const string& name, const string& entry) :
   _name(name), _entry(entry) {}
 
-void FileEntry::load(const char*& p)
-{
-  XML_iterate_open(p,tag)
-    if      (tag.name == "_name")
-      _name  = XML::IO::extract_s(p);
-    else if (tag.name == "_entry")
-      _entry = XML::IO::extract_s(p);
-  XML_iterate_close(FileEntry,tag);
-}
-
-void FileEntry::save(char*& p) const
-{
-  XML_insert(p, "string", "_name" , XML::IO::insert(p,_name));
-  XML_insert(p, "string", "_entry", XML::IO::insert(p,_entry));
-}
-
 bool FileEntry::operator==(const FileEntry& e) const
 {
   return name()==e.name();
@@ -90,48 +68,17 @@ string FileEntry::name() const
 //  TableEntry 
 //===============
 
-TableEntry::TableEntry() : _name("None"), _key("Unassigned"), _changed(false) {}
-
-TableEntry::TableEntry(const string& name) : _name(name), _key("Unassigned"), _changed(false) {}
+TableEntry::TableEntry(const string& name) : _name(name), _key("Unassigned") {}
 
 TableEntry::TableEntry(const string& name, const string& key,
 		       const FileEntry& entry) :
-  _name(name), _key(key), _changed(false)
+  _name(name), _key(key)
 { _entries.push_back(entry); }
 
 TableEntry::TableEntry(const string& name, const string& key,
 		       const list<FileEntry>& entries) :
-  _name(name), _key(key), _entries(entries), _changed(false)
+  _name(name), _key(key), _entries(entries)
 {}
-
-void TableEntry::load(const char*& p)
-{
-  _entries.clear();
-
-  XML_iterate_open(p,tag)
-    if      (tag.name == "_name")
-      _name = XML::IO::extract_s(p);
-    else if (tag.name == "_key")
-      _key  = XML::IO::extract_s(p);
-    else if (tag.name == "_entries") {
-      FileEntry e;
-      e.load(p);
-      _entries.push_back(e);
-    }
-  XML_iterate_close(TableEntry,tag);
-
-  _changed = false;
-}
-
-void TableEntry::save(char*& p) const
-{
-  XML_insert(p, "string", "_name", XML::IO::insert(p,_name));
-  XML_insert(p, "string", "_key" , XML::IO::insert(p,_key));
-  for(list<FileEntry>::const_iterator it=_entries.begin(); it!=_entries.end(); it++) {
-    XML_insert(p, "FileEntry", "_entries", it->save(p) );
-  }
-  _changed = false;
-}
 
 bool TableEntry::operator==(const TableEntry& e) const
 {
@@ -148,16 +95,6 @@ void TableEntry::remove(const FileEntry& e)
 {
   _entries.remove(e);
 }
-
-void TableEntry::update(unsigned key) 
-{
-  ostringstream o;
-  o << hex << setw(8) << setfill('0') << key;
-  _key = o.str();
-  _changed = true;
-}
-
-bool TableEntry::updated() const { return _changed; }
 
 //===============
 //  Table 
@@ -177,29 +114,6 @@ Table::Table(const string& path)
       sprintf(buff,"%s.%s",path.c_str(),iter->name().c_str());
       _entries.push_back(TableEntry(iter->name(),iter->entry(),_read_table(buff)));
     }
-  }
-}
-
-void Table::load(const char*& p)
-{
-  _entries.clear();
-
-  XML_iterate_open(p,tag)
-    if      (tag.element == "TableEntry") {
-      TableEntry e;
-      e.load(p);
-      _entries.push_back(e);
-    }
-    else if (tag.name == "_next_key")
-      _next_key = XML::IO::extract_i(p);
-  XML_iterate_close(Table,tag);
-}
-
-void Table::save(char*& p) const
-{
-  XML_insert(p, "unsigned", "_next_key", XML::IO::insert(p, _next_key) );
-  for(list<TableEntry>::const_iterator it=_entries.begin(); it!=_entries.end(); it++) {
-    XML_insert(p, "TableEntry", "_entries", it->save(p) );
   }
 }
 

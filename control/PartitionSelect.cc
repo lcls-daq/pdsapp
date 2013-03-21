@@ -10,9 +10,6 @@
 #include "pds/collection/Node.hh"
 #include "pds/config/CfgPath.hh"
 #include "pds/config/EvrConfigType.hh"
-#include "pdsapp/config/Path.hh"
-#include "pdsapp/config/Experiment.hh"
-#include "pdsapp/config/Table.hh"
 
 #include <QtGui/QLabel>
 #include <QtGui/QHBoxLayout>
@@ -195,9 +192,6 @@ bool PartitionSelect::_validate(uint64_t bld_mask)
 
 bool PartitionSelect::_checkReadGroupEnable()
 {
-  Pds_ConfigDb::Experiment expt = Pds_ConfigDb::Experiment(Pds_ConfigDb::Path(_db_path_org));
-  expt.read();
-  
   unsigned int uRunKey = _pcontrol.get_transition_env(TransitionId::Configure);
   
   const DetInfo det(0,DetInfo::NoDetector,0,DetInfo::Evr,0);

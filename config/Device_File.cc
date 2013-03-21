@@ -1,10 +1,7 @@
-#include "pdsapp/config/Device.hh"
+#include "pdsapp/config/Device_File.hh"
 
 #include "pdsapp/config/PdsDefs.hh"
 #include "pdsapp/config/GlobalCfg.hh"
-#include "pdsapp/config/Path.hh"
-#include "pdsapp/config/XtcTable.hh"
-#include "pdsapp/config/XML.hh"
 
 #include <sys/stat.h>
 #include <glob.h>
@@ -20,17 +17,11 @@ using std::endl;
 using std::setw;
 using std::setfill;
 
-#define DBUG
-
 using namespace Pds_ConfigDb;
+using Pds_ConfigDb::File::Device;
 
 const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
 
-
-Device::Device() :
-  _name("None")
-{
-}
 
 Device::Device(const string& path,
 	       const string& name,
@@ -39,38 +30,6 @@ Device::Device(const string& path,
   _table(path),
   _src_list(src_list)
 {
-  glob_t g;
-  glob(keypath(path,"[0-9]*").c_str(),0,0,&g);
-  _table._next_key = g.gl_pathc;
-  globfree(&g);
-}
-
-void Device::load(const char*& p)
-{
-  _src_list.clear();
-
-  XML_iterate_open(p,tag)
-    if      (tag.name == "_name")
-      _name = XML::IO::extract_s(p);
-    else if (tag.name == "_table") {
-      _table = Table();
-      _table.load(p);
-    }
-    else if (tag.name == "_src_list") {
-      DeviceEntry e;
-      e.load(p);
-      _src_list.push_back(e);
-    }
-  XML_iterate_close(Device,tag);
-}
-
-void Device::save(char*& p) const
-{
-  XML_insert(p, "string", "_name" , XML::IO::insert(p,_name));
-  XML_insert(p, "Table" , "_table", _table.save(p));
-  for(list<DeviceEntry>::const_iterator it=_src_list.begin(); it!=_src_list.end(); it++) {
-    XML_insert(p, "DeviceEntry", "_src_list", it->save(p) );
-  }
 }
 
 bool Device::operator==(const Device& d) const
@@ -78,7 +37,7 @@ bool Device::operator==(const Device& d) const
   return name() == d.name(); 
 }
 
-string Device::keypath(const string& path, const string& key) const
+string Device::keypath(const string& path, const string& key)
 {
   ostringstream o;
   o << path << "/keys/" << _name << "/" << key;
@@ -87,7 +46,7 @@ string Device::keypath(const string& path, const string& key) const
 
 string Device::typepath(const string& path, 
 			const string& key, 
-			const UTypeName& entry) const
+			const UTypeName& entry)
 {
   const Pds::TypeId* typeId = PdsDefs::typeId(entry);
   ostringstream o;
@@ -95,7 +54,7 @@ string Device::typepath(const string& path,
   return o.str();
 }
 
-string Device::typelink(const UTypeName& uname, const string& entry) const
+string Device::typelink(const UTypeName& uname, const string& entry)
 {
   ostringstream o;
   o << "../../../xtc/" << PdsDefs::qtypeName(uname) << "/" << entry;
@@ -109,7 +68,8 @@ string Device::xtcpath(const string& path, const UTypeName& uname, const string&
   return o.str();
 }
 
-bool Device::validate_key_file(const string& config, const string& path)
+// Checks that the key components are valid
+bool Device::validate_key(const string& config, const string& path)
 {    
   bool invalid  = false;
   struct stat64 s;
@@ -141,7 +101,7 @@ bool Device::validate_key_file(const string& config, const string& path)
   return !invalid;
 }
 
-bool Device::_check_config_file(const TableEntry* entry, const string& path, const string& key)
+bool Device::_check_config(const TableEntry* entry, const string& path, const string& key)
 {
   const int line_size=128;
   char buff[line_size];
@@ -205,7 +165,7 @@ bool Device::_check_config_file(const TableEntry* entry, const string& path, con
   return outofdate;
 }
 
-void Device::_make_config_file(const TableEntry* entry, const string& path, const string& key)
+void Device::_make_config(const TableEntry* entry, const string& path, const string& key)
 {
   for(list<FileEntry>::const_iterator iter=entry->entries().begin(); iter!=entry->entries().end(); iter++) {
 
@@ -273,7 +233,7 @@ void Device::_make_config_file(const TableEntry* entry, const string& path, cons
 }
 
 // Checks that the key link exists and is up to date
-bool Device::update_key_file(const string& config, const string& path)
+bool Device::update_key(const string& config, const string& path)
 {    
   const int line_size=128;
   char buff[line_size];
@@ -281,11 +241,11 @@ bool Device::update_key_file(const string& config, const string& path)
   const TableEntry* entry = _table.get_top_entry(config);
   if (!entry) return false;
 
-  outofdate |= _check_config_file(entry, path, entry->key());
+  outofdate |= _check_config(entry, path, entry->key());
 
   const TableEntry* gentry = _table.get_top_entry(string(GlobalCfg::name()));
   if (gentry)
-    outofdate |= _check_config_file(gentry, path, entry->key());
+    outofdate |= _check_config(gentry, path, entry->key());
 
   if (outofdate) {
     glob_t g;
@@ -298,101 +258,13 @@ bool Device::update_key_file(const string& config, const string& path)
     mode_t mode = _fmode;
     mkdir(kpath.c_str(),mode);
 
-    _make_config_file(entry, path, key);
+    _make_config(entry, path, key);
 
     if (gentry)
-      _make_config_file(gentry, path, key);
+      _make_config(gentry, path, key);
 
     TableEntry t(entry->name(), key, entry->entries());
     _table.set_top_entry(t);
   }
   return outofdate;
 }
-
-
-void Device::update_keys(const Path& path, XtcTable& xtc, time_t time_key)
-{
-#ifdef DBUG
-  printf("device:%s %u\n",_name.c_str(),(unsigned)time_key);
-#endif
-  for(list<TableEntry>::iterator it=_table.entries().begin(); it!=_table.entries().end(); it++) {  // alias
-    bool changed=false;
-    for(list<FileEntry>::const_iterator fit=it->entries().begin(); fit!=it->entries().end(); fit++) {  // xtc files
-      QTypeName qtype = PdsDefs::qtypeName(UTypeName(fit->name()));
-      XtcTableEntry* xe = xtc.entry(qtype);
-      if (!xe) {
-#ifdef DBUG
-        printf("no %s : create %s/%s.%u\n", qtype.c_str(), qtype.c_str(), fit->entry().c_str(), 0);
-#endif
-        changed = true;
-        XtcFileEntry fe(fit->entry(),0,time(0));
-        fe.update(path.data_path(qtype));
-        xe = new XtcTableEntry(qtype);
-        xe->entries().push_back(fe);
-        xtc.entries().push_back(*xe);
-        delete xe;
-      }
-      else {
-        XtcFileEntry* fe = xe->entry(fit->entry());
-        if (!fe) {
-#ifdef DBUG
-          printf("no %s/%s : create %s/%s.%u\n", 
-                 qtype.c_str(), fit->entry().c_str(), qtype.c_str(), fit->entry().c_str(), 0);
-#endif
-          changed = true;
-          fe = new XtcFileEntry(fit->entry(),0,time(0));
-          fe->update(path.data_path(qtype));
-          xe->entries().push_back(*fe);
-          delete fe;
-        }
-        else if (fe->time() > time_key) {
-#ifdef DBUG
-          printf("update %u/%u : %s/%s.%u\n", (unsigned)time_key, (unsigned)fe->time(), qtype.c_str(), fit->entry().c_str(), fe->ext());
-#endif
-          changed = true;
-          fe->update(path.data_path(qtype));
-        }
-        else {
-#ifdef DBUG
-          //          printf("valid %u/%u : %s/%s.%u\n", (unsigned)time_key, (unsigned)fe->time(), qtype.c_str(), fit->entry().c_str(), fe->ext());
-#endif
-          ;  // no change
-        }
-      }
-    }
-    
-    if (changed) {
-      it->update(_table._next_key);
-      // make the key
-      mode_t mode = _fmode;
-      string kpath = path.key_path(_name, _table._next_key);
-#ifdef DBUG
-      printf("mkdir %s\n",kpath.c_str());
-#endif
-      mkdir(kpath.c_str(),mode);
-      _table._next_key++;
-
-      for(list<FileEntry>::const_iterator fit=it->entries().begin(); fit!=it->entries().end(); fit++) {  // xtc files
-        UTypeName utype(fit->name());
-        QTypeName qtype = PdsDefs::qtypeName(utype);
-        XtcFileEntry* fe = xtc.entry(qtype)->entry(fit->entry());
-        if (!fe) {
-          printf("No file entry %s/%s\n",qtype.c_str(),fit->entry().c_str());
-          continue;
-        }
-
-        char buff[16];
-        sprintf(buff,"/%08x",PdsDefs::typeId(utype)->value());
-        string tpath = kpath+buff;
-        ostringstream o;
-        o << "../../../xtc/" << qtype << "/" << fe->name() << "." << fe->ext();
-#ifdef DBUG
-        printf("symlink %s -> %s\n",tpath.c_str(), o.str().c_str());
-#endif
-        symlink(o.str().c_str(),tpath.c_str());
-      }
-    }
-  }
-}
-
-

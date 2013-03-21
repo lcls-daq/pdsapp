@@ -6,6 +6,7 @@
 
 #include "pdsdata/xtc/DetInfo.hh"
 
+#include <time.h>
 #include <list>
 #include <string>
 
@@ -15,11 +16,17 @@ using std::string;
 namespace Pds_ConfigDb {
 
   class UTypeName;
+  class XtcTable;
+  class Path;
 
   class Device {
   public:
+    Device();
     Device( const string& path, const string& name,
 	    const list<DeviceEntry>& src_list );
+  public:
+    void load(const char*&);
+    void save(char*&) const;
   public:
     bool operator==(const Device&) const;
   public:
@@ -33,15 +40,18 @@ namespace Pds_ConfigDb {
     const list<DeviceEntry>& src_list() const { return _src_list; }
     list<DeviceEntry>& src_list() { return _src_list; }
   public:
-    string keypath (const string& path, const string& key);
+    string keypath (const string& path, const string& key) const;
     string xtcpath (const string& path, const UTypeName& uname, const string& entry) const;
-    string typepath(const string& path, const string& key, const UTypeName& entry);
-    string typelink(const UTypeName& name, const string& entry);
-    bool   validate_key(const string& config, const string& path);
-    bool   update_key  (const string& config, const string& path);
+    string typepath(const string& path, const string& key, const UTypeName& entry) const;
+    string typelink(const UTypeName& name, const string& entry) const;
+  public:
+    void   update_keys (const Path&, XtcTable&, time_t);
+  public:    // Deprecated
+    bool   validate_key_file(const string& config, const string& path);
+    bool   update_key_file  (const string& config, const string& path);
   private:
-    bool _check_config(const TableEntry* entry, const string& path, const string& key);
-    void _make_config (const TableEntry* entry, const string& path, const string& key);
+    bool _check_config_file(const TableEntry* entry, const string& path, const string& key);
+    void _make_config_file (const TableEntry* entry, const string& path, const string& key);
   private:
     string _name;
     Table  _table;
