@@ -146,7 +146,8 @@ void sigfunc(int sig_no) {
 
 int main(int argc, char** argv) {
 
-  unsigned platform=-1UL;
+  const unsigned NO_PLATFORM = unsigned(-1UL);
+  unsigned platform=NO_PLATFORM;
   const char* partition = 0;
   int numberOfBuffers = 0;
   unsigned sizeOfBuffers = 0;
@@ -185,7 +186,7 @@ int main(int argc, char** argv) {
     switch (c) {
     case 'p':
       platform = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) platform = -1UL;
+      if (errno != 0 || endPtr == optarg) platform = NO_PLATFORM;
       break;
     case 'i':
       node = strtoul(optarg, &endPtr, 0);
@@ -251,7 +252,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (!numberOfBuffers || !sizeOfBuffers || platform == -1UL || !partition || node == 0xffff) {
+  if (!numberOfBuffers || !sizeOfBuffers || platform == NO_PLATFORM || !partition || node == 0xffff) {
     fprintf(stderr, "Missing parameters!\n");
     usage(argv[0]);
     return 1;

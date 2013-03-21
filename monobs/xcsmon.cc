@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
                               info);
         break;
       default:
-        fprintf(stderr,"Error in lookup of detector %d\n",DetInfo::name(info));
+        fprintf(stderr,"Error in lookup of detector %s\n",DetInfo::name(info));
         break;
       }
     }

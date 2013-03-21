@@ -30,7 +30,7 @@ public:
   ~MyDatagram() {}
 public:
   void* operator new(size_t size, Pds::Pool* pool) { return pool->alloc(size); }
-  void  operator delete(void* p) { Pds::RingPool::free(p); }
+  void  operator delete(void* p) { Pds::Pool::free(p); }
 public:
   bool insert(const Xtc& tc, const void* payload) { return false; }
 

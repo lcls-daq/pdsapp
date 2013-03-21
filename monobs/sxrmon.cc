@@ -15,8 +15,9 @@ int main(int argc, char* argv[])
 {
   ShmClient client;
 
+  const unsigned NONE = unsigned(-1UL);
   const char* pvName = 0;
-  unsigned detinfo   = -1UL;
+  unsigned detinfo   = NONE;
 
   int c;
   char* endPtr;
@@ -43,7 +44,7 @@ int main(int argc, char* argv[])
     }
   }
   
-  if (pvName==0 || detinfo==-1UL || !client.valid()) {
+  if (pvName==0 || detinfo==NONE || !client.valid()) {
     usage(argv[0]);
     exit(1);
   }

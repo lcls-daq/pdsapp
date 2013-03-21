@@ -48,7 +48,7 @@ int XtcMonitorClient::run(char * tag) {
   strcat(shmName, tag);
   strcat(toServerQname, tag);
   strcat(fromServerQname, tag);
-  char* myShm;
+  char* myShm = 0;
   unsigned pageSize = (unsigned)sysconf(_SC_PAGESIZE);
   unsigned priority = 0;
   struct mq_attr mymq_attr;
