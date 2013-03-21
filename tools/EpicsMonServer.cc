@@ -107,7 +107,6 @@ static const unsigned sizeofBuffers = 0x10000;
 static const unsigned numberofBuffers = 2;
 static const unsigned nclients = 2;
 static const unsigned sequenceLength = 1;
-static unsigned payloadsize = 0;
 
 EpicsMonServer::EpicsMonServer(const char* partitionTag) :
   _srv (new MyMonitorServer(partitionTag,

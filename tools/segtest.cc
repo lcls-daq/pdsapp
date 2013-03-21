@@ -75,7 +75,7 @@ namespace Pds {
                 int        fd,
                 InletWire& inlet) :
           EvrServer(StreamPorts::event(platform,Level::Segment),
-                    DetInfo(-1UL,DetInfo::NoDetector,0,DetInfo::Evr,0),
+                    DetInfo(uint32_t(-1UL),DetInfo::NoDetector,0,DetInfo::Evr,0),
                     inlet, 4),
               _task(new Task(TaskObject("segtest_evr",127))),
               _outlet(sizeof(EvrDatagram),0, Ins(Route::interface())),
@@ -270,12 +270,11 @@ namespace Pds {
 
   class MyFEX : public XtcIterator {
     public:
-      enum { PoolSize = 32*1024*1024 };
       enum { EventSize = 2*1024*1024 };
       enum Algorithm { Input, Full, TenPercent, None, Sink, NumberOf };
     public:
       MyFEX(const Src& s) : _src(s),
-      _pool(PoolSize,EventSize),
+                            _pool(EventSize,16),
       _iter(sizeof(ZcpDatagramIterator),32),
       _outdg(0) {}
       ~MyFEX() {}
@@ -328,7 +327,6 @@ namespace Pds {
           delete in_iter;
         }
 
-        _pool.shrink(ndg, ndg->datagram().xtc.sizeofPayload()+sizeof(Datagram));
         return ndg;
       }
 
@@ -358,7 +356,7 @@ namespace Pds {
     private:
       Src         _src;
       Algorithm   _algorithm;
-      RingPool    _pool;
+      GenericPool _pool;
       GenericPool _iter;
       Datagram*   _outdg;
   };

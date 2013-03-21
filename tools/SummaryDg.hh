@@ -4,7 +4,7 @@
 #include "pds/xtc/CDatagram.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 
-static Pds::BldInfo EBeamBPM(-1UL,Pds::BldInfo::EBeam);
+static Pds::BldInfo EBeamBPM(uint32_t(-1UL),Pds::BldInfo::EBeam);
 
 namespace Pds {
   class SummaryDg : public CDatagram {

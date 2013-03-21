@@ -1,5 +1,4 @@
 libnames := tools
-#libnames += xml
 
 #CPPFLAGS += -D_FILE_OFFSET_BITS=64 -fopenmp
 # 
@@ -8,9 +7,7 @@ libnames := tools
 
 CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
-libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc XtcStripper.cc PnccdShuffle.cc CspadShuffle.cc StripTransient.cc
-
-libsrcs_xml   := XML.cc
+libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc CspadShuffle.cc StripTransient.cc
 
 tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump currentexp
 

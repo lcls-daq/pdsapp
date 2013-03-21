@@ -1,6 +1,6 @@
 #include "pdsapp/tools/StripTransient.hh"
 
-#include "pdsapp/tools/XtcStripper.hh"
+#include "pds/client/XtcStripper.hh"
 #include "pds/xtc/XtcType.hh"
 #include "pds/xtc/Datagram.hh"
 
