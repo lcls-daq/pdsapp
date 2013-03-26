@@ -148,6 +148,7 @@ tgtlibs_camedt += pds/service pds/collection pds/xtc pds/mon pds/vmon
 tgtlibs_camedt += pds/utility pds/management pds/client pds/config 
 tgtlibs_camedt += pds/camera pds/epicstools epics/ca epics/Com
 tgtlibs_camedt += pds/clientcompress pdsdata/compressdata
+tgtlibs_camedt += pdsapp/devapp
 tgtlibs_camedt += $(edt_libs)
 tgtslib_camedt := $(USRLIBDIR)/rt/rt $(USRLIBDIR)/rt/dl
 tgtincs_camedt := edt/include
