@@ -23,9 +23,14 @@ if __name__ == "__main__":
                       help="require qbeam > Q", metavar="Q")
     parser.add_option("-s","--sleep",dest="tsleep",type="float",default=0.,
                       help="sleep Q seconds between cycles", metavar="Q")
+    parser.add_option("-w","--wait",dest="wait",default=False,
+                      help="wait for key input before 1st cycle and after last cycle", metavar="W");
 
     (options, args) = parser.parse_args()
     daq = pydaq.Control(options.host,options.platform)
+
+    if options.wait:
+        ready = raw_input('--Hit Enter when Ready-->')
 
 #
 #  Send the structure the first time to put the control variables
@@ -49,7 +54,9 @@ if __name__ == "__main__":
 #  Wait for the user to declare 'ready'
 #    Setting up monitoring displays for example
 #  
-    ready = raw_input('--Hit Enter when Ready-->')
+
+    if options.wait:
+        ready = raw_input('--Hit Enter when Ready-->')
 
     for cycle in range(options.cycles):
         print "Cycle ", cycle
@@ -68,4 +75,5 @@ if __name__ == "__main__":
 #  Wait for the user to declare 'done'
 #    Saving monitoring displays for example
 #
-    ready = raw_input('--Hit Enter when Done-->')
+    if options.wait:
+        ready = raw_input('--Hit Enter when Done-->')

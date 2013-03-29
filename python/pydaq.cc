@@ -512,12 +512,13 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
       PyObject* item = PyList_GetItem(controls,i);
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
       list<PVControl>::iterator it=clist.begin();
-      do {
+      while(it!=clist.end()) {
         if (strcmp(name,it->name())==0) {
           (*it) = PVControl(name,PyFloat_AsDouble (PyTuple_GetItem(item,1)));
           break;
         }
-      } while (++it!= clist.end());
+        ++it;
+      }
       if (it == clist.end()) {
         ostringstream o;
         o << "Control " << name << " not present in Configure";
@@ -536,14 +537,15 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
       PyObject* item = PyList_GetItem(monitors,i);
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
       list<PVMonitor>::iterator it=mlist.begin();
-      do {
+      while(it!=mlist.end()) {
         if (strcmp(name,it->name())==0) {
           (*it) = PVMonitor(name,
                             PyFloat_AsDouble (PyTuple_GetItem(item,1)),
                             PyFloat_AsDouble (PyTuple_GetItem(item,2)));
           break;
         }
-      } while (++it!= mlist.end());
+        ++it;
+      } 
       if (it == mlist.end()) {
         ostringstream o;
         o << "Monitor " << name << " not present in Configure";
@@ -562,12 +564,13 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
       PyObject* item = PyList_GetItem(labels,i);
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
       list<PVLabel>::iterator it=llist.begin();
-      do {
+      while(it!=llist.end()) {
         if (strcmp(name,it->name())==0) {
           (*it) = PVLabel(name, PyString_AsString(PyTuple_GetItem(item,1)));
           break;
         }
-      } while (++it!= llist.end());
+        ++it;
+      }
       if (it == llist.end()) {
         ostringstream o;
         o << "Label " << name << " not present in Configure";
