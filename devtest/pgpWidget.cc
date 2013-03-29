@@ -9,8 +9,12 @@
 #include <signal.h>
 #include <new>
 
+FILE*               writeFile           = 0;
+bool                writing             = false;
+
 void sigHandler( int signal ) {
   psignal( signal, "Signal received by pgpWidget");
+  if (writing) fclose(writeFile);
   printf("Signal handler pulling the plug\n");
   ::exit(signal);
 }
@@ -24,7 +28,7 @@ Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
-  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-w dest,addr,data][-r dest,addr][-R][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
+  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-w dest,addr,data][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
       "    -h      Show usage\n"
       "    -P      Set pgpcard index number  (REQUIRED)\n"
       "                The format of the index number is a one byte number with the bottom nybble being\n"
@@ -35,11 +39,14 @@ void printUsage(char* name) {
       "                The format of the paraemeters are: 'dest addr data'\n"
       "                where addr and Data are 32 bit unsigned integers, but the Dest is a\n"
       "                four bit field where the bottom two bits are VC and The top two are Lane\n"
-      "    -r      Read register from destination, resulting data is written to the standard output\n"
+      "    -r      Read register from destination, resulting data, is written to the standard output\n"
       "                The format of the paraemeters are: 'dest addr'\n"
       "                where addr is a 32 bit unsigned integer, but the Dest is a four bit field,\n"
       "                where the bottom two bits are VC and The top two are Lane\n"
+      "    -t      Test registers, loop from addr counting up count times\n"
+      "    -d      Dump count registers starting at addr\n"
       "    -R      Loop reading data until interrupted, resulting data will be written to the standard output.\n"
+      "    -s      Save to file when reading data\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          print out progress\n"
        "    -f      set run time config file name\n"
@@ -51,7 +58,7 @@ void printUsage(char* name) {
   );
 }
 
-enum Commands{none, writeCommand,readCommand,readAsyncCommand,numberOfCommands};
+enum Commands{none, writeCommand,readCommand,readAsyncCommand,dumpCommand,testCommand,numberOfCommands};
 
 int main( int argc, char** argv )
 {
@@ -60,16 +67,18 @@ int main( int argc, char** argv )
   uint32_t            data                = 0x1234;
   unsigned            command             = none;
   unsigned            addr                = 0;
+  unsigned            count               = 0;
   unsigned            printFlag           = 0;
-  bool                cardGiven = false;
+  unsigned            maxPrint            = 8;
+  bool                cardGiven           = false;
   unsigned            debug               = 0;
   ::signal( SIGINT, sigHandler );
   char                runTimeConfigname[256] = {""};
-
-  char* endptr;
-  extern char* optarg;
+  char                writeFileName[256] = {""};
+  char*               endptr;
+  extern char*        optarg;
   int c;
-  while( ( c = getopt( argc, argv, "hP:w:D:P:r:Rf:p:" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hP:w:D:P:r:d:R:s:f:p:t:" ) ) != EOF ) {
      switch(c) {
       case 'P':
         pgpcard = strtoul(optarg, NULL, 0);
@@ -93,8 +102,25 @@ int main( int argc, char** argv )
         addr = strtoul(endptr+1,&endptr,0);
         if (debug & 1) printf("\t read %u,0x%x\n", d, addr);
         break;
+      case 'd':
+        command = dumpCommand;
+        d = strtoul(optarg  ,&endptr,0);
+        addr = strtoul(endptr+1,&endptr,0);
+        count = strtoul(endptr+1,&endptr,0);
+        break;
+      case 't':
+        command = testCommand;
+        d = strtoul(optarg  ,&endptr,0);
+        addr = strtoul(endptr+1,&endptr,0);
+        count = strtoul(endptr+1,&endptr,0);
+        break;
       case 'R':
         command = readAsyncCommand;
+        maxPrint = strtoul(optarg, NULL, 0);
+        break;
+      case 's':
+        strcpy(writeFileName, optarg);
+        writing = true;
         break;
       case 'p':
         printFlag = strtoul(optarg, NULL, 0);
@@ -135,6 +161,20 @@ int main( int argc, char** argv )
     return 1;
   }
 
+  if (writing) {
+//    char path[512];
+//    char* home = getenv("HOME");
+//    sprintf(path,"%s/%s",home, writeFileName);
+    printf("writing to %s\n", writeFileName);
+    writeFile = fopen(writeFileName, "w+");
+    if (!writeFile) {
+      char s[200];
+      sprintf(s, "Could not open %s ", writeFileName);
+      perror(s);
+      return 1;
+    }
+  }
+
   unsigned offset = 0;
   while ((((ports>>offset) & 1) == 0) && (offset < 5)) {
     offset += 1;
@@ -144,6 +184,40 @@ int main( int argc, char** argv )
 
   pgp = new Pds::Pgp::Pgp::Pgp(fd, debug != 0);
   dest = new Pds::Pgp::Destination::Destination(d);
+
+  if (strlen(runTimeConfigname)) {
+    FILE* f;
+    Pgp::Destination _d;
+    unsigned maxCount = 1024;
+    char path[240];
+    char* home = getenv("HOME");
+    sprintf(path,"%s/%s",home, runTimeConfigname);
+    printf("Configuring from %s", path);
+    f = fopen (path, "r");
+    if (!f) {
+      char s[200];
+      sprintf(s, "Could not open %s ", path);
+      perror(s);
+    } else {
+      unsigned myi = 0;
+      unsigned dest, addr, data;
+      while (fscanf(f, "%x %x %x", &dest, &addr, &data) && !feof(f) && myi++ < maxCount) {
+        _d.dest(dest);
+        printf("\nConfig from file, dest %s, addr 0x%x, data 0x%x ", _d.name(), addr, data);
+        if(pgp->writeRegister(&_d, addr, data)) {
+          printf("\npgpwidget writing config failed on dest %u address 0x%x\n", dest, addr);
+        }
+      }
+      if (!feof(f)) {
+        perror("\nError reading");
+      } else {
+        printf("\n");
+      }
+      fclose(f);
+//          printf("\nSleeping 200 microseconds\n");
+//          microSpin(200);
+    }
+  }
 
   if (debug & 1) printf("pgpWidget destination %s\n", dest->name());
   bool keepGoing = true;
@@ -158,7 +232,7 @@ int main( int argc, char** argv )
       pgp->writeRegister(dest, addr, data, printFlag, Pds::Pgp::PgpRSBits::Waiting);
       rsif = pgp->read();
       if (rsif) {
-        if (debug & 1) rsif->print();
+        if (printFlag) rsif->print();
         printf("pgpWidget write returned 0x%x\n", rsif->_data);
       }
       break;
@@ -166,9 +240,22 @@ int main( int argc, char** argv )
       ret = pgp->readRegister(dest, addr,0x2dbeef, &data, 1, printFlag);
       if (!ret) printf("pgpWidget read returned 0x%x\n", data);
       break;
+    case dumpCommand:
+      for (unsigned i=0; i<count; i++) {
+        pgp->readRegister(dest, addr+i,0x2dbeef, &data);
+        printf("\t%s0x%x - 0x%x\n", addr+i < 0x10 ? " " : "", addr+i, data);
+      }
+      break;
+    case testCommand:
+      for (unsigned i=0; i<count; i++) {
+        pgp->writeRegister(dest, addr+i, i);
+        pgp->readRegister(dest, addr+i,0x2dbeef, &data);
+        printf("\t%16x - %16x %s\n", i, data, i == data ? "" : "<<--ERROR");
+      }
+      break;
     case readAsyncCommand:
       enum {BufferWords = 1<<24};
-//      Pds::Pgp::DataImportFrame* inFrame;
+      Pds::Pgp::DataImportFrame* inFrame;
       PgpCardRx       pgpCardRx;
       pgpCardRx.model   = sizeof(&pgpCardRx);
       pgpCardRx.maxSize = BufferWords;
@@ -176,9 +263,18 @@ int main( int argc, char** argv )
       int readRet;
       while (keepGoing) {
         if ((readRet = ::read(fd, &pgpCardRx, sizeof(PgpCardRx))) >= 0) {
-          unsigned loopCount = readRet < 64 ? readRet : 16;
-          for (unsigned i=0; i<loopCount; i++) printf("0x%0x ", pgpCardRx.data[i]);
-          printf("\n");
+          if (writing) {
+            fwrite(pgpCardRx.data, sizeof(uint32_t), readRet, writeFile);
+          } else if (debug & 1) {
+            inFrame = (Pds::Pgp::DataImportFrame*) pgpCardRx.data;
+            printf("read returned %u, DataImportFrame lane(%u) vc(%u) pgpCardRx lane(%u), vc(%u)\n",
+                readRet, inFrame->lane(), inFrame->vc(), pgpCardRx.pgpLane, pgpCardRx.pgpVc);
+          } else {
+            uint16_t* up = (uint16_t*) pgpCardRx.data;
+            unsigned loopCount = (readRet<<1) < (int)maxPrint ? readRet<<1 : maxPrint;
+            for (unsigned i=0; i<loopCount; i++) printf("%0x ", up[i]/*pgpCardRx.data[i]*/);
+            printf("\n");
+          }
         } else {
           perror("pgpWidget Async reading error");
           keepGoing = false;
