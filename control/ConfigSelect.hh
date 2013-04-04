@@ -5,6 +5,8 @@
 
 #include "pdsapp/config/Experiment.hh"
 
+#include <pthread.h>
+
 class QComboBox;
 class QPushButton;
 
@@ -47,6 +49,10 @@ namespace Pds {
     bool                       _scanIsActive;
     QPushButton*               _bEdit;
     QPushButton*               _bScan;
+
+    bool                       _control_busy;
+    pthread_mutex_t            _control_mutex;
+    pthread_cond_t             _control_cond;
   };
 };
 

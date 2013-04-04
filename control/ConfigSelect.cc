@@ -22,8 +22,12 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
 			   const char*       db_path) :
   QGroupBox("Configuration",parent),
   _pcontrol(control),
-  _expt    (Pds_ConfigDb::Path(db_path))
+  _expt    (Pds_ConfigDb::Path(db_path)),
+  _control_busy(false)
 {
+  pthread_mutex_init(&_control_mutex, NULL);
+  pthread_cond_init (&_control_cond, NULL);
+
   _expt.read();
 
   _reconfig = new Pds_ConfigDb::Reconfig_Ui(this, _expt);
@@ -53,7 +57,7 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
 
   connect(_bEdit  , SIGNAL(clicked()),                 _reconfig, SLOT(show()));
   connect(_bScan  , SIGNAL(clicked(bool)),	       this, SLOT(enable_scan(bool)));
-  connect(this    , SIGNAL(control_enabled(bool)),     this, SLOT(enable_control(bool)));
+  connect(this    , SIGNAL(control_enabled(bool)),     this, SLOT(enable_control_(bool)));
   connect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
   connect(_reconfig,SIGNAL(changed()),                 this, SLOT(update()));
   connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
@@ -75,7 +79,14 @@ ConfigSelect::~ConfigSelect()
 
 void ConfigSelect::enable_control(bool v)
 {
+  pthread_mutex_lock(&_control_mutex);
+  _control_busy = true;
+
   emit control_enabled(v);
+
+  while(_control_busy)
+    pthread_cond_wait(&_control_cond, &_control_mutex);
+  pthread_mutex_unlock(&_control_mutex);
 }
 
 void ConfigSelect::enable_control_(bool v)
@@ -93,6 +104,8 @@ void ConfigSelect::enable_control_(bool v)
     else
       update();
   }
+  _control_busy = false;
+  pthread_cond_signal(&_control_cond);
 }
 
 void ConfigSelect::set_run_type(const QString& run_type)

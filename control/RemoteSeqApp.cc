@@ -144,11 +144,6 @@ void RemoteSeqApp::routine()
   //  replace the configuration with default running
   new(_config_buffer) ControlConfigType(ControlConfigType::Default);
   _configtc.extent = sizeof(Xtc) + config.size();
-  _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
-  _control.set_transition_env(TransitionId::Enable,
-            config.uses_duration() ?
-            EnableEnv(config.duration()).value() :
-            EnableEnv(config.events()).value());
 
   int listener;
   if ((listener = ::socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -188,7 +183,7 @@ void RemoteSeqApp::routine()
 
             _manual.disable_control();
             _select.enable_control(false);
-
+            
             _socket = s;
 
             //  First, send the current configdb and run key
@@ -218,13 +213,16 @@ void RemoteSeqApp::routine()
 
             //  Reconfigure with the initial settings
             else if (readTransition()) {
+
+              _control.wait_for_target();
               _control.set_transition_env    (TransitionId::Configure,options & DbKeyMask);
               _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
 
               _control.set_target_state(PartitionControl::Configured);
 
               _wait_for_configure = true;
-              _control.reconfigure();
+              _control.reconfigure(false);
+              _control.release_target();
 
               if (options & RecordSetMask)
                 _manual.set_record_state( options & RecordValMask );
@@ -239,12 +237,14 @@ void RemoteSeqApp::routine()
                   _control.set_target_state(PartitionControl::Running);
                 }
                 else {
+                  _control.wait_for_target();
                   _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
                   _control.set_transition_env(TransitionId::Enable,
                                               config.uses_duration() ?
                                               EnableEnv(config.duration()).value() :
                                               EnableEnv(config.events()).value());
                   _control.set_target_state(PartitionControl::Enabled);
+                  _control.release_target();
                 }
               }
             }
@@ -256,6 +256,7 @@ void RemoteSeqApp::routine()
             new(_config_buffer) ControlConfigType(ControlConfigType::Default);
             _configtc.extent = sizeof(Xtc) + config.size();
 
+            _control.wait_for_target();
             _control.set_transition_env    (TransitionId::Configure,old_key);
             _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
             _control.set_transition_env    (TransitionId::Enable,
@@ -263,6 +264,7 @@ void RemoteSeqApp::routine()
                                             EnableEnv(config.duration()).value() :
                                             EnableEnv(config.events()).value());
             _control.set_target_state(PartitionControl::Configured);
+            _control.release_target();
             //            _control.reconfigure();
 
             _manual.enable_control();
