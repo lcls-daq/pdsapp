@@ -169,6 +169,7 @@ void Devices_Ui::remove_device()
   if (device) {
     _expt.remove_device(*device);
     update_device_list();
+    emit db_changed();
   }
 }
 

@@ -42,6 +42,8 @@ namespace Pds_ConfigDb {
     void db_update();
     void expert_mode();
     void user_mode();
+  signals:
+    void db_changed();
   private:
     bool validate_config_name(const string& name);
     void _current_component(string& utype, string& uname);

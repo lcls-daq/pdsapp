@@ -26,6 +26,7 @@ Ui::Ui(Experiment& expt, bool edit) :
 
   connect(transaction, SIGNAL(db_changed()), experiment, SLOT(db_update()));
   connect(transaction, SIGNAL(db_changed()), devices   , SLOT(db_update()));
+  connect(devices    , SIGNAL(db_changed()), experiment, SLOT(db_update()));
 }
 
 Ui::~Ui()

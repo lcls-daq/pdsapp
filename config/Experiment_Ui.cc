@@ -85,7 +85,10 @@ Experiment_Ui::~Experiment_Ui()
 
 void Experiment_Ui::db_update()
 {
+  int i = _cfglist->currentRow();
   update_config_list();
+  if (i>=0)
+    _cfglist->setCurrentRow(i);
 }
 
 bool Experiment_Ui::validate_config_name(const string& name)

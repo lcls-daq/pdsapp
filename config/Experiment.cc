@@ -266,17 +266,18 @@ void Experiment::add_device(const string& name,
 
 void Experiment::remove_device(const Device& device)
 {
-  cout << "Removing device " << device.name() << endl;
-  _devices.remove(device);
-
   for(list<TableEntry>::iterator alias=_table.entries().begin();
       alias!=_table.entries().end(); alias++)
     for(list<FileEntry>::const_iterator iter=alias->entries().begin();
-        iter != alias->entries().end(); iter++)
-      if (iter->name() == device.name()) {
-        alias->remove(*iter);
+        iter != alias->entries().end(); iter++) {
+      FileEntry e(*iter);
+      if (e.name() == device.name()) {
+        alias->remove(e);
         break;
       }
+    }
+
+  _devices.remove(device);
 }
 
 void Experiment::import_data(const string& device,
