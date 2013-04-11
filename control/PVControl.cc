@@ -7,6 +7,9 @@
 
 #include "db_access.h"
 
+#include <stdio.h>
+#include <string.h>
+
 #define handle_type(ctype, stype, dtype) case ctype:                    \
   { struct stype* ival = (struct stype*)dbr;                            \
     dtype* inp  = &ival->value;                                         \

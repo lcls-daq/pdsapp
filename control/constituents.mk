@@ -1,11 +1,4 @@
-ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-qtincdir  := qt/include_64
 tgtnames := control_gui catest
-else
-qtincdir  := qt/include
-tgtnames := control_gui catest
-#tgtnames := control_gui 
-endif
 
 datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata pdsdata/andordata pdsdata/usdusbdata pdsdata/orcadata
 
@@ -34,10 +27,10 @@ tgtlibs_control_gui += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/u
 tgtlibs_control_gui += pds/epicstools
 tgtlibs_control_gui += pdsapp/configdb
 tgtlibs_control_gui += pdsapp/configdbg
-tgtlibs_control_gui += qt/QtGui qt/QtCore
+tgtlibs_control_gui += $(qtlibdir)
 tgtlibs_control_gui += epics/ca epics/Com
 tgtlibs_control_gui += offlinedb/mysqlclient offlinedb/offlinedb
-tgtslib_control_gui := $(USRLIBDIR)/rt
+tgtslib_control_gui := $(USRLIBDIR)/rt $(qtslibdir)
 tgtincs_control_gui := $(qtincdir)
 tgtincs_control_gui += epics/include epics/include/os/Linux
 tgtincs_control_gui += offlinedb/include

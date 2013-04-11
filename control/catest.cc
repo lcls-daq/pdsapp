@@ -7,6 +7,9 @@
 #include "cadef.h"
 
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 namespace Pds {
   class MyMonitor : public PVRunnable {

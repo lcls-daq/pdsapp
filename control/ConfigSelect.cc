@@ -175,9 +175,10 @@ void ConfigSelect::configured(bool v)
 
 void ConfigSelect::enable_scan(bool l)
 {
+  bool active = _scanIsActive;
   _scan->setVisible(l);
   _scanIsActive = l;
-  if (!l) update();  // refresh the run key from "Type"
+  if (active && !l) update();  // refresh the run key from "Type"
 }
 
 void ConfigSelect::_writeSettings()

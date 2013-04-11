@@ -11,6 +11,8 @@
 #include <QtGui/QLabel>
 #include <QtGui/QGridLayout>
 
+#include <stdio.h>
+
 using namespace Pds;
 
 static inline bool matches(const Src& a, const Src& b)

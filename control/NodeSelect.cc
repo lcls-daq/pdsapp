@@ -1,16 +1,19 @@
 #include "NodeSelect.hh"
 
-#include <errno.h>
+#include "pdsdata/xtc/BldInfo.hh"
+#include "pdsdata/xtc/DetInfo.hh"
+#include "pds/collection/PingReply.hh"
+#include "pds/config/EvrConfigType.hh"
+
 #include <QtCore/QString>
 #include <QtGui/QButtonGroup>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QPalette>
 #include <QtGui/QComboBox>
 
-#include "pdsdata/xtc/BldInfo.hh"
-#include "pdsdata/xtc/DetInfo.hh"
-#include "pds/collection/PingReply.hh"
-#include "pds/config/EvrConfigType.hh"
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define NODE_BUFF_SIZE  256
 
@@ -55,7 +58,7 @@ static QList<int> _bldOrder =
 
 static const char* cTransient = "Monitor";
 
-static FILE* open_pref(const char* title, unsigned platform, char* mode)
+static FILE* open_pref(const char* title, unsigned platform, const char* mode)
 {
   const int BUFF_SIZE=256;
   char* buff = new char[BUFF_SIZE];

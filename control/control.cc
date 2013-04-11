@@ -4,6 +4,7 @@
 
 #include <QtGui/QApplication>
 
+#include <stdio.h>
 #include <stdlib.h> // Required for timespec struct and nanosleep()
 #include <string.h>
 #include <unistd.h>
@@ -96,8 +97,8 @@ int main(int argc, char** argv)
   Experiment::log_threshold(nfs_log_threshold);
 
   int _argc=1;
-  char* _argv[] = { "DAQ Control", NULL };
-  QApplication app(_argc, _argv);
+  const char* _argv[] = { "DAQ Control", NULL };
+  QApplication app(_argc, const_cast<char**>(_argv));
 
   MainWindow* window = new MainWindow(platform,
                                       partition,

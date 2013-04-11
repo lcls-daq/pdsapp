@@ -301,12 +301,19 @@ Transition* RemoteSeqApp::transitions(Transition* tr)
 
 Occurrence* RemoteSeqApp::occurrences(Occurrence* occ)
 {
-  if (_socket >= 0)
-    if (occ->id() == OccurrenceId::SequencerDone) {
+  if (_socket >= 0) {
+    int info = _last_run.run() | (_last_run.experiment()<<16);
+    switch (occ->id()) {
+    case OccurrenceId::SequencerDone:
       _control.set_target_state(PartitionControl::Running);
       return 0;
+    case OccurrenceId::EvrEnabled:
+      ::write(_socket,&info,sizeof(info));
+      return 0;
+    default:
+      break;
     }
-
+  }
   return occ;
 }
 
@@ -325,8 +332,7 @@ InDatagram* RemoteSeqApp::events     (InDatagram* dg)
   _wait_for_configure = false;
       }
     }
-    else if (id==TransitionId::Enable ||
-       id==TransitionId::EndCalibCycle)
+    else if (id==TransitionId::EndCalibCycle)
       ::write(_socket,&info,sizeof(info));
   }
   return dg;
