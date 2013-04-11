@@ -13,6 +13,8 @@
 #include <QtGui/QMessageBox>
 #include <QtGui/QLabel>
 
+#include <stdio.h>
+
 static const unsigned MaxEVRs = 8;
 static const double EvrPeriod = 1./119e6;
 

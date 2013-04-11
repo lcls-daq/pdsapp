@@ -17,8 +17,9 @@
 #include <QtGui/QMenuBar>
 
 #include <list>
-
 using std::list;
+
+#include <stdio.h>
 
 using namespace Pds_ConfigDb;
 

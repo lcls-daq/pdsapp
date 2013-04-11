@@ -1,6 +1,11 @@
 #include "Path.hh"
 #include "Experiment.hh"
 #include "PdsDefs.hh"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 using namespace Pds_ConfigDb;
 
 // Commands

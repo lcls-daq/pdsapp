@@ -3,6 +3,8 @@
 
 #include <QtGui/QApplication>
 
+#include <stdio.h>
+
 using namespace Pds_ConfigDb;
 
 int main(int argc, char** argv)

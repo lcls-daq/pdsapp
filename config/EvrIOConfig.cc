@@ -17,6 +17,8 @@
 #include <QtGui/QTabWidget>
 #include <QtGui/QPushButton>
 
+#include <stdio.h>
+
 using namespace Pds_ConfigDb;
 
 static const int MaxOutputs = 13;

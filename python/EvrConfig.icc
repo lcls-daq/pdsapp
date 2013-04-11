@@ -247,9 +247,9 @@ static PyObject* get_OutputMap(const Pds::EvrData::OutputMap& output,
 
 static bool set_OutputMap(Pds::EvrData::OutputMap& output, PyObject* o, unsigned opm)
 {
-  unsigned source_id;  SetDictMemberU("pulse",  source_id);
-  unsigned module   ;  SetDictMemberU("module", module);
-  unsigned conn     ;  SetDictMemberU("conn",   conn);
+  unsigned source_id=0;  SetDictMemberU("pulse",  source_id);
+  unsigned module   =0;  SetDictMemberU("module", module);
+  unsigned conn     =0;  SetDictMemberU("conn",   conn);
 
   if (conn > opm) {
     char buff[128];
@@ -274,9 +274,9 @@ static PyObject* get_OutputMapV2(const Pds::EvrData::OutputMapV2& output)
 
 static bool set_OutputMapV2(Pds::EvrData::OutputMapV2& output, PyObject* o)
 {
-  unsigned source_id;  SetDictMemberU("pulse",  source_id);
-  unsigned module   ;  SetDictMemberU("module", module);
-  unsigned conn     ;  SetDictMemberU("conn",   conn);
+  unsigned source_id=0;  SetDictMemberU("pulse",  source_id);
+  unsigned module   =0;  SetDictMemberU("module", module);
+  unsigned conn     =0;  SetDictMemberU("conn",   conn);
 
   typedef Pds::EvrData::OutputMapV2 OType;
   new (&output)OType(OType::Pulse, source_id, OType::UnivIO, conn, module);

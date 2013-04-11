@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <iomanip>
 #include <sstream>
+#include <stdio.h>
 
 static const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
 

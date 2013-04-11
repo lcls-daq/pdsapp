@@ -44,7 +44,7 @@ namespace Pds {
 
 using namespace Pds;
 
-DisplayConfig::DisplayConfig (char* groupNameModifier, MonCds& cds) :
+DisplayConfig::DisplayConfig (const char* groupNameModifier, MonCds& cds) :
   _cds(cds),_numsource(0),_groupNameModifier(groupNameModifier)
 {}
 

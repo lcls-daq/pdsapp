@@ -6,6 +6,8 @@
 #include "pdsapp/config/FexampConfig.hh"
 #include "pdsapp/config/FexampCopyChannelDialog.hh"
 
+#include <stdio.h>
+
 namespace Pds_ConfigDb {
 
   FexampCopyChannelDialog::FexampCopyChannelDialog(int ind, QWidget *parent)

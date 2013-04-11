@@ -24,7 +24,7 @@ bool CmdLineTools::parseDetInfo(const char* args, DetInfo& info)
     devid  = strtoul(p+1 , &p, 0);
   }
   else {
-    int n = (p=strchr(args,'/')) - args;
+    int n = (p=const_cast<char*>(strchr(args,'/'))) - args;
     det = DetInfo::NumDetector;
     for(int i=0; i<DetInfo::NumDetector; i++)
       if (strncasecmp(args,DetInfo::name((DetInfo::Detector)i),n)==0) {
@@ -43,7 +43,7 @@ bool CmdLineTools::parseDetInfo(const char* args, DetInfo& info)
     detid  = strtoul(p+1 , &p, 0);
 
     args = p+1;
-    n = (p=strchr(args,'/')) - args;
+    n = (p=const_cast<char*>(strchr(args,'/'))) - args;
     dev = DetInfo::NumDevice;
     for(int i=0; i<DetInfo::NumDevice; i++)
       if (strncasecmp(args,DetInfo::name((DetInfo::Device)i),n)==0) {

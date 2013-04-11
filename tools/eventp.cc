@@ -3,6 +3,8 @@
 #include "pds/service/Task.hh"
 #include "pds/management/ObserverLevel.hh"
 
+#include <stdlib.h>
+
 using namespace Pds;
 
 void usage(const char* p)

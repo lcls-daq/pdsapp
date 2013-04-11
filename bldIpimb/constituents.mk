@@ -23,7 +23,7 @@ tgtsrcs_bldIpimb += $(libsrcs_bldIpimblib)
 tgtincs_bldIpimb := evgr
 tgtlibs_bldIpimb := $(commonlibs) $(datalibs) evgr/evr evgr/evg pds/evgr pds/ipimb pdsapp/configdb
 #tgtlibs_bldIpimb := $(commonlibs) $(datalibs) evgr/evr evgr/evg pds/evgr pds/ipimb pdsapp/configdb pdsapp/bldIpimblib
-tgtlibs_bldIpimb += qt/QtGui qt/QtCore
-tgtslib_bldIpimb := $(USRLIBDIR)/rt
+tgtlibs_bldIpimb += $(qtlibdir)
+tgtslib_bldIpimb := $(USRLIBDIR)/rt $(qtslibdir)
 
 

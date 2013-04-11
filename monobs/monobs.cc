@@ -23,13 +23,14 @@ public:
   Transition* transitions(Transition* tr) { return tr; }
   InDatagram* occurrences(InDatagram* dg) { return dg; }
   InDatagram* events     (InDatagram* dg)
-  { if (dg->datagram().seq.isEvent())
+  { if (dg->datagram().seq.isEvent()) {
       if (++_count == _prescale) {
-  _count = 0;
-  return dg;
+        _count = 0;
+        return dg;
       }
       else
-  return 0;
+        return 0;
+    }
     return dg;
   }
 private:

@@ -8,6 +8,8 @@
 
 #include <new>
 
+#include <stdio.h>
+
 using namespace Pds_ConfigDb;
 
 // FIXME: This is blatant duplication of code in
@@ -16,14 +18,14 @@ using namespace Pds_ConfigDb;
 // These must end in NULL.
 namespace PCI3E_V1
 {
-   extern const char* count_mode_to_name[] = {
+   static const char* count_mode_to_name[] = {
       "COUNT_MODE_WRAP_FULL",
       "COUNT_MODE_LIMIT",
       "COUNT_MODE_HALT",
       "COUNT_MODE_WRAP_PRESET",
       NULL
    };
-   extern const char* quad_mode_to_name[] = {
+   static const char* quad_mode_to_name[] = {
       "QUAD_MODE_CLOCK_DIR",
       "QUAD_MODE_X1",
       "QUAD_MODE_X2",

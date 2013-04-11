@@ -9,6 +9,7 @@
 #include <QtGui/QComboBox>
 #include <QtCore/QString>
 #include <string.h>
+#include <stdio.h>
 
 using namespace Pds_ConfigDb;
 
@@ -42,7 +43,7 @@ QLayout* ParameterSet::initialize(QWidget* parent)
   return layout;                                     
 }
 
-void ParameterSet::name(char* n) {
+void ParameterSet::name(const char* n) {
   strncpy(_name, n, 80);
 }
 

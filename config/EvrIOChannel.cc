@@ -9,8 +9,8 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QLabel>
 
-static const char* detTypes[Pds::DetInfo::NumDetector];
-static const char* devTypes[Pds::DetInfo::NumDevice  ];
+static const char* detTypes[Pds::DetInfo::NumDetector+1];
+static const char* devTypes[Pds::DetInfo::NumDevice  +1];
 
 using namespace Pds_ConfigDb;
 

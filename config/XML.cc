@@ -1,5 +1,8 @@
 #include "pdsapp/config/XML.hh"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 using namespace Pds_ConfigDb::XML;
 
 const int StringSize = 64;

@@ -27,7 +27,7 @@ namespace Pds_ConfigDb {
     void launch(int);
     void membersChanged();
     int  index() { return _index; }
-    void name(char* n);
+    void name(const char* n);
     virtual QWidget* insertWidgetAtLaunch(int) { return 0;}
   public:
     Pds::LinkedList<Parameter>* _array;

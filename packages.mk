@@ -3,7 +3,7 @@ ifneq ($(findstring i386-linux,$(tgt_arch)),)
 packages := tools config dev devtest mon monobs control epics blv bldIpimb test camrecord
 endif
 
-ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
+ifneq ($(findstring x86_64,$(tgt_arch)),)
 packages := tools config dev devtest monobs control python blv bldIpimb test camrecord
 endif
 

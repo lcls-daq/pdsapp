@@ -21,7 +21,7 @@ namespace Pds {
 
   class DisplayConfig {
   public:
-    DisplayConfig(char* groupNameModifier, MonCds& cds);
+    DisplayConfig(const char* groupNameModifier, MonCds& cds);
     ~DisplayConfig();
     void reset();
     void request(const Src& src,const Acqiris::ConfigV1&);
@@ -41,7 +41,7 @@ namespace Pds {
     MonEntry* _entry[MaxSrc][MaxChan];
     Src       _src[MaxSrc];
     Acqiris::ConfigV1 _config[MaxSrc];
-    char*     _groupNameModifier;
+    const char* _groupNameModifier;
     char      _groupNameBuffer[128];
   };
 

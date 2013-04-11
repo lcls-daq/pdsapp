@@ -1,9 +1,3 @@
-ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-qtincdir  := qt/include_64
-else
-qtincdir  := qt/include
-endif
-
 libnames       := configdb configdbg
 libsrcs_configdb := Path.cc
 libsrcs_configdb += Table.cc
@@ -107,7 +101,7 @@ libsrcs_configdbg += BitCount.cc
 libsrcs_configdbg += templates.cc
 libincs_configdbg := $(qtincdir)
 
-tgtnames       := configdb
+tgtnames       := configdb_cmd
 tgtnames       += configdb_gui
 tgtnames       += configdb_list
 tgtnames       += configdb_readxtc
@@ -117,13 +111,13 @@ tgtnames       += configdb_readxtc
 
 datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata pdsdata/andordata pdsdata/usdusbdata pdsdata/orcadata
 
-tgtsrcs_configdb := configdb.cc
+tgtsrcs_configdb_cmd := configdb.cc
 #tgtincs_configdb := $(qtincdir)
-tgtlibs_configdb := $(datalibs)
-tgtlibs_configdb += pdsapp/configdb
-#tgtlibs_configdb += pdsapp/configdbg
-tgtlibs_configdb += qt/QtGui qt/QtCore
-tgtslib_configdb := $(USRLIBDIR)/rt
+tgtlibs_configdb_cmd := $(datalibs)
+tgtlibs_configdb_cmd += pdsapp/configdb
+#tgtlibs_configdb_cmd += pdsapp/configdbg
+tgtlibs_configdb_cmd += $(qtlibdir)
+tgtslib_configdb_cmd := $(USRLIBDIR)/rt $(qtslibdir)
 
 tgtsrcs_configdb_gui := configdb_gui.cc
 tgtsrcs_configdb_gui += Ui.cc
@@ -135,34 +129,34 @@ tgtsrcs_configdb_gui += ListUi.cc     ListUi_moc.cc
 tgtsrcs_configdb_gui += DetInfoDialog_Ui.cc   DetInfoDialog_Ui_moc.cc
 tgtincs_configdb_gui := $(qtincdir)
 tgtlibs_configdb_gui := $(datalibs)
-tgtlibs_configdb_gui += qt/QtGui qt/QtCore
+tgtlibs_configdb_gui += $(qtlibdir)
 tgtlibs_configdb_gui += pdsapp/configdb
 tgtlibs_configdb_gui += pdsapp/configdbg
-tgtslib_configdb_gui := $(USRLIBDIR)/rt
+tgtslib_configdb_gui := $(USRLIBDIR)/rt $(qtslibdir)
 
 tgtsrcs_configdb_list := configdb_list.cc
 tgtsrcs_configdb_list += ListUi.cc ListUi_moc.cc
 tgtincs_configdb_list := $(qtincdir)
 tgtlibs_configdb_list := $(datalibs)
-tgtlibs_configdb_list += qt/QtGui qt/QtCore
+tgtlibs_configdb_list += $(qtlibdir)
 tgtlibs_configdb_list += pdsapp/configdb
 tgtlibs_configdb_list += pdsapp/configdbg
-tgtslib_configdb_list := $(USRLIBDIR)/rt
+tgtslib_configdb_list := $(USRLIBDIR)/rt $(qtslibdir)
 
 tgtsrcs_create_scan := create_scan_config.cc
 tgtincs_create_scan := $(qtincdir)
 tgtlibs_create_scan := $(datalibs)
-tgtlibs_create_scan += qt/QtGui qt/QtCore
+tgtlibs_create_scan += $(qtlibdir)
 tgtlibs_create_scan += pdsapp/configdb
 tgtlibs_create_scan += pdsapp/configdbg
-tgtslib_create_scan := $(USRLIBDIR)/rt
+tgtslib_create_scan := $(USRLIBDIR)/rt $(qtslibdir)
 
 tgtsrcs_configdb_readxtc := configdb_readxtc.cc
 tgtsrcs_configdb_readxtc += Xtc_Ui.cc Xtc_Ui_moc.cc
 tgtsrcs_configdb_readxtc += XtcFileServer.cc XtcFileServer_moc.cc
 tgtincs_configdb_readxtc := $(qtincdir)
 tgtlibs_configdb_readxtc := $(datalibs)
-tgtlibs_configdb_readxtc += qt/QtGui qt/QtCore
+tgtlibs_configdb_readxtc += $(qtlibdir)
 tgtlibs_configdb_readxtc += pdsapp/configdb
 tgtlibs_configdb_readxtc += pdsapp/configdbg
-tgtslib_configdb_readxtc := $(USRLIBDIR)/rt
+tgtslib_configdb_readxtc := $(USRLIBDIR)/rt $(qtslibdir)

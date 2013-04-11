@@ -4,6 +4,11 @@
 #include "pdsapp/dev/CmdLineTools.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+
 using namespace PdsCas;
 
 void usage(const char* p)

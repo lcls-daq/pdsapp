@@ -1,4 +1,4 @@
-ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
+ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames := monobs monshm monshmserver sxrmon xppmon cximon xcsmon cspadmon
 else
 tgtnames := monobs monshm monshmserver offlineobs sxrmon xppmon cximon xcsmon cspadmon alive_mon

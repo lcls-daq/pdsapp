@@ -13,6 +13,8 @@
 #include <QtGui/QGroupBox>
 #include <QtGui/QComboBox>
 
+#include <stdio.h>
+
 static const unsigned DefaultLo = 67;
 static const unsigned DefaultHi = 74;
 static const unsigned MaxUserCodes      = Pds_ConfigDb::EvrEventCodeTable::MaxCodes;

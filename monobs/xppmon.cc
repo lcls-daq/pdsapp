@@ -7,6 +7,10 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 using namespace PdsCas;
 
 void usage(const char* p)

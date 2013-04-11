@@ -7,6 +7,8 @@
 #include <Python.h>
 #include <structmember.h>
 
+#define MyArg_ParseTupleAndKeywords(args,kwds,fmt,kwlist,...) PyArg_ParseTupleAndKeywords(args,kwds,fmt,const_cast<char**>(kwlist),__VA_ARGS__)
+
 #include "pdsapp/python/pycdb.hh"
 
 #include "pdsapp/python/Xtc.icc"

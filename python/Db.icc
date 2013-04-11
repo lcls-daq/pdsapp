@@ -166,9 +166,9 @@ int pdsdb_init(pdsdb* self, PyObject* args, PyObject* kwds)
 {
   int sts;
 
-  { char* kwlist[] = {"path",NULL};
+  { const char* kwlist[] = {"path",NULL};
     const char *path = 0;
-    sts = PyArg_ParseTupleAndKeywords(args,kwds,"s",kwlist,
+    sts = MyArg_ParseTupleAndKeywords(args,kwds,"s",const_cast<char**>(kwlist),
                                       &path);
     if (sts) {
       self->path = new Path(path);
@@ -198,38 +198,38 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
   const char* file  = 0;
 
   while(1) {
-    { char* kwlist[] = {"key"  ,"src"  ,"typeid", NULL };
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"I|II",kwlist,
+    { const char* kwlist[] = {"key"  ,"src"  ,"typeid", NULL };
+      if ( MyArg_ParseTupleAndKeywords(args,kwds,"I|II",kwlist,
                                        &key  ,&phy  ,&typid) != 0)
         break; }
 
-    { char* kwlist[] = {"key"  ,"level","typeid", NULL };
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"I|II",kwlist,
+    { const char* kwlist[] = {"key"  ,"level","typeid", NULL };
+      if ( MyArg_ParseTupleAndKeywords(args,kwds,"I|II",kwlist,
                                        &key  ,&level,&typid) != 0)
         break; }
 
-    { char* kwlist[] = {"key"  ,"typeid", NULL };
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"I|I",kwlist,
+    { const char* kwlist[] = {"key"  ,"typeid", NULL };
+      if ( MyArg_ParseTupleAndKeywords(args,kwds,"I|I",kwlist,
                                        &key  ,&typid) != 0)
         break; }
 
-    { char* kwlist[] = {"alias","src"  ,"typeid", NULL };
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"s|II",kwlist,
+    { const char* kwlist[] = {"alias","src"  ,"typeid", NULL };
+      if ( MyArg_ParseTupleAndKeywords(args,kwds,"s|II",kwlist,
                                        &alias,&phy  ,&typid) != 0)
         break; }
 
-    { char* kwlist[] = {"alias","level","typeid", NULL };
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"s|II",kwlist,
+    { const char* kwlist[] = {"alias","level","typeid", NULL };
+      if ( MyArg_ParseTupleAndKeywords(args,kwds,"s|II",kwlist,
                                        &alias,&level,&typid) != 0)
         break; }
 
-    { char* kwlist[] = {"alias","typeid", NULL };
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"s|I",kwlist,
+    { const char* kwlist[] = {"alias","typeid", NULL };
+      if ( MyArg_ParseTupleAndKeywords(args,kwds,"s|I",kwlist,
                                        &alias,&typid) != 0)
         break; }
 
-    { char* kwlist[] = {"file","src","typeid", NULL };
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"s|II",kwlist,
+    { const char* kwlist[] = {"file","src","typeid", NULL };
+      if ( MyArg_ParseTupleAndKeywords(args,kwds,"s|II",kwlist,
                                        &file,&phy,&typid) != 0)
         break; }
 
@@ -341,8 +341,8 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
 
   while(1) {
 
-    { char* kwlist[] = {"xtc", "alias", "file", NULL };
-      if ( PyArg_ParseTupleAndKeywords(args,kwds,"O|ss",kwlist,
+    { const char* kwlist[] = {"xtc", "alias", "file", NULL };
+      if ( MyArg_ParseTupleAndKeywords(args,kwds,"O|ss",kwlist,
                                        &o, &alias, &file) != 0)
         break; }
 

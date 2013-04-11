@@ -64,7 +64,7 @@ void signalHandler(int sigNo)
   exit(0); 
 }
   
-unsigned parse_interface(char* iarg)
+unsigned parse_interface(const char* iarg)
 {
   unsigned interface = 0;
   if (iarg[0]<'0' || iarg[0]>'9') {

@@ -15,6 +15,7 @@
 #include <iostream>
 #include <string>
 #include <cassert>
+#include <sys/stat.h>
 
 using namespace Pds_ConfigDb;
 

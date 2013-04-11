@@ -6,6 +6,8 @@
 #include "pdsapp/config/XampsConfig.hh"
 #include "pdsapp/config/XampsCopyChannelDialog.hh"
 
+#include <stdio.h>
+
 namespace Pds_ConfigDb {
 
   XampsCopyChannelDialog::XampsCopyChannelDialog(int ind, QWidget *parent)

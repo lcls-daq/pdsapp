@@ -12,6 +12,9 @@
 
 #include <math.h>
 #include <string>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 using Pds_Epics::PVWriter;
 using Pds::CsPad::ElementIterator;

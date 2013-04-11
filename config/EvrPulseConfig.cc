@@ -2,6 +2,8 @@
 
 #include "pds/config/EvrConfigType.hh"
 
+#include <stdio.h>
+
 using namespace Pds_ConfigDb;
 
 static const double EvrPeriod = 1./119.e6;

@@ -41,7 +41,7 @@ void Serializer::update()
 
 void Serializer::setPath(const Path& p) { path = &p; }
 
-void Serializer::name(char* n)
+void Serializer::name(const char* n)
 {
   _name = *new  QString(n);
 }

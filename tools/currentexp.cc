@@ -80,7 +80,7 @@ int instrumentPrint(const char *offlinerc, PartitionDescriptor& desc, unsigned i
 int main(int argc, char* argv[]) {
   int ii;
   int parseErr = 0;
-  char *rcpath = DEFAULT_RCPATH;
+  const char *rcpath = DEFAULT_RCPATH;
   unsigned int verbose = 0;
   descList_t descList;
   descList_t::iterator it;

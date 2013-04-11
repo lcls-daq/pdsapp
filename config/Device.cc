@@ -8,6 +8,9 @@
 
 #include <sys/stat.h>
 #include <glob.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <sstream>
 using std::istringstream;

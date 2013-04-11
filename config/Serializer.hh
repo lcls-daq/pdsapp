@@ -23,7 +23,7 @@ namespace Pds_ConfigDb {
     void flush ();
     void update();
     void setPath(const Path&);
-    void name(char*);
+    void name(const char*);
   protected:
     const char*                label;
     Pds::LinkedList<Parameter> pList;

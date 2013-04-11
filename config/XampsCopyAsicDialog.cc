@@ -6,6 +6,8 @@
 #include "pdsapp/config/XampsCopyAsicDialog.hh"
 #include "pdsapp/config/XampsConfig.hh"
 
+#include <stdio.h>
+
 namespace Pds_ConfigDb {
 
   XampsCopyAsicDialog::XampsCopyAsicDialog(int ind, QWidget *parent)

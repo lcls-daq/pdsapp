@@ -15,6 +15,8 @@ using std::endl;
 
 #include <glob.h>
 #include <libgen.h>
+#include <string.h>
+#include <stdlib.h>
 
 #define DBUG
 

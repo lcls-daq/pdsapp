@@ -7,6 +7,7 @@
 #include <sstream>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
 #include <time.h>

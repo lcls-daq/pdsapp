@@ -1,6 +1,8 @@
 #include "pdsapp/config/DeviceEntry.hh"
 #include "pdsapp/config/XML.hh"
 
+#include <stdio.h>
+
 #include <sstream>
 using std::istringstream;
 using std::ostringstream;

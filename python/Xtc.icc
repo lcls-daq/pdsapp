@@ -53,9 +53,9 @@ int pdsxtc_init(pdsxtc* self, PyObject* args, PyObject* kwds)
 {
   int sts;
 
-  { char* kwlist[] = {"level","phy","contains",NULL};
+  { const char* kwlist[] = {"level","phy","contains",NULL};
     unsigned level, phy, contains;
-    sts = PyArg_ParseTupleAndKeywords(args,kwds,"III",kwlist,
+    sts = MyArg_ParseTupleAndKeywords(args,kwds,"III",kwlist,
                                       &level,&phy,&contains);
     if (sts) {
       switch(level) {

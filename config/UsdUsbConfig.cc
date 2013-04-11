@@ -6,6 +6,8 @@
 
 #include <new>
 
+#include <stdio.h>
+
 using namespace Pds_ConfigDb;
 
 class Pds_ConfigDb::UsdUsbConfig::Private_Data {

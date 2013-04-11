@@ -14,6 +14,8 @@
 #include <QtGui/QMessageBox>
 #include <QtGui/QGroupBox>
 
+#include <stdio.h>
+
 static const unsigned DefaultLo =67;
 static const unsigned DefaultHi =74;
 static const unsigned MaxUserCodes      = Pds_ConfigDb::EvrConfig_V6::EvrEventCodeTable::MaxCodes;

@@ -15,7 +15,7 @@
 #include "pds/utility/Transition.hh"
 
 #include "pds/xtc/InDatagramIterator.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
+#include "pds/xtc/CDatagramIterator.hh"
 #include "pds/xtc/CDatagram.hh"
 #include "pds/service/GenericPoolW.hh"
 
@@ -30,8 +30,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
-
-//#define USE_ZCP
 
 bool verbose = false;
 
@@ -161,16 +159,6 @@ namespace Pds {
             {
         for(unsigned k=0; k<PayloadSize; k++)
           _payload[k] = k&0xff;
-#ifdef USE_ZCP
-        int remaining = PayloadSize;
-        char* p = _payload;
-        while(remaining) {
-          int sz = _zfragment.uinsert(p,remaining);
-          _zpayload.insert(_zfragment,sz);
-          remaining -= sz;
-        }
-#else
-#endif
         ::pipe(pipefd);
         fd(pipefd[0]);
 
@@ -202,38 +190,6 @@ namespace Pds {
         _hdr.length = _xtc.extent;
         return _hdr.length;
       }
-      int      fetch       (ZcpFragment& zf, int flags)
-      {
-        ::read(pipefd[0],&_hdr,sizeof(_hdr));
-        _more=true;
-
-        if (_hdr.offset == 0) {
-          char* p;
-          int sz = _fetch(&p);
-          Xtc xtc(_xtc);
-          xtc.extent += sz;
-          zf.uinsert(&xtc,sizeof(Xtc));
-          _hdr.length = xtc.extent;
-          ServerMsg hdr(_hdr);
-          hdr.ptr    = 0;
-          hdr.offset = sizeof(Xtc);
-          ::write(pipefd[1],&hdr,sizeof(hdr));
-          return sizeof(Xtc);
-        }
-        else {
-          int sz  = _hdr.length - _hdr.offset;
-          int len = _zpayload.remove(zf,sz);
-          _zfragment.copy (zf,len);
-          _zpayload.insert(_zfragment,len);
-          if (len != sz) {
-            ServerMsg hdr(_hdr);
-            hdr.ptr    += len;
-            hdr.offset += len;
-            ::write(pipefd[1],&hdr,sizeof(hdr));
-          }
-          return len;
-        }
-      }
     public:
       unsigned        count() const { return _hdr.evr.evr; }
     private:
@@ -251,8 +207,6 @@ namespace Pds {
       int       _dsize;
       char      _payload[PayloadSize];
       char      _evrPayload[sizeof(EvrDatagram)];
-      ZcpFragment _zfragment;
-      ZcpStream   _zpayload;
       unsigned _count;
   };
 
@@ -275,7 +229,7 @@ namespace Pds {
     public:
       MyFEX(const Src& s) : _src(s),
                             _pool(EventSize,16),
-      _iter(sizeof(ZcpDatagramIterator),32),
+      _iter(sizeof(CDatagramIterator),32),
       _outdg(0) {}
       ~MyFEX() {}
 

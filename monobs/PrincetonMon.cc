@@ -8,7 +8,7 @@
 #include "pds/epicstools/PVWriter.hh"
 
 #include <math.h>
-#include <string>
+#include <string.h>
 
 using Pds_Epics::PVWriter;
 

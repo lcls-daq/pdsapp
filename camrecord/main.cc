@@ -6,6 +6,7 @@
 #include<signal.h>
 #include<sys/select.h>
 #include<sys/time.h>
+#include<string.h>
 
 #include<fstream>
 #include<sstream>  //for std::istringstream

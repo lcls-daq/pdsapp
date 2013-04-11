@@ -7,7 +7,7 @@
 #  What is this for?
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
+ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames    := pimblvedt
 tgtnames    += evrbld pimbldedt ipmbld
 tgtnames    += netfifo netfwd
@@ -64,40 +64,45 @@ datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnix
 
 tgtsrcs_evrbld := evrbld.cc EvrBldManager.cc IdleStream.cc PipeApp.cc
 tgtlibs_evrbld := $(commonlibs) $(datalibs)
-tgtlibs_evrbld += pdsapp/configdb qt/QtGui qt/QtCore
+tgtlibs_evrbld += pdsapp/configdb $(qtlibdir)
 tgtlibs_evrbld += evgr/evr evgr/evg
 tgtlibs_evrbld += pds/evgr
+tgtslib_evrbld := $(qtslibdir)
 tgtincs_evrbld := evgr
 
 tgtsrcs_acqbld := acqbld.cc ToAcqBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtincs_acqbld := acqiris
 tgtlibs_acqbld := $(commonlibs) $(datalibs) pds/acqiris acqiris/AqDrv4
-tgtlibs_acqbld += pdsapp/configdb qt/QtGui qt/QtCore
+tgtlibs_acqbld += pdsapp/configdb $(qtlibdir)
 tgtlibs_acqbld += pds/ipimb
-tgtslib_acqbld := $(USRLIBDIR)/rt
+tgtslib_acqbld := $(USRLIBDIR)/rt $(qtslibdir)
 
 tgtsrcs_ipmbld := ipmbld.cc ToIpmBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_ipmbld := $(commonlibs) $(datalibs)
-tgtlibs_ipmbld += pdsapp/configdb qt/QtGui qt/QtCore
+tgtlibs_ipmbld += pdsapp/configdb $(qtlibdir)
 tgtlibs_ipmbld += pds/ipimb
+tgtslib_ipmbld := $(qtslibdir)
 
 tgtsrcs_ipmbldsim := ipmbldsim.cc ToIpmBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_ipmbldsim := $(commonlibs) $(datalibs)
-tgtlibs_ipmbldsim += pdsapp/configdb qt/QtGui qt/QtCore
+tgtlibs_ipmbldsim += pdsapp/configdb $(qtlibdir)
 tgtlibs_ipmbldsim += pds/ipimb
+tgtslib_ipmbldsim := $(qtslibdir)
 
 tgtsrcs_pimbld := pimbld.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_pimbld := $(commonlibs) $(datalibs)
-tgtlibs_pimbld += pdsapp/configdb qt/QtGui qt/QtCore
+tgtlibs_pimbld += pdsapp/configdb $(qtlibdir)
 tgtlibs_pimbld += pds/camera
 tgtlibs_pimbld += $(leutron_libs)
+tgtslib_pimbld := $(qtslibdir)
 tgtincs_pimbld := leutron/include
 
 tgtsrcs_pimbldedt := pimbldedt.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_pimbldedt := $(commonlibs) $(datalibs)
-tgtlibs_pimbldedt += pdsapp/configdb qt/QtGui qt/QtCore
+tgtlibs_pimbldedt += pdsapp/configdb $(qtlibdir)
 tgtlibs_pimbldedt += pds/camera
 tgtlibs_pimbldedt += $(edt_libs)
+tgtslib_pimbldedt := $(qtslibdir)
 tgtincs_pimbldedt := edt/include
 
 tgtsrcs_netfifo := netfifo.cc

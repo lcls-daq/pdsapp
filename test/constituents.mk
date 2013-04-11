@@ -2,7 +2,7 @@ libnames :=
 
 libsrcs_test := 
 
-ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
+ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames := andorStandAlone
 else
 tgtnames := princetonCameraTest andorStandAlone

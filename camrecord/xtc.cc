@@ -8,6 +8,7 @@
 #include<string.h>
 #include<math.h>
 #include<netdb.h>
+#include<stdlib.h>
 
 #include<new>
 #include<vector>

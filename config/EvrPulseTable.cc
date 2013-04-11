@@ -15,6 +15,8 @@
 #include <QtGui/QMessageBox>
 #include <QtGui/QComboBox>
 
+#include <stdio.h>
+
 static const unsigned MaxOutputs = 13;
 static const int PolarityGroup = 100;
 static const double EvrPeriod = 1./119e6;

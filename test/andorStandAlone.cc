@@ -96,7 +96,7 @@ int AndorCameraTest::init()
   timespec timeVal0;
   clock_gettime( CLOCK_REALTIME, &timeVal0 );
     
-  iError = Initialize("/usr/local/etc/andor");
+  iError = Initialize(const_cast<char*>("/usr/local/etc/andor"));
   if (isAndorFuncOk(iError))
   {
     printf("Waiting for hardware to finish initializing...\n");

@@ -6,6 +6,8 @@
 #include "pdsapp/config/FexampCopyAsicDialog.hh"
 #include "pdsapp/config/FexampConfig.hh"
 
+#include <stdio.h>
+
 namespace Pds_ConfigDb {
 
   FexampCopyAsicDialog::FexampCopyAsicDialog(int ind, QWidget *parent)

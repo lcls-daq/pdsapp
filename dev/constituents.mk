@@ -6,7 +6,7 @@ libsrcs_devapp := CmdLineTools.cc
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 #CPPFLAGS += -DBLD_DELAY # for tolerating BLD delays up to 0.5 seconds
 
-ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
+ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames := phasics \
   oceanoptics fli andor usdusb camedt simcam \
   bld evr
@@ -182,13 +182,13 @@ tgtslib_bld := $(USRLIBDIR)/rt
 tgtsrcs_princeton := princeton.cc
 tgtlibs_princeton := $(commonlibs) pds/princeton pvcam/pvcam 
 tgtlibs_princeton += $(datalibs) 
-tgtlibs_princeton += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
+tgtlibs_princeton += pdsapp/configdb $(qtlibdir) # for accessing configdb
 tgtslib_princeton := $(USRLIBDIR)/rt dl pthread
 
 tgtsrcs_princetonsim := princeton.cc
 tgtlibs_princetonsim := $(commonlibs) pds/princeton pvcam/pvcamtest
 tgtlibs_princetonsim += $(datalibs) 
-tgtlibs_princetonsim += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
+tgtlibs_princetonsim += pdsapp/configdb $(qtlibdir) # for accessing configdb
 tgtslib_princetonsim := $(USRLIBDIR)/rt dl pthread
 
 tgtsrcs_simcam := simcam.cc 
@@ -214,14 +214,14 @@ tgtslib_oceanoptics := ${USRLIBDIR}/rt
 tgtsrcs_fli := fli.cc
 tgtlibs_fli := $(commonlibs) 
 tgtlibs_fli += $(datalibs)
-tgtlibs_fli += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
+tgtlibs_fli += pdsapp/configdb $(qtlibdir) # for accessing configdb
 tgtlibs_fli += pds/fli fli/flisdk
 tgtslib_fli := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 
 
 tgtsrcs_andor := andor.cc
 tgtlibs_andor := $(commonlibs) 
 tgtlibs_andor += $(datalibs)
-tgtlibs_andor += pdsapp/configdb qt/QtGui qt/QtCore # for accessing configdb
+tgtlibs_andor += pdsapp/configdb $(qtlibdir) # for accessing configdb
 tgtlibs_andor += pdsdata/andordata pds/pdsandor andor/andor
 tgtslib_andor := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 
 
