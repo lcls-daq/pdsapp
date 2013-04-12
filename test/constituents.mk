@@ -2,10 +2,10 @@ libnames :=
 
 libsrcs_test := 
 
-ifneq ($(findstring x86_64,$(tgt_arch)),)
-tgtnames := andorStandAlone
-else
-tgtnames := princetonCameraTest andorStandAlone
+
+tgtnames := andorStandAlone timestampReceiver
+ifeq ($(findstring x86_64,$(tgt_arch)),)
+tgtnames += princetonCameraTest
 endif
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
@@ -18,3 +18,5 @@ tgtslib_princetonCameraTest := dl pthread rt
 tgtsrcs_andorStandAlone := andorStandAlone.cc
 tgtlibs_andorStandAlone := pds/andorutil andor/andor
 tgtslib_andorStandAlone := dl pthread rt
+
+tgtsrcs_timestampReceiver := timestampReceiver.cc
