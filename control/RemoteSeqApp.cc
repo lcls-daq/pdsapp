@@ -263,9 +263,10 @@ void RemoteSeqApp::routine()
                                             config.uses_duration() ?
                                             EnableEnv(config.duration()).value() :
                                             EnableEnv(config.events()).value());
-            _control.set_target_state(PartitionControl::Configured);
             _control.release_target();
-            //            _control.reconfigure();
+	    _control.set_target_state(PartitionControl::Configured);
+            _control.wait_for_target();
+            _control.release_target();
 
             _manual.enable_control();
             _select.enable_control(true);
@@ -328,8 +329,8 @@ InDatagram* RemoteSeqApp::events     (InDatagram* dg)
     }
     else if (_wait_for_configure) {
       if (id==TransitionId::Configure) {
-  ::write(_socket,&info,sizeof(info));
-  _wait_for_configure = false;
+	::write(_socket,&info,sizeof(info));
+	_wait_for_configure = false;
       }
     }
     else if (id==TransitionId::EndCalibCycle)
