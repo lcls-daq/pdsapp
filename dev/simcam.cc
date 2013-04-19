@@ -267,10 +267,12 @@ private:
 };
 
 void printUsage(char* s) {
-  printf( "Usage: %s [-h] [-d <detector>] [-i <deviceID>] -p <platform>\n"
+  printf( "Usage: %s [-h] -i <detinfo> -p <platform>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
-      "    -i      Set device info\n"
+      "    -i      Set device info           [required]\n"
+      "                integer/integer/integer/integer or string/integer/string/integer\n"
+      "                (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
       "    -v      Toggle verbose mode\n"
       "    -C      Compress frames\n"
       "    -D <N>  Drop every N events\n"
