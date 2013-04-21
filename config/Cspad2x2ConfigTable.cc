@@ -303,7 +303,7 @@ namespace Pds_ConfigDb
         _kdConstant      ( NULL,      0,   0,        0xf, Decimal),
         _humidThold      ( NULL,      0,   0,      0xfff, Decimal),
         _setPoint        ( NULL,     20, -12,         40, Decimal),
-        _biasTuning      ( NULL, 0x3333,   0,     0x3fff, Hex)
+        _biasTuning      ( NULL, 0x3333,   0,     0x3333, Hex)
       {
       }
     public:

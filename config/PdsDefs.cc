@@ -19,6 +19,7 @@
 #include "pds/config/CsPadConfigType.hh"
 #include "pds/config/XampsConfigType.hh"
 #include "pds/config/FexampConfigType.hh"
+#include "pds/config/ImpConfigType.hh"
 #include "pds/config/Gsc16aiConfigType.hh"
 #include "pds/config/TimepixConfigType.hh"
 #include "pds/config/PhasicsConfigType.hh"
@@ -81,6 +82,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case Cspad        : type = &_CsPadConfigType;     break;
   case Xamps        : type = &_XampsConfigType;     break;
   case Fexamp       : type = &_FexampConfigType;    break;
+  case Imp          : type = &_ImpConfigType;       break;
   case Gsc16ai      : type = &_gsc16aiConfigType;   break;
   case Timepix      : type = &_timepixConfigType;   break;
   case Phasics      : type = &_PhasicsConfigType;   break;
@@ -122,6 +124,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_CsPadConfigType);
   test(_XampsConfigType);
   test(_FexampConfigType);
+  test(_ImpConfigType);
   test(_gsc16aiConfigType);
   test(_timepixConfigType);
   test(_PhasicsConfigType);
@@ -164,6 +167,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_CsPadConfigType);
   test(_XampsConfigType);
   test(_FexampConfigType);
+  test(_ImpConfigType);
   test(_gsc16aiConfigType);
   test(_timepixConfigType);
   test(_PhasicsConfigType);

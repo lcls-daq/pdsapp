@@ -37,9 +37,11 @@
 #include "pdsapp/config/CspadConfig_V1.hh"
 #include "pdsapp/config/CspadConfig_V2.hh"
 #include "pdsapp/config/CspadConfig_V3.hh"
+#include "pdsapp/config/CspadConfig_V4.hh"
 #include "pdsapp/config/CspadConfig.hh"
 #include "pdsapp/config/XampsConfig.hh"
 #include "pdsapp/config/FexampConfig.hh"
+#include "pdsapp/config/ImpConfig.hh"
 #include "pdsapp/config/Gsc16aiConfig.hh"
 #include "pdsapp/config/TimepixConfig.hh"
 #include "pdsapp/config/TimepixConfig_V2.hh"
@@ -71,6 +73,7 @@
 #include "pds/config/CsPadConfigType.hh"
 #include "pds/config/XampsConfigType.hh"
 #include "pds/config/FexampConfigType.hh"
+#include "pds/config/ImpConfigType.hh"
 #include "pds/config/Gsc16aiConfigType.hh"
 #include "pds/config/TimepixConfigType.hh"
 #include "pds/config/PhasicsConfigType.hh"
@@ -117,6 +120,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_CsPadConfigType       ,new CspadConfig);
   enroll(_XampsConfigType       ,new XampsConfig);
   enroll(_FexampConfigType      ,new FexampConfig);
+  enroll(_ImpConfigType         ,new ImpConfig);
   enroll(_gsc16aiConfigType     ,new Gsc16aiConfig);
   enroll(_timepixConfigType     ,new TimepixConfig);
   enroll(_PhasicsConfigType     ,new PhasicsConfig);
@@ -126,6 +130,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_andorConfigType       ,new AndorConfig);
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_Cspad2x2Config,1),new Cspad2x2Config_V1);
+  enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,4) , new CspadConfig_V4);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,3) , new CspadConfig_V3);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,2) , new CspadConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  
@@ -145,4 +150,3 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
 #undef enroll
   return 0;
 }
-

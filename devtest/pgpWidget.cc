@@ -28,7 +28,7 @@ Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
-  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-w dest,addr,data][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
+  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-w dest,addr,data][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
       "    -h      Show usage\n"
       "    -P      Set pgpcard index number  (REQUIRED)\n"
       "                The format of the index number is a one byte number with the bottom nybble being\n"
@@ -46,6 +46,7 @@ void printUsage(char* name) {
       "    -t      Test registers, loop from addr counting up count times\n"
       "    -d      Dump count registers starting at addr\n"
       "    -R      Loop reading data until interrupted, resulting data will be written to the standard output.\n"
+      "    -o      Print out up to maxPrint words when reading data\n"
       "    -s      Save to file when reading data\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          print out progress\n"
@@ -69,7 +70,7 @@ int main( int argc, char** argv )
   unsigned            addr                = 0;
   unsigned            count               = 0;
   unsigned            printFlag           = 0;
-  unsigned            maxPrint            = 8;
+  unsigned            maxPrint            = 0;
   bool                cardGiven           = false;
   unsigned            debug               = 0;
   ::signal( SIGINT, sigHandler );
@@ -78,7 +79,7 @@ int main( int argc, char** argv )
   char*               endptr;
   extern char*        optarg;
   int c;
-  while( ( c = getopt( argc, argv, "hP:w:D:P:r:d:R:s:f:p:t:" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hP:w:D:P:r:d:Ro:s:f:p:t:" ) ) != EOF ) {
      switch(c) {
       case 'P':
         pgpcard = strtoul(optarg, NULL, 0);
@@ -116,6 +117,8 @@ int main( int argc, char** argv )
         break;
       case 'R':
         command = readAsyncCommand;
+        break;
+      case 'o':
         maxPrint = strtoul(optarg, NULL, 0);
         break;
       case 's':
@@ -165,7 +168,7 @@ int main( int argc, char** argv )
 //    char path[512];
 //    char* home = getenv("HOME");
 //    sprintf(path,"%s/%s",home, writeFileName);
-    printf("writing to %s\n", writeFileName);
+    printf("Opening %s for writing to\n", writeFileName);
     writeFile = fopen(writeFileName, "w+");
     if (!writeFile) {
       char s[200];

@@ -34,7 +34,8 @@ tgtnames :=  evr \
     oceanoptics \
     fli \
     andor \
-    cam
+    cam \
+    imp
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata pdsdata/camdata
@@ -42,7 +43,7 @@ commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility p
 commonlibs  += pdsapp/devapp
 
 #  libconfigdb dependencies
-datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata pdsdata/andordata pdsdata/usdusbdata pdsdata/orcadata
+datalibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/quartzdata pdsdata/pulnixdata pdsdata/camdata pdsdata/pnccddata pdsdata/evrdata pdsdata/acqdata pdsdata/controldata pdsdata/princetondata pdsdata/ipimbdata pdsdata/encoderdata pdsdata/fccddata pdsdata/lusidata pdsdata/cspaddata pdsdata/xampsdata pdsdata/fexampdata pdsdata/gsc16aidata pdsdata/timepixdata pdsdata/phasicsdata pdsdata/cspad2x2data pdsdata/oceanopticsdata pdsdata/flidata pdsdata/andordata pdsdata/usdusbdata pdsdata/orcadata pdsdata/impdata
 
 tgtsrcs_fexamp := fexamp.cc
 tgtlibs_fexamp := $(commonlibs) pdsdata/fexampdata pds/fexamp pds/pgp
@@ -54,6 +55,13 @@ CPPFLAGS += -fno-strict-aliasing
 tgtsrcs_xamps := xamps.cc
 tgtlibs_xamps := $(commonlibs) pdsdata/xampsdata pds/xamps pds/pgp
 tgtslib_xamps := $(USRLIBDIR)/rt
+CPPFLAGS += -fno-strict-aliasing
+#CPPFLAGS += -fopenmp
+#DEFINES += -fopenmp
+
+tgtsrcs_imp := imp.cc
+tgtlibs_imp := $(commonlibs) pdsdata/impdata pds/imp pds/pgp
+tgtslib_imp := $(USRLIBDIR)/rt
 CPPFLAGS += -fno-strict-aliasing
 #CPPFLAGS += -fopenmp
 #DEFINES += -fopenmp

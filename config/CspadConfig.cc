@@ -4,7 +4,7 @@
 using namespace Pds_ConfigDb;
 
 CspadConfig::CspadConfig():
-  Serializer("Evr_Config"), _table(new CspadConfigTable(*this))
+  Serializer("Cspad_Config"), _table(new CspadConfigTable(*this))
 {
   _table->insert(pList);
 }

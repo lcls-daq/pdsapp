@@ -33,6 +33,7 @@ namespace Pds_ConfigDb
         _eventCode       ( "Event Code"    , 40,   0,       0xff, Decimal),
         _inactiveRunMode ( "Inact Run Mode", Pds::CsPad::RunButDrop, RunModeText),
         _activeRunMode   ( "Activ Run Mode", Pds::CsPad::RunAndSendTriggeredByTTL, RunModeText),
+        _internalTriggerDelay ( "Internal Trigger Delay", 11020, 0, 0x7fffffff, Decimal),
         _testDataIndex   ( "Test Data Indx", 4,    0, 7, Decimal ),
         _badAsicMask     ( "Bad ASIC Mask (hex)" , 0, 0, -1ULL, Hex),
         _sectors         ( "Sector Mask (hex)"   , 0xffffffff, 0, 0xffffffff, Hex),
@@ -55,6 +56,7 @@ namespace Pds_ConfigDb
         _eventCode.value = 40;
         _inactiveRunMode.value = Pds::CsPad::RunButDrop;
         _activeRunMode  .value = Pds::CsPad::RunAndSendTriggeredByTTL;
+        _internalTriggerDelay.value = 0;
         _testDataIndex  .value = 4;
         _badAsicMask    .value = 0;
         _sectors        .value = 0xffffffff;
@@ -73,6 +75,7 @@ namespace Pds_ConfigDb
         _eventCode.value = p.eventCode();
         _inactiveRunMode.value = (Pds::CsPad::RunModes)p.inactiveRunMode();
         _activeRunMode  .value = (Pds::CsPad::RunModes)p.activeRunMode();
+        _internalTriggerDelay.value = p.internalTriggerDelay();
         _testDataIndex  .value = p.tdi();
         _badAsicMask    .value = (uint64_t(p.badAsicMask1())<<32) | p.badAsicMask0();
         _sectors        .value = p.roiMask(0) | (p.roiMask(1)<<8) | (p.roiMask(2)<<16) | (p.roiMask(3)<<24);
@@ -98,6 +101,7 @@ namespace Pds_ConfigDb
             _eventCode.value,
             _inactiveRunMode.value,
             _activeRunMode  .value,
+            _internalTriggerDelay.value,
             _testDataIndex  .value,
             sizeof(Pds::CsPad::ElementV1) + 4 + Columns*Rows*sizeof(uint16_t)* 16,
             _badAsicMask    .value & 0xffffffff,
@@ -122,6 +126,7 @@ namespace Pds_ConfigDb
         layout->addLayout(_eventCode      .initialize(parent));
         layout->addLayout(_inactiveRunMode.initialize(parent));
         layout->addLayout(_activeRunMode  .initialize(parent));
+        layout->addLayout(_internalTriggerDelay.initialize(parent));
         layout->addLayout(_testDataIndex  .initialize(parent));
         layout->addLayout(_protQ0AdcThr  .initialize(parent));
         layout->addLayout(_protQ0PixelThr .initialize(parent));
@@ -153,6 +158,7 @@ namespace Pds_ConfigDb
         pList.insert(&_eventCode);
         pList.insert(&_inactiveRunMode);
         pList.insert(&_activeRunMode);
+        pList.insert(&_internalTriggerDelay);
         pList.insert(&_testDataIndex);
         pList.insert(&_badAsicMask);
         pList.insert(&_sectors);
@@ -177,6 +183,7 @@ namespace Pds_ConfigDb
       NumericInt<unsigned>             _eventCode;
       Enumerated<Pds::CsPad::RunModes> _inactiveRunMode;
       Enumerated<Pds::CsPad::RunModes> _activeRunMode;
+      NumericInt<unsigned>             _internalTriggerDelay;
       NumericInt<unsigned>             _testDataIndex;
       NumericInt<uint64_t>             _badAsicMask;
       NumericInt<unsigned>             _sectors;
@@ -196,33 +203,34 @@ namespace Pds_ConfigDb
   class QuadP {
     public:
       QuadP() :
-        _shiftSelect     ( NULL, 4, 0, 0x7fffffff, Decimal),
-        _edgeSelect      ( NULL, 0, 0, 0x7fffffff, Decimal),
-        _readClkSet      ( NULL, 2, 0, 0x7fffffff, Decimal),
-        _readClkHold     ( NULL, 1, 0, 0x7fffffff, Decimal),
-        _dataMode        ( NULL, 0, 0, 0x7fffffff, Decimal),
-        _prstSel         ( NULL, 1, 0, 0x7fffffff, Decimal),
-        _acqDelay        ( NULL, 0x118, 0, 0x7fffffff, Decimal),
-        _intTime         ( NULL, 0x5dc, 0, 0x7fffffff, Decimal),
-        _digDelay        ( NULL, 0x3c0, 0, 0x7fffffff, Decimal),
-        _ampIdle         ( NULL, 0, 0, 0x7fffffff, Decimal),
-        _injTotal        ( NULL, 0, 0, 0x7fffffff, Decimal),
-        _rowColShiftPer  ( NULL, 5, 0, 0x7fffffff, Decimal),
-        _ampReset        ( NULL, 0, 0, 1, Decimal),
-        _digCount        ( NULL, 0x3fff, 0, 0x3fff, Hex),
-        _digPeriod       ( NULL, 0xc, 0, 0xff, Hex),
+        _shiftSelect     ( NULL, 4,      0, 0x7fffffff, Decimal),
+        _edgeSelect      ( NULL, 0,      0, 0x7fffffff, Decimal),
+        _readClkSet      ( NULL, 2,      0, 0x7fffffff, Decimal),
+        _readClkHold     ( NULL, 1,      0, 0x7fffffff, Decimal),
+        _dataMode        ( NULL, 0,      0, 0xffffffff, Hex),
+        _prstSel         ( NULL, 1,      0, 0x7fffffff, Decimal),
+        _acqDelay        ( NULL, 0x118,  0, 0x7fffffff, Decimal),
+        _intTime         ( NULL, 0x5dc,  0, 0x7fffffff, Decimal),
+        _digDelay        ( NULL, 0x3c0,  0, 0x7fffffff, Decimal),
+        _ampIdle         ( NULL, 0,      0, 0xffffffff, Hex),
+        _injTotal        ( NULL, 0,      0, 0x7fffffff, Decimal),
+        _rowColShiftPer  ( NULL, 5,      0, 0x7fffffff, Decimal),
+        _ampReset        ( NULL, 0,      0, 1,          Decimal),
+        _digCount        ( NULL, 0x3fff, 0, 0x3fff,     Hex),
+        _digPeriod       ( NULL, 0xc,    0, 0xff,       Decimal),
+        _biasTuning      ( NULL, 0x3333, 0, 0x3333,     Hex),
         // digital pots fields
-        _vref            ( NULL, 0xaf, 0, 0xff, Decimal),
-        _vinj            ( NULL, 0xaf, 0, 0xff, Decimal),
-        _rampCurrR1      ( NULL, 0x04, 0, 0xff, Decimal),
-        _rampCurrR2      ( NULL, 0x25, 0, 0xff, Decimal),
-        _rampCurrRef     ( NULL, 0, 0, 0xff, Decimal),
-        _rampVoltRef     ( NULL, 0x61, 0, 0xff, Decimal),
-        _compBias1       ( NULL, 0xff, 0, 0xff, Decimal),
-        _compBias2       ( NULL, 0xc8, 0, 0xff, Decimal),
-        _iss2            ( NULL, 0x3c, 0, 0xff, Decimal),
-        _iss5            ( NULL, 0x25, 0, 0xff, Decimal),
-        _analogPrst      ( NULL, 0xfc, 0, 0xff, Decimal)
+        _vref            ( NULL, 0xaf,   0, 0xff,       Decimal),
+        _vinj            ( NULL, 0xaf,   0, 0xff,       Decimal),
+        _rampCurrR1      ( NULL, 0x04,   0, 0xff,       Decimal),
+        _rampCurrR2      ( NULL, 0x25,   0, 0xff,       Decimal),
+        _rampCurrRef     ( NULL, 0,      0, 0xff      , Decimal),
+        _rampVoltRef     ( NULL, 0x61,   0, 0xff,       Decimal),
+        _compBias1       ( NULL, 0xff,   0, 0xff,       Decimal),
+        _compBias2       ( NULL, 0xc8,   0, 0xff,       Decimal),
+        _iss2            ( NULL, 0x3c,   0, 0xff,       Decimal),
+        _iss5            ( NULL, 0x25,   0, 0xff,       Decimal),
+        _analogPrst      ( NULL, 0xfc,   0, 0xff,       Decimal)
       {
       }
     public:
@@ -232,7 +240,7 @@ namespace Pds_ConfigDb
       void reset ()
       {
       }
-      void pull   (const Pds::CsPad::ConfigV2QuadReg& p, Pds::CsPad::CsPadGainMapCfg* gm)
+      void pull   (const CspadConfigQuadRegType& p, Pds::CsPad::CsPadGainMapCfg* gm)
       {
         for(int i=0; i<4; i++) {
           _shiftSelect.value[i] = p.shiftSelect()[i];
@@ -251,6 +259,7 @@ namespace Pds_ConfigDb
         _ampReset        .value = p.ampReset();
         _digCount        .value = p.digCount();
         _digPeriod       .value = p.digPeriod();
+        _biasTuning      .value = p.biasTuning();
 
         const uint8_t* pots = &p.dp().pots[0];
         _vref.value        = pots[0];
@@ -267,9 +276,9 @@ namespace Pds_ConfigDb
 
         memcpy(gm, p.gm(), sizeof(*p.gm()));
       }
-      void push   (Pds::CsPad::ConfigV2QuadReg* p, Pds::CsPad::CsPadGainMapCfg* gm)
+      void push   (CspadConfigQuadRegType* p, Pds::CsPad::CsPadGainMapCfg* gm)
       {
-        *new(p) Pds::CsPad::ConfigV2QuadReg(
+        *new(p) CspadConfigQuadRegType(
             _shiftSelect     .value,
             _edgeSelect      .value,
             _readClkSet      .value,
@@ -284,7 +293,10 @@ namespace Pds_ConfigDb
             _rowColShiftPer  .value,
             _ampReset        .value,
             _digCount        .value,
-            _digPeriod       .value );
+            _digPeriod       .value,
+            _biasTuning      .value,
+            0  // pdpmndnmBalancing
+            );
 
         uint8_t* pots = &p->dp().pots[0];
         *pots++ = _vref.value;
@@ -343,6 +355,7 @@ namespace Pds_ConfigDb
         ADDP("Amp Reset");
         ADDP("Dig Count (hex)");
         ADDP("Dig Period (hex)");
+        ADDP("Bias Tuning (hex)");
         layout->addWidget(new QLabel("Digital Pots Fields"), row++, 1, 1, 4, ::Qt::AlignHCenter);
         ADDP("Vref");
         ADDP("Vin");
@@ -378,6 +391,7 @@ namespace Pds_ConfigDb
         ADDP(_ampReset);
         ADDP(_digCount);
         ADDP(_digPeriod);
+        ADDP(_biasTuning);
         row++;
         ADDP(_vref);
         ADDP(_vinj);
@@ -411,6 +425,7 @@ namespace Pds_ConfigDb
         ADDP(_ampReset);
         ADDP(_digCount);
         ADDP(_digPeriod);
+        ADDP(_biasTuning);
         ADDP(_vref);
         ADDP(_vinj);
         ADDP(_rampCurrR1);
@@ -441,6 +456,7 @@ namespace Pds_ConfigDb
       NumericInt<uint32_t> _ampReset;
       NumericInt<uint32_t> _digCount;
       NumericInt<uint32_t> _digPeriod;
+      NumericInt<uint32_t> _biasTuning;
       // digital pots fields
       NumericInt<uint8_t> _vref;
       NumericInt<uint8_t> _vinj;
