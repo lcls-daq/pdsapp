@@ -220,6 +220,7 @@ void printUsage(char* s) {
       "                bit 08          turn on printing of FE concentrator status on\n"
       "                bit 09          turn on printing of FE quad status\n"
       "                bit 10          print out time dumping front end took\n"
+      "                bit 11          print out the front end stat in end calib instead of unconfig\n"
       "                bit 12          print out compression status info\n"
       "    -r      set run time config file name\n"
       "                The format of the file consists of lines: 'Dest Addr Data'\n"
