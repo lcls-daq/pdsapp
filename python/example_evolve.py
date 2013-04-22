@@ -15,10 +15,12 @@ def cspad_evolve(db,fname):
     db.set(file=fname,xtc=v)
     
 db = pycdb.Db("/reg/g/pcds/dist/pds/amo/configdb/devel")
-evr_evolve(db,'beam_shutter_v5.xtc')
-evr_evolve(db,'beam_v5.xtc')
-evr_evolve(db,'twoevr_nobeam_v5.xtc')
+#evr_evolve(db,'beam_shutter_v5.xtc')
+#evr_evolve(db,'beam_v5.xtc')
+#evr_evolve(db,'twoevr_nobeam_v5.xtc')
 
 #db = pycdb.Db("/reg/g/pcds/dist/pds/xpp/configdb/current")
 #cspad_evolve(db,"cspadV3_01.xtc")
 #cspad_evolve(db,"test_V3_01.xtc")
+
+db.get

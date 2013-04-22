@@ -414,6 +414,9 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
           // make the change
           string xpath = dev->xtcpath(self->path->base(),
                                       stype, it->entry());
+
+          printf("Writing %s\n",xpath.c_str());
+
           FILE* xfile = fopen(xpath.c_str(),"w");
           fwrite(xtc->payload, xtc->extent, 1, xfile);
           fclose(xfile);
@@ -456,37 +459,7 @@ PyObject* pdsdb_sub(PyObject* self_o, PyObject* args, PyObject* kwds)
   }
 
   pdsxtc* xtc = (pdsxtc*)o;
-
-  size_t buffsz = 256;
-  char buff[buffsz];
-
-  string devdir  = self->path->key_path(key);
-  string devpath = devdir + "/" + DeviceEntry(xtc->src).path();
-  sprintf(buff,"/%08x",xtc->contains.value());
-  string xtcpath = devpath + buff;
-
-  sts = readlink(devpath.c_str(), buff, buffsz);
-  if (sts > 0) {
-    buff[sts] = 0;
-    string tgtpath = devdir + "/" + string(buff);
-
-    unlink(devpath.c_str());
-
-    sprintf(buff,"cp -rf %s %s",tgtpath.c_str(),devpath.c_str());
-    printf("%s\n",buff);
-    if (system(buff))
-      return NULL;
-
-    unlink(xtcpath.c_str());
-  }
-  else {
-    printf("link %s not found (%d)\n",devpath.c_str(),sts);
-    return NULL;
-  }
-
-  FILE* xfile = fopen(xtcpath.c_str(),"w");
-  fwrite(xtc->payload, xtc->extent, 1, xfile);
-  fclose(xfile);
+  self->expt->substitute(key, xtc->src, xtc->contains, xtc->payload, xtc->extent);
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -513,22 +486,15 @@ PyObject* pdsdb_clone  (PyObject* self_o, PyObject* args, PyObject* kwds)
 {
   pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
 
-  unsigned key = 0;
-  int sts = PyArg_ParseTuple(args,"I",&key);
+  const char* alias=0;
+  int sts = PyArg_ParseTuple(args,"s",&alias);
 
   if (sts==0) {
     printf("Parse failed\n");
     return NULL;
   }
 
-  unsigned newkey = self->expt->next_key();
-  string olddir = self->path->key_path(key);
-  string newdir = self->path->key_path(newkey);
-
-  ostringstream o;
-  o << "cp -rf " << olddir << ' ' << newdir;
-  if (system(o.str().c_str())!=0)
-    return NULL;
+  unsigned newkey = self->expt->clone(alias);
 
   return PyLong_FromLong(newkey);
 }

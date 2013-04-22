@@ -25,6 +25,10 @@ DefineXtcType(EvrConfig) ;
 #include "pdsdata/evr/ConfigV6.hh"
 #include "pdsdata/evr/ConfigV7.hh"
 
+#include "pdsapp/config/EventcodeTiming.cc"
+
+#include <vector>
+
 static const double EvrPeriod = 1./119e6;
 
 static PyObject* get_EventCodeV5(const Pds::EvrData::EventCodeV5& eventcode)
@@ -127,7 +131,7 @@ static PyObject* get_EventCodeV6(const Pds::EvrData::EventCodeV6& eventcode)
   PyDict_SetItemString(ec, "maskClear", PyLong_FromUnsignedLong(eventcode.maskClear()));
   
   PyDict_SetItemString(ec, "readoutGroup", PyLong_FromUnsignedLong(eventcode.readoutGroup()));
-  
+
   return ec;
 }
 
@@ -183,18 +187,27 @@ static bool set_EventCodeV6(Pds::EvrData::EventCodeV6& eventcode, PyObject* o)
   return true;
 }
 
-static PyObject* get_PulseConfigV3(const Pds::EvrData::PulseConfigV3& pulse)
+//
+//  Compensate for eventcode timing with respect to eventcode 140
+//
+static PyObject* get_PulseConfigV3(const Pds::EvrData::PulseConfigV3& pulse, unsigned code=140)
 {
+  int offset = Pds_ConfigDb::EventcodeTiming::timeslot(code) -
+               Pds_ConfigDb::EventcodeTiming::timeslot(140);
+
   PyObject* p = PyDict_New();
   PyDict_SetItemString(p, "pulse"   , PyLong_FromUnsignedLong(unsigned(pulse.pulseId())));
   PyDict_SetItemString(p, "polarity", PyString_FromString(pulse.polarity() ? "Neg":"Pos"));
-  PyDict_SetItemString(p, "delay"   , PyFloat_FromDouble(double(pulse.delay()*EvrPeriod)));
+  PyDict_SetItemString(p, "delay"   , PyFloat_FromDouble(double((pulse.delay()+offset)*EvrPeriod)));
   PyDict_SetItemString(p, "width"   , PyFloat_FromDouble(double(pulse.width()*EvrPeriod)));
   return p;
 }
 
-static bool set_PulseConfigV3(Pds::EvrData::PulseConfigV3& pulse, PyObject* o)
+static bool set_PulseConfigV3(Pds::EvrData::PulseConfigV3& pulse, PyObject* o, unsigned code=140)
 {
+  int offset = Pds_ConfigDb::EventcodeTiming::timeslot(code) -
+               Pds_ConfigDb::EventcodeTiming::timeslot(140);
+
   const char* pol = 0;
   { PyObject* data = PyDict_GetItemString(o,"polarity");
     if (data)  pol = PyString_AsString(data);  }
@@ -216,8 +229,17 @@ static bool set_PulseConfigV3(Pds::EvrData::PulseConfigV3& pulse, PyObject* o)
     PyErr_SetString(PyExc_RuntimeError,"No \'width\' member found.");
     return false;
   }
-  uint32_t delay   = unsigned(d/EvrPeriod + 0.5);  
+  uint32_t delay   = unsigned(d/EvrPeriod + 0.5);
   uint32_t width   = unsigned(w/EvrPeriod + 0.5);  
+
+  if (int(delay) < offset ) {
+    char buff[128];
+    sprintf(buff,"Pulse %d delay too small {<%f}",pulseId,double(offset*EvrPeriod));
+    PyErr_SetString(PyExc_RuntimeError,buff);
+    return false;
+  }
+  else
+   delay -= offset;  
 
   uint16_t polarity;
   if (strncasecmp(pol,"Pos",3)==0)
@@ -347,9 +369,20 @@ PyObject* pds_EvrConfig_get (PyObject*   self, PyObject* args)
       PyDict_SetItemString(o, "eventcodes", eventcodes);
     }
     { unsigned npulses = v->npulses();
+
+      std::vector<unsigned> pulseToCode(npulses);
+      for(unsigned j=0; j<v->neventcodes(); j++) {
+        unsigned maskTrigger = v->eventcode(j).maskTrigger();
+        for(unsigned i=0; maskTrigger!=0; i++) {
+          if (maskTrigger & 1)
+            pulseToCode[i] = v->eventcode(j).code();
+	  maskTrigger >>= 1;
+        }
+      }
+
       PyObject* pulses = PyList_New(npulses);
       for(unsigned j=0; j<npulses; j++)
-        PyList_SetItem(pulses, j, get_PulseConfigV3(v->pulse(j)));
+        PyList_SetItem(pulses, j, get_PulseConfigV3(v->pulse(j),pulseToCode[j]));
       PyDict_SetItemString(o, "pulses", pulses);
     }
     { unsigned noutputs = v->noutputs();
@@ -534,9 +567,20 @@ PyObject* pds_EvrConfig_set    (PyObject*   self, PyObject* args)
     PyObject* pulses = PyDict_GetItemString(o,"pulses");
     if (pulses) {
       npulses = PyList_Size(pulses);
+
+      std::vector<unsigned> pulseToCode(npulses);
+      for(unsigned j=0; j<PyList_Size(eventcodes); j++) {
+        unsigned maskTrigger = p_eventcodes[j].maskTrigger();
+        for(unsigned i=0; maskTrigger!=0; i++) {
+          if (maskTrigger & 1)
+            pulseToCode[i] = p_eventcodes[j].code();
+          maskTrigger >>= 1;
+        }
+      }
+
       p_pulses = new Pds::EvrData::PulseConfigV3[npulses];
       for(unsigned j=0; j<npulses; j++)
-        if (!set_PulseConfigV3(p_pulses[j],PyList_GetItem(pulses,j)))
+        if (!set_PulseConfigV3(p_pulses[j],PyList_GetItem(pulses,j),pulseToCode[j]))
           return NULL;
     }
 
