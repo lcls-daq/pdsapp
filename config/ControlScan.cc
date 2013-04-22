@@ -49,8 +49,12 @@ ControlScan::ControlScan(QWidget* parent, Experiment& expt) :
   _steps       (new QLineEdit),
   _acqB         (new QButtonGroup),
   _events_value (new QLineEdit),
-  _time_value   (new QLineEdit)
+  _time_value   (new QLineEdit),
+  _buf_control  (new char[0x100000]),
+  _buf_evr      (new char[0x100000])
 {
+  printf("ControlScan::create[%p]\n",this);
+
   new QIntValidator(0,0x7fffffff,_steps);
   new QDoubleValidator(_events_value);
   new QDoubleValidator(_time_value);
@@ -112,6 +116,8 @@ ControlScan::ControlScan(QWidget* parent, Experiment& expt) :
 
 ControlScan::~ControlScan()
 {
+  delete[] _buf_control;
+  delete[] _buf_evr;
 }
 
 void ControlScan::apply()
@@ -122,17 +128,16 @@ void ControlScan::apply()
 
 void ControlScan::set_run_type(const QString& runType)
 {
-  printf("ControlScan::set_run_type %s\n",qPrintable(runType));
+  printf("ControlScan::set_run_type[%p] %s\n",this,qPrintable(runType));
   _run_type = std::string(qPrintable(runType));
   read(scan_file);
 }
 
 void ControlScan::write()
 {
-  XtcTable xtc(_expt.path().base());
+  char buff[128];
 
-  const int bufsize = 0x1000;
-  char* buff = new char[bufsize];
+  XtcTable xtc(_expt.path().base());
 
   //
   //  Create Control Config xtc file (always)
@@ -151,15 +156,21 @@ void ControlScan::write()
 
     unsigned steps = _steps->text().toInt();
 
+    char* p = _buf_control;
     for(unsigned k=0; k<=steps; k++) {
       bool usePvs = (_tab->currentIndex() == PvTab);
       if (_acqB->checkedId()==Duration) {
 	double s = _time_value->text().toDouble();
 	Pds::ClockTime ctime(unsigned(s),unsigned(fmod(s,1.)*1.e9));
-	fwrite(buff, _pv->write(k, steps, usePvs, ctime, buff), 1, output);
+        int len = _pv->write(k, steps, usePvs, ctime, p);
+	fwrite(p, len, 1, output);
+        p += len;
       }
-      else
-	fwrite(buff, _pv->write(k, steps, usePvs, _events_value->text().toInt(), buff), 1, output);
+      else {
+	int len = _pv->write(k, steps, usePvs, _events_value->text().toInt(), p);
+        fwrite(p, len, 1, output);
+        p += len;
+      }
     }
     fclose(output);
 
@@ -182,15 +193,17 @@ void ControlScan::write()
 
     unsigned steps = _steps->text().toInt();
 
-    for(unsigned k=0; k<=steps; k++)
-      fwrite(buff, _evr->write(k,steps,buff), 1, output);
+    char* p = _buf_evr;
+    for(unsigned k=0; k<=steps; k++) {
+      int len = _evr->write(k,steps,p);
+      fwrite(p, len, 1, output);
+      p += len;
+    }
 
     fclose(output);
 
     xtc.update_xtc(PdsDefs::qtypeName(utype), scan_file);
   }
-
-  delete[] buff;
 
   xtc.write(_expt.path().base());
 }
@@ -200,8 +213,6 @@ void ControlScan::read(const char* ifile)
 {
   printf("ControlScan::read %s\n",ifile);
 
-  const int bufsize = 0x1000;
-  char* buff = new char[bufsize];
   char namebuf[256];
 
   {
@@ -223,7 +234,7 @@ void ControlScan::read(const char* ifile)
       // Create it
       printf("ControlScan::creating %s\n",namebuf);
       FILE* f = fopen(namebuf,"w");
-      ControlConfigType* cfg = new (buff)ControlConfigType(ControlConfigType::Default);
+      ControlConfigType* cfg = new (_buf_control)ControlConfigType(ControlConfigType::Default);
       fwrite(cfg, cfg->size(), 1, f);
       fclose(f);
       // retry stat()
@@ -234,14 +245,13 @@ void ControlScan::read(const char* ifile)
 
     FILE* f = fopen(namebuf,"r");
 
-    char* dbuf = new char[sstat.st_size];
-    int len = fread(dbuf, 1, sstat.st_size, f);
+    int len = fread(_buf_control, 1, sstat.st_size, f);
     if (len != sstat.st_size) {
-      printf("Read %d/%lld bytes from %s\n",len,sstat.st_size,buff);
+      printf("Read %d/%lld bytes from %s\n",len,sstat.st_size,namebuf);
     }
     else {
       const ControlConfigType& cfg = 
-        *reinterpret_cast<const ControlConfigType*>(dbuf);
+        *reinterpret_cast<const ControlConfigType*>(_buf_control);
 
       int npts = len/cfg.size();
       printf("cfg size %d/%d (%d)\n",cfg.size(),len,npts);
@@ -258,9 +268,8 @@ void ControlScan::read(const char* ifile)
         _events_value->setText(QString::number(cfg.events()));
       }
 
-      _pv->read(dbuf, len);
+      _pv->read(_buf_control, len);
     }
-    delete[] dbuf;
 
     fclose(f);
   }
@@ -285,61 +294,48 @@ void ControlScan::read(const char* ifile)
 	printf("No EVR configuration found for run type %s\n",_run_type.c_str());
       }
       else {
-	sprintf(buff,"%s",qPrintable(file));
+	sprintf(namebuf,"%s",qPrintable(file));
 
-	printf("ControlScan::read %s\n",buff);
+	printf("ControlScan::read %s\n",namebuf);
 
 	struct stat64 sstat;
-	if (stat64(buff,&sstat)) {
-	  printf("ControlScan::read stat failed on evrconfig file %s\n",buff);
+	if (stat64(namebuf,&sstat)) {
+	  printf("ControlScan::read stat failed on evrconfig file %s\n",namebuf);
 	  return;
 	}
 
-	FILE* f = fopen(buff,"r");
+	FILE* f = fopen(namebuf,"r");
 
-	char* dbuf = new char[sstat.st_size];
-	int len = fread(dbuf, 1, sstat.st_size, f);
+	int len = fread(_buf_evr, 1, sstat.st_size, f);
 	if (len != sstat.st_size) {
-	  printf("Read %d/%lld bytes from %s\n",len,sstat.st_size,buff);
+	  printf("Read %d/%lld bytes from %s\n",len,sstat.st_size,namebuf);
 	}
         else {
-          _evr->read(dbuf, len);
+          _evr->read(_buf_evr, len);
         }
-	delete[] dbuf;
 	fclose(f);
       }
     }
   }
-  
-  delete[] buff;
 }
 
 int ControlScan::update_key()
 {
-  static const char* cfg_name = "SCAN";
+  unsigned key = _expt.clone(_run_type);
+  unsigned npts = _steps->text().toInt()+1;
+  if (key) {
+    const ControlConfigType& cfg = 
+      *reinterpret_cast<const ControlConfigType*>(_buf_control);
+    _expt.substitute(key, "Control",*PdsDefs::typeId(PdsDefs::RunControl), 
+                     _buf_control, cfg.size()*npts);
 
-  _expt.write();  // Save the state to disk
-
-  {
-    const char* dev_name = "Control";
-    UTypeName utype = PdsDefs::utypeName(PdsDefs::RunControl);
-    _expt.table().set_entry(_run_type, FileEntry(dev_name, cfg_name));
-    _expt.device(dev_name)->table().set_entry(cfg_name, FileEntry(utype, scan_file));
+    if (_tab->currentIndex() == TriggerTab) {
+      const EvrConfigType& evr = 
+        *reinterpret_cast<const EvrConfigType*>(_buf_evr);
+      _expt.substitute(key, "EVR",*PdsDefs::typeId(PdsDefs::Evr), 
+                       _buf_evr, evr.size()*npts);
+    }
   }
-
-  if (_tab->currentIndex() == TriggerTab) {
-    const char* dev_name = "EVR";
-    UTypeName utype = PdsDefs::utypeName(PdsDefs::Evr);
-    _expt.table().set_entry(_run_type, FileEntry(dev_name, cfg_name));
-    _expt.device(dev_name)->table().set_entry(cfg_name, FileEntry(utype, scan_file));
-  }
-
-  //  _expt.update_key(*_expt.table().get_top_entry(_run_type));
-  _expt.update_keys();
-
-  int key = strtoul(_expt.table().get_top_entry(_run_type)->key().c_str(),NULL,16);
-
-  _expt.read();  // erase the changes in memory
 
   return key;
 }

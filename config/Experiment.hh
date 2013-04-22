@@ -4,6 +4,7 @@
 #include "pdsapp/config/Path.hh"
 #include "pdsapp/config/Table.hh"
 #include "pdsapp/config/Device.hh"
+#include "pdsdata/xtc/TypeId.hh"
 
 #include <string>
 using std::string;
@@ -17,6 +18,7 @@ namespace Pds_ConfigDb {
   class Experiment {
   public:
     Experiment(const Path&);
+    ~Experiment();
   public:
     void load(const char*&);
     void save(char*&) const;
@@ -35,6 +37,7 @@ namespace Pds_ConfigDb {
     const list<Device>& devices() const { return _devices; }
     list<Device>& devices() { return _devices; }
     Device* device(const string&);
+    const Device* device(const string&) const;
     int  current_key(const string&) const;
   public:
     void add_device(const string&, const list<DeviceEntry>&);
@@ -49,12 +52,17 @@ namespace Pds_ConfigDb {
     void     update_keys();
     unsigned next_key   () const;
   public:
+    unsigned clone      (const string& alias);
+    void     substitute (unsigned key, const string& device, const Pds::TypeId&, const char*, size_t) const;
+    void     substitute (unsigned key, const Pds::Src& src , const Pds::TypeId&, const char*, size_t) const;
+  public:
     bool     update_key_file(const TableEntry&);
     unsigned next_key_file() const;
 
     static void log_threshold(double);
   private:
     Path _path;
+    FILE* _f;
     Table  _table;
     list<Device> _devices;
     mutable time_t   _time_db;

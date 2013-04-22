@@ -13,12 +13,15 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
+#include <string>
+
 #include <glob.h>
 #include <libgen.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
-#define DBUG
+//#define DBUG
 
 static double _log_threshold = -1;
 
@@ -66,6 +69,31 @@ const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
 Experiment::Experiment(const Path& path) :
   _path(path)
 {
+  string fname = _path.expt() + ".xml";
+  _f = fopen(fname.c_str(),"r+");
+  if (!_f) {
+    perror("fopen expt.xml");
+  }
+  else {  // lock it
+    struct flock flk;
+    flk.l_type   = F_WRLCK;
+    flk.l_whence = SEEK_SET;
+    flk.l_start  = 0;
+    flk.l_len    = 0;
+    if (fcntl(fileno(_f), F_SETLK, &flk)<0) {
+      perror("Experiment fcntl F_SETLK");
+      throw std::string("Failed to lock configuration database");
+    }
+    printf("Experiment successfully locked\n");
+  }
+}
+
+Experiment::~Experiment()
+{
+  if (_f) {
+    fclose(_f);
+    printf("Experiment unlocked\n");
+  }
 }
 
 void Experiment::load(const char*& p)
@@ -101,13 +129,13 @@ void Experiment::save(char*& p) const
 
 void Experiment::read() 
 {
-  string fname = _path.expt() + ".xml";
-  FILE* f = fopen(fname.c_str(),"r");
+  FILE* f = _f;
   if (!f) {
     perror("fopen expt.xml");
     read_file();
   }
   else {
+    fseek(f,0,SEEK_SET);
     struct stat64 s;
     if (fstat64(fileno(f),&s))
       perror("fstat64 expt.xml");
@@ -123,7 +151,6 @@ void Experiment::read()
       }
       delete[] buff;
     }
-    fclose(f);
   }
 }
 
@@ -131,11 +158,11 @@ void Experiment::write() const
 {
   time_t time_db = _time_db;
 
-  string fname = _path.expt() + ".xml";
-  FILE* f = fopen(fname.c_str(),"w");
+  FILE* f = _f;
   if (!f)
-    perror("fopen expt.xml");
+    printf("Not writing!\n");
   else {
+    fseek(f,0,SEEK_SET);
     const int MAX_SIZE = 0x100000;
     char* buff = new char[MAX_SIZE];
     char* p = buff;
@@ -149,8 +176,6 @@ void Experiment::write() const
     } 
     else 
       fwrite(buff, 1, p-buff, f);
-
-    fclose(f);
   }
 }
 
@@ -245,6 +270,14 @@ Experiment* Experiment::branch(const string& p) const
 Device* Experiment::device(const string& name)
 {
   for(list<Device>::iterator iter=_devices.begin(); iter!=_devices.end(); iter++)
+    if (iter->name() == name)
+      return &(*iter);
+  return 0;
+}
+
+const Device* Experiment::device(const string& name) const
+{
+  for(list<Device>::const_iterator iter=_devices.begin(); iter!=_devices.end(); iter++)
     if (iter->name() == name)
       return &(*iter);
   return 0;
@@ -567,6 +600,159 @@ int Experiment::current_key(const string& alias) const
 {
   const TableEntry* e = _table.get_top_entry(alias.c_str());
   return e ? strtoul(e->key().c_str(),NULL,16) : -1;
+}
+
+//
+//  Clone an existing key
+//
+unsigned Experiment::clone(const string& alias)
+{
+  TableEntry* iter = const_cast<TableEntry*>(_table.get_top_entry(alias));
+  if (!iter)
+    return 0;
+
+  unsigned key = _table._next_key++;
+  write();  // save current state
+
+  // make the key
+  mode_t mode = _fmode;
+  string kpath = _path.key_path(key);
+#ifdef DBUG
+  printf("mkdir %s\n",kpath.c_str());
+#endif
+  mkdir(kpath.c_str(),mode);
+  iter->update(key);
+
+  for(list<FileEntry>::const_iterator it=iter->entries().begin(); it!=iter->entries().end(); it++) {
+    const Device* dev = device(it->name());
+    if (!dev) continue;
+    const TableEntry* te = dev->table().get_top_entry(it->entry());
+    if (!te) continue;
+    
+    ostringstream o;
+    o << "../" << it->name() << "/" << te->key();
+    
+    for(list<DeviceEntry>::const_iterator src=dev->src_list().begin(); src!=dev->src_list().end(); src++) {
+      ostringstream t;
+      t << kpath << "/" << src->path();
+#ifdef DBUG
+      printf("symlink %s -> %s\n",t.str().c_str(), o.str().c_str());
+#endif
+      symlink(o.str().c_str(),t.str().c_str());
+    }
+  }
+
+  read();  // erase changes in memory
+
+  return key;
+}
+
+void Experiment::substitute(unsigned           key, 
+                            const string&      devname,
+                            const Pds::TypeId& type, 
+                            const char*        payload,
+                            size_t             sz) const
+{
+  const Device* dev = device(devname);
+  if (!dev) return;
+
+  for(std::list<DeviceEntry>::const_iterator it=dev->src_list().begin(); it!=dev->src_list().end(); it++) {
+    substitute(key, *it, type, payload, sz);
+  }
+}
+
+void Experiment::substitute(unsigned           key, 
+                            const Pds::Src&    src,
+                            const Pds::TypeId& type, 
+                            const char*        payload,
+                            size_t             sz) const
+{
+  string kpath = _path.key_path(key);
+
+  DeviceEntry entry(src);
+  ostringstream t;
+  t << kpath << '/' << entry.path();
+    
+  size_t buflen = 128;
+  char buff[128];
+  int len;
+  if ((len=readlink(t.str().c_str(),buff,buflen))>=0) {
+      
+    // remove the link
+#ifdef DBUG
+    printf("unlink %s\n",t.str().c_str());
+#endif
+    if (unlink(t.str().c_str())<0) {
+      perror(t.str().c_str());
+      return;
+    }
+      
+    // create the directory
+#ifdef DBUG
+    printf("mkdir %s\n",t.str().c_str());
+#endif
+    if (mkdir(t.str().c_str(), _fmode)<0) {
+      perror(t.str().c_str());
+      return;
+    }
+      
+    ostringstream s;
+    buff[len] = 0;
+    s << kpath << '/' << buff << "/*";
+      
+    glob_t gl;
+    glob(s.str().c_str(), GLOB_NOSORT, NULL, &gl);
+    for(unsigned i=0; i<gl.gl_pathc; i++) {
+      ostringstream q;
+      q << t.str() << '/' << basename(gl.gl_pathv[i]);
+#ifdef DBUG
+      printf("symlink %s -> %s\n",q.str().c_str(), gl.gl_pathv[i]);
+#endif
+      if (symlink(gl.gl_pathv[i], q.str().c_str())<0) {
+        perror("symlink");
+        return;
+      }
+    }
+    globfree(&gl);
+  }
+
+  struct stat64 s;
+  if (stat64(t.str().c_str(),&s)<0) {
+    // create the directory
+#ifdef DBUG
+    printf("mkdir %s\n",t.str().c_str());
+#endif
+    if (mkdir(t.str().c_str(), _fmode)<0) {
+      perror(t.str().c_str());
+      return;
+    }
+  }
+    
+  t << '/' << std::hex << setw(8) << setfill('0') << type.value();
+  if ((len=readlink(t.str().c_str(),buff,buflen))>=0) {
+    // remove the link
+#ifdef DBUG
+    printf("unlink %s\n",t.str().c_str());
+#endif
+    if (unlink(t.str().c_str())<0) {
+      perror(buff);
+      return;
+    }
+  }
+
+  FILE* f = fopen(t.str().c_str(),"w");
+#ifdef DBUG
+  printf("fopen %s\n",t.str().c_str());
+#endif  
+  if (!f) {
+    perror(t.str().c_str());
+    return;
+  }
+#ifdef DBUG
+  printf("fwrite %p  sz 0x%x\n",payload,sz);
+#endif
+  fwrite(payload, sz, 1, f);
+  fclose(f);
 }
 
 void Experiment::dump() const

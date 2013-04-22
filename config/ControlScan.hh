@@ -46,6 +46,8 @@ namespace Pds_ConfigDb {
     QLineEdit* _events_value ;
     QLineEdit* _time_value   ;
     SerializerDictionary _dict;
+    char*       _buf_control;
+    char*       _buf_evr;
   };
 };
 

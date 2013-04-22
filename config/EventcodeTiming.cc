@@ -1,7 +1,5 @@
 #include "pdsapp/config/EventcodeTiming.hh"
 
-using namespace Pds_ConfigDb;
-
 struct slot_s { 
   unsigned code;
   unsigned tick;
@@ -29,7 +27,7 @@ static const slot_t slots[] = {
 };
                                  
 
-unsigned EventcodeTiming::timeslot(unsigned code)
+unsigned Pds_ConfigDb::EventcodeTiming::timeslot(unsigned code)
 {
   unsigned n = sizeof(slots)/sizeof(slot_t);
   for(unsigned i=0; i<n; i++)
