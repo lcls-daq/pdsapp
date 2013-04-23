@@ -336,12 +336,14 @@ void Devices_Ui::change_component()
 void Devices_Ui::_current_component(string& utype,
                                     string& uname)
 {
-  string type(qPrintable(_cmplist->currentItem()->text()));
-  utype = type.substr(0,type.find(' '));
-  UTypeName stype(utype);
-  size_t fs  = type.find('[') + 1;
-  size_t len = type.find(']') - fs; 
-  uname = type.substr(fs,len);
+  if (_cmplist->currentItem()) {
+    string type(qPrintable(_cmplist->currentItem()->text()));
+    utype = type.substr(0,type.find(' '));
+    UTypeName stype(utype);
+    size_t fs  = type.find('[') + 1;
+    size_t len = type.find(']') - fs; 
+    uname = type.substr(fs,len);
+  }
 }
 
 void Devices_Ui::view_component()
