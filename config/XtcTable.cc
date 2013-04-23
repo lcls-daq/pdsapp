@@ -259,6 +259,11 @@ void XtcTable::dump() const
 void XtcTable::update_xtc(const string& type, const string& name)
 {
   XtcTableEntry* te = entry(type);
+  if (!te) {
+    _entries.push_back(XtcTableEntry(type));
+    te = entry(type);
+  }
+
   XtcFileEntry* fe = te->entry(name);
   if (fe)
     *fe = XtcFileEntry(name,fe->ext(), time(0));
