@@ -354,7 +354,7 @@ namespace Pds_ConfigDb
         ADDP("Row/Col Shift");
         ADDP("Amp Reset");
         ADDP("Dig Count (hex)");
-        ADDP("Dig Period (hex)");
+        ADDP("Dig Period");
         ADDP("Bias Tuning (hex)");
         layout->addWidget(new QLabel("Digital Pots Fields"), row++, 1, 1, 4, ::Qt::AlignHCenter);
         ADDP("Vref");
