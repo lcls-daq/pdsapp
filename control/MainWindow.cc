@@ -323,6 +323,8 @@ MainWindow::MainWindow(unsigned          platform,
   QObject::connect(state , SIGNAL(state_changed(QString)), _partition, SLOT(change_state(QString)));
   QObject::connect(this  , SIGNAL(message_received(const QString&, bool))   ,
        this  , SLOT(handle_message(const QString&, bool)));
+  QObject::connect(config, SIGNAL(assert_message(const QString&, bool))   ,
+       this  , SLOT(handle_message(const QString&, bool)));
   QObject::connect(this  , SIGNAL(override_received(const QString&)),
        this  , SLOT(handle_override(const QString&)));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));

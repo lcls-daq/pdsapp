@@ -9,6 +9,7 @@
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QPushButton>
+#include <QtGui/QMessageBox>
 
 #include <errno.h>
 
@@ -22,19 +23,30 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
 			   const char*       db_path) :
   QGroupBox("Configuration",parent),
   _pcontrol(control),
-  _expt    (Pds_ConfigDb::Path(db_path)),
+  _db_path (db_path),
+  _expt    (0),
   _control_busy(false)
 {
   pthread_mutex_init(&_control_mutex, NULL);
   pthread_cond_init (&_control_cond, NULL);
 
-  _expt.read();
-
-  _reconfig = new Pds_ConfigDb::Reconfig_Ui(this, _expt);
-  _scan     = new Pds_ConfigDb::ControlScan(this, _expt);
-
   _bEdit = new QPushButton("Edit");
   _bScan = new QPushButton("Scan");
+
+  try {
+    _expt = new Pds_ConfigDb::Experiment(Pds_ConfigDb::Path(db_path));
+    _expt->read();
+  }
+  catch (std::string& serr) {
+    setTitle("Configuration (Locked)");
+  }
+
+  _reconfig = new Pds_ConfigDb::Reconfig_Ui(this, *_expt);
+  connect(_reconfig,SIGNAL(changed()), this, SLOT(update()));
+
+  _scan = new Pds_ConfigDb::ControlScan(this, *_expt);
+  connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
+  connect(_scan    ,SIGNAL(deactivate()),              _bScan, SLOT(click()));
 
   QVBoxLayout* layout = new QVBoxLayout;
   { QHBoxLayout* layout1 = new QHBoxLayout;
@@ -55,13 +67,10 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
     layout->addLayout(layout1); }
   setLayout(layout);
 
-  connect(_bEdit  , SIGNAL(clicked()),                 _reconfig, SLOT(show()));
+  connect(_bEdit  , SIGNAL(clicked()),                 this, SLOT(edit_config()));
   connect(_bScan  , SIGNAL(clicked(bool)),	       this, SLOT(enable_scan(bool)));
   connect(this    , SIGNAL(control_enabled(bool)),     this, SLOT(enable_control_(bool)));
   connect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
-  connect(_reconfig,SIGNAL(changed()),                 this, SLOT(update()));
-  connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
-  connect(_scan    ,SIGNAL(deactivate()),              _bScan, SLOT(click()));
 
   _read_db();
   set_run_type(_runType->currentText());
@@ -69,16 +78,48 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   _bScan->setCheckable(true);
 
   _readSettings();
-
-  _bScan->setChecked  (_scanIsActive);
 }
 
 ConfigSelect::~ConfigSelect() 
 {
+  if (_reconfig)
+    delete _reconfig;
+  if (_scan)
+    delete _scan;
+  if (_expt)
+    delete _expt;
+}
+
+void ConfigSelect::edit_config()
+{
+  if (_expt) {
+    _reconfig->show();
+  }
 }
 
 void ConfigSelect::enable_control(bool v)
 {
+  if (v) {
+    QString msg("Configuration locked");
+    bool asserted=false;
+    while(1) {
+      try {
+        _expt = new Pds_ConfigDb::Experiment(Pds_ConfigDb::Path(_db_path));
+      }
+      catch(std::string& serr) {
+        if (!asserted) {
+          asserted = true;
+          emit assert_message(msg,true);
+        }
+        delete _expt;
+        sleep(1);
+        continue;
+      }
+      break;
+    }
+    _expt->read();
+  }
+
   pthread_mutex_lock(&_control_mutex);
   _control_busy = true;
 
@@ -87,22 +128,41 @@ void ConfigSelect::enable_control(bool v)
   while(_control_busy)
     pthread_cond_wait(&_control_cond, &_control_mutex);
   pthread_mutex_unlock(&_control_mutex);
+
+
+  if (!v) {
+    delete _expt;
+    _expt = 0;
+  }
 }
 
 void ConfigSelect::enable_control_(bool v)
 {
   if (!v) {
-    _reconfig->enable(false);
     _bScan->setEnabled(false);
-    enable_scan(false);
+
+    if (_reconfig) {
+      delete _reconfig;
+      _reconfig = 0;
+    }
+
+    if (_scan) {
+      delete _scan;
+      _scan = 0;
+    }
   }
   else {
-    _reconfig->enable(true);
+    _reconfig = new Pds_ConfigDb::Reconfig_Ui(this, *_expt);
+    connect(_reconfig,SIGNAL(changed()), this, SLOT(update()));
+  
+    _scan = new Pds_ConfigDb::ControlScan(this, *_expt);
+    connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
+    connect(_scan    ,SIGNAL(deactivate()),              _bScan, SLOT(click()));
+
     _bScan->setEnabled(true);
-    if (_bScan->isChecked())
-      enable_scan(true);
-    else
-      update();
+    _scan->setVisible(_bScan->isChecked());
+
+    update();
   }
   _control_busy = false;
   pthread_cond_signal(&_control_cond);
@@ -110,10 +170,17 @@ void ConfigSelect::enable_control_(bool v)
 
 void ConfigSelect::set_run_type(const QString& run_type)
 {
-  _reconfig->set_run_type(run_type);
-  _scan    ->set_run_type(run_type);
+  if (_reconfig)
+    _reconfig->set_run_type(run_type);
+  else
+    printf("ConfigSelect _reconfig null\n");
 
-  const TableEntry* e = _expt.table().get_top_entry(qPrintable(run_type));
+  if (_scan)
+    _scan    ->set_run_type(run_type);
+  else
+    printf("ConfigSelect _scan null\n");
+
+  const TableEntry* e = _expt->table().get_top_entry(qPrintable(run_type));
   if (e) {
     _run_key = strtoul(e->key().c_str(),NULL,16);
     _pcontrol.set_transition_env(TransitionId::Configure, _run_key);
@@ -128,14 +195,15 @@ string ConfigSelect::getType()
 
 void ConfigSelect::update()
 {
-  _read_db();
-  if (_scanIsActive) {
+  if (_bScan->isEnabled() && _bScan->isChecked()) {
     _run_key = _scan->update_key();
   }
   else {
-    const TableEntry* e = _expt.table().get_top_entry(qPrintable(_runType->currentText()));
+    _read_db();
+    const TableEntry* e = _expt->table().get_top_entry(qPrintable(_runType->currentText()));
     _run_key = strtoul(e->key().c_str(),NULL,16);
   }
+  printf("Reconfigure with run key 0x%x\n",_run_key);
   _pcontrol.set_transition_env(TransitionId::Configure, _run_key);
   _pcontrol.reconfigure();
 }
@@ -148,7 +216,7 @@ void ConfigSelect::_read_db()
   bool ok = 
     disconnect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
   _runType->clear();
-  const list<TableEntry>& l = _expt.table().entries();
+  const list<TableEntry>& l = _expt->table().entries();
   for(list<TableEntry>::const_iterator iter = l.begin(); iter != l.end(); ++iter) {
     QString str(iter->name().c_str());
     _runType->addItem(str);
@@ -175,10 +243,10 @@ void ConfigSelect::configured(bool v)
 
 void ConfigSelect::enable_scan(bool l)
 {
-  bool active = _scanIsActive;
-  _scan->setVisible(l);
-  _scanIsActive = l;
-  if (active && !l) update();  // refresh the run key from "Type"
+  if (_scan)
+    _scan->setVisible(l);
+
+  update();
 }
 
 void ConfigSelect::_writeSettings()
@@ -188,7 +256,7 @@ void ConfigSelect::_writeSettings()
   FILE* f = fopen(buff,"w");
   if (f) {
     fprintf(f,"%s\n",qPrintable(_runType->currentText()));
-    fprintf(f,"%s\n",_scanIsActive ? "scan":"no_scan");
+    fprintf(f,"%s\n",_bScan->isEnabled() && _bScan->isChecked() ? "scan":"no_scan");
     fclose(f);
   }
   else {
@@ -200,7 +268,7 @@ static const unsigned SETTINGS_SIZE = 64;
 
 void ConfigSelect::_readSettings()
 {
-  _scanIsActive=false;
+  _bScan->setChecked(false);
 
   char *buff = (char *)malloc(SETTINGS_SIZE);  // use malloc w/ getline
   if (buff == (char *)NULL) {
@@ -221,7 +289,7 @@ void ConfigSelect::_readSettings()
       }
       if (getline(&lptr,&linesz,f)!=-1 &&
           strcmp(lptr,"scan")==0)
-        _scanIsActive = true;
+        _bScan->setChecked(true);
 
       fclose(f);
     }
