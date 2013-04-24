@@ -35,6 +35,7 @@ static PyObject* pdsdb_clone  (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_sub    (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_get_key(PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_evolve (PyObject* self, PyObject* args, PyObject* kwds);
+static PyObject* pdsdb_unlock (PyObject* self, PyObject* args, PyObject* kwds);
 
 static PyMethodDef pdsdb_methods[] = {
   {"get"       , (PyCFunction)pdsdb_get    , METH_KEYWORDS, "Return the xtc data"},
@@ -45,6 +46,7 @@ static PyMethodDef pdsdb_methods[] = {
   {"clone"     , (PyCFunction)pdsdb_clone  , METH_VARARGS , "Clone a key"},
   {"get_key"   , (PyCFunction)pdsdb_get_key, METH_KEYWORDS, "Return the current key for an alias"},
   {"evolve"    , (PyCFunction)pdsdb_evolve , METH_VARARGS , "Upgrade xtc container to another version"},
+  {"unlock"    , (PyCFunction)pdsdb_unlock , METH_NOARGS  , "Release the database"},
   {NULL},
 };
 
@@ -186,6 +188,11 @@ int pdsdb_init(pdsdb* self, PyObject* args, PyObject* kwds)
 PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
 {
   pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+
+  if (!self->expt) {
+    PyErr_SetString(PyExc_RuntimeError,"No lock on database");
+    return NULL;
+  }
 
   PyObject* result = PyTuple_New(0);
 
@@ -335,6 +342,11 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
 {
   pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
 
+  if (!self->expt) {
+    PyErr_SetString(PyExc_RuntimeError,"No lock on database");
+    return NULL;
+  }
+
   const char* alias = 0;
   const char* file  = 0;
   PyObject* o;
@@ -444,6 +456,11 @@ PyObject* pdsdb_sub(PyObject* self_o, PyObject* args, PyObject* kwds)
 {
   pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
 
+  if (!self->expt) {
+    PyErr_SetString(PyExc_RuntimeError,"No lock on database");
+    return NULL;
+  }
+
   unsigned key = 0;
   PyObject* o;
   int sts = PyArg_ParseTuple(args,"IO",&key,&o);
@@ -468,6 +485,12 @@ PyObject* pdsdb_sub(PyObject* self_o, PyObject* args, PyObject* kwds)
 PyObject* pdsdb_sync (PyObject* self_o, PyObject* args, PyObject* kwds)
 {
   pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+
+  if (!self->expt) {
+    PyErr_SetString(PyExc_RuntimeError,"No lock on database");
+    return NULL;
+  }
+
   self->expt->read();
   Py_INCREF(Py_None);
   return Py_None;
@@ -476,6 +499,12 @@ PyObject* pdsdb_sync (PyObject* self_o, PyObject* args, PyObject* kwds)
 PyObject* pdsdb_commit (PyObject* self_o, PyObject* args, PyObject* kwds)
 {
   pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+
+  if (!self->expt) {
+    PyErr_SetString(PyExc_RuntimeError,"No lock on database");
+    return NULL;
+  }
+
   self->expt->update_keys();
   self->expt->write();
   Py_INCREF(Py_None);
@@ -485,6 +514,11 @@ PyObject* pdsdb_commit (PyObject* self_o, PyObject* args, PyObject* kwds)
 PyObject* pdsdb_clone  (PyObject* self_o, PyObject* args, PyObject* kwds)
 {
   pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+
+  if (!self->expt) {
+    PyErr_SetString(PyExc_RuntimeError,"No lock on database");
+    return NULL;
+  }
 
   const char* alias=0;
   int sts = PyArg_ParseTuple(args,"s",&alias);
@@ -503,6 +537,11 @@ PyObject* pdsdb_get_key(PyObject* self_o, PyObject* args, PyObject* kwds)
 {
   pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
   
+  if (!self->expt) {
+    PyErr_SetString(PyExc_RuntimeError,"No lock on database");
+    return NULL;
+  }
+
   const char* alias = 0;
 
   if (PyArg_ParseTuple(args,"s",&alias)==0) {
@@ -591,3 +630,18 @@ PyObject* pdsdb_evolve(PyObject* self_o, PyObject* args, PyObject* kwds)
   return o;
 }
 
+//
+//  Release the database lock
+//
+PyObject* pdsdb_unlock(PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  pdsdb* self = reinterpret_cast<pdsdb*>(self_o);
+
+  if (self->expt) {
+    delete self->expt;
+    self->expt = 0;
+  }
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
