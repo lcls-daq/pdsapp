@@ -5,6 +5,7 @@ namespace Pds_ConfigDb {
   class EventcodeTiming {
   public:
     static unsigned timeslot(unsigned code);
+    static unsigned period  (unsigned code);
   };
 }
 

@@ -246,6 +246,7 @@ bool EvrPulseTable::validate(unsigned ncodes,
     
     int delay_offset = 0;
     int primary_readout = -1;
+    unsigned readout_period(-1);
     
     int iGroup = 1+p._group->currentIndex();
     uint32_t pm = 1<<(npt+p0);
@@ -267,6 +268,9 @@ bool EvrPulseTable::validate(unsigned ncodes,
                     EventcodeTiming::timeslot(codes[i].code());                                                                                    
           printf("Adjusting pulse [%d] for readout event code [%d] %d, delays %+d ticks (%lg ns)\n",
                  npt, i, codes[i].code(), delay_offset, (double)(delay_offset*EvrPeriod*1e9));
+
+          
+          readout_period = EventcodeTiming::period(codes[i].code());
         }
         //!!! dont warn about the secondary readout eventcode
         //else
@@ -294,7 +298,16 @@ bool EvrPulseTable::validate(unsigned ncodes,
       QMessageBox::warning(0,"Input Error",msg);
       return false;
     }
-                                        
+
+    if (p._width.value > readout_period) {
+      QString msg = QString("Pulse %1 width (%2 s) larger than readoutcode period (%3 s)\n")
+        .arg(npt)
+        .arg(double(p._width.value)*EvrPeriod)
+        .arg(double(readout_period)*EvrPeriod);
+      QMessageBox::warning(0,"Input Error",msg);
+      return false;
+    }
+    
     *new(&pt[npt]) EvrConfigType::PulseType(npt+p0, 
                                             p._polarity->state() == PolarityButton::Pos ? 0 : 1,
                                             1,

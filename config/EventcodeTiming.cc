@@ -1,11 +1,15 @@
 #include "pdsapp/config/EventcodeTiming.hh"
 
+#include <stdint.h>
+
 struct slot_s { 
   unsigned code;
   unsigned tick;
 };
 
 typedef struct slot_s slot_t;
+
+static const unsigned EvrClkRate = 119000000;
 
 static const slot_t slots[] = { 
   {   9, 12900 },
@@ -40,4 +44,25 @@ unsigned Pds_ConfigDb::EventcodeTiming::timeslot(unsigned code)
   if (code >= 167 && code <= 198)
     return 11900+code;
   return 0;
+}
+
+unsigned Pds_ConfigDb::EventcodeTiming::period(unsigned code)
+{
+  switch(code) {
+  case 40:
+  case 140: return EvrClkRate/120;
+  case 41:
+  case 141: return EvrClkRate/ 60;
+  case 42:
+  case 142: return EvrClkRate/ 30;
+  case 43:
+  case 143: return EvrClkRate/ 10;
+  case 44:
+  case 144: return EvrClkRate/  5;
+  case 45:
+  case 145: return EvrClkRate;
+  case 46:
+  case 146: return EvrClkRate*  2;
+  default:  return unsigned(-1);
+  }
 }
