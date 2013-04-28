@@ -50,7 +50,7 @@ public:
       float fMinTriggerInterval, int iDebugLevel) :
       _task(task), _iPlatform(iPlatform), _cfg(cfgService), _sFnConfig(sFnConfig), 
       _fMinTriggerInterval(fMinTriggerInterval), _iDebugLevel(iDebugLevel),
-      _bAttached(false), _epicsArchManager(NULL)  
+      _bAttached(false), _epicsArchManager(NULL), _pool(sizeof(Transition),1)
     {
         //// !! For debug test only
         //_epicsArchManager = new EpicsArchManager(_cfg, _sFnConfig);        
@@ -84,6 +84,8 @@ private:
         _epicsArchManager = new EpicsArchManager(_cfg, _sFnConfig, _fMinTriggerInterval, _iDebugLevel);
         _epicsArchManager->appliance().connect(frmk->inlet());
         _bAttached = true;
+
+        streams.wire(StreamParams::FrameWork)->post(*new (&_pool)Transition(TransitionId::Reset,0));
     }
     
     virtual void failed(Reason reason)    
@@ -122,6 +124,7 @@ private:
     int                 _iDebugLevel;
     bool                _bAttached;
     EpicsArchManager*   _epicsArchManager;    
+    GenericPool         _pool;
 }; // class EvtCbEpicsArch
 
 
@@ -261,7 +264,7 @@ int main(int argc, char** argv)
     SegmentLevel seglevel(iPlatform, settings, evtCBEpicsArch, NULL);
     
     seglevel.attach();    
-    if ( evtCBEpicsArch.IsAttached() )    
+    //    if ( evtCBEpicsArch.IsAttached() )    
         task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)
         
     return 0;
