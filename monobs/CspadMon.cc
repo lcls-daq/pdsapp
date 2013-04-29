@@ -21,6 +21,7 @@ using Pds::CsPad::ElementIterator;
 
 static const unsigned MaxSections=32;
 static const unsigned BYKIK=162;
+static const unsigned ALKIK=163;
 static const Pds::DetInfo evrInfo(0,Pds::DetInfo::NoDetector, 0, Pds::DetInfo::Evr, 0);
 
 typedef float    CspadSection  [Pds::CsPad::ColumnsPerASIC][2*Pds::CsPad::MaxRowsPerASIC];
@@ -54,7 +55,8 @@ namespace PdsCas {
     {
       const EvrDataType& d = *reinterpret_cast<const EvrDataType*>(payload);
       for(unsigned i=0; i<d.numFifoEvents(); i++)
-        if (d.fifoEvent(i).EventCode==BYKIK) {
+        if (d.fifoEvent(i).EventCode==BYKIK ||
+            d.fifoEvent(i).EventCode==ALKIK) {
           _bykik = true;
           return;
         }
