@@ -124,6 +124,21 @@ namespace Pds {
 
 using namespace Pds;
 
+static void usage(const char *p)
+{
+  printf("Usage: %s -i <detid> -p <platform> -r <evrid> \n"
+         "           [-a <arp>] [-d] [-R] [-n] [-h]\n\n"
+         "Options:\n"
+         "\t -i <detid>        detector ID (e.g. 0/0/0)\n"
+         "\t -p <platform>     platform number\n"
+         "\t -r <evrid>        evr ID (e.g., a, b, c, or d)\n"
+         "\t -a <arp>          arp\n"
+         "\t -d                NOT USED\n"
+         "\t -R                randomize nodes\n"
+         "\t -n                turn off beam codes\n"
+         "\t -h                print this message and exit\n", p);
+}
+
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
@@ -139,7 +154,7 @@ int main(int argc, char** argv) {
   bool  bTurnOffBeamCodes = false;
   
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:r:d:nR")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:r:d:nRh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -166,11 +181,15 @@ int main(int argc, char** argv) {
     case 'n':
       bTurnOffBeamCodes = true;
       break;
+    case 'h':
+      usage(argv[0]);
+      return 0;
     }
   }
 
   if (platform==NO_PLATFORM) {
     printf("%s: platform required\n",argv[0]);
+    usage(argv[0]);
     return 0;
   }
 

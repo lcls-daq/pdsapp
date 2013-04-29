@@ -168,6 +168,21 @@ static void calibrate(AcqFinder& acqFinder,
     calibrate_module(acqFinder.T3Id(i),0,0);
 }
 
+static void usage(char *p)
+{
+  printf("Usage: %s -i <detid> -p <platform> \n"
+         "           [-d <devid>] [-t] [-C] [-c <nConverters>] [-m <mask>]\n\n"
+         "Options:\n"
+         "\t -i <detid>        detector ID (e.g. 12 for SxrEndstation)\n"
+         "\t -d <devid>        device ID \n"
+         "\t -p <platform>     platform number\n"
+         "\t -t                multi-instrument (look for more than one module, ADC or TDC, in crate)\n"
+         "\t -C                calibrate\n"
+         "\t -c <nConverters>  number of converters (used by calibrate function only)\n"
+         "\t -m <mask>         calibration channel mask (used by calibrate function only)\n", p);
+}
+
+
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
@@ -181,7 +196,7 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:d:p:tCc:m:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:d:p:tCc:m:h")) != EOF ) {
     switch(c) {
     case 'i':
       detid  = strtoul(optarg, NULL, 0);
@@ -204,6 +219,9 @@ int main(int argc, char** argv) {
     case 'm':
       calChannelMask = strtoul(optarg, NULL, 0);
       break;
+    case 'h':
+      usage(argv[0]);
+      return 0;
     }
   }
 
@@ -218,7 +236,8 @@ int main(int argc, char** argv) {
 
   if ((platform == -1UL) || (detid == -1UL)) {
     printf("Platform and detid required\n");
-    printf("Usage: %s -i <detid> -p <platform> [-a <arp process id>]\n", argv[0]);
+    printf("Usage: %s -i <detid> -p <platform> \n\n", argv[0]);
+    usage(argv[0]);
     return 0;
   }
 
