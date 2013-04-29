@@ -34,20 +34,31 @@ public:
                     int numberofEvBuffers,
                     unsigned numberofEvQueues) :
     XtcMonitorServer(tag, sizeofBuffers, numberofEvBuffers, numberofEvQueues),
-    _pool           (new GenericPool(sizeof(ZcpDatagramIterator),2))
+    _pool           (new GenericPool(sizeof(ZcpDatagramIterator),2)),
+    _upool          (new GenericPool(sizeof(CDatagram),1))
   {
   }
   ~LiveMonitorServer()
   {
     delete _pool;
+    delete _upool;
   }
 
 public:
   Transition* transitions(Transition* tr)
   {
     printf("LiveMonitorServer tr %s\n",TransitionId::name(tr->id()));
-    if (tr->id() == TransitionId::Unmap)
-      _pop_transition();
+    if (tr->id() == TransitionId::Unmap) {
+      //
+      //  Generate an Unmap datagram
+      //
+      CDatagram* unmap = new (_upool) CDatagram(Datagram(*tr, TypeId(TypeId::Id_Xtc,0),ProcInfo(Level::Observer,getpid(),0)));
+      Dgram& dgrm = reinterpret_cast<Dgram&>(unmap->datagram());
+      XtcMonitorServer::events(&dgrm);
+      delete unmap;
+      
+      //      _pop_transition();
+    }
     return tr;
   }
 
@@ -86,6 +97,7 @@ private:
   }
 private:
   Pool* _pool;
+  Pool* _upool;
 };
 
 #include "pds/utility/EbBase.hh"
