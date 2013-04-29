@@ -13,6 +13,7 @@ int main(int argc, char** argv)
 {
   if (argc<2 || strcmp(argv[1],"-h")==0 || strcmp(argv[1],"--help")==0) {
     printf("Usage: %s <path>\n",argv[0]);
+    return 0;
   }
 
   QApplication app(argc, argv);
