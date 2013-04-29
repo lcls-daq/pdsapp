@@ -309,7 +309,13 @@ void MyLevel::detach()
 
 void usage(char* p)
 {
-  printf("Usage: %s -p <platform> -P <partition>\n", p);
+  printf("Usage: %s -p <platform> -P <partition> [-m <mask>] [-e] [-h]\n\n"
+         "Options:\n "
+         "\t -p <platform>\t platform number\n"
+         "\t -P <partition>\t partition\n"
+         "\t -m <mask>\t BLD mask to select which BLD data to monitor\n"
+         "\t -e\t Decode BLD data\n"
+         "\t -h\t print this message and exit\n", p);
 }
 
 int main(int argc, char** argv) {
@@ -321,7 +327,7 @@ int main(int argc, char** argv) {
   bool decode=false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:m:e")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:m:eh")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -338,7 +344,11 @@ int main(int argc, char** argv) {
     case 'e':
       decode=true;
       break;
+    case 'h':
+      usage(argv[0]);
+      return 0;
     default:
+      usage(argv[0]);
       break;
     }
   }
