@@ -37,7 +37,7 @@ static int openFifo(const char* name, int flags, unsigned index) {
 using namespace Pds;
 
 void usage(const char* p) {
-  printf("Usage: %s -i <multicast interface> -p <ipm parameters> -n <client index>\n",p);
+  printf("Usage: %s -i <multicast interface> -p <ipm parameters> -n <client index> [-h] \n",p);
   printf("\t\"ipm parameters\" : bld_id, detector, detector_id, device_id, serial_port_name \n");
 }
 
@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:n:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:n:h")) != EOF ) {
     switch(c) {
     case 'i':
       interface = parse_network(optarg);
@@ -107,6 +107,9 @@ int main(int argc, char** argv) {
     case 'n':
       client = strtoul(optarg,&endPtr,0);
       break;
+    case 'h':
+      usage(argv[0]);
+      return 0;
     default:
       usage(argv[0]);
       exit(1);
