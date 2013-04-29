@@ -25,6 +25,16 @@ using std::endl;
 
 static double _log_threshold = -1;
 
+static int _symlink(const char* dst, const char* src) {
+  int r = symlink(dst,src);
+  if (r<0) {
+    char buff[256];
+    sprintf(buff,"symlink %s -> %s",src,dst);
+    perror(buff);
+  }
+  return r;
+}
+
 namespace Pds_ConfigDb {
   class TimeProfile {
   public:
@@ -487,7 +497,7 @@ bool Experiment::update_key_file(const TableEntry& entry)
       for(list<DeviceEntry>::const_iterator siter=slist.begin();
     siter != slist.end(); siter++) {
   string spath = kpath + "/" + Pds::CfgPath::src_key(*siter);
-  symlink(dpath.c_str(),spath.c_str());
+  _symlink(dpath.c_str(),spath.c_str());
 #ifdef DBUG
         profile.interval("symlink",dpath.c_str());
 #endif
@@ -584,7 +594,7 @@ void Experiment::update_keys()
 #ifdef DBUG
           printf("symlink %s -> %s\n",t.str().c_str(), o.str().c_str());
 #endif
-          symlink(o.str().c_str(),t.str().c_str());
+          _symlink(o.str().c_str(),t.str().c_str());
         }
       }
     }
@@ -638,7 +648,7 @@ unsigned Experiment::clone(const string& alias)
 #ifdef DBUG
       printf("symlink %s -> %s\n",t.str().c_str(), o.str().c_str());
 #endif
-      symlink(o.str().c_str(),t.str().c_str());
+      _symlink(o.str().c_str(),t.str().c_str());
     }
   }
 
@@ -708,10 +718,8 @@ void Experiment::substitute(unsigned           key,
 #ifdef DBUG
       printf("symlink %s -> %s\n",q.str().c_str(), gl.gl_pathv[i]);
 #endif
-      if (symlink(gl.gl_pathv[i], q.str().c_str())<0) {
-        perror("symlink");
+      if (_symlink(gl.gl_pathv[i], q.str().c_str())<0)
         return;
-      }
     }
     globfree(&gl);
   }

@@ -2,6 +2,10 @@
 
 #include "pdsapp/config/EventcodeTiming.hh"
 #include "pds/config/EvrConfigType.hh"
+#include "pds/config/ControlConfigType.hh"
+#include "pdsdata/control/PVControl.hh"
+#include "pdsdata/control/PVMonitor.hh"
+#include "pdsdata/control/PVLabel.hh"
 #include "pdsdata/evr/PulseConfigV3.hh"
 
 #include <QtGui/QGridLayout>
@@ -65,6 +69,51 @@ EvrScan::~EvrScan()
   if (_buff)
     delete[] _buff;
 }
+
+int EvrScan::write_control(unsigned step, unsigned nsteps, const ClockTime& ctime, char* buff) const
+{
+  std::list<Pds::ControlData::PVControl> controls;
+  std::list<Pds::ControlData::PVMonitor> monitors;
+  std::list<Pds::ControlData::PVLabel  > labels;
+
+  QString control_base = QString("EVR:P%1:DELAY").arg(_pulse_id->currentIndex());
+
+  double control_v, control_step;
+  _parse_range(_delay_lo->text(), _delay_hi->text(), nsteps,
+         control_v, control_step);
+  control_v += double(step)*control_step;
+
+  controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
+                                                 control_v));
+
+  ControlConfigType* c = 
+    new (buff) ControlConfigType(controls, monitors, labels, ctime);
+
+  return c->size();
+}
+
+int EvrScan::write_control(unsigned step, unsigned nsteps, unsigned nevents, char* buff) const
+{
+  std::list<Pds::ControlData::PVControl> controls;
+  std::list<Pds::ControlData::PVMonitor> monitors;
+  std::list<Pds::ControlData::PVLabel  > labels;
+
+  QString control_base = QString("EVR:P%1:DELAY").arg(_pulse_id->currentIndex());
+
+  double control_v, control_step;
+  _parse_range(_delay_lo->text(), _delay_hi->text(), nsteps,
+         control_v, control_step);
+  control_v += double(step)*control_step;
+
+  controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
+                                                 control_v));
+
+  ControlConfigType* c = 
+    new (buff) ControlConfigType(controls, monitors, labels, nevents);
+
+  return c->size();
+}
+
 
 int EvrScan::write(unsigned step, unsigned nsteps, char* buff) const
 {

@@ -11,6 +11,12 @@ typedef struct slot_s slot_t;
 
 static const unsigned EvrClkRate = 119000000;
 
+/**
+ **  Found timing moved sometime before Apr 25, 2013
+ **
+static const unsigned tevcode140 = 11850;
+static const unsigned tucodebase = 11900;
+
 static const slot_t slots[] = { 
   {   9, 12900 },
   {  10, 12951 },
@@ -27,7 +33,32 @@ static const slot_t slots[] = {
   {  44, 12994 },
   {  45, 13004 },
   {  46, 13014 },
-  { 162, 11840 } 
+  { 162, 11840 }
+};
+**
+**  Timing at Apr 25, 2013
+*/
+static const unsigned tevcode140 = 11900;
+static const unsigned tucodebase = 11900;
+
+static const slot_t slots[] = { 
+  {   9, 12950 },
+  {  10, 13001 },
+  {  11, 13011 },
+  {  12, 13021 },
+  {  13, 13031 },
+  {  14, 13041 },
+  {  15, 13051 },
+  {  16, 13061 },
+  {  40, 13004 },
+  {  41, 13014 },
+  {  42, 13024 },
+  {  43, 13034 },
+  {  44, 13044 },
+  {  45, 13054 },
+  {  46, 13064 },
+  { 162, 11890 },
+  { 163, 11922 }
 };
                                  
 
@@ -37,12 +68,12 @@ unsigned Pds_ConfigDb::EventcodeTiming::timeslot(unsigned code)
   for(unsigned i=0; i<n; i++)
     if (slots[i].code==code)
       return slots[i].tick;
-  if (code >= 140 && code <= 159)
-    return 11850+(code-140);
+  if (code >= 140 && code <= 161)
+    return tevcode140+(code-140);
   if (code >= 67 && code <= 98)
-    return 11900+code;
+    return tucodebase+code;
   if (code >= 167 && code <= 198)
-    return 11900+code;
+    return tucodebase+code;
   return 0;
 }
 

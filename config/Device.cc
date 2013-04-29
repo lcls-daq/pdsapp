@@ -25,10 +25,19 @@ using std::setfill;
 
 #define DBUG
 
+static int _symlink(const char* dst, const char* src) {
+  int r = symlink(dst,src);
+  if (r<0) {
+    char buff[256];
+    sprintf(buff,"symlink %s -> %s",src,dst);
+    perror(buff);
+  }
+  return r;
+}
+
 using namespace Pds_ConfigDb;
 
 const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
-
 
 Device::Device() :
   _name("None")
@@ -258,7 +267,7 @@ void Device::_make_config_file(const TableEntry* entry, const string& path, cons
 	if (equal_size && equal_mem) {
 	  printf("%s is up-to-date\n",talnk.c_str());
 	  string tlink = typelink(utype,iter->entry())+sext; // path from key
-	  symlink(tlink.c_str(), tpath.c_str());
+	  _symlink(tlink.c_str(), tpath.c_str());
 	  continue;
 	}
       }
@@ -271,7 +280,7 @@ void Device::_make_config_file(const TableEntry* entry, const string& path, cons
       system(o.str().c_str()); }
     { ostringstream o;
       o << typelink(utype,iter->entry()) << "." << nv;
-      symlink(o.str().c_str(), tpath.c_str()); }
+      _symlink(o.str().c_str(), tpath.c_str()); }
   }
 }
 
@@ -392,7 +401,7 @@ void Device::update_keys(const Path& path, XtcTable& xtc, time_t time_key)
 #ifdef DBUG
         printf("symlink %s -> %s\n",tpath.c_str(), o.str().c_str());
 #endif
-        symlink(o.str().c_str(),tpath.c_str());
+        _symlink(o.str().c_str(),tpath.c_str());
       }
     }
   }

@@ -162,12 +162,16 @@ void ControlScan::write()
       if (_acqB->checkedId()==Duration) {
 	double s = _time_value->text().toDouble();
 	Pds::ClockTime ctime(unsigned(s),unsigned(fmod(s,1.)*1.e9));
-        int len = _pv->write(k, steps, usePvs, ctime, p);
+        int len = usePvs ? 
+          _pv->write(k, steps, usePvs, ctime, p) :
+          _evr->write_control(k, steps, ctime, p);
 	fwrite(p, len, 1, output);
         p += len;
       }
       else {
-	int len = _pv->write(k, steps, usePvs, _events_value->text().toInt(), p);
+	int len = usePvs ?
+          _pv->write(k, steps, usePvs, _events_value->text().toInt(), p) :
+          _evr->write_control(k, steps, _events_value->text().toInt(), p);
         fwrite(p, len, 1, output);
         p += len;
       }

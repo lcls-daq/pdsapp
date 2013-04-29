@@ -186,6 +186,17 @@ bool EvrEventCodeTable::validate() {
 
   _ncodes = codep - reinterpret_cast<EvrConfigType::EventCodeType*>(_code_buffer);
 
+  { const EvrConfigType::EventCodeType* pcode = reinterpret_cast<const EvrConfigType::EventCodeType*>(_code_buffer);
+    for(int i=0; i<int(_ncodes)-1; i++)
+      for(int j=i+1; j<int(_ncodes); j++) {
+        if (pcode[j].code() == pcode[i].code()) {
+          QString msg = QString("Event code %1 is specified multiple times").arg(pcode[i].code());
+          QMessageBox::warning(0,"Input Error",msg);
+          return false;
+        }
+      }
+  }
+    
   return true;
 }
 
