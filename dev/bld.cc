@@ -889,8 +889,10 @@ static void sigintHandler(int iSignal)
 }
 
 void usage(const char* p) {
-  printf("Usage: %s -p <platform> [-m <mask>] [-C]\n"
-         "       -C : compress images\n",p);
+  printf("Usage: %s -p <platform> [-m <mask>] [-C] [-h]\n\n"
+         "Options:\n"
+         "       -C : compress images\n"
+         "       -h:  print this message and exit\n",p);
 }
 
 int main(int argc, char** argv) {
@@ -903,7 +905,7 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "p:m:C")) != EOF ) {
+  while ( (c=getopt( argc, argv, "p:m:Ch")) != EOF ) {
     switch(c) {
     case 'p':
       platform = strtoul(optarg, NULL, 0);
@@ -914,6 +916,9 @@ int main(int argc, char** argv) {
     case 'C':
       lCompress = true;
       break;
+    case 'h':
+      usage(argv[0]);
+      return 0;
     default:
       usage(argv[0]);
       return 0;

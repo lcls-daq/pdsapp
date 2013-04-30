@@ -23,6 +23,7 @@ static void usage(char *argv0)
    "         -O                    : override errors\n"
    "         -T                    : collect transient data\n"
    "         -w <0/1>              : slow readout\n"
+   "         -h                    : print usage information\n"
    "         -v\n",
    argv0);
 }
@@ -44,7 +45,7 @@ int main(int argc, char** argv)
   bool override = false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:OTS:w:v")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:OTS:w:hv")) != -1) {
     char* endPtr;
     switch (c) {
     case 'p':
@@ -84,9 +85,15 @@ int main(int argc, char** argv)
     case 'w':
       slowReadout = strtoul(optarg, &endPtr, 0);
       break;
+    case 'h':
+      usage(argv[0]);
+      return 0;
     case 'v':
       ++verbose;
       break;
+    default:
+      usage(argv[0]);
+      return 0;
     }
   }
   if ((platform==NO_PLATFORM || !partition || !dbpath) || (!offlinerc && experiment) || (offlinerc && runNumberFile)) {
