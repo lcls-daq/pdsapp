@@ -18,8 +18,13 @@ namespace PdsUser {
   
   class EvrDatagram {
   public:
+    enum {NumFiducialBits = 17};
+    enum {MaxFiducials = (1<<17)-32};
+    enum {ErrFiducial = (1<<17)-1};
+  public:
     //  360 Hz globally distributed counter
     unsigned fiducials() const { return high&0x1ffff; }
+    bool     is_event () const { return ((low>>24)&0xf) == 0xc; }
   public:
     uint32_t    nanoseconds;  // event time
     uint32_t    seconds;      // event time
@@ -157,16 +162,17 @@ int main(int argc, char** argv)
   pfd[0].revents = 0;
   int nfds = 1;
 
-  printf("%6.6s  %6.6s  %9.9s.%9.9s\n",
-	 "count","fiduc","seconds","nseconds");
+  printf("%6.6s  %6.6s  %9.9s.%9.9s %9.9s\n",
+	 "count","fiduc","seconds","nseconds","is_event");
 
   while(1) {
     if (::poll(pfd, nfds, 1000) > 0) {
       if (pfd[0].revents & (POLLIN|POLLERR)) {
         while (recvfrom(pfd[0].fd, buff, len, MSG_DONTWAIT, (sockaddr*)&sa, &sa_len)>0) {
           const PdsUser::EvrDatagram& dg = *reinterpret_cast<const PdsUser::EvrDatagram*>(buff);
-	  printf("%06d  %06d  %09d.%09d\n",
-		 dg.evr, dg.fiducials(), dg.seconds, dg.nanoseconds);
+	  printf("%06d  %06d  %09d.%09d    %c\n",
+		 dg.evr, dg.fiducials(), dg.seconds, dg.nanoseconds,
+                 dg.is_event()?'*':' ');
         }
         pfd[0].revents = 0;
       }
