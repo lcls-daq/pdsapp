@@ -273,9 +273,19 @@ int main( int argc, char** argv )
             printf("read returned %u, DataImportFrame lane(%u) vc(%u) pgpCardRx lane(%u), vc(%u)\n",
                 readRet, inFrame->lane(), inFrame->vc(), pgpCardRx.pgpLane, pgpCardRx.pgpVc);
           } else {
-            uint16_t* up = (uint16_t*) pgpCardRx.data;
-            unsigned loopCount = (readRet<<1) < (int)maxPrint ? readRet<<1 : maxPrint;
-            for (unsigned i=0; i<loopCount; i++) printf("%0x ", up[i]/*pgpCardRx.data[i]*/);
+            uint32_t* u32p = (uint32_t*) pgpCardRx.data;
+            uint16_t* up = (uint16_t*) &u32p[9];
+            unsigned readBytes = readRet * sizeof(uint32_t);
+            for (unsigned i=0; i<8; i++) {
+              printf("%0x ", u32p[i]/*pgpCardRx.data[i]*/);
+              readBytes -= sizeof(uint32_t);
+            }
+            up = (uint16_t*) &u32p[8];
+            unsigned i=0;
+            while ((readBytes>0) && (maxPrint >= (8+i))) {
+              printf("%0x ", up[i++]);
+              readBytes -= sizeof(uint16_t);
+            }
             printf("\n");
           }
         } else {
