@@ -13,6 +13,7 @@ liblibs_pycdb += pdsdata/cspaddata pdsdata/lusidata
 liblibs_pycdb += pdsdata/cspad2x2data
 liblibs_pycdb += pdsapp/configdb
 libslib_pycdb := $(USRLIBDIR)/rt 
+CPPFLAGS += -fno-strict-aliasing
 
 libsrcs_pydaq := pydaq.cc
 libincs_pydaq := python/include/python2.5
