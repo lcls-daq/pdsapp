@@ -105,10 +105,8 @@ Transition* SeqAppliance::transitions(Transition* tr)
 				_cur_config->uses_duration() ?
 				EnableEnv(_cur_config->duration()).value() :
 				EnableEnv(_cur_config->events()).value());
-    if (_cselect.controlpvs()) {
-      printf("CSELECT::CONTROLPVS\n");
+    if (_cselect.controlpvs())
       _pvmanager.configure(*_cur_config);
-    }
     _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_cur_config);
     break;
   case TransitionId::EndCalibCycle:

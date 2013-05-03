@@ -203,9 +203,11 @@ string ConfigSelect::getType()
 void ConfigSelect::update()
 {
   if (_bScan->isEnabled() && _bScan->isChecked()) {
+    _reconfig->setEnabled(false);
     _run_key = _scan->update_key();
   }
   else {
+    _reconfig->setEnabled(true);
     _read_db();
     set_run_type(_runType->currentText());
   }
