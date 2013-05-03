@@ -200,8 +200,7 @@ void ConfigSelect::update()
   }
   else {
     _read_db();
-    const TableEntry* e = _expt->table().get_top_entry(qPrintable(_runType->currentText()));
-    _run_key = strtoul(e->key().c_str(),NULL,16);
+    set_run_type(_runType->currentText());
   }
   printf("Reconfigure with run key 0x%x\n",_run_key);
   _pcontrol.set_transition_env(TransitionId::Configure, _run_key);
