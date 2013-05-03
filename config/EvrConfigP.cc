@@ -244,12 +244,12 @@ namespace Pds_ConfigDb {
     }
     bool validate() {
       //printf("Pds_ConfigDb::EvrConfigP::Private_Data::validate(): begin:  pulse %d\n", _pulse_table->npulses ()); //!!!debug
-      bool v = _code_table   ->validate();
-      v = v && _pulse_table  ->validate(_code_table->ncodes(),
+      bool v1 = _code_table   ->validate();
+      bool v2 = _pulse_table  ->validate(_code_table->ncodes(),
                                         _code_table->codes () );
-      v = v && _seq_config   ->validate();
+      bool v3 = _seq_config   ->validate();
       //printf("Pds_ConfigDb::EvrConfigP::Private_Data::validate(): end:  pulse %d\n", _pulse_table->npulses ()); //!!!debug      
-      return v;
+      return v1 && v2 && v3;
     }
   private:
     EvrPulseTables*    _pulse_table;

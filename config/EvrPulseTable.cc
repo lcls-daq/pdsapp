@@ -227,6 +227,8 @@ bool EvrPulseTable::validate(unsigned ncodes,
                              unsigned o0, EvrConfigType::OutputMapType* om
                              )
 {  
+  bool result = true;
+
   unsigned npt = 0;
   unsigned nom = 0;
 
@@ -296,7 +298,7 @@ bool EvrPulseTable::validate(unsigned ncodes,
         .arg(-adjusted_delay)
         .arg(double(-adjusted_delay)*EvrPeriod*1e9);
       QMessageBox::warning(0,"Input Error",msg);
-      return false;
+      result = false;
     }
 
     if (p._width.value > readout_period) {
@@ -305,7 +307,7 @@ bool EvrPulseTable::validate(unsigned ncodes,
         .arg(double(p._width.value)*EvrPeriod)
         .arg(double(readout_period)*EvrPeriod);
       QMessageBox::warning(0,"Input Error",msg);
-      return false;
+      result = false;
     }
     
     *new(&pt[npt]) EvrConfigType::PulseType(npt+p0, 
@@ -320,7 +322,7 @@ bool EvrPulseTable::validate(unsigned ncodes,
   _npulses  = npt;
   _noutputs = nom;
 
-  return true;
+  return result;
 }
 
 
