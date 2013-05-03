@@ -53,10 +53,8 @@ void usage(char* progname) {
           "       -i <filename>  : input xtc file\n"
           "       -o <filename>  : output xtc file\n"
           "       -n <events>    : number to process\n"
-          "       -x : extract (decompress)\n"
-          "       -1 : use Hist16 algorithm\n"
-          "       -2 : use HistN  algorithm\n"
-          "If -o is omitted, then compress, uncompress, and memcmp the result\n",
+          "       -O             : use OMP\n"
+          "       -V             : verbose\n",
           progname);
 }
 
@@ -67,7 +65,7 @@ int main(int argc, char* argv[]) {
   int parseErr = 0;
   unsigned nevents = -1;
 
-  while ((c = getopt(argc, argv, "hn:i:o:")) != -1) {
+  while ((c = getopt(argc, argv, "hOVn:i:o:")) != -1) {
     switch (c) {
     case 'h':
       usage(argv[0]);
@@ -80,6 +78,12 @@ int main(int argc, char* argv[]) {
       break;
     case 'o':
       outxtcname = optarg;
+      break;
+    case 'O':
+      FrameCompApp::useOMP(true);
+      break;
+    case 'V':
+      FrameCompApp::setVerbose(true);
       break;
     default:
       parseErr++;

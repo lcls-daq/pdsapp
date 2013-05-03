@@ -1,8 +1,6 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-#tgtnames    := evgr xtcwriter pnccd xtctruncate pnccdreader
-#tgtnames    := evgr pnccd xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget
-tgtnames    := evgr pnccd xtctruncate pnccdreader dsstest xcasttest pgpwidget
+tgtnames    := evgr pnccd xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
@@ -52,6 +50,9 @@ tgtsrcs_xtccompress := xtccompress.cc
 tgtlibs_xtccompress := pdsdata/xtcdata pdsdata/acqdata pdsdata/compressdata pdsdata/cspaddata pdsdata/timepixdata pdsdata/camdata pdsdata/cspad2x2data
 tgtlibs_xtccompress += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client pds/clientcompress 
 tgtslib_xtccompress := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread 
+#CPPFLAGS += -fno-strict-aliasing
+CPPFLAGS += -fopenmp
+DEFINES += -fopenmp
 
 tgtsrcs_pgpwidget := pgpWidget.cc
 tgtlibs_pgpwidget := pds/pgp
