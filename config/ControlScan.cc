@@ -344,3 +344,4 @@ int ControlScan::update_key()
   return key;
 }
 
+bool ControlScan::pvscan() const { return _tab->currentIndex() == PvTab; }

@@ -134,6 +134,9 @@ void PVControl::unconfigure()
       iter != _channels.end(); iter++)
     delete *iter;
   _channels.clear();
+
+  if (!_runnable)
+    _report.runnable_change(_runnable=true);
 }
 
 void PVControl::channel_changed()

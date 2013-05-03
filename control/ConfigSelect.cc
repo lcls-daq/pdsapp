@@ -25,6 +25,8 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   _pcontrol(control),
   _db_path (db_path),
   _expt    (0),
+  _reconfig(0),
+  _scan    (0),
   _control_busy(false)
 {
   pthread_mutex_init(&_control_mutex, NULL);
@@ -36,17 +38,17 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   try {
     _expt = new Pds_ConfigDb::Experiment(Pds_ConfigDb::Path(db_path));
     _expt->read();
+
+    _reconfig = new Pds_ConfigDb::Reconfig_Ui(this, *_expt);
+    connect(_reconfig,SIGNAL(changed()), this, SLOT(update()));
+
+    _scan = new Pds_ConfigDb::ControlScan(this, *_expt);
+    connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
+    connect(_scan    ,SIGNAL(deactivate()),              _bScan, SLOT(click()));
   }
   catch (std::string& serr) {
     setTitle("Configuration (Locked)");
   }
-
-  _reconfig = new Pds_ConfigDb::Reconfig_Ui(this, *_expt);
-  connect(_reconfig,SIGNAL(changed()), this, SLOT(update()));
-
-  _scan = new Pds_ConfigDb::ControlScan(this, *_expt);
-  connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
-  connect(_scan    ,SIGNAL(deactivate()),              _bScan, SLOT(click()));
 
   QVBoxLayout* layout = new QVBoxLayout;
   { QHBoxLayout* layout1 = new QHBoxLayout;
@@ -188,6 +190,11 @@ void ConfigSelect::set_run_type(const QString& run_type)
   }
 }
 
+bool ConfigSelect::controlpvs() const 
+{
+  return _scan->pvscan();
+}
+
 string ConfigSelect::getType()
 {
   return qPrintable(_runType->currentText());
@@ -298,3 +305,4 @@ void ConfigSelect::_readSettings()
     free(buff);
   }
 }
+

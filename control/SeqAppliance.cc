@@ -1,6 +1,7 @@
 #include "SeqAppliance.hh"
 #include "pdsapp/control/EventSequencer.hh"
 #include "pdsapp/control/PVManager.hh"
+#include "pdsapp/control/ConfigSelect.hh"
 #include "pdsapp/control/StateSelect.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/config/CfgClientNfs.hh"
@@ -22,11 +23,13 @@ using namespace Pds;
 
 SeqAppliance::SeqAppliance(PartitionControl& control,
 			   StateSelect&      manual,
+			   ConfigSelect&     cselect,
 			   CfgClientNfs&     config,
 			   PVManager&        pvmanager,
                            unsigned          sequencer_id) :
   _control      (control),
   _manual       (manual),
+  _cselect      (cselect),
   _config       (config),
   _configtc     (_controlConfigType, config.src()),
   _config_buffer(new char[MaxConfigSize]),
@@ -102,7 +105,10 @@ Transition* SeqAppliance::transitions(Transition* tr)
 				_cur_config->uses_duration() ?
 				EnableEnv(_cur_config->duration()).value() :
 				EnableEnv(_cur_config->events()).value());
-    _pvmanager.configure(*_cur_config);
+    if (_cselect.controlpvs()) {
+      printf("CSELECT::CONTROLPVS\n");
+      _pvmanager.configure(*_cur_config);
+    }
     _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_cur_config);
     break;
   case TransitionId::EndCalibCycle:

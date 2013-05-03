@@ -28,6 +28,4 @@ void PVManager::unconfigure    ()
 {
   _pvmonitor->unconfigure();
   _pvcontrol->unconfigure();
-
-  //  _pvrunnable.runnable_change(false);
 }

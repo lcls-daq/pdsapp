@@ -9,6 +9,7 @@
 namespace Pds {
   class PartitionControl;
   class StateSelect;
+  class ConfigSelect;
   class CfgClientNfs;
   class PVManager;
   class EventSequencer;
@@ -17,6 +18,7 @@ namespace Pds {
   public:
     SeqAppliance(PartitionControl& control,
 		 StateSelect&      manual,
+		 ConfigSelect&     cselect,
 		 CfgClientNfs&     config,
 		 PVManager&        pvmanager,
                  unsigned          sequencer_id);
@@ -28,6 +30,7 @@ namespace Pds {
   private:
     PartitionControl&  _control;
     StateSelect&       _manual;
+    ConfigSelect&      _cselect;
     CfgClientNfs&      _config;
     Xtc                _configtc;
     char*              _config_buffer;

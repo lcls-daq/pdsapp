@@ -26,6 +26,7 @@ namespace Pds_ConfigDb {
   public:
     void set_run_type(const QString&);
     int update_key();
+    bool pvscan() const;
   public slots:
     void apply ();
     //    void details();

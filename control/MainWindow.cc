@@ -313,10 +313,10 @@ MainWindow::MainWindow(unsigned          platform,
     _controlcb->add_appliance(new OfflineReport(*_partition, *_runallocator));
   }
   _controlcb->add_appliance(state);
-  _controlcb->add_appliance(new SeqAppliance(*_control, *state, *_config,
-                 *_pvmanager, sequencer_id));
+  _controlcb->add_appliance(new SeqAppliance(*_control, *state, *config, *_config,
+					     *_pvmanager, sequencer_id));
   _controlcb->add_appliance(new RemoteSeqApp(*_control, *state, *config, *_pvmanager,
-               _config->src(), *run, *_partition));
+					     _config->src(), *run, *_partition));
   _control->attach();
 
   QObject::connect(state , SIGNAL(configured(bool)), config, SLOT(configured(bool)));

@@ -28,6 +28,7 @@ namespace Pds {
   public:
     string getType();
     void enable_control(bool);
+    bool controlpvs() const;
   public slots:
     void set_run_type(const QString&); // a run type has been selected
     void update      ();  // the latest key for the selected run type has changed
