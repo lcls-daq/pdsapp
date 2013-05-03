@@ -13,6 +13,10 @@
 #include "pds/config/ControlConfigType.hh"
 #include "pds/config/EvrConfigType.hh"
 
+#include "pdsdata/xtc/Level.hh"
+#include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/ProcInfo.hh"
+
 #include <QtGui/QTabWidget>
 #include <QtGui/QGroupBox>
 #include <QtGui/QVBoxLayout>
@@ -37,6 +41,8 @@
 #include <stdio.h>
 
 using namespace Pds_ConfigDb;
+using Pds::DetInfo;
+using Pds::ProcInfo;
 
 static const char* scan_file = "live_scan.xtc";
 
@@ -330,14 +336,17 @@ int ControlScan::update_key()
   if (key) {
     const ControlConfigType& cfg = 
       *reinterpret_cast<const ControlConfigType*>(_buf_control);
-    _expt.substitute(key, "Control",*PdsDefs::typeId(PdsDefs::RunControl), 
+    _expt.substitute(key, ProcInfo(Pds::Level::Control,0,0),
+		     *PdsDefs::typeId(PdsDefs::RunControl), 
                      _buf_control, cfg.size()*npts);
 
     if (_tab->currentIndex() == TriggerTab) {
       const EvrConfigType& evr = 
         *reinterpret_cast<const EvrConfigType*>(_buf_evr);
-      _expt.substitute(key, "EVR",*PdsDefs::typeId(PdsDefs::Evr), 
-                       _buf_evr, evr.size()*npts);
+      for(unsigned i=0; i<8; i++)
+	_expt.substitute(key, DetInfo(0,DetInfo::NoDetector,0,DetInfo::Evr,i),
+			 *PdsDefs::typeId(PdsDefs::Evr), 
+			 _buf_evr, evr.size()*npts);
     }
   }
 
