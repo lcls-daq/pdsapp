@@ -16,6 +16,9 @@
 #include "pds/config/Opal1kConfigType.hh"
 #include "pds/config/QuartzConfigType.hh"
 #include "pds/config/FccdConfigType.hh"
+#include "pds/config/CsPadConfigType.hh"
+#include "pds/config/CsPadDataType.hh"
+#include "pdsdata/cspad/ElementIterator.hh"
 
 #include "pds/service/Task.hh"
 
@@ -30,9 +33,6 @@
 #include <new>
 
 static bool verbose = false;
-static const unsigned CfgSize = 0x1000;
-static const unsigned FexSize = 0x1000;
-static const unsigned EvtSize = 0x1000000; // 16MB
 static int ndrop = 0;
 static int ntime = 0;
 static double ftime = 0;
@@ -44,12 +44,83 @@ using Pds::Camera::FrameV1;
 
 class SimApp : public Appliance {
 public:
-  SimApp(const Src& src) 
+  virtual ~SimApp() {}
+  virtual size_t max_size() const = 0;
+private:
+  virtual void _execute_configure() = 0;
+  virtual void _insert_configure (InDatagram*) = 0;
+  virtual void _insert_event     (InDatagram*) = 0;
+public:
+  Transition* transitions(Transition* tr) 
+  { 
+    switch(tr->id()) {
+    case TransitionId::Configure:
+      _execute_configure();
+      break;
+    case TransitionId::L1Accept:
+      break;
+    default:
+      break;
+    }
+    return tr; 
+  }
+  InDatagram* events     (InDatagram* dg) 
+  {
+    switch(dg->seq.service()) {
+    case TransitionId::Configure:
+      _insert_configure(dg);
+      break;
+    case TransitionId::L1Accept:
+    {
+      static int itime=0;
+      if ((++itime)==ntime) {
+	itime = 0;
+	timeval ts = { int(ftime), int(drem(ftime,1)*1000000) };
+	select( 0, NULL, NULL, NULL, &ts);
+      }
+
+      static int idrop=0;
+      if (++idrop==ndrop) {
+	idrop=0;
+	return 0;
+      }
+      
+      _insert_event(dg);
+      break;
+    }
+    default:
+      break;
+    }
+    return dg; 
+  }
+};
+
+class SimFrameV1 : public SimApp {
+  enum { CfgSize = 0x1000 };
+  enum { FexSize = 0x1000 };
+  enum { EvtSize = 0x1000000 };
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    switch(info.device()) {
+    case DetInfo::Opal1000:
+    case DetInfo::Opal2000:
+    case DetInfo::Opal4000:
+    case DetInfo::Opal1600:
+    case DetInfo::Opal8000:
+    case DetInfo::TM6740:
+    case DetInfo::Quartz4A150:
+    case DetInfo::Fccd:
+      return true;
+    default:
+      break;
+    }
+    return false;
+  }
+public:
+  SimFrameV1(const Src& src) 
   {
     _cfgpayload = new char[CfgSize];
-
-    _evtpayload = new char[EvtSize];
-    _evttc = new(_evtpayload) Xtc(TypeId(TypeId::Id_Frame,1),src);
 
     unsigned width,height,depth,offset;
 
@@ -116,9 +187,26 @@ public:
       exit(1);
     }
 
-    FrameV1* f = new(_evttc->next()) FrameV1(width, height, depth, offset);
-    memset(const_cast<unsigned char*>(f->data()),0,f->data_size());
-    _evttc->extent += f->data_size()+sizeof(FrameV1);
+    //
+    //  Create several random frames (constant offset + spread)
+    //
+    const int spread=8;
+    unsigned evtsz = (sizeof(Xtc) + sizeof(FrameV1) + width*height*((depth+7)/8));
+    unsigned evtst = (evtsz + 3)&~3;
+    _evtpayload = new char[NBuffers*evtst];
+    for(unsigned i=0; i<NBuffers; i++) {
+      _evttc[i] = new(_evtpayload+i*evtst) Xtc(TypeId(TypeId::Id_Frame,1),src);
+      FrameV1* f = new(_evttc[i]->next()) FrameV1(width, height, depth, offset);
+      if (depth<=8)
+	for(unsigned j=0; j<f->data_size()/sizeof(uint8_t); j++)
+	  const_cast<uint8_t*>(f->data())[j] = (offset + (rand()%spread) - spread/2)&0xff;
+      else if (depth<=16)
+	for(unsigned j=0; j<f->data_size()/sizeof(uint16_t); j++)
+	  const_cast<uint16_t*>(reinterpret_cast<const uint16_t*>(f->data()))[j] = (offset + (rand()%spread) - spread/2)&0xff;
+      else
+	;
+      _evttc[i]->extent += f->data_size()+sizeof(FrameV1);
+    }
 
     _fexpayload = new char[FexSize];
     _fextc = new(_fexpayload) Xtc(_frameFexConfigType,src);
@@ -131,72 +219,114 @@ public:
 					   0, NULL);
     _fextc->extent += sizeof(FrameFexConfigType);
   }
-  ~SimApp() 
+  ~SimFrameV1() 
   {
-    delete _cfgtc;
-    delete _fextc;
-    delete _evttc;
     delete[] _cfgpayload;
     delete[] _fexpayload;
     delete[] _evtpayload;
   }
-public:
-  Transition* transitions(Transition* tr) 
-  { 
-    switch(tr->id()) {
-    case TransitionId::Configure:
-      { FrameV1* f = reinterpret_cast<FrameV1*>(_evttc->payload());
-	memset(const_cast<unsigned char*>(f->data()),0,f->data_size()); }
-      break;
-    case TransitionId::L1Accept:
-      break;
-    default:
-      break;
-    }
-    return tr; 
-  }
-  InDatagram* events     (InDatagram* dg) 
-  {
-    switch(dg->seq.service()) {
-    case TransitionId::Configure:
-      dg->insert(*_cfgtc,_cfgtc->payload());
-      dg->insert(*_fextc,_fextc->payload());
-      break;
-    case TransitionId::L1Accept:
-    {
-      static int itime=0;
-      if ((++itime)==ntime) {
-	itime = 0;
-	timeval ts = { int(ftime), int(drem(ftime,1)*1000000) };
-	select( 0, NULL, NULL, NULL, &ts);
-      }
-
-      static int idrop=0;
-      if (++idrop==ndrop) {
-	idrop=0;
-	return 0;
-      }
-
-      FrameV1* f = reinterpret_cast<FrameV1*>(_evttc->payload());
-      reinterpret_cast<uint16_t*>(const_cast<unsigned char*>(f->data()))[0]++;
-
-      dg->insert(*_evttc,_evttc->payload());
-      break;
-    }
-    default:
-      break;
-    }
-    return dg; 
-  }
-  size_t max_size() const { return _evttc->sizeofPayload(); }
 private:
-  Xtc*  _cfgtc;
+  void _execute_configure()
+  {
+    _ibuffer = 0;
+  }
+  void _insert_configure(InDatagram* dg)
+  {
+    dg->insert(*_cfgtc,_cfgtc->payload());
+    dg->insert(*_fextc,_fextc->payload());
+  }
+  void _insert_event(InDatagram* dg)
+  {
+    dg->insert(*_evttc[_ibuffer],_evttc[_ibuffer]->payload());
+    if (++_ibuffer==NBuffers) _ibuffer=0;
+  }
+public:
+  size_t max_size() const { return _evttc[0]->sizeofPayload(); }
+private:
   char* _cfgpayload;
-  Xtc*  _fextc;
   char* _fexpayload;
-  Xtc*  _evttc;
   char* _evtpayload;
+  Xtc*  _cfgtc;
+  Xtc*  _fextc;
+
+  enum { NBuffers=16 };
+  Xtc*  _evttc[NBuffers];
+  unsigned _ibuffer;
 };
+
+
+class SimCspad : public SimApp {
+  enum { CfgSize = sizeof(CsPadConfigType)+sizeof(Xtc) };
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    switch(info.device()) {
+    case DetInfo::Cspad:
+      return true;
+    default:
+      break;
+    }
+    return false;
+  }
+public:
+  SimCspad(const Src& src) 
+  {
+    _cfgpayload = new char[CfgSize];
+    _cfgtc = new(_cfgpayload) Xtc(_CsPadConfigType,src);
+    new (_cfgtc->alloc(sizeof(CsPadConfigType)))
+      CsPadConfigType(0, 40, 0, 1, 0, 0, 8*sizeof(CsPad::Section),
+		      0, 0, 0xffffffff, 0xf, 0xffffffff);
+    
+    const size_t sz = sizeof(CsPadDataType)+8*sizeof(CsPad::Section)+sizeof(uint32_t);
+    unsigned evtsz = 4*sz + sizeof(Xtc);
+    unsigned evtst = (evtsz+3)&~3;
+    _evtpayload = new char[NBuffers*evtst];
+
+    for(unsigned b=0; b<NBuffers; b++) {
+      _evttc[b] = new(_evtpayload+b*evtst) Xtc(_CsPadDataType,src);
+      for(unsigned i=0; i<4; i++) {
+	CsPadDataType* q = new (_evttc[b]->alloc(sz)) CsPadDataType;
+	//  Set the quad number
+	reinterpret_cast<uint32_t*>(q)[1] = i<<24;
+	//  Set the payload
+	uint16_t* p = reinterpret_cast<uint16_t*>(q+1);
+	uint16_t* e = p;
+	for(unsigned j=0; j<8; j++) {
+	  e += sizeof(CsPad::Section)/sizeof(uint16_t);
+	  unsigned o = 0x150 + ((rand()>>8)&0x7f);
+	  while(p < e)
+	    *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
+	}
+      }
+    }
+  }
+  ~SimCspad() 
+  {
+    delete[] _cfgpayload;
+    delete[] _evtpayload;
+  }
+private:
+  void _execute_configure() { _ibuffer=0; }
+  void _insert_configure(InDatagram* dg)
+  {
+    dg->insert(*_cfgtc,_cfgtc->payload());
+  }
+  void _insert_event(InDatagram* dg)
+  {
+    dg->insert(*_evttc[_ibuffer],_evttc[_ibuffer]->payload());
+    if (++_ibuffer == NBuffers) _ibuffer=0;
+  }
+public:
+  size_t max_size() const { return _evttc[0]->sizeofPayload(); }
+private:
+  char* _cfgpayload;
+  char* _evtpayload;
+  Xtc*  _cfgtc;
+  enum { NBuffers=16 };
+  Xtc*  _evttc[NBuffers];
+  unsigned _ibuffer;
+};
+
 
 //
 //  Implements the callbacks for attaching/dissolving.
@@ -211,9 +341,13 @@ public:
           bool                  lCompress) :
     _task     (task),
     _platform (platform),
-    _app      (new SimApp(src)),
     _user_apps(user_apps)
   {
+    if (SimFrameV1::handles(src))
+      _app = new SimFrameV1(src);
+    else if (SimCspad::handles(src))
+      _app = new SimCspad(src);
+
     if (lCompress)
       _user_apps.push_front(new FrameCompApp(_app->max_size()));
 
@@ -275,6 +409,7 @@ void printUsage(char* s) {
       "                (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
       "    -v      Toggle verbose mode\n"
       "    -C      Compress frames\n"
+      "    -O      Use OpenMP\n"
       "    -D <N>  Drop every N events\n"
       "    -T <S>,<N>  Delay S seconds every N events\n",
       s
@@ -294,7 +429,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:vCD:T:L:S:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:vCOD:T:L:S:h")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
@@ -311,6 +446,9 @@ int main(int argc, char** argv) {
       break;
     case 'C':
       lCompress = true;
+      break;
+    case 'O':
+      FrameCompApp::useOMP(true);
       break;
     case 'D':
       ndrop = strtoul(optarg, NULL, 0);
