@@ -147,12 +147,16 @@ void usage(char* progname) {
 LiveMonitorServer* apps;
 
 void sigfunc(int sig_no) {
-  printf("handling signal %d\n",sig_no);
-  if (apps) {
-    apps->unlink();
-    apps = 0;
-    printf("done with signal %d\n",sig_no);
-    exit(EXIT_SUCCESS);
+  static bool _handled=false;
+  if (!_handled) {
+    _handled = true;
+    printf("handling signal %d\n",sig_no);
+    if (apps) {
+      apps->unlink();
+      apps = 0;
+      printf("done with signal %d\n",sig_no);
+      exit(EXIT_SUCCESS);
+    }
   }
 }
 

@@ -46,7 +46,7 @@ int main(int argc, char** argv)
     path.create();
   }
 
-  Experiment db(path);
+  Experiment db(path,edit?Experiment::Lock:Experiment::NoLock);
 
   Ui* ui = new Ui(db,edit);
   ui->show();

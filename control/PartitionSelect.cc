@@ -24,13 +24,15 @@
 using namespace Pds;
 
 PartitionSelect::PartitionSelect(QWidget*          parent,
-         PartitionControl& control,
-         const char*       pt_name,
-         const char*       db_path) :
+                                 PartitionControl& control,
+                                 const char*       pt_name,
+                                 const char*       db_path,
+                                 unsigned          options) :
   QGroupBox ("Partition",parent),
   _pcontrol (control),
   _pt_name  (pt_name),
-  _display  (0)
+  _display  (0),
+  _options  (options)
 {
   sprintf(_db_path,"%s/keys",db_path);
   strncpy(_db_path_org,db_path, sizeof(_db_path_org));
@@ -101,7 +103,7 @@ void PartitionSelect::select_dialog()
     }
 
     if (_validate(bld_mask)) {
-      _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes, bld_mask, bld_mask_mon);
+      _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes, bld_mask, bld_mask_mon,_options);
       _pcontrol.set_target_state(PartitionControl::Configured);
     }
 

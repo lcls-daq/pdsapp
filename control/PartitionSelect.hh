@@ -20,9 +20,10 @@ namespace Pds {
     Q_OBJECT
   public:
     PartitionSelect(QWidget*          parent,
-        PartitionControl& control,
-        const char*       pt_name,
-        const char*       db_name);
+                    PartitionControl& control,
+                    const char*       pt_name,
+                    const char*       db_name,
+                    unsigned          options);
     ~PartitionSelect();
   public:
     const QList<DetInfo >& detectors() const;
@@ -42,6 +43,7 @@ namespace Pds {
     char               _db_path[128];
     char               _db_path_org[128];
     QWidget*           _display;
+    unsigned           _options;
     enum { MAX_NODES=64 };
     unsigned _nnodes;
     Node _nodes[MAX_NODES];

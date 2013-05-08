@@ -48,6 +48,7 @@ namespace Pds_ConfigDb {
     bool validate_config_name(const string& name);
     void _current_component(string& utype, string& uname);
   private:
+    const Device* _device_c() const;
     Device* _device() const;
     Serializer& lookup(const UTypeName&, bool);
   private:

@@ -17,7 +17,12 @@ namespace Pds_ConfigDb {
 
   class Experiment {
   public:
-    Experiment(const Path&);
+    //
+    //  Objects created with the NoLock option may not change the database
+    //  contents (db/expt.xml, db/xtc.xml).
+    //
+    enum Option { Lock, NoLock };
+    Experiment(const Path&, Option=Lock);
     ~Experiment();
   public:
     void load(const char*&);
@@ -62,6 +67,7 @@ namespace Pds_ConfigDb {
     static void log_threshold(double);
   private:
     Path _path;
+    Option _lock;
     FILE* _f;
     Table  _table;
     list<Device> _devices;

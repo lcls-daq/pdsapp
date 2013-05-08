@@ -23,6 +23,7 @@ static void usage(char *argv0)
    "         -O                    : override errors\n"
    "         -T                    : collect transient data\n"
    "         -w <0/1>              : slow readout\n"
+   "         -o <options>          : partition options\n"
    "         -h                    : print usage information\n"
    "         -v\n",
    argv0);
@@ -43,9 +44,10 @@ int main(int argc, char** argv)
   unsigned key=0;
   int verbose = 0;
   bool override = false;
+  unsigned partition_options = 0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:OTS:w:hv")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:OTS:w:o:hv")) != -1) {
     char* endPtr;
     switch (c) {
     case 'p':
@@ -85,6 +87,9 @@ int main(int argc, char** argv)
     case 'w':
       slowReadout = strtoul(optarg, &endPtr, 0);
       break;
+    case 'o':
+      partition_options = strtoul(optarg, &endPtr, 0);
+      break;
     case 'h':
       usage(argv[0]);
       return 0;
@@ -115,6 +120,7 @@ int main(int argc, char** argv)
                                       experiment,
                                       sequencer_id,
                                       slowReadout,
+                                      partition_options,
                                       (verbose > 0));
   window->override_errors(override);
   window->show();

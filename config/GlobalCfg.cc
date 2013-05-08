@@ -58,7 +58,7 @@ bool GlobalCfg::contains(const UTypeName& utype)
   return (_types & (1<<t));
 }
 
-void GlobalCfg::cache(const Path& path, Device* device)
+void GlobalCfg::cache(const Path& path, const Device* device)
 {
   _clearAll();
   

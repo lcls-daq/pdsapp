@@ -11,7 +11,7 @@ namespace Pds_ConfigDb {
   class GlobalCfg {
   public:
     static const char* name();
-    static void  cache(const Path&,Device*);
+    static void  cache(const Path&,const Device*);
     static void* fetch(Pds::TypeId);    // if data for that type is cached
     static bool  contains(const UTypeName&); // if the type is global
   };

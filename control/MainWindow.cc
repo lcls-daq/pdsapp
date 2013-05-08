@@ -218,14 +218,15 @@ using namespace Pds;
 using Pds_ConfigDb::Experiment;
 
 MainWindow::MainWindow(unsigned          platform,
-           const char*       partition,
-           const char*       db_path,
-           const char*       offlinerc,
-           const char*       runNumberFile,
-           const char*       experiment_name,
-           unsigned          sequencer_id,
-           int               slowReadout,
-           bool              verbose) :
+                       const char*       partition,
+                       const char*       db_path,
+                       const char*       offlinerc,
+                       const char*       runNumberFile,
+                       const char*       experiment_name,
+                       unsigned          sequencer_id,
+                       int               slowReadout,
+                       unsigned          partition_options,
+                       bool              verbose) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
   _control  (new QualifiedControl(platform, *_controlcb, slowReadout, new ControlTimeout(*this))),
@@ -295,7 +296,7 @@ MainWindow::MainWindow(unsigned          platform,
 
   QVBoxLayout* layout = new QVBoxLayout(this);
   layout->addWidget(config    = new ConfigSelect   (this, *_control, db_path));
-  layout->addWidget(_partition= new PartitionSelect(this, *_control, partition, db_path));
+  layout->addWidget(_partition= new PartitionSelect(this, *_control, partition, db_path, partition_options));
   layout->addWidget(state     = new StateSelect    (this, *_control));
   layout->addWidget(pvs       = new PVDisplay      (this, *_control));
   layout->addWidget(run       = new RunStatus      (this, *_partition));
@@ -472,6 +473,12 @@ void MainWindow::require_shutdown()
 
 void MainWindow::handle_override(const QString& msg)
 {
+  QString t = QString("%1: %2")
+    .arg(QTime::currentTime().toString("hh:mm:ss"))
+    .arg(msg);
+  printf("%s\n",qPrintable(t));
+  _log->appendText(t);
+
   if (QMessageBox::critical(this, "DAQ Control Error", msg, QMessageBox::Abort | QMessageBox::Ignore) == QMessageBox::Abort)
     require_shutdown();
 }

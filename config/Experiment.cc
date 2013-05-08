@@ -35,6 +35,12 @@ static int _symlink(const char* dst, const char* src) {
   return r;
 }
 
+static void _handle_no_lock()
+{
+  static const std::string _no_lock_exception("Database change forbidden without lock");
+  throw _no_lock_exception;
+}
+
 namespace Pds_ConfigDb {
   class TimeProfile {
   public:
@@ -76,15 +82,16 @@ using namespace Pds_ConfigDb;
 
 const mode_t _fmode = S_IROTH | S_IXOTH | S_IRGRP | S_IXGRP | S_IRWXU;
 
-Experiment::Experiment(const Path& path) :
-  _path(path)
+Experiment::Experiment(const Path& path, Option lock) :
+  _path(path),
+  _lock(lock)
 {
   string fname = _path.expt() + ".xml";
-  _f = fopen(fname.c_str(),"r+");
+  _f = fopen(fname.c_str(),_lock==Lock ? "r+":"r");
   if (!_f) {
     perror("fopen expt.xml");
   }
-  else {  // lock it
+  else if (_lock==Lock) {  // lock it
     struct flock flk;
     flk.l_type   = F_WRLCK;
     flk.l_whence = SEEK_SET;
@@ -92,18 +99,15 @@ Experiment::Experiment(const Path& path) :
     flk.l_len    = 0;
     if (fcntl(fileno(_f), F_SETLK, &flk)<0) {
       perror("Experiment fcntl F_SETLK");
-      throw std::string("Failed to lock configuration database");
+      _handle_no_lock();
     }
-    printf("Experiment successfully locked\n");
   }
 }
 
 Experiment::~Experiment()
 {
-  if (_f) {
+  if (_f)
     fclose(_f);
-    printf("Experiment unlocked\n");
-  }
 }
 
 void Experiment::load(const char*& p)
@@ -169,8 +173,8 @@ void Experiment::write() const
   time_t time_db = _time_db;
 
   FILE* f = _f;
-  if (!f)
-    printf("Not writing!\n");
+  if (!f || _lock==NoLock)
+    _handle_no_lock();
   else {
     fseek(f,0,SEEK_SET);
     const int MAX_SIZE = 0x100000;
@@ -226,6 +230,9 @@ void Experiment::read_file()
 
 void Experiment::write_file() const
 {
+  if (_lock==NoLock) 
+    _handle_no_lock();
+
   _table.write(_path.expt());
   string fp = _path.devices();
   ofstream f(fp.c_str());
@@ -279,6 +286,9 @@ Experiment* Experiment::branch(const string& p) const
 
 Device* Experiment::device(const string& name)
 {
+  if (_lock==NoLock)
+    _handle_no_lock();
+
   for(list<Device>::iterator iter=_devices.begin(); iter!=_devices.end(); iter++)
     if (iter->name() == name)
       return &(*iter);
@@ -294,8 +304,11 @@ const Device* Experiment::device(const string& name) const
 }
 
 void Experiment::add_device(const string& name,
-          const list<DeviceEntry>& slist)
+                            const list<DeviceEntry>& slist)
 {
+  if (_lock==NoLock) 
+    _handle_no_lock();
+
   cout << "Adding device " << name << endl;
   for(list<DeviceEntry>::const_iterator iter = slist.begin(); iter!=slist.end(); iter++)
     cout << ' ' << iter->id();
@@ -311,6 +324,9 @@ void Experiment::add_device(const string& name,
 
 void Experiment::remove_device(const Device& device)
 {
+  if (_lock==NoLock) 
+    _handle_no_lock();
+
   for(list<TableEntry>::iterator alias=_table.entries().begin();
       alias!=_table.entries().end(); alias++)
     for(list<FileEntry>::const_iterator iter=alias->entries().begin();
@@ -330,6 +346,9 @@ void Experiment::import_data(const string& device,
                              const string& file,
                              const string& desc)
 {
+  if (_lock==NoLock) 
+    _handle_no_lock();
+
   if (PdsDefs::typeId(type)==0) {
     cerr << type << " not registered as valid configuration data type" << endl;
     return;
@@ -364,6 +383,9 @@ void Experiment::import_data(const string& device,
 
 bool Experiment::update_key_file(const TableEntry& entry)
 {
+  if (_lock==NoLock) 
+    _handle_no_lock();
+
 #ifdef DBUG
   TimeProfile profile;
 #endif
@@ -528,6 +550,9 @@ unsigned Experiment::next_key() const { return _table._next_key; }
 
 void Experiment::update_keys()
 {
+  if (_lock==NoLock) 
+    _handle_no_lock();
+
 #ifdef DBUG
   printf("expt:update_keys %u\n",unsigned(_time_key));
 #endif
@@ -617,9 +642,12 @@ int Experiment::current_key(const string& alias) const
 //
 unsigned Experiment::clone(const string& alias)
 {
+  if (_lock==NoLock)
+    _handle_no_lock();
+
   TableEntry* iter = const_cast<TableEntry*>(_table.get_top_entry(alias));
   if (!iter)
-    return 0;
+    throw std::string("alias not found");
 
   unsigned key = _table._next_key++;
   write();  // save current state
@@ -663,6 +691,9 @@ void Experiment::substitute(unsigned           key,
                             const char*        payload,
                             size_t             sz) const
 {
+  if (_lock==NoLock) 
+    _handle_no_lock();
+
   const Device* dev = device(devname);
   if (!dev) return;
 
@@ -677,6 +708,9 @@ void Experiment::substitute(unsigned           key,
                             const char*        payload,
                             size_t             sz) const
 {
+  if (_lock==NoLock);
+    _handle_no_lock();
+
   string kpath = _path.key_path(key);
 
   DeviceEntry entry(src);

@@ -30,6 +30,7 @@ namespace Pds {
                const char*       experiment,
                unsigned          sequencer_id,
                int               slowReadout,
+               unsigned          partition_options,
                bool              verbose);
     ~MainWindow();
 

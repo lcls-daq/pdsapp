@@ -30,7 +30,7 @@
 // BldStreams
 #include "pds/utility/EbS.hh"
 #include "pds/utility/EbSequenceKey.hh"
-#include "pds/utility/ToEventWire.hh"
+#include "pds/utility/ToEventWireScheduler.hh"
 #include "pds/management/PartitionMember.hh"
 #include "pds/management/VmonServerAppliance.hh"
 #include "pds/service/VmonSourceId.hh"
@@ -731,7 +731,7 @@ namespace Pds {
       const Src& src = m.header().procInfo();
       for (int s = 0; s < StreamParams::NumberOfStreams; s++) {
 
-  _outlets[s] = new ToEventWire(*stream(s)->outlet(),
+  _outlets[s] = new ToEventWireScheduler(*stream(s)->outlet(),
               m,
               ipaddress,
               max_size*net_buf_depth,
@@ -863,6 +863,20 @@ namespace Pds {
       owire->bind(OutletWire::Bcast, StreamPorts::bcast(partition,
                                                         Level::Event,
                                                         index));
+
+      //
+      //  Assign traffic shaping phase
+      //
+      const int pid = getpid();
+      for(unsigned n=0; n<nnodes; n++) {
+        const Node& node = *alloc.node(n);
+        if (node.level()==Level::Segment)
+          if (node.pid()==pid) {
+            ToEventWireScheduler::setPhase  (n % vectorid);
+            ToEventWireScheduler::setMaximum(vectorid);
+            ToEventWireScheduler::shapeTmo  (alloc.options()&Allocation::ShapeTmo);
+          }
+      }
     }
     void dissolved() {
       _evrServer = 0;

@@ -121,6 +121,13 @@ Devices_Ui::Devices_Ui(QWidget* parent,
   update_device_list();
 }
 
+const Device* Devices_Ui::_device_c() const
+{
+  const Experiment& expt(_expt);
+  QListWidgetItem* item = _devlist->currentItem();
+  return item ? expt.device(string(qPrintable(item->text()))) : 0;
+}
+
 Device* Devices_Ui::_device() const
 {
   QListWidgetItem* item = _devlist->currentItem();
@@ -204,7 +211,7 @@ void Devices_Ui::update_config_list()
 {
   bool ok = disconnect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
   _cfglist->clear();
-  Device* device(_device());
+  const Device* device(_device_c());
   if (device) {
     const list<TableEntry>& entries = device->table().entries();
     for(list<TableEntry>::const_iterator iter=entries.begin();
@@ -230,7 +237,7 @@ void Devices_Ui::update_component_list()
   for(unsigned i=0; i<PdsDefs::NumberOf; i++)
     unassigned.push_back(PdsDefs::utypeName(PdsDefs::ConfigType(i)));    
 
-  Device* device(_device());
+  const Device* device(_device_c());
   if (device) {
     const TableEntry* entry(0);
     QListWidgetItem* item = _cfglist->currentItem();
@@ -247,7 +254,7 @@ void Devices_Ui::update_component_list()
     }
     //  List global entries here
     if ((entry = device->table().get_top_entry(string(GlobalCfg::name())))) {
-      GlobalCfg::cache(_expt.path(),_device());
+      GlobalCfg::cache(_expt.path(),_device_c());
       for(list<FileEntry>::const_iterator iter=entry->entries().begin();
 	  iter!=entry->entries().end(); iter++) {
 	string label = iter->name() + " [" + iter->entry() + "](G)";
