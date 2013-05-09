@@ -104,6 +104,7 @@ XtcFileServer::XtcFileServer(const char* curdir) :
   _connect(this, SIGNAL(_updateRunCombo()), this, SLOT(updateRunCombo()));
 
   setDir(QString(_curdir));
+  _runCombo->setCurrentIndex(-1);
   //  configure_run();
 }
 
