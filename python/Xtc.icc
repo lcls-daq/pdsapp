@@ -83,8 +83,6 @@ int       pdsxtc_read  (PyObject*     self,
 			const Pds::TypeId& contains, 
 			const char* fname)
 {
-  printf("Opening %s\n",fname);
-
   pdsxtc* xtc = (pdsxtc*)self;
   xtc->src      = info;
   xtc->contains = contains;
@@ -105,8 +103,6 @@ int       pdsxtc_read  (PyObject*     self,
 
   xtc->extent  = file_stat.st_size;
   xtc->payload = buff;
-
-  printf("Filled %d bytes from %s\n",xtc->extent,fname);
 
   return 0;
 }
