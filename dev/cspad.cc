@@ -13,6 +13,8 @@
 #include "pds/config/CfgClientNfs.hh"
 #include "pdsdata/cspad/ElementV1.hh"
 
+#include "pds/client/FrameCompApp.hh"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -158,8 +160,10 @@ void Pds::Seg::attached( SetOfStreams& streams )
           _platform);
       
    Stream* frmk = streams.stream(StreamParams::FrameWork);
-   CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard, _compress );
-   if (_compress) cspadMgr.appProcessor().connect( frmk->inlet() );
+   //   CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard, _compress );
+   //   if (_compress) cspadMgr.appProcessor().connect( frmk->inlet() );
+   CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard, false );
+   if (_compress) (new FrameCompApp(0x500000))->connect( frmk->inlet() );
    cspadMgr.appliance().connect( frmk->inlet() );
 }
 
