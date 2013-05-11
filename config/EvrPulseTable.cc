@@ -136,7 +136,7 @@ EvrPulseTable::~EvrPulseTable()
 {
 }
 
-void EvrPulseTable::pull(const EvrConfigType& tc) {  
+bool EvrPulseTable::pull(const EvrConfigType& tc) {  
   unsigned npulses     = 0;
   for(unsigned j=0; j<tc.npulses(); j++) {
     Pulse& p = *_pulses[npulses];
@@ -203,12 +203,15 @@ void EvrPulseTable::pull(const EvrConfigType& tc) {
 //            p._delay.scale, p._width.scale);
     npulses++;
   }
+
+  bool result = npulses>0;
+
   while(npulses < MaxPulses) {
     _pulses[npulses]->_enable->setChecked(false);
     update_enable(npulses++);
   }  
   
-  printf("EvrPulseTable pull %d pulses %d eventcodes\n", npulses, tc.neventcodes());
+  return result;
 }
 
 unsigned EvrPulseTable::npulses() const {
@@ -511,22 +514,23 @@ void EvrPulseTables::setReadGroupEnable(bool bEnableReadGroup)
 
 void EvrPulseTables::pull    (const EvrConfigType& tc)
 { 
+  unsigned nevr = 1;
   for(unsigned i=0; i<MaxEVRs; i++) 
-    _evr[i]->pull(tc); 
+    if (_evr[i]->pull(tc)) nevr = i+1;
 
   //
   //  Read EvrIOConfig
   //
-  unsigned nevr = 1;
   { const char* p = reinterpret_cast<const char*>(GlobalCfg::fetch(_evrIOConfigType));
     if (p) {
-      nevr = 0;
+      unsigned nnevr = 0;
       do {
         const EvrIOConfigType& iocfg = *reinterpret_cast<const EvrIOConfigType*>(p);
         if (iocfg.nchannels()==0) break;
         p += iocfg.size();
-        nevr++;
+        nnevr++;
       } while(1);
+      if (nnevr > nevr) nevr=nnevr;
     }
   }
   

@@ -23,7 +23,7 @@ namespace Pds_ConfigDb
     EvrPulseTable(unsigned id);
     ~EvrPulseTable();
   public:
-    void     pull  (const EvrConfigType& cfg);
+    bool     pull  (const EvrConfigType& cfg);
     //  validate() updates pulses, outputs accessors
     bool validate(unsigned ncodes, 
                   const EvrConfigType::EventCodeType* codes,

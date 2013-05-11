@@ -135,6 +135,8 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
 
 bool EvrEventCodeTable::validate() {
 
+  bool result=true;
+
   EvrConfigType::EventCodeType* codep = 
     reinterpret_cast<EvrConfigType::EventCodeType*>(_code_buffer);
 
@@ -172,7 +174,7 @@ bool EvrEventCodeTable::validate() {
         QString msg = QString("LATCH event code %1 has no matching latch release code.\n").arg(latch[i]);
         msg += QString("Release code (%1) must be of LATCH type with complementing release code").arg(release[i]);
         QMessageBox::warning(0,"Input Error",msg);
-        return false;
+        result=false;
       }
     }
 
@@ -187,17 +189,25 @@ bool EvrEventCodeTable::validate() {
   _ncodes = codep - reinterpret_cast<EvrConfigType::EventCodeType*>(_code_buffer);
 
   { const EvrConfigType::EventCodeType* pcode = reinterpret_cast<const EvrConfigType::EventCodeType*>(_code_buffer);
+    std::list<unsigned> dcodes;
     for(int i=0; i<int(_ncodes)-1; i++)
-      for(int j=i+1; j<int(_ncodes); j++) {
-        if (pcode[j].code() == pcode[i].code()) {
-          QString msg = QString("Event code %1 is specified multiple times").arg(pcode[i].code());
-          QMessageBox::warning(0,"Input Error",msg);
-          return false;
-        }
-      }
+      for(int j=i+1; j<int(_ncodes); j++)
+        if (pcode[j].code() == pcode[i].code())
+          dcodes.push_back(pcode[i].code());
+    if (dcodes.size()) {
+      dcodes.sort();
+      dcodes.unique();
+      std::list<unsigned>::iterator it=dcodes.begin();
+      QString msg = QString("Event codes specified multiple times {%1").arg(*it);
+      while(++it != dcodes.end())
+        msg += QString(",%1").arg(*it);
+      msg += QString("}");
+      QMessageBox::warning(0,"Input Error",msg);
+      result=false;
+    }
   }
     
-  return true;
+  return result;
 }
 
 QLayout* EvrEventCodeTable::initialize(QWidget*) 
