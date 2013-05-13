@@ -26,10 +26,12 @@ namespace Pds {
      const char*       db_path);
     ~ConfigSelect();
   public:
+    void attach();
     string getType();
     void enable_control(bool);
     bool controlpvs() const;
   public slots:
+    void attached();
     void set_run_type(const QString&); // a run type has been selected
     void update      ();  // the latest key for the selected run type has changed
     void configured     (bool);
@@ -37,10 +39,12 @@ namespace Pds {
     void enable_control_(bool);    
     void edit_config    ();
   private:  
+    void _open_db      ();
     void _read_db      ();
     void _readSettings ();
     void _writeSettings();
   signals:
+    void _attached     ();
     void control_enabled(bool);
     void assert_message(const QString&,bool);
   private:

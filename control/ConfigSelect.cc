@@ -18,10 +18,17 @@ using Pds_ConfigDb::Experiment;
 using Pds_ConfigDb::Table;
 using Pds_ConfigDb::TableEntry;
 
+static void* _attach(void* arg)
+{
+  ConfigSelect* c = (ConfigSelect*)arg;
+  c->attach();
+  return arg;
+}
+
 ConfigSelect::ConfigSelect(QWidget*          parent,
 			   PartitionControl& control,
 			   const char*       db_path) :
-  QGroupBox("Configuration",parent),
+  QGroupBox("Configuration (LOCKED)",parent),
   _pcontrol(control),
   _db_path (db_path),
   _expt    (0),
@@ -29,26 +36,13 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   _scan    (0),
   _control_busy(false)
 {
+  setPalette(QPalette(::Qt::yellow));
+
   pthread_mutex_init(&_control_mutex, NULL);
   pthread_cond_init (&_control_cond, NULL);
 
   _bEdit = new QPushButton("Edit");
   _bScan = new QPushButton("Scan");
-
-  try {
-    _expt = new Pds_ConfigDb::Experiment(Pds_ConfigDb::Path(db_path));
-    _expt->read();
-
-    _reconfig = new Pds_ConfigDb::Reconfig_Ui(this, *_expt);
-    connect(_reconfig,SIGNAL(changed()), this, SLOT(update()));
-
-    _scan = new Pds_ConfigDb::ControlScan(this, *_expt);
-    connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
-    connect(_scan    ,SIGNAL(deactivate()),              _bScan, SLOT(click()));
-  }
-  catch (std::string& serr) {
-    setTitle("Configuration (Locked)");
-  }
 
   QVBoxLayout* layout = new QVBoxLayout;
   { QHBoxLayout* layout1 = new QHBoxLayout;
@@ -73,13 +67,12 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   connect(_bScan  , SIGNAL(clicked(bool)),	       this, SLOT(enable_scan(bool)));
   connect(this    , SIGNAL(control_enabled(bool)),     this, SLOT(enable_control_(bool)));
   connect(_runType, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(set_run_type(const QString&)));
+  connect(this    , SIGNAL(_attached()),               this, SLOT(attached()));
 
-  _read_db();
-  set_run_type(_runType->currentText());
+  setEnabled  (false);
 
-  _bScan->setCheckable(true);
-
-  _readSettings();
+  pthread_t threadId;
+  pthread_create(&threadId,NULL,_attach,this);
 }
 
 ConfigSelect::~ConfigSelect() 
@@ -101,27 +94,9 @@ void ConfigSelect::edit_config()
 
 void ConfigSelect::enable_control(bool v)
 {
-  if (v) {
-    QString msg("Configuration locked");
-    bool asserted=false;
-    while(1) {
-      try {
-        _expt = new Pds_ConfigDb::Experiment(Pds_ConfigDb::Path(_db_path));
-      }
-      catch(std::string& serr) {
-        if (!asserted) {
-          asserted = true;
-          emit assert_message(msg,true);
-        }
-        delete _expt;
-        sleep(1);
-        continue;
-      }
-      break;
-    }
-    _expt->read();
-  }
-
+  if (v)
+    _open_db();
+    
   pthread_mutex_lock(&_control_mutex);
   _control_busy = true;
 
@@ -141,6 +116,8 @@ void ConfigSelect::enable_control(bool v)
 void ConfigSelect::enable_control_(bool v)
 {
   if (!v) {
+    setEnabled(false);
+
     _bScan->setEnabled(false);
 
     if (_reconfig) {
@@ -160,6 +137,8 @@ void ConfigSelect::enable_control_(bool v)
     _scan = new Pds_ConfigDb::ControlScan(this, *_expt);
     connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
     connect(_scan    ,SIGNAL(deactivate()),              _bScan, SLOT(click()));
+
+    setEnabled(true);
 
     _bScan->setEnabled(true);
     _scan->setVisible(_bScan->isChecked());
@@ -214,6 +193,34 @@ void ConfigSelect::update()
   printf("Reconfigure with run key 0x%x\n",_run_key);
   _pcontrol.set_transition_env(TransitionId::Configure, _run_key);
   _pcontrol.reconfigure();
+}
+
+void ConfigSelect::_open_db()
+{
+  bool asserted=false;
+  while(1) {
+    try {
+      _expt = new Pds_ConfigDb::Experiment(Pds_ConfigDb::Path(_db_path));
+    }
+    catch(std::string& serr) {
+      if (!asserted) {
+        asserted = true;
+        setTitle("Configuration (LOCKED)");
+        setPalette(QPalette(::Qt::yellow));
+      }
+      delete _expt;
+      sleep(1);
+      continue;
+    }
+    
+    if (asserted) {
+      setTitle("Configuration");
+      setPalette(QPalette());
+    }
+    break;
+  }  
+
+  _expt->read();
 }
 
 void ConfigSelect::_read_db()
@@ -282,7 +289,7 @@ void ConfigSelect::_readSettings()
   if (buff == (char *)NULL) {
     printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, SETTINGS_SIZE, errno);
   } else {
-    snprintf(buff, SETTINGS_SIZE-1, ".%s for platform %u", qPrintable(title()), _pcontrol.header().platform());
+    snprintf(buff, SETTINGS_SIZE-1, ".%s for platform %u", "Configuration", _pcontrol.header().platform());
     FILE* f = fopen(buff,"r");
     if (f) {
       printf("Opened %s\n",buff);
@@ -308,3 +315,30 @@ void ConfigSelect::_readSettings()
   }
 }
 
+void ConfigSelect::attach()
+{
+  _open_db();
+
+  emit _attached();
+}
+
+void ConfigSelect::attached()
+{
+  _reconfig = new Pds_ConfigDb::Reconfig_Ui(this, *_expt);
+  connect(_reconfig,SIGNAL(changed()), this, SLOT(update()));
+    
+  _scan = new Pds_ConfigDb::ControlScan(this, *_expt);
+  connect(_scan    ,SIGNAL(reconfigure()),             this, SLOT(update()));
+  connect(_scan    ,SIGNAL(deactivate()),              _bScan, SLOT(click()));
+    
+  _read_db();
+  set_run_type(_runType->currentText());
+    
+  _bScan->setCheckable(true);
+    
+  _readSettings();
+    
+  setTitle("Configuration");
+  setPalette(QPalette());
+  setEnabled(true);
+}
