@@ -1,6 +1,6 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evgr pnccd xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget
+tgtnames    := evgr pnccd xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget xtccamfix
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
@@ -57,4 +57,8 @@ DEFINES += -fopenmp
 tgtsrcs_pgpwidget := pgpWidget.cc
 tgtlibs_pgpwidget := pds/pgp
 tgtslib_pgpwidget := $(USRLIB)/rt
+
+tgtsrcs_xtccamfix := xtccamfix.cc
+tgtlibs_xtccamfix := pdsdata/xtcdata
+tgtslib_xtccamfix := ${USRLIBDIR}/rt
 
