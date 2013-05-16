@@ -7,7 +7,7 @@ namespace Pds_ConfigDb {
   class EvrConfigP : public Serializer {
   public:
     EvrConfigP();
-    ~EvrConfigP() {}
+    ~EvrConfigP();
   public:
     int  readParameters (void* from);
     int  writeParameters(void* to);

@@ -134,6 +134,7 @@ EvrPulseTable::EvrPulseTable(unsigned id) :
 
 EvrPulseTable::~EvrPulseTable()
 {
+  delete _qlink;
 }
 
 bool EvrPulseTable::pull(const EvrConfigType& tc) {  

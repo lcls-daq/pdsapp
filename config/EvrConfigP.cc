@@ -268,6 +268,11 @@ EvrConfigP::EvrConfigP():
   pList.insert(_private_data);
 }
 
+EvrConfigP::~EvrConfigP()
+{
+  delete _private_data;
+}
+
 int EvrConfigP::readParameters(void *from)
 {
   return _private_data->pull(from);
