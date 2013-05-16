@@ -142,15 +142,6 @@ int main(int argc, char* argv[]) {
     perror("Unable to open output file\n");
     exit(2);
   }
-  else {
-    int rc;
-    do { rc = fcntl(fileno(_f), F_SETLKW, &flk); }
-    while(rc<0 && errno==EINTR);
-    if (rc<0) {
-      perror(_fnamerunning);
-      return rv;
-    }
-  }
   
   const unsigned MAX_DG_SIZE = 0x2000000;
   XtcFileIterator iter(ifd,MAX_DG_SIZE);
