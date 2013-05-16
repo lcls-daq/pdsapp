@@ -1,5 +1,6 @@
 #include "pdsapp/tools/PnccdShuffle.hh"
 #include "pdsapp/tools/CspadShuffle.hh"
+#include "pdsapp/monobs/MonShmComm.hh"
 
 #include "pds/service/Task.hh"
 #include "pds/collection/Arp.hh"
@@ -8,6 +9,12 @@
 #include "pds/utility/SetOfStreams.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/service/GenericPool.hh"
+
+#include "pds/utility/InletWireServer.hh"
+#include "pds/utility/WiredStreams.hh"
+#include "pds/utility/NetDgServer.hh"
+#include "pds/service/Ins.hh"
+#include "pds/service/Sockaddr.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
@@ -25,6 +32,82 @@
 #include <sys/prctl.h>
 
 using namespace Pds;
+
+class DynamicObserver : public ObserverLevel {
+public:
+  DynamicObserver(unsigned       platform,
+		  const char*    partition,
+		  unsigned       node_mask,
+		  EventCallback& display,
+		  int            slowReadout,
+		  unsigned       sizeOfBuffers) :
+    ObserverLevel(platform, partition, node_mask, display, slowReadout, sizeOfBuffers),
+    _mask        (node_mask),
+    _nodes       (0),
+    _changed     (true)
+  {}
+public:
+  void allocated(const Allocation& alloc) 
+  {
+    ObserverLevel::allocated(alloc);
+    _alloc=alloc; 
+    apply();
+    _changed = true;
+  }
+  void dissolved() 
+  {
+    ObserverLevel::dissolved();
+    //  clear the partition (in case we apply() while unmapped)
+    _alloc=Allocation(_alloc.partition(),
+		      _alloc.dbpath(),
+		      _alloc.partitionid());
+    _nodes=0;
+    _changed = true;
+  }
+  void set_mask(unsigned mask)
+  {
+    _mask = mask;
+    apply();  // this may be risky
+  }
+  void apply()
+  {
+    InletWireServer* inlet = static_cast<InletWireServer*>(streams()->wire(StreamParams::FrameWork));
+    unsigned partition  = _alloc.partitionid();
+    unsigned nnodes     = _alloc.nnodes();
+    unsigned segmentid  = 0;
+    _nodes = 0;
+    for (unsigned n=0; n<nnodes; n++) {
+      const Node& node = *_alloc.node(n);
+      if (node.level() == Level::Segment) {
+	NetDgServer* srv = static_cast<NetDgServer*>(inlet->server(segmentid));
+	srv->server().resign();
+	for(unsigned mask=_mask,index=0; mask!=0; mask>>=1,index++) {
+	  if (mask&1) {
+	    Ins mcastIns(StreamPorts::event(partition,
+					    Level::Event,
+					    index,
+					    segmentid).address());
+	    srv->server().join(mcastIns, Ins(header().ip()));
+	  }
+	}
+	Ins bcastIns = StreamPorts::bcast(partition, Level::Event);
+	srv->server().join(bcastIns, Ins(header().ip()));
+	segmentid++;
+      } // if (node.level() == Level::Segment) {
+      else if (node.level() == Level::Event)
+	_nodes++;
+    } // for (unsigned n=0; n<nnodes; n++) {
+  }
+public:
+  bool     changed() { bool v(_changed); _changed=false; return v; }
+  unsigned nodes() const { return _nodes; }
+  unsigned mask() const { return _mask; }
+private:
+  Allocation _alloc;
+  unsigned   _mask;
+  unsigned   _nodes;
+  bool       _changed;
+};
 
 class LiveMonitorServer : public Appliance,
                           public XtcMonitorServer {
@@ -118,6 +201,29 @@ private:
   EbBase* _eb;
 };
 
+class Stats : public Appliance {
+public:
+  Stats() : _events(0), _dmg(0), _changed(true) {}
+public:
+  Transition* transitions(Transition* tr) { return tr; }
+  InDatagram* events(InDatagram* dg) {
+    if (dg->datagram().seq.service()==TransitionId::L1Accept) {
+      _events++;
+      if (dg->datagram().xtc.damage.value()&(1<<Damage::ContainsIncomplete))
+	_dmg++;
+      _changed=true;
+    }
+    return dg;
+  }
+  bool     changed() { bool v(_changed); _changed=false; return v; }
+  unsigned events() const { return _events; }
+  unsigned dmg   () const { return _dmg; }
+private:
+  unsigned _events;
+  unsigned _dmg;
+  bool     _changed;
+};
+
 class MyCallback : public EventCallback {
 public:
   MyCallback(Task* task, Appliance* app) :
@@ -138,6 +244,111 @@ public:
 private:
   Task*       _task;
   Appliance*  _appliances;
+};
+
+class Comm : public Routine {
+public:
+  Comm(DynamicObserver& o,
+       Stats&           s) : 
+    _o(o), _s(s), _task(new Task(TaskObject("comm")))
+  {
+    _task->call(this);
+  }
+  ~Comm()
+  {
+    _task->destroy();
+  }
+public:
+  void routine() {
+    unsigned short insp = MonShmComm::ServerPort;
+    Ins ins(insp);
+    int _socket;
+    if ((_socket = ::socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+      perror("Comm failed to open socket");
+      exit(1);
+    }
+
+    int parm = 16*1024*1024;
+    if(setsockopt(_socket, SOL_SOCKET, SO_SNDBUF, (char*)&parm, sizeof(parm)) == -1) {
+      perror("Comm failed to set sndbuf");
+      exit(1);
+    }
+
+    if(setsockopt(_socket, SOL_SOCKET, SO_RCVBUF, (char*)&parm, sizeof(parm)) == -1) {
+      perror("Comm failed to set rcvbuf");
+      exit(1);
+    }
+
+    int optval=1;
+    if (setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
+      perror("Comm failed to set reuseaddr");
+      exit(1);
+    }
+
+    Sockaddr sa(ins);
+    if (::bind(_socket, sa.name(), sa.sizeofName()) < 0) {
+      perror("Comm failed to bind to port");
+      exit(1);
+    }
+
+    while(1) {
+      if (::listen(_socket,10)<0)
+	perror("Comm listen failed");
+      else {
+	Sockaddr name;
+	unsigned length = name.sizeofName();
+	int s = ::accept(_socket,name.name(), &length);
+	if (s<0) {
+	  perror("Comm accept failed");
+	}
+	else {
+
+	  printf("Comm accept connection from %x.%d\n",
+		 name.get().address(),name.get().portId());
+
+	  int    nfds=1;
+	  pollfd pfd[1];
+	  pfd[0].fd = s;
+	  pfd[0].events = POLLIN | POLLERR;
+	  int timeout = 1000;
+
+	  MonShmComm::Get get;
+	  gethostname(get.hostname,sizeof(get.hostname));
+
+	  bool changed = true;
+	  while(1) {
+	    changed |= _o.changed();
+	    changed |= _s.changed();
+	    changed = true;
+	    if (changed) {
+	      get.groups = 6;
+	      get.mask   = _o.mask  ();
+	      get.events = _s.events();
+	      get.dmg    = _s.dmg   ();
+	      ::write(s,&get,sizeof(get));
+	      changed = false;
+	    }
+
+	    pfd[0].revents = 0;
+	    if (::poll(pfd,nfds,timeout)>0) {
+	      if (pfd[0].revents & (POLLIN|POLLERR)) {
+		MonShmComm::Set set;
+		if (::read(s, &set, sizeof(set))<=0)
+		  break;
+		_o.set_mask(set.mask);
+	      }
+	    }
+	  }
+	  printf("Comm closed connection\n");
+	  ::close(s);
+	}
+      }
+    }
+  }
+private:
+  DynamicObserver& _o;
+  Stats&           _s;
+  Task*            _task;
 };
 
 void usage(char* progname) {
@@ -188,7 +399,6 @@ int main(int argc, char** argv) {
   }
 
   REGISTER(SIGINT);
-  REGISTER(SIGKILL);
   REGISTER(SIGSEGV);
   REGISTER(SIGABRT);
   REGISTER(SIGTERM);
@@ -287,36 +497,41 @@ int main(int argc, char** argv) {
   strcat(partitionTag, partition);
   printf("\nPartition Tag:%s\n", partitionTag);
 
-  apps = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nevqueues);
-  apps->distribute(ldist);
+  Stats* stats = new Stats;
+
+  LiveMonitorServer* srv = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nevqueues);
+  srv->distribute(ldist);
+
+  srv->connect(stats);
 
   if (uapps)
-    apps->connect(uapps);
-  else
-    uapps = apps;
+    uapps->connect(stats);
 
-  if (apps) {
+  if (srv) {
     Task* task = new Task(Task::MakeThisATask);
     MyCallback* display = new MyCallback(task,
-           uapps);
+					 stats);
 
-    ObserverLevel* event = new ObserverLevel(platform,
-                                             partition,
-                                             node,
-                                             *display,
-                                             slowReadout,
-                                             sizeOfBuffers);
+    DynamicObserver* event = 
+      new DynamicObserver(platform,
+			  partition,
+			  node,
+			  *display,
+			  slowReadout,
+			  sizeOfBuffers);
+
+    new Comm(*event, *stats);
 
     if (event->attach()) {
       task->mainLoop();
       event->detach();
-      delete uapps;
+      delete stats;
       delete event;
       delete display;
     }
     else {
       printf("Observer failed to attach to platform\n");
-      delete uapps;
+      delete stats;
       delete event;
     }
   } else {
