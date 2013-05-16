@@ -198,6 +198,7 @@ void XtcTable::write(const string& path) const
     else 
       fwrite(buff, 1, p-buff, f);
 
+    delete[] buff;
     fclose(f);
   }
 }
