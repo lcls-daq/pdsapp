@@ -61,6 +61,8 @@ RunStatus::~RunStatus()
     QObject::disconnect(this, SIGNAL(changed()), _details, SLOT(update_stats()));
     delete _details;
   }
+  delete _green;
+  delete _red;
 }
 
 Transition* RunStatus::transitions(Transition* tr) 

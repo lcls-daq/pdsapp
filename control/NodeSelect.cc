@@ -131,6 +131,9 @@ NodeGroup::~NodeGroup()
   { NodeTransientCb* pCallback;
     foreach (pCallback, _lTransientCb)
       delete pCallback; }
+
+  delete _ready;
+  delete _notready;
 }
 
 void NodeGroup::addNode(const NodeSelect& node)
@@ -482,6 +485,7 @@ void NodeGroup::_read_pref(const QString&  title,
     }
     fclose(f);
   }
+  free(buff);
 }
 
 
