@@ -49,11 +49,12 @@ tgtlibs_xppmon += $(tgtlibs_common)
 tgtslib_xppmon := $(USRLIBDIR)/rt
 tgtincs_xppmon := epics/include epics/include/os/Linux
 
-tgtsrcs_cximon := cximon.cc CspadMon.cc $(tgtsrcs_common)
+tgtsrcs_cximon := cximon.cc CspadMon.cc CxiSpectrum.cc $(tgtsrcs_common)
 tgtlibs_cximon := pdsdata/xtcdata pdsdata/appdata
 tgtlibs_cximon += pdsdata/evrdata pdsdata/cspaddata
 tgtlibs_cximon += pds/service
 tgtlibs_cximon += $(tgtlibs_common)
+tgtlibs_cximon += pdsapp/devapp
 tgtslib_cximon := $(USRLIBDIR)/rt
 tgtincs_cximon := epics/include epics/include/os/Linux
 
