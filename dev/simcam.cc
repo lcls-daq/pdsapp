@@ -18,6 +18,8 @@
 #include "pds/config/FccdConfigType.hh"
 #include "pds/config/CsPadConfigType.hh"
 #include "pds/config/CsPadDataType.hh"
+#include "pds/config/CsPad2x2ConfigType.hh"
+#include "pds/config/CsPad2x2DataType.hh"
 #include "pdsdata/cspad/ElementIterator.hh"
 
 #include "pds/service/Task.hh"
@@ -35,6 +37,7 @@
 static bool verbose = false;
 static int ndrop = 0;
 static int ntime = 0;
+static int nforward = 1;
 static double ftime = 0;
 
 typedef std::list<Pds::Appliance*> AppList;
@@ -85,7 +88,12 @@ public:
 	return 0;
       }
       
-      _insert_event(dg);
+      static int iforward=0;
+      if (++iforward==nforward) {
+	iforward=0;
+	_insert_event(dg);
+      }
+
       break;
     }
     default:
@@ -205,7 +213,7 @@ public:
 	  const_cast<uint16_t*>(reinterpret_cast<const uint16_t*>(f->data()))[j] = (offset + (rand()%spread) - spread/2)&0xff;
       else
 	;
-      _evttc[i]->extent += f->data_size()+sizeof(FrameV1);
+      _evttc[i]->extent += (f->data_size()+sizeof(FrameV1)+3)&~3;
     }
 
     _fexpayload = new char[FexSize];
@@ -328,6 +336,74 @@ private:
 };
 
 
+class SimCspad140k : public SimApp {
+  enum { CfgSize = sizeof(CsPad2x2ConfigType)+sizeof(Xtc) };
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    switch(info.device()) {
+    case DetInfo::Cspad2x2:
+      return true;
+    default:
+      break;
+    }
+    return false;
+  }
+public:
+  SimCspad140k(const Src& src) 
+  {
+    _cfgpayload = new char[CfgSize];
+    _cfgtc = new(_cfgpayload) Xtc(_CsPad2x2ConfigType,src);
+    new (_cfgtc->alloc(sizeof(CsPad2x2ConfigType)))
+      CsPad2x2ConfigType(0, 0, 0, 0, 2*sizeof(CsPad::Section),
+			 0, 0xf, 0xf);
+    
+    const size_t sz = sizeof(CsPad2x2DataType)+sizeof(uint32_t);
+    unsigned evtsz = sz + sizeof(Xtc);
+    unsigned evtst = (evtsz+3)&~3;
+    _evtpayload = new char[NBuffers*evtst];
+
+    for(unsigned b=0; b<NBuffers; b++) {
+      _evttc[b] = new(_evtpayload+b*evtst) Xtc(_CsPad2x2DataType,src);
+      CsPad2x2DataType* q = new (_evttc[b]->alloc(sz)) CsPad2x2DataType;
+      //  Set the quad number
+      reinterpret_cast<uint32_t*>(q)[1] = 0;
+      //  Set the payload
+      uint16_t* p = reinterpret_cast<uint16_t*>(&q->pair[0][0]);
+      uint16_t* e = reinterpret_cast<uint16_t*>(q+1);
+      unsigned o = 0x150 + ((rand()>>8)&0x7f);
+      while(p < e)
+	*p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
+    }
+  }
+  ~SimCspad140k() 
+  {
+    delete[] _cfgpayload;
+    delete[] _evtpayload;
+  }
+private:
+  void _execute_configure() { _ibuffer=0; }
+  void _insert_configure(InDatagram* dg)
+  {
+    dg->insert(*_cfgtc,_cfgtc->payload());
+  }
+  void _insert_event(InDatagram* dg)
+  {
+    dg->insert(*_evttc[_ibuffer],_evttc[_ibuffer]->payload());
+    if (++_ibuffer == NBuffers) _ibuffer=0;
+  }
+public:
+  size_t max_size() const { return _evttc[0]->sizeofPayload(); }
+private:
+  char* _cfgpayload;
+  char* _evtpayload;
+  Xtc*  _cfgtc;
+  enum { NBuffers=16 };
+  Xtc*  _evttc[NBuffers];
+  unsigned _ibuffer;
+};
+
+
 //
 //  Implements the callbacks for attaching/dissolving.
 //  Appliances can be added to the stream here.
@@ -347,6 +423,8 @@ public:
       _app = new SimFrameV1(src);
     else if (SimCspad::handles(src))
       _app = new SimCspad(src);
+    else if (SimCspad140k::handles(src))
+      _app = new SimCspad140k(src);
 
     if (lCompress)
       _user_apps.push_front(new FrameCompApp(_app->max_size()));
@@ -402,18 +480,19 @@ private:
 
 void printUsage(char* s) {
   printf( "Usage: %s [-h] -i <detinfo> -p <platform>\n"
-      "    -h      Show usage\n"
-      "    -p      Set platform id           [required]\n"
-      "    -i      Set device info           [required]\n"
-      "                integer/integer/integer/integer or string/integer/string/integer\n"
-      "                (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
-      "    -v      Toggle verbose mode\n"
-      "    -C      Compress frames\n"
-      "    -O      Use OpenMP\n"
-      "    -D <N>  Drop every N events\n"
-      "    -T <S>,<N>  Delay S seconds every N events\n",
-      s
-  );
+	  "    -h      Show usage\n"
+	  "    -p      Set platform id           [required]\n"
+	  "    -i      Set device info           [required]\n"
+	  "                integer/integer/integer/integer or string/integer/string/integer\n"
+	  "                (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
+	  "    -v      Toggle verbose mode\n"
+	  "    -C      Compress frames\n"
+	  "    -O      Use OpenMP\n"
+	  "    -D <N>  Drop every N events\n"
+	  "    -T <S>,<N>  Delay S seconds every N events\n"
+	  "    -P <N>  Only forward payload every N events",     
+	  s
+	  );
 }
 
 int main(int argc, char** argv) {
@@ -429,7 +508,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:vCOD:T:L:S:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:vCOD:T:L:P:S:h")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
@@ -481,6 +560,9 @@ int main(int argc, char** argv) {
         }
         break;
       }
+    case 'P':
+      nforward = strtoul(optarg,NULL,0);
+      break;
     case 'S':
       ToEventWireScheduler::setMaximum(strtoul(optarg,NULL,0));
       break;
