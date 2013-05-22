@@ -28,7 +28,7 @@ Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
-  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-w dest,addr,data][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
+  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
       "    -h      Show usage\n"
       "    -P      Set pgpcard index number  (REQUIRED)\n"
       "                The format of the index number is a one byte number with the bottom nybble being\n"
@@ -39,6 +39,9 @@ void printUsage(char* name) {
       "                The format of the paraemeters are: 'dest addr data'\n"
       "                where addr and Data are 32 bit unsigned integers, but the Dest is a\n"
       "                four bit field where the bottom two bits are VC and The top two are Lane\n"
+      "    -W      Loop writing register to destination count times, unless count = 0 which means forever\n"
+      "                 delay is time between packets sent in microseconds\n"
+      "                 other parameters are the same as the write command above\n"
       "    -r      Read register from destination, resulting data, is written to the standard output\n"
       "                The format of the paraemeters are: 'dest addr'\n"
       "                where addr is a 32 bit unsigned integer, but the Dest is a four bit field,\n"
@@ -59,27 +62,29 @@ void printUsage(char* name) {
   );
 }
 
-enum Commands{none, writeCommand,readCommand,readAsyncCommand,dumpCommand,testCommand,numberOfCommands};
+enum Commands{none, writeCommand,readCommand,readAsyncCommand,dumpCommand,testCommand,loopWriteCommand,numberOfCommands};
 
 int main( int argc, char** argv )
 {
   unsigned            pgpcard             = 0;
   unsigned            d                   = 0;
-  uint32_t            data                = 0x1234;
+  uint32_t            data                = 0xdead;
   unsigned            command             = none;
   unsigned            addr                = 0;
   unsigned            count               = 0;
+  unsigned            delay               = 1000;
   unsigned            printFlag           = 0;
   unsigned            maxPrint            = 0;
   bool                cardGiven           = false;
   unsigned            debug               = 0;
+  unsigned            idx                 = 0;
   ::signal( SIGINT, sigHandler );
   char                runTimeConfigname[256] = {""};
   char                writeFileName[256] = {""};
   char*               endptr;
   extern char*        optarg;
   int c;
-  while( ( c = getopt( argc, argv, "hP:w:D:P:r:d:Ro:s:f:p:t:" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hP:w:W:D:P:r:d:Ro:s:f:p:t:" ) ) != EOF ) {
      switch(c) {
       case 'P':
         pgpcard = strtoul(optarg, NULL, 0);
@@ -97,7 +102,16 @@ int main( int argc, char** argv )
         addr = strtoul(endptr+1,&endptr,0);
         data = strtoul(endptr+1,&endptr,0);
         break;
-      case 'r':
+      case 'W':
+        command = loopWriteCommand;
+        d = strtoul(optarg  ,&endptr,0);
+        addr = strtoul(endptr+1,&endptr,0);
+        data = strtoul(endptr+1,&endptr,0);
+        count = strtoul(endptr+1,&endptr,0);
+        delay = strtoul(endptr+1,&endptr,0);
+//        printf("loopWriteCommand %u,%u,0x%x,%u\n", d, addr, data, count);
+        break;
+     case 'r':
         command = readCommand;
         d = strtoul(optarg  ,&endptr,0);
         addr = strtoul(endptr+1,&endptr,0);
@@ -237,6 +251,20 @@ int main( int argc, char** argv )
       if (rsif) {
         if (printFlag) rsif->print();
         printf("pgpWidget write returned 0x%x\n", rsif->_data);
+      }
+      break;
+    case loopWriteCommand:
+      if (count==0) count = 0xffffffff;
+//      printf("\n");
+      idx = 0;
+      while (count--) {
+        pgp->writeRegister(dest, addr, data, printFlag & 1, Pds::Pgp::PgpRSBits::Waiting);
+        usleep(delay);
+        rsif = pgp->read();
+        if (rsif) {
+          if (printFlag & 1) rsif->print();
+          if (printFlag & 2) printf("\tcycle %u\n", idx++);
+        }
       }
       break;
     case readCommand:
