@@ -1,7 +1,9 @@
 #include "RemoteSeqApp.hh"
 #include "StateSelect.hh"
 #include "ConfigSelect.hh"
+#include "PartitionSelect.hh"
 #include "PVManager.hh"
+#include "RemotePartition.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/utility/Transition.hh"
 #include "pds/xtc/EnableEnv.hh"
@@ -22,12 +24,10 @@
 #include <errno.h>
 #include <fcntl.h>
 
+//#define DBUG
+
 static const int MaxConfigSize = 0x100000;
 static const int Control_Port  = 10130;
-
-static const unsigned RecordSetMask = 0x20000;
-static const unsigned RecordValMask = 0x10000;
-static const unsigned DbKeyMask     = 0x0ffff;
 
 using namespace Pds;
 
@@ -84,7 +84,7 @@ bool RemoteSeqApp::readTransition()
     if (errno==0)
       printf("RemoteSeqApp: remote end closed\n");
     else
-      printf("RemoteSeqApp failed to read config hdr(%d/%d) : %s\n",
+      printf("RemoteSeqApp failed to read config hdr(%d/%ld) : %s\n",
        len,sizeof(config),strerror(errno));
     return false;
   }
@@ -200,57 +200,145 @@ void RemoteSeqApp::routine()
             ::write(_socket,&length,sizeof(length));
             ::write(_socket,sType.c_str(),length);
 
-            //  Receive the requested run key and recording option
-            uint32_t options;
-            int len = ::recv(_socket, &options, sizeof(options), MSG_WAITALL);
-            if (len != sizeof(options)) {
-              if (errno==0)
-                printf("RemoteSeqApp: remote end closed\n");
-              else
-                printf("RemoteSeqApp failed to read options(%d/%d) : %s\n",
-                       len,sizeof(options),strerror(errno));
-            }
+	    //
+	    // cache then send the partition selection
+	    //
+	    const Allocation* palloc = new Allocation(_control.partition());
 
-            //  Reconfigure with the initial settings
-            else if (readTransition()) {
+	    { RemotePartition* partition = new RemotePartition;
+	      const QList<DetInfo>& detectors = _pselect.detectors();
+	      const QList<ProcInfo>& segments = _pselect.segments ();
+	      for(int j=0; j<detectors.size(); j++) {
+		RemoteNode node(DetInfo::name(detectors[j]),detectors[j].phy());
+		for(unsigned k=0; k<palloc->nnodes(); k++)
+		  if (palloc->node(k)->procInfo() == segments[j]) {
+		    node.record(!palloc->node(k)->transient());
+		    break;
+		  }
+		partition->add_node(node);
+	      }
+	      length = sizeof(*partition);
+	      ::write(_socket,&length,sizeof(length));
+	      ::write(_socket,partition,length); 
+	      delete partition;
+	    }
 
-              _control.wait_for_target();
-              _control.set_transition_env    (TransitionId::Configure,options & DbKeyMask);
-              _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
+	    while(1) {
 
-              _control.set_target_state(PartitionControl::Configured);
+	      //  Receive the requested run key and recording option
+	      uint32_t options;
+	      int len = ::recv(_socket, &options, sizeof(options), MSG_WAITALL);
+	      if (len != sizeof(options)) {
+		if (errno==0)
+		  printf("RemoteSeqApp: remote end closed\n");
+		else
+		  printf("RemoteSeqApp failed to read options(%d/%ld) : %s\n",
+			 len,sizeof(options),strerror(errno));
+		break;
+	      }
 
-              _wait_for_configure = true;
-              _control.reconfigure(false);
-              _control.release_target();
+#ifdef DBUG
+	      printf("Received options %x\n",options);
+#endif
 
-              if (options & RecordSetMask)
-                _manual.set_record_state( options & RecordValMask );
+	      if (options & ModifyPartition) {
+		RemotePartition* partition = new RemotePartition;
+		int len = ::recv(_socket, partition, sizeof(*partition), MSG_WAITALL);
+		if (len != sizeof(*partition)) {
+		  if (errno==0)
+		    printf("RemoteSeqApp: remote end closed\n");
+		  else
+		    printf("RemoteSeqApp failed to read partition(%d/%ld) : %s\n",
+			   len,sizeof(*partition),strerror(errno));
+		  break;
+		}
 
-              while(1) {
-                if (!readTransition())  break;
-                //
-                //  A request for a cycle of zero duration is an EndCalib
-                //
-                const Pds::ClockTime NoTime(0,0);
-                if (config.uses_duration() && config.duration()==NoTime) {
-                  _control.set_target_state(PartitionControl::Running);
-                }
-                else {
-                  _control.wait_for_target();
-                  _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
-                  _control.set_transition_env(TransitionId::Enable,
-                                              config.uses_duration() ?
-                                              EnableEnv(config.duration()).value() :
-                                              EnableEnv(config.events()).value());
-                  _control.set_target_state(PartitionControl::Enabled);
-                  _control.release_target();
-                }
-              }
-            }
+#ifdef DBUG
+		printf("Received partition %p\n",partition);
+		for(unsigned j=0; j<partition->nodes(); j++) {
+		  const RemoteNode& node = *partition->node(j);
+		  printf("\t%s : %x : %s : %s\n",
+			 node.name(),
+			 node.phy(),
+			 node.readout() ? "Readout":"NoReadout",
+			 node.record () ? "Record":"NoRecord");
+		}
+#endif
 
+
+		//
+		//  Re-allocate
+		//
+		const QList<DetInfo>& detectors = _pselect.detectors();
+		const QList<ProcInfo>& segments = _pselect.segments ();
+		Allocation* alloc = new Allocation(_control.partition());
+		for(unsigned j=0; j<partition->nodes(); j++) {
+		  RemoteNode& node = *partition->node(j);
+		  for(int k=0; k<detectors.size(); k++) {
+		    if (detectors[k].phy() == node.phy()) {
+		      if (!node.readout())
+			alloc->remove(segments[k]);
+		      else
+			alloc->node(segments[k])->setTransient(!node.record());
+		    }
+		  }
+		}
+		_control.set_partition(*alloc);
+		_control.set_target_state(PartitionControl::Unmapped);
+		delete alloc;
+	      }
+	      _control.wait_for_target();
+	      _control.set_target_state(PartitionControl::Mapped);
+	      _control.release_target();
+	      //
+	      //  Reconfigure with the initial settings
+	      //
+	      if (!readTransition())  break;
+
+	      _control.wait_for_target();
+	      _control.set_transition_env    (TransitionId::Configure,options & DbKeyMask);
+	      _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
+	      
+	      _control.set_target_state(PartitionControl::Configured);
+	      
+	      _wait_for_configure = true;
+	      //	      _control.reconfigure(false);
+	      _control.release_target();
+	      
+	      if (options & RecordSetMask)
+		_manual.set_record_state( options & RecordValMask );
+	      
+	      while(1) {
+		if (!readTransition())  break;
+		//
+		//  A request for a cycle of zero duration is an EndCalib
+		//
+		const Pds::ClockTime NoTime(0,0);
+		if (config.uses_duration() && config.duration()==NoTime) {
+		  _control.set_target_state(PartitionControl::Running);
+		}
+		else {
+		  _control.wait_for_target();
+		  _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
+		  _control.set_transition_env(TransitionId::Enable,
+					      config.uses_duration() ?
+					      EnableEnv(config.duration()).value() :
+					      EnableEnv(config.events()).value());
+		  _control.set_target_state(PartitionControl::Enabled);
+		  _control.release_target();
+		}
+	      }
+	      break;
+	    }
             close(_socket);
             _socket = -1;
+
+	    //
+	    //  Reallocate with the initial settings
+	    //
+	    _control.set_partition(*palloc);
+	    _control.set_target_state(PartitionControl::Unmapped);
+	    delete palloc;
 
             //  replace the configuration with default running
             new(_config_buffer) ControlConfigType(ControlConfigType::Default);
@@ -264,13 +352,14 @@ void RemoteSeqApp::routine()
                                             EnableEnv(config.duration()).value() :
                                             EnableEnv(config.events()).value());
             _control.release_target();
+
+            _select.enable_control(true);
+
 	    _control.set_target_state(PartitionControl::Configured);
             _control.wait_for_target();
             _control.release_target();
 
             _manual.enable_control();
-            _select.enable_control(true);
-
             _manual.set_record_state(lrecord);
           }
         }

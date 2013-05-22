@@ -4,6 +4,8 @@
 #include <string>
 using std::string;
 
+namespace Pds { class RemotePartition; }
+
 typedef struct {
   PyObject_HEAD
   unsigned addr;
@@ -15,6 +17,7 @@ typedef struct {
   int32_t  dbkey;
   char*    buffer;
   int32_t  runinfo;
+  Pds::RemotePartition* partition;
 } pdsdaq;
 
 #endif
