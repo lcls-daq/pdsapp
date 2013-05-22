@@ -58,7 +58,6 @@ int main(int argc, char* argv[])
     perror(buff);
   }
 
-  int    detid;
   char*  pvbase = new char[64];
   //float  chbase[4];
 
@@ -67,36 +66,61 @@ int main(int argc, char* argv[])
 
   while(getline(&line, &line_sz, f) != -1) {
     if (line[0]!='#') {
-      if (sscanf(line,"%d\t%s",
-		 &detid,pvbase) < 2) {
-	fprintf(stderr,"Error scanning line: %s\n",line);
+      char* args = strtok(line,"\t ");
+
+      DetInfo info(args);
+
+      char* pvbase = strtok(NULL,"\t ");
+      if (!pvbase) {
+        printf("No PV field for %s\n",args);
+        return -1;
       }
-      else {
-	switch(detid) {
-        case -Pds::BldInfo::Nh2Sb1Ipm01:
-          client.insert(new BldIpm(pvbase,-detid));
-          break;
-	case Pds::DetInfo::XppMonPim:
-	case Pds::DetInfo::XppSb3Pim:
-	case Pds::DetInfo::XppSb4Pim:
-	  client.insert(new XppPim(pvbase,detid));
-	  //	  break;
-	case Pds::DetInfo::XppSb1Ipm:
-	case Pds::DetInfo::XppSb2Ipm:
-	case Pds::DetInfo::XppSb3Ipm:
-	  client.insert(new XppIpm(pvbase,detid));
-	  break;
-        case Pds::DetInfo::XppGon:
+      
+      if (info.detector()!=DetInfo::NumDetector) {
+        switch(info.device()) {
+        case DetInfo::Cspad:
+        case DetInfo::Cspad2x2:
           CspadMon::monitor(client, 
                             pvbase,
-                            Pds::DetInfo(0, Pds::DetInfo::Detector(detid), 0, 
-                                         Pds::DetInfo::Cspad,0));
-          client.insert(new Encoder(pvbase,detid));
+                            info);
           break;
-	default:
-	  fprintf(stderr,"Error in lookup of detector index %d\n",detid);
-	  break;
-	}
+        case DetInfo::Ipimb:
+          { switch(info.detector()) {
+            case Pds::DetInfo::XppMonPim:
+            case Pds::DetInfo::XppSb3Pim:
+            case Pds::DetInfo::XppSb4Pim:
+              client.insert(new XppPim(pvbase,info.detector()));
+              //	  break;
+            case Pds::DetInfo::XppSb1Ipm:
+            case Pds::DetInfo::XppSb2Ipm:
+            case Pds::DetInfo::XppSb3Ipm:
+              client.insert(new XppIpm(pvbase,info.detector()));
+              break;
+            default:
+              fprintf(stderr,"Error in lookup of ipimb %s\n",args);
+              break;
+            } break;
+          default:
+            fprintf(stderr,"Error in lookup of detector name %s\n",args);
+            break;
+          }
+        }
+      }
+      else {
+        BldInfo binfo(args);
+        if (binfo.type()!=BldInfo::NumberOf) {
+          switch(binfo.type()) {
+          case BldInfo::Nh2Sb1Ipm01:
+            client.insert(new BldIpm(pvbase,binfo.type()));
+            break;
+          default:
+            fprintf(stderr,"Error in lookup of bld type %s\n",args);
+            break;
+          }
+        }
+        else {
+          fprintf(stderr,"Error in lookup of name %s\n",args);
+        }
       }
     }
     line_sz = 256;
