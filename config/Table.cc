@@ -163,11 +163,11 @@ bool TableEntry::updated() const { return _changed; }
 //  Table 
 //===============
 
-Table::Table()
+Table::Table() : _next_key(0)
 {
 }
 
-Table::Table(const string& path) 
+Table::Table(const string& path) : _next_key(0)
 {
   struct stat64 s;
   if (!stat64(path.c_str(),&s)) {

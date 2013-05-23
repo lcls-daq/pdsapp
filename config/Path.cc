@@ -15,6 +15,12 @@ using std::setfill;
 
 using namespace Pds_ConfigDb;
 
+static inline void xml_create(std::string str)
+{
+  FILE* f = fopen((str+".xml").c_str(),"wx");
+  if (f) fclose(f);
+}
+
 Path::Path(const string& path) :
   _path(path)
 {
@@ -39,6 +45,9 @@ void Path::create()
   sprintf(buff,"%s/desc",_path.c_str());  mkdir(buff,mode);
   sprintf(buff,"%s/keys",_path.c_str());  mkdir(buff,mode);
   sprintf(buff,"%s/xtc" ,_path.c_str());  mkdir(buff,mode);
+
+  xml_create(expt());
+  xml_create(xtc ());
 }
 
 bool Path::is_valid() const
