@@ -260,7 +260,7 @@ public:
   }
 public:
   void routine() {
-    unsigned short insp = MonShmComm::ServerPort;
+    unsigned short insp = MonShmComm::ServerPort+_o.header().platform();
     Ins ins(insp);
     int _socket;
     if ((_socket = ::socket(AF_INET, SOCK_STREAM, 0)) < 0) {
