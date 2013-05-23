@@ -259,9 +259,17 @@ public:
     _task->destroy();
   }
 public:
-  void routine() {
-    unsigned short insp = MonShmComm::ServerPort+_o.header().platform();
+  void routine() 
+  {
+    MonShmComm::Get get;
+    gethostname(get.hostname,sizeof(get.hostname));
+
+    unsigned short insp = MonShmComm::ServerPort;
+    if (strncmp(get.hostname,"daq",3)!=0)
+      insp -= _o.header().platform();
     Ins ins(insp);
+    printf("Listening on port %d [%s]\n",insp,get.hostname);
+
     int _socket;
     if ((_socket = ::socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("Comm failed to open socket");
@@ -311,9 +319,6 @@ public:
 	  pfd[0].fd = s;
 	  pfd[0].events = POLLIN | POLLERR;
 	  int timeout = 1000;
-
-	  MonShmComm::Get get;
-	  gethostname(get.hostname,sizeof(get.hostname));
 
 	  bool changed = true;
 	  while(1) {

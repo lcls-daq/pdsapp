@@ -6,7 +6,7 @@
 namespace Pds {
   namespace MonShmComm {
 
-    enum { ServerPort = 5715 };
+    enum { ServerPort = 5719 };
 
     class Get {
     public:
