@@ -24,7 +24,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
-//#define DBUG
+#define DBUG
 
 static const int MaxConfigSize = 0x100000;
 static const int Control_Port  = 10130;
@@ -130,6 +130,9 @@ bool RemoteSeqApp::processTransitionCmd(RemoteSeqCmd& cmd)
   case RemoteSeqCmd::CMD_GET_CUR_EVENT_NUM:
     int64_t iEventNum = _runStatus.getEventNum();
     ::write(_socket,&iEventNum,sizeof(iEventNum));
+#ifdef DBUG
+    printf("RemoteSeqApp get events [%d]\n",iEventNum);
+#endif
     break;
   }
 
@@ -223,10 +226,10 @@ void RemoteSeqApp::routine()
 	      delete partition;
 	    }
 
+            uint32_t options;
 	    while(1) {
 
 	      //  Receive the requested run key and recording option
-	      uint32_t options;
 	      int len = ::recv(_socket, &options, sizeof(options), MSG_WAITALL);
 	      if (len != sizeof(options)) {
 		if (errno==0)
@@ -336,23 +339,27 @@ void RemoteSeqApp::routine()
 	    //
 	    //  Reallocate with the initial settings
 	    //
-	    _control.set_partition(*palloc);
-	    _control.set_target_state(PartitionControl::Unmapped);
-	    delete palloc;
+            if (options & ModifyPartition) {
+              _control.set_partition(*palloc);
+              _control.set_target_state(PartitionControl::Unmapped);
+              _control.wait_for_target();
+
+              _control.set_target_state(PartitionControl::Mapped);
+              _control.release_target();
+            }
+
+            delete palloc;
 
             //  replace the configuration with default running
             new(_config_buffer) ControlConfigType(ControlConfigType::Default);
             _configtc.extent = sizeof(Xtc) + config.size();
 
-            _control.wait_for_target();
             _control.set_transition_env    (TransitionId::Configure,old_key);
             _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
             _control.set_transition_env    (TransitionId::Enable,
                                             config.uses_duration() ?
                                             EnableEnv(config.duration()).value() :
                                             EnableEnv(config.events()).value());
-            _control.release_target();
-
             _select.enable_control(true);
 
 	    _control.set_target_state(PartitionControl::Configured);
@@ -399,6 +406,9 @@ Occurrence* RemoteSeqApp::occurrences(Occurrence* occ)
       return 0;
     case OccurrenceId::EvrEnabled:
       ::write(_socket,&info,sizeof(info));
+#ifdef DBUG
+      printf("RemoteSeqApp EvrEnabled [%d]\n",info);
+#endif
       return 0;
     default:
       break;
@@ -415,15 +425,26 @@ InDatagram* RemoteSeqApp::events     (InDatagram* dg)
     if (dg->datagram().xtc.damage.value()!=0) {
       info = -id;
       ::write(_socket,&info,sizeof(info));
+#ifdef DBUG
+      printf("RemoteSeqApp transition [%d] damaged [%x]\n",
+             -info,dg->datagram().xtc.damage.value());
+#endif
     }
     else if (_wait_for_configure) {
       if (id==TransitionId::Configure) {
 	::write(_socket,&info,sizeof(info));
 	_wait_for_configure = false;
+#ifdef DBUG
+        printf("RemoteSeqApp configure complete [%d]\n",info);
+#endif
       }
     }
-    else if (id==TransitionId::EndCalibCycle)
+    else if (id==TransitionId::EndCalibCycle) {
       ::write(_socket,&info,sizeof(info));
+#ifdef DBUG
+        printf("RemoteSeqApp endcalib complete [%d]\n",info);
+#endif
+    }
   }
   return dg;
 }
