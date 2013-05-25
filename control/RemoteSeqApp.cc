@@ -350,6 +350,7 @@ void RemoteSeqApp::routine()
 
             delete palloc;
 
+	    _control.wait_for_target();
             //  replace the configuration with default running
             new(_config_buffer) ControlConfigType(ControlConfigType::Default);
             _configtc.extent = sizeof(Xtc) + config.size();
@@ -360,12 +361,10 @@ void RemoteSeqApp::routine()
                                             config.uses_duration() ?
                                             EnableEnv(config.duration()).value() :
                                             EnableEnv(config.events()).value());
-            _select.enable_control(true);
-
 	    _control.set_target_state(PartitionControl::Configured);
-            _control.wait_for_target();
-            _control.release_target();
+	    _control.release_target();
 
+            _select.enable_control(true);
             _manual.enable_control();
             _manual.set_record_state(lrecord);
           }
