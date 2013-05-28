@@ -24,6 +24,8 @@ static void usage(char *argv0)
    "         -T                    : collect transient data\n"
    "         -w <0/1>              : slow readout\n"
    "         -o <options>          : partition options\n"
+   "            1=CXI slow runningkludge\n"
+   "            2=XPP short timeout on Disable\n"
    "         -h                    : print usage information\n"
    "         -v\n",
    argv0);
