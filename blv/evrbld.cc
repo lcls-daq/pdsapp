@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
   unsigned key(0);
   if (dbpath) {
     Pds_ConfigDb::Path path(dbpath);
-    Pds_ConfigDb::Experiment expt(path);
+    Pds_ConfigDb::Experiment expt(path,Pds_ConfigDb::Experiment::NoLock);
     expt.read();
     key = strtoul(expt.table().get_top_entry("BLD")->key().c_str(),NULL,16);
   }
@@ -162,6 +162,8 @@ int main(int argc, char** argv) {
     printf( "main(): Cannot register signal handler for SIGINT\n" );
   if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 ) 
     printf( "main(): Cannot register signal handler for SIGTERM\n" );
+  if (sigaction(SIGPIPE, &sigActionSettings, 0) != 0 ) 
+    printf( "main(): Cannot register signal handler for SIGPIPE\n" );
 
   printf("::start()\n");
 

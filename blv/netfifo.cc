@@ -13,6 +13,8 @@
 #include "pds/service/Task.hh"
 #include "pds/service/Routine.hh"
 
+static bool lVerbose=false;
+
 namespace Pds {
   class ConnectRoutine : public Routine {
   public:
@@ -100,7 +102,8 @@ namespace Pds {
                 if (len)
                   ::write(fifo_fd, buff, len);
               }
-              printf("Closing output FIFO\n");
+              perror("Input socket error");
+              printf("Closing output FIFO [%s] and socket [%x.%d]\n",fifo,interface,port);
               ::close(fifo_fd);
               ::close(skt_fd);
             }
@@ -125,14 +128,16 @@ namespace Pds {
             printf("Connected [%x.%d].  Opening FIFO for reading... [%s]\n",
                    interface,port,fifo);
             // now open the fifo for input
-            int fifo_fd  = ::open(fifo,O_RDONLY | O_NONBLOCK);
+            //            int fifo_fd  = ::open(fifo,O_RDONLY | O_NONBLOCK);
+            int fifo_fd  = ::open(fifo,O_RDONLY);
             printf("FIFO open for reading [%s].\n",fifo);
             int len;
             while((len = ::read(fifo_fd, buff, BUFF_SIZE))>=0) {
               if (len)
                 ::write(skt_fd, buff, len);
             }
-            printf("Closing input FIFO\n");
+            perror("Input FIFO error");
+            printf("Closing input FIFO [%s]\n",fifo);
             ::close(fifo_fd);
           }
           ::close(skt_fd);
@@ -162,7 +167,7 @@ int main(int argc, char** argv) {
   int c;
   unsigned nconnect=0;
 
-  while ( (c=getopt( argc, argv, "c:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "c:v")) != EOF ) {
     switch(c) {
     case 'c':
       { char* input  = strtok(optarg,",");
@@ -178,6 +183,9 @@ int main(int argc, char** argv) {
         Task* task = new Task(TaskObject(taskname));
         task->call(routine);
         break; }
+    case 'v':
+      lVerbose = true;
+      break;
     default:
       usage(argv[0]);
       exit(1);

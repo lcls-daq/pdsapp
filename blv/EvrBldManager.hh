@@ -16,7 +16,7 @@
 #include "pds/xtc/EvrDatagram.hh"
 #include "pds/client/Fsm.hh"
 
-#include "pds/config/CfgClientNfs.hh"
+#include "pds/evgr/EvrCfgClient.hh"
 #include "pds/mon/THist.hh"
 
 namespace Pds {
@@ -45,7 +45,7 @@ private:
   EvgrBoardInfo<Evr>  _erInfo;
   Evr&                _er;
   std::list<int>      _write_fd;
-  CfgClientNfs        _cfg;
+  EvrCfgClient        _cfg;
   unsigned            _evtCounter;
   Fsm                 _fsm;
   char*               _configBuffer;

@@ -15,7 +15,7 @@ endif
 
 ifneq ($(findstring i386-linux,$(tgt_arch)),)
 tgtnames    := evrblv pimblv
-tgtnames    += evrbld pimbld ipmbld acqbld
+tgtnames    += evrbld pimbld ipmbld acqbld cambld
 tgtnames    += netfifo netfwd
 tgtnames    += ipmbldsim
 endif
@@ -97,6 +97,14 @@ tgtlibs_pimbld += pds/camera
 tgtlibs_pimbld += $(leutron_libs)
 tgtslib_pimbld := $(qtslibdir)
 tgtincs_pimbld := leutron/include
+
+tgtsrcs_cambld := cambld.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
+tgtlibs_cambld := $(commonlibs) $(datalibs)
+tgtlibs_cambld += pdsapp/configdb $(qtlibdir)
+tgtlibs_cambld += pds/camera
+tgtlibs_cambld += $(leutron_libs)
+tgtslib_cambld := $(qtslibdir)
+tgtincs_cambld := leutron/include
 
 tgtsrcs_pimbldedt := pimbldedt.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_pimbldedt := $(commonlibs) $(datalibs)

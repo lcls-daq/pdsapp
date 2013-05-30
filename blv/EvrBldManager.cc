@@ -17,6 +17,8 @@
 
 using namespace Pds;
 
+static const unsigned TERMINATOR        = 1;
+
 static EvrBldManager* evrBldMgrGlobal = NULL;
 
 //EVR Signal Handler
@@ -86,7 +88,7 @@ EvrBldManager::EvrBldManager(const DetInfo&        src,
   _erInfo      ((std::string("/dev/er")+evr_id[0]+'3').c_str()),
   _er          (_erInfo.board()), 
   _write_fd    (write_fd),
-  _cfg         (src),
+  _cfg         (*new CfgClientNfs(src)),
   _evtCounter  (0),
   _configBuffer(new char[0x10000]),
   _hsignal     ("EvrSignal")
@@ -265,6 +267,8 @@ void EvrBldManager::configure(Transition* tr)
              pc.prescale(), pc.delay(), pc.width());
     }
 
+  _er.DumpPulses(cfg.npulses());
+
   for (unsigned k = 0; k < cfg.noutputs(); k++)
     {
       const EvrConfigType::OutputMapType & map = cfg.output_map(k);
@@ -311,6 +315,8 @@ void EvrBldManager::configure(Transition* tr)
              eventCode.maskSet(),
              eventCode.maskClear());
     }
+
+  //  _er.SetFIFOEvent(ram, TERMINATOR, enable);
 
   _er.IrqEnable(0);
   _er.Enable(0);
