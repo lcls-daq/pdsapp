@@ -24,6 +24,7 @@ using namespace std;
 using namespace Pds;
 
 #define CHUNK_SIZE 107374182400LL
+#define POSIX_TIME_AT_EPICS_EPOCH 631152000u
 
 char *infile = NULL;
 char *cfgfile = NULL;
