@@ -378,10 +378,6 @@ static void connection_handler(struct connection_handler_args args)
                 exit(0);
             }
         } else {
-            if (c->nelem != 1) {
-                printf("%s is not a scalar PV!\n", c->getpvname());
-                exit(0);
-            }
             int status = ca_get_callback(dbf_type_to_DBR_CTRL(c->dbftype), args.chid, get_handler, (void *) c);
             if (status != ECA_NORMAL) {
                 printf("Get failed! error %d!\n", status);
