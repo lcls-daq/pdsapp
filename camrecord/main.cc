@@ -221,7 +221,15 @@ static void read_config_file(const char *name)
             }
         } else if (arrayTokens[0] == "bld") {
             if (arrayTokens.size() >= 3 && isdigit(arrayTokens[2][0])) {
-                int revtime = (arrayTokens.size() >= 4 && arrayTokens[3] == "revtime");
+                int revtime = REVTIME_NONE;
+                if (arrayTokens.size() >= 4) {
+                    if (arrayTokens[3] == "revtime")
+                        revtime = REVTIME_WORD;
+                    else if (arrayTokens[3] == "offset")
+                        revtime = REVTIME_OFFSET;
+                    else if (arrayTokens[3] == "revtime-offset")
+                        revtime = REVTIME_OFFSET | REVTIME_WORD;
+                }
                 new symbol(arrayTokens[1], atoi(arrayTokens[2].c_str()), revtime);
             }
         } else if (arrayTokens[0] == "record") {

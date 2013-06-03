@@ -16,8 +16,6 @@
 #include"pdsdata/epics/EpicsPvData.hh"
 #include"yagxtc.hh"
 
-#define POSIX_TIME_AT_EPICS_EPOCH 631152000u
-
 using namespace std;
 using namespace Pds;
 

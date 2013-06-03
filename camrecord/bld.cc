@@ -282,25 +282,56 @@ void handle_bld(fd_set *rfds)
             c->bldServer->fetch(sizeof(buf), buf, msgsize);
             // The first packet, we treat as configuration information.
             if (!c->cfgdone) {
-                if (c->revtime)
-                    configure_xtc(c->xid, (char *) inner, dg2->xtc.extent,
-                                  dg2->seq.clock().nanoseconds(),
-                                  (dg2->seq.clock().seconds() & ~0x1ffff) | dg2->seq.stamp().fiducials());
-                else
+                switch (c->revtime) {
+                case REVTIME_NONE:
                     configure_xtc(c->xid, (char *) inner, dg2->xtc.extent,
                                   dg2->seq.clock().seconds(),
                                   (dg2->seq.clock().nanoseconds() & ~0x1ffff) | dg2->seq.stamp().fiducials());
+                    break;
+                case REVTIME_WORD:
+                    configure_xtc(c->xid, (char *) inner, dg2->xtc.extent,
+                                  dg2->seq.clock().nanoseconds(),
+                                  (dg2->seq.clock().seconds() & ~0x1ffff) | dg2->seq.stamp().fiducials());
+                    break;
+                case REVTIME_OFFSET:
+                    configure_xtc(c->xid, (char *) inner, dg2->xtc.extent,
+                                  dg2->seq.clock().seconds() + POSIX_TIME_AT_EPICS_EPOCH,
+                                  (dg2->seq.clock().nanoseconds() & ~0x1ffff) | dg2->seq.stamp().fiducials());
+                case REVTIME_OFFSET|REVTIME_WORD:
+                    configure_xtc(c->xid, (char *) inner, dg2->xtc.extent,
+                                  dg2->seq.clock().nanoseconds() + POSIX_TIME_AT_EPICS_EPOCH,
+                                  (dg2->seq.clock().seconds() & ~0x1ffff) | dg2->seq.stamp().fiducials());
+                    break;
+                default:
+                    break;
+                }
                 c->cfgdone = 1;
             } else {
                 // Make sure the BLD puts the fiducial in the timestamp!
-                if (c->revtime)
-                    data_xtc(c->xid, dg2->seq.clock().nanoseconds(),
-                             (dg2->seq.clock().seconds() & ~0x1ffff) | dg2->seq.stamp().fiducials(),
-                             inner, dg2->xtc.extent, NULL);
-                else
+                switch (c->revtime) {
+                case REVTIME_NONE:
                     data_xtc(c->xid, dg2->seq.clock().seconds(),
                              (dg2->seq.clock().nanoseconds() & ~0x1ffff) | dg2->seq.stamp().fiducials(),
                              inner, dg2->xtc.extent, NULL);
+                    break;
+                case REVTIME_WORD:
+                    data_xtc(c->xid, dg2->seq.clock().nanoseconds(),
+                             (dg2->seq.clock().seconds() & ~0x1ffff) | dg2->seq.stamp().fiducials(),
+                             inner, dg2->xtc.extent, NULL);
+                    break;
+                case REVTIME_OFFSET:
+                    data_xtc(c->xid, dg2->seq.clock().seconds() + POSIX_TIME_AT_EPICS_EPOCH,
+                             (dg2->seq.clock().nanoseconds() & ~0x1ffff) | dg2->seq.stamp().fiducials(),
+                             inner, dg2->xtc.extent, NULL);
+                    break;
+                case REVTIME_OFFSET|REVTIME_WORD:
+                    data_xtc(c->xid, dg2->seq.clock().nanoseconds() + POSIX_TIME_AT_EPICS_EPOCH,
+                             (dg2->seq.clock().seconds() & ~0x1ffff) | dg2->seq.stamp().fiducials(),
+                             inner, dg2->xtc.extent, NULL);
+                    break;
+                default:
+                    break;
+                }
             }
         }
     }
