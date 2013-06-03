@@ -221,7 +221,7 @@ class caconn {
             break;
         case DetInfo::Opal1000:
             if (binned)
-                f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(256, 1024, 12, 32);
+                f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 256, 12, 32);
             else
                 f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 1024, 12, 32);
             break;
