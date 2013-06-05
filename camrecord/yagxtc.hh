@@ -11,6 +11,9 @@
 #define REVTIME_WORD   1 
 #define REVTIME_OFFSET 2
 
+/* How many parameters does LogBook::Connection::open have? */
+#define LCPARAMS 12
+
 /* main.cc */
 extern void add_socket(int s);
 extern void remove_socket(int s);
@@ -18,6 +21,11 @@ extern void begin_run(void);
 extern int record_cnt;
 extern int verbose;
 extern std::string hostname;
+extern std::string prefix;
+extern std::string username;
+extern std::string curdir;
+extern int expid, runnum, strnum;
+extern std::string logbook[LCPARAMS];
 
 /* bld.cc */
 extern void initialize_bld(void);

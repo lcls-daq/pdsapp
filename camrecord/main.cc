@@ -13,7 +13,6 @@
 #include<iterator> //for std::istream_iterator
 #include<vector>   //for std::vector
 #include<iostream>
-
 #include"yagxtc.hh"
 
 using namespace std;
@@ -74,12 +73,33 @@ static int nrec = 0;
 int verbose = 1;
 static char *outfile = NULL;
 string hostname = "";
+string prefix = "";
+string username = "";
+int expid = -1;
+int runnum = -1;
+int strnum = -1;
+string curdir = "";
+string logbook[LCPARAMS];
+static string lb_params[LCPARAMS] = { /* This is the order of parameters to LogBook::Connection::open! */
+    "logbook_host=",
+    "logbook_user=",
+    "logbook_password=",
+    "logbook_db=",
+    "regdb_host=",
+    "regdb_user=",
+    "regdb_password=",
+    "regdb_db=",
+    "ifacedb_host=",
+    "ifacedb_user=",
+    "ifacedb_password=",
+    "ifacedb_db=",
+};
 
 static void int_handler(int signal)
 {
     haveint = 1;
     if (signal == SIGALRM) {
-        fprintf(stderr, "%salarm expired!\n", hostname.c_str());
+        fprintf(stderr, "%salarm expired!\n", prefix.c_str());
         fflush(stderr);
     } else
         printf("^C\n");
@@ -100,7 +120,7 @@ void remove_socket(int s)
 
 void begin_run(void)
 {
-    fprintf(stderr, "%sinitialized, recording...\n", hostname.c_str());
+    fprintf(stderr, "%sinitialized, recording...\n", prefix.c_str());
     fflush(stderr);
     running = 1;
     timer.it_interval.tv_sec = 0;
@@ -190,12 +210,37 @@ static void read_config_file(const char *name)
             arrayTokens[0] == "defhost" || arrayTokens[0] == "defport") {
             /* Ignore blank lines, comments, and client commands! */
             continue;
+        } else if (arrayTokens[0] == "dbinfo") {
+            /* dbinfo username expid run stream */
+            if (arrayTokens.size() >= 5) {
+                char buf[4096];
+                if (getcwd(buf, 4096) != NULL) {
+                    curdir = buf;
+                    curdir += "/";
+                    username = arrayTokens[1];
+                    expid = atoi(arrayTokens[2].c_str());
+                    runnum = atoi(arrayTokens[3].c_str());
+                    strnum = atoi(arrayTokens[4].c_str());
+                } else {
+                    /* Report an error?!? */
+                }
+            }
+        } else if (arrayTokens[0] == "logbook") {
+            if (arrayTokens.size() >= 2) {
+                for (int idx = 0; idx < LCPARAMS; idx++) {
+                    if (!arrayTokens[1].compare(0, lb_params[idx].length(), lb_params[idx])) {
+                        logbook[idx] = arrayTokens[1].substr(lb_params[idx].length(), string::npos);
+                        break;
+                    }
+                }
+            }
         } else if (arrayTokens[0] == "end") {
             break;
         } else if (arrayTokens[0] == "output") {
             outfile = strdup(arrayTokens[1].c_str());
         } else if (arrayTokens[0] == "hostname") {
-            hostname = arrayTokens[1] + " ";
+            hostname = arrayTokens[1];
+            prefix = arrayTokens[1] + " ";
         } else if (arrayTokens[0] == "timeout") {
             delay = atoi(arrayTokens[1].c_str());
             if (delay < 0)
@@ -300,10 +345,10 @@ static void stats(int verbose)
                   (1000000LL * start.tv_sec + start.tv_usec);
         runtime /= 1000000.;
         fprintf(stderr, "%sruntime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
-                hostname.c_str(), runtime, record_cnt, ((double) record_cnt) / runtime);
+                prefix.c_str(), runtime, record_cnt, ((double) record_cnt) / runtime);
         fflush(stderr);
     } else {
-        fprintf(stderr, "%sstill waiting to initialize.\n", hostname.c_str());
+        fprintf(stderr, "%sstill waiting to initialize.\n", prefix.c_str());
         fflush(stderr);
     }
     if (verbose)
@@ -385,11 +430,11 @@ void cleanup(void)
                   (1000000LL * start.tv_sec + start.tv_usec);
         runtime /= 1000000.;
         fprintf(stderr, "%sstopped, runtime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
-                hostname.c_str(), runtime, record_cnt, ((double) record_cnt) / runtime);
+                prefix.c_str(), runtime, record_cnt, ((double) record_cnt) / runtime);
         fflush(stderr);
     } else {
         fprintf(stderr, "%sstopped, failed to initialize, no data recorded!\n",
-                hostname.c_str());
+                prefix.c_str());
         fflush(stderr);
     }
 }

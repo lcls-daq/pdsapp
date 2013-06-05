@@ -9,6 +9,10 @@
 #include<math.h>
 #include<netdb.h>
 #include<stdlib.h>
+#include<fcntl.h>
+#include<unistd.h>
+#include<errno.h>
+#include<sys/stat.h>
 
 #include<new>
 #include<vector>
@@ -25,6 +29,7 @@
 #include"pdsdata/bld/bldData.hh"
 #include"pds/service/NetServer.hh"
 #include"pds/service/Ins.hh"
+#include"LogBook/Connection.h"
 
 #include"yagxtc.hh"
 
@@ -89,6 +94,46 @@ static struct event {
     struct event *prev, *next;    // Linked list, sorted by timestamp.
 } events[MAX_EVENTS];
 static struct event *evlist = NULL; // The oldest event.  Its prev is the newest event.
+
+static FILE *myfopen(char *name, char *flags)
+{
+    FILE *fp = fopen(name, flags);
+    if (!fp)
+        return fp;
+    if (expid >= 0) {
+        /* We set this in a dbinfo, so we need to do some data mover magic! */
+        struct flock flk;
+        int rc;
+
+        flk.l_type  = F_WRLCK;
+        flk.l_whence = SEEK_SET;
+        flk.l_start = 0;
+        flk.l_len = 0;
+        do {
+            rc = fcntl(fileno(fp), F_SETLKW, &flk);
+        } while (rc < 0 && errno == EINTR);
+        if (rc < 0) {
+            /* This can't be good.  Better not tell the data mover about it! */
+            return fp;
+        }
+        try {
+            LogBook::Connection *conn;
+            conn = LogBook::Connection::open(logbook[0], logbook[1], logbook[2], logbook[3],
+                                             logbook[4], logbook[5], logbook[6], logbook[7],
+                                             logbook[8], logbook[9], logbook[10], logbook[11]);
+            conn->beginTransaction();
+            conn->reportOpenFile(expid, runnum, strnum, chunk, hostname, curdir + name);
+            conn->commitTransaction();
+        } catch (LogBook::DatabaseError* e) {
+            /* Is there anything really to do here? */
+        } catch (LogBook::ValueTypeMismatch* e) {
+            /* Is there anything really to do here? */
+        } catch (LogBook::WrongParams* e) {
+            /* Is there anything really to do here? */
+        }
+    }
+    return fp;
+}
 
 void debug_list(struct event *ev)
 {
@@ -254,7 +299,7 @@ void initialize_xtc(char *outfile)
         strcpy(fname, outfile);
         cpos = fname + i;
     }
-    if (!(fp = fopen(fname, "w"))) {
+    if (!(fp = myfopen(fname, "w"))) {
         printf("Cannot open %s for output!\n", fname);
         exit(0);
     } else
@@ -377,7 +422,7 @@ void send_event(struct event *ev)
 #endif
         fclose(fp);
         sprintf(cpos, "-c%02d.xtc", ++chunk);
-        if (!(fp = fopen(fname, "w"))) {
+        if (!(fp = myfopen(fname, "w"))) {
             printf("Cannot open %s for output!\n", fname);
             exit(0);
         } else
