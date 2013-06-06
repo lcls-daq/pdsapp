@@ -213,17 +213,10 @@ static void read_config_file(const char *name)
         } else if (arrayTokens[0] == "dbinfo") {
             /* dbinfo username expid run stream */
             if (arrayTokens.size() >= 5) {
-                char buf[4096];
-                if (getcwd(buf, 4096) != NULL) {
-                    curdir = buf;
-                    curdir += "/";
-                    username = arrayTokens[1];
-                    expid = atoi(arrayTokens[2].c_str());
-                    runnum = atoi(arrayTokens[3].c_str());
-                    strnum = atoi(arrayTokens[4].c_str());
-                } else {
-                    /* Report an error?!? */
-                }
+                username = arrayTokens[1];
+                expid = atoi(arrayTokens[2].c_str());
+                runnum = atoi(arrayTokens[3].c_str());
+                strnum = atoi(arrayTokens[4].c_str());
             }
         } else if (arrayTokens[0] == "logbook") {
             if (arrayTokens.size() >= 2) {
@@ -240,6 +233,7 @@ static void read_config_file(const char *name)
             outfile = strdup(arrayTokens[1].c_str());
         } else if (arrayTokens[0] == "hostname") {
             hostname = arrayTokens[1];
+            curdir = NFSBASE + arrayTokens[1] + "/";
             prefix = arrayTokens[1] + " ";
         } else if (arrayTokens[0] == "timeout") {
             delay = atoi(arrayTokens[1].c_str());

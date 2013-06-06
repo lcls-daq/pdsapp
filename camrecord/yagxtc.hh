@@ -5,6 +5,7 @@
 #define DEFAULT_DIR "/reg/neh/home1/mcbrowne/lib"
 #define DEFAULT_CFG ".camrecord"
 #define POSIX_TIME_AT_EPICS_EPOCH 631152000u
+#define NFSBASE     "/reg/d/cameras/"
 
 /* Flags for how the epicsTime can be messed up */
 #define REVTIME_NONE   0
