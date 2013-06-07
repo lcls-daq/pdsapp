@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <glob.h>
 
 using namespace Pds_ConfigDb;
 
@@ -20,6 +21,7 @@ static string assign_device_alias_cmd("--assign-device-alias");
 static string create_expt_alias_cmd("--create-expt-alias");
 static string copy_expt_alias_cmd("--copy-expt-alias");
 static string assign_expt_alias_cmd("--assign-expt-alias");
+static string validate_cmd("--validate");
 
 void print_help(const char* p)
 {
@@ -53,6 +55,8 @@ void print_help(const char* p)
   printf(" --update-keys\n");
   printf( "  Branch a new db\n");
   printf(" --branch\n");
+  printf("   Validate a db / check consistentcy\n");
+  printf(" --validate\n");
 }
 
 int main(int argc, char** argv)
@@ -93,6 +97,16 @@ int main(int argc, char** argv)
       printf("\n==NEWDB==\n");
       newdb->dump();
       delete newdb;
+    }
+    else if (cmd==validate_cmd) {
+      lwrite=false;
+      glob_t g;
+      glob(path.key_path("[0-9,a-f]*").c_str(),0,0,&g);
+      printf("Found %d[0x%x] global keys ending in %s\n",
+             g.gl_pathc,
+             g.gl_pathc,
+             g.gl_pathv[g.gl_pathc-1]);
+      globfree(&g);
     }
     else {
       string dev(argv[3]);

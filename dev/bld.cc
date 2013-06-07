@@ -46,6 +46,7 @@
 #include "pds/config/AcqConfigType.hh"
 #include "pds/config/IpimbConfigType.hh"
 #include "pds/config/IpmFexConfigType.hh"
+#include "pds/config/Opal1kConfigType.hh"
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/PimImageConfigType.hh"
 #include "pds/config/FrameFexConfigType.hh"
@@ -60,7 +61,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static const unsigned MAX_EVENT_SIZE = 4*1024*1024;
+static const unsigned MAX_EVENT_SIZE = 8*1024*1024;
 static const unsigned NetBufferDepth = 32;
 static const char _tc_init[] = { 0*1024 };
 static const FrameFexConfigType _frameFexConfig(FrameFexConfigType::FullFrame, 1,
@@ -82,23 +83,23 @@ namespace Pds {
       uint64_t key = tc.contains.value();
       key = (key<<32) | tc.src.phy();
       if (_map.find(key)==_map.end()) {
-  char fname[64];
-  sprintf(fname,"%s/%08x.%08x",_path,unsigned(key>>32),unsigned(key&0xffffffff));
-  FILE* f = fopen(fname,"r");
-  if (!f) {
-    printf("Failed to open %s\n",fname);
-    return 0;
-  }
-  printf("Opened %s\n",fname);
-  unsigned len = tc.sizeofPayload();
-  char* c = new char[len];
-  fread(c,len,1,f);
-  fclose(f);
-  _map[key] = Entry(len,c);
+        char fname[64];
+        sprintf(fname,"%s/%08x.%08x",_path,unsigned(key>>32),unsigned(key&0xffffffff));
+        FILE* f = fopen(fname,"r");
+        if (!f) {
+          printf("Failed to open %s\n",fname);
+          return 0;
+        }
+        printf("Opened %s\n",fname);
+        unsigned len = tc.sizeofPayload();
+        char* c = new char[len];
+        fread(c,len,1,f);
+        fclose(f);
+        _map[key] = Entry(len,c);
       }
       return _map[key].payload;
     }
-
+    
     void update(const Xtc& tc, const char* payload, unsigned len) {
       uint64_t key = tc.contains.value();
       key = (key<<32) | tc.src.phy();
@@ -109,13 +110,13 @@ namespace Pds {
 
     void store() {
       for(std::map<uint64_t,Entry>::iterator it=_map.begin(); it!=_map.end(); it++) {
-  uint64_t key = it->first;
-  char fname[64];
-  sprintf(fname,"%s/%08x.%08x",_path,unsigned(key>>32),unsigned(key&0xffffffff));
-  FILE* f = fopen(fname,"w");
-  if (!f) continue;
-  fwrite(it->second.payload,it->second.extent,1,f);
-  fclose(f);
+        uint64_t key = it->first;
+        char fname[64];
+        sprintf(fname,"%s/%08x.%08x",_path,unsigned(key>>32),unsigned(key&0xffffffff));
+        FILE* f = fopen(fname,"w");
+        if (!f) continue;
+        fwrite(it->second.payload,it->second.extent,1,f);
+        fclose(f);
       }
     }
   private:
@@ -174,21 +175,21 @@ namespace Pds {
   uint64_t PimMask =
     ((1ULL<<(BldInfo::HfxMonCam+1)) - (1ULL<<BldInfo::HxxDg1Cam)) |
     ((1ULL<<(BldInfo::CxiDg4Pim+1)) - (1ULL<<BldInfo::CxiDg1Pim));
-
-#define TEST_CREAT(mask, idType, dataType)        \
-  if (im & mask) {            \
-    Xtc tc(TypeId(TypeId::idType,dataType::version),    \
-     BldInfo(_pid,BldInfo::Type(i)));                       \
-    tc.extent += sizeof(dataType);        \
-    dg->insert(tc,_tc_init);          \
+  uint64_t OpalMask = 1ULL<<BldInfo::CxiDg3Spec;
+#define TEST_CREAT(mask, idType, dataType)                  \
+  if (im & mask) {                                          \
+    Xtc tc(TypeId(TypeId::idType,dataType::version),        \
+           BldInfo(_pid,BldInfo::Type(i)));                 \
+    tc.extent += sizeof(dataType);                          \
+    dg->insert(tc,_tc_init);                                \
   }
-#define TEST_CACHE(mask, idType, dataType)        \
-  if (im & mask) {            \
+#define TEST_CACHE(mask, idType, dataType)                        \
+  if (im & mask) {                                                \
     Xtc tc(idType, BldInfo(_pid,BldInfo::Type(i)));               \
-    tc.extent += sizeof(dataType);        \
-    char* p = _cache.fetch(tc);         \
-    if (p)              \
-      dg->insert(tc,p);           \
+    tc.extent += sizeof(dataType);                                \
+    char* p = _cache.fetch(tc);                                   \
+    if (p)                                                        \
+      dg->insert(tc,p);                                           \
   }
 
   for(unsigned i=0; i<BldInfo::NumberOf; i++) {
@@ -211,6 +212,12 @@ namespace Pds {
         tc.extent += sizeof(FrameFexConfigType);
         dg->insert(tc,&_frameFexConfig);
       }
+      TEST_CACHE(OpalMask       ,_opal1kConfigType   ,Opal1kConfigType);
+      if (im & OpalMask) {
+        Xtc tc(_frameFexConfigType, BldInfo(_pid,BldInfo::Type(i)));
+        tc.extent += sizeof(FrameFexConfigType);
+        dg->insert(tc,&_frameFexConfig);
+      }
       //      TEST_CACHE(AcqMask        ,Id_SharedAcq      ,BldDataAcqADC);
     }
   }
@@ -227,11 +234,17 @@ namespace Pds {
       return tr;
     }
   public:
-#define INSERT(t,v) {             \
+#define INSERT(t,v) {                                                   \
       Xtc tc(TypeId(TypeId::Id_##t,v.Version), xtc->src, xtc->damage);  \
-      tc.extent += sizeof(v);           \
-      _dg->insert(tc,&v);           \
+      tc.extent += sizeof(v);                                           \
+      _dg->insert(tc,&v);                                               \
     }
+#define REQUIRE(id)                                                     \
+    case TypeId::Id_##id:                                               \
+    if (_require(*xtc,*reinterpret_cast<const id##Type*>(xtc->payload()))) \
+      _dg->insert(*xtc,xtc->payload());                                 \
+        break; 
+
     int process(Xtc* xtc) {
       //  Change the Src process ID to this one
       switch(xtc->src.level()) {
@@ -247,66 +260,55 @@ namespace Pds {
         break;
       }
       switch(xtc->contains.id()) {
-  //  Iterate through hierarchy
+        //  Iterate through hierarchy
       case TypeId::Id_Xtc: iterate(xtc); break;
-  //
-  //  Split compound data types
-  //
+        //
+        //  Split compound data types
+        //
       case TypeId::Id_SharedIpimb:
-  if (xtc->contains.version() == BldDataIpimb::version) {
-    const BldDataIpimb* c = reinterpret_cast<const BldDataIpimb*>(xtc->payload());
-    if (_require(Xtc(_ipimbConfigType,xtc->src),c->ipimbConfig))
-      INSERT(IpimbConfig,c->ipimbConfig);
-    INSERT(IpimbData,c->ipimbData);
-    INSERT(IpmFex,c->ipmFexData);
-  }
-  else
-    _abort(xtc->contains);
-  break;
+        if (xtc->contains.version() == BldDataIpimb::version) {
+          const BldDataIpimb* c = reinterpret_cast<const BldDataIpimb*>(xtc->payload());
+          if (_require(Xtc(_ipimbConfigType,xtc->src),c->ipimbConfig))
+            INSERT(IpimbConfig,c->ipimbConfig);
+          INSERT(IpimbData,c->ipimbData);
+          INSERT(IpmFex,c->ipmFexData);
+        }
+        else
+          _abort(xtc->contains);
+        break;
       case TypeId::Id_SharedPim:
-  if (xtc->contains.version() == BldDataPimV1::version) {
-    const BldDataPimV1* c = reinterpret_cast<const BldDataPimV1*>(xtc->payload());
-    if (_require(Xtc(_pimImageConfigType,xtc->src),c->pimConfig))
-      INSERT(PimImageConfig,c->pimConfig);
-    if (_require(Xtc(_tm6740ConfigType,xtc->src),c->camConfig))
-      INSERT(TM6740Config,c->camConfig);
-    INSERT(Frame,c->frame);
-  }
-  else
-    _abort(xtc->contains);
-  break;
+        if (xtc->contains.version() == BldDataPimV1::version) {
+          const BldDataPimV1* c = reinterpret_cast<const BldDataPimV1*>(xtc->payload());
+          if (_require(Xtc(_pimImageConfigType,xtc->src),c->pimConfig))
+            INSERT(PimImageConfig,c->pimConfig);
+          if (_require(Xtc(_tm6740ConfigType,xtc->src),c->camConfig))
+            INSERT(TM6740Config,c->camConfig);
+          INSERT(Frame,c->frame);
+        }
+        else
+          _abort(xtc->contains);
+        break;
       case TypeId::Id_SharedAcqADC:
-  if (xtc->contains.version() == BldDataAcqADC::version) {
-    const BldDataAcqADC* c = reinterpret_cast<const BldDataAcqADC*>(xtc->payload());
-    if (_require(Xtc(_acqConfigType,xtc->src),c->config))
-      INSERT(AcqConfig,c->config);
-    INSERT(AcqWaveform,c->data);
-  }
-  else
-    _abort(xtc->contains);
-  break;
-  //
-  //  Sparsify redundant configuration data
-  //
-      case TypeId::Id_AcqConfig:
-  if (_require(*xtc,*reinterpret_cast<const AcqConfigType*>(xtc->payload())))
-    _dg->insert(*xtc,xtc->payload());
-  break;
-      case TypeId::Id_IpimbConfig:
-  if (_require(*xtc,*reinterpret_cast<const IpimbConfigType*>(xtc->payload())))
-    _dg->insert(*xtc,xtc->payload());
-  break;
-      case TypeId::Id_TM6740Config:
-  if (_require(*xtc,*reinterpret_cast<const TM6740ConfigType*>(xtc->payload())))
-    _dg->insert(*xtc,xtc->payload());
-  break;
-      case TypeId::Id_PimImageConfig:
-  if (_require(*xtc,*reinterpret_cast<const PimImageConfigType*>(xtc->payload())))
-    _dg->insert(*xtc,xtc->payload());
-  break;
+        if (xtc->contains.version() == BldDataAcqADC::version) {
+          const BldDataAcqADC* c = reinterpret_cast<const BldDataAcqADC*>(xtc->payload());
+          if (_require(Xtc(_acqConfigType,xtc->src),c->config))
+            INSERT(AcqConfig,c->config);
+          INSERT(AcqWaveform,c->data);
+        }
+        else
+          _abort(xtc->contains);
+        break;
+        //
+        //  Sparsify redundant configuration data
+        //
+      REQUIRE(AcqConfig   )
+      REQUIRE(IpimbConfig )
+      REQUIRE(TM6740Config)
+      REQUIRE(PimImageConfig)
+      REQUIRE(Opal1kConfig)
       default:
-  _dg->insert(*xtc,xtc->payload());
-  break;
+        _dg->insert(*xtc,xtc->payload());
+        break;
       }
 
       return 1;
@@ -325,31 +327,42 @@ namespace Pds {
     bool _require(const Xtc& xtc, const PimImageConfigType& c) {
       void* p = _cache.fetch(xtc);
       if (!p || memcmp(p,&c,sizeof(c))) {
-  _cache.update(xtc, (const char*)&c, sizeof(c));
-  if (!p) _reconfigure(xtc);
-  return true;
+        _cache.update(xtc, (const char*)&c, sizeof(c));
+        if (!p) _reconfigure(xtc);
+        return true;
       }
       return false;
     }
 
     bool _require(const Xtc& xtc,
-      const TM6740ConfigType& c) {
+                  const TM6740ConfigType& c) {
       void* p = _cache.fetch(xtc);
       if (!p || memcmp(p,&c,sizeof(c))) {
-  _cache.update(xtc, (const char*)&c, sizeof(c));
-  _reconfigure(xtc);
-  return true;
+        _cache.update(xtc, (const char*)&c, sizeof(c));
+        _reconfigure(xtc);
+        return true;
       }
       return false;
     }
 
     bool _require(const Xtc& xtc,
-      const AcqConfigType& c) {
+                  const Opal1kConfigType& c) {
+      void* p = _cache.fetch(xtc);
+      if (!p || memcmp(p,&c,sizeof(c))) {
+        _cache.update(xtc, (const char*)&c, sizeof(c));
+        _reconfigure(xtc);
+        return true;
+      }
+      return false;
+    }
+
+    bool _require(const Xtc& xtc,
+                  const AcqConfigType& c) {
       char* p = _cache.fetch(xtc);
       if (!p || memcmp(p,&c,sizeof(c))) {
-  _cache.update(xtc, (const char*)&c, sizeof(c));
-  _reconfigure(xtc);
-  return true;
+        _cache.update(xtc, (const char*)&c, sizeof(c));
+        _reconfigure(xtc);
+        return true;
       }
       return false;
     }

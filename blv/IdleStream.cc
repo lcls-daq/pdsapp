@@ -107,6 +107,7 @@ void IdleStream::enable()
   transition(Transition(TransitionId::BeginRun       , Env(0)));
   transition(Transition(TransitionId::BeginCalibCycle, Env(0)));
   transition(Transition(TransitionId::Enable         , Env(0x80000000)));
+  transition(Transition(TransitionId::L1Accept       , Env(0)));
   printf("IdleStream::enable complete\n");
 }
 
@@ -126,14 +127,14 @@ void IdleStream::transition(const Transition& tr)
   _sem.take();
   if (_wire) {
     _wire  ->post(*new(&_pool) Transition(tr));
-    if (tr.id()!=TransitionId::Unmap)
+    if (tr.id()!=TransitionId::Unmap && tr.id()!=TransitionId::L1Accept)
       _wire->post(*new(&_pool) CDatagram(Datagram(tr,_xtcType,_src)));
     else
       _sem.give();
   }
   else {
     inlet()->post(new(&_pool) Transition(tr));
-    if (tr.id()!=TransitionId::Unmap)
+    if (tr.id()!=TransitionId::Unmap && tr.id()!=TransitionId::L1Accept)
       inlet()->post(new(&_pool) CDatagram(Datagram(tr,_xtcType,_src)));
     else
       _sem.give();

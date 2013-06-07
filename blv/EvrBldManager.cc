@@ -64,6 +64,7 @@ public:
     _evrBldMgr->start();
     return tr;
   }
+
 private:
   EvrBldManager* _evrBldMgr;  
 };
@@ -102,7 +103,7 @@ EvrBldManager::EvrBldManager(const DetInfo&        src,
   
   _fsm.callback(TransitionId::Map      ,new EvrBldMapAction(this));
   _fsm.callback(TransitionId::Configure,new EvrBldConfigAction(this));
-  _fsm.callback(TransitionId::Enable,   new EvrBldEnableAction(this));
+  _fsm.callback(TransitionId::L1Accept, new EvrBldEnableAction(this));
   _fsm.callback(TransitionId::Disable,  new EvrBldDisableAction(this));
 }
 

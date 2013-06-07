@@ -1,4 +1,5 @@
-#include "pdsapp/blv/ToBldEventWire.hh"
+#include "pdsapp/blv/ToPimBldEventWire.hh"
+#include "pdsapp/blv/ToOpalBldEventWire.hh"
 #include "pdsapp/blv/EvrBldServer.hh"
 #include "pdsapp/blv/PipeStream.hh"
 #include "pds/management/EventBuilder.hh"
@@ -27,6 +28,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+using namespace Pds;
 
 class CamParams {
 public:
@@ -59,8 +62,6 @@ static int openFifo(const char* name, int flags, unsigned index) {
   printf("FIFO %s opened.\n",path);
   return result;
 }
-
-using namespace Pds;
 
 void usage(const char* p) {
   printf("Usage: %s -i <multicast interface> -c <cam parameters> -n <client index>\n",p);
@@ -105,6 +106,10 @@ int main(int argc, char** argv) {
   unsigned interface(0);
   unsigned client(0);
   CamParams cam;
+  cam.detector    = DetInfo::NoDetector;
+  cam.detector_id = 0;
+  cam.device      = DetInfo::NoDevice;
+  cam.device_id   = 0;
 
   extern char* optarg;
   char* endPtr;
@@ -115,14 +120,15 @@ int main(int argc, char** argv) {
       interface = parse_network(optarg);
       break;
     case 'c':
-      { cam.bld_id      = strtoul(optarg  ,&endPtr,0);
+      {
+        cam.bld_id      = strtoul(optarg  ,&endPtr,0);
         DetInfo info(endPtr+1);
         if (info.detector() != DetInfo::NumDetector) {
           cam.detector    = info.detector();
           cam.detector_id = info.detId();
           cam.device      = info.device();
           cam.device_id   = info.devId();
-          endPtr += strlen(DetInfo::name(info)+1);
+          endPtr += strlen(DetInfo::name(info))+1;
         }
         else {
           cam.detector    = strtoul(endPtr+1,&endPtr,0);
@@ -132,6 +138,16 @@ int main(int argc, char** argv) {
         }
         cam.grabber_id  = strtoul(endPtr+1,&endPtr,0);
         cam.wait_us     = strtoul(endPtr+1,&endPtr,0);
+        
+        printf("Parsed cam parameters bld %s  cam %s  grabber %d  delay %d\n",
+               BldInfo::name(BldInfo(0,BldInfo::Type(cam.bld_id))),
+               DetInfo::name(DetInfo(0,DetInfo::Detector(cam.detector),
+                                     cam.detector_id,
+                                     DetInfo::Device(cam.device),
+                                     cam.device_id)),
+               cam.grabber_id,
+               cam.wait_us);
+
       } break;
     case 'n':
       client = strtoul(optarg,&endPtr,0);
@@ -167,14 +183,26 @@ int main(int argc, char** argv) {
   PipeStream* stream = new PipeStream(idleSrc, read_fd);
              
   BldInfo bld(node.pid(),(BldInfo::Type)cam.bld_id);
-  ToBldEventWire* outlet = new ToBldEventWire(*stream->outlet(), 
-                                              interface,
-                                              write_fd,
-                                              bld,
-                                              cam.wait_us);
-  
+  ToBldEventWire* outlet;
+  switch(bld.type()) {
+  case BldInfo::CxiDg3Spec:
+    outlet = new ToOpalBldEventWire(*stream->outlet(), 
+                                    interface,
+                                    write_fd,
+                                    bld,
+                                    cam.wait_us);
+    break;
+  default:
+    outlet = new ToPimBldEventWire(*stream->outlet(), 
+                                   interface,
+                                   write_fd,
+                                   bld,
+                                   cam.wait_us);
+    break;
+  }
+    
   //  create the inlet wire/event builder
-  const int MaxSize = 0x100000;
+  const int MaxSize = 0x900000;
   const int ebdepth = 32;
   InletWire* iwire = new L1EventBuilder(idleSrc, _xtcType, Level::Segment, *stream->inlet(),
                                         *outlet, 0, 0x7f000001, MaxSize, ebdepth, 0);

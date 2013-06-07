@@ -53,6 +53,7 @@ static QList<int> _bldOrder =
          << BldInfo::CxiDg4Imb01
          << BldInfo::CxiDg1Pim
          << BldInfo::CxiDg2Pim
+         << BldInfo::CxiDg3Spec
          << BldInfo::CxiDg4Pim
          << BldInfo::NumberOf;
 
@@ -73,7 +74,11 @@ static FILE* open_pref(const char* title, unsigned platform, const char* mode)
   
   FILE* f = fopen(buff,mode);
   if (!f) {
-    printf("Failed to open %s\n", buff);
+    std::string msg("Failed to open ");
+    msg.append(buff);
+    msg.append(" in mode ");
+    msg.append(mode);
+    perror(msg.c_str());
   }
   delete[] buff;
 

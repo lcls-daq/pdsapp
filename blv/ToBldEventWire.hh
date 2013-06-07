@@ -13,9 +13,9 @@
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/Sequence.hh"
 
-#include "pdsdata/bld/bldData.hh"
-
 namespace Pds {
+
+  namespace Camera { class FrameV1; };
 
   class Outlet;
 
@@ -26,36 +26,40 @@ namespace Pds {
                    int            interface, 
                    int            write_fd,
                    const BldInfo& bld,
-                   unsigned       wait_us);
-    ~ToBldEventWire();
+                   unsigned       wait_us,
+                   unsigned       extent);
+    virtual ~ToBldEventWire();
 
-    virtual Transition* forward(Transition* tr);
-    virtual Occurrence* forward(Occurrence* tr);
-    virtual InDatagram* forward(InDatagram* in);
-    virtual void bind(NamedConnection, const Ins& );
-    virtual void bind(unsigned id, const Ins& node);
-    virtual void unbind(unsigned id);
+    Transition* forward(Transition* tr);
+    Occurrence* forward(Occurrence* tr);
+    InDatagram* forward(InDatagram* in);
+    void bind(NamedConnection, const Ins& );
+    void bind(unsigned id, const Ins& node);
+    void unbind(unsigned id);
     
     // Debugging
-    virtual void dump(int detail);
-    virtual void dumpHistograms(unsigned tag, const char* path);
-    virtual void resetHistograms();
+    void dump(int detail);
+    void dumpHistograms(unsigned tag, const char* path);
+    void resetHistograms();
 	
     bool isempty() const {return true;}
   private:
     int process(Xtc* xtc);
-    void _send(const Xtc* xtc,
-                const Camera::FrameV1&);
+    void _send(const Xtc* inxtc,
+               const Camera::FrameV1& frame);
+  private:
+    virtual void _handle_config(const Xtc* ) = 0;
+    virtual void _attach_config(InDatagram*) = 0;
+  protected:
+    const BldInfo&                    _bld;
+
   private:
     ToNetEb                           _postman;
-    const BldInfo&                    _bld;
     int                               _write_fd;
     GenericPoolW                      _pool;
     Sequence                          _seq;
     unsigned                          _wait_us;
     Task*                             _task;
-    Pds::Pulnix::TM6740ConfigV2       _camConfig;
-    Pds::Lusi::PimImageConfigV1       _pimConfig;
   };
 }
 

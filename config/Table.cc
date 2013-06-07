@@ -226,6 +226,7 @@ void Table::dump(const string& path) const
       printf("[%s,%s]\t",fiter->name().c_str(),fiter->entry().c_str());
     printf("\n");
   }
+  printf("next_key %d [0x%x]\n", _next_key, _next_key );
 }
 
 //  Return a copied list of strings of the names of each entry

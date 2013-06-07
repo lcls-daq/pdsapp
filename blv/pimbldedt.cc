@@ -1,4 +1,4 @@
-#include "pdsapp/blv/ToBldEventWire.hh"
+#include "pdsapp/blv/ToPimBldEventWire.hh"
 #include "pdsapp/blv/EvrBldServer.hh"
 #include "pdsapp/blv/PipeStream.hh"
 #include "pds/management/EventBuilder.hh"
@@ -153,11 +153,11 @@ int main(int argc, char** argv) {
   PipeStream* stream = new PipeStream(idleSrc, read_fd);
              
   BldInfo bld(node.pid(),(BldInfo::Type)cam.bld_id);
-  ToBldEventWire* outlet = new ToBldEventWire(*stream->outlet(), 
-                                              interface,
-                                              write_fd,
-                                              bld,
-                                              cam.wait_us);
+  ToBldEventWire* outlet = new ToPimBldEventWire(*stream->outlet(), 
+                                                 interface,
+                                                 write_fd,
+                                                 bld,
+                                                 cam.wait_us);
   
   //  create the inlet wire/event builder
   const int MaxSize = 0x100000;

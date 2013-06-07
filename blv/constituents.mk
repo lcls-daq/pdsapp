@@ -90,7 +90,7 @@ tgtlibs_ipmbldsim += pdsapp/configdb $(qtlibdir)
 tgtlibs_ipmbldsim += pds/ipimb
 tgtslib_ipmbldsim := $(qtslibdir)
 
-tgtsrcs_pimbld := pimbld.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
+tgtsrcs_pimbld := pimbld.cc ToPimBldEventWire.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_pimbld := $(commonlibs) $(datalibs)
 tgtlibs_pimbld += pdsapp/configdb $(qtlibdir)
 tgtlibs_pimbld += pds/camera
@@ -98,7 +98,7 @@ tgtlibs_pimbld += $(leutron_libs)
 tgtslib_pimbld := $(qtslibdir)
 tgtincs_pimbld := leutron/include
 
-tgtsrcs_cambld := cambld.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
+tgtsrcs_cambld := cambld.cc ToOpalBldEventWire.cc ToPimBldEventWire.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_cambld := $(commonlibs) $(datalibs)
 tgtlibs_cambld += pdsapp/configdb $(qtlibdir)
 tgtlibs_cambld += pds/camera
@@ -106,7 +106,7 @@ tgtlibs_cambld += $(leutron_libs)
 tgtslib_cambld := $(qtslibdir)
 tgtincs_cambld := leutron/include
 
-tgtsrcs_pimbldedt := pimbldedt.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
+tgtsrcs_pimbldedt := pimbldedt.cc ToPimBldEventWire.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_pimbldedt := $(commonlibs) $(datalibs)
 tgtlibs_pimbldedt += pdsapp/configdb $(qtlibdir)
 tgtlibs_pimbldedt += pds/camera
