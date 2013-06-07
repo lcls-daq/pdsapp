@@ -23,52 +23,52 @@ static std::vector<Pds::DetInfo>    _info;
 static unsigned nprint=0;
 
 #define XA0(x)  ((((x) & 0x00000000000000ffull) <<  8) | \
-                 (((x) & 0x000000000000ff00ull) >>  8))
+    (((x) & 0x000000000000ff00ull) >>  8))
 
 #define XA1(x)  ((((x) & 0x00000000000000ffull) << 24) | \
-                 (((x) & 0x000000000000ff00ull) <<  8))
+    (((x) & 0x000000000000ff00ull) <<  8))
 
 #define XA2(x)  ((((x) & 0x00000000000000ffull) << 40) | \
-                 (((x) & 0x000000000000ff00ull) << 24))
+    (((x) & 0x000000000000ff00ull) << 24))
 
 #define XA3(x)  ((((x) & 0x00000000000000ffull) << 56) | \
-                 (((x) & 0x000000000000ff00ull) << 40))
+    (((x) & 0x000000000000ff00ull) << 40))
 
 #define XB0(x)  ((((x) & 0x0000000000ff0000ull) >>  8) | \
-                 (((x) & 0x00000000ff000000ull) >> 24))
+    (((x) & 0x00000000ff000000ull) >> 24))
 
 #define XB1(x)  ((((x) & 0x0000000000ff0000ull) <<  8) | \
-                 (((x) & 0x00000000ff000000ull) >>  8))
+    (((x) & 0x00000000ff000000ull) >>  8))
 
 #define XB2(x)  ((((x) & 0x0000000000ff0000ull) << 24) | \
-                 (((x) & 0x00000000ff000000ull) <<  8))
+    (((x) & 0x00000000ff000000ull) <<  8))
 
 #define XB3(x)  ((((x) & 0x0000000000ff0000ull) << 40) | \
-                 (((x) & 0x00000000ff000000ull) << 24))
+    (((x) & 0x00000000ff000000ull) << 24))
 
 #define XC0(x)  ((((x) & 0x000000ff00000000ull) >> 24) | \
-                 (((x) & 0x0000ff0000000000ull) >> 40))
+    (((x) & 0x0000ff0000000000ull) >> 40))
 
 #define XC1(x)  ((((x) & 0x000000ff00000000ull) >>  8) | \
-                 (((x) & 0x0000ff0000000000ull) >> 24))
+    (((x) & 0x0000ff0000000000ull) >> 24))
 
 #define XC2(x)  ((((x) & 0x000000ff00000000ull) <<  8) | \
-                 (((x) & 0x0000ff0000000000ull) >>  8))
+    (((x) & 0x0000ff0000000000ull) >>  8))
 
 #define XC3(x)  ((((x) & 0x000000ff00000000ull) << 24) | \
-                 (((x) & 0x0000ff0000000000ull) <<  8))
+    (((x) & 0x0000ff0000000000ull) <<  8))
 
 #define XD0(x)  ((((x) & 0x00ff000000000000ull) >> 40) | \
-                 (((x) & 0xff00000000000000ull) >> 56))
+    (((x) & 0xff00000000000000ull) >> 56))
 
 #define XD1(x)  ((((x) & 0x00ff000000000000ull) >> 24) | \
-                 (((x) & 0xff00000000000000ull) >> 40))
+    (((x) & 0xff00000000000000ull) >> 40))
 
 #define XD2(x)  ((((x) & 0x00ff000000000000ull) >>  8) | \
-                 (((x) & 0xff00000000000000ull) >> 24))
+    (((x) & 0xff00000000000000ull) >> 24))
 
 #define XD3(x)  ((((x) & 0x00ff000000000000ull) <<  8) | \
-                 (((x) & 0xff00000000000000ull) >>  8))
+    (((x) & 0xff00000000000000ull) >>  8))
 
 static PNCCD::Line buffer;
 
@@ -127,7 +127,7 @@ int PnccdShuffle::shuffle(void *invoid, void *outvoid, unsigned int nelements)
 }
 
 class myLevelIter : public XtcIterator {
-public:
+  public:
   enum {Stop, Continue};
   myLevelIter(Xtc* xtc, unsigned depth) : XtcIterator(xtc), _depth(depth) {}
 
@@ -135,9 +135,9 @@ public:
     for (unsigned i=0;i<cfg.numLinks();i++) {
       PNCCD::Line* line = (PNCCD::Line*)(const_cast<uint16_t*>(f->data()));
       for (unsigned j=0;j<PNCCD::Image::NumLines;j++) {
-	PnccdShuffle::shuffle(line,&buffer,sizeof(PNCCD::Line)/sizeof(uint16_t));
-	memcpy(line,&buffer,sizeof(PNCCD::Line));
-	line++;
+        PnccdShuffle::shuffle(line,&buffer,sizeof(PNCCD::Line)/sizeof(uint16_t));
+        memcpy(line,&buffer,sizeof(PNCCD::Line));
+        line++;
       }
       f = f->next(cfg);
     }
@@ -147,7 +147,7 @@ public:
     _config.push_back(config);
     _info  .push_back(info);
     printf("*** Processing pnCCD config.  Number of Links: %d, PayloadSize per Link: %d\n",
-           config.numLinks(),config.payloadSizePerLink());
+        config.numLinks(),config.payloadSizePerLink());
   }
 
   int process(Xtc* xtc) {
@@ -155,43 +155,43 @@ public:
     Level::Type level = xtc->src.level();
     if (level < 0 || level >= Level::NumberOfLevels )
     {
-        printf("Unsupported Level %d\n", (int) level);
-        return Continue;
+      printf("Unsupported Level %d\n", (int) level);
+      return Continue;
     }    
     switch (xtc->contains.id()) {
-    case (TypeId::Id_Xtc) : {
-      myLevelIter iter(xtc,_depth+1);
-      iter.iterate();
-      break;
-    }
-    case (TypeId::Id_pnCCDframe) : {
-      // check size is correct before re-ordering
-      for (unsigned k=0; k<_info.size(); k++)
-	if (_info[k] == info) {
-	  const PNCCD::ConfigV1& cfg = _config[k];
-	  int expected = cfg.numLinks()*(sizeof(PNCCD::Image)+sizeof(PNCCD::FrameV1));
-	  if (xtc->sizeofPayload()==expected) {
-	    process(info, (const PNCCD::FrameV1*)(xtc->payload()), cfg);
-	  } else {
-	    if (nprint++ < NPRINTMAX) {
-	      printf("*** Error: no reordering.  Found payloadsize 0x%x, expected 0x%x\n",
-		     xtc->sizeofPayload(),sizeof(PNCCD::Image));
-	    }
-	  }
-	  break;
-	}
-      break;
-    }
-    case (TypeId::Id_pnCCDconfig) : {
-      process(info, *(const PNCCD::ConfigV1*)(xtc->payload()));
-      break;
-    }
-    default :
-      break;
+      case (TypeId::Id_Xtc) : {
+        myLevelIter iter(xtc,_depth+1);
+        iter.iterate();
+        break;
+      }
+      case (TypeId::Id_pnCCDframe) : {
+        // check size is correct before re-ordering
+        for (unsigned k=0; k<_info.size(); k++)
+          if (_info[k] == info) {
+            const PNCCD::ConfigV1& cfg = _config[k];
+            int expected = cfg.numLinks()*(sizeof(PNCCD::Image)+sizeof(PNCCD::FrameV1));
+            if (xtc->sizeofPayload()==expected) {
+              process(info, (const PNCCD::FrameV1*)(xtc->payload()), cfg);
+            } else {
+              if (nprint++ < NPRINTMAX) {
+                printf("*** Error: no reordering.  Found payloadsize 0x%x, expected 0x%x\n",
+                    xtc->sizeofPayload(),sizeof(PNCCD::Image));
+              }
+            }
+            break;
+          }
+        break;
+      }
+      case (TypeId::Id_pnCCDconfig) : {
+        process(info, *(const PNCCD::ConfigV1*)(xtc->payload()));
+        break;
+      }
+      default :
+        break;
     }
     return Continue;
   }
-private:
+  private:
   unsigned _depth;
 };
 
