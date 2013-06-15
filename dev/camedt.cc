@@ -40,9 +40,9 @@ static bool verbose = false;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -c <channel> -C -v\n",p);
+  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -c <channel> -C <N> -v\n",p);
   printf("<detinfo> = integer/integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n");
-  printf("-C = compress data\n");
+  printf("-C <N> = compress data and copy every Nth event\n");
 }
 
 static Pds::CameraDriver* _driver(int id, int channel, const Pds::Src& src)
@@ -215,7 +215,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:c:L:Cv")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:c:L:C:v")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -237,6 +237,7 @@ int main(int argc, char** argv) {
       break;
     case 'C':
       lCompress = true;
+      FrameCompApp::setCopyPresample(strtoul(optarg, NULL, 0));
       break;
     case 'L':
       { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {

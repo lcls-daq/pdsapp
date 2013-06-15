@@ -38,8 +38,8 @@ static bool verbose = false;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> [-g <grabberId>] [-C] [-v] [-h]\n"
-         "       -C : compress data\n", p);
+  printf("Usage: %s -i <detinfo> -p <platform> [-g <grabberId>] [-C <N>] [-v] [-h]\n"
+         "       -C <N> : compress data and copy every N\n", p);
 }
 
 static void help()
@@ -49,6 +49,7 @@ static void help()
          "                          (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
          "  -p <platform>         platform number\n"
          "  -g <grabberId>        grabber ID (default=0)\n"
+         "  -C <N>                compress and copy every Nth event\n"
          "  -v                    be verbose (default=false)\n"
          "  -h                    help: print this message and exit\n");
 }
@@ -221,7 +222,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:L:Cvh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:L:C:vh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -256,6 +257,7 @@ int main(int argc, char** argv) {
       break;
     case 'C':
       lCompress = true;
+      FrameCompApp::setCopyPresample(strtoul(optarg, NULL, 0));
       break;
     case 'L':
       { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {

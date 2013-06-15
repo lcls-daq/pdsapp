@@ -212,7 +212,7 @@ void printUsage(char* s) {
       "                the index of the card and the top nybble being a port mask where one bit is for\n"
       "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
       "                applications that use the whole card\n"
-      "    -c      Set the compression active flag to given value\n"
+      "    -c <N>  Compress and copy every Nth event\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -287,7 +287,8 @@ int main( int argc, char** argv )
            printf("Cspad using pgpcard 0x%x\n", pgpcard);
            break;
          case 'c':
-           compressFlag = strtoul(optarg, NULL, 0) != 0;
+           compressFlag = 1;
+	   FrameCompApp::setCopyPresample(strtoul(optarg, NULL, 0));
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
