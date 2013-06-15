@@ -21,6 +21,8 @@
 #include "pds/config/CsPad2x2ConfigType.hh"
 #include "pds/config/CsPad2x2DataType.hh"
 #include "pdsdata/cspad/ElementIterator.hh"
+#include "pds/config/ImpConfigType.hh"
+#include "pds/config/ImpDataType.hh"
 
 #include "pds/service/Task.hh"
 
@@ -196,21 +198,64 @@ public:
     }
 
     //
-    //  Create several random frames (constant offset + spread)
+    //  Create several random frames (constant offset + spread by quadrant)
     //
-    const int spread=8;
     unsigned evtsz = (sizeof(Xtc) + sizeof(FrameV1) + width*height*((depth+7)/8));
     unsigned evtst = (evtsz + 3)&~3;
     _evtpayload = new char[NBuffers*evtst];
     for(unsigned i=0; i<NBuffers; i++) {
       _evttc[i] = new(_evtpayload+i*evtst) Xtc(TypeId(TypeId::Id_Frame,1),src);
       FrameV1* f = new(_evttc[i]->next()) FrameV1(width, height, depth, offset);
-      if (depth<=8)
-	for(unsigned j=0; j<f->data_size()/sizeof(uint8_t); j++)
-	  const_cast<uint8_t*>(f->data())[j] = (offset + (rand()%spread) - spread/2)&0xff;
-      else if (depth<=16)
-	for(unsigned j=0; j<f->data_size()/sizeof(uint16_t); j++)
-	  const_cast<uint16_t*>(reinterpret_cast<const uint16_t*>(f->data()))[j] = (offset + (rand()%spread) - spread/2)&0xff;
+      if (depth<=8) {
+	unsigned i,k=0;
+	for(i=0; i<f->height()/2; i++) {
+	  unsigned j;
+	  { const int mean   = offset/2;
+	    const int spread = offset/2;
+	    for(j=0; j<f->width()/2; j++,k++)
+	      const_cast<uint8_t*>(f->data())[k] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
+	  { const int mean   = offset;
+	    const int spread = offset;
+	    for(; j<f->width(); j++,k++)
+	      const_cast<uint8_t*>(f->data())[k] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
+	}
+	for(; i<f->height(); i++) {
+	  unsigned j;
+	  { const int mean   = offset;
+	    const int spread = offset;
+	    for(j=0; j<f->width()/2; j++,k++)
+	      const_cast<uint8_t*>(f->data())[k] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
+	  { const int mean   = offset/2;
+	    const int spread = offset/2;
+	    for(; j<f->width(); j++,k++)
+	      const_cast<uint8_t*>(f->data())[k] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
+	}
+      }
+      else if (depth<=16) {
+	unsigned i,k=0;
+	for(i=0; i<f->height()/2; i++) {
+	  unsigned j;
+	  { const int mean   = offset/2;
+	    const int spread = offset/2;
+	    for(j=0; j<f->width()/2; j++,k++)
+	      reinterpret_cast<uint16_t*>(const_cast<uint8_t*>(f->data()))[k] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
+	  { const int mean   = offset;
+	    const int spread = offset;
+	    for(; j<f->width(); j++,k++)
+	      reinterpret_cast<uint16_t*>(const_cast<uint8_t*>(f->data()))[k] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
+	}
+	for(; i<f->height(); i++) {
+	  unsigned j;
+	  { const int mean   = offset;
+	    const int spread = offset;
+	    for(j=0; j<f->width()/2; j++,k++)
+	      reinterpret_cast<uint16_t*>(const_cast<uint8_t*>(f->data()))[k] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
+	  { const int mean   = offset/2;
+	    const int spread = offset/2;
+	    for(; j<f->width(); j++,k++)
+	      reinterpret_cast<uint16_t*>(const_cast<uint8_t*>(f->data()))[k] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
+	}
+      }
       else
 	;
       _evttc[i]->extent += (f->data_size()+sizeof(FrameV1)+3)&~3;
@@ -404,6 +449,80 @@ private:
 };
 
 
+class SimImp : public SimApp {
+  enum { CfgSize = sizeof(ImpConfigType)+sizeof(Xtc) };
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    switch(info.device()) {
+    case DetInfo::Imp:
+      return true;
+    default:
+      break;
+    }
+    return false;
+  }
+public:
+  SimImp(const Src& src) 
+  {
+    _cfgpayload = new char[CfgSize];
+    _cfgtc = new(_cfgpayload) Xtc(_ImpConfigType,src);
+    ImpConfigType* cfg = new (_cfgtc->alloc(sizeof(ImpConfigType)))
+      ImpConfigType(ImpConfigType::defaultValue(ImpConfigType::Range),
+		    ImpConfigType::defaultValue(ImpConfigType::Cal_range),
+		    ImpConfigType::defaultValue(ImpConfigType::Reset),
+		    ImpConfigType::defaultValue(ImpConfigType::Bias_data),
+		    ImpConfigType::defaultValue(ImpConfigType::Cal_data),
+		    ImpConfigType::defaultValue(ImpConfigType::BiasDac_data),
+		    ImpConfigType::defaultValue(ImpConfigType::Cal_strobe),
+		    ImpConfigType::defaultValue(ImpConfigType::NumberOfSamples),
+		    ImpConfigType::defaultValue(ImpConfigType::TrigDelay),
+		    ImpConfigType::defaultValue(ImpConfigType::Adc_delay));
+    
+    const size_t sz = sizeof(ImpDataType)+cfg->get(ImpConfigType::NumberOfSamples)*sizeof(Pds::Imp::Sample)+sizeof(uint32_t);
+    unsigned evtsz = sz + sizeof(Xtc);
+    unsigned evtst = (evtsz+3)&~3;
+    _evtpayload = new char[NBuffers*evtst];
+
+    for(unsigned b=0; b<NBuffers; b++) {
+      _evttc[b] = new(_evtpayload+b*evtst) Xtc(_ImpDataType,src);
+      ImpDataType* q = new (_evttc[b]->alloc(sz)) ImpDataType;
+      //  Set the payload
+      uint16_t* p = reinterpret_cast<uint16_t*>(q+1);
+      uint16_t* e = p + cfg->get(ImpConfigType::NumberOfSamples)*Pds::Imp::channelsPerDevice;
+      unsigned o = 0x150 + ((rand()>>8)&0x7f);
+      while(p < e)
+	*p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
+    }
+  }
+  ~SimImp() 
+  {
+    delete[] _cfgpayload;
+    delete[] _evtpayload;
+  }
+private:
+  void _execute_configure() { _ibuffer=0; }
+  void _insert_configure(InDatagram* dg)
+  {
+    dg->insert(*_cfgtc,_cfgtc->payload());
+  }
+  void _insert_event(InDatagram* dg)
+  {
+    dg->insert(*_evttc[_ibuffer],_evttc[_ibuffer]->payload());
+    if (++_ibuffer == NBuffers) _ibuffer=0;
+  }
+public:
+  size_t max_size() const { return _evttc[0]->sizeofPayload(); }
+private:
+  char* _cfgpayload;
+  char* _evtpayload;
+  Xtc*  _cfgtc;
+  enum { NBuffers=16 };
+  Xtc*  _evttc[NBuffers];
+  unsigned _ibuffer;
+};
+
+
 //
 //  Implements the callbacks for attaching/dissolving.
 //  Appliances can be added to the stream here.
@@ -425,6 +544,8 @@ public:
       _app = new SimCspad(src);
     else if (SimCspad140k::handles(src))
       _app = new SimCspad140k(src);
+    else if (SimImp::handles(src))
+      _app = new SimImp(src);
 
     if (lCompress)
       _user_apps.push_front(new FrameCompApp(_app->max_size()));
@@ -486,7 +607,7 @@ void printUsage(char* s) {
 	  "                integer/integer/integer/integer or string/integer/string/integer\n"
 	  "                (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
 	  "    -v      Toggle verbose mode\n"
-	  "    -C      Compress frames\n"
+	  "    -C <N>  Compress frames and add uncompressed frame every N events\n"
 	  "    -O      Use OpenMP\n"
 	  "    -D <N>  Drop every N events\n"
 	  "    -T <S>,<N>  Delay S seconds every N events\n"
@@ -501,6 +622,7 @@ int main(int argc, char** argv) {
   const unsigned NO_PLATFORM = unsigned(-1UL);
   unsigned platform = NO_PLATFORM;
   bool lCompress = false;
+  unsigned nCompressCopy=0;
 
   DetInfo info;
   AppList user_apps;
@@ -508,7 +630,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:vCOD:T:L:P:S:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:vC:OD:T:L:P:S:h")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
@@ -525,6 +647,7 @@ int main(int argc, char** argv) {
       break;
     case 'C':
       lCompress = true;
+      FrameCompApp::setCopyPresample(strtoul(optarg, NULL, 0));
       break;
     case 'O':
       FrameCompApp::useOMP(true);
