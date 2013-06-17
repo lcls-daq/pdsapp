@@ -203,6 +203,7 @@ tgtslib_princetonsim := $(USRLIBDIR)/rt dl pthread
 tgtsrcs_simcam := simcam.cc 
 tgtsrcs_simcam += SimCam.cc
 tgtlibs_simcam := $(commonlibs) $(cam_libs)
+tgtlibs_simcam += pdsdata/impdata
 tgtlibs_simcam += pds/clientcompress pdsdata/compressdata
 tgtlibs_simcam += pds/camera pds/epicstools epics/ca epics/Com
 tgtslib_simcam := pthread rt dl
