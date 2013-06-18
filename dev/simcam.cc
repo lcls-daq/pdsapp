@@ -622,7 +622,6 @@ int main(int argc, char** argv) {
   const unsigned NO_PLATFORM = unsigned(-1UL);
   unsigned platform = NO_PLATFORM;
   bool lCompress = false;
-  unsigned nCompressCopy=0;
 
   DetInfo info;
   AppList user_apps;
