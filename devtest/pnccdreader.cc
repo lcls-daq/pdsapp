@@ -29,7 +29,7 @@ public:
   void patternCheck(unsigned link, const PNCCD::FrameV1* f) {
     PNCCD::Line* line = (PNCCD::Line*)(const_cast<uint16_t*>(f->data()));
     expectedPattern[3]=0;
-    for (unsigned j=0;j<PNCCD::Image::NumLines;j++) {
+    for (unsigned j=0;j<PNCCD::ImageQuadrant::NumLines;j++) {
       for (unsigned k=0;k<PNCCD::Camex::NumChan;k++) {
         for (unsigned l=0;l<PNCCD::Line::NumCamex;l++) {
           if (line->cmx[l].data[k]!=expectedPattern[l]) {

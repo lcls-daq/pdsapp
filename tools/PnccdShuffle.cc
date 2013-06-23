@@ -5,18 +5,20 @@
 #include <string.h>
 
 #include "pds/xtc/Datagram.hh"
+#include "pds/pnccd/FrameV0.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/XtcFileIterator.hh"
-#include "pdsdata/pnCCD/ConfigV1.hh"
+#include "pdsdata/pnCCD/ConfigV2.hh"
 #include "pdsdata/pnCCD/FrameV1.hh"
 #include "PnccdFrameDetail.hh"
 #include "PnccdShuffle.hh"
 
 #include <vector>
+#include <new>
 
-static std::vector<PNCCD::ConfigV1> _config;
+static std::vector<PNCCD::ConfigV2> _config;
 static std::vector<Pds::DetInfo>    _info;
 
 #define NPRINTMAX 32
@@ -70,15 +72,13 @@ static unsigned nprint=0;
 #define XD3(x)  ((((x) & 0x00ff000000000000ull) <<  8) | \
     (((x) & 0xff00000000000000ull) >>  8))
 
-static PNCCD::Line buffer;
-
 using namespace Pds;
 
 /*
  * shuffle - copy and reorder an array of 16-bit values
  *
  * This routine copies data from an input buffer to an output buffer
- * while also reording the data.
+ * while also reordering the data.
  * Input ordering: A1 B1 C1 D1 A2 B2 C2 D2 A3 B3 C3 D3...
  * Output ordering: 1A 2A 3A... 1B 2B 3B... 1C 2C 3C... 1D 2D 3D...
  *
@@ -94,7 +94,7 @@ using namespace Pds;
  * OUPUT PARAMETER:
  *
  *   out - Array of 16-bit elements where result of shuffle is stored.
- *         The caller is resposible for providing a valid pointer
+ *         The caller is responsible for providing a valid pointer
  *         to an output array equal in size but not overlapping the
  *         input array.
  *
@@ -126,73 +126,82 @@ int PnccdShuffle::shuffle(void *invoid, void *outvoid, unsigned int nelements)
   return 0;
 }
 
+static PNCCD::ImageQuadrant buffer[4];
+
 class myLevelIter : public XtcIterator {
   public:
-  enum {Stop, Continue};
-  myLevelIter(Xtc* xtc, unsigned depth) : XtcIterator(xtc), _depth(depth) {}
+    enum {Stop, Continue};
+    myLevelIter(Xtc* xtc, unsigned depth) : XtcIterator(xtc), _depth(depth) {}
 
-  void process(const DetInfo& d, const PNCCD::FrameV1* f, const PNCCD::ConfigV1& cfg) {
-    for (unsigned i=0;i<cfg.numLinks();i++) {
-      PNCCD::Line* line = (PNCCD::Line*)(const_cast<uint16_t*>(f->data()));
-      for (unsigned j=0;j<PNCCD::Image::NumLines;j++) {
-        PnccdShuffle::shuffle(line,&buffer,sizeof(PNCCD::Line)/sizeof(uint16_t));
-        memcpy(line,&buffer,sizeof(PNCCD::Line));
-        line++;
+    void process(const DetInfo& d, PNCCD::FrameV0* f, PNCCD::ConfigV2& cfg) {
+      for (unsigned i=0;i<cfg.numLinks();i++) {
+        _quads[i] = f->data();
+        PnccdShuffle::shuffle(
+            (f->data()),
+            &buffer[f->elementId()],
+            sizeof(PNCCD::ImageQuadrant)/sizeof(uint16_t));
+        f->convertThisToFrameV1();
+        f = f->next(cfg);
       }
-      f = f->next(cfg);
+      for (unsigned i=0;i<cfg.numLinks();i++) {
+        memcpy(_quads[i], &buffer[i].line[0].cmx[0].data[0], sizeof(PNCCD::ImageQuadrant));
+      }
+      new(&(this->_xtc->contains))Pds::TypeId(TypeId::Id_pnCCDframe, 1);
     }
-  }
 
-  void process(const DetInfo& info, const PNCCD::ConfigV1& config) {
-    _config.push_back(config);
-    _info  .push_back(info);
-    printf("*** Processing pnCCD config.  Number of Links: %d, PayloadSize per Link: %d\n",
-        config.numLinks(),config.payloadSizePerLink());
-  }
+    void process(const DetInfo& info, PNCCD::ConfigV2& config) {
+      _config.push_back(config);
+      _info  .push_back(info);
+      printf("*** Processing pnCCD config.  Number of Links: %d, PayloadSize per Link: %d\n",
+          config.numLinks(),config.payloadSizePerLink());
+    }
 
-  int process(Xtc* xtc) {
-    const DetInfo& info = *(DetInfo*)(&xtc->src);
-    Level::Type level = xtc->src.level();
-    if (level < 0 || level >= Level::NumberOfLevels )
-    {
-      printf("Unsupported Level %d\n", (int) level);
-      return Continue;
-    }    
-    switch (xtc->contains.id()) {
-      case (TypeId::Id_Xtc) : {
-        myLevelIter iter(xtc,_depth+1);
-        iter.iterate();
-        break;
+    int process(Xtc* xtc) {
+      _xtc = xtc;
+      const DetInfo& info = *(DetInfo*)(&xtc->src);
+      Level::Type level = xtc->src.level();
+      if (level < 0 || level >= Level::NumberOfLevels )
+      {
+        printf("Unsupported Level %d\n", (int) level);
+        return Continue;
       }
-      case (TypeId::Id_pnCCDframe) : {
-        // check size is correct before re-ordering
-        for (unsigned k=0; k<_info.size(); k++)
-          if (_info[k] == info) {
-            const PNCCD::ConfigV1& cfg = _config[k];
-            int expected = cfg.numLinks()*(sizeof(PNCCD::Image)+sizeof(PNCCD::FrameV1));
-            if (xtc->sizeofPayload()==expected) {
-              process(info, (const PNCCD::FrameV1*)(xtc->payload()), cfg);
-            } else {
-              if (nprint++ < NPRINTMAX) {
-                printf("*** Error: no reordering.  Found payloadsize 0x%x, expected 0x%x\n",
-                    xtc->sizeofPayload(),sizeof(PNCCD::Image));
+      switch (xtc->contains.id()) {
+        case (TypeId::Id_Xtc) : {
+          myLevelIter iter(xtc,_depth+1);
+          iter.iterate();
+          break;
+        }
+        case (TypeId::Id_pnCCDframe) : {
+          // check size is correct before re-ordering
+          for (unsigned k=0; k<_info.size(); k++)
+            if (_info[k] == info) {
+              PNCCD::ConfigV2& cfg = _config[k];
+              int expected = cfg.numLinks()*(sizeof(PNCCD::ImageQuadrant)+sizeof(PNCCD::FrameV0));
+              if (xtc->sizeofPayload()==expected) {
+                process(info, (PNCCD::FrameV0*)(xtc->payload()), cfg);
+              } else {
+                if (nprint++ < NPRINTMAX) {
+                  printf("*** Error: no reordering.  Found payloadsize 0x%x, expected 0x%x\n",
+                      xtc->sizeofPayload(),expected);
+                }
               }
+              break;
             }
-            break;
-          }
-        break;
+          break;
+        }
+        case (TypeId::Id_pnCCDconfig) : {
+          process(info, *(PNCCD::ConfigV2*)(xtc->payload()));
+          break;
+        }
+        default :
+          break;
       }
-      case (TypeId::Id_pnCCDconfig) : {
-        process(info, *(const PNCCD::ConfigV1*)(xtc->payload()));
-        break;
-      }
-      default :
-        break;
+      return Continue;
     }
-    return Continue;
-  }
   private:
-  unsigned _depth;
+    unsigned    _depth;
+    Xtc*        _xtc;
+    uint16_t*   _quads[4];
 };
 
 void PnccdShuffle::shuffle(Datagram& dg) 

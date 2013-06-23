@@ -17,7 +17,7 @@ namespace Pds {
       Camex cmx[NumCamex];
     }; 
 
-    class Image {
+    class ImageQuadrant {
     public:
       enum {NumLines=512};
       Line line[NumLines];

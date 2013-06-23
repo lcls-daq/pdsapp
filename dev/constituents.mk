@@ -35,7 +35,8 @@ tgtnames :=  evr \
     fli \
     andor \
     cam \
-    imp
+    imp \
+    pnccd
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata pdsdata/camdata
@@ -62,6 +63,13 @@ CPPFLAGS += -fno-strict-aliasing
 tgtsrcs_imp := imp.cc
 tgtlibs_imp := $(commonlibs) pdsdata/impdata pds/imp pds/pgp
 tgtslib_imp := $(USRLIBDIR)/rt
+CPPFLAGS += -fno-strict-aliasing
+#CPPFLAGS += -fopenmp
+#DEFINES += -fopenmp
+
+tgtsrcs_pnccd := pnccd.cc
+tgtlibs_pnccd := $(commonlibs) pdsdata/pnccddata pds/pnccd pds/pnccdFrameV0 pds/pgp
+tgtslib_pnccd := $(USRLIBDIR)/rt
 CPPFLAGS += -fno-strict-aliasing
 #CPPFLAGS += -fopenmp
 #DEFINES += -fopenmp
@@ -207,6 +215,7 @@ tgtlibs_simcam += pdsdata/impdata
 tgtlibs_simcam += pds/clientcompress pdsdata/compressdata
 tgtlibs_simcam += pds/camera pds/epicstools epics/ca epics/Com
 tgtslib_simcam := pthread rt dl
+
 
 tgtsrcs_gsc16ai := gsc16ai.cc
 tgtlibs_gsc16ai := $(commonlibs) pdsdata/gsc16aidata pds/gsc16ai pdsdata/camdata
