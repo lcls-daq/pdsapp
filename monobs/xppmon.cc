@@ -113,6 +113,9 @@ int main(int argc, char* argv[])
           case BldInfo::Nh2Sb1Ipm01:
             client.insert(new BldIpm(pvbase,binfo.type()));
             break;
+          case BldInfo::Nh2Sb1Ipm02:
+            client.insert(new BldIpm(pvbase,binfo.type()));
+            break;
           default:
             fprintf(stderr,"Error in lookup of bld type %s\n",args);
             break;

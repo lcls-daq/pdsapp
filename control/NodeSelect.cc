@@ -24,6 +24,7 @@ static QList<int> _bldOrder =
          << BldInfo::PhaseCavity
          << BldInfo::FEEGasDetEnergy
          << BldInfo::Nh2Sb1Ipm01
+         << BldInfo::Nh2Sb1Ipm02
          << BldInfo::HxxUm6Imb01
          << BldInfo::HxxUm6Imb02                           
          << BldInfo::HxxDg1Cam
