@@ -171,7 +171,8 @@ namespace Pds {
     ((1ULL<<(BldInfo::HfxDg3Imb02+1)) - (1ULL<<BldInfo::Nh2Sb1Ipm01)) |
     ((1ULL<<(BldInfo::MecHxmIpm01+1)) - (1ULL<<BldInfo::HfxMonImb01)) |
     ((1ULL<<(BldInfo::CxiDg4Imb01+1)) - (1ULL<<BldInfo::CxiDg1Imb01)) |
-    ((1ULL<<(BldInfo::MecXt2Pim03+1)) - (1ULL<<BldInfo::XppMonPim0));
+    ((1ULL<<(BldInfo::MecXt2Pim03+1)) - (1ULL<<BldInfo::XppMonPim0))  |
+    ((1ULL<<(BldInfo::Nh2Sb1Ipm02+1)) - (1ULL<<BldInfo::Nh2Sb1Ipm02));
   uint64_t PimMask =
     ((1ULL<<(BldInfo::HfxMonCam+1)) - (1ULL<<BldInfo::HxxDg1Cam)) |
     ((1ULL<<(BldInfo::CxiDg4Pim+1)) - (1ULL<<BldInfo::CxiDg1Pim));
@@ -434,6 +435,7 @@ namespace Pds {
   if (CheckType(PhaseCavity))     extent += SizeType(BldDataPhaseCavity);
   if (CheckType(FEEGasDetEnergy)) extent += SizeType(BldDataFEEGasDetEnergy);
   if (CheckType(Nh2Sb1Ipm01))     extent += SizeType(BldDataIpimb);
+  if (CheckType(Nh2Sb1Ipm02))     extent += SizeType(BldDataIpimb);
   if (CheckType(HxxUm6Imb01))     extent += SizeType(BldDataIpimb);
   if (CheckType(HxxUm6Imb02))     extent += SizeType(BldDataIpimb);
   if (CheckType(HfxDg2Imb01))     extent += SizeType(BldDataIpimb);
@@ -483,6 +485,7 @@ namespace Pds {
     if (CheckType(PhaseCavity))     AddType(PhaseCavity,     Id_PhaseCavity,     BldDataPhaseCavity);
     if (CheckType(FEEGasDetEnergy)) AddType(FEEGasDetEnergy, Id_FEEGasDetEnergy, BldDataFEEGasDetEnergy );
     if (CheckType(Nh2Sb1Ipm01))     AddType(Nh2Sb1Ipm01,     Id_SharedIpimb,     BldDataIpimb);
+    if (CheckType(Nh2Sb1Ipm02))     AddType(Nh2Sb1Ipm02,     Id_SharedIpimb,     BldDataIpimb);
     if (CheckType(HxxUm6Imb01))     AddType(HxxUm6Imb01,     Id_SharedIpimb,     BldDataIpimb);
     if (CheckType(HxxUm6Imb02))     AddType(HxxUm6Imb02,     Id_SharedIpimb,     BldDataIpimb);
     if (CheckType(HfxDg2Imb01))     AddType(HfxDg2Imb01,     Id_SharedIpimb,     BldDataIpimb);
