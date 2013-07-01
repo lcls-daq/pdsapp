@@ -178,13 +178,13 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: pnccd [-h] -p <platform> -f <cnfgFileName> [-d <detector>] [-i <deviceID>] [-D <debug>] [-P <pgpcardNumb>\n"
+  printf( "Usage: pnccd [-h] -p <platform> -f <cnfgFileName> -P <pgpcardNumb> [-d <detector>] [-i <deviceID>] [-D <debug>]\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
+      "    -f      Set the config file name  [required]\n"
+      "    -P      Set pgpcard index number  [required]\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
-      "    -P      Set pgpcard index number  [Default: 0]\n"
-      "    -f      Set the config file name  [required]\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offset and count calls\n"
@@ -204,6 +204,7 @@ int main( int argc, char** argv )
   int                 deviceId            = 0;
   unsigned            platform            = 0;
   bool                platformEntered     = false;
+  bool                pgpcardEntered      = false;
   unsigned            mask                = 0;
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
@@ -245,6 +246,7 @@ int main( int argc, char** argv )
             break;
          case 'P':
            pgpcard = strtoul(optarg, NULL, 0);
+           pgpcardEntered = true;
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
@@ -270,6 +272,13 @@ int main( int argc, char** argv )
    if ( sConfigFile.empty() )
    {
      printf( "Error: pnCCD Config File is required\n" );
+     printUsage(argv[0]);
+     return 0;
+   }
+
+   if ( !pgpcardEntered )
+   {
+     printf("Error: pgpcard parameter required\n");
      printUsage(argv[0]);
      return 0;
    }
