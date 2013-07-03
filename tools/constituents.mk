@@ -13,7 +13,7 @@ tgtnames := event segtest sourcetest bldtest source montest showPartitions killP
 
 commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs += pds/pnccdFrameV0
-liblibs_tools := pdsdata/cspaddata pdsdata/pnccddata
+liblibs_tools := pdsdata/cspaddata pdsdata/pnccddata pdsdata/fexampdata
 liblibs_tools += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
 libincs_tools := offlinedb/include
 
@@ -95,6 +95,12 @@ tgtnames += padmonservertest
 tgtsrcs_padmonservertest := padmonservertest.cc
 tgtlibs_padmonservertest := pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata
 tgtslib_padmonservertest := $(USRLIBDIR)/rt
+
+tgtnames += feboPadmonservertest
+tgtsrcs_feboPadmonservertest := feboPadmonservertest.cc
+tgtlibs_feboPadmonservertest := pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/fexampdata
+tgtslib_feboPadmonservertest := $(USRLIBDIR)/rt
+
 
 libnames += epicsmon
 libsrcs_epicsmon := EpicsMonServer.cc
