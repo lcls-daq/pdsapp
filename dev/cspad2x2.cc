@@ -13,6 +13,8 @@
 #include "pds/config/CfgClientNfs.hh"
 #include "pdsdata/cspad2x2/ElementV1.hh"
 
+#include "pds/client/FrameCompApp.hh"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -60,7 +62,8 @@ class Pds::Seg
         SegWireSettings& settings,
         Arp* arp,
         Cspad2x2Server* cspad2x2Server,
-        unsigned pgpcard );
+        unsigned pgpcard,
+        bool compress = false );
 
    virtual ~Seg();
    bool didYouFail() { return _failed; }
@@ -76,6 +79,7 @@ class Pds::Seg
    CfgClientNfs* _cfg;
    Cspad2x2Server*  _cspad2x2Server;
    unsigned      _pgpcard;
+   bool          _compress;
    bool          _failed;
 };
 
@@ -121,12 +125,14 @@ Pds::Seg::Seg( Task* task,
                SegWireSettings& settings,
                Arp* arp,
                Cspad2x2Server* cspad2x2Server,
-               unsigned pgpcard )
+               unsigned pgpcard,
+               bool compress )
    : _task(task),
      _platform(platform),
      _cfg   (cfgService),
      _cspad2x2Server(cspad2x2Server),
      _pgpcard(pgpcard),
+     _compress(compress),
      _failed(false)
 {}
 
@@ -142,6 +148,7 @@ void Pds::Seg::attached( SetOfStreams& streams )
       
    Stream* frmk = streams.stream(StreamParams::FrameWork);
    Cspad2x2Manager& cspad2x2Mgr = * new Cspad2x2Manager( _cspad2x2Server, _pgpcard );
+   if (_compress) (new FrameCompApp(0x80000))->connect( frmk->inlet() );
    cspad2x2Mgr.appliance().connect( frmk->inlet() );
 }
 
@@ -177,7 +184,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] [-R <runTriggerFactor>] -p <platform>\n"
+  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-C <nevents>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] [-R <runTriggerFactor>] -p <platform>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
@@ -190,6 +197,7 @@ void printUsage(char* s) {
       "                the index of the card and the top nybble being a port mask where one bit is for\n"
       "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
       "                applications that use the whole card\n"
+      "    -C <N>  Compress and copy every Nth event\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -224,10 +232,11 @@ int main( int argc, char** argv )
   ::signal( SIGINT, sigHandler );
   char                runTimeConfigname[256] = {""};
   bool                platformMissing     = true;
+  bool                compressFlag        = false;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:D:xP:r:R:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:C:D:xP:r:R:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -261,6 +270,10 @@ int main( int argc, char** argv )
          case 'P':
            pgpcard = strtoul(optarg, NULL, 0);
            printf("Cspad2x2 using pgpcard 0x%x\n", pgpcard);
+           break;
+         case 'C':
+           compressFlag = 1;
+	   FrameCompApp::setCopyPresample(strtoul(optarg, NULL, 0));
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
@@ -320,7 +333,8 @@ int main( int argc, char** argv )
                        settings,
                        0,
                        cspad2x2Server,
-                       pgpcard);
+                       pgpcard,
+                       compressFlag);
 
    SegmentLevel* seglevel = new SegmentLevel( platform,
                                               settings,

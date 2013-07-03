@@ -84,6 +84,7 @@ CPPFLAGS += -fno-strict-aliasing
 
 tgtsrcs_cspad2x2 := cspad2x2.cc
 tgtlibs_cspad2x2 := $(commonlibs) pdsdata/cspad2x2data pds/cspad2x2 pds/pgp
+tgtlibs_cspad2x2 += pds/clientcompress pdsdata/compressdata
 tgtslib_cspad2x2 := $(USRLIBDIR)/rt
 CPPFLAGS += -fno-strict-aliasing
 #CPPFLAGS += -fopenmp

@@ -199,7 +199,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: %s [-h] -p <platform> [-d <detector>] [-i <deviceID>] [-m <configMask>] [-c <compressFlag>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>]\n"
+  printf( "Usage: %s [-h] -p <platform> [-d <detector>] [-i <deviceID>] [-m <configMask>] [-C <compressFlag>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>]\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
@@ -212,7 +212,7 @@ void printUsage(char* s) {
       "                the index of the card and the top nybble being a port mask where one bit is for\n"
       "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
       "                applications that use the whole card\n"
-      "    -c <N>  Compress and copy every Nth event\n"
+      "    -C <N>  Compress and copy every Nth event\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -251,7 +251,7 @@ int main( int argc, char** argv )
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:c:D:xP:r:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:C:D:xP:r:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -286,7 +286,7 @@ int main( int argc, char** argv )
            pgpcard = strtoul(optarg, NULL, 0);
            printf("Cspad using pgpcard 0x%x\n", pgpcard);
            break;
-         case 'c':
+         case 'C':
            compressFlag = 1;
 	   FrameCompApp::setCopyPresample(strtoul(optarg, NULL, 0));
            break;
