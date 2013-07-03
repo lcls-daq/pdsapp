@@ -45,8 +45,7 @@ namespace Pds {
     bool isempty() const {return true;}
   private:
     int process(Xtc* xtc);
-    void _send(const Xtc* inxtc,
-               const Camera::FrameV1& frame);
+    void _send(const Xtc* inxtc);
   private:
     virtual void _handle_config(const Xtc* ) = 0;
     virtual void _attach_config(InDatagram*) = 0;

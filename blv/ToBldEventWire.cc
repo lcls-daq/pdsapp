@@ -133,7 +133,7 @@ int ToBldEventWire::process(Xtc* xtc)
     iterate(xtc);
     break;
   case TypeId::Id_Frame:
-    _send(xtc,*reinterpret_cast<const Camera::FrameV1*>(xtc->payload()));
+    _send(xtc);
     break;
   default:
     _handle_config(xtc);
@@ -142,8 +142,7 @@ int ToBldEventWire::process(Xtc* xtc)
   return 1;
 }
 
-void ToBldEventWire::_send(const Xtc* inxtc,
-                           const Camera::FrameV1& frame)
+void ToBldEventWire::_send(const Xtc* inxtc)
 {
   if (_seq.stamp().ticks()) {
     Transition tr(TransitionId::L1Accept,Transition::Record,_seq,Env(0));

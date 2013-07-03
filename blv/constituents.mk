@@ -6,6 +6,8 @@
 
 #  What is this for?
 CPPFLAGS += -D_ACQIRIS -D_LINUX
+CPPFLAGS += -fopenmp
+DEFINES += -fopenmp
 
 ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames    := pimblvedt
@@ -101,7 +103,7 @@ tgtincs_pimbld := leutron/include
 tgtsrcs_cambld := cambld.cc ToOpalBldEventWire.cc ToPimBldEventWire.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_cambld := $(commonlibs) $(datalibs)
 tgtlibs_cambld += pdsapp/configdb $(qtlibdir)
-tgtlibs_cambld += pds/camera
+tgtlibs_cambld += pds/camera pds/clientcompress
 tgtlibs_cambld += $(leutron_libs)
 tgtslib_cambld := $(qtslibdir)
 tgtincs_cambld := leutron/include

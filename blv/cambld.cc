@@ -9,6 +9,7 @@
 #include "pds/camera/Opal1kCamera.hh"
 #include "pds/camera/PicPortCL.hh"
 #include "pds/camera/FrameServer.hh"
+#include "pds/client/FrameCompApp.hh"
 #include "pds/xtc/XtcType.hh"
 #include "pds/service/Task.hh"
 
@@ -64,8 +65,9 @@ static int openFifo(const char* name, int flags, unsigned index) {
 }
 
 void usage(const char* p) {
-  printf("Usage: %s -i <multicast interface> -c <cam parameters> -n <client index>\n",p);
+  printf("Usage: %s -i <multicast interface> -c <cam parameters> -n <client index> [-C]\n",p);
   printf("\t\"cam parameters\" : bld_id, detector, detector_id, device_id, grabber_id, wait_us\n");
+  printf("\t-C\tcompress\n");
 }
 
 static unsigned parse_network(const char* arg)
@@ -110,11 +112,12 @@ int main(int argc, char** argv) {
   cam.detector_id = 0;
   cam.device      = DetInfo::NoDevice;
   cam.device_id   = 0;
+  bool lCompress  = false;
 
   extern char* optarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "i:c:n:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:c:n:C")) != EOF ) {
     switch(c) {
     case 'i':
       interface = parse_network(optarg);
@@ -149,6 +152,9 @@ int main(int argc, char** argv) {
                cam.wait_us);
 
       } break;
+    case 'C':
+      lCompress = true;
+      break;
     case 'n':
       client = strtoul(optarg,&endPtr,0);
       break;
@@ -184,6 +190,8 @@ int main(int argc, char** argv) {
              
   BldInfo bld(node.pid(),(BldInfo::Type)cam.bld_id);
   ToBldEventWire* outlet;
+  int MaxSize;
+
   switch(bld.type()) {
   case BldInfo::CxiDg3Spec:
     outlet = new ToOpalBldEventWire(*stream->outlet(), 
@@ -191,6 +199,7 @@ int main(int argc, char** argv) {
                                     write_fd,
                                     bld,
                                     cam.wait_us);
+    MaxSize = 0x280000;
     break;
   default:
     outlet = new ToPimBldEventWire(*stream->outlet(), 
@@ -198,16 +207,19 @@ int main(int argc, char** argv) {
                                    write_fd,
                                    bld,
                                    cam.wait_us);
+    MaxSize = 0x0c0000;
     break;
   }
     
   //  create the inlet wire/event builder
-  const int MaxSize = 0x900000;
   const int ebdepth = 32;
   InletWire* iwire = new L1EventBuilder(idleSrc, _xtcType, Level::Segment, *stream->inlet(),
                                         *outlet, 0, 0x7f000001, MaxSize, ebdepth, 0);
   iwire->connect();
-  
+
+  if (lCompress)
+    (new FrameCompApp(MaxSize))->connect(stream->inlet());
+
   DetInfo det(node.pid(), 
               (DetInfo::Detector)cam.detector, cam.detector_id,
               (DetInfo::Device)cam.device, cam.device_id);
