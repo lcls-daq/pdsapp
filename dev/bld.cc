@@ -738,7 +738,7 @@ namespace Pds {
 #ifdef BLD_DELAY
       unsigned eb_depth = 120;
 #else
-      unsigned eb_depth = 8;
+      unsigned eb_depth = 32;
 #endif
 
       const Node& node = m.header();
