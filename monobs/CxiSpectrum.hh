@@ -10,12 +10,14 @@
 using Pds_Epics::PVWriter;
 using Pds_Epics::PVMonitor;
 
+namespace Pds { class Src; }
+
 namespace PdsCas {
   class CxiSpectrum : public Handler,
 		      public Pds_Epics::PVMonitorCb {
   public:
     CxiSpectrum(const char* pvName,
-		unsigned    detinfo);
+                const Pds::Src& info);
     ~CxiSpectrum();
   public:
     virtual void   _configure(const void* payload, const Pds::ClockTime& t);

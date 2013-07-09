@@ -3,6 +3,7 @@
 #include "pdsapp/monobs/CxiSpectrum.hh"
 #include "pdsapp/dev/CmdLineTools.hh"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/BldInfo.hh"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +13,7 @@ using namespace PdsCas;
 
 void usage(const char* p)
 {
-  printf("Usage: %s -f <config file> -n <PV (CXI:EXS)> -d <DetInfo> %s\n",
+  printf("Usage: %s -f <config file> [-n <PV (CXI:EXS)>] [-d <DetInfo> | -s <BldInfo>] %s\n",
 	 p, ShmClient::options());
 }
 
@@ -22,12 +23,12 @@ int main(int argc, char* argv[])
 
   const char* filename = 0;
   const char* pvName = 0;
-  DetInfo info;
+  Src info;
   bool infoFlag = false;
 
   int c;
   char opts[128];
-  sprintf(opts,"?hf:n:d:%s",client.opts());
+  sprintf(opts,"?hf:n:d:s:%s",client.opts());
   while ((c = getopt(argc, argv, opts)) != -1) {
     switch (c) {
     case '?':
@@ -41,13 +42,23 @@ int main(int argc, char* argv[])
       pvName = optarg;
       break;
     case 'd':
-      if (!CmdLineTools::parseDetInfo(optarg,info)) {
+      if (!CmdLineTools::parseDetInfo(optarg,static_cast<DetInfo&>(info))) {
         usage(argv[0]);
         return -1;
       } else {
         infoFlag = true;
       }
       break;
+    case 's':
+      { BldInfo& bld = *new(reinterpret_cast<char*>(&info)) 
+          BldInfo(optarg);
+        if (bld.type()==BldInfo::NumberOf) {
+          usage(argv[0]);
+          return -1;
+        }
+        else
+          infoFlag = true;
+      } break;
     default:
       if (!client.arg(c,optarg)) {
 	usage(argv[0]);
@@ -63,7 +74,7 @@ int main(int argc, char* argv[])
   }
   
   if (infoFlag && pvName) {
-    client.insert(new CxiSpectrum(pvName,info.phy()));
+    client.insert(new CxiSpectrum(pvName,info));
   }
 
   if (filename) {

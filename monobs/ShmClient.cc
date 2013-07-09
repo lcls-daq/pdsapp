@@ -68,14 +68,17 @@ ShmClient::ShmClient() :
   _partitionTag(0),
   _index(0),
   _evindex(-1),
-  _rate (1.)
+  _rate (1.),
+  _timer(0)
 {
 }
 
 ShmClient::~ShmClient()
 {
-  _timer->task()->call(new DestroyClient);
-  delete _timer;
+  if (_timer) {
+    _timer->task()->call(new DestroyClient);
+    delete _timer;
+  }
   for(HList::iterator it = _handlers.begin(); it != _handlers.end(); it++)
     delete (*it);
   for(EList::iterator it = _ehandlers.begin(); it != _ehandlers.end(); it++)

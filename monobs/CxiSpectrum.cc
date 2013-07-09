@@ -17,11 +17,9 @@ using Pds_Epics::PVMonitor;
 //   and replace nelm writer with a monitor.
 //
 
-CxiSpectrum::CxiSpectrum(const char* pvName, unsigned info) :
-  Handler   (Pds::DetInfo(-1, 
-			  // Pds::DetInfo::Camp, 0, Pds::DetInfo::Opal1000, 0),
-			  Pds::DetInfo::Detector((info>>24)&0xff), (info>>16)&0xff, 
-			  Pds::DetInfo::Device  ((info>> 8)&0xff), info&0xff),
+CxiSpectrum::CxiSpectrum(const char*     pvName, 
+                         const Pds::Src& info) :
+  Handler   (info,
 	     Pds::TypeId::Id_Frame,
 	     Pds::TypeId::Id_Opal1kConfig),
   _pvName   (pvName),
