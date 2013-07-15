@@ -184,6 +184,10 @@ static void setup_datagram(TransitionId::Value val)
 
     new ((void *) &dg->seq) Sequence(Sequence::Event, val, ClockTime(csec, cnsec),
                                      TimeStamp(0, cnsec & 0x1ffff, 0, 0));
+    if ((cnsec += 0x20000) > 1000000000) {
+        cnsec -= 1000000000;
+        csec++;
+    }
     new ((void *) &dg->env) Env(0);
     new ((char *) &dg->xtc) Xtc(TypeId(TypeId::Id_Xtc, 1), *evtInfo);
 
@@ -237,6 +241,10 @@ static void write_xtc_config(void)
     segInfo = new ProcInfo(Level::Segment, pid, ipaddr);
 
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
+    if (start_sec != 0) {
+        csec = start_sec;
+        cnsec = start_nsec;
+    }
     write_datagram(TransitionId::Configure, totalcfglen);
     for (i = 0; i < numsrc; i++) {
         if (!fwrite(src[i]->val, src[i]->len, 1, fp)) {
@@ -417,9 +425,6 @@ void send_event(struct event *ev)
     fflush(fp);
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
     if (fsize >= CHUNK_SIZE) { /* Next chunk! */
-#ifdef DO_DISABLE
-        write_datagram(TransitionId::Disable, 0);
-#endif
         fclose(fp);
         sprintf(cpos, "-c%02d.xtc", ++chunk);
         if (!(fp = myfopen(fname, "w"))) {
@@ -428,12 +433,6 @@ void send_event(struct event *ev)
         } else
             printf("Opened %s for writing.\n", fname);
         fsize = 0;
-#ifdef DO_DISABLE
-        write_datagram(TransitionId::Enable, 0);
-        setup_datagram(TransitionId::L1Accept);
-        seg->extent    += totaldlen;
-        dg->xtc.extent += totaldlen;
-#endif
     }
     record_cnt++;
 }
@@ -657,8 +656,13 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
 void cleanup_xtc(void)
 {
     if (dg) {
-        csec = dsec;
-        cnsec = dnsec;
+        if (end_sec != 0) {
+            csec = end_sec;
+            cnsec = end_nsec;
+        } else {
+            csec = dsec;
+            cnsec = dnsec;
+        }
         write_datagram(TransitionId::Disable,       0);
         write_datagram(TransitionId::EndCalibCycle, 0);
         write_datagram(TransitionId::EndRun,        0);

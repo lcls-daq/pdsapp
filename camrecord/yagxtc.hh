@@ -27,6 +27,8 @@ extern std::string username;
 extern std::string curdir;
 extern int expid, runnum, strnum;
 extern std::string logbook[LCPARAMS];
+extern int start_sec, start_nsec;
+extern int end_sec, end_nsec;
 
 /* bld.cc */
 extern void initialize_bld(void);

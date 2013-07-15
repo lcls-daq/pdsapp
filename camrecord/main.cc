@@ -94,6 +94,8 @@ static string lb_params[LCPARAMS] = { /* This is the order of parameters to LogB
     "ifacedb_password=",
     "ifacedb_db=",
 };
+int start_sec = 0, start_nsec = 0;
+int end_sec = 0, end_nsec = 0;
 
 static void int_handler(int signal)
 {
@@ -210,6 +212,16 @@ static void read_config_file(const char *name)
             arrayTokens[0] == "defhost" || arrayTokens[0] == "defport") {
             /* Ignore blank lines, comments, and client commands! */
             continue;
+        } else if (arrayTokens[0] == "starttime") {
+            if (arrayTokens.size() >= 3) {
+                start_sec = atoi(arrayTokens[1].c_str());
+                start_nsec = atoi(arrayTokens[2].c_str());
+            }
+        } else if (arrayTokens[0] == "endtime") {
+            if (arrayTokens.size() >= 3) {
+                end_sec = atoi(arrayTokens[1].c_str());
+                end_nsec = atoi(arrayTokens[2].c_str());
+            }
         } else if (arrayTokens[0] == "dbinfo") {
             /* dbinfo username expid run stream */
             if (arrayTokens.size() >= 5) {
@@ -358,8 +370,15 @@ static void handle_stdin(fd_set *rfds)
         if (cnt > 0) {
             buf[cnt - 1] = 0; // Kill the newline!
             printf("%s\n", buf);
-            if (!strcmp(buf, "stop")) {
+            if (!strncmp(buf, "stop", 4)) {
                 printf("Got stop!\n");
+                if (buf[4]) {
+                    int sec, nsec;
+                    if (sscanf(buf, "stop %d %d", &sec, &nsec) == 2) {
+                        end_sec = sec;
+                        end_nsec = nsec;
+                    }
+                }
                 haveint = 1;
             } else if (buf[0] == 0 || !strcmp(buf, "stats")) {
                 gettimeofday(&now, NULL);
