@@ -262,7 +262,16 @@ static void read_config_file(const char *name)
                 read_config_file(NULL);
         } else if (arrayTokens[0] == "camera") {
             if (arrayTokens.size() >= 5) {
-                int binned = (arrayTokens.size() >= 6 && arrayTokens[5] == "binned");
+                int binned = 0;
+                if (arrayTokens.size() >= 6) {
+                    if (arrayTokens[5] == "binned")
+                        binned |= CAMERA_BINNED;
+                    if (arrayTokens[5] == "roi")
+                        binned |= CAMERA_ROI;
+                    if (arrayTokens[5] == "size")
+                        binned |= CAMERA_SIZE;
+                }
+                printf("New symbol %s, binned = %d\n", arrayTokens[1].c_str(), binned);
                 new symbol(arrayTokens[1], arrayTokens[2], arrayTokens[3], arrayTokens[4], binned);
             }
         } else if (arrayTokens[0] == "pv") {

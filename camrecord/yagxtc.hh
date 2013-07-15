@@ -12,6 +12,13 @@
 #define REVTIME_WORD   1 
 #define REVTIME_OFFSET 2
 
+/* Flags that can modify cameras */
+#define CAMERA_NONE    0
+#define CAMERA_BINNED  1    /* The image is binned in a standard way. */
+#define CAMERA_ROI     2    /* The image has a ROI described by :ROI_YNP and :ROI_XNP. */
+#define CAMERA_SIZE    4    /* The image has a size described by :N_OF_ROW and :N_OF_COL. */
+
+
 /* How many parameters does LogBook::Connection::open have? */
 #define LCPARAMS 12
 
