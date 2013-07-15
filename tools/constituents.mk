@@ -96,10 +96,10 @@ tgtsrcs_padmonservertest := padmonservertest.cc
 tgtlibs_padmonservertest := pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata
 tgtslib_padmonservertest := $(USRLIBDIR)/rt
 
-tgtnames += feboPadmonservertest
-tgtsrcs_feboPadmonservertest := feboPadmonservertest.cc
-tgtlibs_feboPadmonservertest := pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/fexampdata
-tgtslib_feboPadmonservertest := $(USRLIBDIR)/rt
+#tgtnames += feboPadmonservertest
+#tgtsrcs_feboPadmonservertest := feboPadmonservertest.cc
+#tgtlibs_feboPadmonservertest := pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/fexampdata
+#tgtslib_feboPadmonservertest := $(USRLIBDIR)/rt
 
 
 libnames += epicsmon
