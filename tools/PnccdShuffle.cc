@@ -24,53 +24,37 @@ static std::vector<Pds::DetInfo>    _info;
 #define NPRINTMAX 32
 static unsigned nprint=0;
 
-#define XA0(x)  ((((x) & 0x00000000000000ffull) <<  8) | \
-    (((x) & 0x000000000000ff00ull) >>  8))
+#define XA0(x)  (((x) & 0x000000000000ffffull))
 
-#define XA1(x)  ((((x) & 0x00000000000000ffull) << 24) | \
-    (((x) & 0x000000000000ff00ull) <<  8))
+#define XA1(x)  (((x) & 0x000000000000ffffull) << 16)
 
-#define XA2(x)  ((((x) & 0x00000000000000ffull) << 40) | \
-    (((x) & 0x000000000000ff00ull) << 24))
+#define XA2(x)  (((x) & 0x000000000000ffffull) << 32)
 
-#define XA3(x)  ((((x) & 0x00000000000000ffull) << 56) | \
-    (((x) & 0x000000000000ff00ull) << 40))
+#define XA3(x)  (((x) & 0x000000000000ffffull) << 48)
 
-#define XB0(x)  ((((x) & 0x0000000000ff0000ull) >>  8) | \
-    (((x) & 0x00000000ff000000ull) >> 24))
+#define XB0(x)  (((x) & 0x00000000ffff0000ull) >> 16)
 
-#define XB1(x)  ((((x) & 0x0000000000ff0000ull) <<  8) | \
-    (((x) & 0x00000000ff000000ull) >>  8))
+#define XB1(x)  (((x) & 0x00000000ffff0000ull))
 
-#define XB2(x)  ((((x) & 0x0000000000ff0000ull) << 24) | \
-    (((x) & 0x00000000ff000000ull) <<  8))
+#define XB2(x)  (((x) & 0x00000000ffff0000ull) << 16)
 
-#define XB3(x)  ((((x) & 0x0000000000ff0000ull) << 40) | \
-    (((x) & 0x00000000ff000000ull) << 24))
+#define XB3(x)  (((x) & 0x00000000ffff0000ull) << 32)
 
-#define XC0(x)  ((((x) & 0x000000ff00000000ull) >> 24) | \
-    (((x) & 0x0000ff0000000000ull) >> 40))
+#define XC0(x)  (((x) & 0x0000ffff00000000ull) >> 32)
 
-#define XC1(x)  ((((x) & 0x000000ff00000000ull) >>  8) | \
-    (((x) & 0x0000ff0000000000ull) >> 24))
+#define XC1(x)  (((x) & 0x0000ffff00000000ull) >> 16)
 
-#define XC2(x)  ((((x) & 0x000000ff00000000ull) <<  8) | \
-    (((x) & 0x0000ff0000000000ull) >>  8))
+#define XC2(x)  (((x) & 0x0000ffff00000000ull))
 
-#define XC3(x)  ((((x) & 0x000000ff00000000ull) << 24) | \
-    (((x) & 0x0000ff0000000000ull) <<  8))
+#define XC3(x)  (((x) & 0x0000ffff00000000ull) << 16)
 
-#define XD0(x)  ((((x) & 0x00ff000000000000ull) >> 40) | \
-    (((x) & 0xff00000000000000ull) >> 56))
+#define XD0(x)  (((x) & 0xffff000000000000ull) >> 48)
 
-#define XD1(x)  ((((x) & 0x00ff000000000000ull) >> 24) | \
-    (((x) & 0xff00000000000000ull) >> 40))
+#define XD1(x)  (((x) & 0xffff000000000000ull) >> 32)
 
-#define XD2(x)  ((((x) & 0x00ff000000000000ull) >>  8) | \
-    (((x) & 0xff00000000000000ull) >> 24))
+#define XD2(x)  (((x) & 0xffff000000000000ull) >> 16)
 
-#define XD3(x)  ((((x) & 0x00ff000000000000ull) <<  8) | \
-    (((x) & 0xff00000000000000ull) >>  8))
+#define XD3(x)  (((x) & 0xffff000000000000ull))
 
 using namespace Pds;
 
