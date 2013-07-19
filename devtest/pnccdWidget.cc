@@ -319,21 +319,7 @@ pnCCDFrame* pnCCDFrameBuffers::readNext() {
         else if ((unsigned)size != rx[i].maxSize) {
           printf("readNext read wrong size %u not %u in frame %u\n", size, rx[i].maxSize, f->q[i].frameNumber);
         } else {
-          if (includeElementID == false) {
-            f->q[i].lane(rx[i].pgpLane);
-          }
-          unsigned u = f->q[i].lane() xor rx[i].pgpLane;
-          if ((debug & 1) || (f->q[i].frameNumber%printModuloBase == 0) || u) {
-            printf("readNext %8u Lane %u rxlane %u ", f->q[i].frameNumber, f->q[i].lane(), rx[i].pgpLane);
-            if (u) {
-              printf(" <=== ");
-              if (u&2) printf("%4s ", (rx[i].pgpLane & 2) > (f->q[i].lane() & 2) ? "High" : "Low");
-              else printf("     ");
-              if (u&1) printf("%4s ", (rx[i].pgpLane & 1) > (f->q[i].lane() & 1) ? "High" : "Low");
-              laneErrors += 1;
-            }
-            printf("\n");
-          }
+          f->q[i].lane(rx[i].pgpLane);
         }
       }
     }
@@ -643,7 +629,7 @@ int main( int argc, char** argv )
           printf("read out of sync %u ", idx);
           for (idx=0; idx<4; idx++) printf("%u ", f->q[idx].frameNumber);
           printf("\n");
-          keepGoing = false;
+//          keepGoing = false;
         } else if ( (debug & 1) | (f->q[0].frameNumber % 1000 == 0)) {
           if (f->q[0].frameNumber) {
             clock_gettime(CLOCK_REALTIME, &now);
@@ -655,6 +641,17 @@ int main( int argc, char** argv )
             Hertz = 0.0;
           }
           if (debug & 2) printf("pnccdwidget read frame %u %6.2fHz\n", f->q[0].frameNumber, Hertz);
+        }
+        if (maxPrint) {
+          for (idx=0; idx<4; idx++) {
+            uint16_t* u = (uint16_t*)&(f->q[idx]);
+            printf("pnccd frame %u quad %u  ", f->q[idx].frameNumber, f->q[idx].lane());
+            for (i=0; i<maxPrint; i++) {
+              printf("0x%x ", u[i]);
+            }
+            printf("\n");
+          }
+          printf("\n");
         }
         if (writing) {
           for (idx=0; idx<4; idx++) {
