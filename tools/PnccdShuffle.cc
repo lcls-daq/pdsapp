@@ -73,7 +73,7 @@ using namespace Pds;
  *
  *   nelements - the number of 16-bit elements in the input array.
  *               (NOT the number of bytes, but half that).
- *               Must be a positive multiple of 4.
+ *               Must be a positive multiple of PNCCD::Camex::NumChan * 4.
  *
  * OUPUT PARAMETER:
  *
@@ -86,25 +86,37 @@ using namespace Pds;
  */
 int PnccdShuffle::shuffle(void *invoid, void *outvoid, unsigned int nelements)
 {
+  uint64_t *in0;
+  uint64_t *out0;
+  uint64_t *out1;
+  uint64_t *out2;
+  uint64_t *out3;
+  unsigned ii, jj;
   uint16_t* in = (uint16_t*)invoid;
   uint16_t* out = (uint16_t*)outvoid;
-  uint64_t *in0 = (uint64_t *)in;
-  uint64_t *out0 = (uint64_t *)out;
-  uint64_t *out1 = (uint64_t *)(out + (nelements / 4));
-  uint64_t *out2 = (uint64_t *)(out + (nelements / 2));
-  uint64_t *out3 = (uint64_t *)(out + (nelements * 3 / 4));
-  unsigned ii;
+  int width = PNCCD::Camex::NumChan * 4;
 
-  if (!in || !out || (nelements < 4) || (nelements % 4)) {
+  if (!in || !out || (nelements < width) || (nelements % width)) {
     /* error */
     return -1;
   }
 
-  for (ii = 0; ii < nelements / 4; ii += 4) {
-    *out0++ = XA0(in0[ii]) | XA1(in0[ii+1]) | XA2(in0[ii+2]) | XA3(in0[ii+3]);
-    *out1++ = XB0(in0[ii]) | XB1(in0[ii+1]) | XB2(in0[ii+2]) | XB3(in0[ii+3]);
-    *out2++ = XC0(in0[ii]) | XC1(in0[ii+1]) | XC2(in0[ii+2]) | XC3(in0[ii+3]);
-    *out3++ = XD0(in0[ii]) | XD1(in0[ii+1]) | XD2(in0[ii+2]) | XD3(in0[ii+3]);
+  // outer loop: shuffle camexes within a line
+  for (jj = 0; jj < nelements / width; jj++) {
+    in0 = (uint64_t *)in;
+    out0 = (uint64_t *)out;
+    out1 = (uint64_t *)(out + (width / 4));
+    out2 = (uint64_t *)(out + (width / 2));
+    out3 = (uint64_t *)(out + (width * 3 / 4));
+    // inner loop: shuffle channels within a camex
+    for (ii = 0; ii < width / 4; ii += 4) {
+      *out0++ = XA0(in0[ii]) | XA1(in0[ii+1]) | XA2(in0[ii+2]) | XA3(in0[ii+3]);
+      *out1++ = XB0(in0[ii]) | XB1(in0[ii+1]) | XB2(in0[ii+2]) | XB3(in0[ii+3]);
+      *out2++ = XC0(in0[ii]) | XC1(in0[ii+1]) | XC2(in0[ii+2]) | XC3(in0[ii+3]);
+      *out3++ = XD0(in0[ii]) | XD1(in0[ii+1]) | XD2(in0[ii+2]) | XD3(in0[ii+3]);
+    }
+    in += width;
+    out += width;
   }
   /* OK */
   return 0;
