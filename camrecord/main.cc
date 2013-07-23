@@ -473,7 +473,7 @@ int main(int argc, char **argv)
         {"timeout",   1, 0, 't'},
         {"directory", 1, 0, 'd'},
         {"silent",    0, 0, 's'},
-        {"keepalive", 1, 0, 's'},
+        {"keepalive", 1, 0, 'k'},
         {NULL, 0, NULL, 0}
     };
 

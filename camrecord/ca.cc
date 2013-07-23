@@ -186,6 +186,7 @@ class caconn {
                                            Pulnix::TM6740ConfigV2::x1,
                                            Pulnix::TM6740ConfigV2::x1,
                                            Pulnix::TM6740ConfigV2::Linear);
+                break;
             case CAMERA_BINNED:
                 new ((void *)cfg->alloc(sizeof(Pulnix::TM6740ConfigV2)))
                     Pulnix::TM6740ConfigV2(32, 32, 0x1e8, 0x1e8, false,
