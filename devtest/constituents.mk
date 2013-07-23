@@ -1,6 +1,6 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evgr pnccd xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget xtccamfix
+tgtnames    := evgr pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget xtccamfix
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
@@ -25,9 +25,9 @@ tgtsrcs_pnccdreader := pnccdreader.cc
 tgtlibs_pnccdreader := pdsdata/pnccddata pdsdata/xtcdata pds/service
 tgtslib_pnccdreader := $(USRLIB)/rt
 
-tgtsrcs_pnccd := pnccd.cc
-tgtlibs_pnccd := pdsdata/xtcdata pds/service
-tgtslib_pnccd := $(USRLIB)/rt
+tgtsrcs_pnccdwriter := pnccd.cc
+tgtlibs_pnccdwriter := pdsdata/xtcdata pds/service
+tgtslib_pnccdwriter := $(USRLIB)/rt
 
 tgtsrcs_xtctruncate := xtctruncate.cc
 tgtlibs_xtctruncate := pdsdata/xtcdata pds/service
