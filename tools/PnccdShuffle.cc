@@ -94,7 +94,7 @@ int PnccdShuffle::shuffle(void *invoid, void *outvoid, unsigned int nelements)
   unsigned ii, jj;
   uint16_t* in = (uint16_t*)invoid;
   uint16_t* out = (uint16_t*)outvoid;
-  int width = PNCCD::Camex::NumChan * 4;
+  unsigned int width = PNCCD::Camex::NumChan * 4;
 
   if (!in || !out || (nelements < width) || (nelements % width)) {
     /* error */
