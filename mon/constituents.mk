@@ -6,7 +6,7 @@ libincs_monapp := $(qtincdir)
 libincs_monapp += $(qwtincs) qwt/include
 libsinc_monapp += $(qwtsinc)
 
-tgtnames := vmondisplay mondisplay monservertest vmonservertest vmonreader
+tgtnames := vmondisplay mondisplay monservertest vmonservertest vmonreader vmonrecorder
 
 
 tgtsrcs_vmondisplay += VmonTreeMenu.cc VmonTreeMenu_moc.cc
@@ -38,5 +38,9 @@ tgtslib_vmonservertest := $(USRLIBDIR)/rt
 tgtsrcs_vmonreader += VmonReaderDump.cc
 tgtlibs_vmonreader := pdsdata/xtcdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
 tgtslib_vmonreader := $(USRLIBDIR)/rt
+
+tgtsrcs_vmonrecorder += vmonrecorder.cc
+tgtlibs_vmonrecorder := pdsdata/xtcdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
+tgtslib_vmonrecorder := $(USRLIBDIR)/rt
 
 

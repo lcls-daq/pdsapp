@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 	const MonGroup& gr = *cds.group(g);
 	for(unsigned e=0; e<gr.nentries(); e++) {
 	  const MonEntry* en = gr.entry(e);
-	  printf("%x)  %x.%x.%s\n", 
+	  printf("%08x)  %x.%x.%s\n", 
 		 (i<<24) | (g<<16)|e, 
 		 it->log(), it->phy(), en->desc().name());
 	}
@@ -105,6 +105,7 @@ int main(int argc, char** argv)
     }
 
     unsigned choice;
+    result[strlen(result)-1]=0;
     if (sscanf(result,"%x",&choice)) {
       VmonReaderDump dump(result);
       MonUsage usage;
