@@ -120,6 +120,7 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
     record->setLayout(rlayout);
   }
   layout->addWidget(record);
+  layout->addStretch();
 
   _client_bg     = new QButtonGroup(this);
   _client_bg_box = new QGroupBox("Display", this);
