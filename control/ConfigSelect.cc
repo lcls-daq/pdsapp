@@ -275,7 +275,9 @@ void ConfigSelect::_writeSettings()
     fclose(f);
   }
   else {
-    printf("Failed to open %s\n", buff);
+    std::string msg("Failed to open ");
+    msg.append(buff);
+    perror(msg.c_str());
   }
 }
 
@@ -289,7 +291,14 @@ void ConfigSelect::_readSettings()
   if (buff == (char *)NULL) {
     printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, SETTINGS_SIZE, errno);
   } else {
-    snprintf(buff, SETTINGS_SIZE-1, ".%s for platform %u", "Configuration", _pcontrol.header().platform());
+    char* home = getenv("HOME");
+    if (home) {
+      snprintf(buff, SETTINGS_SIZE-1, "%s/.%s for platform %u", home, "Configuration", _pcontrol.header().platform());
+    }
+    else {
+      snprintf(buff, SETTINGS_SIZE-1, ".%s for platform %u", "Configuration", _pcontrol.header().platform());
+    }
+
     FILE* f = fopen(buff,"r");
     if (f) {
       printf("Opened %s\n",buff);
