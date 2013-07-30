@@ -93,8 +93,13 @@ libsrcs_padmon := PadMonServer.cc CspadShuffle.cc
 
 tgtnames += padmonservertest
 tgtsrcs_padmonservertest := padmonservertest.cc
-tgtlibs_padmonservertest := pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata
+tgtlibs_padmonservertest := pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/impdata
 tgtslib_padmonservertest := $(USRLIBDIR)/rt
+
+tgtnames += epixmonservertest
+tgtsrcs_epixmonservertest := epixmonservertest.cc
+tgtlibs_epixmonservertest := pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/impdata
+tgtslib_epixmonservertest := $(USRLIBDIR)/rt
 
 #tgtnames += feboPadmonservertest
 #tgtsrcs_feboPadmonservertest := feboPadmonservertest.cc

@@ -1,6 +1,8 @@
 #ifndef PadMonServer_hh
 #define PadMonServer_hh
 
+#include <stdint.h>
+
 namespace Pds {
 
   //
@@ -15,12 +17,16 @@ namespace Pds {
     class ConfigV1;
     class ElementV1;
   };
+  namespace Imp {
+    class ConfigV1;
+    class ElementV1;
+  };
 
   class MyMonitorServer;
 
   class PadMonServer {
   public:
-    enum PadType { CsPad, CsPad140k, Fexamp };
+    enum PadType { CsPad, CsPad140k, Fexamp, Imp };
 
     PadMonServer(PadType, const char* tag);
     ~PadMonServer();
@@ -31,6 +37,13 @@ namespace Pds {
   public:
     void configure(const Pds::Fexamp::ConfigV1&);
     void event    (const Pds::Fexamp::ElementV1&);    // Fexamp
+  public:
+    void configure(const Pds::Imp::ConfigV1&);
+    void event    (const Pds::Imp::ElementV1&);       // Imp
+  public:
+    void config_1d(unsigned nsamples);                // reformat into Imp
+    void event_1d (const uint16_t*,
+		   unsigned nstep);                   // assumes <nstep> channels x nsamples
   public:
     void unconfigure();
   private:

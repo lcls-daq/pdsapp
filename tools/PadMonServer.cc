@@ -7,6 +7,8 @@
 #include "pdsdata/cspad/ConfigV3.hh"
 #include "pdsdata/cspad/ElementV1.hh"
 #include "pdsdata/cspad/MiniElementV1.hh"
+#include "pdsdata/imp/ConfigV1.hh"
+#include "pdsdata/imp/ElementV1.hh"
 
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -78,7 +80,8 @@ using namespace Pds;
 static const ProcInfo segInfo(Pds::Level::Segment,0,0);
 static const DetInfo  srcInfo[] = { DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Cspad   ,0),
                                     DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Cspad2x2,0),
-                                    DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Fexamp  ,0) };
+                                    DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Fexamp  ,0),
+                                    DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Imp     ,0) };
 
 //
 //  Insert a simulated transition
@@ -119,8 +122,8 @@ static Dgram* insert(Dgram*              dg,
 }
 
 static const unsigned sizeofBuffers = 0xA00000;
-static const unsigned numberofBuffers = 2;
-static const unsigned nclients = 2;
+static const unsigned numberofBuffers = 8;
+static const unsigned nclients = 1;
 static const unsigned sequenceLength = 1;
 static unsigned payloadsize = 0;
 
@@ -199,6 +202,67 @@ void PadMonServer::configure(const Pds::Fexamp::ConfigV1&)
 
 void PadMonServer::event    (const Pds::Fexamp::ElementV1&)
 {
+}
+
+void PadMonServer::configure(const Pds::Imp::ConfigV1& c)
+{
+  _srv->events(insert(_srv->newDatagram(), TransitionId::Map));
+
+  Dgram* dg = _srv->newDatagram();
+  insert(dg,
+         TransitionId::Configure, 
+         TypeId(TypeId::Id_ImpConfig,1),
+         srcInfo[_t],
+         &c, 
+         sizeof(c));
+  payloadsize = c.get(Pds::Imp::ConfigV1::NumberOfSamples)*sizeof(Pds::Imp::Sample)+sizeof(Pds::Imp::ElementHeader);
+  _srv->events(dg);
+
+  _srv->events(insert(_srv->newDatagram(), TransitionId::BeginRun));
+  _srv->events(insert(_srv->newDatagram(), TransitionId::BeginCalibCycle));
+  _srv->events(insert(_srv->newDatagram(), TransitionId::Enable));
+}
+
+void PadMonServer::event    (const Pds::Imp::ElementV1& e)
+{
+  Dgram* dg = _srv->newDatagram();
+  insert(dg,
+         TransitionId::L1Accept, 
+         TypeId(TypeId::Id_ImpData,1),
+         srcInfo[_t],
+         &e, 
+         payloadsize);
+  _srv->events(dg);
+}
+
+void PadMonServer::config_1d(unsigned nsamples)
+{
+  Pds::Imp::ConfigV1 c(0, 0, 0, 0, 0, 0, 0, nsamples, 0, 0);
+  configure(c);
+}
+
+void PadMonServer::event_1d (const uint16_t* d,
+			     unsigned        nstep) 
+{
+  char* p = new char[payloadsize];
+  Pds::Imp::ElementV1* e = new(p) Pds::Imp::ElementV1;
+  uint16_t* v = reinterpret_cast<uint16_t*>(e+1);
+  uint16_t* end = reinterpret_cast<uint16_t*>(p+payloadsize);
+  while(v < end) {
+    v[0] = *d;
+    v[1] = v[2] = v[3] = 0;
+    v += Pds::Imp::channelsPerDevice;
+    d += nstep;
+  }
+
+  Dgram* dg = _srv->newDatagram();
+  insert(dg,
+         TransitionId::L1Accept, 
+         TypeId(TypeId::Id_ImpData,1),
+         srcInfo[_t],
+         p, 
+         payloadsize);
+  _srv->events(dg);
 }
 
 void PadMonServer::unconfigure()
