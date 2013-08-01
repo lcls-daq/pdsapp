@@ -62,7 +62,14 @@
 #include <stdio.h>
 
 static const unsigned MAX_EVENT_SIZE = 8*1024*1024;
-static const unsigned NetBufferDepth = 32;
+#ifdef BLD_DELAY
+static const unsigned eb_depth = 64;
+#else
+static const unsigned eb_depth = 32;
+#endif
+static const unsigned net_buf_depth = 16;
+static const unsigned EvrBufferDepth = 32;
+static const unsigned AppBufferDepth = eb_depth + 16;  // Handle 
 static const char _tc_init[] = { 0*1024 };
 static const FrameFexConfigType _frameFexConfig(FrameFexConfigType::FullFrame, 1,
             FrameFexConfigType::NoProcessing,
@@ -141,7 +148,7 @@ namespace Pds {
   class BldParseApp : public Appliance, public XtcIterator {
   public:
     BldParseApp(BldConfigCache& cache) :
-      _pool (MAX_EVENT_SIZE, NetBufferDepth),
+      _pool (MAX_EVENT_SIZE, AppBufferDepth),
       _occ  (sizeof(UserMessage),4),
       _cache(cache),
       _pid  (getpid())
@@ -734,12 +741,6 @@ namespace Pds {
       WiredStreams(VmonSourceId(m.header().level(), m.header().ip()))
     {
       unsigned max_size = MAX_EVENT_SIZE;
-      unsigned net_buf_depth = 16;
-#ifdef BLD_DELAY
-      unsigned eb_depth = 120;
-#else
-      unsigned eb_depth = 32;
-#endif
 
       const Node& node = m.header();
       Level::Type level = node.level();
@@ -829,7 +830,7 @@ namespace Pds {
             new NullServer(ins,
                            header().procInfo(),
                            sizeof(Pds::EvrData::DataV3)+256*sizeof(Pds::EvrData::DataV3::FIFOEvent),
-                           NetBufferDepth);
+                           EvrBufferDepth);
 
           Ins mcastIns(ins.address());
           _evrServer->server().join(mcastIns, Ins(header().ip()));
