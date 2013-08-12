@@ -9,6 +9,9 @@
 #include "pdsdata/cspad/MiniElementV1.hh"
 #include "pdsdata/imp/ConfigV1.hh"
 #include "pdsdata/imp/ElementV1.hh"
+#include "pdsdata/opal1k/ConfigV1.hh"
+#include "pdsdata/camera/FrameFexConfigV1.hh"
+#include "pdsdata/camera/FrameV1.hh"
 
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -24,6 +27,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <queue>
+
+static Pds::TypeId _testCnfgType(Pds::TypeId::Any,1);
+static Pds::TypeId _testDataType(Pds::TypeId::Any,2);
 
 namespace Pds {
 
@@ -81,7 +87,8 @@ static const ProcInfo segInfo(Pds::Level::Segment,0,0);
 static const DetInfo  srcInfo[] = { DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Cspad   ,0),
                                     DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Cspad2x2,0),
                                     DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Fexamp  ,0),
-                                    DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Imp     ,0) };
+                                    DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Imp     ,0),
+				    DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::NumDevice,0)};
 
 //
 //  Insert a simulated transition
@@ -261,6 +268,48 @@ void PadMonServer::event_1d (const uint16_t* d,
          TypeId(TypeId::Id_ImpData,1),
          srcInfo[_t],
          p, 
+         payloadsize);
+  _srv->events(dg);
+}
+
+void PadMonServer::config_2d(unsigned nasics_x, unsigned nasics_y, unsigned nsamples,
+			     unsigned asic_x, unsigned asic_y)
+{
+  _srv->events(insert(_srv->newDatagram(), TransitionId::Map));
+
+  uint32_t config[5];
+  /*
+  **  Prototype layout is 1 ADC(chip) x 1 sample(time) x [96x96] channels(pixels)
+  */
+  config[0] = nasics_x;
+  config[1] = nasics_y;
+  config[2] = nsamples;
+  config[3] = asic_x;
+  config[4] = asic_y;
+  payloadsize = 8*sizeof(uint32_t) + ((nasics_x*nasics_y+1)&~1)*asic_x*asic_y*nsamples*sizeof(uint16_t);
+
+  Dgram* dg = _srv->newDatagram();
+  insert(dg,
+         TransitionId::Configure, 
+	 _testCnfgType,
+         srcInfo[_t],
+         &config, 
+         5*sizeof(uint32_t));
+  _srv->events(dg);
+
+  _srv->events(insert(_srv->newDatagram(), TransitionId::BeginRun));
+  _srv->events(insert(_srv->newDatagram(), TransitionId::BeginCalibCycle));
+  _srv->events(insert(_srv->newDatagram(), TransitionId::Enable));
+}
+
+void PadMonServer::event_2d (const uint16_t* d)
+{
+  Dgram* dg = _srv->newDatagram();
+  insert(dg,
+         TransitionId::L1Accept, 
+	 _testDataType,
+         srcInfo[_t],
+         d, 
          payloadsize);
   _srv->events(dg);
 }

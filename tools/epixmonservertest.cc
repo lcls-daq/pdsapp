@@ -35,7 +35,7 @@ public:
 
 class EpixData {
 public:
-  uint32_t header[1];
+  uint32_t header[8];
   PixelData pixel[NPixels];
   uint32_t footer[1];
 };
@@ -49,24 +49,36 @@ public:
 int main(int argc, char** argv) {
 
   const char* partition = 0;
-  unsigned    channel   = 0;
-  unsigned    step      = 2;
+  unsigned    asic_x    = 96;
+  unsigned    asic_y    = 96;
+  unsigned    nasics_x  = 1;
+  unsigned    nasics_y  = 1;
   unsigned    nsamples  = 12;
+  bool        lView2D   = true;
 
   int c;
-  while ((c = getopt(argc, argv, "p:c:s:n:")) != -1) {
+  while ((c = getopt(argc, argv, "p:x:y:X:Y:s:12")) != -1) {
     switch (c) {
     case 'p':
       partition = optarg;
       break;
-    case 'c':
-      channel   = atoi(optarg);
+    case 'x':
+      asic_x    = atoi(optarg);
+      break;
+    case 'y':
+      asic_y    = atoi(optarg);
+      break;
+    case 'X':
+      nasics_x  = atoi(optarg);
+      break;
+    case 'Y':
+      nasics_y  = atoi(optarg);
       break;
     case 's':
-      step      = atoi(optarg);
-      break;
-    case 'n':
       nsamples  = atoi(optarg);
+      break;
+    case '1':
+      lView2D   = false;
       break;
     default:
       break;
@@ -81,19 +93,24 @@ int main(int argc, char** argv) {
   //
   //  A buffer for generating the event data
   //
-  EpixData* data = new EpixData;
+  const unsigned header_shorts = 16;
+  unsigned nasics = (nasics_x*nasics_y+1)&~1;
+  uint16_t* data = new uint16_t[asic_x*asic_y*nsamples*nasics+header_shorts];
   memset(data,0,sizeof(EpixData));
 
   //
   //  The shared memory server
   //
-  Pds::PadMonServer srv(Pds::PadMonServer::Imp,
+  Pds::PadMonServer srv(lView2D ? Pds::PadMonServer::Epix : Pds::PadMonServer::Imp,
                         partition);
 
   //
   //  Serve the configuration to shared memory
   //
-  srv.config_1d(nsamples);
+  if (lView2D)
+    srv.config_2d(nasics_x, nasics_y, nsamples, asic_x, asic_y);
+  else
+    srv.config_1d(nsamples);
 
   //
   //  Generate a cycle of events with some test pattern data
@@ -104,16 +121,24 @@ int main(int argc, char** argv) {
     //  simulate some data
     //
     ievent++;
-    for(unsigned ip=0; ip<NPixels; ip++) {
-      for(unsigned is=0; is<NSamples; is++) {
-	data->pixel[ip].sample[is].channel[0] += ip*NSamples + is;
-      }
-    }
-
+    uint16_t* p = data+header_shorts;
+    for(unsigned iy=0; iy<asic_y; iy++)
+      for(unsigned ix=0; ix<asic_x; ix++)
+	for(unsigned is=0; is<nsamples; is++) {
+	  unsigned asic=0;
+	  for(unsigned i=0; i<nasics_y; i++)
+	    for(unsigned j=0; j<nasics_x; j++,asic++)
+	      p[asic] += (32 + (asic+1)*(iy*asic_x+ix) + is)&0x3fff;
+	  p += (asic+1)&~1;
+	}
+    
     //
     //  Serve the event to shared memory
     //
-    srv.event_1d( reinterpret_cast<const uint16_t*>(&data->pixel[0].sample[0]+channel), step);
+    if (lView2D)
+      srv.event_2d(data);
+    else
+      srv.event_1d(data, (nasics_x*nasics_y+1)&~1);
 
     timespec tv;
     tv.tv_sec = 0;

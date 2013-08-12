@@ -26,7 +26,7 @@ namespace Pds {
 
   class PadMonServer {
   public:
-    enum PadType { CsPad, CsPad140k, Fexamp, Imp };
+    enum PadType { CsPad, CsPad140k, Fexamp, Imp, Epix };
 
     PadMonServer(PadType, const char* tag);
     ~PadMonServer();
@@ -44,6 +44,13 @@ namespace Pds {
     void config_1d(unsigned nsamples);                // reformat into Imp
     void event_1d (const uint16_t*,
 		   unsigned nstep);                   // assumes <nstep> channels x nsamples
+  public:
+    void config_2d(unsigned nasics_x,
+		   unsigned nasics_y,
+		   unsigned nsamples,
+		   unsigned asic_x,
+		   unsigned asic_y);                  // EpixTest
+    void event_2d (const uint16_t*);
   public:
     void unconfigure();
   private:
