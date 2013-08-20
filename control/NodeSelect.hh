@@ -17,11 +17,12 @@ class QPalette;
 
 namespace Pds {
   class PingReply;
+  class AliasReply;
 
   class NodeSelect {
   public:
     NodeSelect(const Node& node);
-    NodeSelect(const Node& node, const PingReply& msg);
+    NodeSelect(const Node& node, const PingReply& msg, QString alias="");
     NodeSelect(const Node& node, const char* desc);
     NodeSelect(const Node& node, const BldInfo& info);
     NodeSelect(const NodeSelect&);
@@ -34,6 +35,7 @@ namespace Pds {
     const BldInfo& bld  () const { return static_cast<const BldInfo&>(_src); }
     const Src&     src  () const { return _src; }
     bool           ready() const { return _ready; }
+    const QString& alias() const { return _alias; }
   public:  // persistence
     QString plabel() const;
   public:
@@ -44,6 +46,7 @@ namespace Pds {
     std::set<std::string> _deviceNames;
     QString _label;
     bool    _ready;
+    QString _alias;
   };
   
   class CallbackNodeGroup;

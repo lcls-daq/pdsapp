@@ -23,7 +23,7 @@ tgtnames    += ipmbldsim
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata pdsdata/camdata pdsdata/compressdata
-commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
+commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/aliasdata
 commonlibs  += pdsdata/cspad2x2data
 #commonlibs  += pdsapp/blv
 

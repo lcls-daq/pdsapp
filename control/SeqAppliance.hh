@@ -33,6 +33,7 @@ namespace Pds {
     ConfigSelect&      _cselect;
     CfgClientNfs&      _config;
     Xtc                _configtc;
+    Xtc                _containertc;
     char*              _config_buffer;
     ControlConfigType* _cur_config;
     char*              _end_config;

@@ -11,7 +11,7 @@ libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary
 
 tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump currentexp
 
-commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
+commonlibs := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs += pds/pnccdFrameV0
 liblibs_tools := pdsdata/cspaddata pdsdata/pnccddata pdsdata/fexampdata
 liblibs_tools += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient

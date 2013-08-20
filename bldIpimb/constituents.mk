@@ -8,7 +8,7 @@ tgtnames    := bldIpimb
 
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
-commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
+commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/aliasdata
 
 #  Get datalibs macro
 include ../../pdsdata/packages.mk

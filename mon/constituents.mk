@@ -12,7 +12,7 @@ tgtnames := vmondisplay mondisplay monservertest vmonservertest vmonreader vmonr
 tgtsrcs_vmondisplay += VmonTreeMenu.cc VmonTreeMenu_moc.cc
 tgtsrcs_vmondisplay += VmonMain.cc
 tgtsrcs_vmondisplay += vmondisplay.cc
-tgtlibs_vmondisplay := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pdsapp/monapp
+tgtlibs_vmondisplay := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pdsapp/monapp
 tgtlibs_vmondisplay += $(qtlibdir)
 tgtlibs_vmondisplay += qwt/qwt
 tgtincs_vmondisplay := $(qtincdir)
@@ -21,26 +21,26 @@ tgtincs_vmondisplay += $(qwtincs) qwt/include
 tgtsrcs_mondisplay += MonTreeMenu.cc MonTreeMenu_moc.cc
 tgtsrcs_mondisplay += MonMain.cc
 tgtsrcs_mondisplay += mondisplay.cc
-tgtlibs_mondisplay := pdsdata/xtcdata pds/service pds/mon pdsapp/monapp
+tgtlibs_mondisplay := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/mon pdsapp/monapp
 tgtlibs_mondisplay += $(qtlibdir)
 tgtlibs_mondisplay += qwt/qwt
 tgtincs_mondisplay := $(qtincdir)
 tgtincs_mondisplay += $(qwtincs) qwt/include
 
 tgtsrcs_monservertest += monservertest.cc
-tgtlibs_monservertest := pdsdata/xtcdata pds/service pds/mon
+tgtlibs_monservertest := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/mon
 tgtslib_monservertest := $(USRLIBDIR)/rt
 
 tgtsrcs_vmonservertest += vmonservertest.cc
-tgtlibs_vmonservertest := pdsdata/xtcdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
+tgtlibs_vmonservertest := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
 tgtslib_vmonservertest := $(USRLIBDIR)/rt
 
 tgtsrcs_vmonreader += VmonReaderDump.cc
-tgtlibs_vmonreader := pdsdata/xtcdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
+tgtlibs_vmonreader := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
 tgtslib_vmonreader := $(USRLIBDIR)/rt
 
 tgtsrcs_vmonrecorder += vmonrecorder.cc
-tgtlibs_vmonrecorder := pdsdata/xtcdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
+tgtlibs_vmonrecorder := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
 tgtslib_vmonrecorder := $(USRLIBDIR)/rt
 
 

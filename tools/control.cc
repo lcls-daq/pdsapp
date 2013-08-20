@@ -44,6 +44,9 @@ namespace Pds {
       }
      _nodes[_nnodes++] = hdr;
     }
+    void aliasCollect(const Node& hdr, const AliasReply& msg) {
+      // required for PlatformCallback
+    }
   public:
     void        select(unsigned m) {  // Note that this overwrites the platform list
       unsigned n=0;

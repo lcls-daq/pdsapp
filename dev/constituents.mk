@@ -41,7 +41,7 @@ endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/cspaddata pdsdata/cspad2x2data pdsdata/timepixdata pdsdata/camdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
-commonlibs  += pdsapp/devapp
+commonlibs  += pdsapp/devapp pdsdata/aliasdata
 
 #  Get datalibs macro
 include ../../pdsdata/packages.mk
@@ -163,7 +163,7 @@ tgtsrcs_camedt := camedt.cc
 tgtlibs_camedt := pdsdata/xtcdata pdsdata/compressdata
 tgtlibs_camedt += $(cam_libs)
 tgtlibs_camedt += pds/service pds/collection pds/xtc pds/mon pds/vmon 
-tgtlibs_camedt += pds/utility pds/management pds/client pds/config 
+tgtlibs_camedt += pds/utility pds/management pds/client pds/config pdsdata/aliasdata
 tgtlibs_camedt += pds/camera pds/epicstools epics/ca epics/Com
 tgtlibs_camedt += pds/clientcompress pdsdata/compressdata
 tgtlibs_camedt += pdsapp/devapp

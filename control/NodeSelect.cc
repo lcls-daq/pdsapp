@@ -170,7 +170,13 @@ void NodeGroup::add_node(int index)
 { 
   const int iNodeIndex = index;
   const NodeSelect& node = _nodes[index];
-  QCheckBox* button = new QCheckBox(node.label(),this);
+  QCheckBox* button;
+  if (node.alias().size()) {
+    button = new QCheckBox(node.alias(),this);
+    button->setToolTip(node.label());
+  } else {
+    button = new QCheckBox(node.label(),this);
+  }
     
   int indexPersist = _persist.indexOf(node.plabel());
   int indexRequire = _require.indexOf(node.plabel());
@@ -554,9 +560,10 @@ NodeSelect::NodeSelect(const Node& node) :
   _label += QString(" : %1").arg(node.pid());
 }
 
-NodeSelect::NodeSelect(const Node& node, const PingReply& msg) :
+NodeSelect::NodeSelect(const Node& node, const PingReply& msg, QString alias) :
   _node    (node),
-  _ready   (msg.ready())
+  _ready   (msg.ready()),
+  _alias   (alias)
 {
   if (msg.nsources()) {
     bool found=false;
@@ -595,13 +602,15 @@ NodeSelect::NodeSelect(const Node& node, const char* desc) :
   inaddr.s_addr = ntohl(node.ip());
   _label += QString(" : %1").arg(inet_ntoa(inaddr));
   _label += QString(" : %1").arg(node.pid());
+  _alias = QString("");
 }
 
 NodeSelect::NodeSelect(const Node& node, const BldInfo& info) :
   _node  (node),
   _src   (info),
   _label (BldInfo::name(info)),
-  _ready (true)
+  _ready (true),
+  _alias (QString(""))
 {
 }
 
@@ -610,7 +619,8 @@ NodeSelect::NodeSelect(const NodeSelect& s) :
   _src  (s._src ),
   _deviceNames(s._deviceNames),
   _label(s._label),
-  _ready(s._ready)
+  _ready(s._ready),
+  _alias(s._alias)
 {
 }
 

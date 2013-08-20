@@ -300,7 +300,7 @@ void RemoteSeqApp::routine()
 
 	      _control.wait_for_target();
 	      _control.set_transition_env    (TransitionId::Configure,options & DbKeyMask);
-	      _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
+	      _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);  /* XXX */ printf("*** calling set_transition_payload() from %s line %d\n", __PRETTY_FUNCTION__, __LINE__);
 	      
 	      _control.set_target_state(PartitionControl::Configured);
 	      
@@ -322,7 +322,7 @@ void RemoteSeqApp::routine()
 		}
 		else {
 		  _control.wait_for_target();
-		  _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
+		  _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);  /* XXX */ printf("*** calling set_transition_payload() from %s line %d\n", __PRETTY_FUNCTION__, __LINE__);
 		  _control.set_transition_env(TransitionId::Enable,
 					      config.uses_duration() ?
 					      EnableEnv(config.duration()).value() :
@@ -356,7 +356,7 @@ void RemoteSeqApp::routine()
             _configtc.extent = sizeof(Xtc) + config.size();
 
             _control.set_transition_env    (TransitionId::Configure,old_key);
-            _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
+            _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);  /* XXX */ printf("*** calling set_transition_payload() from %s line %d\n", __PRETTY_FUNCTION__, __LINE__);
             _control.set_transition_env    (TransitionId::Enable,
                                             config.uses_duration() ?
                                             EnableEnv(config.duration()).value() :

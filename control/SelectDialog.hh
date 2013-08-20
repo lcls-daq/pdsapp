@@ -9,6 +9,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 #include <QtCore/QList>
+#include <QtCore/QString>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QPushButton>
@@ -26,6 +27,8 @@ namespace Pds {
     ~SelectDialog();
   public:
     void        available(const Node& hdr, const PingReply& msg);
+    void        aliasCollect(const Node& hdr, const AliasReply& msg);
+    bool        aliasLookup(const Src& det, QString& alias);
     const QList<Node    >& selected()  const;
     const QList<DetInfo >& detectors() const;
     const std::set<std::string>& deviceNames() const;
@@ -61,6 +64,7 @@ namespace Pds {
     QList<BldInfo > _rptinfo;
     QList<BldInfo > _trninfo;
     QPushButton*   _acceptb;
+    std::list<AliasReply> _aliases;
   };
 };
 

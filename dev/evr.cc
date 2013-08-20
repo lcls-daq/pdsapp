@@ -35,14 +35,26 @@ namespace Pds {
   //
   class MySegWire : public SegWireSettings {
   public:
-    MySegWire(const Src& src) { _sources.push_back(src); }
+    MySegWire(const Src& src, const char *aliasName)
+    {
+      _sources.push_back(src);
+      if (aliasName) {
+        SrcAlias tmpAlias(src, aliasName);
+        _aliases.push_back(tmpAlias);
+      }
+    }
     virtual ~MySegWire() {}
     void connect (InletWire& wire,
       StreamParams::StreamType s,
       int interface) {}
     const std::list<Src>& sources() const { return _sources; }
+    const std::list<SrcAlias>* pAliases() const
+    {
+      return (_aliases.size() > 0) ? &_aliases : NULL;
+    }
   private:
     std::list<Src> _sources;
+    std::list<SrcAlias> _aliases;
   };
 
   //
@@ -127,7 +139,7 @@ using namespace Pds;
 static void usage(const char *p)
 {
   printf("Usage: %s -i <detid> -p <platform> -r <evrid> \n"
-         "           [-a <arp>] [-d] [-R] [-n] [-h]\n\n"
+         "           [-a <arp>] [-R] [-n] [-u <alias>] [-h]\n\n"
          "Options:\n"
          "\t -i <detid>        detector ID (e.g. 0/0/0)\n"
          "\t -p <platform>     platform number\n"
@@ -136,6 +148,7 @@ static void usage(const char *p)
          "\t -d                NOT USED\n"
          "\t -R                randomize nodes\n"
          "\t -n                turn off beam codes\n"
+         "\t -u <alias>        set device alias\n"
          "\t -h                print this message and exit\n", p);
 }
 
@@ -151,10 +164,11 @@ int main(int argc, char** argv) {
   unsigned detid(0), devid(0);
 
   char* endPtr;
+  char* uniqueid = (char *)NULL;
   bool  bTurnOffBeamCodes = false;
   
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:r:d:nRh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:r:d:u:nRh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -174,6 +188,9 @@ int main(int argc, char** argv) {
       break;
     case 'd':
       //      EvrManager::drop_pulses(strtoul(optarg, NULL, 0));
+      break;
+    case 'u':
+      uniqueid = optarg;
       break;
     case 'R':
       EvrManager::randomize_nodes(true);
@@ -218,7 +235,7 @@ int main(int argc, char** argv) {
 
   CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings(detInfo);
+  MySegWire settings(detInfo, uniqueid);
   Seg* seg = new Seg(task, platform, *cfgService,
          settings, arp, evrdev, bTurnOffBeamCodes);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);

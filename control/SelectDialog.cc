@@ -3,6 +3,7 @@
 #include "pdsapp/control/NodeSelect.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/collection/PingReply.hh"
+#include "pds/collection/AliasReply.hh"
 #include "pds/utility/StreamPorts.hh"
 
 using namespace Pds;
@@ -71,7 +72,13 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
         //    ((Node&)hdr).setGroup((int)(detInfo.devId() / 100));
         //}        
       }
-      _segbox->addNode(NodeSelect(hdr, msg));      
+      const char *aliasName;
+      // TODO consider nsources() > 1
+      if ((msg.nsources() > 0) && (aliasName = _pcontrol.lookup_src_alias(msg.source(0)))) {
+        _segbox->addNode(NodeSelect(hdr, msg, QString(aliasName)));
+      } else {
+        _segbox->addNode(NodeSelect(hdr, msg));
+      }
       break; 
     }
   case Level::Event   : _evtbox->addNode(NodeSelect(hdr, msg)); break;
@@ -79,6 +86,16 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
   }
 
   emit changed();
+}
+
+void        SelectDialog::aliasCollect(const Node& hdr, const AliasReply& msg)
+{
+  if (hdr.level() == Level::Segment) {
+    int count = (int)msg.naliases();
+    for (int ix=0; ix < count; ix++) {
+      _pcontrol.add_src_alias(msg.alias(ix));
+    }
+  }
 }
 
 void SelectDialog::update_layout()

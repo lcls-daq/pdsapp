@@ -2,10 +2,10 @@ libnames :=
 
 tgtnames := camanalysis
 
-commonlibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata
+commonlibs := pdsdata/xtcdata pdsdata/opal1kdata pdsdata/camdata pdsdata/aliasdata
 commonlibs += pds/service pds/collection pds/xtc 
 commonlibs += pds/mon pds/vmon
-commonlibs += pds/utility pds/management pds/client pds/camera pds/config 
+commonlibs += pds/utility pds/management pds/client pds/camera pds/config
 
 tgtsrcs_camanalysis := camanalysis.cc
 tgtlibs_camanalysis := $(commonlibs) pds/mon

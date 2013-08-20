@@ -27,6 +27,7 @@
 #include "pds/service/Task.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/SrcAlias.hh"
 #include "pdsdata/camera/FrameV1.hh"
 
 #include <unistd.h>
@@ -533,7 +534,8 @@ public:
           unsigned              platform,
           const Src&            src,
           const AppList&        user_apps,
-          bool                  lCompress) :
+          bool                  lCompress,
+          const char *          aliasName = NULL) :
     _task     (task),
     _platform (platform),
     _user_apps(user_apps)
@@ -551,6 +553,11 @@ public:
       _user_apps.push_front(new FrameCompApp(_app->max_size()));
 
     _sources.push_back(src);
+
+    if (aliasName) {
+      SrcAlias tmpAlias(src, aliasName);
+      _aliases.push_back(tmpAlias);
+    }
   }
 
   virtual ~SegTest()
@@ -567,6 +574,10 @@ public:
   // Implements SegWireSettings
   void connect (InletWire&, StreamParams::StreamType, int) {}
   const std::list<Src>& sources() const { return _sources; }
+  const std::list<SrcAlias>* pAliases() const
+  {
+    return (_aliases.size() > 0) ? &_aliases : NULL;
+  }
 private:
   // Implements EventCallback
   void attached(SetOfStreams& streams)
@@ -595,23 +606,25 @@ private:
   Task*          _task;
   unsigned       _platform;
   std::list<Src> _sources;
+  std::list<SrcAlias> _aliases;
   SimApp*        _app;
   AppList        _user_apps;
 };
 
 void printUsage(char* s) {
   printf( "Usage: %s [-h] -i <detinfo> -p <platform>\n"
-	  "    -h      Show usage\n"
-	  "    -p      Set platform id           [required]\n"
-	  "    -i      Set device info           [required]\n"
-	  "                integer/integer/integer/integer or string/integer/string/integer\n"
-	  "                (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
-	  "    -v      Toggle verbose mode\n"
-	  "    -C <N>  Compress frames and add uncompressed frame every N events\n"
-	  "    -O      Use OpenMP\n"
-	  "    -D <N>  Drop every N events\n"
+	  "    -h          Show usage\n"
+	  "    -p          Set platform id           [required]\n"
+	  "    -i          Set device info           [required]\n"
+	  "                    integer/integer/integer/integer or string/integer/string/integer\n"
+	  "                    (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
+	  "    -u <alias>  Set device alias\n"
+	  "    -v          Toggle verbose mode\n"
+	  "    -C <N>      Compress frames and add uncompressed frame every N events\n"
+	  "    -O          Use OpenMP\n"
+	  "    -D <N>      Drop every N events\n"
 	  "    -T <S>,<N>  Delay S seconds every N events\n"
-	  "    -P <N>  Only forward payload every N events",     
+	  "    -P <N>      Only forward payload every N events\n",
 	  s
 	  );
 }
@@ -628,8 +641,9 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   char* endPtr;
+  char* uniqueid = (char *)NULL;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:vC:OD:T:L:P:S:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:vC:OD:T:L:P:S:u:h")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
@@ -688,6 +702,9 @@ int main(int argc, char** argv) {
     case 'S':
       ToEventWireScheduler::setMaximum(strtoul(optarg,NULL,0));
       break;
+    case 'u':
+      uniqueid = optarg;
+      break;
     case 'h':
       printUsage(argv[0]);
       return 0;
@@ -710,7 +727,8 @@ int main(int argc, char** argv) {
                                  platform, 
                                  info,
                                  user_apps,
-                                 lCompress);
+                                 lCompress,
+                                 uniqueid);
 
   SegmentLevel* segment = new SegmentLevel(platform, 
              *segtest,
