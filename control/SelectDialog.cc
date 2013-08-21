@@ -75,7 +75,10 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
       const char *aliasName;
       // TODO consider nsources() > 1
       if ((msg.nsources() > 0) && (aliasName = _pcontrol.lookup_src_alias(msg.source(0)))) {
-        _segbox->addNode(NodeSelect(hdr, msg, QString(aliasName)));
+        char namebuf[SrcAlias::AliasNameMax+1];
+        strncpy(namebuf, aliasName, SrcAlias::AliasNameMax);
+        namebuf[SrcAlias::AliasNameMax] = '\0';
+        _segbox->addNode(NodeSelect(hdr, msg, QString(namebuf)));
       } else {
         _segbox->addNode(NodeSelect(hdr, msg));
       }
