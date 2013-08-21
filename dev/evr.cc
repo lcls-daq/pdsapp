@@ -190,7 +190,11 @@ int main(int argc, char** argv) {
       //      EvrManager::drop_pulses(strtoul(optarg, NULL, 0));
       break;
     case 'u':
-      uniqueid = optarg;
+      if (strlen(optarg) > SrcAlias::AliasNameMax) {
+        printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax);
+      } else {
+        uniqueid = optarg;
+      }
       break;
     case 'R':
       EvrManager::randomize_nodes(true);

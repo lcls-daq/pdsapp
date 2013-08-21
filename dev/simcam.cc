@@ -703,7 +703,11 @@ int main(int argc, char** argv) {
       ToEventWireScheduler::setMaximum(strtoul(optarg,NULL,0));
       break;
     case 'u':
-      uniqueid = optarg;
+      if (strlen(optarg) > SrcAlias::AliasNameMax) {
+        printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax);
+      } else {
+        uniqueid = optarg;
+      }
       break;
     case 'h':
       printUsage(argv[0]);
