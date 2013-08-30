@@ -6,7 +6,7 @@
 
 #include <QtGui/QWidget>
 
-#include "pdsdata/evr/SequencerEntry.hh"
+#include "pdsdata/psddl/evr.ddl.h"
 typedef Pds::EvrData::SequencerEntry SeqEntryType;
 
 class QGridLayout;

@@ -153,7 +153,7 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      TimepixConfigType& tc = *new(from) TimepixConfigType;
+      TimepixConfigType& tc = *reinterpret_cast<TimepixConfigType*>(from);
 
       _readoutSpeed.value = (TimepixConfigType::ReadoutSpeed)tc.readoutSpeed();
       _timepixSpeed.value = tc.timepixSpeed();
@@ -216,13 +216,19 @@ namespace Pds_ConfigDb {
       _timepixMode.value = tc.timepixMode();
       _dacBias.value = tc.dacBias();
       _flags.value = tc.flags();
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
+
+      uint8_t dummy[TimepixConfigType::PixelThreshMax];
+      memset(dummy,0,TimepixConfigType::PixelThreshMax);
+      const char* dummyc = "";
+
       TimepixConfigType& tc = *new(to) TimepixConfigType(
         _readoutSpeed.value,
-        _timepixMode.value,   // ext/neg assumed for trigger, so pass timepix mode here
+        // ext/neg assumed for trigger, so pass timepix mode here
+        TimepixConfigType::TimepixMode(_timepixMode.value),
         _timepixSpeed.value,
         _dac0Ikrum.value,
         _dac0Disc.value,
@@ -281,10 +287,12 @@ namespace Pds_ConfigDb {
         _dac3BiasLvds.value,
         _dac3RefLvds.value,
         _dacBias.value,
-        _flags.value
-      );
+        _flags.value,
+        0, 0, 0, dummy, 
+        dummyc, dummyc, dummyc, dummyc,
+        0, 0, 0, 0);
 
-      return tc.size();
+      return tc._sizeof();
     }
 
     int dataSize() const {
@@ -503,13 +511,18 @@ namespace Pds_ConfigDb {
       _timepixMode.value = tc.timepixMode();
       _dacBias.value = tc.dacBias();
       _flags.value = tc.flags();
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
+
+      uint8_t dummy[TimepixConfigType::PixelThreshMax];
+      memset(dummy,0,TimepixConfigType::PixelThreshMax);
+      const char* dummyc = "";
+
       TimepixConfigType& tc = *new(to) TimepixConfigType(
         _readoutSpeed.value,
-        _timepixMode.value,
+        TimepixConfigType::TimepixMode(_timepixMode.value),
         _timepixSpeed.value,
         _dac0Ikrum.value,
         _dac0Disc.value,
@@ -568,10 +581,12 @@ namespace Pds_ConfigDb {
         _dac3BiasLvds.value,
         _dac3RefLvds.value,
         _dacBias.value,
-        _flags.value
-      );
+        _flags.value,
+        0, 0, 0, dummy, 
+        dummyc, dummyc, dummyc, dummyc,
+        0, 0, 0, 0);
 
-      return tc.size();
+      return tc._sizeof();
     }
 
     int dataSize() const {

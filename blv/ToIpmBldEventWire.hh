@@ -8,12 +8,13 @@
 #include "pds/utility/ToNetEb.hh"
 #include "pds/service/GenericPoolW.hh"
 #include "pds/service/Task.hh"
-#include "pdsdata/xtc/XtcIterator.hh"
+#include "pds/config/IpimbConfigType.hh"
+#include "pds/config/IpimbDataType.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/Sequence.hh"
 
-#include "pdsdata/bld/bldData.hh"
+#include "pdsdata/psddl/bld.ddl.h"
 
 #include <vector>
 #include <string>
@@ -61,8 +62,8 @@ namespace Pds {
     GenericPoolW                      _pool;
     Sequence                          _seq;
     Task*                             _task;
-    std::vector<const IpimbDataV2*>   _data;
-    std::vector<IpimbConfigV2>        _config;
+    std::vector<const IpimbDataType*> _data;
+    std::vector<IpimbConfigType>      _config;
   };
 }
 

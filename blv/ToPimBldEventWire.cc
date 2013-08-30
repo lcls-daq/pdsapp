@@ -1,7 +1,7 @@
 #include "pdsapp/blv/ToPimBldEventWire.hh"
 
 #include "pds/xtc/InDatagram.hh"
-#include "pdsdata/camera/FrameV1.hh"
+#include "pdsdata/psddl/camera.ddl.h"
 
 //#define DBUG
 
@@ -18,7 +18,12 @@ ToPimBldEventWire::ToPimBldEventWire(Outlet&        outlet,
                                      int            write_fd,
                                      const BldInfo& bld,
                                      unsigned       wait_us) :
-  ToBldEventWire(outlet, interface, write_fd, bld, wait_us, extent)
+  ToBldEventWire(outlet, interface, write_fd, bld, wait_us, extent),
+  _camConfig(0,0,0,0,false,
+             TM6740ConfigType::Eight_bit,
+             TM6740ConfigType::x1,
+             TM6740ConfigType::x1,
+             TM6740ConfigType::Linear)
 {
 }
 

@@ -205,7 +205,7 @@ void ConfigSelect::_open_db()
     catch(std::string& serr) {
       if (!asserted) {
         asserted = true;
-        setTitle("Configuration (LOCKED)");
+        setTitle(QString("Configuration (%1)").arg(serr.c_str()));
         setPalette(QPalette(::Qt::yellow));
       }
       delete _expt;

@@ -11,7 +11,7 @@ CspadConfig_V4::CspadConfig_V4():
 
 int CspadConfig_V4::readParameters(void *from)
 {
-  return _table->pull(from);
+  return _table->pull(*reinterpret_cast<const Pds::CsPad::ConfigV4*>(from));
 }
 
 int CspadConfig_V4::writeParameters(void *to)

@@ -3,13 +3,13 @@
 #include "pdsdata/xtc/TypeId.hh"
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/Dgram.hh"
-#include "pdsdata/camera/FrameV1.hh"
+#include "pdsdata/psddl/camera.ddl.h"
 
 template <class T>
 static void _stuffIt(Pds::Camera::FrameV1& f)
 {
   static unsigned _p = 0x55555555;
-  T* d = (T*)f.data() + f.height()/4*f.width();
+  T* d = (T*)f.data8().data() + f.height()/4*f.width();
   const T v = _p&((1<<f.depth())-1);
   printf("stuff %x\n",v);
   for(unsigned i=0; i<f.width(); i++)
@@ -54,7 +54,7 @@ int SimCam::MyIter::process(Xtc* xtc)
     iterate(xtc);
   else if (xtc->contains.id()==TypeId::Id_Frame) {
     Camera::FrameV1& f = *reinterpret_cast<Camera::FrameV1*>(xtc->payload());
-    switch(f.depth_bytes()) {
+    switch((f.depth()+7)/8) {
     case 1: _stuffIt<uint8_t >(f); break;
     case 2: _stuffIt<uint16_t>(f); break;
     default:

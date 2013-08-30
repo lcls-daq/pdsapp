@@ -1,7 +1,5 @@
 #include "pdsapp/config/PVMonitor.hh"
 
-#include "pdsdata/control/PVMonitor.hh"
-
 #include <string.h>
 #include <new>
 #include <float.h>
@@ -22,8 +20,7 @@ void PVMonitor::insert(Pds::LinkedList<Parameter>& pList) {
   pList.insert(&_hiValue);
 }
 
-bool PVMonitor::pull(void* from) {
-  Pds::ControlData::PVMonitor& tc = *new(from) Pds::ControlData::PVMonitor;
+bool PVMonitor::pull(const Pds::ControlData::PVMonitor& tc) {
   // construct the full name from the array base and index
   if (tc.array())
     snprintf(_name.value, Pds::ControlData::PVMonitor::NameSize,

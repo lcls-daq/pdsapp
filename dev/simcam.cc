@@ -20,7 +20,7 @@
 #include "pds/config/CsPadDataType.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
 #include "pds/config/CsPad2x2DataType.hh"
-#include "pdsdata/cspad/ElementIterator.hh"
+#include "pdsdata/psddl/cspad.ddl.h"
 #include "pds/config/ImpConfigType.hh"
 #include "pds/config/ImpDataType.hh"
 
@@ -28,7 +28,7 @@
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/SrcAlias.hh"
-#include "pdsdata/camera/FrameV1.hh"
+#include "pdsdata/psddl/camera.ddl.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -42,6 +42,8 @@ static int ndrop = 0;
 static int ntime = 0;
 static int nforward = 1;
 static double ftime = 0;
+
+static const unsigned sizeof_Section = Pds::CsPad::ColumnsPerASIC*Pds::CsPad::MaxRowsPerASIC*sizeof(int16_t);
 
 typedef std::list<Pds::Appliance*> AppList;
 
@@ -134,7 +136,9 @@ public:
     _cfgpayload = new char[CfgSize];
 
     unsigned width,height,depth,offset;
-
+    float    fdummy [32]; memset( fdummy,0,32*sizeof(float));
+    uint16_t usdummy[32]; memset(usdummy,0,32*sizeof(uint16_t));
+ 
     const DetInfo& info = static_cast<const DetInfo&>(src);
     switch(info.device()) {
     case DetInfo::Opal1000:
@@ -148,9 +152,10 @@ public:
 							       Opal1kConfigType::x1,
 							       Opal1kConfigType::None,
 							       true,
-							       false))->size();
-      width  = Opal1kConfigType::max_column_pixels(info);
-      height = Opal1kConfigType::max_row_pixels(info);
+							       false, 
+                                                               false, 0, 0, 0))->_sizeof();
+      width  = Pds::Opal1k::max_column_pixels(info);
+      height = Pds::Opal1k::max_row_pixels(info);
       depth  = 12;
       offset = 32;
       break;
@@ -173,7 +178,8 @@ public:
                                                                QuartzConfigType::x1,
                                                                QuartzConfigType::x1,
                                                                QuartzConfigType::None,
-                                                               false))->size();
+                                                               false,
+                                                               false, 0, 0, 0))->_sizeof();
       width  = QuartzConfigType::Column_Pixels;
       height = QuartzConfigType::Row_Pixels;
       depth  = 8;
@@ -182,12 +188,7 @@ public:
     case DetInfo::Fccd:
       _cfgtc = new(_cfgpayload) Xtc(_fccdConfigType,src);
       _cfgtc->extent += sizeof(*new (_cfgtc->next()) FccdConfigType(0, true, false, 0,
-								    0, 0, 0, 0, 0, 0,
-								    0, 0, 0, 0, 0, 0,
-								    0, 0, 0, 0, 0,
-								    0, 0, 0, 0, 0,
-								    0, 0, 0, 0, 0,
-								    0, 0, 0, 0, 0));
+								    fdummy, usdummy));
       width  = FccdConfigType::Trimmed_Column_Pixels;
       height = FccdConfigType::Trimmed_Row_Pixels;
       depth  = 16;
@@ -208,58 +209,62 @@ public:
       _evttc[i] = new(_evtpayload+i*evtst) Xtc(TypeId(TypeId::Id_Frame,1),src);
       FrameV1* f = new(_evttc[i]->next()) FrameV1(width, height, depth, offset);
       if (depth<=8) {
-	unsigned i,k=0;
+        ndarray<const uint8_t, 2> idata = f->data8();
+        ndarray<uint8_t, 2> fdata = make_ndarray(const_cast<uint8_t*>(idata.data()), idata.shape()[0], idata.shape()[1]);
+	unsigned i;
 	for(i=0; i<f->height()/2; i++) {
 	  unsigned j;
 	  { const int mean   = offset/2;
 	    const int spread = offset/2;
-	    for(j=0; j<f->width()/2; j++,k++)
-	      const_cast<uint8_t*>(f->data())[k] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
+	    for(j=0; j<f->width()/2; j++)
+              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
 	  { const int mean   = offset;
 	    const int spread = offset;
-	    for(; j<f->width(); j++,k++)
-	      const_cast<uint8_t*>(f->data())[k] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
+	    for(; j<f->width(); j++)
+              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
 	}
 	for(; i<f->height(); i++) {
 	  unsigned j;
 	  { const int mean   = offset;
 	    const int spread = offset;
-	    for(j=0; j<f->width()/2; j++,k++)
-	      const_cast<uint8_t*>(f->data())[k] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
+	    for(j=0; j<f->width()/2; j++)
+              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
 	  { const int mean   = offset/2;
 	    const int spread = offset/2;
-	    for(; j<f->width(); j++,k++)
-	      const_cast<uint8_t*>(f->data())[k] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
+	    for(; j<f->width(); j++)
+              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
 	}
       }
       else if (depth<=16) {
-	unsigned i,k=0;
+        ndarray<const uint8_t, 2> idata = f->data8();
+        ndarray<uint8_t, 2> fdata = make_ndarray(const_cast<uint8_t*>(idata.data()), idata.shape()[0], idata.shape()[1]);
+	unsigned i;
 	for(i=0; i<f->height()/2; i++) {
 	  unsigned j;
 	  { const int mean   = offset/2;
 	    const int spread = offset/2;
-	    for(j=0; j<f->width()/2; j++,k++)
-	      reinterpret_cast<uint16_t*>(const_cast<uint8_t*>(f->data()))[k] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
+	    for(j=0; j<f->width()/2; j++)
+              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
 	  { const int mean   = offset;
 	    const int spread = offset;
-	    for(; j<f->width(); j++,k++)
-	      reinterpret_cast<uint16_t*>(const_cast<uint8_t*>(f->data()))[k] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
+	    for(; j<f->width(); j++)
+              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
 	}
 	for(; i<f->height(); i++) {
 	  unsigned j;
 	  { const int mean   = offset;
 	    const int spread = offset;
-	    for(j=0; j<f->width()/2; j++,k++)
-	      reinterpret_cast<uint16_t*>(const_cast<uint8_t*>(f->data()))[k] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
+	    for(j=0; j<f->width()/2; j++)
+              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
 	  { const int mean   = offset/2;
 	    const int spread = offset/2;
-	    for(; j<f->width(); j++,k++)
-	      reinterpret_cast<uint16_t*>(const_cast<uint8_t*>(f->data()))[k] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
+	    for(; j<f->width(); j++)
+              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
 	}
       }
       else
 	;
-      _evttc[i]->extent += (f->data_size()+sizeof(FrameV1)+3)&~3;
+      _evttc[i]->extent += (f->_sizeof()+3)&~3;
     }
 
     _fexpayload = new char[FexSize];
@@ -269,8 +274,7 @@ public:
 					   FrameFexConfigType::NoProcessing,
 					   Pds::Camera::FrameCoord(0,0),
 					   Pds::Camera::FrameCoord(0,0),
-					   0,
-					   0, NULL);
+					   0, 0, 0);
     _fextc->extent += sizeof(FrameFexConfigType);
   }
   ~SimFrameV1() 
@@ -327,11 +331,18 @@ public:
   {
     _cfgpayload = new char[CfgSize];
     _cfgtc = new(_cfgpayload) Xtc(_CsPadConfigType,src);
+
+    Pds::CsPad::ProtectionSystemThreshold pt[4];
+    Pds::CsPad::ConfigV3QuadReg quads[4];
+
     new (_cfgtc->alloc(sizeof(CsPadConfigType)))
-      CsPadConfigType(0, 40, 0, 1, 0, 0, 8*sizeof(CsPad::Section),
-		      0, 0, 0xffffffff, 0xf, 0xffffffff);
+      CsPadConfigType(0, 0, 40, 
+                      pt, 0,
+                      0, 1, 0, 0, 8*sizeof_Section,
+		      0, 0, 0xffffffff, 0xf, 0xffffffff,
+                      quads);
     
-    const size_t sz = sizeof(CsPadDataType)+8*sizeof(CsPad::Section)+sizeof(uint32_t);
+    const size_t sz = sizeof(CsPadDataType)+8*sizeof_Section+sizeof(uint32_t);
     unsigned evtsz = 4*sz + sizeof(Xtc);
     unsigned evtst = (evtsz+3)&~3;
     _evtpayload = new char[NBuffers*evtst];
@@ -346,7 +357,7 @@ public:
 	uint16_t* p = reinterpret_cast<uint16_t*>(q+1);
 	uint16_t* e = p;
 	for(unsigned j=0; j<8; j++) {
-	  e += sizeof(CsPad::Section)/sizeof(uint16_t);
+	  e += sizeof_Section/sizeof(uint16_t);
 	  unsigned o = 0x150 + ((rand()>>8)&0x7f);
 	  while(p < e)
 	    *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
@@ -400,9 +411,16 @@ public:
   {
     _cfgpayload = new char[CfgSize];
     _cfgtc = new(_cfgpayload) Xtc(_CsPad2x2ConfigType,src);
+
+    Pds::CsPad2x2::ProtectionSystemThreshold pt;
+    Pds::CsPad2x2::ConfigV2QuadReg quad;
+
     new (_cfgtc->alloc(sizeof(CsPad2x2ConfigType)))
-      CsPad2x2ConfigType(0, 0, 0, 0, 2*sizeof(CsPad::Section),
-			 0, 0xf, 0xf);
+      CsPad2x2ConfigType(0, pt, 0,
+                         0, 0, 0, 0,
+                         2*sizeof_Section,
+			 0, 0xf, 0xf,
+                         quad);
     
     const size_t sz = sizeof(CsPad2x2DataType)+sizeof(uint32_t);
     unsigned evtsz = sz + sizeof(Xtc);
@@ -415,8 +433,9 @@ public:
       //  Set the quad number
       reinterpret_cast<uint32_t*>(q)[1] = 0;
       //  Set the payload
-      uint16_t* p = reinterpret_cast<uint16_t*>(&q->pair[0][0]);
-      uint16_t* e = reinterpret_cast<uint16_t*>(q+1);
+      ndarray<const int16_t,3> a = q->data();
+      uint16_t* p = const_cast<uint16_t*>(reinterpret_cast<const uint16_t*>(a.data()));
+      uint16_t* e = p+a.size();
       unsigned o = 0x150 + ((rand()>>8)&0x7f);
       while(p < e)
 	*p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
@@ -469,18 +488,18 @@ public:
     _cfgpayload = new char[CfgSize];
     _cfgtc = new(_cfgpayload) Xtc(_ImpConfigType,src);
     ImpConfigType* cfg = new (_cfgtc->alloc(sizeof(ImpConfigType)))
-      ImpConfigType(ImpConfigType::defaultValue(ImpConfigType::Range),
-		    ImpConfigType::defaultValue(ImpConfigType::Cal_range),
-		    ImpConfigType::defaultValue(ImpConfigType::Reset),
-		    ImpConfigType::defaultValue(ImpConfigType::Bias_data),
-		    ImpConfigType::defaultValue(ImpConfigType::Cal_data),
-		    ImpConfigType::defaultValue(ImpConfigType::BiasDac_data),
-		    ImpConfigType::defaultValue(ImpConfigType::Cal_strobe),
-		    ImpConfigType::defaultValue(ImpConfigType::NumberOfSamples),
-		    ImpConfigType::defaultValue(ImpConfigType::TrigDelay),
-		    ImpConfigType::defaultValue(ImpConfigType::Adc_delay));
+      ImpConfigType(Pds::ImpConfig::defaultValue(ImpConfigType::Range),
+		    Pds::ImpConfig::defaultValue(ImpConfigType::Cal_range),
+		    Pds::ImpConfig::defaultValue(ImpConfigType::Reset),
+		    Pds::ImpConfig::defaultValue(ImpConfigType::Bias_data),
+		    Pds::ImpConfig::defaultValue(ImpConfigType::Cal_data),
+		    Pds::ImpConfig::defaultValue(ImpConfigType::BiasDac_data),
+		    Pds::ImpConfig::defaultValue(ImpConfigType::Cal_strobe),
+		    Pds::ImpConfig::defaultValue(ImpConfigType::NumberOfSamples),
+		    Pds::ImpConfig::defaultValue(ImpConfigType::TrigDelay),
+		    Pds::ImpConfig::defaultValue(ImpConfigType::Adc_delay));
     
-    const size_t sz = sizeof(ImpDataType)+cfg->get(ImpConfigType::NumberOfSamples)*sizeof(Pds::Imp::Sample)+sizeof(uint32_t);
+    const size_t sz = sizeof(ImpDataType)+Pds::ImpConfig::get(*cfg,ImpConfigType::NumberOfSamples)*sizeof(Pds::Imp::Sample)+sizeof(uint32_t);
     unsigned evtsz = sz + sizeof(Xtc);
     unsigned evtst = (evtsz+3)&~3;
     _evtpayload = new char[NBuffers*evtst];
@@ -490,7 +509,7 @@ public:
       ImpDataType* q = new (_evttc[b]->alloc(sz)) ImpDataType;
       //  Set the payload
       uint16_t* p = reinterpret_cast<uint16_t*>(q+1);
-      uint16_t* e = p + cfg->get(ImpConfigType::NumberOfSamples)*Pds::Imp::channelsPerDevice;
+      uint16_t* e = p + Pds::ImpConfig::get(*cfg,ImpConfigType::NumberOfSamples)*Pds::Imp::Sample::channelsPerDevice;
       unsigned o = 0x150 + ((rand()>>8)&0x7f);
       while(p < e)
 	*p++ = (o + ((rand()>>8)&0x3f))&0x3fff;

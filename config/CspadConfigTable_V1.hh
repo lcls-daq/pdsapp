@@ -3,6 +3,8 @@
 
 #include "pdsapp/config/Parameters.hh"
 
+#include "pdsdata/psddl/cspad.ddl.h"
+
 class QButtonGroup;
 
 namespace Pds_ConfigDb
@@ -19,7 +21,7 @@ namespace Pds_ConfigDb
     ~CspadConfigTable_V1();
   public:
     void insert(Pds::LinkedList<Parameter>& pList);
-    int  pull  (const void* from);
+    int  pull  (const Pds::CsPad::ConfigV1& tc);
     int  push  (void* to) const;
     int  dataSize() const;
     bool validate();

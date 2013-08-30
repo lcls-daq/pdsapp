@@ -72,18 +72,18 @@ namespace Pds_ConfigDb {
       _pList.insert(_veto_term);
     }
     int pull(void* from) { // pull "from xtc"
-      AcqTdcConfigType& c = *new(from) AcqTdcConfigType;
+      AcqTdcConfigType& c = *reinterpret_cast<AcqTdcConfigType*>(from);
       for(unsigned i=0; i<NChan; i++) {
 	PolarityButton::State s = PolarityButton::None;
-	if (c.channel(i).mode()==TdcChannel::Active)
-	  s = (c.channel(i).slope()==TdcChannel::Positive) ?
+	if (c.channels()[i].mode()==TdcChannel::Active)
+	  s = (c.channels()[i].slope()==TdcChannel::Positive) ?
 	    PolarityButton::Pos : PolarityButton::Neg;
 	_slope[i]->setState(s);
-	_level[i]->value = c.channel(i).level();
+	_level[i]->value = c.channels()[i].level();
       }
       for(unsigned i=0; i<NAuxIO; i++) {
-	_auxio_mode[i]->value = c.auxio(i).mode();
-	_auxio_term[i]->value = c.auxio(i).term();
+	_auxio_mode[i]->value = c.auxio()[i].mode();
+	_auxio_term[i]->value = c.auxio()[i].term();
       }
       _veto_mode->value = c.veto().mode();
       _veto_term->value = c.veto().term();
@@ -103,7 +103,7 @@ namespace Pds_ConfigDb {
 	  (_slope[i]->state()==PolarityButton::Pos) ?
 	  TdcChannel::Positive :
 	  TdcChannel::Negative;
-	new(&channels[i]) TdcChannel(chvals[i],m,s,_level[i]->value);
+	new(&channels[i]) TdcChannel(chvals[i],s,m,_level[i]->value);
       }
       new(&auxio[0]) TdcAuxIO(TdcAuxIO::IOAux1,
 			      _auxio_mode[0]->value,

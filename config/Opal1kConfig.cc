@@ -40,7 +40,7 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      Opal1kConfigType& tc = *new(from) Opal1kConfigType;
+      Opal1kConfigType& tc = *reinterpret_cast<Opal1kConfigType*>(from);
       _black_level.value = tc.black_level();
       _gain       .value = tc.gain_percent();
       _depth      .value = tc.output_resolution();
@@ -49,18 +49,19 @@ namespace Pds_ConfigDb {
       _vertical_remap.value = tc.vertical_remapping() ? Enums::True : Enums::False;
       _defect_pixel_corr.value = tc.defect_pixel_correction_enabled() ? Enums::True : Enums::False;
       _output_lut.value = None;
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
       Opal1kConfigType& tc = *new(to) Opal1kConfigType(_black_level.value,
-				   _gain.value,
-				   _depth.value,
-				   _binning.value,
-				   _mirroring.value,
-				   _vertical_remap.value==Enums::True,
-				   _defect_pixel_corr.value==Enums::True);
-      return tc.size();
+                                                       _gain.value,
+                                                       _depth.value,
+                                                       _binning.value,
+                                                       _mirroring.value,
+                                                       _vertical_remap.value==Enums::True,
+                                                       _defect_pixel_corr.value==Enums::True,
+                                                       false, 0, 0, 0);
+      return tc._sizeof();
     }
 
     int dataSize() const {

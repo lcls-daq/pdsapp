@@ -12,7 +12,7 @@ static PyMethodDef pds_FliConfig_methods[] = {
 
 DefineXtcType(FliConfig) ;
 
-#include "pdsdata/fli/ConfigV1.hh"
+#include "pdsdata/psddl/fli.ddl.h"
 #include <new>
 
 

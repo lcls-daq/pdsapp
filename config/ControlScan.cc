@@ -6,8 +6,7 @@
 #include "pdsapp/config/EvrScan.hh"
 #include "pdsapp/config/XtcTable.hh"
 
-#include "pdsdata/control/PVControl.hh"
-#include "pdsdata/control/PVMonitor.hh"
+#include "pdsdata/psddl/control.ddl.h"
 #include "pdsdata/xtc/ClockTime.hh"
 
 #include "pds/config/ControlConfigType.hh"
@@ -244,8 +243,8 @@ void ControlScan::read(const char* ifile)
       // Create it
       printf("ControlScan::creating %s\n",namebuf);
       FILE* f = fopen(namebuf,"w");
-      ControlConfigType* cfg = new (_buf_control)ControlConfigType(ControlConfigType::Default);
-      fwrite(cfg, cfg->size(), 1, f);
+      ControlConfigType* cfg = new (_buf_control)ControlConfigType(1,0,0,0,0,0,0,0,0,0);
+      fwrite(cfg, cfg->_sizeof(), 1, f);
       fclose(f);
       // retry stat()
       if (stat64(namebuf,&sstat)) {
@@ -263,8 +262,8 @@ void ControlScan::read(const char* ifile)
       const ControlConfigType& cfg = 
         *reinterpret_cast<const ControlConfigType*>(_buf_control);
 
-      int npts = len/cfg.size();
-      printf("cfg size %d/%d (%d)\n",cfg.size(),len,npts);
+      int npts = len/cfg._sizeof();
+      printf("cfg size %d/%d (%d)\n",cfg._sizeof(),len,npts);
       _steps->setText(QString::number(npts-1));
     
       if (cfg.uses_duration()) {
@@ -338,7 +337,7 @@ int ControlScan::update_key()
       *reinterpret_cast<const ControlConfigType*>(_buf_control);
     _expt.substitute(key, ProcInfo(Pds::Level::Control,0,0),
 		     *PdsDefs::typeId(PdsDefs::RunControl), 
-                     _buf_control, cfg.size()*npts);
+                     _buf_control, cfg._sizeof()*npts);
 
     if (_tab->currentIndex() == TriggerTab) {
       const EvrConfigType& evr = 
@@ -346,7 +345,7 @@ int ControlScan::update_key()
       for(unsigned i=0; i<8; i++)
 	_expt.substitute(key, DetInfo(0,DetInfo::NoDetector,0,DetInfo::Evr,i),
 			 *PdsDefs::typeId(PdsDefs::Evr), 
-			 _buf_evr, evr.size()*npts);
+			 _buf_evr, Pds::EvrConfig::size(evr)*npts);
     }
   }
 

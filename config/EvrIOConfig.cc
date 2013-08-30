@@ -50,17 +50,19 @@ namespace Pds_ConfigDb
     int pull(const EvrIOConfigType& tc) {
       _conn.value = tc.conn();
       for(unsigned i=0; i<tc.nchannels(); i++)
-    _channel[i]->pull(tc.channel(i));
-      return tc.size();
+        _channel[i]->pull(tc.channels()[i]);
+      return tc._sizeof();
     }
 
     int push(void* to) const {
       EvrIOConfigType& tc = *reinterpret_cast<EvrIOConfigType*>(to);
-      Pds::EvrData::IOChannel ch[MaxOutputs];
+      *new(&tc) EvrIOConfigType(_conn.value, MaxOutputs);
+
+      Pds::EvrData::IOChannel* ch = reinterpret_cast<Pds::EvrData::IOChannel*>(&tc+1);
       for(int i=0; i<MaxOutputs; i++)
-  _channel[i]->push(ch[i]);
-      *new(&tc) EvrIOConfigType(_conn.value, ch, MaxOutputs);
-      return tc.size();
+        _channel[i]->push(ch[i]);
+        
+      return tc._sizeof();
     }
 
     int dataSize() const {
@@ -154,7 +156,7 @@ namespace Pds_ConfigDb
       unsigned ievr = 0;
       do {
         const EvrIOConfigType& tc = *reinterpret_cast<const EvrIOConfigType*>(p);
-        p += tc.size();
+        p += tc._sizeof();
         printf("ievr[%d]  nch %d\n",ievr,tc.nchannels());
         if (tc.nchannels()==0) break;
         _evr[ievr++]->pull(tc);
@@ -176,7 +178,7 @@ namespace Pds_ConfigDb
       for(unsigned i=0; i<_nevr; i++) {
         p += _evr[i]->push(p);
       }
-      p += (new(p) EvrIOConfigType(Pds::EvrData::OutputMap::UnivIO, 0, 0))->size();
+      p += (new(p) EvrIOConfigType(Pds::EvrData::OutputMap::UnivIO, 0))->_sizeof();
       printf("EvrIOConfig push %d bytes\n", (int)(p - reinterpret_cast<char*>(to)));
       return p - reinterpret_cast<char*>(to);
     }
@@ -185,7 +187,7 @@ namespace Pds_ConfigDb
       unsigned size = 0;
       for(unsigned i=0; i<_nevr; i++)
         size += _evr[i]->dataSize();
-      size += EvrIOConfigType(Pds::EvrData::OutputMap::UnivIO,0,0).size();
+      size += EvrIOConfigType(Pds::EvrData::OutputMap::UnivIO,0)._sizeof();
       return size;
     }
 

@@ -24,10 +24,10 @@ namespace Pds_ConfigDb {
       void     pull  (const EvrConfigType&);
       //  validate() updates pulses, outputs accessors
       bool validate(unsigned ncodes, 
-                    const EvrConfigType::EventCodeType* codes,
+                    const EventCodeType* codes,
                     int delay_offset,
-                    unsigned, EvrConfigType::PulseType*,
-                    unsigned, EvrConfigType::OutputMapType*);
+                    unsigned, PulseType*,
+                    unsigned, OutputMapType*);
 
       unsigned npulses () const;
       unsigned noutputs() const;

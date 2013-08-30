@@ -11,7 +11,7 @@ CspadConfig::CspadConfig():
 
 int CspadConfig::readParameters(void *from)
 {
-  return _table->pull(from);
+  return _table->pull(*reinterpret_cast<const CsPadConfigType*>(from));
 }
 
 int CspadConfig::writeParameters(void *to)

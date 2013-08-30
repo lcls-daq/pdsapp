@@ -39,13 +39,10 @@
 #include "pdsapp/config/CspadConfig_V3.hh"
 #include "pdsapp/config/CspadConfig_V4.hh"
 #include "pdsapp/config/CspadConfig.hh"
-#include "pdsapp/config/XampsConfig.hh"
-#include "pdsapp/config/FexampConfig.hh"
 #include "pdsapp/config/ImpConfig.hh"
 #include "pdsapp/config/Gsc16aiConfig.hh"
 #include "pdsapp/config/TimepixConfig.hh"
 #include "pdsapp/config/TimepixConfig_V2.hh"
-#include "pdsapp/config/PhasicsConfig.hh"
 #include "pdsapp/config/Cspad2x2Config_V1.hh"
 #include "pdsapp/config/Cspad2x2Config.hh"
 #include "pdsapp/config/OceanOpticsConfig.hh"
@@ -71,19 +68,25 @@
 #include "pds/config/FrameFexConfigType.hh"
 #include "pds/config/ControlConfigType.hh"
 #include "pds/config/CsPadConfigType.hh"
-#include "pds/config/XampsConfigType.hh"
-#include "pds/config/FexampConfigType.hh"
 #include "pds/config/ImpConfigType.hh"
 #include "pds/config/Gsc16aiConfigType.hh"
 #include "pds/config/TimepixConfigType.hh"
-#include "pds/config/PhasicsConfigType.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
 #include "pds/config/OceanOpticsConfigType.hh"
 #include "pds/config/FliConfigType.hh"
 #include "pds/config/AndorConfigType.hh"
 #include "pdsapp/config/PdsDefs.hh"
 
-#include "pdsdata/lusi/DiodeFexConfigV1.hh"
+#include "pdsdata/psddl/lusi.ddl.h"
+
+#ifdef BUILD_EXTRA
+#include "pdsapp/config/XampsConfig.hh"
+#include "pdsapp/config/FexampConfig.hh"
+#include "pdsapp/config/PhasicsConfig.hh"
+#include "pds/config/XampsConfigType.hh"
+#include "pds/config/FexampConfigType.hh"
+#include "pds/config/PhasicsConfigType.hh"
+#endif
 
 using namespace Pds_ConfigDb;
 
@@ -118,12 +121,14 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_diodeFexConfigType    ,new DiodeFexConfig);  
   enroll(_pimImageConfigType    ,new PimImageConfig);  
   enroll(_CsPadConfigType       ,new CspadConfig);
+#ifdef BUILD_EXTRA
   enroll(_XampsConfigType       ,new XampsConfig);
   enroll(_FexampConfigType      ,new FexampConfig);
+  enroll(_PhasicsConfigType     ,new PhasicsConfig);
+#endif
   enroll(_ImpConfigType         ,new ImpConfig);
   enroll(_gsc16aiConfigType     ,new Gsc16aiConfig);
   enroll(_timepixConfigType     ,new TimepixConfig);
-  enroll(_PhasicsConfigType     ,new PhasicsConfig);
   enroll(_CsPad2x2ConfigType    ,new Cspad2x2Config);
   enroll(_oceanOpticsConfigType ,new OceanOpticsConfig);  
   enroll(_fliConfigType         ,new FliConfig);  
@@ -135,17 +140,17 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,2) , new CspadConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,1) , new CspadConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_EncoderConfig,1),new EncoderConfig_V1);
-  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,6)   , new EvrConfigP_V6);
-  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,5)   , new EvrConfig_V5);
-  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,4)   , new EvrConfig_V4);
-  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,3)   , new EvrConfig_V3);
-  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2)   , new EvrConfig_V2);
-  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,1)   , new EvrConfig_V1);
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,6)   , new EvrConfig_V6::EvrConfigP);
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,5)   , new EvrConfig_V5::EvrConfig);
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,4)   , new EvrConfig_V4::EvrConfig);
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,3)   , new EvrConfig_V3::EvrConfig);
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2)   , new EvrConfig_V2::EvrConfig);
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,1)   , new EvrConfig_V1::EvrConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_TM6740Config,1), new TM6740ConfigV1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_IpimbConfig,1) , new IpimbConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_IpmFexConfig,1), new IpmFexConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_DiodeFexConfig,1), new DiodeFexConfig_V1);  
-  enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,1),new ControlConfig_V1);
+  enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,1),new ControlConfig_V1::ControlConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_TimepixConfig,2),new TimepixConfig_V2);
 #undef enroll
   return 0;

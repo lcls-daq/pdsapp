@@ -34,11 +34,11 @@ namespace Pds_ConfigDb {
     ~EvrEventCodeTable();
   public:
     void pull(const EvrConfigType&);
-    int  push(EvrConfigType::EventCodeType* to) const;
+    int  push(EventCodeType* to) const;
     bool validate();
     unsigned ncodes() const;
     bool     enableReadoutGroup() const;
-    const EvrConfigType::EventCodeType* codes() const;
+    const EventCodeType* codes() const;
   public:
     void insert(Pds::LinkedList<Parameter>& pList);
     QLayout* initialize(QWidget*);

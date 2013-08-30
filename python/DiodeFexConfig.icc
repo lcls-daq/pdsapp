@@ -13,8 +13,7 @@ static PyMethodDef pds_DiodeFexConfig_methods[] = {
 DefineXtcType(DiodeFexConfig)
 
 
-#include "pdsdata/lusi/DiodeFexConfigV1.hh"
-#include "pdsdata/lusi/DiodeFexConfigV2.hh"
+#include "pdsdata/psddl/lusi.ddl.h"
 
 PyObject* pds_DiodeFexConfig_get    (PyObject*   self, PyObject* args)
 {
@@ -26,11 +25,11 @@ PyObject* pds_DiodeFexConfig_get    (PyObject*   self, PyObject* args)
     unsigned n = Pds::Lusi::DiodeFexConfigV1::NRANGES;
     { PyObject* l = PyList_New(n);
       for(unsigned j=0; j<n; j++)
-        PyList_SetItem(l,j,PyFloat_FromDouble(v1->base[j]));
+        PyList_SetItem(l,j,PyFloat_FromDouble(v1->base()[j]));
       PyDict_SetItemString(o,"base",l); }
     { PyObject* l = PyList_New(n);
       for(unsigned j=0; j<n; j++)
-        PyList_SetItem(l,j,PyFloat_FromDouble(v1->scale[j]));
+        PyList_SetItem(l,j,PyFloat_FromDouble(v1->scale()[j]));
       PyDict_SetItemString(o,"scale",l); }
     return o;
   }
@@ -42,11 +41,11 @@ PyObject* pds_DiodeFexConfig_get    (PyObject*   self, PyObject* args)
     unsigned n = 8;
     { PyObject* l = PyList_New(n);
       for(unsigned j=0; j<n; j++)
-        PyList_SetItem(l,j,PyFloat_FromDouble(v1->base[j]));
+        PyList_SetItem(l,j,PyFloat_FromDouble(v1->base()[j]));
       PyDict_SetItemString(o,"base",l); }
     { PyObject* l = PyList_New(n);
       for(unsigned j=0; j<n; j++)
-        PyList_SetItem(l,j,PyFloat_FromDouble(v1->scale[j]));
+        PyList_SetItem(l,j,PyFloat_FromDouble(v1->scale()[j]));
       PyDict_SetItemString(o,"scale",l); }
     return o;
   }
@@ -64,45 +63,45 @@ PyObject* pds_DiodeFexConfig_set    (PyObject*   self, PyObject* args)
 
   pdsxtc* xtc = (pdsxtc*)self;
   if (xtc->contains.version()==1) {
-    Pds::Lusi::DiodeFexConfigV1* v1 = 
-      reinterpret_cast<Pds::Lusi::DiodeFexConfigV1*>(xtc->payload);
-    unsigned n = Pds::Lusi::DiodeFexConfigV1::NRANGES;
+    const unsigned n = Pds::Lusi::DiodeFexConfigV1::NRANGES;
+    float base[n], scale[n];	
     { PyObject* i = PyDict_GetItemString(o,"base");
       if (i)
         for(unsigned j=0; j<n; j++) {
           PyObject* it = PyList_GetItem(i,j);
 	  if (it)
-  	    v1->base[j] = PyFloat_AsDouble(it);
+  	    base[j] = PyFloat_AsDouble(it);
         } }
     { PyObject* i = PyDict_GetItemString(o,"scale");
       if (i)
         for(unsigned j=0; j<n; j++) {
           PyObject* it = PyList_GetItem(i,j);
 	  if (it)
-  	    v1->scale[j] = PyFloat_AsDouble(it);
+  	    scale[j] = PyFloat_AsDouble(it);
         } }
+    new (xtc->payload) Pds::Lusi::DiodeFexConfigV1(base,scale);
     Py_INCREF(Py_None);
     return Py_None;
   }
   else if (xtc->contains.version()==2) {
-    Pds::Lusi::DiodeFexConfigV2* v1 = 
-      reinterpret_cast<Pds::Lusi::DiodeFexConfigV2*>(xtc->payload);
-//    unsigned n = Pds::Lusi::DiodeFexConfigV2::NRANGES;
-    unsigned n = 8;
+    unsigned n = Pds::Lusi::DiodeFexConfigV2::NRANGES;
+//    const unsigned n = 8;
+    float base[n], scale[n];	
     { PyObject* i = PyDict_GetItemString(o,"base");
       if (i)
         for(unsigned j=0; j<n; j++) {
           PyObject* it = PyList_GetItem(i,j);
 	  if (it)
-  	    v1->base[j] = PyFloat_AsDouble(it);
+  	    base[j] = PyFloat_AsDouble(it);
         } }
     { PyObject* i = PyDict_GetItemString(o,"scale");
       if (i)
         for(unsigned j=0; j<n; j++) {
           PyObject* it = PyList_GetItem(i,j);
 	  if (it)
-  	    v1->scale[j] = PyFloat_AsDouble(it);
+  	    scale[j] = PyFloat_AsDouble(it);
         } }
+    new (xtc->payload) Pds::Lusi::DiodeFexConfigV2(base,scale);
 
     PyErr_Clear();
 

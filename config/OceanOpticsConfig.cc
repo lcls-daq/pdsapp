@@ -19,16 +19,16 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      OceanOpticsConfigType& tc = *new(from) OceanOpticsConfigType;
+      OceanOpticsConfigType& tc = *reinterpret_cast<OceanOpticsConfigType*>(from);
       _f32ExposureTime      .value = tc.exposureTime();
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
-      OceanOpticsConfigType& tc = *new(to) OceanOpticsConfigType(
-        _f32ExposureTime      .value
-      );
-      return tc.size();
+      double dummy[] = {0,0,0,0,0,0,0,0};
+      OceanOpticsConfigType tc = *new(to) 
+        OceanOpticsConfigType (_f32ExposureTime.value, dummy, dummy, dummy[0]);
+      return tc._sizeof();
     }
 
     int dataSize() const {

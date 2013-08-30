@@ -26,8 +26,7 @@ void EvrOutputMap_V1::insert(Pds::LinkedList<Parameter>& pList) {
   pList.insert(&_conn_id);
 }
 
-bool EvrOutputMap_V1::pull(void* from) {
-  const Pds::EvrData::OutputMap& tc = * (const Pds::EvrData::OutputMap*) from;
+bool EvrOutputMap_V1::pull(const Pds::EvrData::OutputMap& tc) {
   _source   .value = tc.source();
   _source_id.value = tc.source_id();
   _conn     .value = tc.conn();

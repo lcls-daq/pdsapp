@@ -2,16 +2,14 @@
 
 #include "pdsapp/tools/CspadShuffle.hh"
 
+#include "pds/config/ImpConfigType.hh"
+
 #include "pdsdata/app/XtcMonitorServer.hh"
 
-#include "pdsdata/cspad/ConfigV3.hh"
-#include "pdsdata/cspad/ElementV1.hh"
-#include "pdsdata/cspad/MiniElementV1.hh"
-#include "pdsdata/imp/ConfigV1.hh"
-#include "pdsdata/imp/ElementV1.hh"
-#include "pdsdata/opal1k/ConfigV1.hh"
-#include "pdsdata/camera/FrameFexConfigV1.hh"
-#include "pdsdata/camera/FrameV1.hh"
+#include "pdsdata/psddl/cspad.ddl.h"
+#include "pdsdata/psddl/imp.ddl.h"
+#include "pdsdata/psddl/opal1k.ddl.h"
+#include "pdsdata/psddl/camera.ddl.h"
 
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -150,7 +148,7 @@ PadMonServer::~PadMonServer()
   delete _srv;
 }
 
-void PadMonServer::configure(const Pds::CsPad::ConfigV3& c)
+void PadMonServer::configure(const Pds::CsPad::ConfigV5& c)
 {
   unsigned nq = 0;
   unsigned qmask = c.quadMask();
@@ -222,7 +220,7 @@ void PadMonServer::configure(const Pds::Imp::ConfigV1& c)
          srcInfo[_t],
          &c, 
          sizeof(c));
-  payloadsize = c.get(Pds::Imp::ConfigV1::NumberOfSamples)*sizeof(Pds::Imp::Sample)+sizeof(Pds::Imp::ElementHeader);
+  payloadsize = Pds::ImpConfig::get(c,ImpConfigType::NumberOfSamples)*sizeof(Pds::Imp::Sample)+sizeof(Pds::Imp::ElementV1);
   _srv->events(dg);
 
   _srv->events(insert(_srv->newDatagram(), TransitionId::BeginRun));
@@ -258,7 +256,7 @@ void PadMonServer::event_1d (const uint16_t* d,
   while(v < end) {
     v[0] = *d;
     v[1] = v[2] = v[3] = 0;
-    v += Pds::Imp::channelsPerDevice;
+    v += Pds::Imp::Sample::channelsPerDevice;
     d += nstep;
   }
 

@@ -4,7 +4,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/Xtc.hh"
-#include "pdsdata/princeton/InfoV1.hh"
+#include "pdsdata/psddl/princeton.ddl.h"
 #include "pds/epicstools/PVWriter.hh"
 
 #include <math.h>

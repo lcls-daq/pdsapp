@@ -63,7 +63,7 @@ namespace Pds_ConfigDb {
       _u16ReadoutSpeedIndex .value = tc.readoutSpeedIndex();
       _u16ExposureEventCode .value = tc.exposureEventCode();
       _u32NumDelayShots     .value = tc.numDelayShots();
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
@@ -84,7 +84,7 @@ namespace Pds_ConfigDb {
         _u16ExposureEventCode .value,
         _u32NumDelayShots     .value
       );
-      return tc.size();
+      return tc._sizeof();
     }
 
     int dataSize() const {

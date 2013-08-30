@@ -21,9 +21,7 @@ DefineXtcType(EvrConfig) ;
   { PyObject* data = PyDict_GetItemString(o,name);      \
     if (data)  configData = PyFloat_AsDouble(data);  }
 
-#include "pdsdata/evr/ConfigV5.hh"
-#include "pdsdata/evr/ConfigV6.hh"
-#include "pdsdata/evr/ConfigV7.hh"
+#include "pdsdata/psddl/evr.ddl.h"
 
 #include "pdsapp/config/EventcodeTiming.cc"
 
@@ -73,30 +71,27 @@ static bool set_EventCodeV5(Pds::EvrData::EventCodeV5& eventcode, PyObject* o)
  
   if (strcasecmp(type,"Readout")==0) {
     new (&eventcode) 
-      Pds::EvrData::EventCodeV5(code, 
-                                PyString_AsString(PyDict_GetItemString(o,"desc")),
-                                maskTrigger,maskSet,maskClear);
+      Pds::EvrData::EventCodeV5(code, true, false, false, 0, 1,
+                                maskTrigger,maskSet,maskClear,
+                                PyString_AsString(PyDict_GetItemString(o,"desc")));
   }
   else if (strcasecmp(type,"Command")==0) {
     new (&eventcode) 
-      Pds::EvrData::EventCodeV5(code, 
+      Pds::EvrData::EventCodeV5(code, false, true, false, 0, 1,
+				0, 0, 0,
                                 PyString_AsString(PyDict_GetItemString(o,"desc")));
   }
   else if (strcasecmp(type,"Latch")==0) {
     new (&eventcode) 
-      Pds::EvrData::EventCodeV5(code, 
-                                PyString_AsString(PyDict_GetItemString(o,"desc")),
-                                true,
-                                reportDelay,
-                                releaseCode);
+      Pds::EvrData::EventCodeV5(code, false, false, true, reportDelay, releaseCode,
+                                0, 0, 0,
+                                PyString_AsString(PyDict_GetItemString(o,"desc")));
   }
   else if (strcasecmp(type,"Control")==0) {
     new (&eventcode) 
-      Pds::EvrData::EventCodeV5(code, 
-                                PyString_AsString(PyDict_GetItemString(o,"desc")),
-                                false,
-                                reportDelay,
-                                reportWidth);
+      Pds::EvrData::EventCodeV5(code, false, false, false, reportDelay, reportWidth,
+				0, 0, 0,
+                                PyString_AsString(PyDict_GetItemString(o,"desc")));
   }
   else {
     char buff[128];
@@ -152,31 +147,31 @@ static bool set_EventCodeV6(Pds::EvrData::EventCodeV6& eventcode, PyObject* o)
  
   if (strcasecmp(type,"Readout")==0) {
     new (&eventcode) 
-      Pds::EvrData::EventCodeV6(code, 
-                                readoutGroup,
+      Pds::EvrData::EventCodeV6(code, true, false, false, 0, 1,
+                                maskTrigger,maskSet,maskClear,
                                 PyString_AsString(PyDict_GetItemString(o,"desc")),
-                                maskTrigger,maskSet,maskClear);
+                                readoutGroup);
   }
   else if (strcasecmp(type,"Command")==0) {
     new (&eventcode) 
-      Pds::EvrData::EventCodeV6(code, 
-                                PyString_AsString(PyDict_GetItemString(o,"desc")));
+      Pds::EvrData::EventCodeV6(code, false, true, false, 0, 1,
+				0, 0, 0,
+                                PyString_AsString(PyDict_GetItemString(o,"desc")),
+                                0);
   }
   else if (strcasecmp(type,"Latch")==0) {
     new (&eventcode) 
-      Pds::EvrData::EventCodeV6(code, 
+      Pds::EvrData::EventCodeV6(code, false, false, true, reportDelay, releaseCode,
+				0,0,0,
                                 PyString_AsString(PyDict_GetItemString(o,"desc")),
-                                true,
-                                reportDelay,
-                                releaseCode);
+				0);
   }
   else if (strcasecmp(type,"Control")==0) {
     new (&eventcode) 
-      Pds::EvrData::EventCodeV6(code, 
+      Pds::EvrData::EventCodeV6(code, false, false, false, reportDelay, reportWidth,
+				0,0,0,
                                 PyString_AsString(PyDict_GetItemString(o,"desc")),
-                                false,
-                                reportDelay,
-                                reportWidth);
+				0);
   }
   else {
     char buff[128];
@@ -317,19 +312,19 @@ PyObject* pds_EvrConfig_get (PyObject*   self, PyObject* args)
     { unsigned neventcodes = v->neventcodes();
       PyObject* eventcodes = PyList_New(neventcodes);
       for(unsigned j=0; j<neventcodes; j++)
-  PyList_SetItem(eventcodes, j, get_EventCodeV5(v->eventcode(j)));
+  PyList_SetItem(eventcodes, j, get_EventCodeV5(v->eventcodes()[j]));
       PyDict_SetItemString(o, "eventcodes", eventcodes);
     }
     { unsigned npulses = v->npulses();
       PyObject* pulses = PyList_New(npulses);
       for(unsigned j=0; j<npulses; j++)
-        PyList_SetItem(pulses, j, get_PulseConfigV3(v->pulse(j)));
+        PyList_SetItem(pulses, j, get_PulseConfigV3(v->pulses()[j]));
       PyDict_SetItemString(o, "pulses", pulses);
     }
     { unsigned noutputs = v->noutputs();
       PyObject* outputs = PyList_New(noutputs);
       for(unsigned j=0; j<noutputs; j++)
-        PyList_SetItem(outputs, j, get_OutputMap(v->output_map(j),Pds::EvrData::ConfigV5::EvrOutputs));
+        PyList_SetItem(outputs, j, get_OutputMap(v->output_maps()[j],Pds::EvrData::ConfigV5::EvrOutputs));
       PyDict_SetItemString(o, "outputs", outputs);
     }
     return o;
@@ -341,19 +336,19 @@ PyObject* pds_EvrConfig_get (PyObject*   self, PyObject* args)
     { unsigned neventcodes = v->neventcodes();
       PyObject* eventcodes = PyList_New(neventcodes);
       for(unsigned j=0; j<neventcodes; j++)
-      PyList_SetItem(eventcodes, j, get_EventCodeV5(v->eventcode(j)));
+      PyList_SetItem(eventcodes, j, get_EventCodeV5(v->eventcodes()[j]));
       PyDict_SetItemString(o, "eventcodes", eventcodes);
     }
     { unsigned npulses = v->npulses();
       PyObject* pulses = PyList_New(npulses);
       for(unsigned j=0; j<npulses; j++)
-        PyList_SetItem(pulses, j, get_PulseConfigV3(v->pulse(j)));
+        PyList_SetItem(pulses, j, get_PulseConfigV3(v->pulses()[j]));
       PyDict_SetItemString(o, "pulses", pulses);
     }
     { unsigned noutputs = v->noutputs();
       PyObject* outputs = PyList_New(noutputs);
       for(unsigned j=0; j<noutputs; j++)
-        PyList_SetItem(outputs, j, get_OutputMapV2(v->output_map(j)));
+        PyList_SetItem(outputs, j, get_OutputMapV2(v->output_maps()[j]));
       PyDict_SetItemString(o, "outputs", outputs);
     }
     return o;
@@ -365,30 +360,30 @@ PyObject* pds_EvrConfig_get (PyObject*   self, PyObject* args)
     { unsigned neventcodes = v->neventcodes();
       PyObject* eventcodes = PyList_New(neventcodes);
       for(unsigned j=0; j<neventcodes; j++)
-      PyList_SetItem(eventcodes, j, get_EventCodeV6(v->eventcode(j)));
+      PyList_SetItem(eventcodes, j, get_EventCodeV6(v->eventcodes()[j]));
       PyDict_SetItemString(o, "eventcodes", eventcodes);
     }
     { unsigned npulses = v->npulses();
 
       std::vector<unsigned> pulseToCode(npulses);
       for(unsigned j=0; j<v->neventcodes(); j++) {
-        unsigned maskTrigger = v->eventcode(j).maskTrigger();
+        unsigned maskTrigger = v->eventcodes()[j].maskTrigger();
         for(unsigned i=0; maskTrigger!=0; i++) {
           if (maskTrigger & 1)
-            pulseToCode[i] = v->eventcode(j).code();
+            pulseToCode[i] = v->eventcodes()[j].code();
 	  maskTrigger >>= 1;
         }
       }
 
       PyObject* pulses = PyList_New(npulses);
       for(unsigned j=0; j<npulses; j++)
-        PyList_SetItem(pulses, j, get_PulseConfigV3(v->pulse(j),pulseToCode[j]));
+        PyList_SetItem(pulses, j, get_PulseConfigV3(v->pulses()[j],pulseToCode[j]));
       PyDict_SetItemString(o, "pulses", pulses);
     }
     { unsigned noutputs = v->noutputs();
       PyObject* outputs = PyList_New(noutputs);
       for(unsigned j=0; j<noutputs; j++)
-        PyList_SetItem(outputs, j, get_OutputMapV2(v->output_map(j)));
+        PyList_SetItem(outputs, j, get_OutputMapV2(v->output_maps()[j]));
       PyDict_SetItemString(o, "outputs", outputs);
     }
     return o;
@@ -461,10 +456,13 @@ PyObject* pds_EvrConfig_set    (PyObject*   self, PyObject* args)
                        sizeof(Pds::EvrData::ConfigV5) +
                        sizeof(Pds::EvrData::SequencerConfigV1)];
 
-    new(p) Pds::EvrData::ConfigV5(neventcodes, p_eventcodes,
-                                  npulses,     p_pulses,
-                                  noutputs,    p_outputs,
-                                  noSequencer);
+    new(p) Pds::EvrData::ConfigV5(neventcodes, 
+                                  npulses, 
+                                  noutputs,
+                                  p_eventcodes,
+                                  p_pulses,
+                                  p_outputs,
+				  noSequencer);
     
 
     delete[] xtc->payload;
@@ -525,9 +523,12 @@ PyObject* pds_EvrConfig_set    (PyObject*   self, PyObject* args)
                        sizeof(Pds::EvrData::SequencerConfigV1);
 
     char* p = new char[sz];
-    new(p) Pds::EvrData::ConfigV6(neventcodes, p_eventcodes,
-                                  npulses,     p_pulses,
-                                  noutputs,    p_outputs,
+    new(p) Pds::EvrData::ConfigV6(neventcodes,
+                                  npulses,    
+                                  noutputs,   
+                                  p_eventcodes,
+                                  p_pulses,
+                                  p_outputs,
                                   noSequencer);
     
 
@@ -602,9 +603,12 @@ PyObject* pds_EvrConfig_set    (PyObject*   self, PyObject* args)
                        sizeof(Pds::EvrData::SequencerConfigV1);
 
     char* p = new char[sz];
-    new(p) Pds::EvrData::ConfigV7(neventcodes, p_eventcodes,
-                                  npulses,     p_pulses,
-                                  noutputs,    p_outputs,
+    new(p) Pds::EvrData::ConfigV7(neventcodes,
+                                  npulses,    
+                                  noutputs,   
+                                  p_eventcodes,
+                                  p_pulses,
+                                  p_outputs,
                                   noSequencer);
     
 

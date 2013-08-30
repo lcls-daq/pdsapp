@@ -12,14 +12,14 @@ namespace Pds_ConfigDb {
     EvrOutputMap();
   public:   
     void insert(Pds::LinkedList<Parameter>& pList);
-    bool pull(void* from);
-    int push(void* to);
+    bool pull  (const OutputMapType&);
+    int push   (void* to);
   private:
-    Enumerated<EvrConfigType::OutputMapType::Source> _source;
-    NumericInt<unsigned>               _source_id;
-    Enumerated<EvrConfigType::OutputMapType::Conn> _conn;
-    NumericInt<unsigned>             _conn_id;
-    NumericInt<unsigned>             _module;
+    Enumerated<OutputMapType::Source> _source;
+    NumericInt<unsigned>              _source_id;
+    Enumerated<OutputMapType::Conn>   _conn;
+    NumericInt<unsigned>              _conn_id;
+    NumericInt<unsigned>              _module;
   };
 };
 

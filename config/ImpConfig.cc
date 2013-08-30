@@ -13,30 +13,28 @@ namespace Pds_ConfigDb {
   ImpConfig::ImpConfig() : Serializer("Imp_Config")
                  {
     for (uint32_t i=0; i<ImpConfigType::NumberOfRegisters; i++) {
-      _reg[i] = new NumericInt<uint32_t>(
-          ImpConfigType::name((ImpConfigType::Registers) i),
-          ImpConfigType::defaultValue((ImpConfigType::Registers) i),
-          ImpConfigType::rangeLow((ImpConfigType::Registers) i),
-          ImpConfigType::rangeHigh((ImpConfigType::Registers) i),
-          Hex
-      );
+      _reg[i] = new NumericInt<uint32_t>(Pds::ImpConfig::name        ((ImpConfigType::Registers) i),
+                                         Pds::ImpConfig::defaultValue((ImpConfigType::Registers) i),
+                                         Pds::ImpConfig::rangeLow    ((ImpConfigType::Registers) i),
+                                         Pds::ImpConfig::rangeHigh   ((ImpConfigType::Registers) i),
+                                         Hex);
       pList.insert(_reg[i]);
     }
     name("IMP Configuration");
   }
 
   int ImpConfig::readParameters(void* from) { // pull "from xtc"
-    ImpConfigType& impConf = *new(from) ImpConfigType;
+    ImpConfigType& impConf = *reinterpret_cast<ImpConfigType*>(from);
     for (uint32_t i=0; i<ImpConfigType::NumberOfRegisters; i++) {
-      _reg[i]->value = impConf.get((ImpConfigType::Registers) i);
+      _reg[i]->value = Pds::ImpConfig::get(impConf,(ImpConfigType::Registers) i);
     }
     return sizeof(ImpConfigType);
   }
 
   int ImpConfig::writeParameters(void* to) {
-    ImpConfigType& impConf = *new(to) ImpConfigType();
+    ImpConfigType& impConf = *reinterpret_cast<ImpConfigType*>(to);
     for (uint32_t i=0; i<ImpConfigType::NumberOfRegisters; i++) {
-      impConf.set((ImpConfigType::Registers) i, _reg[i]->value);
+      Pds::ImpConfig::set(impConf,(ImpConfigType::Registers) i, _reg[i]->value);
     }
     return sizeof(ImpConfigType);
   }

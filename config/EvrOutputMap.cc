@@ -15,9 +15,9 @@ static const char* conn_range[] = { "Front Panel",
             NULL };
 
 EvrOutputMap::EvrOutputMap() :
-  _source    ("Source"   , EvrConfigType::OutputMapType::Pulse, source_range),
+  _source    ("Source"   , OutputMapType::Pulse, source_range),
   _source_id ("Source id", 0, 0, 255),
-  _conn      ("Conn"     , EvrConfigType::OutputMapType::FrontPanel, conn_range),
+  _conn      ("Conn"     , OutputMapType::FrontPanel, conn_range),
   _conn_id   ("Conn id"  , 0, 0, 12),
   _module    ("Module"   , 0, 0, 255)
 {}
@@ -30,8 +30,7 @@ void EvrOutputMap::insert(Pds::LinkedList<Parameter>& pList) {
   pList.insert(&_module);
 }
 
-bool EvrOutputMap::pull(void* from) {
-  const EvrConfigType::OutputMapType& tc = * (const EvrConfigType::OutputMapType*) from;
+bool EvrOutputMap::pull(const OutputMapType& tc) {
   _source   .value = tc.source();
   _source_id.value = tc.source_id();
   _conn     .value = tc.conn();
@@ -41,7 +40,7 @@ bool EvrOutputMap::pull(void* from) {
 }
 
 int EvrOutputMap::push(void* to) {
-  EvrConfigType::OutputMapType& tc = *new(to) EvrConfigType::OutputMapType(
+  OutputMapType& tc = *new(to) OutputMapType(
     _source.value,
     _source_id.value,
     _conn.value,
@@ -52,5 +51,5 @@ int EvrOutputMap::push(void* to) {
 
 #include "Parameters.icc"
 
-template class Enumerated<EvrConfigType::OutputMapType::Source>;
-template class Enumerated<EvrConfigType::OutputMapType::Conn>;
+template class Enumerated<OutputMapType::Source>;
+template class Enumerated<OutputMapType::Conn>;

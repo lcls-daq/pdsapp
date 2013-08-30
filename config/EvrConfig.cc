@@ -62,58 +62,55 @@ namespace Pds_ConfigDb
       _noutputs.value = tc.noutputs();
       
       for (unsigned k = 0; k < tc.neventcodes(); k++)
-        _eventcodes[k].pull(const_cast <
-          EvrConfigType::EventCodeType * >(&tc.eventcode(k)));
+        _eventcodes[k].pull(tc.eventcodes()[k]);
       for (unsigned k = 0; k < tc.npulses(); k++)
-        _pulses[k].pull(const_cast <
-          EvrConfigType::PulseType * >(&tc.pulse(k)));
+        _pulses[k].pull(tc.pulses()[k]);
       for (unsigned k = 0; k < tc.noutputs(); k++)
-        _outputs[k].pull(const_cast <
-          EvrConfigType::OutputMapType * >(&tc.output_map(k)));          
-      return tc.size();
+        _outputs[k].pull(tc.output_maps()[k]);
+      return Pds::EvrConfig::size(tc);
     }
 
     int push(void *to)
     {
-      EvrConfigType::EventCodeType * eventcodes = 
-        new EvrConfigType::EventCodeType[_neventcodes.value];
+      EventCodeType * eventcodes = 
+        new EventCodeType[_neventcodes.value];
       
       for (unsigned k = 0; k < _neventcodes.value; k++)
         _eventcodes[k].push(&eventcodes[k]);
 
-      EvrConfigType::PulseType * pc = 
-        new EvrConfigType::PulseType[_npulses.value];
+      PulseType * pc = 
+        new PulseType[_npulses.value];
       
       for (unsigned k = 0; k < _npulses.value; k++)
         _pulses[k].push(&pc[k]);
         
-      EvrConfigType::OutputMapType * mo =
-        new EvrConfigType::OutputMapType[_noutputs.value];
+      OutputMapType * mo =
+        new OutputMapType[_noutputs.value];
         
       for (unsigned k = 0; k < _noutputs.value; k++)
         _outputs[k].push(&mo[k]);
         
-      EvrConfigType & tc = *new (to) EvrConfigType(
-              _neventcodes.value, eventcodes,
-              _npulses.value,     pc, 
-              _noutputs.value,    mo,
-              EvrConfigType::SeqConfigType(EvrConfigType::SeqConfigType::Disable,
-                                           EvrConfigType::SeqConfigType::Disable,                                           
-                                           0, 0, 0));
-
+      EvrConfigType & tc = *new(to) EvrConfigType(_neventcodes.value,
+                                                  _npulses.value,
+                                                  _noutputs.value,
+                                                  eventcodes, pc, mo,
+                                                  SeqConfigType(SeqConfigType::Disable,
+                                                                SeqConfigType::Disable,
+                                                                0, 0, 0));
+      
       delete[] eventcodes;
       delete[] pc;
       delete[] mo;
-      return tc.size();
+      return Pds::EvrConfig::size(tc);
     }
 
     int dataSize() const
     {
       return sizeof(EvrConfigType) + 
-        _neventcodes.value * sizeof(EvrConfigType::EventCodeType) +
-        _npulses.value * sizeof(EvrConfigType::PulseType) +
-        _noutputs.value * sizeof(EvrConfigType::OutputMapType) +
-        sizeof(EvrConfigType::SeqConfigType); // this config object doesn't support sequencer config
+        _neventcodes.value * sizeof(EventCodeType) +
+        _npulses.value * sizeof(PulseType) +
+        _noutputs.value * sizeof(OutputMapType) +
+        sizeof(SeqConfigType); // this config object doesn't support sequencer config
     }
   public:
     NumericInt < unsigned >                 _neventcodes;      

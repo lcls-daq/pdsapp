@@ -4,7 +4,7 @@
 #include "pds/config/SeqConfigType.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/evr/SequencerEntry.hh"
+#include "pdsdata/psddl/evr.ddl.h"
 
 #include <stdio.h>
 
@@ -61,7 +61,7 @@ Damage EventSequencer::configure(const Transition& tr)
       printf("EventSequencer len %d\n",seqConfig.length());
 
       for(unsigned i=0; i<seqConfig.length(); i++) {
-	const Pds::EvrData::SequencerEntry& entry = seqConfig.entry(i);
+	const Pds::EvrData::SequencerEntry& entry = seqConfig.entries()[i];
 	event_code_array[i] = entry.eventcode();
 	beam_delay_array[i] = 0;
 	fid_delay_array [i] = entry.delay();

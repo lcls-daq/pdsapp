@@ -12,11 +12,7 @@ static PyMethodDef pds_PrincetonConfig_methods[] = {
 
 DefineXtcType(PrincetonConfig) ;
 
-#include "pdsdata/princeton/ConfigV1.hh"
-#include "pdsdata/princeton/ConfigV2.hh"
-#include "pdsdata/princeton/ConfigV3.hh"
-#include "pdsdata/princeton/ConfigV4.hh"
-#include "pdsdata/princeton/ConfigV5.hh"
+#include "pdsdata/psddl/princeton.ddl.h"
 #include <new>
 
 

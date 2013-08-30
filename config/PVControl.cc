@@ -1,6 +1,6 @@
 #include "pdsapp/config/PVControl.hh"
 
-#include "pdsdata/control/PVControl.hh"
+#include "pdsdata/psddl/control.ddl.h"
 
 #include <new>
 #include <float.h>
@@ -20,8 +20,7 @@ void PVControl::insert(Pds::LinkedList<Parameter>& pList) {
   pList.insert(&_value);
 }
 
-bool PVControl::pull(void* from) {
-  Pds::ControlData::PVControl& tc = *new(from) Pds::ControlData::PVControl;
+bool PVControl::pull(const Pds::ControlData::PVControl& tc) {
   // construct the full name from the array base and index
   if (tc.array())
     snprintf(_name.value, Pds::ControlData::PVControl::NameSize,

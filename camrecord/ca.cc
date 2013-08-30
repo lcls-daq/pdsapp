@@ -1,23 +1,26 @@
+#include"pdsdata/xtc/Xtc.hh"
+#include"pdsdata/xtc/TimeStamp.hh"
+#include"pdsdata/xtc/DetInfo.hh"
+#include"pdsdata/xtc/ProcInfo.hh"
+#include"pdsdata/psddl/pulnix.ddl.h"
+#include"pdsdata/psddl/opal1k.ddl.h"
+#include"pdsdata/psddl/camera.ddl.h"
+#include"pdsdata/psddl/lusi.ddl.h"
+#include"pdsdata/psddl/epics.ddl.h"
+#include"yagxtc.hh"
+
 #include<stdlib.h>
 #include<string.h>
 #include<vector>   //for std::vector
 
 #include"cadef.h"
 #include"alarm.h"
-#include"pdsdata/xtc/Xtc.hh"
-#include"pdsdata/xtc/TimeStamp.hh"
-#include"pdsdata/xtc/DetInfo.hh"
-#include"pdsdata/xtc/ProcInfo.hh"
-#include"pdsdata/pulnix/TM6740ConfigV2.hh"
-#include"pdsdata/opal1k/ConfigV1.hh"
-#include"pdsdata/camera/FrameFexConfigV1.hh"
-#include"pdsdata/lusi/PimImageConfigV1.hh"
-#include"pdsdata/camera/FrameV1.hh"
-#include"pdsdata/epics/EpicsPvData.hh"
-#include"yagxtc.hh"
 
 using namespace std;
 using namespace Pds;
+
+using Pds::Epics::EpicsPvCtrlHeader;
+using Pds::Epics::EpicsPvHeader;
 
 static void connection_handler(struct connection_handler_args args);
 
@@ -218,12 +221,12 @@ class caconn {
             case CAMERA_NONE:
                 new ((void *)cfg->alloc(sizeof(Opal1k::ConfigV1)))
                     Opal1k::ConfigV1(32, 100, Opal1k::ConfigV1::Twelve_bit, Opal1k::ConfigV1::x1,
-                                     Opal1k::ConfigV1::None, true, false);
+                                     Opal1k::ConfigV1::None, true, false, false, 0, 0, 0);
                 break;
             case CAMERA_BINNED:
                 new ((void *)cfg->alloc(sizeof(Opal1k::ConfigV1)))
                     Opal1k::ConfigV1(32, 100, Opal1k::ConfigV1::Twelve_bit, Opal1k::ConfigV1::x1,
-                                     Opal1k::ConfigV1::None, true, false);
+                                     Opal1k::ConfigV1::None, true, false, false, 0, 0, 0);
                 break;
             }
             break;
@@ -238,7 +241,7 @@ class caconn {
             cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), bldInfo);
         new ((void *)cfg->alloc(sizeof(Camera::FrameFexConfigV1)))
             Camera::FrameFexConfigV1(Camera::FrameFexConfigV1::FullFrame, 1,
-                                     Camera::FrameFexConfigV1::NoProcessing, origin, origin, 0, 0, NULL);
+                                     Camera::FrameFexConfigV1::NoProcessing, origin, origin, 0, 0, 0);
 
         if (bld < 0)
             cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_PimImageConfig, 1), sourceInfo);
@@ -329,9 +332,9 @@ class caconn {
             /* This is to keep the compiler happy.  We never get here! */
             exit(1);
         }
-        frm->alloc(f->data_size());
+        frm->alloc(f->data8().size());
         if (bld >= 0)
-            hdr->alloc(f->data_size());
+          hdr->alloc(f->data8().size());
         free(buf); /* We're done with r, which lives in buf. */
 
         int result = ca_create_channel(pvname.c_str(),
@@ -434,7 +437,9 @@ static void get_handler(struct event_handler_args args)
 
     char             *buf = (char *) calloc(1, sizeof(Xtc) + hdrsize + ctrlsize);
     Xtc              *cfg = new (buf) Xtc(TypeId(TypeId::Id_Epics, 1), sourceInfo);
-    new ((char *)cfg->alloc(hdrsize)) EpicsPvCtrlHeader(c->caid, args.type, 1, c->getpvname());
+    void             *h   = cfg->alloc(hdrsize);
+    new (h) EpicsPvCtrlHeader(c->caid, args.type, 1, c->getpvname());
+
     void             *buf2 = cfg->alloc(ctrlsize);
     memcpy(buf2, args.dbr, ctrlsize);
     configure_xtc(c->xid, (char *) cfg, cfg->extent, 0, 0);

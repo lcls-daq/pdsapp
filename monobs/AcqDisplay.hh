@@ -6,7 +6,7 @@
 #include "pds/client/XtcIterator.hh"
 #include "pds/service/GenericPool.hh"
 #include "pdsdata/xtc/ClockTime.hh"
-#include "pdsdata/acqiris/ConfigV1.hh"
+#include "pdsdata/psddl/acqiris.ddl.h"
 #include "pds/mon/MonServerManager.hh"
 
 namespace Pds {

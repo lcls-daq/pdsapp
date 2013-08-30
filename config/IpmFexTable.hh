@@ -20,7 +20,7 @@ namespace Pds_ConfigDb
     void  get   (int, float*, float*) const;
     void xscale(float);
     void yscale(float);
-    void  set   (int, float*, float*);
+    void  set   (int, const float*, const float*);
   public:
     QLayout* initialize(QWidget* parent);
     void     flush     ();

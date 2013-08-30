@@ -4,7 +4,7 @@
 #include "pdsapp/config/TimepixConfigDefaults.hh"
 
 #include "pdsapp/config/Parameters.hh"
-#include "pdsdata/timepix/ConfigV2.hh"
+#include "pdsdata/psddl/timepix.ddl.h"
 
 #include <new>
 
@@ -150,7 +150,7 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      Pds::Timepix::ConfigV2& tc = *new(from) Pds::Timepix::ConfigV2;
+      Pds::Timepix::ConfigV2& tc = *reinterpret_cast<Pds::Timepix::ConfigV2*>(from);
 
       _readoutSpeed.value = (Pds::Timepix::ConfigV2::ReadoutSpeed)tc.readoutSpeed();
       _timepixSpeed.value = tc.timepixSpeed();
@@ -211,13 +211,18 @@ namespace Pds_ConfigDb {
       _dac3BiasLvds.value = tc.dac3BiasLvds();
       _dac3RefLvds.value = tc.dac3RefLvds();
       _timepixMode.value = tc.triggerMode();  // ext/neg assumed for trigger, so pass timepix mode here
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
+
+      uint8_t dummy[Pds::Timepix::ConfigV2::PixelThreshMax];
+      memset(dummy,0,Pds::Timepix::ConfigV2::PixelThreshMax);
+      const char* dummyc = "";
+
       Pds::Timepix::ConfigV2& tc = *new(to) Pds::Timepix::ConfigV2(
         _readoutSpeed.value,
-        _timepixMode.value,   // ext/neg assumed for trigger, so pass timepix mode here
+        Pds::Timepix::ConfigV2::TriggerMode(_timepixMode.value),
         _timepixSpeed.value,
         _dac0Ikrum.value,
         _dac0Disc.value,
@@ -274,10 +279,12 @@ namespace Pds_ConfigDb {
         _dac3Gnd.value,
         _dac3Ths.value,
         _dac3BiasLvds.value,
-        _dac3RefLvds.value
-      );
+        _dac3RefLvds.value,
+         0, 0, 0, dummy, 
+        dummyc, dummyc, dummyc, dummyc,
+        0, 0, 0, 0);
 
-      return tc.size();
+      return tc._sizeof();
     }
 
     int dataSize() const {
@@ -427,8 +434,7 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      Pds::Timepix::ConfigV2& tc = *new(from) Pds::Timepix::ConfigV2;
-
+      Pds::Timepix::ConfigV2& tc = *reinterpret_cast<Pds::Timepix::ConfigV2*>(from);
 
       _readoutSpeed.value = (Pds::Timepix::ConfigV2::ReadoutSpeed)tc.readoutSpeed();
       _timepixSpeed.value = tc.timepixSpeed();
@@ -489,13 +495,19 @@ namespace Pds_ConfigDb {
       _dac3BiasLvds.value = tc.dac3BiasLvds();
       _dac3RefLvds.value = tc.dac3RefLvds();
       _timepixMode.value = tc.triggerMode();  // ext/neg assumed for trigger, so pass timepix mode here
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
+
+      uint8_t dummy[Pds::Timepix::ConfigV2::PixelThreshMax];
+      memset(dummy,0,Pds::Timepix::ConfigV2::PixelThreshMax);
+      const char* dummyc = "";
+
       Pds::Timepix::ConfigV2& tc = *new(to) Pds::Timepix::ConfigV2(
         _readoutSpeed.value,
-        _timepixMode.value,   // ext/neg assumed for trigger, so pass timepix mode here
+        // ext/neg assumed for trigger, so pass timepix mode here
+        Pds::Timepix::ConfigV2::TriggerMode(_timepixMode.value),
         _timepixSpeed.value,
         _dac0Ikrum.value,
         _dac0Disc.value,
@@ -552,10 +564,12 @@ namespace Pds_ConfigDb {
         _dac3Gnd.value,
         _dac3Ths.value,
         _dac3BiasLvds.value,
-        _dac3RefLvds.value
-      );
+        _dac3RefLvds.value,
+         0, 0, 0, dummy, 
+        dummyc, dummyc, dummyc, dummyc,
+        0, 0, 0, 0);
 
-      return tc.size();
+      return tc._sizeof();
     }
 
     int dataSize() const {

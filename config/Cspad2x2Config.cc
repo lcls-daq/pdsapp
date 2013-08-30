@@ -12,7 +12,7 @@ Cspad2x2Config::Cspad2x2Config():
 
 int Cspad2x2Config::readParameters(void *from)
 {
-  return _table->pull(from);
+  return _table->pull(*reinterpret_cast<const CsPad2x2ConfigType*>(from));
 }
 
 int Cspad2x2Config::writeParameters(void *to)

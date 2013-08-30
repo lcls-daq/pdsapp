@@ -10,9 +10,7 @@
 #include "pds/service/GenericPool.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/TypeId.hh"
-#include "pdsdata/acqiris/TdcDataV1.hh"
-#include "pdsdata/acqiris/ConfigV1.hh"
-#include "pdsdata/acqiris/DataDescV1.hh"
+#include "pdsdata/psddl/acqiris.ddl.h"
 
 using namespace Pds;
 

@@ -4,15 +4,17 @@
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 
+#include "pds/config/EvrConfigType.hh"
+
 namespace Pds_ConfigDb {
   class EvrPulseConfig {
   public:
     EvrPulseConfig();
   public:   
-    void id(unsigned);
+    void id    (unsigned);
     void insert(Pds::LinkedList<Parameter>& pList);
-    bool pull(void* from);
-    int  push(void* to);
+    bool pull  (const PulseType& tc);
+    int  push  (void* to);
   private:
     unsigned                      _pulse;
     Enumerated<Enums::Polarity>   _polarity;

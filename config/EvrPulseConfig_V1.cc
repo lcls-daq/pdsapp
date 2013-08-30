@@ -1,7 +1,5 @@
 #include "EvrPulseConfig_V1.hh"
 
-#include "pdsdata/evr/PulseConfig.hh"
-
 using namespace Pds_ConfigDb;
 
 static const double EvrPeriod = 1./119.e6;
@@ -34,8 +32,7 @@ void EvrPulseConfig_V1::insert(Pds::LinkedList<Parameter>& pList) {
   pList.insert(&_width);
 }
 
-bool EvrPulseConfig_V1::pull(void* from) {
-  Pds::EvrData::PulseConfig& tc = *new(from) Pds::EvrData::PulseConfig;
+bool EvrPulseConfig_V1::pull(const Pds::EvrData::PulseConfig& tc) {
   _pulse.value = tc.pulse();
   _trigger.value = tc.trigger();
   _set.value = tc.set();

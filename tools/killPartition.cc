@@ -3,7 +3,6 @@
 #include "pds/management/Query.hh"
 #include "pds/management/SourceLevel.hh"
 #include "pds/service/Semaphore.hh"
-#include "pds/collection/CollectionManager.hh"
 #include "pds/collection/CollectionPorts.hh"
 
 #include <string.h>

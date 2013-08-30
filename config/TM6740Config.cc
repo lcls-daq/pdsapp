@@ -38,7 +38,7 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      TM6740ConfigType& tc = *new(from) TM6740ConfigType;
+      TM6740ConfigType& tc = *reinterpret_cast<TM6740ConfigType*>(from);
       _vref_a       .value = tc.vref_a();
       _vref_b       .value = tc.vref_b();
       _gain_a       .value = tc.gain_a();

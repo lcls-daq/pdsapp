@@ -1,7 +1,7 @@
 #include "pdsapp/config/TM6740ConfigV1.hh"
 #include "pdsapp/config/Parameters.hh"
 
-#include "pdsdata/pulnix/TM6740ConfigV1.hh"
+#include "pdsdata/psddl/pulnix.ddl.h"
 #include "pdsdata/xtc/TypeId.hh"
 
 typedef Pds::Pulnix::TM6740ConfigV1 TM6740ConfigType;
@@ -44,7 +44,7 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      TM6740ConfigType& tc = *new(from) TM6740ConfigType;
+      TM6740ConfigType& tc = *reinterpret_cast<TM6740ConfigType*>(from);
       _vref         .value = tc.vref  ();
       _gain_a       .value = tc.gain_a();
       _gain_b       .value = tc.gain_b();

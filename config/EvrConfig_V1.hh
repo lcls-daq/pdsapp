@@ -4,20 +4,21 @@
 #include "pdsapp/config/Serializer.hh"
 
 namespace Pds_ConfigDb {
+  namespace EvrConfig_V1 {
 
-  class EvrConfig_V1 : public Serializer {
-  public:
-    EvrConfig_V1();
-    ~EvrConfig_V1() {}
-  public:
-    int  readParameters (void* from);
-    int  writeParameters(void* to);
-    int  dataSize() const;
-  private:
-    class Private_Data;
-    Private_Data* _private_data;
+    class EvrConfig : public Serializer {
+    public:
+      EvrConfig();
+      ~EvrConfig() {}
+    public:
+      int  readParameters (void* from);
+      int  writeParameters(void* to);
+      int  dataSize() const;
+    private:
+      class Private_Data;
+      Private_Data* _private_data;
+    };
   };
-
 };
 
 #endif

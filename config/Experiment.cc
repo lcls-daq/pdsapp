@@ -37,10 +37,8 @@ static int _symlink(const char* dst, const char* src) {
 
 static void _handle_no_lock(const char* s)
 {
-  static const std::string _no_lock_exception("Database change forbidden without lock");
-#ifdef DBUG
-  printf("%s:%s\n",s,_no_lock_exception.c_str());
-#endif
+  std::string _no_lock_exception(s);
+  printf("_handle_no_lock:%s\n",s);
   throw _no_lock_exception;
 }
 
@@ -102,7 +100,19 @@ Experiment::Experiment(const Path& path, Option lock) :
     flk.l_len    = 0;
     if (fcntl(fileno(_f), F_SETLK, &flk)<0) {
       perror("Experiment fcntl F_SETLK");
-      _handle_no_lock("ctor");
+      if (fcntl(fileno(_f), F_GETLK, &flk)<0) 
+        perror("Experiment fcntl F_GETLK");
+      else if (flk.l_type == F_UNLCK)
+        printf("F_GETLK: lock is available\n");
+      else {
+        char buff[256];
+        if (flk.l_pid == 0)
+          _handle_no_lock("Lock held by remote process");
+        else {
+          sprintf(buff,"Lock held by process %d\n", flk.l_pid);
+          _handle_no_lock(buff);
+        }
+      }
     }
   }
 }

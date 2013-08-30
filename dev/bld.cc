@@ -37,11 +37,10 @@
 #include "pds/service/BitList.hh"
 #include "pds/vmon/VmonEb.hh"
 #include "pds/xtc/XtcType.hh"
-#include "pdsdata/bld/bldData.hh"
+#include "pdsdata/psddl/bld.ddl.h"
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/XtcFileIterator.hh"
 #include "pdsdata/xtc/Level.hh"
-#include "pdsdata/xtc/BldInfo.hh"
 // Bld from XRT cameras
 #include "pds/config/AcqConfigType.hh"
 #include "pds/config/IpimbConfigType.hh"
@@ -50,7 +49,7 @@
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/PimImageConfigType.hh"
 #include "pds/config/FrameFexConfigType.hh"
-#include "pdsdata/camera/FrameV1.hh"
+#include "pdsdata/psddl/camera.ddl.h"
 
 #include "pds/config/EvrConfigType.hh"
 
@@ -60,6 +59,14 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+typedef Pds::Bld::BldDataEBeamV3 BldDataEBeam;
+typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
+typedef Pds::Bld::BldDataGMDV1 BldDataGMD;
+//    typedef BldDataAcqADCV1 BldDataAcqADC;
+using Pds::Bld::BldDataPhaseCavity;
+using Pds::Bld::BldDataFEEGasDetEnergy;
+using Pds::Bld::BldDataPimV1;
 
 static const unsigned MAX_EVENT_SIZE = 8*1024*1024;
 #ifdef BLD_DELAY
@@ -72,10 +79,10 @@ static const unsigned EvrBufferDepth = 32;
 static const unsigned AppBufferDepth = eb_depth + 16;  // Handle 
 static const char _tc_init[] = { 0*1024 };
 static const FrameFexConfigType _frameFexConfig(FrameFexConfigType::FullFrame, 1,
-            FrameFexConfigType::NoProcessing,
-            Pds::Camera::FrameCoord(0,0),
-            Pds::Camera::FrameCoord(0,0),
-            0, 0, 0);
+                                                FrameFexConfigType::NoProcessing,
+                                                Pds::Camera::FrameCoord(0,0),
+                                                Pds::Camera::FrameCoord(0,0),
+                                                0, 0, 0);
 
 namespace Pds {
 
@@ -186,7 +193,7 @@ namespace Pds {
   uint64_t OpalMask = 1ULL<<BldInfo::CxiDg3Spec;
 #define TEST_CREAT(mask, idType, dataType)                  \
   if (im & mask) {                                          \
-    Xtc tc(TypeId(TypeId::idType,dataType::version),        \
+    Xtc tc(TypeId(TypeId::idType,dataType::Version),        \
            BldInfo(_pid,BldInfo::Type(i)));                 \
     tc.extent += sizeof(dataType);                          \
     dg->insert(tc,_tc_init);                                \
@@ -274,38 +281,40 @@ namespace Pds {
         //  Split compound data types
         //
       case TypeId::Id_SharedIpimb:
-        if (xtc->contains.version() == BldDataIpimb::version) {
+        if (xtc->contains.version() == BldDataIpimb::Version) {
           const BldDataIpimb* c = reinterpret_cast<const BldDataIpimb*>(xtc->payload());
-          if (_require(Xtc(_ipimbConfigType,xtc->src),c->ipimbConfig))
-            INSERT(IpimbConfig,c->ipimbConfig);
-          INSERT(IpimbData,c->ipimbData);
-          INSERT(IpmFex,c->ipmFexData);
+          if (_require(Xtc(_ipimbConfigType,xtc->src),c->ipimbConfig()))
+            INSERT(IpimbConfig,c->ipimbConfig());
+          INSERT(IpimbData,c->ipimbData());
+          INSERT(IpmFex,c->ipmFexData());
         }
         else
           _abort(xtc->contains);
         break;
       case TypeId::Id_SharedPim:
-        if (xtc->contains.version() == BldDataPimV1::version) {
+        if (xtc->contains.version() == BldDataPimV1::Version) {
           const BldDataPimV1* c = reinterpret_cast<const BldDataPimV1*>(xtc->payload());
-          if (_require(Xtc(_pimImageConfigType,xtc->src),c->pimConfig))
-            INSERT(PimImageConfig,c->pimConfig);
-          if (_require(Xtc(_tm6740ConfigType,xtc->src),c->camConfig))
-            INSERT(TM6740Config,c->camConfig);
-          INSERT(Frame,c->frame);
+          if (_require(Xtc(_pimImageConfigType,xtc->src),c->pimConfig()))
+            INSERT(PimImageConfig,c->pimConfig());
+          if (_require(Xtc(_tm6740ConfigType,xtc->src),c->camConfig()))
+            INSERT(TM6740Config,c->camConfig());
+          INSERT(Frame,c->frame());
         }
         else
           _abort(xtc->contains);
         break;
+#if 0
       case TypeId::Id_SharedAcqADC:
-        if (xtc->contains.version() == BldDataAcqADC::version) {
+        if (xtc->contains.version() == BldDataAcqADC::Version) {
           const BldDataAcqADC* c = reinterpret_cast<const BldDataAcqADC*>(xtc->payload());
-          if (_require(Xtc(_acqConfigType,xtc->src),c->config))
-            INSERT(AcqConfig,c->config);
-          INSERT(AcqWaveform,c->data);
+          if (_require(Xtc(_acqConfigType,xtc->src),c->config()))
+            INSERT(AcqConfig,c->config());
+          INSERT(AcqWaveform,c->data());
         }
         else
           _abort(xtc->contains);
         break;
+#endif
         //
         //  Sparsify redundant configuration data
         //
@@ -422,7 +431,7 @@ namespace Pds {
 #define CheckType(bldType)  (m & (1ULL<<BldInfo::bldType))
 #define SizeType(dataType)  (sizeof(Xtc) + sizeof(dataType))
 #define AddType(bldType,idType,dataType) {        \
-    Xtc& xtc = *new(p) Xtc(TypeId(TypeId::idType,(uint32_t)dataType::version), BldInfo(0,BldInfo::bldType)); \
+    Xtc& xtc = *new(p) Xtc(TypeId(TypeId::idType,(uint32_t)dataType::Version), BldInfo(0,BldInfo::bldType)); \
     xtc.extent = SizeType(dataType);        \
     p += xtc.extent;            \
   }
@@ -722,10 +731,10 @@ namespace Pds {
     const EvrDataType& evrd = *reinterpret_cast<const EvrDataType*>(xtc1.payload());
 
     for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
-      const EvrDataType::FIFOEvent& fe = evrd.fifoEvent(i);
-      if (fe.TimestampHigh == timestamp &&
-    fe.EventCode >= 140 &&
-    fe.EventCode <= 146)
+      const Pds::EvrData::FIFOEvent& fe = evrd.fifoEvents()[i];
+      if (fe.timestampHigh() == timestamp &&
+          fe.eventCode() >= 140 &&
+          fe.eventCode() <= 146)
         return EbS::_is_complete(event,serverId);  //  A beam-present code is found
     }
     return NoBuild;   // No beam-present code is found
@@ -829,7 +838,7 @@ namespace Pds {
           _evrServer =
             new NullServer(ins,
                            header().procInfo(),
-                           sizeof(Pds::EvrData::DataV3)+256*sizeof(Pds::EvrData::DataV3::FIFOEvent),
+                           sizeof(Pds::EvrData::DataV3)+256*sizeof(Pds::EvrData::FIFOEvent),
                            EvrBufferDepth);
 
           Ins mcastIns(ins.address());

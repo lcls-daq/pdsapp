@@ -3,6 +3,8 @@
 
 #include "pdsapp/config/Parameters.hh"
 
+#include "pdsdata/psddl/control.ddl.h"
+
 namespace Pds_ConfigDb {
 
   class PVControl {
@@ -10,9 +12,8 @@ namespace Pds_ConfigDb {
     PVControl();
     
     void insert(Pds::LinkedList<Parameter>& pList);
-
-    bool pull(void* from);
-    int  push(void* to);
+    bool pull  (const Pds::ControlData::PVControl& tc);
+    int  push  (void* to);
 
   private:
     TextParameter        _name;

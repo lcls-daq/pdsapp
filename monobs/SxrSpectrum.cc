@@ -142,7 +142,7 @@ void   SxrSpectrum::_event    (const void* payload, const Pds::ClockTime& t)
   _sem.take();
   const FrameType& frame = *static_cast<const FrameType*>(payload);
   int32_t o = frame.offset()*(_xhi-_xlo);
-  const uint16_t* d = reinterpret_cast<const uint16_t*>(frame.data());
+  const uint16_t* d = reinterpret_cast<const uint16_t*>(frame.data8().data());
   d += _ylo*frame.width() + _xlo;
   double* p = _spectrum;
   double* q = _pspectrum;

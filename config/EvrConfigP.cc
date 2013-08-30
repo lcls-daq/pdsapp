@@ -214,21 +214,23 @@ namespace Pds_ConfigDb {
       _seq_config ->pull(tc);
       //printf("Pds_ConfigDb::EvrConfigP::Private_Data::pull(): end enableGroup %d\n", (int)_code_table->enableReadoutGroup()); //!!!debug
       
-      tc.print(); //!!!debug
-      return tc.size();
+      //      tc.print(); //!!!debug
+      return Pds::EvrConfig::size(tc);
     }
     int push(void *to) {      
       //printf("Pds_ConfigDb::EvrConfigP::Private_Data::push(): begin:  pulse %d enableGroup %d\n", _pulse_table->npulses (),
       //  (int)_code_table->enableReadoutGroup()); //!!!debug
       const_cast<EvrConfigP::Private_Data*>(this)->validate();      
-      EvrConfigType& tc = 
-        *new(to) EvrConfigType( _code_table ->ncodes  (),_code_table->codes  (),
-                                _pulse_table->npulses (),_pulse_table->pulses (),
-                                _pulse_table->noutputs(),_pulse_table->outputs(),
-                                _seq_config ->result() );
+      EvrConfigType& tc = *new(to) EvrConfigType(_code_table ->ncodes  (),
+                                                 _pulse_table->npulses (),
+                                                 _pulse_table->noutputs(),
+                                                 _code_table->codes   (),
+                                                 _pulse_table->pulses (),
+                                                 _pulse_table->outputs(),
+                                                _seq_config ->result() );
       //printf("Pds_ConfigDb::EvrConfigP::Private_Data::push(): end\n"); //!!!debug
       //tc.print(); //!!!debug
-      return tc.size();
+      return Pds::EvrConfig::size(tc);
     }
 
     int dataSize() const {
@@ -237,10 +239,10 @@ namespace Pds_ConfigDb {
       //printf("Pds_ConfigDb::EvrConfigP::Private_Data::dataSize(): after validate:  pulse %d\n", _pulse_table->npulses ()); //!!!debug
       
       return sizeof(EvrConfigType) + 
-        _code_table ->ncodes  ()*sizeof(EvrConfigType::EventCodeType) +
-        _pulse_table->npulses ()*sizeof(EvrConfigType::PulseType) +
-        _pulse_table->noutputs()*sizeof(EvrConfigType::OutputMapType) +
-        _seq_config ->result().size();
+        _code_table ->ncodes  ()*sizeof(EventCodeType) +
+        _pulse_table->npulses ()*sizeof(PulseType) +
+        _pulse_table->noutputs()*sizeof(OutputMapType) +
+        _seq_config ->result()._sizeof();
     }
     bool validate() {
       //printf("Pds_ConfigDb::EvrConfigP::Private_Data::validate(): begin:  pulse %d\n", _pulse_table->npulses ()); //!!!debug

@@ -7,7 +7,7 @@
 
 #include "pds/config/IpimbConfigType.hh"
 #include "pds/config/IpmFexConfigType.hh"
-#include "pdsdata/ipimb/DataV2.hh"
+#include "pdsdata/psddl/ipimb.ddl.h"
 
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"

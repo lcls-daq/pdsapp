@@ -5,7 +5,7 @@
 #include "pds/service/Timer.hh"
 
 #include "pdsdata/xtc/Dgram.hh"
-#include "pdsdata/app/XtcMonitorClient.cc"
+#include "pdsdata/app/XtcMonitorClient.hh"
 
 #include "cadef.h"
 

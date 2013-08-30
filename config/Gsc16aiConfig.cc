@@ -33,21 +33,24 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      Gsc16aiConfigType& tc = *new(from) Gsc16aiConfigType;
-      _voltageRange.value = (Pds::Gsc16ai::ConfigV1::VoltageRange)tc.voltageRange();
-      _channelSelect.value = (Pds::Gsc16ai::ConfigV1::VoltageRange)tc.lastChan();
+      Gsc16aiConfigType& tc = *reinterpret_cast<Gsc16aiConfigType*>(from);
+      _voltageRange.value    = tc.voltageRange();
+      _channelSelect.value   = tc.lastChan();
       _autocalibEnable.value = tc.autocalibEnable() ? Enums::True : Enums::False;
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
-      Gsc16aiConfigType& tc = *new(to) Gsc16aiConfigType(
-        _voltageRange.value,
-        Pds::Gsc16ai::ConfigV1::LowestChannel,
-        _channelSelect.value,
-        _autocalibEnable.value
-      );
-      return tc.size();
+      Gsc16aiConfigType& tc = *new(to) Gsc16aiConfigType(_voltageRange.value,
+                                                         Pds::Gsc16ai::ConfigV1::LowestChannel,
+                                                         _channelSelect.value,
+                                                         Gsc16aiConfigType::InputMode_Differential,
+                                                         Gsc16aiConfigType::TriggerMode_ExtPos,
+                                                         Gsc16aiConfigType::DataFormat_TwosComplement,
+                                                         0, 
+                                                         _autocalibEnable.value,
+                                                         false);
+      return tc._sizeof();
     }
 
     int dataSize() const {

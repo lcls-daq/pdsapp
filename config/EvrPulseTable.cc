@@ -82,7 +82,7 @@ namespace Pds_ConfigDb
       layout->addLayout(_width.initialize(parent)    , row, column++, Qt::AlignCenter);
       
       _group = new QComboBox;
-      for (int iGroup = 1; iGroup <= EvrConfigType::EventCodeType::MaxReadoutGroup; ++iGroup)
+      for (int iGroup = 1; iGroup <= EventCodeType::MaxReadoutGroup; ++iGroup)
         _group->addItem(QString().setNum(iGroup));
       _group->setCurrentIndex(0);
       layout->addWidget(_group, row, column++, Qt::AlignCenter);
@@ -146,8 +146,8 @@ bool EvrPulseTable::pull(const EvrConfigType& tc) {
     for(unsigned k=0; k<MaxOutputs; k++)
       p._outputs[k]->setChecked(false);
     for(unsigned k=0; k<tc.noutputs(); k++) {
-      const EvrConfigType::OutputMapType& om = tc.output_map(k);
-      if ( om.source()==EvrConfigType::OutputMapType::Pulse &&
+      const OutputMapType& om = tc.output_maps()[k];
+      if ( om.source()==OutputMapType::Pulse &&
            om.source_id()==j )
         if ((om.module()) == _id)
           p._outputs[om.conn_id()]->setChecked(lUsed=true);      
@@ -156,13 +156,12 @@ bool EvrPulseTable::pull(const EvrConfigType& tc) {
 
     p._enable    ->setChecked(true);
     update_enable(npulses);
-    const EvrConfigType::PulseType& pt = tc.pulse(j);
+    const PulseType& pt = tc.pulses()[j];
         
     const uint32_t  uPulseBit    = (1 << j);
-    const EvrConfigType::EventCodeType* 
-                    pCodeReadout = NULL;
+    const EventCodeType* pCodeReadout = NULL;
     for(unsigned i=0; i<tc.neventcodes(); i++) {
-      const EvrConfigType::EventCodeType& ec = tc.eventcode(i);
+      const EventCodeType& ec = tc.eventcodes()[i];
       if (ec.isReadout() && ( ec.maskTrigger() & uPulseBit ) != 0) {
         //printf( "EvrPulseTable::pull(): pulse %d event code [%d] %d readout group %d maskTrigger 0x%x\n", 
         //  j, i, ec.code(), ec.readoutGroup(), ec.maskTrigger()); //!!!debug
@@ -225,10 +224,10 @@ unsigned EvrPulseTable::noutputs() const {
 
 
 bool EvrPulseTable::validate(unsigned ncodes, 
-                             const EvrConfigType::EventCodeType* codes,
+                             const EventCodeType* codes,
                              //int delay_offset,
-                             unsigned p0, EvrConfigType::PulseType* pt,
-                             unsigned o0, EvrConfigType::OutputMapType* om
+                             unsigned p0, PulseType* pt,
+                             unsigned o0, OutputMapType* om
                              )
 {  
   bool result = true;
@@ -246,8 +245,8 @@ bool EvrPulseTable::validate(unsigned ncodes,
 
     for(unsigned j=0; j<MaxOutputs; j++) {
       if (p._outputs[j]->isChecked())
-        *new(&om[nom++]) EvrConfigType::OutputMapType( EvrConfigType::OutputMapType::Pulse, npt+p0,
-                                                       EvrConfigType::OutputMapType::UnivIO, j, _id );
+        *new(&om[nom++]) OutputMapType( OutputMapType::Pulse, npt+p0,
+                                        OutputMapType::UnivIO, j, _id );
     }    
     
     int delay_offset = 0;
@@ -260,11 +259,13 @@ bool EvrPulseTable::validate(unsigned ncodes,
     for(unsigned i=0; i<ncodes; i++)
       if (codes[i].isReadout() && codes[i].readoutGroup() == iGroup )
       {
-        *new(const_cast<EvrConfigType::EventCodeType*>(&codes[i]))
-             EvrConfigType::EventCodeType(codes[i].code(),
-                                          codes[i].readoutGroup(),
-                                          codes[i].desc(),
-                                          codes[i].maskTrigger()|pm,fill,fill);
+        *new(const_cast<EventCodeType*>(&codes[i]))
+             EventCodeType(codes[i].code(),
+                           true, false, false,
+                           0, 1,
+                           codes[i].maskTrigger()|pm,fill,fill,
+                           codes[i].desc(),
+                           codes[i].readoutGroup());
                                           
         if ( primary_readout == -1 )
         {
@@ -314,11 +315,11 @@ bool EvrPulseTable::validate(unsigned ncodes,
       result = false;
     }
     
-    *new(&pt[npt]) EvrConfigType::PulseType(npt+p0, 
-                                            p._polarity->state() == PolarityButton::Pos ? 0 : 1,
-                                            1,
-                                            adjusted_delay,
-                                            p._width.value);
+    *new(&pt[npt]) PulseType(npt+p0, 
+                             p._polarity->state() == PolarityButton::Pos ? 0 : 1,
+                             1,
+                             adjusted_delay,
+                             p._width.value);
     
     npt++;
   }
@@ -349,8 +350,8 @@ QLayout* EvrPulseTable::initialize(QWidget*)
         if (iocfg.nchannels()==0) break;
         for(unsigned i=0; i<iocfg.nchannels(); i++)
           if (id == _id)
-            _outputs[j++] = new QrLabel(iocfg.channel(i).name());
-        p += iocfg.size();
+            _outputs[j++] = new QrLabel(iocfg.channels()[i].name());
+        p += iocfg._sizeof();
         id++;
       } while(1);
     }
@@ -466,8 +467,8 @@ void EvrPulseTableQ::update_output    (int i) { _table.update_output(i); }
 EvrPulseTables::EvrPulseTables() : 
   Parameter(NULL), 
   _nevr(0),
-  _pulse_buffer (new char[EvrConfigType::MaxPulses*sizeof(EvrConfigType::PulseType)]),
-  _output_buffer(new char[EvrConfigType::MaxOutputs*sizeof(EvrConfigType::OutputMapType)]),
+  _pulse_buffer (new char[EvrConfigType::MaxPulses *sizeof(PulseType)]),
+  _output_buffer(new char[EvrConfigType::MaxOutputs*sizeof(OutputMapType)]),
   _npulses      (0),
   _noutputs     (0)
 {
@@ -528,7 +529,7 @@ void EvrPulseTables::pull    (const EvrConfigType& tc)
       do {
         const EvrIOConfigType& iocfg = *reinterpret_cast<const EvrIOConfigType*>(p);
         if (iocfg.nchannels()==0) break;
-        p += iocfg.size();
+        p += iocfg._sizeof();
         nnevr++;
       } while(1);
       if (nnevr > nevr) nevr=nnevr;
@@ -544,17 +545,17 @@ void EvrPulseTables::pull    (const EvrConfigType& tc)
 }
 
 bool EvrPulseTables::validate(unsigned ncodes,
-                  const EvrConfigType::EventCodeType* codes)
+                              const EventCodeType* codes)
 {
   bool result  = true;
 
   unsigned npt = 0;
-  EvrConfigType::PulseType*     pt = 
-    reinterpret_cast<EvrConfigType::PulseType*>(_pulse_buffer);
+  PulseType*     pt = 
+    reinterpret_cast<PulseType*>(_pulse_buffer);
 
   unsigned nom = 0;
-  EvrConfigType::OutputMapType* om = 
-    reinterpret_cast<EvrConfigType::OutputMapType*>(_output_buffer);
+  OutputMapType* om = 
+    reinterpret_cast<OutputMapType*>(_output_buffer);
   
   for(unsigned i=0; i<_nevr; i++) {
     //printf("Pds_ConfigDb::EvrPulseTables::validate() evr %d\n", i);//!!!debug

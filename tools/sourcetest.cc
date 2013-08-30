@@ -6,7 +6,6 @@
 #include "pds/utility/StreamPorts.hh"
 #include "pds/service/Client.hh"
 #include "pds/xtc/EvrDatagram.hh"
-#include "pds/utility/Transition.hh"
 #include "pds/service/Task.hh"
 
 #include <time.h> // Required for timespec struct and nanosleep()

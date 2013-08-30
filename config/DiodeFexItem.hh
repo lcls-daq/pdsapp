@@ -13,7 +13,7 @@ namespace Pds_ConfigDb {
     DiodeFexItem(unsigned);
     ~DiodeFexItem();
   public:
-    void set (float* _base, float* _scale);
+    void set (const float* _base, const float* _scale);
     void get (float* _base, float* _scale);
     void initialize(QWidget* parent,
                     QGridLayout* layout,

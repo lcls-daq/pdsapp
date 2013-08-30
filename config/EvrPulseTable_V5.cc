@@ -7,8 +7,7 @@
 #include "pdsapp/config/EventcodeTiming.hh"
 
 #include "pdsdata/xtc/TypeId.hh"
-#include "pdsdata/evr/IOConfigV1.hh"
-#include "pdsdata/evr/IOChannel.hh"
+#include "pdsdata/psddl/evr.ddl.h"
 
 static Pds::TypeId _evrIOConfigType(Pds::TypeId::Id_EvrIOConfig,
                                     Pds::EvrData::IOConfigV1::Version);
@@ -26,90 +25,92 @@ static const double EvrPeriod = 1./119e6;
 
 namespace Pds_ConfigDb
 {
-  class Pulse_V5 {
-  public:
-    Pulse_V5() :
-      _delay    ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Scaled, EvrPeriod)),
-      _width    ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Scaled, EvrPeriod))
-    {}
-  public:
-    void enable(bool v) 
-    {
-      bool allowEdit = _delay.allowEdit();
-      _polarity  ->setEnabled(v && allowEdit);
-      _polarity  ->setVisible(v);
-      v &= (_polarity->state()!=PolarityButton::None);
-      _delay    .enable(v);
-      _width    .enable(v);
-      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++) {
-	_outputs[i]->setEnabled(v && allowEdit);
-	_outputs[i]->setVisible(v);
+  namespace EvrConfig_V5 {
+    class Pulse_V5 {
+    public:
+      Pulse_V5() :
+        _delay    ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Scaled, EvrPeriod)),
+        _width    ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Scaled, EvrPeriod))
+      {}
+    public:
+      void enable(bool v) 
+      {
+        bool allowEdit = _delay.allowEdit();
+        _polarity  ->setEnabled(v && allowEdit);
+        _polarity  ->setVisible(v);
+        v &= (_polarity->state()!=PolarityButton::None);
+        _delay    .enable(v);
+        _width    .enable(v);
+        for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++) {
+          _outputs[i]->setEnabled(v && allowEdit);
+          _outputs[i]->setVisible(v);
+        }
       }
-    }
-    void reset () 
-    {
-      _delay    .value = 0;
-      _width    .value = 0;
-      _polarity  ->setState(PolarityButton::None);
-      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
-	_outputs[i]->setChecked(false);
-    }
-  public:
-    void initialize(QWidget* parent,
-		    QGridLayout* layout, 
-		    int row, int bid,
-		    QButtonGroup* egroup,
-		    QButtonGroup* ogroup) 
-    {
-      _enable    = new QCheckBox;
-      _polarity  = new PolarityButton;
-      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
-	_outputs[i] = new QCheckBox;
+      void reset () 
+      {
+        _delay    .value = 0;
+        _width    .value = 0;
+        _polarity  ->setState(PolarityButton::None);
+        for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
+          _outputs[i]->setChecked(false);
+      }
+    public:
+      void initialize(QWidget* parent,
+                      QGridLayout* layout, 
+                      int row, int bid,
+                      QButtonGroup* egroup,
+                      QButtonGroup* ogroup) 
+      {
+        _enable    = new QCheckBox;
+        _polarity  = new PolarityButton;
+        for(unsigned i=0; i<EvrConfigType::EvrOutputs; i++)
+          _outputs[i] = new QCheckBox;
 
-      egroup->addButton(_enable,bid);
-      egroup->addButton(_polarity,bid+PolarityGroup);
-      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
-	ogroup->addButton(_outputs[i],bid*Pds::EvrData::ConfigV5::EvrOutputs+i);
+        egroup->addButton(_enable,bid);
+        egroup->addButton(_polarity,bid+PolarityGroup);
+        for(unsigned i=0; i<EvrConfigType::EvrOutputs; i++)
+          ogroup->addButton(_outputs[i],bid*Pds::EvrData::ConfigV5::EvrOutputs+i);
 
-      int column = 0;
-      layout->addWidget(_enable, row, column++, Qt::AlignCenter);
-      layout->addWidget(_polarity , row, column++, Qt::AlignCenter);
-      layout->setColumnMinimumWidth(column,97);
-      layout->addLayout(_delay.initialize(parent)    , row, column++, Qt::AlignCenter);
-      layout->setColumnMinimumWidth(column,97);
-      layout->addLayout(_width.initialize(parent)    , row, column++, Qt::AlignCenter);
-      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
-	layout->addWidget(_outputs[i], row, column++, Qt::AlignCenter);
+        int column = 0;
+        layout->addWidget(_enable, row, column++, Qt::AlignCenter);
+        layout->addWidget(_polarity , row, column++, Qt::AlignCenter);
+        layout->setColumnMinimumWidth(column,97);
+        layout->addLayout(_delay.initialize(parent)    , row, column++, Qt::AlignCenter);
+        layout->setColumnMinimumWidth(column,97);
+        layout->addLayout(_width.initialize(parent)    , row, column++, Qt::AlignCenter);
+        for(unsigned i=0; i<EvrConfigType::EvrOutputs; i++)
+          layout->addWidget(_outputs[i], row, column++, Qt::AlignCenter);
 
-      _delay    .widget()->setMaximumWidth(97);
-      _width    .widget()->setMaximumWidth(97);
+        _delay    .widget()->setMaximumWidth(97);
+        _width    .widget()->setMaximumWidth(97);
 
-      ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _delay.widget(), SLOT(setVisible(bool)));
-      ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _width.widget(), SLOT(setVisible(bool)));
-      for(unsigned i=0; i<Pds::EvrData::ConfigV5::EvrOutputs; i++)
-	::QObject::connect(_polarity, SIGNAL(toggled(bool)), _outputs[i], SLOT(setVisible(bool)));
+        ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _delay.widget(), SLOT(setVisible(bool)));
+        ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _width.widget(), SLOT(setVisible(bool)));
+        for(unsigned i=0; i<EvrConfigType::EvrOutputs; i++)
+          ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _outputs[i], SLOT(setVisible(bool)));
 
-      _enable->setEnabled(_delay.allowEdit());
+        _enable->setEnabled(_delay.allowEdit());
 
-      reset();
-      enable(false);
-    }
+        reset();
+        enable(false);
+      }
 
-    void insert(Pds::LinkedList<Parameter>& pList) {
-      pList.insert(&_delay);
-      pList.insert(&_width);
-    }
+      void insert(Pds::LinkedList<Parameter>& pList) {
+        pList.insert(&_delay);
+        pList.insert(&_width);
+      }
 
-  public:
-    QCheckBox*            _enable;
-    PolarityButton*       _polarity;
-    NumericInt<unsigned>  _delay;
-    NumericInt<unsigned>  _width;
-    QCheckBox*            _outputs[Pds::EvrData::ConfigV5::EvrOutputs];
+    public:
+      QCheckBox*            _enable;
+      PolarityButton*       _polarity;
+      NumericInt<unsigned>  _delay;
+      NumericInt<unsigned>  _width;
+      QCheckBox*            _outputs[Pds::EvrData::ConfigV5::EvrOutputs];
+    };
   };
 };
 
-using namespace Pds_ConfigDb;
+using namespace Pds_ConfigDb::EvrConfig_V5;
 
 EvrPulseTable_V5::EvrPulseTable_V5(unsigned id) :
   Parameter(NULL),
@@ -124,12 +125,12 @@ EvrPulseTable_V5::~EvrPulseTable_V5()
 {
 }
 
-void EvrPulseTable_V5::pull(const Pds::EvrData::ConfigV5& tc) {
+void EvrPulseTable_V5::pull(const EvrConfigType& tc) {
 
   unsigned npulses     = 0;
   int      delay_offset= 0;
   for(unsigned i=0; i<tc.neventcodes(); i++) {
-    const Pds::EvrData::ConfigV5::EventCodeType& ec = tc.eventcode(i);
+    const EventCodeType& ec = tc.eventcodes()[i];
     if (ec.isReadout()) {
       delay_offset =
         EventcodeTiming::timeslot(140) -
@@ -145,18 +146,18 @@ void EvrPulseTable_V5::pull(const Pds::EvrData::ConfigV5& tc) {
     for(unsigned k=0; k<Pds::EvrData::ConfigV5::EvrOutputs; k++)
       p._outputs[k]->setChecked(false);
     for(unsigned k=0; k<tc.noutputs(); k++) {
-      const Pds::EvrData::ConfigV5::OutputMapType& om = tc.output_map(k);
-      if ( om.source()==Pds::EvrData::ConfigV5::OutputMapType::Pulse &&
+      const OutputMapType& om = tc.output_maps()[k];
+      if ( om.source()==OutputMapType::Pulse &&
            om.source_id()==j )
-        if ((om.conn_id()/Pds::EvrData::ConfigV5::EvrOutputs) == _id)
-          p._outputs[om.conn_id()%Pds::EvrData::ConfigV5::EvrOutputs]->setChecked(lUsed=true);
+        if ((om.conn_id()/EvrConfigType::EvrOutputs) == _id)
+          p._outputs[om.conn_id()%EvrConfigType::EvrOutputs]->setChecked(lUsed=true);
       
     }
     if (!lUsed) continue;
 
     p._enable    ->setChecked(true);
     update_enable(npulses);
-    const Pds::EvrData::ConfigV5::PulseType& pt = tc.pulse(j);
+    const PulseType& pt = tc.pulses()[j];
     p._polarity  ->setState(pt.polarity()==Pds_ConfigDb::Enums::Pos ? 
                             PolarityButton::Pos : PolarityButton::Neg);
     p._delay      .value = pt.delay() - delay_offset;
@@ -182,10 +183,10 @@ unsigned EvrPulseTable_V5::noutputs() const {
 
 
 bool EvrPulseTable_V5::validate(unsigned ncodes, 
-                             const Pds::EvrData::ConfigV5::EventCodeType* codes,
-                             int delay_offset,
-                             unsigned p0, Pds::EvrData::ConfigV5::PulseType* pt,
-                             unsigned o0, Pds::EvrData::ConfigV5::OutputMapType* om)
+                                const EventCodeType* codes,
+                                int delay_offset,
+                                unsigned p0, PulseType* pt,
+                                unsigned o0, OutputMapType* om)
 {
   unsigned npt = 0;
   unsigned nom = 0;
@@ -222,16 +223,16 @@ bool EvrPulseTable_V5::validate(unsigned ncodes,
     }
     **/
 
-    *new(&pt[npt]) Pds::EvrData::ConfigV5::PulseType(npt+p0, 
-                                            p._polarity->state() == PolarityButton::Pos ? 0 : 1,
-                                            1,
-                                            adjusted_delay,
-                                            p._width.value);
+    *new(&pt[npt]) PulseType(npt+p0, 
+                             p._polarity->state() == PolarityButton::Pos ? 0 : 1,
+                             1,
+                             adjusted_delay,
+                             p._width.value);
 
-    for(unsigned j=0; j<Pds::EvrData::ConfigV5::EvrOutputs; j++) {
+    for(unsigned j=0; j<EvrConfigType::EvrOutputs; j++) {
       if (p._outputs[j]->isChecked())
-        *new(&om[nom++]) Pds::EvrData::ConfigV5::OutputMapType( Pds::EvrData::ConfigV5::OutputMapType::Pulse, npt+p0,
-                                                       Pds::EvrData::ConfigV5::OutputMapType::UnivIO, j+Pds::EvrData::ConfigV5::EvrOutputs*_id );
+        *new(&om[nom++]) OutputMapType( OutputMapType::Pulse, npt+p0,
+                                        OutputMapType::UnivIO, j+EvrConfigType::EvrOutputs*_id );
     }
     npt++;
   }
@@ -240,10 +241,12 @@ bool EvrPulseTable_V5::validate(unsigned ncodes,
   uint32_t fill = 0;
   for(unsigned i=0; i<ncodes; i++)
     if (codes[i].isReadout())
-      *new(const_cast<Pds::EvrData::ConfigV5::EventCodeType*>(&codes[i]))
-           Pds::EvrData::ConfigV5::EventCodeType(codes[i].code(),
-                                        codes[i].desc(),
-                                        codes[i].maskTrigger()|pm,fill,fill);
+      *new(const_cast<EventCodeType*>(&codes[i]))
+           EventCodeType(codes[i].code(),
+                         true, false, false,
+                         0, 1, 
+                         codes[i].maskTrigger()|pm,fill,fill,
+                         codes[i].desc());
            
   _npulses  = npt;
   _noutputs = nom;
@@ -271,8 +274,8 @@ QLayout* EvrPulseTable_V5::initialize(QWidget*)
         if (iocfg.nchannels()==0) break;
         for(unsigned i=0; i<iocfg.nchannels(); i++)
           if (id == _id)
-            _outputs[j++] = new QrLabel(iocfg.channel(i).name());
-        p += iocfg.size();
+            _outputs[j++] = new QrLabel(iocfg.channels()[i].name());
+        p += iocfg._sizeof();
         id++;
       } while(1);
     }

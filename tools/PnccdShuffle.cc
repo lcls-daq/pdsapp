@@ -10,8 +10,7 @@
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/XtcFileIterator.hh"
-#include "pdsdata/pnCCD/ConfigV2.hh"
-#include "pdsdata/pnCCD/FrameV1.hh"
+#include "pdsdata/psddl/pnccd.ddl.h"
 #include "PnccdFrameDetail.hh"
 #include "PnccdShuffle.hh"
 

@@ -11,9 +11,7 @@
 #include "pds/service/Task.hh"
 #include "pds/service/Sockaddr.hh"
 #include "pds/service/Ins.hh"
-#include "pdsdata/control/PVControl.hh"
-#include "pdsdata/control/PVMonitor.hh"
-#include "pdsdata/control/PVLabel.hh"
+#include "pdsdata/psddl/control.ddl.h"
 
 #include "pds/config/ControlConfigType.hh"
 
@@ -84,11 +82,11 @@ bool RemoteSeqApp::readTransition()
     if (errno==0)
       printf("RemoteSeqApp: remote end closed\n");
     else
-      printf("RemoteSeqApp failed to read config hdr(%d/%ld) : %s\n",
+      printf("RemoteSeqApp failed to read config hdr(%d/%u) : %s\n",
        len,sizeof(config),strerror(errno));
     return false;
   }
-  int payload = config.size()-sizeof(config);
+  int payload = config._sizeof()-sizeof(config);
   if (payload>0) {
     len = ::recv(_socket, &config+1, payload, MSG_WAITALL);
     if (len != payload) {
@@ -115,11 +113,11 @@ bool RemoteSeqApp::readTransition()
   std::list<ControlData::PVLabel  > labels;
 
   if (config.uses_duration())
-    new(_cfgmon_buffer) ControlConfigType(controls, monitors, labels, config.duration());
+    ControlConfig::_new(_cfgmon_buffer, controls, monitors, labels, config.duration());
   else
-    new(_cfgmon_buffer) ControlConfigType(controls, monitors, labels, config.events  ());
+    ControlConfig::_new(_cfgmon_buffer, controls, monitors, labels, config.events());
 
-  _configtc.extent = sizeof(Xtc) + config.size();
+  _configtc.extent = sizeof(Xtc) + config._sizeof();
   return true;
 }
 
@@ -131,7 +129,7 @@ bool RemoteSeqApp::processTransitionCmd(RemoteSeqCmd& cmd)
     int64_t iEventNum = _runStatus.getEventNum();
     ::write(_socket,&iEventNum,sizeof(iEventNum));
 #ifdef DBUG
-    printf("RemoteSeqApp get events [%d]\n",iEventNum);
+    printf("RemoteSeqApp get events [%lld]\n",iEventNum);
 #endif
     break;
   }
@@ -145,8 +143,8 @@ void RemoteSeqApp::routine()
     *reinterpret_cast<ControlConfigType*>(_config_buffer);
 
   //  replace the configuration with default running
-  new(_config_buffer) ControlConfigType(ControlConfigType::Default);
-  _configtc.extent = sizeof(Xtc) + config.size();
+  ControlConfig::_new(_config_buffer);
+  _configtc.extent = sizeof(Xtc) + config._sizeof();
 
   int listener;
   if ((listener = ::socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -352,8 +350,8 @@ void RemoteSeqApp::routine()
 
 	    _control.wait_for_target();
             //  replace the configuration with default running
-            new(_config_buffer) ControlConfigType(ControlConfigType::Default);
-            _configtc.extent = sizeof(Xtc) + config.size();
+            ControlConfig::_new(_config_buffer);
+            _configtc.extent = sizeof(Xtc) + config._sizeof();
 
             _control.set_transition_env    (TransitionId::Configure,old_key);
             _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);  /* XXX */ printf("*** calling set_transition_payload() from %s line %d\n", __PRETTY_FUNCTION__, __LINE__);

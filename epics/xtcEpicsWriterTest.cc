@@ -1,7 +1,8 @@
+#include "XtcEpicsMonitor.hh"
+
 #include <stdio.h>
 #include <getopt.h>
 #include "cadef.h"
-#include "XtcEpicsMonitor.hh"
 
 namespace Pds
 {

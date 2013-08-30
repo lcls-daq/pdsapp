@@ -144,9 +144,10 @@ namespace Pds_ConfigDb {
       unsigned asic1=(section<<1)+1;
       QRgb fg;
       QPainter painter(image);
+      ndarray<const uint16_t,2> gm = map->gainMap();
       for(unsigned col=0; col<COLS; col++) {
         for(unsigned row=0; row<ROWS; row++) {
-          uint16_t v = (*map->map())[col][row];
+          uint16_t v = gm[col][row];
           fg = (v&(1<<(asic0))) ? qRgb(255,255,255) : qRgb(0,0,0);
           painter.setPen(QColor(fg));
           painter.drawPoint(col+col0,row0-row);
@@ -289,7 +290,7 @@ void CspadGainMap::import_()
     char* lptr;
     for(unsigned q=0; q<4; q++) {
       for(unsigned s=0; s<16; s++) {
-        uint16_t* v = &((*_quad[q]->gainMap()->map())[0][0]);
+        uint16_t* v = const_cast<uint16_t*>(_quad[q]->gainMap()->gainMap().data());
         for(unsigned c=0; c<COLS; c++) {
           lptr = line;
           do {
@@ -333,12 +334,12 @@ void CspadGainMap::export_()
   FILE* f = fopen(qPrintable(file),"w");
   if (f) {
     for(unsigned q=0; q<4; q++) {
+      ndarray<const uint16_t,2> map = _quad[q]->gainMap()->gainMap();
       for(unsigned s=0; s<16; s++) {
-        uint16_t* v = &((*_quad[q]->gainMap()->map())[0][0]);
         fprintf(f,"# Quad %d  ASIC %d  Column 0\n", q, s);
         for(unsigned c=0; c<COLS; c++) {
-          for(unsigned r=0; r<ROWS; r++,v++) {
-            fprintf(f," %d",((*v)>>s)&1);
+          for(unsigned r=0; r<ROWS; r++) {
+            fprintf(f," %d",((map[c][r])>>s)&1);
           }
           fprintf(f,"\n");
         }
@@ -357,7 +358,8 @@ void CspadGainMap::set_asic0()
   uint16_t m = rot&2 ? 0x1 : 0x2;
   m <<= (2*_s);
 
-  Pds::CsPad::CsPadGainMapCfg::GainMap& map = *_quad[_q]->gainMap()->map();
+  const ndarray<const uint16_t,2>& imap = _quad[_q]->gainMap()->gainMap();
+  ndarray<uint16_t,2> map = make_ndarray(const_cast<uint16_t*>(imap.data()), imap.shape()[0], imap.shape()[1]);
   for(unsigned col=0; col<COLS; col++)
     for(unsigned row=0; row<ROWS; row++)
       map[col][row] |= m;
@@ -371,7 +373,8 @@ void CspadGainMap::set_asic1()
   uint16_t m = rot&2 ? 0x2 : 0x1;
   m <<= (2*_s);
 
-  Pds::CsPad::CsPadGainMapCfg::GainMap& map = *_quad[_q]->gainMap()->map();
+  const ndarray<const uint16_t,2>& imap = _quad[_q]->gainMap()->gainMap();
+  ndarray<uint16_t,2> map = make_ndarray(const_cast<uint16_t*>(imap.data()), imap.shape()[0], imap.shape()[1]);
   for(unsigned col=0; col<COLS; col++)
     for(unsigned row=0; row<ROWS; row++)
       map[col][row] |= m;
@@ -385,7 +388,8 @@ void CspadGainMap::clear_asic0()
   uint16_t m = rot&2 ? 0x1 : 0x2;
   m <<= (2*_s);
 
-  Pds::CsPad::CsPadGainMapCfg::GainMap& map = *_quad[_q]->gainMap()->map();
+  const ndarray<const uint16_t,2>& imap = _quad[_q]->gainMap()->gainMap();
+  ndarray<uint16_t,2> map = make_ndarray(const_cast<uint16_t*>(imap.data()), imap.shape()[0], imap.shape()[1]);
   for(unsigned col=0; col<COLS; col++)
     for(unsigned row=0; row<ROWS; row++)
       map[col][row] &= ~m;
@@ -399,7 +403,8 @@ void CspadGainMap::clear_asic1()
   uint16_t m = rot&2 ? 0x2 : 0x1;
   m <<= (2*_s);
 
-  Pds::CsPad::CsPadGainMapCfg::GainMap& map = *_quad[_q]->gainMap()->map();
+  const ndarray<const uint16_t,2>& imap = _quad[_q]->gainMap()->gainMap();
+  ndarray<uint16_t,2> map = make_ndarray(const_cast<uint16_t*>(imap.data()), imap.shape()[0], imap.shape()[1]);
   for(unsigned col=0; col<COLS; col++)
     for(unsigned row=0; row<ROWS; row++)
       map[col][row] &= ~m;

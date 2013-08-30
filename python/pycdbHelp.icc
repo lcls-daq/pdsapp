@@ -4,8 +4,7 @@
 static PyObject* pds_pycdb_help(PyObject* self_o, PyObject* args);
 
 #include <string>
-#include "pdsdata/lusi/IpmFexConfigV1.hh"
-#include "pdsdata/lusi/DiodeFexConfigV1.hh"
+#include "pdsdata/psddl/lusi.ddl.h"
 
 PyObject* pds_pycdb_help(PyObject* self_o, PyObject* args)
 {

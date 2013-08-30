@@ -237,7 +237,7 @@ void EvrBldManager::configure(Transition* tr)
   // workaround: Set output map to the last pulse (just cleared)
   unsigned omask = 0;
   for (unsigned k = 0; k < cfg.noutputs(); k++)
-    omask |= 1<<cfg.output_map(k).conn_id();
+    omask |= 1<<cfg.output_maps()[k].conn_id();
   omask = ~omask;
   
   for (unsigned k = 0; k < EVR_MAX_UNIVOUT_MAP; k++) {
@@ -251,7 +251,7 @@ void EvrBldManager::configure(Transition* tr)
 
   for (unsigned k = 0; k < cfg.npulses(); k++)
     {
-      const EvrConfigType::PulseType & pc = cfg.pulse(k);
+      const PulseType & pc = cfg.pulses()[k];
       _er.SetPulseProperties(
                              pc.pulseId(),
                              pc.polarity(),
@@ -272,18 +272,18 @@ void EvrBldManager::configure(Transition* tr)
 
   for (unsigned k = 0; k < cfg.noutputs(); k++)
     {
-      const EvrConfigType::OutputMapType & map = cfg.output_map(k);
+      const OutputMapType & map = cfg.output_maps()[k];
       switch (map.conn())
         {
-        case EvrConfigType::OutputMapType::FrontPanel:
-          _er.SetFPOutMap(map.conn_id(), map.map());
+        case OutputMapType::FrontPanel:
+          _er.SetFPOutMap(map.conn_id(), map.value());
           break;
-        case EvrConfigType::OutputMapType::UnivIO:
-          _er.SetUnivOutMap(map.conn_id(), map.map());
+        case OutputMapType::UnivIO:
+          _er.SetUnivOutMap(map.conn_id(), map.value());
           break;
         }
 
-      printf("output %d : %d %x\n", k, map.conn_id(), map.map());
+      printf("output %d : %d %x\n", k, map.conn_id(), map.value());
     }
 
 
@@ -292,7 +292,7 @@ void EvrBldManager::configure(Transition* tr)
    */
   for (unsigned int uEventIndex = 0; uEventIndex < cfg.neventcodes(); uEventIndex++ )
     {
-      const EvrConfigType::EventCodeType& eventCode = cfg.eventcode(uEventIndex);
+      const EventCodeType& eventCode = cfg.eventcodes()[uEventIndex];
 
       _er.SetFIFOEvent(ram, eventCode.code(), enable);
 

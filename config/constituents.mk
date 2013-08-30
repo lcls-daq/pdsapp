@@ -9,6 +9,7 @@ libsrcs_configdb += GlobalCfg.cc
 libsrcs_configdb += PdsDefs.cc
 libsrcs_configdb += EventcodeTiming.cc
 libsrcs_configdb += XML.cc
+libincs_configdb := pdsdata/include ndarray/include 
 
 libsrcs_configdbg := ControlScan.cc ControlScan_moc.cc
 libsrcs_configdbg += PvScan.cc PvScan_moc.cc
@@ -51,6 +52,7 @@ libsrcs_configdbg += EvrSeqEventDesc_V6.cc
 libsrcs_configdbg += EvrGlbEventDesc_V6.cc
 libsrcs_configdbg += EvrEventCodeTable.cc EvrEventCodeTable_moc.cc
 libsrcs_configdbg += EvrEventCodeTable_V6.cc EvrEventCodeTable_V6_moc.cc
+libsrcs_configdbg += EvrConfigType_V6.cc
 libsrcs_configdbg += EvrConfig.cc EvrConfigP.cc EvrConfigP_V6.cc EvrConfig_V5.cc EvrConfig_V4.cc EvrConfig_V3.cc EvrConfig_V2.cc EvrConfig_V1.cc
 libsrcs_configdbg += SequencerConfig_V6.cc SequencerConfig_V6_moc.cc
 libsrcs_configdbg += SequencerConfig.cc SequencerConfig_moc.cc
@@ -73,17 +75,11 @@ libsrcs_configdbg += Cspad2x2Sector.cc
 libsrcs_configdbg += Cspad2x2GainMap.cc Cspad2x2GainMap_moc.cc
 libsrcs_configdbg += Cspad2x2ConfigTable.cc Cspad2x2ConfigTable_moc.cc
 libsrcs_configdbg += Cspad2x2ConfigTable_V1.cc Cspad2x2ConfigTable_V1_moc.cc
-libsrcs_configdbg += XampsConfig.cc XampsConfig_moc.cc
-libsrcs_configdbg += XampsCopyChannelDialog.cc XampsCopyChannelDialog_moc.cc
-libsrcs_configdbg += XampsCopyAsicDialog.cc XampsCopyAsicDialog_moc.cc
-libsrcs_configdbg += FexampConfig.cc FexampConfig_moc.cc
-libsrcs_configdbg += FexampCopyChannelDialog.cc FexampCopyChannelDialog_moc.cc
-libsrcs_configdbg += FexampCopyAsicDialog.cc FexampCopyAsicDialog_moc.cc
 libsrcs_configdbg += ImpConfig.cc
-libsrcs_configdbg += PhasicsConfig.cc
 libsrcs_configdbg += PVControl.cc PVMonitor.cc
 libsrcs_configdbg += ControlConfig_V1.cc
 libsrcs_configdbg += ControlConfig.cc
+libsrcs_configdbg += ControlConfigType_V1.cc
 libsrcs_configdbg += IpimbConfig.cc IpimbConfig_V1.cc
 libsrcs_configdbg += DiodeFexItem.cc
 libsrcs_configdbg += IpmFexTable.cc
@@ -102,7 +98,18 @@ libsrcs_configdbg += AcqTdcConfig.cc
 libsrcs_configdbg += Parameters.cc
 libsrcs_configdbg += BitCount.cc
 libsrcs_configdbg += templates.cc
-libincs_configdbg := $(qtincdir)
+libincs_configdbg := $(qtincdir) pdsdata/include ndarray/include  boost/include
+
+ifeq ($(build_extra),$(true))
+  DEFINES += -DBUILD_EXTRA
+  libsrcs_configdbg += XampsConfig.cc XampsConfig_moc.cc
+  libsrcs_configdbg += XampsCopyChannelDialog.cc XampsCopyChannelDialog_moc.cc
+  libsrcs_configdbg += XampsCopyAsicDialog.cc XampsCopyAsicDialog_moc.cc
+  libsrcs_configdbg += FexampConfig.cc FexampConfig_moc.cc
+  libsrcs_configdbg += FexampCopyChannelDialog.cc FexampCopyChannelDialog_moc.cc
+  libsrcs_configdbg += FexampCopyAsicDialog.cc FexampCopyAsicDialog_moc.cc
+  libsrcs_configdbg += PhasicsConfig.cc
+endif
 
 tgtnames       := configdb_cmd
 tgtnames       += configdb_gui
@@ -112,11 +119,10 @@ tgtnames       += configdb_readxtc
 
 # executable python modules: configdb_gui.py
 
-#  get datalibs macro
-include ../../pdsdata/packages.mk
+datalibs := pdsdata/xtcdata pdsdata/aliasdata pdsdata/psddl_pdsdata
 
 tgtsrcs_configdb_cmd := configdb.cc
-#tgtincs_configdb := $(qtincdir)
+tgtincs_configdb_cmd := pdsdata/include
 tgtlibs_configdb_cmd := $(datalibs)
 tgtlibs_configdb_cmd += pdsapp/configdb
 #tgtlibs_configdb_cmd += pdsapp/configdbg
@@ -131,24 +137,26 @@ tgtsrcs_configdb_gui += Transaction_Ui.cc   Transaction_Ui_moc.cc
 tgtsrcs_configdb_gui += Info_Ui.cc    Info_Ui_moc.cc
 tgtsrcs_configdb_gui += ListUi.cc     ListUi_moc.cc
 tgtsrcs_configdb_gui += DetInfoDialog_Ui.cc   DetInfoDialog_Ui_moc.cc
-tgtincs_configdb_gui := $(qtincdir)
+tgtincs_configdb_gui := $(qtincdir) pdsdata/include
 tgtlibs_configdb_gui := $(datalibs)
 tgtlibs_configdb_gui += $(qtlibdir)
+tgtlibs_configdb_gui += pds/configdata
 tgtlibs_configdb_gui += pdsapp/configdb
 tgtlibs_configdb_gui += pdsapp/configdbg
 tgtslib_configdb_gui := $(USRLIBDIR)/rt $(qtslibdir)
 
 tgtsrcs_configdb_list := configdb_list.cc
 tgtsrcs_configdb_list += ListUi.cc ListUi_moc.cc
-tgtincs_configdb_list := $(qtincdir)
+tgtincs_configdb_list := $(qtincdir) pdsdata/include
 tgtlibs_configdb_list := $(datalibs)
 tgtlibs_configdb_list += $(qtlibdir)
+tgtlibs_configdb_list += pds/configdata
 tgtlibs_configdb_list += pdsapp/configdb
 tgtlibs_configdb_list += pdsapp/configdbg
 tgtslib_configdb_list := $(USRLIBDIR)/rt $(qtslibdir)
 
 tgtsrcs_create_scan := create_scan_config.cc
-tgtincs_create_scan := $(qtincdir)
+tgtincs_create_scan := $(qtincdir) pdsdata/include
 tgtlibs_create_scan := $(datalibs)
 tgtlibs_create_scan += $(qtlibdir)
 tgtlibs_create_scan += pdsapp/configdb
@@ -158,9 +166,10 @@ tgtslib_create_scan := $(USRLIBDIR)/rt $(qtslibdir)
 tgtsrcs_configdb_readxtc := configdb_readxtc.cc
 tgtsrcs_configdb_readxtc += Xtc_Ui.cc Xtc_Ui_moc.cc
 tgtsrcs_configdb_readxtc += XtcFileServer.cc XtcFileServer_moc.cc
-tgtincs_configdb_readxtc := $(qtincdir)
+tgtincs_configdb_readxtc := $(qtincdir) pdsdata/include
 tgtlibs_configdb_readxtc := $(datalibs)
 tgtlibs_configdb_readxtc += $(qtlibdir)
+tgtlibs_configdb_readxtc += pds/configdata
 tgtlibs_configdb_readxtc += pdsapp/configdb
 tgtlibs_configdb_readxtc += pdsapp/configdbg
 tgtslib_configdb_readxtc := $(USRLIBDIR)/rt $(qtslibdir)

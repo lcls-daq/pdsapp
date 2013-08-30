@@ -67,9 +67,10 @@ namespace Pds_ConfigDb {
         unsigned       asic1 =(section<<1)+1;
         QRgb fg;
         QPainter painter(pixmap);
+        ndarray<const uint16_t,2> gm = map->gainMap();
         for(unsigned col=0; col<COLS; col++) {
           for(unsigned row=0; row<ROWS; row++) {
-            uint16_t v = (*map->map())[col][row];
+            uint16_t v = gm[col][row];
             fg = (v&(1<<(asic0))) ? qRgb(255,255,255) : qRgb(0,0,0);
             painter.setPen(QColor(fg));
             painter.drawPoint(col+col0,row0-row);
@@ -145,7 +146,7 @@ void Cspad2x2GainMap::import_()
     char* line = (char *)malloc(line_sz);
     char* lptr;
     for(unsigned s=0; s<4; s++) {
-      uint16_t* v = &((*_quad[0]->gainMap()->map())[0][0]);
+      uint16_t* v = const_cast<uint16_t*>(_quad[0]->gainMap()->gainMap().data());
       for(unsigned c=0; c<COLS; c++) {
         lptr = line;
         do {
@@ -186,11 +187,11 @@ void Cspad2x2GainMap::export_()
   FILE* f = fopen(qPrintable(file),"w");
   if (f) {
     for(unsigned s=0; s<4; s++) {
-      uint16_t* v = &((*_quad[0]->gainMap()->map())[0][0]);
+      ndarray<const uint16_t,2> map = _quad[0]->gainMap()->gainMap();
       fprintf(f,"#0  ASIC %d  Column 0\n", s);
       for(unsigned c=0; c<COLS; c++) {
-        for(unsigned r=0; r<ROWS; r++,v++) {
-          fprintf(f," %d",((*v)>>s)&1);
+        for(unsigned r=0; r<ROWS; r++) {
+          fprintf(f," %d",((map[c][r])>>s)&1);
         }
         fprintf(f,"\n");
       }

@@ -54,7 +54,7 @@ namespace Pds_ConfigDb {
       _u8ReadoutSpeedIndex  .value = tc.readoutSpeedIndex();
       _u16ExposureEventCode .value = tc.exposureEventCode();
       _u32NumDelayShots     .value = tc.numDelayShots();
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
@@ -72,7 +72,7 @@ namespace Pds_ConfigDb {
         _u16ExposureEventCode .value,
         _u32NumDelayShots     .value
       );
-      return tc.size();
+      return tc._sizeof();
     }
 
     int dataSize() const {
@@ -95,7 +95,7 @@ namespace Pds_ConfigDb {
   };
 };
 
-  // !! for reference: from pdsdata/fli/ConfigV1.hh
+  // !! for reference: from pdsdata/psddl/fli.ddl.h
   //uint32_t          _uWidth, _uHeight;
   //uint32_t          _uOrgX,  _uOrgY;
   //uint32_t          _uBinX,  _uBinY;

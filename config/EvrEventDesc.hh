@@ -28,8 +28,8 @@ namespace Pds_ConfigDb {
     void initialize(QGridLayout* l, unsigned row);
     void update    ();
     void flush     ();
-    void pull      (const EvrConfigType::EventCodeType& c);
-    void push      (EvrConfigType::EventCodeType* c) const;
+    void pull      (const EventCodeType& c);
+    void push      (EventCodeType* c) const;
   public:
     bool enabled   () const;
     const char*    get_label() const;

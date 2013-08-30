@@ -12,9 +12,7 @@
 #include "pdsapp/python/pydaq.hh"
 #include "pdsapp/control/RemoteSeqCmd.hh"
 #include "pds/config/ControlConfigType.hh"
-#include "pdsdata/control/PVControl.hh"
-#include "pdsdata/control/PVMonitor.hh"
-#include "pdsdata/control/PVLabel.hh"
+#include "pdsdata/psddl/control.ddl.h"
 using Pds::ControlData::PVControl;
 using Pds::ControlData::PVMonitor;
 using Pds::ControlData::PVLabel;
@@ -509,6 +507,7 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
     for(unsigned i=0; i<PyList_Size(controls); i++) {
       PyObject* item = PyList_GetItem(controls,i);
       clist.push_back(PVControl(PyString_AsString(PyTuple_GetItem(item,0)),
+                                PVControl::NoArray,
                                 PyFloat_AsDouble (PyTuple_GetItem(item,1))));
     }
 
@@ -517,6 +516,7 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
     for(unsigned i=0; i<PyList_Size(monitors); i++) {
       PyObject* item = PyList_GetItem(monitors,i);
       mlist.push_back(PVMonitor(PyString_AsString(PyTuple_GetItem(item,0)),
+                                PVMonitor::NoArray,
                                 PyFloat_AsDouble (PyTuple_GetItem(item,1)),
                                 PyFloat_AsDouble (PyTuple_GetItem(item,2))));
     }
@@ -534,15 +534,15 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
   if (duration) {
     Pds::ClockTime dur(PyLong_AsUnsignedLong(PyList_GetItem(duration,0)),
                        PyLong_AsUnsignedLong(PyList_GetItem(duration,1)));
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,dur);
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,dur);
   }
   else {
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,events);
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,events);
   }
 
   daq->state = Configured;
 
-  ::write(daq->socket,daq->buffer,cfg->size());
+  ::write(daq->socket,daq->buffer,cfg->_sizeof());
 
   return pdsdaq_rcv(self);
 }
@@ -599,7 +599,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
 
   list<PVControl> clist;
   { for(unsigned i=0; i<cfg->npvControls(); i++)
-      clist.push_back(cfg->pvControl(i)); }
+      clist.push_back(cfg->pvControls()[i]); }
 
   if (controls) {
     for(unsigned i=0; i<PyList_Size(controls); i++) {
@@ -608,7 +608,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
       list<PVControl>::iterator it=clist.begin();
       while(it!=clist.end()) {
         if (strcmp(name,it->name())==0) {
-          (*it) = PVControl(name,PyFloat_AsDouble (PyTuple_GetItem(item,1)));
+          (*it) = PVControl(name,PVControl::NoArray,PyFloat_AsDouble (PyTuple_GetItem(item,1)));
           break;
         }
         ++it;
@@ -624,7 +624,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
 
   list<PVMonitor> mlist;
   { for(unsigned i=0; i<cfg->npvMonitors(); i++)
-      mlist.push_back(cfg->pvMonitor(i)); }
+      mlist.push_back(cfg->pvMonitors()[i]); }
 
   if (monitors) {
     for(unsigned i=0; i<PyList_Size(monitors); i++) {
@@ -634,6 +634,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
       while(it!=mlist.end()) {
         if (strcmp(name,it->name())==0) {
           (*it) = PVMonitor(name,
+                            PVMonitor::NoArray,
                             PyFloat_AsDouble (PyTuple_GetItem(item,1)),
                             PyFloat_AsDouble (PyTuple_GetItem(item,2)));
           break;
@@ -651,7 +652,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
 
   list<PVLabel> llist;
   { for(unsigned i=0; i<cfg->npvLabels(); i++)
-      llist.push_back(cfg->pvLabel(i)); }
+      llist.push_back(cfg->pvLabels()[i]); }
 
   if (labels) {
     for(unsigned i=0; i<PyList_Size(labels); i++) {
@@ -677,21 +678,21 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
   if (duration) {
     Pds::ClockTime dur(PyLong_AsUnsignedLong(PyList_GetItem(duration,0)),
                        PyLong_AsUnsignedLong(PyList_GetItem(duration,1)));
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,dur);
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,dur);
   }
   else if (events>=0) {
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,events);
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,events);
   }
   else if (cfg->uses_duration()) {
-    ClockTime dur(cfg->duration());
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,dur);
+    Pds::ClockTime dur(cfg->duration());
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,dur);
   }
   else {
     events = cfg->events();
-    cfg = new (daq->buffer) ControlConfigType(clist,mlist,llist,events);
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,events);
   }
 
-  ::write(daq->socket,daq->buffer,cfg->size());
+  ::write(daq->socket,daq->buffer,cfg->_sizeof());
 
   daq->state = Running;
 
@@ -715,11 +716,12 @@ PyObject* pdsdaq_stop     (PyObject* self)
   pdsdaq* daq = (pdsdaq*)self;
   if (daq->state >= Configured) {
     char* buff = new char[MaxConfigSize];
-    ControlConfigType* cfg = new (buff)ControlConfigType(list<PVControl>(),
-                                                         list<PVMonitor>(),
-                                                         list<PVLabel  >(),
-                                                         ClockTime(0,0));
-    ::write(daq->socket, buff, cfg->size());
+    ControlConfigType* cfg = Pds::ControlConfig::_new(buff,
+                                                      list<PVControl>(),
+                                                      list<PVMonitor>(),
+                                                      list<PVLabel  >(),
+                                                      Pds::ClockTime(0,0));
+    ::write(daq->socket, buff, cfg->_sizeof());
     delete[] buff;
   }
 

@@ -124,7 +124,7 @@ void EvrPulseTable::pull(const EvrConfigType& tc) {
   unsigned npulses     = 0;
   int      delay_offset= 0;
   for(unsigned i=0; i<tc.neventcodes(); i++) {
-    const EvrConfigType::EventCodeType& ec = tc.eventcode(i);
+    const EventCodeType& ec = tc.eventcodes()[i];
     if (ec.isReadout()) {
       delay_offset =
         EventcodeTiming::timeslot(140) -
@@ -140,8 +140,8 @@ void EvrPulseTable::pull(const EvrConfigType& tc) {
     for(unsigned k=0; k<MaxOutputs; k++)
       p._outputs[k]->setChecked(false);
     for(unsigned k=0; k<tc.noutputs(); k++) {
-      const EvrConfigType::OutputMapType& om = tc.output_map(k);
-      if ( om.source()==EvrConfigType::OutputMapType::Pulse &&
+      const OutputMapType& om = tc.output_maps()[k];
+      if ( om.source()==OutputMapType::Pulse &&
            om.source_id()==j )
         if ((om.module()) == _id)
           p._outputs[om.conn_id()]->setChecked(lUsed=true);
@@ -151,7 +151,7 @@ void EvrPulseTable::pull(const EvrConfigType& tc) {
 
     p._enable    ->setChecked(true);
     update_enable(npulses);
-    const EvrConfigType::PulseType& pt = tc.pulse(j);
+    const PulseType& pt = tc.pulses()[j];
     p._polarity  ->setState(pt.polarity()==Pds_ConfigDb::Enums::Pos ? 
                             PolarityButton::Pos : PolarityButton::Neg);
     p._delay      .value = pt.delay() - delay_offset;
@@ -177,10 +177,10 @@ unsigned EvrPulseTable::noutputs() const {
 
 
 bool EvrPulseTable::validate(unsigned ncodes, 
-                             const EvrConfigType::EventCodeType* codes,
+                             const EventCodeType* codes,
                              int delay_offset,
-                             unsigned p0, EvrConfigType::PulseType* pt,
-                             unsigned o0, EvrConfigType::OutputMapType* om)
+                             unsigned p0, PulseType* pt,
+                             unsigned o0, OutputMapType* om)
 {
   unsigned npt = 0;
   unsigned nom = 0;
@@ -217,16 +217,16 @@ bool EvrPulseTable::validate(unsigned ncodes,
     }
     **/
 
-    *new(&pt[npt]) EvrConfigType::PulseType(npt+p0, 
-                                            p._polarity->state() == PolarityButton::Pos ? 0 : 1,
-                                            1,
-                                            adjusted_delay,
-                                            p._width.value);
-
+    *new(&pt[npt]) PulseType(npt+p0, 
+                             p._polarity->state() == PolarityButton::Pos ? 0 : 1,
+                             1,
+                             adjusted_delay,
+                             p._width.value);
+    
     for(unsigned j=0; j<MaxOutputs; j++) {
       if (p._outputs[j]->isChecked())
-        *new(&om[nom++]) EvrConfigType::OutputMapType( EvrConfigType::OutputMapType::Pulse, npt+p0,
-                                                       EvrConfigType::OutputMapType::UnivIO, j, _id );
+        *new(&om[nom++]) OutputMapType( OutputMapType::Pulse, npt+p0,
+                                        OutputMapType::UnivIO, j, _id );
     }
     npt++;
   }
@@ -235,11 +235,15 @@ bool EvrPulseTable::validate(unsigned ncodes,
   uint32_t fill = 0;
   for(unsigned i=0; i<ncodes; i++)
     if (codes[i].isReadout())
-      *new(const_cast<EvrConfigType::EventCodeType*>(&codes[i]))
-           EvrConfigType::EventCodeType(codes[i].code(),
-                                        codes[i].desc(),
-                                        codes[i].maskTrigger()|pm,fill,fill);
-           
+      *new(const_cast<EventCodeType*>(&codes[i]))
+        EventCodeType(codes[i].code(),
+                      true,
+                      false,
+                      false,
+                      0, 1,
+                      codes[i].maskTrigger()|pm,fill,fill,
+                      codes[i].desc());
+  
   _npulses  = npt;
   _noutputs = nom;
 
@@ -266,8 +270,8 @@ QLayout* EvrPulseTable::initialize(QWidget*)
         if (iocfg.nchannels()==0) break;
         for(unsigned i=0; i<iocfg.nchannels(); i++)
           if (id == _id)
-            _outputs[j++] = new QrLabel(iocfg.channel(i).name());
-        p += iocfg.size();
+            _outputs[j++] = new QrLabel(iocfg.channels()[i].name());
+        p += iocfg._sizeof();
         id++;
       } while(1);
     }

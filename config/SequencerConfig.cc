@@ -81,8 +81,8 @@ namespace Pds_ConfigDb {
       unsigned n = _seqInput->nentries();
       SeqEntryType* entries = _seqInput->entries();
       new(to) SeqConfigType( SeqConfigType::Source(_syncSource.value),
-           SeqConfigType::Source(_beamSource.value),
-           n, 0, entries);
+                             SeqConfigType::Source(_beamSource.value),
+                             n, 0, entries);
     }
     bool validate() { return true; }
   public:
@@ -192,16 +192,16 @@ bool SequencerConfig::validate() {
   case External: // Disabled
     new(_config_buffer) SeqConfigType( SeqConfigType::Disable,
                                        SeqConfigType::Disable,
-                                       0, 0, 0 );
+                                       0, 0, 0);
     break;
   }
 
   return true;
 }
 
-const EvrConfigType::SeqConfigType& SequencerConfig::result() const
+const SeqConfigType& SequencerConfig::result() const
 {
-  return *reinterpret_cast<const EvrConfigType::SeqConfigType*>(_config_buffer);
+  return *reinterpret_cast<const SeqConfigType*>(_config_buffer);
 }
 
 
@@ -242,11 +242,11 @@ void SeqEntryInput::pull(const SeqConfigType&     c) {
       if (col==0) {
   QComboBox* event = static_cast<QComboBox*>
     (static_cast<QWidgetItem*>(_elayout->itemAt(i))->widget());
-  event->setCurrentIndex(_code_table.code_index(c.entry(row-1).eventcode()));
+  event->setCurrentIndex(_code_table.code_index(c.entries()[row-1].eventcode()));
       }
       else if (col==1) {
         setInputValue(static_cast<QWidgetItem*>(_elayout->itemAt(i))->widget(),
-                      c.entry(row-1).delay());
+                      c.entries()[row-1].delay());
       }
     }
   }

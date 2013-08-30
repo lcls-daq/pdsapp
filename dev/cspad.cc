@@ -11,7 +11,7 @@
 #include "pds/cspad/CspadManager.hh"
 #include "pds/cspad/CspadServer.hh"
 #include "pds/config/CfgClientNfs.hh"
-#include "pdsdata/cspad/ElementV1.hh"
+#include "pdsdata/psddl/cspad.ddl.h"
 
 #include "pds/client/FrameCompApp.hh"
 
@@ -330,7 +330,7 @@ int main( int argc, char** argv )
                     device,
                     deviceId );
 
-   TypeId typeId( type, Pds::CsPad::ElementV1::Version );
+   TypeId typeId( type, Pds::CsPad::DataV1::Version );
 
    cfgService = new CfgClientNfs(detInfo);
    cspadServer = new CspadServer(detInfo, typeId, mask);

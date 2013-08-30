@@ -16,7 +16,7 @@ using namespace Pds_ConfigDb;
 // combo box items
 enum { Readout, Command, Transient, Latch };
 
-static const unsigned DescLength = EvrConfigType::EventCodeType::DescSize;
+static const unsigned DescLength = EventCodeType::DescSize;
 EvrEventDesc::EvrEventDesc() :
   _enabled      (false),
   _desc         (NULL, "", DescLength),
@@ -45,7 +45,7 @@ void EvrEventDesc::initialize(QGridLayout* l, unsigned row)
   l->addWidget(_type, row, column++, Qt::AlignCenter);
 
   _group = new QComboBox;
-  for (int iGroup = 1; iGroup <= EvrConfigType::EventCodeType::MaxReadoutGroup; ++iGroup)
+  for (int iGroup = 1; iGroup <= EventCodeType::MaxReadoutGroup; ++iGroup)
     _group->addItem(QString().setNum(iGroup));
   _group->setCurrentIndex(0);
   l->addWidget(_group, row, column++, Qt::AlignCenter);
@@ -126,10 +126,10 @@ void EvrEventDesc::update()
 
 void EvrEventDesc::update_p() { update(); }
 
-void EvrEventDesc::pull(const EvrConfigType::EventCodeType& c) 
+void EvrEventDesc::pull(const EventCodeType& c) 
 {
   set_code(c.code());
-  strncpy(_desc.value, c.desc(), Pds::EvrData::EventCodeV6::DescSize);
+  strncpy(_desc.value, c.desc(), EventCodeType::DescSize);
   if      (c.isReadout   ()) {
     _type->setCurrentIndex(Readout);
     _group->setCurrentIndex(c.readoutGroup()-1);
@@ -150,31 +150,43 @@ void EvrEventDesc::pull(const EvrConfigType::EventCodeType& c)
   _enabled = c.code()!=Disabled;
 }
 
-void EvrEventDesc::push(EvrConfigType::EventCodeType* c) const
+void EvrEventDesc::push(EventCodeType* c) const
 {
   uint32_t fill(0);
   switch(_type->currentIndex()) {
   case Readout:
-    *new(c) EvrConfigType::EventCodeType(get_code(),
-                                         1+_group->currentIndex(),
-                                         _desc.value,
-                                         fill,fill,fill);
+    *new(c) EventCodeType(get_code(),
+                          true, false, false,
+                          0, 1,
+                          fill,fill,fill,
+                          _desc.value,
+                          1+_group->currentIndex());
     break;
   case Command:
-    *new(c) EvrConfigType::EventCodeType(get_code(),
-                                         _desc.value);
+    *new(c) EventCodeType(get_code(),
+                          false, true, false,
+                          0, 1,
+                          fill,fill,fill,
+                          _desc.value,
+                          0);
     break;
   case Transient: // Transient
-    *new(c) EvrConfigType::EventCodeType(get_code(),
-                                         _desc.value, false,
-                                         _trans_delay.value,
-                                         _trans_width.value);
+    *new(c) EventCodeType(get_code(),
+                          false, false, false,
+                          _trans_delay.value,
+                          _trans_width.value,
+                          fill,fill,fill,
+                          _desc.value,
+                          0);
     break;
   case Latch: // Latch
-    *new(c) EvrConfigType::EventCodeType(get_code(),
-                                         _desc.value, true,
-                                         _latch_delay  .value,
-                                         _latch_release.value);
+    *new(c) EventCodeType(get_code(),
+                          false, false, true,
+                          _latch_delay  .value,
+                          _latch_release.value,
+                          fill,fill,fill,
+                          _desc.value,
+                          0);
     break;
   }
 }

@@ -18,9 +18,10 @@
 #include "pds/service/Routine.hh"
 #include "pdsdata/xtc/TypeId.hh"
 
-#include "pdsdata/bld/bldData.hh"
+#include "pdsdata/psddl/bld.ddl.h"
 
-static const Pds::TypeId inType(Pds::TypeId::Id_SharedIpimb, Pds::BldDataIpimb::version);
+typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
+static const Pds::TypeId inType(Pds::TypeId::Id_SharedIpimb, BldDataIpimb::Version);
 
 //#define DBUG
 
@@ -161,16 +162,16 @@ int ToIpmBldEventWire::process(Xtc* xtc)
       if (xtc->src == _ipms[i].det_info) {
         switch(xtc->contains.id()) {
         case TypeId::Id_IpimbConfig:
-          _config[i] = *reinterpret_cast<const IpimbConfigV2*>(xtc->payload());
+          _config[i] = *reinterpret_cast<const IpimbConfigType*>(xtc->payload());
           break;
         case TypeId::Id_IpimbData:
-          _data  [i] =  reinterpret_cast<const IpimbDataV2*>(xtc->payload());
+          _data  [i] =  reinterpret_cast<const IpimbDataType*>(xtc->payload());
           break;
         case TypeId::Id_IpmFex:
           if (_seq.stamp().ticks() && _data[i]) {
             Transition tr(TransitionId::L1Accept,Transition::Record,_seq,Env(0));
             CDatagram* dg = new(&_pool) CDatagram(Datagram(tr,inType,_ipms[i].bld_info));
-            const IpmFexDataV1& fex = *reinterpret_cast<const IpmFexDataV1*>(xtc->payload());
+            const Lusi::IpmFexV1& fex = *reinterpret_cast<const Lusi::IpmFexV1*>(xtc->payload());
             memcpy(dg->xtc.alloc(sizeof(*_data[i])) ,_data[i]   ,sizeof(*_data[i]));
             memcpy(dg->xtc.alloc(sizeof(_config[i])),&_config[i],sizeof(_config[i]));
             memcpy(dg->xtc.alloc(sizeof(fex))       ,&fex       ,sizeof(fex));

@@ -3,9 +3,7 @@
 
 #include <QtGui/QWidget>
 
-#include "pdsdata/control/PVControl.hh"
-#include "pdsdata/control/PVMonitor.hh"
-#include "pdsdata/control/PVLabel.hh"
+#include "pdsdata/psddl/control.ddl.h"
 
 #include <list>
 

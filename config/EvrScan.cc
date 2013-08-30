@@ -3,10 +3,8 @@
 #include "pdsapp/config/EventcodeTiming.hh"
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/ControlConfigType.hh"
-#include "pdsdata/control/PVControl.hh"
-#include "pdsdata/control/PVMonitor.hh"
-#include "pdsdata/control/PVLabel.hh"
-#include "pdsdata/evr/PulseConfigV3.hh"
+#include "pdsdata/psddl/control.ddl.h"
+#include "pdsdata/psddl/evr.ddl.h"
 
 #include <QtGui/QGridLayout>
 #include <QtGui/QLabel>
@@ -70,7 +68,7 @@ EvrScan::~EvrScan()
     delete[] _buff;
 }
 
-int EvrScan::write_control(unsigned step, unsigned nsteps, const ClockTime& ctime, char* buff) const
+int EvrScan::write_control(unsigned step, unsigned nsteps, const Pds::ClockTime& ctime, char* buff) const
 {
   std::list<Pds::ControlData::PVControl> controls;
   std::list<Pds::ControlData::PVMonitor> monitors;
@@ -84,12 +82,12 @@ int EvrScan::write_control(unsigned step, unsigned nsteps, const ClockTime& ctim
   control_v += double(step)*control_step;
 
   controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
+                                                 Pds::ControlData::PVControl::NoArray,
                                                  control_v));
 
-  ControlConfigType* c = 
-    new (buff) ControlConfigType(controls, monitors, labels, ctime);
+  ControlConfigType* c = Pds::ControlConfig::_new(buff, controls, monitors, labels, ctime);
 
-  return c->size();
+  return c->_sizeof();
 }
 
 int EvrScan::write_control(unsigned step, unsigned nsteps, unsigned nevents, char* buff) const
@@ -106,12 +104,12 @@ int EvrScan::write_control(unsigned step, unsigned nsteps, unsigned nevents, cha
   control_v += double(step)*control_step;
 
   controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
+                                                 Pds::ControlData::PVControl::NoArray,
                                                  control_v));
 
-  ControlConfigType* c = 
-    new (buff) ControlConfigType(controls, monitors, labels, nevents);
+  ControlConfigType* c = Pds::ControlConfig::_new(buff, controls, monitors, labels, nevents);
 
-  return c->size();
+  return c->_sizeof();
 }
 
 
@@ -125,12 +123,12 @@ int EvrScan::write(unsigned step, unsigned nsteps, char* buff) const
   const EvrConfigType& cfg = *reinterpret_cast<const EvrConfigType*>(_buff);
 
   //  change the pulse configuration
-  const Pds::EvrData::PulseConfigV3& pulse = cfg.pulse(_pulse_id->currentIndex());
+  const Pds::EvrData::PulseConfigV3& pulse = cfg.pulses()[_pulse_id->currentIndex()];
 
   int offs = 0;
   for(unsigned i=0; i<cfg.neventcodes(); i++)
-    if (cfg.eventcode(i).maskTrigger() & (1<<pulse.pulseId())) {
-      offs = int(Pds_ConfigDb::EventcodeTiming::timeslot(cfg.eventcode(i).code())) 
+    if (cfg.eventcodes()[i].maskTrigger() & (1<<pulse.pulseId())) {
+      offs = int(Pds_ConfigDb::EventcodeTiming::timeslot(cfg.eventcodes()[i].code())) 
 	-    int(Pds_ConfigDb::EventcodeTiming::timeslot(140));
       break;
     }
@@ -145,13 +143,16 @@ int EvrScan::write(unsigned step, unsigned nsteps, char* buff) const
         delay,
         width);
   
-  EvrConfigType* c   = new(buff) EvrConfigType(cfg.neventcodes(), &cfg.eventcode (0),
-                 cfg.npulses    (), &cfg.pulse     (0),
-                 cfg.noutputs   (), &cfg.output_map(0),
-                 cfg.seq_config ());
+  EvrConfigType* c   = new(buff) EvrConfigType(cfg.neventcodes(), 
+                                               cfg.npulses    (), 
+                                               cfg.noutputs   (), 
+                                               &cfg.eventcodes()[0],
+                                               &cfg.pulses()[0],
+                                               &cfg.output_maps()[0],
+                                               cfg.seq_config ());
   
   
-  return c->size();
+  return Pds::EvrConfig::size(*c);
 }
 
 
@@ -183,13 +184,13 @@ void EvrScan::read(const char* dbuf, int len)
 void EvrScan::set_pulse(int index)
 {
   const EvrConfigType& cfg = *reinterpret_cast<const EvrConfigType*>(_buff);
-  const Pds::EvrData::PulseConfigV3& pulse = cfg.pulse(index);
+  const Pds::EvrData::PulseConfigV3& pulse = cfg.pulses()[index];
   printf("EvrScan::set_pulse %d\n", index);
 
   int offs = 0;
   for(unsigned i=0; i<cfg.neventcodes(); i++)
-    if (cfg.eventcode(i).maskTrigger() & (1<<index)) {
-      offs = int(Pds_ConfigDb::EventcodeTiming::timeslot(cfg.eventcode(i).code())) 
+    if (cfg.eventcodes()[i].maskTrigger() & (1<<index)) {
+      offs = int(Pds_ConfigDb::EventcodeTiming::timeslot(cfg.eventcodes()[i].code())) 
 	-    int(Pds_ConfigDb::EventcodeTiming::timeslot(140));
       break;
     }

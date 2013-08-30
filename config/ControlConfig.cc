@@ -6,9 +6,7 @@
 #include "pdsapp/config/PVMonitor.hh"
 
 #include "pds/config/ControlConfigType.hh"
-#include "pdsdata/control/PVControl.hh"
-#include "pdsdata/control/PVMonitor.hh"
-#include "pdsdata/control/PVLabel.hh"
+#include "pdsdata/psddl/control.ddl.h"
 
 #include <new>
 #include <float.h>
@@ -28,8 +26,7 @@ namespace Pds_ConfigDb {
       pList.insert(&_value);
     }
 
-    bool pull(void* from) {
-      Pds::ControlData::PVLabel& tc = *new(from) Pds::ControlData::PVLabel;
+    bool pull(const Pds::ControlData::PVLabel& tc) {
       // construct the full name from the array base and index
       strncpy(_name .value, tc.name (), Pds::ControlData::PVLabel::NameSize);
       strncpy(_value.value, tc.value(), Pds::ControlData::PVLabel::ValueSize);
@@ -89,22 +86,22 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      const ControlConfigType& tc = *new(from) ControlConfigType;
+      const ControlConfigType& tc = *reinterpret_cast<const ControlConfigType*>(from);
       _control      .value = tc.uses_duration() ? Duration : tc.uses_events() ? Events : System;
       _duration_sec .value = tc.duration().seconds();
       _duration_nsec.value = tc.duration().nanoseconds();
       _events       .value = tc.events();
       _npvcs        .value = tc.npvControls();
       for(unsigned k=0; k<tc.npvControls(); k++)
-	_pvcs[k].pull(const_cast<Pds::ControlData::PVControl*>(&tc.pvControl(k)));
+	_pvcs[k].pull(tc.pvControls()[k]);
       _npvms        .value = tc.npvMonitors();
       for(unsigned k=0; k<tc.npvMonitors(); k++)
-	_pvms[k].pull(const_cast<Pds::ControlData::PVMonitor*>(&tc.pvMonitor(k)));
+	_pvms[k].pull(tc.pvMonitors()[k]);
       _npvls        .value = tc.npvLabels();
       for(unsigned k=0; k<tc.npvLabels(); k++)
-	_pvls[k].pull(const_cast<Pds::ControlData::PVLabel*  >(&tc.pvLabel  (k)));
+	_pvls[k].pull(tc.pvLabels  ()[k]);
 
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
@@ -131,15 +128,14 @@ namespace Pds_ConfigDb {
 
       ControlConfigType* tc;
       switch(_control.value) {
-      case Duration: tc = new(to) ControlConfigType(pvcs, pvms, pvls, 
-						    ClockTime(_duration_sec.value,
-							      _duration_nsec.value)); break;
-      case Events  : tc = new(to) ControlConfigType(pvcs, pvms, pvls,
-						    _events.value); break;
+      case Duration: tc = Pds::ControlConfig::_new(to, pvcs, pvms, pvls, 
+                                                   Pds::ClockTime(_duration_sec.value,
+                                                                  _duration_nsec.value)); break;
+      case Events  : tc = Pds::ControlConfig::_new(to, pvcs, pvms, pvls, _events.value); break;
       case System  :
-      default      : tc = new(to) ControlConfigType(pvcs, pvms, pvls); break;
+      default      : tc = Pds::ControlConfig::_new(to, pvcs, pvms, pvls, 0); break;
       }
-      return tc->size();
+      return tc->_sizeof();
     }
 
     int dataSize() const {

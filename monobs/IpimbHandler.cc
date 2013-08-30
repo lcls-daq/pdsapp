@@ -2,7 +2,7 @@
 
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/ipimb/DataV2.hh"
+#include "pdsdata/psddl/ipimb.ddl.h"
 
 #include <string.h>
 #include <stdio.h>

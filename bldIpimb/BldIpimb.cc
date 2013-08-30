@@ -16,7 +16,6 @@
 #include "pds/xtc/XtcType.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
-#include "pdsdata/xtc/DetInfo.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/management/SegStreams.hh"

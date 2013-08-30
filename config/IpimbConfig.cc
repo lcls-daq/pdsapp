@@ -17,10 +17,10 @@ namespace Pds_ConfigDb {
     Private_Data() :      
       //      _triggerCounter("Foo ", 1, 1, 4),
       //      _serialID("Foo ", 1, 1, 4),
-      _chargeAmpRange0("Channel 0 feedback capacitor (pF) ", IpimbConfigType::c_1pF, IpimbConfigType::cap_range),
-      _chargeAmpRange1("Channel 1 feedback capacitor (pF) ", IpimbConfigType::c_1pF, IpimbConfigType::cap_range),
-      _chargeAmpRange2("Channel 2 feedback capacitor (pF) ", IpimbConfigType::c_1pF, IpimbConfigType::cap_range),
-      _chargeAmpRange3("Channel 3 feedback capacitor (pF) ", IpimbConfigType::c_1pF, IpimbConfigType::cap_range),
+      _chargeAmpRange0("Channel 0 feedback capacitor (pF) ", IpimbConfigType::c_1pF, Pds::IpimbConfig::cap_range()),
+      _chargeAmpRange1("Channel 1 feedback capacitor (pF) ", IpimbConfigType::c_1pF, Pds::IpimbConfig::cap_range()),
+      _chargeAmpRange2("Channel 2 feedback capacitor (pF) ", IpimbConfigType::c_1pF, Pds::IpimbConfig::cap_range()),
+      _chargeAmpRange3("Channel 3 feedback capacitor (pF) ", IpimbConfigType::c_1pF, Pds::IpimbConfig::cap_range()),
       //      _calibrationRange("Calibration cap (pF) ", 1, 1, 10000),
       _resetLength("Acquisition window (ns) ", 1000000, 1, 0xfffff),
       _resetDelay("Reset delay (ns) ", 0xfff, 0, 0xfff),
@@ -78,16 +78,18 @@ namespace Pds_ConfigDb {
     }
 
     int push(void* to) {
-      *new(to) IpimbConfigType(_chargeAmpRange,
+      *new(to) IpimbConfigType(0, 0,
+                               _chargeAmpRange,
                                0, //_calibrationRange.value,
                                _resetLength.value,
                                _resetDelay.value,
                                _chargeAmpRefVoltage.value,
                                0., //_calibrationVoltage.value,
                                _diodeBias.value,
+                               0, 0, // status, errors
                                0, //_calStrobeLength.value,
                                _trigDelay.value,
-			       0,
+			       0, // trigPsDelay
 			       0
                                );
       return sizeof(IpimbConfigType);

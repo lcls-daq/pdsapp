@@ -28,20 +28,20 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      OrcaConfigType& tc = *new(from) OrcaConfigType;
+      OrcaConfigType& tc = *reinterpret_cast<OrcaConfigType*>(from);
       _mode             .value = tc.mode();
       _sub_rows         .value = tc.rows   ()/8;
       _cooling          .value = tc.cooling();
       _defect_pixel_corr.value = tc.defect_pixel_correction_enabled() ? Enums::True : Enums::False;
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
       OrcaConfigType& tc = *new(to) OrcaConfigType(_mode.value,
-						   _sub_rows.value*8,
 						   _cooling.value,
-						   _defect_pixel_corr.value==Enums::True);
-      return tc.size();
+						   _defect_pixel_corr.value==Enums::True,
+						   _sub_rows.value*8);
+      return tc._sizeof();
     }
 
     int dataSize() const {

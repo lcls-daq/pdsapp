@@ -5,7 +5,7 @@
 #include "pdsdata/xtc/TypeId.hh"
 #include "pdsdata/xtc/Level.hh"
 #include "pdsdata/xtc/Src.hh"
-#include "EpicsMonitorPv.hh"
+#include "pds/epicsArch/EpicsMonitorPv.hh"
 
 namespace Pds
 {
@@ -19,7 +19,7 @@ public:
     
     static const int iXtcVersion = 1;    
     static const Src srcLevel;
-    static const int iMaxXtcSize = sizeof(EpicsPvCtrl<DBR_DOUBLE>) * 2600; // Space enough for 2000+ PVs of type DBR_DOUBLE
+  static const int iMaxXtcSize = sizeof(Pds::Epics::EpicsPvCtrlDouble) * 2600; // Space enough for 2000+ PVs of type DBR_DOUBLE
     static const TypeId::Type typeXtc = TypeId::Id_Epics;
     
 private:        

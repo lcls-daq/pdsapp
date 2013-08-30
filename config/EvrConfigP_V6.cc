@@ -32,8 +32,8 @@ namespace Pds_ConfigDb {
       EvrPulseTables() : 
         Parameter(NULL), 
         _nevr(0),
-        _pulse_buffer (new char[EvrConfigType::MaxPulses*sizeof(EvrConfigType::PulseType)]),
-        _output_buffer(new char[EvrConfigType::MaxOutputs*sizeof(EvrConfigType::OutputMapType)]),
+        _pulse_buffer (new char[EvrConfigType::MaxPulses *sizeof(PulseType)]),
+        _output_buffer(new char[EvrConfigType::MaxOutputs*sizeof(OutputMapType)]),
         _npulses      (0),
         _noutputs     (0)
       {
@@ -90,7 +90,7 @@ namespace Pds_ConfigDb {
             do {
               const EvrIOConfigType& iocfg = *reinterpret_cast<const EvrIOConfigType*>(p);
               if (iocfg.nchannels()==0) break;
-              p += iocfg.size();
+              p += iocfg._sizeof();
               nevr++;
             } while(1);
           }
@@ -105,7 +105,7 @@ namespace Pds_ConfigDb {
       }
 
       bool     validate(unsigned ncodes,
-                        const EvrConfigType::EventCodeType* codes)
+                        const EventCodeType* codes)
       {
         bool result  = true;
 
@@ -146,12 +146,12 @@ namespace Pds_ConfigDb {
         }
 
         unsigned npt = 0;
-        EvrConfigType::PulseType*     pt = 
-          reinterpret_cast<EvrConfigType::PulseType*>(_pulse_buffer);
+        PulseType*     pt = 
+          reinterpret_cast<PulseType*>(_pulse_buffer);
 
         unsigned nom = 0;
-        EvrConfigType::OutputMapType* om = 
-          reinterpret_cast<EvrConfigType::OutputMapType*>(_output_buffer);
+        OutputMapType* om = 
+          reinterpret_cast<OutputMapType*>(_output_buffer);
       
         for(unsigned i=0; i<_nevr; i++) {
           result &= _evr[i]->validate(ncodes, codes, delay_offset, 
@@ -169,12 +169,12 @@ namespace Pds_ConfigDb {
       }
 
       unsigned                            npulses () const { return _npulses; }
-      const EvrConfigType::PulseType*     pulses () const 
-      { return reinterpret_cast<const EvrConfigType::PulseType*>(_pulse_buffer); }
+      const PulseType*     pulses () const 
+      { return reinterpret_cast<const PulseType*>(_pulse_buffer); }
 
       unsigned                            noutputs() const { return _noutputs; }
-      const EvrConfigType::OutputMapType* outputs () const 
-      { return reinterpret_cast<const EvrConfigType::OutputMapType*>(_output_buffer); }
+      const OutputMapType* outputs () const 
+      { return reinterpret_cast<const OutputMapType*>(_output_buffer); }
 
     private:
       EvrPulseTable* _evr[MaxEVRs];
@@ -185,96 +185,97 @@ namespace Pds_ConfigDb {
       unsigned       _noutputs;
       QTabWidget*    _tab;
     };
-  };
 
-  class EvrConfigP_V6::Private_Data : public Parameter {
-  public:
-    Private_Data() :
-      Parameter(NULL),
-      _pulse_table (new EvrConfig_V6::EvrPulseTables) ,
-      _code_table  (new EvrConfig_V6::EvrEventCodeTable),
-      _seq_config  (new EvrConfig_V6::SequencerConfig(*_code_table))
-    {}
-  public:
-    QLayout* initialize(QWidget*) {
-      QHBoxLayout* layout = new QHBoxLayout;
-      QTabWidget* tab = new QTabWidget;
-      ADDTAB(_pulse_table,"Pulses");
-      ADDTAB(_code_table ,"EventCodes");
-      ADDTAB(_seq_config ,"Sequencer");
-      tab->setTabEnabled(2,false);
-      layout->addWidget(tab);
-      return layout;
-    }
-    void     update    () { _pulse_table->update(); _code_table ->update(); _seq_config->update(); }
-    void     flush     () { _pulse_table->flush (); _code_table ->flush (); _seq_config->flush (); }
-    void     enable    (bool) {}
-  public:
-    int pull(void *from) {
-      const EvrConfig_V6::EvrConfigType& tc = *reinterpret_cast<const EvrConfig_V6::EvrConfigType*>(from);
-      _pulse_table->pull(tc);
-      _code_table ->pull(tc);
-      _seq_config ->pull(tc);
-      return tc.size();
-    }
-    int push(void *to) {
-      const_cast<EvrConfigP_V6::Private_Data*>(this)->validate();
-      EvrConfig_V6::EvrConfigType& tc = 
-        *new(to) EvrConfig_V6::EvrConfigType( _code_table ->ncodes  (),_code_table->codes  (),
-                                _pulse_table->npulses (),_pulse_table->pulses (),
-                                _pulse_table->noutputs(),_pulse_table->outputs(),
-                                _seq_config ->result() );
-      return tc.size();
-    }
+    class EvrConfigP::Private_Data : public Parameter {
+    public:
+      Private_Data() :
+        Parameter(NULL),
+        _pulse_table (new EvrPulseTables) ,
+        _code_table  (new EvrEventCodeTable),
+        _seq_config  (new SequencerConfig(*_code_table))
+      {}
+    public:
+      QLayout* initialize(QWidget*) {
+        QHBoxLayout* layout = new QHBoxLayout;
+        QTabWidget* tab = new QTabWidget;
+        ADDTAB(_pulse_table,"Pulses");
+        ADDTAB(_code_table ,"EventCodes");
+        ADDTAB(_seq_config ,"Sequencer");
+        tab->setTabEnabled(2,false);
+        layout->addWidget(tab);
+        return layout;
+      }
+      void     update    () { _pulse_table->update(); _code_table ->update(); _seq_config->update(); }
+      void     flush     () { _pulse_table->flush (); _code_table ->flush (); _seq_config->flush (); }
+      void     enable    (bool) {}
+    public:
+      int pull(void *from) {
+        const EvrConfigType& tc = *reinterpret_cast<const EvrConfigType*>(from);
+        _pulse_table->pull(tc);
+        _code_table ->pull(tc);
+        _seq_config ->pull(tc);
+        return size(tc);
+      }
+      int push(void *to) {
+        const_cast<EvrConfigP::Private_Data*>(this)->validate();
+        EvrConfigType& tc = *new(to) EvrConfigType(_code_table ->ncodes  (),
+                                                   _pulse_table->npulses (),
+                                                   _pulse_table->noutputs(),
+                                                   _code_table->codes  (),
+                                                   _pulse_table->pulses (),
+                                                   _pulse_table->outputs(),
+                                                   _seq_config ->result() );
+        return size(tc);
+      }
 
-    int dataSize() const {
-      const_cast<EvrConfigP_V6::Private_Data*>(this)->validate();
-      return sizeof(EvrConfig_V6::EvrConfigType) + 
-        _code_table ->ncodes  ()*sizeof(EvrConfig_V6::EvrConfigType::EventCodeType) +
-        _pulse_table->npulses ()*sizeof(EvrConfig_V6::EvrConfigType::PulseType) +
-        _pulse_table->noutputs()*sizeof(EvrConfig_V6::EvrConfigType::OutputMapType) +
-        _seq_config ->result().size();
-    }
-    bool validate() {
+      int dataSize() const {
+        const_cast<EvrConfigP::Private_Data*>(this)->validate();
+        return sizeof(EvrConfigType) + 
+          _code_table ->ncodes  ()*sizeof(EventCodeType) +
+          _pulse_table->npulses ()*sizeof(PulseType) +
+          _pulse_table->noutputs()*sizeof(OutputMapType) +
+          _seq_config ->result()._sizeof();
+      }
+      bool validate() {
 
-      bool v = _code_table   ->validate();
-      v = v && _pulse_table  ->validate(_code_table->ncodes(),
-                                        _code_table->codes ());
-      v = v && _seq_config   ->validate();
-      return v;
-    }
-  private:
-    EvrConfig_V6::EvrPulseTables*    _pulse_table;
-    EvrConfig_V6::EvrEventCodeTable* _code_table;
-    EvrConfig_V6::SequencerConfig*   _seq_config;
+        bool v = _code_table   ->validate();
+        v = v && _pulse_table  ->validate(_code_table->ncodes(),
+                                          _code_table->codes ());
+        v = v && _seq_config   ->validate();
+        return v;
+      }
+    private:
+      EvrPulseTables*    _pulse_table;
+      EvrEventCodeTable* _code_table;
+      SequencerConfig*   _seq_config;
+    };
   };
 };
 
+using namespace Pds_ConfigDb::EvrConfig_V6;
 
-using namespace Pds_ConfigDb;
-
-EvrConfigP_V6::EvrConfigP_V6():
+EvrConfigP::EvrConfigP():
   Serializer("Evr_Config"), _private_data(new Private_Data)
 {
   pList.insert(_private_data);
 }
 
-int EvrConfigP_V6::readParameters(void *from)
+int EvrConfigP::readParameters(void *from)
 {
   return _private_data->pull(from);
 }
 
-int EvrConfigP_V6::writeParameters(void *to)
+int EvrConfigP::writeParameters(void *to)
 {
   return _private_data->push(to);
 }
 
-int EvrConfigP_V6::dataSize() const
+int EvrConfigP::dataSize() const
 {
   return _private_data->dataSize();
 }
 
-bool EvrConfigP_V6::validate() 
+bool EvrConfigP::validate() 
 {
   return _private_data->validate();
 }

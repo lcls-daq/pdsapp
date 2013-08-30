@@ -4,8 +4,10 @@
 
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/BldInfo.hh"
-#include "pdsdata/bld/bldData.hh"
-#include "pdsdata/lusi/IpmFexV1.hh"
+#include "pdsdata/psddl/bld.ddl.h"
+#include "pdsdata/psddl/lusi.ddl.h"
+
+typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 
 #include <string.h>
 #include <stdio.h>
@@ -61,16 +63,16 @@ void BldIpm::_event    (const void* payload, const Pds::ClockTime& t)
 {
   if (!_initialized) return;
 
-  const Pds::BldDataIpimb& p =
-    *reinterpret_cast<const Pds::BldDataIpimb*>(payload);
+  const BldDataIpimb& p =
+    *reinterpret_cast<const BldDataIpimb*>(payload);
 
-  const Pds::Lusi::IpmFexV1& data = p.ipmFexData;
+  const Pds::Lusi::IpmFexV1& data = p.ipmFexData();
 
   for(unsigned i=0; i<NDIODES; i++)
-    *reinterpret_cast<double*>(_valu_writer[i]->data()) = data.channel[i];
-  *reinterpret_cast<double*>(_sum_writer ->data()) = data.sum;
-  *reinterpret_cast<double*>(_xpos_writer->data()) = data.xpos;
-  *reinterpret_cast<double*>(_ypos_writer->data()) = data.ypos;
+    *reinterpret_cast<double*>(_valu_writer[i]->data()) = data.channel()[i];
+  *reinterpret_cast<double*>(_sum_writer ->data()) = data.sum();
+  *reinterpret_cast<double*>(_xpos_writer->data()) = data.xpos();
+  *reinterpret_cast<double*>(_ypos_writer->data()) = data.ypos();
 
   for(unsigned i=0; i<NDIODES; i++) {
     _valu_writer[i]->put();

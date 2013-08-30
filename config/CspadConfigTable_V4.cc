@@ -1,8 +1,7 @@
 #include "pdsapp/config/CspadConfigTable_V4.hh"
 #include "pdsapp/config/CspadSector.hh"
 #include "pdsapp/config/CspadGainMap.hh"
-#include "pdsdata/cspad/ElementV1.hh"
-#include "pdsdata/cspad/ConfigV4.hh"
+#include "pdsdata/psddl/cspad.ddl.h"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -77,14 +76,14 @@ namespace Pds_ConfigDb
           _testDataIndex  .value = p.tdi();
           _badAsicMask    .value = (uint64_t(p.badAsicMask1())<<32) | p.badAsicMask0();
           _sectors        .value = p.roiMask(0) | (p.roiMask(1)<<8) | (p.roiMask(2)<<16) | (p.roiMask(3)<<24);
-          _protQ0AdcThr   .value = p.protectionThresholds()[0].adcThreshold;
-          _protQ0PixelThr .value = p.protectionThresholds()[0].pixelCountThreshold;
-          _protQ1AdcThr   .value = p.protectionThresholds()[1].adcThreshold;
-          _protQ1PixelThr .value = p.protectionThresholds()[1].pixelCountThreshold;
-          _protQ2AdcThr   .value = p.protectionThresholds()[2].adcThreshold;
-          _protQ2PixelThr .value = p.protectionThresholds()[2].pixelCountThreshold;
-          _protQ3AdcThr   .value = p.protectionThresholds()[3].adcThreshold;
-          _protQ3PixelThr .value = p.protectionThresholds()[3].pixelCountThreshold;
+          _protQ0AdcThr   .value = p.protectionThresholds()[0].adcThreshold();
+          _protQ0PixelThr .value = p.protectionThresholds()[0].pixelCountThreshold();
+          _protQ1AdcThr   .value = p.protectionThresholds()[1].adcThreshold();
+          _protQ1PixelThr .value = p.protectionThresholds()[1].pixelCountThreshold();
+          _protQ2AdcThr   .value = p.protectionThresholds()[2].adcThreshold();
+          _protQ2PixelThr .value = p.protectionThresholds()[2].pixelCountThreshold();
+          _protQ3AdcThr   .value = p.protectionThresholds()[3].adcThreshold();
+          _protQ3PixelThr .value = p.protectionThresholds()[3].pixelCountThreshold();
           update_readout();
         }
         void push   (Pds::CsPad::ConfigV4* p)
@@ -95,26 +94,27 @@ namespace Pds_ConfigDb
             if (rmask&(0xff<<(8*i))) qmask |= (1<<i);
           unsigned amask = 0xf;
 
-          *new (p) Pds::CsPad::ConfigV4( _runDelay .value,
-              _eventCode.value,
-              _inactiveRunMode.value,
-              _activeRunMode  .value,
-              _testDataIndex  .value,
-              sizeof(Pds::CsPad::ElementV1) + 4 + Columns*Rows*sizeof(uint16_t)* 16,
-              _badAsicMask    .value & 0xffffffff,
-              _badAsicMask    .value >> 32,
-              amask,
-              qmask,
-              rmask );
-          p->protectionEnable(1);
-          p->protectionThresholds()[0].adcThreshold = _protQ0AdcThr.value;
-          p->protectionThresholds()[0].pixelCountThreshold = _protQ0PixelThr.value;
-          p->protectionThresholds()[1].adcThreshold = _protQ1AdcThr.value;
-          p->protectionThresholds()[1].pixelCountThreshold = _protQ1PixelThr.value;
-          p->protectionThresholds()[2].adcThreshold = _protQ2AdcThr.value;
-          p->protectionThresholds()[2].pixelCountThreshold = _protQ2PixelThr.value;
-          p->protectionThresholds()[3].adcThreshold = _protQ3AdcThr.value;
-          p->protectionThresholds()[3].pixelCountThreshold = _protQ3PixelThr.value;
+          Pds::CsPad::ConfigV2QuadReg dummy[4];
+          Pds::CsPad::ProtectionSystemThreshold pth[4];
+          pth[0] = Pds::CsPad::ProtectionSystemThreshold(_protQ0AdcThr.value, _protQ0PixelThr.value);
+          pth[1] = Pds::CsPad::ProtectionSystemThreshold(_protQ1AdcThr.value, _protQ1PixelThr.value);
+          pth[2] = Pds::CsPad::ProtectionSystemThreshold(_protQ2AdcThr.value, _protQ2PixelThr.value);
+          pth[3] = Pds::CsPad::ProtectionSystemThreshold(_protQ3AdcThr.value, _protQ3PixelThr.value);
+
+          *new (p) Pds::CsPad::ConfigV4( 0,
+                                         _runDelay .value,
+                                         _eventCode.value,
+                                         pth, 1,
+                                         _inactiveRunMode.value,
+                                         _activeRunMode  .value,
+                                         _testDataIndex  .value,
+                                         sizeof(Pds::CsPad::ElementV1) + 4 + Columns*Rows*sizeof(uint16_t)* 16,
+                                         _badAsicMask    .value & 0xffffffff,
+                                         _badAsicMask    .value >> 32,
+                                         amask,
+                                         qmask,
+                                         rmask,
+                                         dummy);
         }
       public:
         void initialize(QWidget* parent, QVBoxLayout* layout)
@@ -253,7 +253,7 @@ namespace Pds_ConfigDb
           _digCount        .value = p.digCount();
           _digPeriod       .value = p.digPeriod();
 
-          const uint8_t* pots = &p.dp().pots[0];
+          const uint8_t* pots = p.dp().pots().data();
           _vref.value        = pots[0];
           _vinj.value        = pots[23];
           _analogPrst .value = pots[63];
@@ -266,28 +266,14 @@ namespace Pds_ConfigDb
           _iss2       .value = pots[44];
           _iss5       .value = pots[64];
 
-          memcpy(gm, p.gm(), sizeof(*p.gm()));
+          memcpy(gm, &p.gm(), sizeof(Pds::CsPad::CsPadGainMapCfg));
         }
         void push   (Pds::CsPad::ConfigV2QuadReg* p, Pds::CsPad::CsPadGainMapCfg* gm)
         {
-          *new(p) Pds::CsPad::ConfigV2QuadReg(
-              _shiftSelect     .value,
-              _edgeSelect      .value,
-              _readClkSet      .value,
-              _readClkHold     .value,
-              _dataMode        .value,
-              _prstSel         .value,
-              _acqDelay        .value,
-              _intTime         .value,
-              _digDelay        .value,
-              _ampIdle         .value,
-              _injTotal        .value,
-              _rowColShiftPer  .value,
-              _ampReset        .value,
-              _digCount        .value,
-              _digPeriod       .value );
+          Pds::CsPad::CsPadReadOnlyCfg dummy;
 
-          uint8_t* pots = &p->dp().pots[0];
+          uint8_t* potsCfg = new uint8_t[Pds::CsPad::PotsPerQuad];
+          uint8_t* pots = potsCfg;
           *pots++ = _vref.value;
           *pots++ = _vref.value;
           *pots++ = _rampCurrR1.value;
@@ -316,7 +302,26 @@ namespace Pds_ConfigDb
           for(uint8_t* end = pots+16; pots<end; pots++)
             *pots = _iss5.value;
 
-          memcpy(p->gm(), gm, sizeof(*p->gm()));
+          *new(p) Pds::CsPad::ConfigV2QuadReg(_shiftSelect     .value,
+                                              _edgeSelect      .value,
+                                              _readClkSet      .value,
+                                              _readClkHold     .value,
+                                              _dataMode        .value,
+                                              _prstSel         .value,
+                                              _acqDelay        .value,
+                                              _intTime         .value,
+                                              _digDelay        .value,
+                                              _ampIdle         .value,
+                                              _injTotal        .value,
+                                              _rowColShiftPer  .value,
+                                              _ampReset        .value,
+                                              _digCount        .value,
+                                              _digPeriod       .value,
+                                              dummy,
+                                              reinterpret_cast<const Pds::CsPad::CsPadDigitalPotsCfg&>(pots),
+                                              *gm);
+
+          delete[] potsCfg;
         }
       public:
         static void layoutHeader(QGridLayout* layout)
@@ -487,12 +492,11 @@ void CspadConfigTable_V4::insert(Pds::LinkedList<Parameter>& pList)
     _quadP[q]->insert(_pList);
 }
 
-int CspadConfigTable_V4::pull(const void* from) {
-  const Pds::CsPad::ConfigV4& tc = *reinterpret_cast<const Pds::CsPad::ConfigV4*>(from);
-
+int CspadConfigTable_V4::pull(const Pds::CsPad::ConfigV4& tc) 
+{
   _globalP->pull(tc);
   for(unsigned q=0; q<4; q++)
-    _quadP[q]->pull(tc.quads()[q],_gainMap->quad(q));
+    _quadP[q]->pull(tc.quads(q),_gainMap->quad(q));
   _gainMap->flush();
 
   return sizeof(tc);
@@ -503,7 +507,7 @@ int CspadConfigTable_V4::push(void* to) const {
   Pds::CsPad::ConfigV4& tc = *reinterpret_cast<Pds::CsPad::ConfigV4*>(to);
   _globalP->push(&tc);
   for(unsigned q=0; q<4; q++)
-    _quadP[q]->push(&(tc.quads()[q]),_gainMap->quad(q));
+    _quadP[q]->push(&const_cast<Pds::CsPad::ConfigV2QuadReg&>(tc.quads(q)),_gainMap->quad(q));
 
   return sizeof(tc);
 }

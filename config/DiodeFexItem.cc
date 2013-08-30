@@ -31,7 +31,7 @@ DiodeFexItem::~DiodeFexItem()
 }
 
 
-void DiodeFexItem::set (float* b, float* s)
+void DiodeFexItem::set (const float* b, const float* s)
 {
   for(unsigned i=0; i<nranges; i++) {
     base [i].value = b[i];

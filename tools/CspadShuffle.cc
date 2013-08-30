@@ -7,9 +7,7 @@
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/XtcFileIterator.hh"
-#include "pdsdata/cspad/ElementHeader.hh"
-#include "pdsdata/cspad/ElementIterator.hh"
-#include "pdsdata/cspad/ElementV2.hh"
+#include "pdsdata/psddl/cspad.ddl.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -105,12 +103,12 @@ private:
             //  check for duplicate quads
             {
               unsigned qmask = 0;
-              CsPad::ElementIterator iiter(cfg, *xtc);
-              for(const Pds::CsPad::ElementHeader* hdr = iiter.next(); (hdr); hdr=iiter.next()) {
-                unsigned iq = 1<<hdr->quad();
+              const Pds::CsPad::DataV2& data = *reinterpret_cast<const Pds::CsPad::DataV2*>(xtc->payload());
+              for(int i=0; i<data.quads_shape(cfg)[0]; i++) {
+                unsigned iq = 1<<data.quads(cfg,i).quad();
                 if (qmask & iq) {
                   printf("%s. Found duplicate quad %d.\n",
-                         DetInfo::name(static_cast<const DetInfo&>(xtc->src)),hdr->quad());
+                         DetInfo::name(static_cast<const DetInfo&>(xtc->src)),iq);
                   _fatalError = true;
                 }
                 qmask |= iq;
@@ -118,28 +116,27 @@ private:
             }
 #endif
 
-	    CsPad::ElementIterator iter(cfg, *xtc);
+            const Pds::CsPad::DataV1& data = *reinterpret_cast<const Pds::CsPad::DataV1*>(xtc->payload());
 
 	    // Copy the xtc header
             uint32_t* pwrite = _pwrite;
-	    xtc->contains = TypeId(TypeId::Id_CspadElement,CsPad::ElementV2::Version);
+	    xtc->contains = TypeId(TypeId::Id_CspadElement,CsPad::DataV1::Version);
 	    _write(xtc, sizeof(Xtc));
 
-	    const CsPad::ElementHeader* hdr;
-	    while( (hdr=iter.next()) ) {
-	      _write(hdr,sizeof(*hdr));
+            for(int i=0; i<data.quads_shape(cfg)[0]; i++) {
+              const CsPad::ElementV1& e = data.quads(cfg,i);
 
-	      unsigned smask = cfg.roiMask(hdr->quad());
-	      unsigned id;
-	      const CsPad::Section *s=0,*end=0;
-	      while( (s=iter.next(id)) ) {
+	      _write(&e,sizeof(e));
+
+	      unsigned smask = cfg.roiMask(e.quad());
+              ndarray<const int16_t,3> p = e.data(cfg);
+              
+	      for(unsigned id=0; id<p.shape()[0]; id++)
 		if (smask&(1<<id))
-		  _write(s,sizeof(*s));
-		end = s;
-	      }
+		  _write(&p[id][0][0],p.strides()[0]*sizeof(int16_t));
 
 	      //  Copy the quadrant trailer
-	      _write(reinterpret_cast<const uint16_t*>(end+1)-2,2*sizeof(uint16_t));
+	      _write(p.data()+p.size(),2*sizeof(uint16_t));
 	    }
             //  Update the extent of the container
             reinterpret_cast<Xtc*>(pwrite)->extent = (_pwrite-pwrite)*sizeof(uint32_t);

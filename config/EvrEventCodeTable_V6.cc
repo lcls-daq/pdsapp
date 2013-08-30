@@ -3,8 +3,7 @@
 #include "pdsapp/config/EvrSeqEventDesc_V6.hh"
 #include "pdsapp/config/EvrGlbEventDesc_V6.hh"
 
-#include "pdsdata/evr/ConfigV5.hh"
-#include "pdsdata/evr/ConfigV6.hh"
+#include "pdsdata/psddl/evr.ddl.h"
 //#include "pds/config/SeqConfigType.hh"
 
 #include <QtGui/QCheckBox>
@@ -87,7 +86,7 @@ void EvrEventCodeTable::pull(const Pds::EvrData::ConfigV5& cfg)
   unsigned max_seq = 0;
   unsigned nglb=0;
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
-    const Pds::EvrData::EventCodeV5& e = cfg.eventcode(i);
+    const Pds::EvrData::EventCodeV5& e = cfg.eventcodes()[i];
     if (EvrGlbEventDesc::global_code(e.code())) {
       _glb_code[nglb++].pull(e);
     }
@@ -128,7 +127,7 @@ void EvrEventCodeTable::pull(const Pds::EvrData::ConfigV6& cfg)
   unsigned max_seq = 0;
   unsigned nglb=0;
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
-    const Pds::EvrData::EventCodeV5& e = cfg.eventcode(i);
+    const Pds::EvrData::EventCodeV5& e = cfg.eventcodes()[i];
     if (EvrGlbEventDesc::global_code(e.code())) {
       _glb_code[nglb++].pull(e);
     }

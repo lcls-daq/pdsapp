@@ -13,7 +13,6 @@
 #include "pds/mon/MonStats1D.hh"
 #include "pds/mon/MonStats2D.hh"
 
-#include "pds/vmon/VmonReader.hh"
 
 #include <vector>
 using std::vector;

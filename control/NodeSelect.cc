@@ -271,7 +271,7 @@ void NodeGroup::add_node(int index)
     else
     {
       iNodeGroup = ( indexPersist >= 0 ? _persistGroup[indexPersist] : 1 );            
-      for (int iGroup=1; iGroup <= EvrConfigType::EventCodeType::MaxReadoutGroup; ++iGroup)
+      for (int iGroup=1; iGroup <= EventCodeType::MaxReadoutGroup; ++iGroup)
         ciUseReadoutGroup->addItem(QString().setNum(iGroup));
       ciUseReadoutGroup->setCurrentIndex( iNodeGroup-1 );    
     }

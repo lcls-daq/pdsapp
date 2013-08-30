@@ -25,7 +25,7 @@ namespace Pds {
   public:
     CfgControl(const Src& src) : CfgCache( src, _controlConfigType, 0x1000 ) {}
   private:
-    int _size (void* tc) const { return reinterpret_cast<ControlConfigType*>(tc)->size(); }
+    int _size (void* tc) const { return reinterpret_cast<ControlConfigType*>(tc)->_sizeof(); }
   };
 
 };

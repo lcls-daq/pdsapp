@@ -12,7 +12,7 @@ static PyMethodDef pds_AndorConfig_methods[] = {
 
 DefineXtcType(AndorConfig) ;
 
-#include "pdsdata/andor/ConfigV1.hh"
+#include "pdsdata/psddl/andor.ddl.h"
 #include <new>
 
 
@@ -108,7 +108,7 @@ PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
                       (uint32_t)  binY,
                       (float)     exposureTime,
                       (float)     coolingTemp,
-                      (uint8_t)   fanMode,
+                      Pds::Andor::ConfigV1::EnumFanMode(fanMode),
                       (uint8_t)   baselineClamp,
                       (uint8_t)   highCapacity,
                       (uint8_t)   gainIndex,

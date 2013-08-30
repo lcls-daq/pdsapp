@@ -3,7 +3,7 @@
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 #include "pdsapp/config/BitCount.hh"
-#include "pdsdata/ipimb/ConfigV1.hh"
+#include "pdsdata/psddl/ipimb.ddl.h"
 
 #include <new>
 
@@ -82,13 +82,15 @@ namespace Pds_ConfigDb {
     }
 
     int push(void* to) {
-      *new(to) Pds::Ipimb::ConfigV1(_chargeAmpRange,
+      *new(to) Pds::Ipimb::ConfigV1(0, 0,
+                                    _chargeAmpRange,
                                     0, //_calibrationRange.value,
                                     _resetLength.value,
                                     _resetDelay.value,
                                     _chargeAmpRefVoltage.value,
                                     0., //_calibrationVoltage.value,
                                     _diodeBias.value,
+                                    0, 0, // status, errors
                                     0, //_calStrobeLength.value,
                                     _trigDelay.value
                                     );

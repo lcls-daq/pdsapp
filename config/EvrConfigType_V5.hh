@@ -1,0 +1,19 @@
+#ifndef Pds_EvrConfigType_V5_hh
+#define Pds_EvrConfigType_V5_hh
+
+#include "pdsdata/xtc/TypeId.hh"
+#include "pdsdata/psddl/evr.ddl.h"
+
+namespace Pds_ConfigDb {
+  namespace EvrConfig_V5 {
+    typedef Pds::EvrData::ConfigV5      EvrConfigType;
+    typedef Pds::EvrData::EventCodeV5   EventCodeType;
+    typedef Pds::EvrData::PulseConfigV3 PulseType;
+    typedef Pds::EvrData::OutputMap     OutputMapType;
+
+    static Pds::TypeId _evrConfigType(Pds::TypeId::Id_EvrConfig,
+                                      EvrConfigType::Version);
+  };
+};
+
+#endif

@@ -164,14 +164,14 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) { // pull "from xtc"
-      AcqConfigType& acqconf = *new(from) AcqConfigType;
+      AcqConfigType& acqconf = *reinterpret_cast<AcqConfigType*>(from);
       _nbrConvertersPerChannel.value = acqconf.nbrConvertersPerChannel();
       _channelMask.value = acqconf.channelMask();
       _nbrBanks.value = acqconf.nbrBanks();
-      _trig.pull(&acqconf.trig());
-      _horiz.pull(&(acqconf.horiz()));
+      _trig.pull(&const_cast<Pds::Acqiris::TrigV1&>(acqconf.trig()));
+      _horiz.pull(&const_cast<Pds::Acqiris::HorizV1&>(acqconf.horiz()));
       for(unsigned k=0; k<_numChan.count(); k++)
-        _vert[k].pull(&(acqconf.vert(k)));
+        _vert[k].pull(&const_cast<Pds::Acqiris::VertV1&>(acqconf.vert()[k]));
 
       return sizeof(AcqConfigType);
     }

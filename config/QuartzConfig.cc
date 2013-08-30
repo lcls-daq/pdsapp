@@ -40,7 +40,7 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      QuartzConfigType& tc = *new(from) QuartzConfigType;
+      QuartzConfigType& tc = *reinterpret_cast<QuartzConfigType*>(from);
       _black_level.value = tc.black_level();
       _gain       .value = tc.gain_percent();
       _depth      .value = tc.output_resolution();
@@ -49,7 +49,7 @@ namespace Pds_ConfigDb {
       _mirroring  .value = tc.output_mirroring();
       _defect_pixel_corr.value = tc.defect_pixel_correction_enabled() ? Enums::True : Enums::False;
       _output_lut.value = None;
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
@@ -59,8 +59,9 @@ namespace Pds_ConfigDb {
                                                        _hbinning.value,
                                                        _vbinning.value,
                                                        _mirroring.value,
-                                                       _defect_pixel_corr.value==Enums::True);
-      return tc.size();
+                                                       _defect_pixel_corr.value==Enums::True,
+                                                       false, 0, 0, 0);
+      return tc._sizeof();
     }
 
     int dataSize() const {

@@ -38,7 +38,7 @@ void IpmFexTable::get(int ch, float* b, float* s) const { _diodes[ch]->get(b,s);
 
 void IpmFexTable::xscale(float v) { _xscale.value=v; }
 void IpmFexTable::yscale(float v) { _yscale.value=v; }
-void IpmFexTable::set(int ch, float* b, float* s){ _diodes[ch]->set(b,s);}
+void IpmFexTable::set(int ch, const float* b, const float* s){ _diodes[ch]->set(b,s);}
 
 QLayout* IpmFexTable::initialize(QWidget* parent)
 {

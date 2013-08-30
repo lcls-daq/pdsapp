@@ -3,7 +3,7 @@
 
 #include "pds/epicstools/EpicsCA.hh"
 
-#include "pdsdata/control/PVControl.hh"
+#include "pdsdata/psddl/control.ddl.h"
 
 #include "db_access.h"
 
@@ -115,9 +115,9 @@ void PVControl::configure(const ControlConfigType& tc)
       _report.runnable_change(_runnable=false);
 
     std::list<PvType> array;
-    array.push_back(tc.pvControl(0));
+    array.push_back(tc.pvControls()[0]);
     for(unsigned k=1; k<tc.npvControls(); k++) {
-      const PvType& pv = tc.pvControl(k);
+      const PvType& pv = tc.pvControls()[k];
       if (strcmp(pv.name(),array.front().name())) {
 	_channels.push_back(new ControlCA(*this,array));
 	array.clear();

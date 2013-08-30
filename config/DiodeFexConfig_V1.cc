@@ -1,7 +1,7 @@
 #include "pdsapp/config/DiodeFexConfig_V1.hh"
 #include "pdsapp/config/DiodeFexTable.hh"
 
-#include "pdsdata/lusi/DiodeFexConfigV1.hh"
+#include "pdsdata/psddl/lusi.ddl.h"
 
 #include <new>
 
@@ -18,7 +18,8 @@ DiodeFexConfig_V1::DiodeFexConfig_V1() :
 
 int DiodeFexConfig_V1::readParameters (void* from) {
   T& c = *new(from) T;
-  _table->pull(c.base,c.scale);
+  _table->pull(const_cast<float*>(c.base ().data()),
+               const_cast<float*>(c.scale().data()));
   return sizeof(c);
 }
 

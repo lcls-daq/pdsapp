@@ -20,9 +20,10 @@ namespace Pds {
 		   public Timer {
   public:
     MyDriver(unsigned char platform,
-	     const char*   partition) :
+	     const char*   partition,
+             const char*   path) :
       VmonClientManager(platform, partition, *this),
-      _recorder        (new VmonRecorder),
+      _recorder        (new VmonRecorder(path)),
       _task            (new Task(TaskObject("VmonTmr")))
     {
       VmonClientManager::start();
@@ -71,15 +72,19 @@ int main(int argc, char **argv)
   const unsigned NO_PLATFORM = (unsigned)-1;
   unsigned platform = NO_PLATFORM;
   const char* partition = 0;
+  const char* path = ".";
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:o:")) != -1) {
     switch (c) {
     case 'p':
       platform = strtoul(optarg, NULL, 0);
       break;
     case 'P':
       partition = optarg;
+      break;
+    case 'o':
+      path = optarg;
       break;
     default:
       printHelp(argv[0]);
@@ -93,7 +98,8 @@ int main(int argc, char **argv)
   }
 
   driver = new MyDriver(platform,
-			partition);
+			partition,
+                        path);
 
   // Unix signal support
   struct sigaction int_action;

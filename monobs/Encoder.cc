@@ -4,7 +4,7 @@
 
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/encoder/DataV2.hh"
+#include "pdsdata/psddl/encoder.ddl.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -56,7 +56,7 @@ void PdsCas::Encoder::_event    (const void* payload, const Pds::ClockTime& t)
   unsigned nch = _valu_writer->data_size()/sizeof(double);
   if (nch > NCHANNELS) nch = NCHANNELS;
   for(unsigned i=0; i<nch; i++)
-    reinterpret_cast<double*>(_valu_writer->data())[i] = data._encoder_count[i];
+    reinterpret_cast<double*>(_valu_writer->data())[i] = data.encoder_count()[i];
 
   _valu_writer->put();
 }

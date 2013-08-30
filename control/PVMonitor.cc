@@ -4,7 +4,7 @@
 #include "pds/epicstools/EpicsCA.hh"
 #include "pds/epicstools/PVMonitorCb.hh"
 
-#include "pdsdata/control/PVMonitor.hh"
+#include "pdsdata/psddl/control.ddl.h"
 
 #include "db_access.h"
 
@@ -89,9 +89,9 @@ void PVMonitor::configure(const ControlConfigType& tc)
       _report.runnable_change(_runnable=false);
 
     std::list<PvType> array;
-    array.push_back(tc.pvMonitor(0));
+    array.push_back(tc.pvMonitors()[0]);
     for(unsigned k=1; k<tc.npvMonitors(); k++) {
-      const PvType& pv = tc.pvMonitor(k);
+      const PvType& pv = tc.pvMonitors()[k];
       if (strcmp(pv.name(),array.front().name())) {
 	_channels.push_back(new MonitorCA(*this,array));
 	array.clear();

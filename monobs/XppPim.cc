@@ -3,7 +3,7 @@
 #include "pds/epicstools/PVWriter.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/lusi/DiodeFexV1.hh"
+#include "pdsdata/psddl/lusi.ddl.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -44,7 +44,7 @@ void XppPim::_event    (const void* payload, const Pds::ClockTime& t)
   if (!_initialized) return;
 
   *reinterpret_cast<double*>(_valu_writer->data()) = 
-    reinterpret_cast<const Pds::Lusi::DiodeFexV1*>(payload)->value;
+    reinterpret_cast<const Pds::Lusi::DiodeFexV1*>(payload)->value();
   _valu_writer->put();
 }
 

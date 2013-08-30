@@ -14,7 +14,7 @@
 #include "pdsdata/xtc/TypeId.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
-#include "pdsdata/bld/bldData.hh"
+#include "pdsdata/psddl/bld.ddl.h"
 #include "pds/service/GenericPoolW.hh"
 
 //#define PULSE_DELAY           0.000668
@@ -24,6 +24,8 @@
 #define VERSION               1
 
 using namespace Pds;
+
+typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 
 static EvrBldManager* evrBldMgrGlobal = NULL;
 
@@ -141,7 +143,7 @@ public:
       for(i=0; i < _nIpimbBoards; i++) {
         if (xtc->src.phy() == (*_cfgIpimb[i]).src().phy()) {  //find match of Detector & Device
           char* p = _payload+(i*_boardPayloadSize);	
-          Xtc& ipimbXtc = *new(p) Xtc(TypeId(TypeId::Id_SharedIpimb,(uint32_t)BldDataIpimb::version), xtc->src);
+          Xtc& ipimbXtc = *new(p) Xtc(TypeId(TypeId::Id_SharedIpimb,(uint32_t)BldDataIpimb::Version), xtc->src);
           ipimbXtc.extent = _boardPayloadSize;
           /*if (_damage) 
             _bldHeader[i]->setDamage(0x4000);  //set damage for individual board based on data

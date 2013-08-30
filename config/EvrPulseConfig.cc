@@ -1,7 +1,5 @@
 #include "EvrPulseConfig.hh"
 
-#include "pds/config/EvrConfigType.hh"
-
 #include <stdio.h>
 
 using namespace Pds_ConfigDb;
@@ -24,8 +22,7 @@ void EvrPulseConfig::insert(Pds::LinkedList<Parameter>& pList) {
   pList.insert(&_width);
 }
 
-bool EvrPulseConfig::pull(void* from) {
-  const EvrConfigType::PulseType& tc = *(const EvrConfigType::PulseType*) from;
+bool EvrPulseConfig::pull(const PulseType& tc) {
   if (_pulse != tc.pulseId())
     printf("Read pulse id %d.  Returning pulse id %d.\n",tc.pulseId(),_pulse);
   _polarity.value = tc.polarity() ? Enums::Pos : Enums::Neg ;
@@ -36,7 +33,7 @@ bool EvrPulseConfig::pull(void* from) {
 }
 
 int EvrPulseConfig::push(void* to) {
-  EvrConfigType::PulseType& tc = *new(to) EvrConfigType::PulseType(
+  PulseType& tc = *new(to) PulseType(
     _pulse,
     ((_polarity.value==Enums::Pos)? 0: 1),
     _prescale.value,

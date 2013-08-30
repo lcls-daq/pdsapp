@@ -1,7 +1,5 @@
 #include "EvrEventCodeV3.hh"
 
-#include "pdsdata/evr/EventCodeV3.hh"
-
 using namespace Pds_ConfigDb;
 
 //static const double EvrPeriod = 1./119.e6;
@@ -24,9 +22,7 @@ void EvrEventCodeV3::insert(Pds::LinkedList<Parameter>& pList) {
   pList.insert(&_maskClear);
 }
 
-bool EvrEventCodeV3::pull(void* from) {
-  const Pds::EvrData::EventCodeV3& eventCode = *(const Pds::EvrData::EventCodeV3*) from;
-  
+bool EvrEventCodeV3::pull(const Pds::EvrData::EventCodeV3& eventCode) {
   _code        .value = eventCode.code();
   _isReadout   .value = ( eventCode.isReadout()     ? Enums::True : Enums::False );
   _isTerminator.value = ( eventCode.isTerminator()  ? Enums::True : Enums::False );

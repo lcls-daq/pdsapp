@@ -1,7 +1,7 @@
 #include "pdsapp/blv/ToOpalBldEventWire.hh"
 
 #include "pds/xtc/InDatagram.hh"
-#include "pdsdata/camera/FrameV1.hh"
+#include "pdsdata/psddl/camera.ddl.h"
 
 //#define DBUG
 
@@ -17,7 +17,12 @@ ToOpalBldEventWire::ToOpalBldEventWire(Outlet&        outlet,
                                        int            write_fd,
                                        const BldInfo& bld,
                                        unsigned       wait_us) :
-  ToBldEventWire(outlet, interface, write_fd, bld, wait_us, extent)
+  ToBldEventWire(outlet, interface, write_fd, bld, wait_us, extent),
+  _camConfig(0,0,
+             Opal1kConfigType::Twelve_bit,
+             Opal1kConfigType::x1,
+             Opal1kConfigType::None,
+             false, false, false, 0, 0, 0)
 {
 }
 

@@ -2,7 +2,7 @@
 
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/lusi/IpmFexV1.hh"
+#include "pdsdata/psddl/lusi.ddl.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -61,10 +61,10 @@ void XppIpm::_event    (const void* payload, const Pds::ClockTime& t)
     *reinterpret_cast<const Pds::Lusi::IpmFexV1*>(payload);
 
   for(unsigned i=0; i<NDIODES; i++)
-    *reinterpret_cast<double*>(_valu_writer[i]->data()) = data.channel[i];
-  *reinterpret_cast<double*>(_sum_writer ->data()) = data.sum;
-  *reinterpret_cast<double*>(_xpos_writer->data()) = data.xpos;
-  *reinterpret_cast<double*>(_ypos_writer->data()) = data.ypos;
+    *reinterpret_cast<double*>(_valu_writer[i]->data()) = data.channel()[i];
+  *reinterpret_cast<double*>(_sum_writer ->data()) = data.sum();
+  *reinterpret_cast<double*>(_xpos_writer->data()) = data.xpos();
+  *reinterpret_cast<double*>(_ypos_writer->data()) = data.ypos();
 
   for(unsigned i=0; i<NDIODES; i++) {
     _valu_writer[i]->put();

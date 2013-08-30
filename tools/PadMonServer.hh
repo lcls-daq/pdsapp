@@ -9,7 +9,7 @@ namespace Pds {
   //  Pixel array detector data structures
   //
   namespace CsPad  {
-    class ConfigV3; 
+    class ConfigV5; 
     class ElementV1;
     class MiniElementV1;
   };
@@ -31,7 +31,7 @@ namespace Pds {
     PadMonServer(PadType, const char* tag);
     ~PadMonServer();
   public:
-    void configure(const Pds::CsPad::ConfigV3&);
+    void configure(const Pds::CsPad::ConfigV5&);
     void event    (const Pds::CsPad::ElementV1&);     // CsPad
     void event    (const Pds::CsPad::MiniElementV1&); // CsPad140k
   public:

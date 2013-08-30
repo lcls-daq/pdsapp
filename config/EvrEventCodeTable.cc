@@ -61,7 +61,7 @@ EvrEventCodeTable::EvrEventCodeTable(EvrPulseTables* pPulseTables) :
   _pLabelGroup2     (NULL),
   _cbEnableReadGroup(NULL),
   _code_buffer(new char[(MaxUserCodes+MaxGlobalCodes)
-                        *sizeof(EvrConfigType::EventCodeType)])                        
+                        *sizeof(EventCodeType)])                        
 {
   _seq_code = new EvrSeqEventDesc[MaxUserCodes];
   _glb_code = new EvrGlbEventDesc[MaxGlobalCodes];
@@ -93,7 +93,7 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
 
   bool bEneableReadoutGroup = false;
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
-    const EvrConfigType::EventCodeType& e = cfg.eventcode(i);
+    const EventCodeType& e = cfg.eventcodes()[i];
     if (e.readoutGroup() > 1)
       bEneableReadoutGroup = true;
     if (EvrGlbEventDesc::global_code(e.code())) {
@@ -123,7 +123,7 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
     _range_hi.value = max_seq + MaxUserCodes - 1;
     
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
-    const EvrConfigType::EventCodeType& e = cfg.eventcode(i);
+    const EventCodeType& e = cfg.eventcodes()[i];
     if (EvrGlbEventDesc::global_code(e.code())) 
       continue;      
     
@@ -137,8 +137,8 @@ bool EvrEventCodeTable::validate() {
 
   bool result=true;
 
-  EvrConfigType::EventCodeType* codep = 
-    reinterpret_cast<EvrConfigType::EventCodeType*>(_code_buffer);
+  EventCodeType* codep = 
+    reinterpret_cast<EventCodeType*>(_code_buffer);
 
   //  Every "latch" type should have a partner un-"latch"
   //  All enabled codes should be within range
@@ -186,9 +186,9 @@ bool EvrEventCodeTable::validate() {
     if (_glb_code[i].enabled())
       _glb_code[i].push(codep++);
 
-  _ncodes = codep - reinterpret_cast<EvrConfigType::EventCodeType*>(_code_buffer);
+  _ncodes = codep - reinterpret_cast<EventCodeType*>(_code_buffer);
 
-  { const EvrConfigType::EventCodeType* pcode = reinterpret_cast<const EvrConfigType::EventCodeType*>(_code_buffer);
+  { const EventCodeType* pcode = reinterpret_cast<const EventCodeType*>(_code_buffer);
     std::list<unsigned> dcodes;
     for(int i=0; i<int(_ncodes)-1; i++)
       for(int j=i+1; j<int(_ncodes); j++)
@@ -356,9 +356,9 @@ unsigned    EvrEventCodeTable::ncodes() const
   return _ncodes;
 }
 
-const EvrConfigType::EventCodeType* EvrEventCodeTable::codes() const
+const EventCodeType* EvrEventCodeTable::codes() const
 {
-  return reinterpret_cast<const EvrConfigType::EventCodeType*>(_code_buffer);
+  return reinterpret_cast<const EventCodeType*>(_code_buffer);
 }
 
 bool EvrEventCodeTable::enableReadoutGroup() const

@@ -9,29 +9,32 @@ tgtslib_evrobs := $(USRLIB)/rt
 
 tgtsrcs_evgr := evgr.cc
 tgtincs_evgr := evgr
-tgtlibs_evgr := pdsdata/xtcdata pdsdata/evrdata pdsdata/aliasdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr 
+tgtlibs_evgr := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/aliasdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata
 tgtslib_evgr := $(USRLIB)/rt
 
 tgtsrcs_evgrd := evgrd.cc
 tgtincs_evgrd := evgr
-tgtlibs_evgrd := pdsdata/xtcdata pdsdata/evrdata pdsdata/aliasdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr
+tgtlibs_evgrd := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/aliasdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr
 tgtslib_evgrd := $(USRLIB)/rt
 
 tgtsrcs_xtcwriter := xtcwriter.cc
-tgtlibs_xtcwriter := pdsdata/xtcdata pdsdata/acqdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility
+tgtlibs_xtcwriter := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility
 tgtslib_xtcwriter := $(USRLIB)/rt
 
 tgtsrcs_pnccdreader := pnccdreader.cc
-tgtlibs_pnccdreader := pdsdata/pnccddata pdsdata/xtcdata pds/service
+tgtlibs_pnccdreader := pdsdata/psddl_pdsdata pdsdata/xtcdata pds/service
 tgtslib_pnccdreader := $(USRLIB)/rt
+tgtincs_pnccdreader := pdsdata/include ndarray/include
 
 tgtsrcs_pnccdwriter := pnccd.cc
 tgtlibs_pnccdwriter := pdsdata/xtcdata pds/service
 tgtslib_pnccdwriter := $(USRLIB)/rt
+tgtincs_pnccdwriter := pdsdata/include ndarray/include
 
 tgtsrcs_xtctruncate := xtctruncate.cc
 tgtlibs_xtctruncate := pdsdata/xtcdata pds/service
 tgtslib_xtctruncate := $(USRLIB)/rt
+tgtincs_xtctruncate := pdsdata/include ndarray/include
 
 tgtsrcs_dsstest := dsstest.cc
 tgtlibs_dsstest := pds/service
@@ -47,9 +50,10 @@ tgtsrcs_xcasttest := xcasttest.cc
 tgtslib_xcasttest := $(USRLIB)/rt
 
 tgtsrcs_xtccompress := xtccompress.cc
-tgtlibs_xtccompress := pdsdata/xtcdata pdsdata/acqdata pdsdata/compressdata pdsdata/cspaddata pdsdata/timepixdata pdsdata/camdata pdsdata/cspad2x2data
+tgtlibs_xtccompress := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata 
 tgtlibs_xtccompress += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client pds/clientcompress 
 tgtslib_xtccompress := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread 
+tgtincs_xtccompress := pdsdata/include ndarray/include
 #CPPFLAGS += -fno-strict-aliasing
 CPPFLAGS += -fopenmp
 DEFINES += -fopenmp
@@ -61,8 +65,9 @@ tgtslib_pgpwidget := $(USRLIB)/rt
 tgtsrcs_pnccdwidget := pnccdWidget.cc
 tgtlibs_pnccdwidget := pds/pgp
 tgtslib_pnccdwidget := $(USRLIB)/rt
+tgtincs_pnccdwidget := pdsdata/include 
 
 tgtsrcs_xtccamfix := xtccamfix.cc
 tgtlibs_xtccamfix := pdsdata/xtcdata
 tgtslib_xtccamfix := ${USRLIBDIR}/rt
-
+tgtincs_xtccamfix := pdsdata/include

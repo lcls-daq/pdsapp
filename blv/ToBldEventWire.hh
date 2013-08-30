@@ -8,7 +8,6 @@
 #include "pds/utility/ToNetEb.hh"
 #include "pds/service/GenericPoolW.hh"
 #include "pds/service/Task.hh"
-#include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/Sequence.hh"

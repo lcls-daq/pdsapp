@@ -42,8 +42,8 @@ class Pds_ConfigDb::EncoderConfig::Private_Data {
       { return sizeof(EncoderConfigType); }
 
    NumericInt<uint8_t>     _chan_mask;
-   Enumerated<Pds::Encoder::ConfigV2::count_mode::type_t> _count_mode;
-   Enumerated<Pds::Encoder::ConfigV2::quad_mode::type_t>  _quadrature_mode;
+   Enumerated<Pds::Encoder::ConfigV2::count_mode_type> _count_mode;
+   Enumerated<Pds::Encoder::ConfigV2::quad_mode      > _quadrature_mode;
    NumericInt<uint8_t>     _input_num;
    Enumerated<Enums::Bool> _input_rising;   
    NumericInt<uint32_t>    _ticks_per_sec;
@@ -53,10 +53,10 @@ Pds_ConfigDb::EncoderConfig::Private_Data::Private_Data()
    : _chan_mask(        "Channel Mask ",
                        0, 0, 2 ),
      _count_mode(      "Counter Mode ",
-                       Pds::Encoder::ConfigV2::count_mode::WRAP_FULL,
+                       Pds::Encoder::ConfigV2::WRAP_FULL,
                        PCI3E::count_mode_to_name ),
      _quadrature_mode( "Quadrature Mode ",
-                       Pds::Encoder::ConfigV2::quad_mode::X1,
+                       Pds::Encoder::ConfigV2::X1,
                        PCI3E::quad_mode_to_name ),
      _input_num(       "Trigger Input Number ",
                        0, 0, 3 ),
@@ -79,17 +79,16 @@ void Pds_ConfigDb::EncoderConfig::Private_Data::insert( Pds::LinkedList<Paramete
 
 int Pds_ConfigDb::EncoderConfig::Private_Data::pull( void* from )
 {
-   EncoderConfigType& encoderConf = * new (from) EncoderConfigType;
+  EncoderConfigType& encoderConf = *reinterpret_cast<EncoderConfigType*>(from);
 
-   _chan_mask.value        = encoderConf._chan_mask;
-   _count_mode.value      = (Pds::Encoder::ConfigV2::count_mode::type_t) encoderConf._count_mode;
-   _quadrature_mode.value = (Pds::Encoder::ConfigV2::quad_mode::type_t) encoderConf._quadrature_mode;
-   _input_num.value       = encoderConf._input_num;
-   _input_rising.value    = encoderConf._input_rising ? Enums::True
-                                                      : Enums::False;
-   _ticks_per_sec.value   = encoderConf._ticks_per_sec;
+  _chan_mask.value       = encoderConf.chan_mask();
+  _count_mode.value      = encoderConf.count_mode();
+  _quadrature_mode.value = encoderConf.quadrature_mode();
+  _input_num.value       = encoderConf.input_num();
+  _input_rising.value    = encoderConf.input_rising() ? Enums::True : Enums::False;
+  _ticks_per_sec.value   = encoderConf.ticks_per_sec();
 
-   return sizeof(EncoderConfigType);
+  return sizeof(EncoderConfigType);
 }
 
 int Pds_ConfigDb::EncoderConfig::Private_Data::push(void* to)

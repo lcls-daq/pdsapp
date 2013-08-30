@@ -4,14 +4,16 @@
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 
+#include "pdsdata/psddl/evr.ddl.h"
+
 namespace Pds_ConfigDb {
   class EvrPulseConfig_V1 {
   public:
     EvrPulseConfig_V1();
   public:   
     void insert(Pds::LinkedList<Parameter>& pList);
-    bool pull(void* from);
-    int push(void* to);
+    bool pull  (const Pds::EvrData::PulseConfig& tc);
+    int push   (void* to);
   private:
     NumericInt<unsigned>    _pulse;
     NumericInt<int>         _trigger;

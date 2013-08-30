@@ -29,8 +29,11 @@ namespace Pds_ConfigDb {
                       //          Sequencer,
                       AcqADC, AcqTDC,
                       Ipimb, IpmDiode, PimDiode, PimImage, 
-                      Encoder, pnCCD, RunControl, Princeton, Fccd, Cspad, Xamps, Fexamp, Gsc16ai, 
-                      Timepix, Phasics, Cspad2x2, OceanOptics, Fli, Andor, UsdUsb, Orca, Imp,
+                      Encoder, pnCCD, RunControl, Princeton, Fccd, Cspad, Gsc16ai, 
+                      Timepix, Cspad2x2, OceanOptics, Fli, Andor, UsdUsb, Orca, Imp,
+#ifdef BUILD_EXTRA
+                      Phasics, Xamps, Fexamp,
+#endif
                       NumberOf };
 
     static const Pds::TypeId* typeId   (ConfigType);         

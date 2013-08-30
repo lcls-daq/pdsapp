@@ -5,7 +5,7 @@
 #include <signal.h>
 #include <string>
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/epics/EpicsXtcSettings.hh"
+#include "pdsdata/psddl/epics.ddl.h"
 
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"

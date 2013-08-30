@@ -23,8 +23,8 @@ namespace Pds_ConfigDb {
 
     int pull(void* from) { // pull "from xtc"
       PimImageConfigType& pimConf = *new(from) PimImageConfigType;
-      _xscale.value   = pimConf.xscale;
-      _yscale.value   = pimConf.yscale;
+      _xscale.value   = pimConf.xscale();
+      _yscale.value   = pimConf.yscale();
       return sizeof(PimImageConfigType);
     }
 

@@ -11,8 +11,8 @@
 //
 #include "PadMonServer.hh"
 
-#include "pdsdata/cspad/ConfigV3.hh"
-#include "pdsdata/cspad/ElementV1.hh"
+#include "pds/config/CsPadConfigType.hh"
+#include "pdsdata/psddl/cspad.ddl.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -100,13 +100,19 @@ int main(int argc, char** argv) {
   //
   //  The DAQ configuration object
   //
-  Pds::CsPad::ConfigV3 cfg(0, 0, 0, 0, 0,
-                           payloadsize, // payload per quad (necessary)
-                           0, 0, 
-                           amask,   // asic mask (necessary)
-                           qmask,   // quad mask (necessary)
-                           rmask    // roi mask  (necessary)
-                           );
+  Pds::CsPad::ProtectionSystemThreshold pt[4];
+  Pds::CsPad::ConfigV3QuadReg quads[4];
+  CsPadConfigType cfg(0, 0, 0,     // conc version, rundelay, eventcode
+                      pt, 0,       // protection thresholds, enable
+                      0, 0,        // inactiverunmode, activerunmode,
+                      0, 0,        // internaltriggerdelay, testdataindex
+                      payloadsize, // payload per quad (necessary)
+                      0, 0,        // bad asic masks
+                      amask,   // asic mask (necessary)
+                      qmask,   // quad mask (necessary)
+                      rmask,   // roi mask  (necessary)
+                      quads
+                      );
 
   //
   //  Serve the configuration to shared memory

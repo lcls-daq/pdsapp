@@ -4,15 +4,17 @@
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 
+#include "pdsdata/psddl/evr.ddl.h"
+
 namespace Pds_ConfigDb {
   class EvrEventCodeV3 {
   public:
     EvrEventCodeV3();
   public:   
-    void id(unsigned);
+    void id    (unsigned);
     void insert(Pds::LinkedList<Parameter>& pList);
-    bool pull(void* from);
-    int  push(void* to);
+    bool pull  (const Pds::EvrData::EventCodeV3&);
+    int  push  (void* to);
   private:
     NumericInt<unsigned>          _code;
     Enumerated<Enums::Bool>       _isReadout;

@@ -1,9 +1,7 @@
 #include "pdsapp/config/Cspad2x2ConfigTable_V1.hh"
 #include "pdsapp/config/Cspad2x2Sector.hh"
 #include "pdsapp/config/Cspad2x2GainMap.hh"
-#include "pdsdata/cspad2x2/ConfigV1.hh"
-#include "pdsdata/cspad2x2/ElementV1.hh"
-#include "pdsdata/cspad2x2/Detector.hh"
+#include "pdsdata/psddl/cspad2x2.ddl.h"
 #include "pdsapp/config/Cspad2x2Temp.hh"
 
 #include <QtGui/QHBoxLayout>
@@ -59,25 +57,26 @@ namespace Pds_ConfigDb
           _activeRunMode  .value = (Pds::CsPad2x2::RunModes)p.activeRunMode();
           _testDataIndex  .value = p.tdi();
           _badAsicMask    .value = p.badAsicMask();
-          _sectors        .value = p.roiMask(0);
-          _protQ0AdcThr   .value = p.protectionThreshold()->adcThreshold;
-          _protQ0PixelThr .value = p.protectionThreshold()->pixelCountThreshold;
+          _sectors        .value = p.roiMask();
+          _protQ0AdcThr   .value = p.protectionThreshold().adcThreshold();
+          _protQ0PixelThr .value = p.protectionThreshold().pixelCountThreshold();
           update_readout();
         }
         void push   (Pds::CsPad2x2::ConfigV1* p)
         {
+          Pds::CsPad2x2::ConfigV1QuadReg dummy;
+          Pds::CsPad2x2::ProtectionSystemThreshold pth(_protQ0AdcThr.value, _protQ0PixelThr.value);
 
-          *new (p) Pds::CsPad2x2::ConfigV1(
-              _inactiveRunMode.value,
-              _activeRunMode  .value,
-              _testDataIndex  .value,
-              sizeof(Pds::CsPad2x2::ElementV1) + sizeof(uint32_t),  // space for the last word
-              _badAsicMask    .value,
-              1,
-              _sectors.value);
-          p->protectionEnable(1);
-          p->protectionThreshold()->adcThreshold = _protQ0AdcThr.value;
-          p->protectionThreshold()->pixelCountThreshold = _protQ0PixelThr.value;
+          *new (p) Pds::CsPad2x2::ConfigV1(0,
+                                           pth, 1,
+                                           _inactiveRunMode.value,
+                                           _activeRunMode  .value,
+                                           _testDataIndex  .value,
+                                           sizeof(Pds::CsPad2x2::ElementV1) + sizeof(uint32_t),  // space for the last word
+                                           _badAsicMask    .value,
+                                           1,
+                                           _sectors.value,
+                                           dummy);
         }
       public:
         void initialize(QWidget* parent, QVBoxLayout* layout)
@@ -156,7 +155,7 @@ namespace Pds_ConfigDb
 
         void pull   (const Pds::CsPad2x2::ConfigV1QuadReg& p)
         {
-          const uint8_t* pots = &p.dp().pots[0];
+          const uint8_t* pots = p.dp().pots().data();
           _vref.value        = pots[0];
           _vinj.value        = pots[23];
           _analogPrst .value = pots[63];
@@ -172,7 +171,7 @@ namespace Pds_ConfigDb
 
         void push   (Pds::CsPad2x2::ConfigV1QuadReg* p)
         {
-          uint8_t* pots = &p->dp().pots[0];
+          uint8_t* pots = const_cast<uint8_t*>(p->dp().pots().data());
           *pots++ = _vref.value;
           *pots++ = _vref.value;
           *pots++ = _rampCurrR1.value;
@@ -311,7 +310,7 @@ namespace Pds_ConfigDb
           Cspad2x2Temp temp;
           for(int i=0; i<Pds::CsPad2x2::TwoByTwosPerQuad; i++) {
             _shiftSelect.value[i] = p.shiftSelect()[i];
-            _edgeSelect .value[i] = p.edgeSelect()[i];
+            _edgeSelect .value[i] = p.edgeSelect ()[i];
           }
           _readClkSet      .value = p.readClkSet();
           _readClkHold     .value = p.readClkHold();
@@ -334,37 +333,42 @@ namespace Pds_ConfigDb
           temp.adcValue = p.setPoint();
           _setPoint        .value = (int) nearbyint(temp.getTemp());
 
-          memcpy(gm, p.gm(), sizeof(*p.gm()));
+          memcpy(gm, &p.gm(), sizeof(*gm));
         }
 
         void push   (Pds::CsPad2x2::ConfigV1QuadReg* p, Pds::CsPad2x2::CsPad2x2GainMapCfg* gm)
         {
           Cspad2x2Temp temp;
           uint32_t setPoint = temp.tempToAdc(_setPoint.value);
-          *new(p) Pds::CsPad2x2::ConfigV1QuadReg(
-              _shiftSelect     .value,
-              _edgeSelect      .value,
-              _readClkSet      .value,
-              _readClkHold     .value,
-              _dataMode        .value,
-              _prstSel         .value,
-              _acqDelay        .value,
-              _intTime         .value,
-              _digDelay        .value,
-              _ampIdle         .value,
-              _injTotal        .value,
-              _rowColShiftPer  .value,
-              _ampReset        .value,
-              _digCount        .value,
-              _digPeriod       .value,
-              _PeltierEnable   .value,
-              _kpConstant      .value,
-              _kiConstant      .value,
-              _kdConstant      .value,
-              _humidThold      .value,
-              setPoint);
+          Pds::CsPad2x2::CsPad2x2ReadOnlyCfg dummy;
+          uint8_t* potsCfg = new uint8_t[Pds::CsPad2x2::PotsPerQuad];
 
-          memcpy(p->gm(), gm, sizeof(*p->gm()));
+          *new(p) Pds::CsPad2x2::ConfigV1QuadReg(_shiftSelect     .value,
+                                                 _edgeSelect      .value,
+                                                 _readClkSet      .value,
+                                                 _readClkHold     .value,
+                                                 _dataMode        .value,
+                                                 _prstSel         .value,
+                                                 _acqDelay        .value,
+                                                 _intTime         .value,
+                                                 _digDelay        .value,
+                                                 _ampIdle         .value,
+                                                 _injTotal        .value,
+                                                 _rowColShiftPer  .value,
+                                                 _ampReset        .value,
+                                                 _digCount        .value,
+                                                 _digPeriod       .value,
+                                                 _PeltierEnable   .value,
+                                                 _kpConstant      .value,
+                                                 _kiConstant      .value,
+                                                 _kdConstant      .value,
+                                                 _humidThold      .value,
+                                                 setPoint,
+                                                 dummy,
+                                                 reinterpret_cast<const Pds::CsPad2x2::CsPad2x2DigitalPotsCfg&>(potsCfg),
+                                                 *gm);
+
+          delete[] potsCfg;
         }
       public:
         static void layoutHeader(QGridLayout* layout)
@@ -509,8 +513,8 @@ int Cspad2x2ConfigTable_V1::pull(const void* from) {
   const Pds::CsPad2x2::ConfigV1& tc = *reinterpret_cast<const Pds::CsPad2x2::ConfigV1*>(from);
 
   _globalP->pull(tc);
-  _quadP[0]->pull(tc.quad()[0],_gainMap->quad());
-  _quadPotsP2x2->pull(tc.quad()[0]);
+  _quadP[0]->pull(tc.quad(),_gainMap->quad());
+  _quadPotsP2x2->pull(tc.quad());
   _gainMap->flush();
 
   return sizeof(tc);
@@ -520,8 +524,8 @@ int Cspad2x2ConfigTable_V1::push(void* to) const {
 
   Pds::CsPad2x2::ConfigV1& tc = *reinterpret_cast<Pds::CsPad2x2::ConfigV1*>(to);
   _globalP->push(&tc);
-  _quadP[0]->push(&(tc.quad()[0]),_gainMap->quad());
-  _quadPotsP2x2->push(&(tc.quad()[0]));
+  _quadP[0]->push(&const_cast<Pds::CsPad2x2::ConfigV1QuadReg&>(tc.quad()),_gainMap->quad());
+  _quadPotsP2x2->push(&const_cast<Pds::CsPad2x2::ConfigV1QuadReg&>(tc.quad()));
 
   return sizeof(tc);
 }

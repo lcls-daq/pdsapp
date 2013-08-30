@@ -1,8 +1,7 @@
 #include "pdsapp/config/CspadConfigTable_V2.hh"
 #include "pdsapp/config/CspadSector.hh"
 #include "pdsapp/config/CspadGainMap.hh"
-#include "pdsdata/cspad/ConfigV2.hh"
-#include "pdsdata/cspad/ElementV1.hh"
+#include "pdsdata/psddl/cspad.ddl.h"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -68,18 +67,22 @@ namespace Pds_ConfigDb
           //      unsigned amask = (rmask&0xfcfcfcfc) ? 0xf : 1;
           unsigned amask = 0xf;
 
-          *new (p) Pds::CsPad::ConfigV2( _runDelay .value,
-              _eventCode.value,
-              _inactiveRunMode.value,
-              _activeRunMode  .value,
-              _testDataIndex  .value,
-              sizeof(Pds::CsPad::ElementV1) + 4 + Columns*Rows*sizeof(uint16_t)*
-              ( amask==1 ? 4 : 16 ),
-              _badAsicMask    .value & 0xffffffff,
-              _badAsicMask    .value >> 32,
-              amask,
-              qmask,
-              rmask );
+          Pds::CsPad::ConfigV1QuadReg dummy[4];
+
+          *new (p) Pds::CsPad::ConfigV2( 0,
+                                         _runDelay .value,
+                                         _eventCode.value,
+                                         _inactiveRunMode.value,
+                                         _activeRunMode  .value,
+                                         _testDataIndex  .value,
+                                         sizeof(Pds::CsPad::ElementV1) + 4 + Columns*Rows*sizeof(uint16_t)*
+                                         ( amask==1 ? 4 : 16 ),
+                                         _badAsicMask    .value & 0xffffffff,
+                                         _badAsicMask    .value >> 32,
+                                         amask,
+                                         qmask,
+                                         rmask,
+                                         dummy);
         }
       public:
         void initialize(QWidget* parent, QVBoxLayout* layout)
@@ -188,7 +191,7 @@ namespace Pds_ConfigDb
           _injTotal        .value = p.injTotal();
           _rowColShiftPer  .value = p.rowColShiftPer();
 
-          const uint8_t* pots = &p.dp().pots[0];
+          const uint8_t* pots = p.dp().pots().data();
           _vref.value        = pots[0];
           _vinj.value        = pots[23];
           _analogPrst .value = pots[63];
@@ -201,24 +204,14 @@ namespace Pds_ConfigDb
           _iss2       .value = pots[44];
           _iss5       .value = pots[64];
 
-          memcpy(gm, p.gm(), sizeof(*p.gm()));
+          memcpy(gm, &p.gm(), sizeof(Pds::CsPad::CsPadGainMapCfg));
         }
         void push   (Pds::CsPad::ConfigV1QuadReg* p, Pds::CsPad::CsPadGainMapCfg* gm)
         {
-          *new(p) Pds::CsPad::ConfigV1QuadReg(_shiftSelect     .value,
-              _edgeSelect      .value,
-              _readClkSet      .value,
-              _readClkHold     .value,
-              _dataMode        .value,
-              _prstSel         .value,
-              _acqDelay        .value,
-              _intTime         .value,
-              _digDelay        .value,
-              _ampIdle         .value,
-              _injTotal        .value,
-              _rowColShiftPer  .value );
+          Pds::CsPad::CsPadReadOnlyCfg dummy;
 
-          uint8_t* pots = &p->dp().pots[0];
+          uint8_t* potsCfg = new uint8_t[Pds::CsPad::PotsPerQuad];
+          uint8_t* pots = potsCfg;
           *pots++ = _vref.value;
           *pots++ = _vref.value;
           *pots++ = _rampCurrR1.value;
@@ -247,7 +240,23 @@ namespace Pds_ConfigDb
           for(uint8_t* end = pots+16; pots<end; pots++)
             *pots = _iss5.value;
 
-          memcpy(p->gm(), gm, sizeof(*p->gm()));
+          *new(p) Pds::CsPad::ConfigV1QuadReg(_shiftSelect     .value,
+                                              _edgeSelect      .value,
+                                              _readClkSet      .value,
+                                              _readClkHold     .value,
+                                              _dataMode        .value,
+                                              _prstSel         .value,
+                                              _acqDelay        .value,
+                                              _intTime         .value,
+                                              _digDelay        .value,
+                                              _ampIdle         .value,
+                                              _injTotal        .value,
+                                              _rowColShiftPer  .value,
+                                              dummy,
+                                              reinterpret_cast<const Pds::CsPad::CsPadDigitalPotsCfg&>(potsCfg),
+                                              *gm );
+
+          delete[] potsCfg;
         }
       public:
         static void layoutHeader(QGridLayout* layout)
@@ -406,12 +415,11 @@ void CspadConfigTable_V2::insert(Pds::LinkedList<Parameter>& pList)
     _quadP[q]->insert(_pList);
 }
 
-int CspadConfigTable_V2::pull(const void* from) {
-  const Pds::CsPad::ConfigV2& tc = *reinterpret_cast<const Pds::CsPad::ConfigV2*>(from);
-
+int CspadConfigTable_V2::pull(const Pds::CsPad::ConfigV2& tc)
+{
   _globalP->pull(tc);
   for(unsigned q=0; q<4; q++)
-    _quadP[q]->pull(tc.quads()[q],_gainMap->quad(q));
+    _quadP[q]->pull(tc.quads(q),_gainMap->quad(q));
   _gainMap->flush();
 
   return sizeof(tc);
@@ -422,7 +430,7 @@ int CspadConfigTable_V2::push(void* to) const {
   Pds::CsPad::ConfigV2& tc = *reinterpret_cast<Pds::CsPad::ConfigV2*>(to);
   _globalP->push(&tc);
   for(unsigned q=0; q<4; q++)
-    _quadP[q]->push(&(tc.quads()[q]),_gainMap->quad(q));
+    _quadP[q]->push(&const_cast<Pds::CsPad::ConfigV1QuadReg&>(tc.quads(q)),_gainMap->quad(q));
 
   return sizeof(tc);
 }

@@ -2,7 +2,7 @@
 
 #include "pdsapp/config/Parameters.hh"
 //#include "pds/config/pnCCDConfigType.hh"
-#include "pdsdata/pnCCD/ConfigV1.hh"
+#include "pdsdata/psddl/pnccd.ddl.h"
 
 #include <new>
 
@@ -23,15 +23,15 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      pnCCDConfigType& tc = *new(from) pnCCDConfigType;
+      pnCCDConfigType& tc = *reinterpret_cast<pnCCDConfigType*>(from);
       _numLinks   .value = tc.numLinks();
       _payloadSize.value = tc.payloadSizePerLink();
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
       pnCCDConfigType& tc = *new(to) pnCCDConfigType(_numLinks.value,_payloadSize.value);
-      return tc.size();
+      return tc._sizeof();
     }
 
     int dataSize() const {

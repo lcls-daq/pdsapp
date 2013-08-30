@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <time.h>
 
-#include "pdsdata/xtc/ClockTime.hh"
 #include "pds/service/Timer.hh"
 #include "pds/service/Task.hh"
 
@@ -17,6 +16,7 @@
 #include "pds/mon/MonEntryTH2F.hh"
 #include "pds/mon/MonEntryImage.hh"
 #include "pds/mon/MonEntryProf.hh"
+#include "pdsdata/xtc/ClockTime.hh"
 
 using namespace Pds;
 

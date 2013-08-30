@@ -84,17 +84,17 @@ Transition* SeqAppliance::transitions(Transition* tr)
       int len = _config.fetch(*tr, _controlConfigType, _config_buffer, MaxConfigSize);
       if (len <= 0) {
 	printf("SeqAppliance: failed to retrieve configuration.  Applying default.\n");
-	len = (new(_config_buffer) ControlConfigType(ControlConfigType::Default))->size();
+	len = (ControlConfig::_new(_config_buffer))->_sizeof();
       }
 
       _cur_config = reinterpret_cast<ControlConfigType*>(_config_buffer);
-      _end_config = _cur_config->size() >= unsigned(len) ? 
+      _end_config = _cur_config->_sizeof() >= unsigned(len) ? 
 	0 : _config_buffer + len;
       if (len > 0) 
 	printf("SeqAppliance configure tc %p (0x%x)  len 0x%x\n",
-	       _cur_config, _cur_config->size(), len);
+	       _cur_config, _cur_config->_sizeof(), len);
 
-      _configtc.extent = sizeof(Xtc) + _cur_config->size();
+      _configtc.extent = sizeof(Xtc) + _cur_config->_sizeof();
       _configtc.damage = damage;
       _control.set_transition_payload(TransitionId::Configure,&_configtc,_cur_config);
 
@@ -146,7 +146,7 @@ InDatagram* SeqAppliance::events     (InDatagram* dg)
   case TransitionId::EndCalibCycle:
     //  advance the configuration
     { 
-      int len = _cur_config->size();
+      int len = _cur_config->_sizeof();
       char* nxt_config = reinterpret_cast<char*>(_cur_config)+len;
       if (nxt_config < _end_config) {
 	_cur_config = reinterpret_cast<ControlConfigType*>(nxt_config);
@@ -160,7 +160,7 @@ InDatagram* SeqAppliance::events     (InDatagram* dg)
 	       _cur_config, _done ? 't':'f');
 	if (_done) _control.set_target_state(PartitionControl::Configured);
       }
-      _configtc.extent = sizeof(Xtc) + _cur_config->size();
+      _configtc.extent = sizeof(Xtc) + _cur_config->_sizeof();
     }
     break;
   default:

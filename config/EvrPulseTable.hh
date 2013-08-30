@@ -26,10 +26,10 @@ namespace Pds_ConfigDb
     bool     pull  (const EvrConfigType& cfg);
     //  validate() updates pulses, outputs accessors
     bool validate(unsigned ncodes, 
-                  const EvrConfigType::EventCodeType* codes,
+                  const EventCodeType* codes,
                   //int delay_offset,
-                  unsigned, EvrConfigType::PulseType*,
-                  unsigned, EvrConfigType::OutputMapType*);
+                  unsigned, PulseType*,
+                  unsigned, OutputMapType*);
 
     unsigned npulses () const;
     unsigned noutputs() const;
@@ -84,14 +84,14 @@ namespace Pds_ConfigDb
   public:
     void     pull    (const EvrConfigType& tc);
     bool     validate(unsigned ncodes,
-                      const EvrConfigType::EventCodeType* codes);
+                      const EventCodeType* codes);
     unsigned                            npulses () const { return _npulses; }
-    const EvrConfigType::PulseType*     pulses () const 
-    { return reinterpret_cast<const EvrConfigType::PulseType*>(_pulse_buffer); }
+    const PulseType*     pulses () const 
+    { return reinterpret_cast<const PulseType*>(_pulse_buffer); }
 
     unsigned                            noutputs() const { return _noutputs; }
-    const EvrConfigType::OutputMapType* outputs () const 
-    { return reinterpret_cast<const EvrConfigType::OutputMapType*>(_output_buffer); }
+    const OutputMapType* outputs () const 
+    { return reinterpret_cast<const OutputMapType*>(_output_buffer); }
 
   private:
     EvrPulseTable* _evr[MaxEVRs];

@@ -14,146 +14,146 @@
 
 static const int PolarityGroup = 100;
 
-#include "pdsdata/evr/ConfigV4.hh"
-
-typedef Pds::EvrData::ConfigV4  EvrConfigType;
+#include "pdsdata/psddl/evr.ddl.h"
 
 namespace Pds_ConfigDb
 {
-  static const double EvrPeriod = 1./119e6;
+  namespace EvrConfig_V4 {
+    static const double EvrPeriod = 1./119e6;
 
-  class Pulse_V4 {
-  public:
-    Pulse_V4() :
-      _eventCode( NumericInt<unsigned>(NULL,0,0, 255, Decimal)),
-      _delay    ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Scaled, EvrPeriod)),
-      _width    ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Scaled, EvrPeriod)),
-      _rdelay   ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Decimal)),
-      _rwidth   ( NumericInt<unsigned>(NULL,1,1, 0x7fffffff, Decimal))
-    {}
-  public:
-    void enable(bool v) 
-    {
-      bool allowEdit = _delay.allowEdit();
-      _eventCode.enable(v);
-      _eventCode.widget()->setVisible(v);
-      _rdelay   .enable(v);
-      _rdelay   .widget()->setVisible(v);
-      _rwidth   .enable(v);
-      _rwidth   .widget()->setVisible(v);
-      _polarity  ->setEnabled(v && allowEdit);
-      _polarity  ->setVisible(v);
-      _readout   ->setEnabled(v && allowEdit);
-      _readout   ->setVisible(v);
-      _terminator->setEnabled(v && allowEdit);
-      _terminator->setVisible(v);
-      v &= (_polarity->state()!=PolarityButton::None);
-      _delay    .enable(v);
-      _width    .enable(v);
-      for(unsigned i=0; i<EvrPulseTable_V4::MaxOutputs; i++) {
-	_outputs[i]->setEnabled(v && allowEdit);
-	_outputs[i]->setVisible(v);
+    class Pulse_V4 {
+    public:
+      Pulse_V4() :
+        _eventCode( NumericInt<unsigned>(NULL,0,0, 255, Decimal)),
+        _delay    ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Scaled, EvrPeriod)),
+        _width    ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Scaled, EvrPeriod)),
+        _rdelay   ( NumericInt<unsigned>(NULL,0,0, 0x7fffffff, Decimal)),
+        _rwidth   ( NumericInt<unsigned>(NULL,1,1, 0x7fffffff, Decimal))
+      {}
+    public:
+      void enable(bool v) 
+      {
+        bool allowEdit = _delay.allowEdit();
+        _eventCode.enable(v);
+        _eventCode.widget()->setVisible(v);
+        _rdelay   .enable(v);
+        _rdelay   .widget()->setVisible(v);
+        _rwidth   .enable(v);
+        _rwidth   .widget()->setVisible(v);
+        _polarity  ->setEnabled(v && allowEdit);
+        _polarity  ->setVisible(v);
+        _readout   ->setEnabled(v && allowEdit);
+        _readout   ->setVisible(v);
+        _terminator->setEnabled(v && allowEdit);
+        _terminator->setVisible(v);
+        v &= (_polarity->state()!=PolarityButton::None);
+        _delay    .enable(v);
+        _width    .enable(v);
+        for(unsigned i=0; i<EvrPulseTable_V4::MaxOutputs; i++) {
+          _outputs[i]->setEnabled(v && allowEdit);
+          _outputs[i]->setVisible(v);
+        }
       }
-    }
-    void reset () 
-    {
-      _eventCode.value = 0; 
-      _delay    .value = 0;
-      _width    .value = 0;
-      _rdelay   .value = 0;
-      _rwidth   .value = 1;
-      _polarity  ->setState(PolarityButton::None);
-      _readout   ->setChecked(false);
-      _terminator->setChecked(false);
-      for(unsigned i=0; i<EvrPulseTable_V4::MaxOutputs; i++)
-	_outputs[i]->setChecked(false);
-    }
-    void set   (const Pulse_V4& p) 
-    {
-      _eventCode.value = p._eventCode.value;
-      _rdelay   .value = p._rdelay   .value;
-      _rwidth   .value = p._rwidth   .value;
-      _readout   ->setChecked(p._readout   ->isChecked());
-      _terminator->setChecked(p._terminator->isChecked());
-    }
-  public:
-    void initialize(QWidget* parent,
-		    QGridLayout* layout, 
-		    int row, int bid,
-		    QButtonGroup* egroup,
-		    QButtonGroup* tgroup,
-		    QButtonGroup* ogroup) 
-    {
-      _enable    = new QCheckBox;
-      _polarity  = new PolarityButton;
-      for(unsigned i=0; i<10; i++)
-	_outputs[i] = new QCheckBox;
-      _readout    = new QCheckBox;
-      _terminator = new QCheckBox;
+      void reset () 
+      {
+        _eventCode.value = 0; 
+        _delay    .value = 0;
+        _width    .value = 0;
+        _rdelay   .value = 0;
+        _rwidth   .value = 1;
+        _polarity  ->setState(PolarityButton::None);
+        _readout   ->setChecked(false);
+        _terminator->setChecked(false);
+        for(unsigned i=0; i<EvrPulseTable_V4::MaxOutputs; i++)
+          _outputs[i]->setChecked(false);
+      }
+      void set   (const Pulse_V4& p) 
+      {
+        _eventCode.value = p._eventCode.value;
+        _rdelay   .value = p._rdelay   .value;
+        _rwidth   .value = p._rwidth   .value;
+        _readout   ->setChecked(p._readout   ->isChecked());
+        _terminator->setChecked(p._terminator->isChecked());
+      }
+    public:
+      void initialize(QWidget* parent,
+                      QGridLayout* layout, 
+                      int row, int bid,
+                      QButtonGroup* egroup,
+                      QButtonGroup* tgroup,
+                      QButtonGroup* ogroup) 
+      {
+        _enable    = new QCheckBox;
+        _polarity  = new PolarityButton;
+        for(unsigned i=0; i<10; i++)
+          _outputs[i] = new QCheckBox;
+        _readout    = new QCheckBox;
+        _terminator = new QCheckBox;
 
-      egroup->addButton(_enable,bid);
-      egroup->addButton(_polarity,bid+PolarityGroup);
-      for(unsigned i=0; i<10; i++)
-	ogroup->addButton(_outputs[i],bid*10+i);
-      tgroup->addButton(_terminator,bid);
+        egroup->addButton(_enable,bid);
+        egroup->addButton(_polarity,bid+PolarityGroup);
+        for(unsigned i=0; i<10; i++)
+          ogroup->addButton(_outputs[i],bid*10+i);
+        tgroup->addButton(_terminator,bid);
 
-      int column = 0;
-      layout->addWidget(_enable, row, column++, Qt::AlignCenter);
-      layout->addLayout(_eventCode.initialize(parent), row, column++, Qt::AlignCenter);
-      layout->addWidget(_polarity , row, column++, Qt::AlignCenter);
-      layout->setColumnMinimumWidth(column,97);
-      layout->addLayout(_delay.initialize(parent)    , row, column++, Qt::AlignCenter);
-      layout->setColumnMinimumWidth(column,97);
-      layout->addLayout(_width.initialize(parent)    , row, column++, Qt::AlignCenter);
-      for(unsigned i=0; i<10; i++)
-	layout->addWidget(_outputs[i], row, column++, Qt::AlignCenter);
-      layout->addLayout(_rdelay.initialize(parent)    , row, column++, Qt::AlignCenter);
-      layout->addLayout(_rwidth.initialize(parent)    , row, column++, Qt::AlignCenter);
-      layout->addWidget(_readout   , row, column++, Qt::AlignCenter);
-      layout->addWidget(_terminator, row, column++, Qt::AlignCenter);
+        int column = 0;
+        layout->addWidget(_enable, row, column++, Qt::AlignCenter);
+        layout->addLayout(_eventCode.initialize(parent), row, column++, Qt::AlignCenter);
+        layout->addWidget(_polarity , row, column++, Qt::AlignCenter);
+        layout->setColumnMinimumWidth(column,97);
+        layout->addLayout(_delay.initialize(parent)    , row, column++, Qt::AlignCenter);
+        layout->setColumnMinimumWidth(column,97);
+        layout->addLayout(_width.initialize(parent)    , row, column++, Qt::AlignCenter);
+        for(unsigned i=0; i<10; i++)
+          layout->addWidget(_outputs[i], row, column++, Qt::AlignCenter);
+        layout->addLayout(_rdelay.initialize(parent)    , row, column++, Qt::AlignCenter);
+        layout->addLayout(_rwidth.initialize(parent)    , row, column++, Qt::AlignCenter);
+        layout->addWidget(_readout   , row, column++, Qt::AlignCenter);
+        layout->addWidget(_terminator, row, column++, Qt::AlignCenter);
 
-      _eventCode.widget()->setMaximumWidth(47);
-      _delay    .widget()->setMaximumWidth(97);
-      _width    .widget()->setMaximumWidth(97);
-      _rdelay   .widget()->setMaximumWidth(47);
-      _rwidth   .widget()->setMaximumWidth(47);
+        _eventCode.widget()->setMaximumWidth(47);
+        _delay    .widget()->setMaximumWidth(97);
+        _width    .widget()->setMaximumWidth(97);
+        _rdelay   .widget()->setMaximumWidth(47);
+        _rwidth   .widget()->setMaximumWidth(47);
 
-      ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _delay.widget(), SLOT(setVisible(bool)));
-      ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _width.widget(), SLOT(setVisible(bool)));
-      for(unsigned i=0; i<10; i++)
-	::QObject::connect(_polarity, SIGNAL(toggled(bool)), _outputs[i], SLOT(setVisible(bool)));
+        ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _delay.widget(), SLOT(setVisible(bool)));
+        ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _width.widget(), SLOT(setVisible(bool)));
+        for(unsigned i=0; i<10; i++)
+          ::QObject::connect(_polarity, SIGNAL(toggled(bool)), _outputs[i], SLOT(setVisible(bool)));
 
-      _enable->setEnabled(_delay.allowEdit());
+        _enable->setEnabled(_delay.allowEdit());
 
-      reset();
-      enable(false);
-    }
+        reset();
+        enable(false);
+      }
 
-    void insert(Pds::LinkedList<Parameter>& pList) {
-      pList.insert(&_eventCode);
-      pList.insert(&_delay);
-      pList.insert(&_width);
-      pList.insert(&_rdelay);
-      pList.insert(&_rwidth);
-    }
+      void insert(Pds::LinkedList<Parameter>& pList) {
+        pList.insert(&_eventCode);
+        pList.insert(&_delay);
+        pList.insert(&_width);
+        pList.insert(&_rdelay);
+        pList.insert(&_rwidth);
+      }
 
-  public:
-    QCheckBox*            _enable;
-    NumericInt<unsigned>  _eventCode;
-    PolarityButton*       _polarity;
-    NumericInt<unsigned>  _delay;
-    NumericInt<unsigned>  _width;
-    QCheckBox*            _outputs[EvrPulseTable_V4::MaxOutputs];
-    QCheckBox*            _readout;
-    QCheckBox*            _terminator;
-    NumericInt<unsigned>  _rdelay;
-    NumericInt<unsigned>  _rwidth;
+    public:
+      QCheckBox*            _enable;
+      NumericInt<unsigned>  _eventCode;
+      PolarityButton*       _polarity;
+      NumericInt<unsigned>  _delay;
+      NumericInt<unsigned>  _width;
+      QCheckBox*            _outputs[EvrPulseTable_V4::MaxOutputs];
+      QCheckBox*            _readout;
+      QCheckBox*            _terminator;
+      NumericInt<unsigned>  _rdelay;
+      NumericInt<unsigned>  _rwidth;
+    };
   };
 };
 
-using namespace Pds_ConfigDb;
+using namespace Pds_ConfigDb::EvrConfig_V4;
 
-EvrPulseTable_V4::EvrPulseTable_V4(const EvrConfig_V4& c) : 
+EvrPulseTable_V4::EvrPulseTable_V4(const EvrConfig& c) : 
   Parameter(NULL),
   _cfg(c)
 {
@@ -173,11 +173,10 @@ void EvrPulseTable_V4::insert(Pds::LinkedList<Parameter>& pList)
     _pulses[i]->insert(_pList);
 }
 
-int EvrPulseTable_V4::pull(const void* from) {
-  const EvrConfigType& tc = *reinterpret_cast<const EvrConfigType*>(from);
+int EvrPulseTable_V4::pull(const EvrConfigType& tc) {
   unsigned npulses = 0;
   for(unsigned i=0; i<tc.neventcodes(); i++) {
-    const EvrConfigType::EventCodeType& ec = tc.eventcode(i);
+    const EventCodeType& ec = tc.eventcodes()[i];
     unsigned m = ec.maskTrigger();
     if (m==0) {
       Pulse_V4& p = *_pulses[npulses];
@@ -202,7 +201,7 @@ int EvrPulseTable_V4::pull(const void* from) {
 	  p._terminator->setChecked(ec.isTerminator());
 	  p._rdelay     .value = ec.reportDelay();
 	  p._rwidth     .value = ec.reportWidth();
-	  const EvrConfigType::PulseType& pt = tc.pulse(j);
+	  const PulseType& pt = tc.pulses()[j];
 	  p._polarity  ->setState(pt.polarity()==Pds_ConfigDb::Enums::Pos ? 
 				  PolarityButton::Pos : PolarityButton::Neg);
 	  p._delay      .value = pt.delay();
@@ -210,8 +209,8 @@ int EvrPulseTable_V4::pull(const void* from) {
 	  for(unsigned k=0; k<MaxOutputs; k++)
 	    p._outputs[k]->setChecked(false);
 	  for(unsigned k=0; k<tc.noutputs(); k++) {
-	    const EvrConfigType::OutputMapType& om = tc.output_map(k);
-	    if ( om.source()==EvrConfigType::OutputMapType::Pulse &&
+	    const OutputMapType& om = tc.output_maps()[k];
+	    if ( om.source()==OutputMapType::Pulse &&
 		 om.source_id()==j )
 	      p._outputs[om.conn_id()]->setChecked(true);
 				       
@@ -228,16 +227,16 @@ int EvrPulseTable_V4::pull(const void* from) {
 
   update_eventcode();
 
-  return tc.size();
+  return tc._sizeof();
 }
 
 int EvrPulseTable_V4::push(void* to) const {
 
   unsigned nom = 0;
-  EvrConfigType::OutputMapType* om = new EvrConfigType::OutputMapType[MaxOutputs];
+  OutputMapType* om = new OutputMapType[MaxOutputs];
 
   unsigned npt = 0;
-  EvrConfigType::PulseType*     pt = new EvrConfigType::PulseType    [MaxPulses];
+  PulseType*     pt = new PulseType    [MaxPulses];
 
   for(unsigned i=0; i<MaxPulses; i++) {
     const Pulse_V4& p = *_pulses[i];
@@ -247,21 +246,21 @@ int EvrPulseTable_V4::push(void* to) const {
     if (p._polarity->state() == PolarityButton::None)
       continue;
 
-    *new(&pt[npt]) EvrConfigType::PulseType(npt, 
-					    p._polarity->state() == PolarityButton::Pos ? 0 : 1,
-					    1,
-					    p._delay.value,
-					    p._width.value);
+    *new(&pt[npt]) PulseType(npt, 
+                             p._polarity->state() == PolarityButton::Pos ? 0 : 1,
+                             1,
+                             p._delay.value,
+                             p._width.value);
     for(unsigned j=0; j<MaxOutputs; j++) {
       if (p._outputs[j]->isChecked())
-	*new(&om[nom++]) EvrConfigType::OutputMapType( EvrConfigType::OutputMapType::Pulse, npt,
-						       EvrConfigType::OutputMapType::UnivIO, j );
+	*new(&om[nom++]) OutputMapType( OutputMapType::Pulse, npt,
+					OutputMapType::UnivIO, j );
     }
     npt++;
   }
 
   unsigned nec = 0;
-  EvrConfigType::EventCodeType* ec = new EvrConfigType::EventCodeType[MaxPulses];
+  EventCodeType* ec = new EventCodeType[MaxPulses];
 
   unsigned pulseMask = 1;
   for(unsigned i=0; i<MaxPulses; i++) {
@@ -278,37 +277,36 @@ int EvrPulseTable_V4::push(void* to) const {
     bool lunique = true;
     for(unsigned i=0; i<nec; i++)
       if (ec[i].code() == p._eventCode.value) {
-	*new(&ec[i]) EvrConfigType::EventCodeType(ec[i].code(),
-						  ec[i].isReadout(),
-						  ec[i].isTerminator(),
-						  ec[i].reportDelay(),
-						  ec[i].reportWidth(),
-						  ec[i].maskTrigger() | pm,
-						  0, 
-						  0);
+	*new(&ec[i]) EventCodeType(ec[i].code(),
+                                   ec[i].isReadout(),
+                                   ec[i].isTerminator(),
+                                   ec[i].reportDelay(),
+                                   ec[i].reportWidth(),
+                                   ec[i].maskTrigger() | pm,
+                                   0, 
+                                   0);
 	lunique = false;
 	break;
       }
     if (lunique)
-      *new(&ec[nec++]) EvrConfigType::EventCodeType(p._eventCode.value,
-						    p._readout->isChecked(),
-						    p._terminator->isChecked(),
-						    p._rdelay.value,
-						    p._rwidth.value,
-						    pm,
-						    0, 
-						    0);
+      *new(&ec[nec++]) EventCodeType(p._eventCode.value,
+                                     p._readout->isChecked(),
+                                     p._terminator->isChecked(),
+                                     p._rdelay.value,
+                                     p._rwidth.value,
+                                     pm,
+                                     0, 
+                                     0);
   }  
 
-  EvrConfigType& tc = *new(to) EvrConfigType(nec, ec,
-					     npt, pt,
-					     nom, om);
+  EvrConfigType& tc = *new(to) EvrConfigType(nec, npt, nom,
+                                             ec , pt , om);
 
   delete[] ec;
   delete[] pt;
   delete[] om;
 
-  return tc.size();
+  return tc._sizeof();
 }
 
 int EvrPulseTable_V4::dataSize() const {
@@ -330,7 +328,7 @@ int EvrPulseTable_V4::dataSize() const {
   }
 
   unsigned nec = 0;
-  EvrConfigType::EventCodeType* ec = new EvrConfigType::EventCodeType[MaxPulses];
+  EventCodeType* ec = new EventCodeType[MaxPulses];
 
   for(unsigned i=0; i<MaxPulses; i++) {
     const Pulse_V4& p = *_pulses[i];
@@ -340,34 +338,34 @@ int EvrPulseTable_V4::dataSize() const {
     bool lunique = true;
     for(unsigned i=0; i<nec; i++)
       if (ec[i].code() == p._eventCode.value) {
-	*new(&ec[i]) EvrConfigType::EventCodeType(ec[i].code(),
-						  ec[i].isReadout(),
-						  ec[i].isTerminator(),
-						  ec[i].reportDelay(),
-						  ec[i].reportWidth(),
-						  0,
-						  0, 
-						  0);
+	*new(&ec[i]) EventCodeType(ec[i].code(),
+                                   ec[i].isReadout(),
+                                   ec[i].isTerminator(),
+                                   ec[i].reportDelay(),
+                                   ec[i].reportWidth(),
+                                   0,
+                                   0, 
+                                   0);
 	lunique = false;
 	break;
       }
     if (lunique)
-      *new(&ec[nec++]) EvrConfigType::EventCodeType(p._eventCode.value,
-						    p._readout->isChecked(),
-						    p._terminator->isChecked(),
-						    p._rdelay.value,
-						    p._rwidth.value,
-						    0,
-						    0, 
-						    0);
+      *new(&ec[nec++]) EventCodeType(p._eventCode.value,
+                                     p._readout->isChecked(),
+                                     p._terminator->isChecked(),
+                                     p._rdelay.value,
+                                     p._rwidth.value,
+                                     0,
+                                     0, 
+                                     0);
   }  
 
   delete[] ec;
 
   return sizeof(EvrConfigType) + 
-    nec*sizeof(EvrConfigType::EventCodeType) +
-    npt*sizeof(EvrConfigType::PulseType) +
-    nom*sizeof(EvrConfigType::OutputMapType);
+    nec*sizeof(EventCodeType) +
+    npt*sizeof(PulseType) +
+    nom*sizeof(OutputMapType);
 }
 
 bool EvrPulseTable_V4::validate()
@@ -425,10 +423,10 @@ QLayout* EvrPulseTable_V4::initialize(QWidget* parent)
   const EvrIOConfigType* iocfg = reinterpret_cast<const EvrIOConfigType*>(GlobalCfg::fetch(_evrIOConfigType));
   if (iocfg)
     for(unsigned i=0; i<iocfg->nchannels(); i++)
-      _outputs[i] = new QrLabel(iocfg->channel(i).name());
+      _outputs[i] = new QrLabel(iocfg->channels()[i].name());
   else
     for(unsigned i=0; i<MaxOutputs; i++)
-      _outputs[i] = new QrLabel(QString::number(i));
+      _outputs[i] = new Pds_ConfigDb::QrLabel(QString::number(i));
 
   //  QString period = QString("%1%2%3%4 sec").arg(QChar(0x215F)).arg(QChar(0x2081)).arg(QChar(0x2082)).arg(QChar(0x2080));
   QString period("events");

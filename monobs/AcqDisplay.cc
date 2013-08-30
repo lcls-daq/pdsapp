@@ -2,8 +2,7 @@
 #include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/acqiris/ConfigV1.hh"
-#include "pdsdata/acqiris/DataDescV1.hh"
+#include "pdsdata/psddl/acqiris.ddl.h"
 
 #include "pds/mon/MonServerManager.hh"
 #include "pds/mon/MonGroup.hh"
@@ -145,7 +144,7 @@ int AcqDisplayConfigAction::process(const Xtc& xtc,
     Acqiris::ConfigV1& config = (*(Acqiris::ConfigV1*)(xtc.payload()));
     _disp.request(xtc.src,config);
     _dispprofile.request(xtc.src,config);
-    Acqiris::HorizV1& horiz = config.horiz();
+    const Acqiris::HorizV1& horiz = config.horiz();
     
     unsigned channelMask = config.channelMask();
     unsigned chnum=0;
@@ -196,28 +195,26 @@ int AcqDisplayL1Action::process(const Xtc& xtc,
   if (_disp.requested(xtc.src) && (xtc.contains.id() == TypeId::Id_AcqWaveform)) {
     Acqiris::DataDescV1* ddesc = (Acqiris::DataDescV1*)(xtc.payload());
     const Acqiris::ConfigV1& config = *_disp.acqcfg(xtc.src);
-    const Acqiris::HorizV1& hcfg = config.horiz();
     MonCds& cds = _disp.cds();
 
     cds.payload_sem().take();  // make image update atomic
 
+    ndarray<const Acqiris::VertV1,1> vert = config.vert();
     for (unsigned i=0;i<config.nbrChannels();i++) {
-      const int16_t* data = ddesc->waveform(hcfg);
-      data += ddesc->indexFirstPoint();
-      float slope = config.vert(i).slope();
-      float offset = config.vert(i).offset();
+      ndarray<const int16_t,2> wfs = ddesc->data(config,i).waveforms(config);
+      float slope  = vert[i].slope();
+      float offset = vert[i].offset();
       MonEntryWaveform* entry = (MonEntryWaveform*)(_disp.entry(xtc.src,i));
       MonEntryProf* profentry = (MonEntryProf*)(_dispprofile.entry(xtc.src,i));
-      unsigned nbrSamples = hcfg.nbrSamples();
-      for (unsigned j=0;j<nbrSamples;j++) {
-        int16_t swap = (data[j]&0xff<<8) | (data[j]&0xff00>>8);
-        double val = swap*slope-offset;
-        entry->content(val,j);
+      for (unsigned j=0;j<wfs.shape()[1];j++) {
+        int16_t data = wfs[0][j];
+        //        data = (data&0xff<<8) | (data&0xff00>>8);
+        double val = data*slope-offset;
+        entry    ->content(val,j);
         profentry->addy(val,j);
       }
       entry->time(_now);
       profentry->time(_now);
-      ddesc = ddesc->nextChannel(hcfg);
     }
 
     cds.payload_sem().give();  // make image update atomic

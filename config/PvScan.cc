@@ -124,6 +124,7 @@ void PvScan::_fill_pvs(unsigned step, unsigned nsteps,
 						     control_v));
     else
       controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
+                                                     Pds::ControlData::PVControl::NoArray,
 						     control_v));
   }
   if (!readback_base.isEmpty()) {
@@ -134,6 +135,7 @@ void PvScan::_fill_pvs(unsigned step, unsigned nsteps,
 						     control_v + readback_o + readback_m));
     else
       monitors.push_back(Pds::ControlData::PVMonitor(qPrintable(readback_base),
+                                                     Pds::ControlData::PVMonitor::NoArray,
 						     control_v + readback_o - readback_m,
 						     control_v + readback_o + readback_m));
   }
@@ -147,10 +149,9 @@ int PvScan::write(unsigned step, unsigned nsteps, bool usePvs, const Pds::ClockT
   if (usePvs)
     _fill_pvs(step, nsteps, controls, monitors);
 
-  ControlConfigType* c = 
-    new (buff) ControlConfigType(controls, monitors, labels, ctime);
+  ControlConfigType* c = Pds::ControlConfig::_new(buff, controls, monitors, labels, ctime);
 
-  return c->size();
+  return c->_sizeof();
 }
 
 
@@ -162,10 +163,9 @@ int PvScan::write(unsigned step, unsigned nsteps, bool usePvs, unsigned nevents,
   if (usePvs)
     _fill_pvs(step, nsteps, controls, monitors);
 
-  ControlConfigType* c = 
-    new (buff) ControlConfigType(controls, monitors, labels, nevents);
+  ControlConfigType* c = Pds::ControlConfig::_new(buff, controls, monitors, labels, nevents);
 
-  return c->size();
+  return c->_sizeof();
 }
 
 void PvScan::read(const char* dbuf, int len)
@@ -173,32 +173,32 @@ void PvScan::read(const char* dbuf, int len)
   const ControlConfigType& cfg = 
     *reinterpret_cast<const ControlConfigType*>(dbuf);
 
-  int npts = len/cfg.size();
-  printf("cfg size %d/%d (%d)\n",cfg.size(),len,npts);
+  int npts = len/cfg._sizeof();
+  printf("cfg size %d/%d (%d)\n",cfg._sizeof(),len,npts);
 
   const ControlConfigType& lst = 
-    *reinterpret_cast<const ControlConfigType*>(dbuf+(npts-1)*cfg.size());
+    *reinterpret_cast<const ControlConfigType*>(dbuf+(npts-1)*cfg._sizeof());
 
   if (cfg.npvControls()) {
-    const Pds::ControlData::PVControl& ctl = cfg.pvControl(0);
+    const Pds::ControlData::PVControl& ctl = cfg.pvControls()[0];
     if (ctl.array())
       _control_name->setText(QString("%1[%2]").arg(ctl.name()).arg(ctl.index()));
     else
       _control_name->setText(QString(ctl.name()));
 
-    _control_lo->setText(QString::number(cfg.pvControl(0).value()));
-    _control_hi->setText(QString::number(lst.pvControl(0).value()));
+    _control_lo->setText(QString::number(cfg.pvControls()[0].value()));
+    _control_hi->setText(QString::number(lst.pvControls()[0].value()));
   }
 
   if (cfg.npvMonitors()) {
-    const Pds::ControlData::PVMonitor& mon = cfg.pvMonitor(0);
+    const Pds::ControlData::PVMonitor& mon = cfg.pvMonitors()[0];
     if (mon.array())
       _readback_name->setText(QString("%1[%2]").arg(mon.name()).arg(mon.index()));
     else
       _readback_name->setText(QString(mon.name()));
 
     _readback_offset->setText(QString::number(0.5*(mon.loValue()+mon.hiValue())-
-					      cfg.pvControl(0).value()));
+					      cfg.pvControls()[0].value()));
     _readback_margin->setText(QString::number(0.5*(mon.hiValue()-mon.loValue())));
   }
 }

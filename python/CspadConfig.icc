@@ -14,11 +14,7 @@ static PyMethodDef pds_CspadConfig_methods[] = {
 DefineXtcType(CspadConfig) ;
 
   
-#include "pdsdata/cspad/ConfigV1.hh"
-#include "pdsdata/cspad/ConfigV2.hh"
-#include "pdsdata/cspad/ConfigV3.hh"
-#include "pdsdata/cspad/ConfigV4.hh"
-#include "pdsdata/cspad/ConfigV5.hh"
+#include "pdsdata/psddl/cspad.ddl.h"
 #include <new>
 
 using namespace Pds::CsPad;
@@ -53,19 +49,19 @@ static PyObject* get_quad(const ConfigV1QuadReg* cfg)
   SetMember(injTotal);
   SetMember(rowColShiftPer);
 
-  PyDict_SetItemString(o,"shiftTest",PyLong_FromLong(cfg->ro().shiftTest));
-  PyDict_SetItemString(o,"version"  ,PyLong_FromLong(cfg->ro().version));
+  PyDict_SetItemString(o,"shiftTest",PyLong_FromLong(cfg->ro().shiftTest()));
+  PyDict_SetItemString(o,"version"  ,PyLong_FromLong(cfg->ro().version()));
 
   { PyObject* l = PyList_New(PotsPerQuad);
     for(unsigned i=0; i<PotsPerQuad; i++)
-      PyList_SetItem(l,i,PyLong_FromLong(cfg->dp().value(i)));
+      PyList_SetItem(l,i,PyLong_FromLong(cfg->dp().pots()[i]));
     PyDict_SetItemString(o,"pots",l); }
 
   { PyObject* columns = PyList_New(ColumnsPerASIC);
     for(unsigned i=0; i<ColumnsPerASIC; i++) {
       PyObject* row = PyList_New(MaxRowsPerASIC);
       for(unsigned j=0; j<MaxRowsPerASIC; j++)
-        PyList_SetItem(row,j,PyLong_FromLong((*cfg->gm()->map())[i][j]));
+        PyList_SetItem(row,j,PyLong_FromLong(cfg->gm().gainMap()[i][j]));
       PyList_SetItem(columns,i,row); 
     }
     PyDict_SetItemString(o,"gain",columns); }
@@ -101,19 +97,19 @@ static PyObject* get_quad(const ConfigV2QuadReg* cfg)
   SetMember(digCount);
   SetMember(digPeriod);
 
-  PyDict_SetItemString(o,"shiftTest",PyLong_FromLong(cfg->ro().shiftTest));
-  PyDict_SetItemString(o,"version"  ,PyLong_FromLong(cfg->ro().version));
+  PyDict_SetItemString(o,"shiftTest",PyLong_FromLong(cfg->ro().shiftTest()));
+  PyDict_SetItemString(o,"version"  ,PyLong_FromLong(cfg->ro().version()));
 
   { PyObject* l = PyList_New(PotsPerQuad);
     for(unsigned i=0; i<PotsPerQuad; i++)
-      PyList_SetItem(l,i,PyLong_FromLong(cfg->dp().value(i)));
+      PyList_SetItem(l,i,PyLong_FromLong(cfg->dp().pots()[i]));
     PyDict_SetItemString(o,"pots",l); }
 
   { PyObject* columns = PyList_New(ColumnsPerASIC);
     for(unsigned i=0; i<ColumnsPerASIC; i++) {
       PyObject* row = PyList_New(MaxRowsPerASIC);
       for(unsigned j=0; j<MaxRowsPerASIC; j++)
-        PyList_SetItem(row,j,PyLong_FromLong((*cfg->gm()->map())[i][j]));
+        PyList_SetItem(row,j,PyLong_FromLong(cfg->gm().gainMap()[i][j]));
       PyList_SetItem(columns,i,row); 
     }
     PyDict_SetItemString(o,"gain",columns); }
@@ -149,19 +145,19 @@ static PyObject* get_quad(const ConfigV3QuadReg* cfg)
   SetMember(digCount);
   SetMember(digPeriod);
 
-  PyDict_SetItemString(o,"shiftTest",PyLong_FromLong(cfg->ro().shiftTest));
-  PyDict_SetItemString(o,"version"  ,PyLong_FromLong(cfg->ro().version));
+  PyDict_SetItemString(o,"shiftTest",PyLong_FromLong(cfg->ro().shiftTest()));
+  PyDict_SetItemString(o,"version"  ,PyLong_FromLong(cfg->ro().version()));
 
   { PyObject* l = PyList_New(PotsPerQuad);
     for(unsigned i=0; i<PotsPerQuad; i++)
-      PyList_SetItem(l,i,PyLong_FromLong(cfg->dp().value(i)));
+      PyList_SetItem(l,i,PyLong_FromLong(cfg->dp().pots()[i]));
     PyDict_SetItemString(o,"pots",l); }
 
   { PyObject* columns = PyList_New(ColumnsPerASIC);
     for(unsigned i=0; i<ColumnsPerASIC; i++) {
       PyObject* row = PyList_New(MaxRowsPerASIC);
       for(unsigned j=0; j<MaxRowsPerASIC; j++)
-        PyList_SetItem(row,j,PyLong_FromLong((*cfg->gm()->map())[i][j]));
+        PyList_SetItem(row,j,PyLong_FromLong(cfg->gm().gainMap()[i][j]));
       PyList_SetItem(columns,i,row); 
     }
     PyDict_SetItemString(o,"gain",columns); }
@@ -206,7 +202,7 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
 
     { PyObject* l = PyList_New(MaxQuadsPerSensor);
       for(unsigned i=0; i<MaxQuadsPerSensor; i++)
-        PyList_SetItem(l,i,get_quad(&cfg->quads()[i]));
+        PyList_SetItem(l,i,get_quad(&cfg->quads(i)));
       PyDict_SetItemString(o,"quads",l); }
 
     return o;
@@ -235,7 +231,7 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
 
     { PyObject* l = PyList_New(MaxQuadsPerSensor);
       for(unsigned i=0; i<MaxQuadsPerSensor; i++)
-        PyList_SetItem(l,i,get_quad(&cfg->quads()[i]));
+        PyList_SetItem(l,i,get_quad(&cfg->quads(i)));
       PyDict_SetItemString(o,"quads",l); }
 
     return o;
@@ -264,17 +260,17 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
 
     { PyObject* l = PyList_New(MaxQuadsPerSensor);
       for(unsigned i=0; i<MaxQuadsPerSensor; i++)
-        PyList_SetItem(l,i,get_quad(&cfg->quads()[i]));
+        PyList_SetItem(l,i,get_quad(&cfg->quads(i)));
       PyDict_SetItemString(o,"quads",l); }
 
     { PyObject* l = PyList_New(MaxQuadsPerSensor);
-      const Pds::CsPad::ProtectionSystemThreshold* pst = cfg->protectionThresholds();
+      ndarray<const Pds::CsPad::ProtectionSystemThreshold,1> pst = cfg->protectionThresholds();
       for(unsigned i=0; i<MaxQuadsPerSensor; i++) {
 	PyObject* p = PyDict_New();
         PyDict_SetItemString(p,"adcThreshold",
-                             PyLong_FromLong(pst[i].adcThreshold));
+                             PyLong_FromLong(pst[i].adcThreshold()));
         PyDict_SetItemString(p,"pixelCountThreshold",
-                             PyLong_FromLong(pst[i].pixelCountThreshold));
+                             PyLong_FromLong(pst[i].pixelCountThreshold()));
         PyList_SetItem(l,i,p); 
       }
       PyDict_SetItemString(o,"protectionEnable",
@@ -307,17 +303,17 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
 
     { PyObject* l = PyList_New(MaxQuadsPerSensor);
       for(unsigned i=0; i<MaxQuadsPerSensor; i++)
-        PyList_SetItem(l,i,get_quad(&cfg->quads()[i]));
+        PyList_SetItem(l,i,get_quad(&cfg->quads(i)));
       PyDict_SetItemString(o,"quads",l); }
 
     { PyObject* l = PyList_New(MaxQuadsPerSensor);
-      const Pds::CsPad::ProtectionSystemThreshold* pst = cfg->protectionThresholds();
+      ndarray<const Pds::CsPad::ProtectionSystemThreshold,1> pst = cfg->protectionThresholds();
       for(unsigned i=0; i<MaxQuadsPerSensor; i++) {
 	PyObject* p = PyDict_New();
         PyDict_SetItemString(p,"adcThreshold",
-                             PyLong_FromLong(pst[i].adcThreshold));
+                             PyLong_FromLong(pst[i].adcThreshold()));
         PyDict_SetItemString(p,"pixelCountThreshold",
-                             PyLong_FromLong(pst[i].pixelCountThreshold));
+                             PyLong_FromLong(pst[i].pixelCountThreshold()));
         PyList_SetItem(l,i,p); 
       }
       PyDict_SetItemString(o,"protectionEnable",
@@ -351,17 +347,17 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
 
     { PyObject* l = PyList_New(MaxQuadsPerSensor);
       for(unsigned i=0; i<MaxQuadsPerSensor; i++)
-        PyList_SetItem(l,i,get_quad(&cfg->quads()[i]));
+        PyList_SetItem(l,i,get_quad(&cfg->quads(i)));
       PyDict_SetItemString(o,"quads",l); }
 
     { PyObject* l = PyList_New(MaxQuadsPerSensor);
-      const Pds::CsPad::ProtectionSystemThreshold* pst = cfg->protectionThresholds();
+      ndarray<const Pds::CsPad::ProtectionSystemThreshold,1> pst = cfg->protectionThresholds();
       for(unsigned i=0; i<MaxQuadsPerSensor; i++) {
     PyObject* p = PyDict_New();
         PyDict_SetItemString(p,"adcThreshold",
-                             PyLong_FromLong(pst[i].adcThreshold));
+                             PyLong_FromLong(pst[i].adcThreshold()));
         PyDict_SetItemString(p,"pixelCountThreshold",
-                             PyLong_FromLong(pst[i].pixelCountThreshold));
+                             PyLong_FromLong(pst[i].pixelCountThreshold()));
         PyList_SetItem(l,i,p); 
       }
       PyDict_SetItemString(o,"protectionEnable",
@@ -428,6 +424,20 @@ static bool set_quad(ConfigV1QuadReg* cfg,
   SetMember(injTotal);
   SetMember(rowColShiftPer);
 
+  uint8_t pots[PotsPerQuad];
+  PyObject* l;
+  if ((l = PyDict_GetItemString(o,"pots")))
+    for(unsigned i=0; i<PotsPerQuad; i++)
+      pots[i] = PyLong_AsLong(PyList_GetItem(l,i));
+
+  ndarray<uint16_t,2> gainmap = make_ndarray<uint16_t>(ColumnsPerASIC,MaxRowsPerASIC);
+  if ((l = PyDict_GetItemString(o,"gain")))
+    for(unsigned i=0; i<ColumnsPerASIC; i++) {
+      PyObject* row = PyList_GetItem(l,i);
+      for(unsigned j=0; j<MaxRowsPerASIC; j++)
+        gainmap[i][j] = PyLong_AsLong(PyList_GetItem(row,j));
+    }
+
   *cfg= ConfigV1QuadReg(shiftSelect,
 			edgeSelect,
 		        readClkSet,
@@ -439,19 +449,10 @@ static bool set_quad(ConfigV1QuadReg* cfg,
                         digDelay,
                         ampIdle,
                         injTotal,
-                        rowColShiftPer);
-
-  PyObject* l;
-  if ((l = PyDict_GetItemString(o,"pots")))
-    for(unsigned i=0; i<PotsPerQuad; i++)
-      cfg->dp().pots[i] = PyLong_AsLong(PyList_GetItem(l,i));
-
-  if ((l = PyDict_GetItemString(o,"gain")))
-    for(unsigned i=0; i<ColumnsPerASIC; i++) {
-      PyObject* row = PyList_GetItem(l,i);
-      for(unsigned j=0; j<MaxRowsPerASIC; j++)
-        (*cfg->gm()->map())[i][j] = PyLong_AsLong(PyList_GetItem(row,j));
-    }
+                        rowColShiftPer,
+                        CsPadReadOnlyCfg(),
+                        CsPadDigitalPotsCfg(pots),
+                        CsPadGainMapCfg(gainmap.data()));
 
   return true;
 }
@@ -497,6 +498,21 @@ static bool set_quad(ConfigV2QuadReg* cfg,
   SetMemberDef(digCount,0x3fff);
   SetMemberDef(digPeriod,0xc);
 
+  uint8_t pots[PotsPerQuad];
+  PyObject* l;
+  if ((l = PyDict_GetItemString(o,"pots")))
+    for(unsigned i=0; i<PotsPerQuad; i++)
+      pots[i] = PyLong_AsLong(PyList_GetItem(l,i));
+
+  ndarray<uint16_t,2> gainmap = make_ndarray<uint16_t>(ColumnsPerASIC,MaxRowsPerASIC);
+  if ((l = PyDict_GetItemString(o,"gain")))
+    for(unsigned i=0; i<ColumnsPerASIC; i++) {
+      PyObject* row = PyList_GetItem(l,i);
+      for(unsigned j=0; j<MaxRowsPerASIC; j++)
+        gainmap[i][j] = PyLong_AsLong(PyList_GetItem(row,j));
+    }
+
+
   *cfg= ConfigV2QuadReg(shiftSelect,
 			edgeSelect,
 		        readClkSet,
@@ -511,19 +527,10 @@ static bool set_quad(ConfigV2QuadReg* cfg,
                         rowColShiftPer,
                         ampReset,
                         digCount,
-                        digPeriod);
-
-  PyObject* l;
-  if ((l = PyDict_GetItemString(o,"pots")))
-    for(unsigned i=0; i<PotsPerQuad; i++)
-      cfg->dp().pots[i] = PyLong_AsLong(PyList_GetItem(l,i));
-
-  if ((l = PyDict_GetItemString(o,"gain")))
-    for(unsigned i=0; i<ColumnsPerASIC; i++) {
-      PyObject* row = PyList_GetItem(l,i);
-      for(unsigned j=0; j<MaxRowsPerASIC; j++)
-        (*cfg->gm()->map())[i][j] = PyLong_AsLong(PyList_GetItem(row,j));
-    }
+                        digPeriod,
+                        CsPadReadOnlyCfg(),
+                        CsPadDigitalPotsCfg(pots),
+                        CsPadGainMapCfg(gainmap.data()));
 
   return true;
 }
@@ -571,6 +578,20 @@ static bool set_quad(ConfigV3QuadReg* cfg,
   SetMemberDef(biasTuning,0x3333);
   SetMemberDef(pdpmndnmBalance,0);
 
+  uint8_t pots[PotsPerQuad];
+  PyObject* l;
+  if ((l = PyDict_GetItemString(o,"pots")))
+    for(unsigned i=0; i<PotsPerQuad; i++)
+      pots[i] = PyLong_AsLong(PyList_GetItem(l,i));
+
+  ndarray<uint16_t,2> gainmap = make_ndarray<uint16_t>(ColumnsPerASIC,MaxRowsPerASIC);
+  if ((l = PyDict_GetItemString(o,"gain")))
+    for(unsigned i=0; i<ColumnsPerASIC; i++) {
+      PyObject* row = PyList_GetItem(l,i);
+      for(unsigned j=0; j<MaxRowsPerASIC; j++)
+        gainmap[i][j] = PyLong_AsLong(PyList_GetItem(row,j));
+    }
+
   *cfg= ConfigV3QuadReg(shiftSelect,
             edgeSelect,
                 readClkSet,
@@ -587,19 +608,10 @@ static bool set_quad(ConfigV3QuadReg* cfg,
                         digCount,
                         digPeriod,
                         biasTuning,
-                        pdpmndnmBalance);
-
-  PyObject* l;
-  if ((l = PyDict_GetItemString(o,"pots")))
-    for(unsigned i=0; i<PotsPerQuad; i++)
-      cfg->dp().pots[i] = PyLong_AsLong(PyList_GetItem(l,i));
-
-  if ((l = PyDict_GetItemString(o,"gain")))
-    for(unsigned i=0; i<ColumnsPerASIC; i++) {
-      PyObject* row = PyList_GetItem(l,i);
-      for(unsigned j=0; j<MaxRowsPerASIC; j++)
-        (*cfg->gm()->map())[i][j] = PyLong_AsLong(PyList_GetItem(row,j));
-    }
+                        pdpmndnmBalance,
+                        CsPadReadOnlyCfg(),
+                        CsPadDigitalPotsCfg(pots),
+                        CsPadGainMapCfg(gainmap.data()));
 
   return true;
 }
@@ -608,6 +620,7 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
 {
   PyObject* o = 0;
   int icycle = 0;
+  PyObject* i;
   if (PyArg_ParseTuple(args,"O|I",&o,&icycle)==0)
     return NULL;
 
@@ -641,8 +654,18 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
     SetMember(badAsicMask1);
     SetMember(asicMask);
     SetMember(quadMask);
+
+    ConfigV1QuadReg quads[4];
+    PyObject* i = PyDict_GetItemString(o,"quads");
+    if (i) {
+      for(unsigned q=0; q<PyList_Size(i); q++)
+        if (!set_quad(&quads[q],PyList_GetItem(i,q))) {
+          Py_DECREF(o);
+          return NULL;
+        }
+    }
   
-    new(ubegin) ConfigV1(runDelay, 
+    new(ubegin) ConfigV1(0,    runDelay, 
                                eventCode,
                                inactiveRunMode,
                                activeRunMode,
@@ -651,17 +674,9 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
                                badAsicMask0,
                                badAsicMask1,
                                asicMask,
-                               quadMask);
+                               quadMask,
+                               quads);
     
-    PyObject* i = PyDict_GetItemString(o,"quads");
-    if (i) {
-      for(unsigned q=0; q<PyList_Size(i); q++)
-        if (!set_quad(&cfg->quads()[q],PyList_GetItem(i,q))) {
-          Py_DECREF(o);
-          return NULL;
-        }
-    }
-
   }
   else if (xtc->contains.version()==2) {
     ConfigV2* cfg = 
@@ -689,7 +704,17 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
         roiMask |= cfg->roiMask(i)<<(i*ASICsPerQuad/2);
     }
 
-    new(ubegin) ConfigV2(runDelay, 
+    ConfigV1QuadReg quads[4];
+    PyObject* i = PyDict_GetItemString(o,"quads");
+    if (i) {
+      for(unsigned q=0; q<PyList_Size(i); q++)
+        if (!set_quad(&quads[q],PyList_GetItem(i,q))) {
+          Py_DECREF(o);
+          return NULL;
+        }
+    }
+  
+    new(ubegin) ConfigV2(0,    runDelay, 
                                eventCode,
                                inactiveRunMode,
                                activeRunMode,
@@ -699,16 +724,9 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
                                badAsicMask1,
                                asicMask,
                                quadMask,
-                               roiMask);
+                               roiMask,
+                               quads);
     
-    PyObject* i = PyDict_GetItemString(o,"quads");
-    if (i) {
-      for(unsigned q=0; q<PyList_Size(i); q++)
-        if (!set_quad(&cfg->quads()[q],PyList_GetItem(i,q))) {
-          Py_DECREF(o);
-          return NULL;
-        }
-    }
   }
   else if (xtc->contains.version()==3) {
     ConfigV3* cfg = 
@@ -736,8 +754,37 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
         roiMask |= cfg->roiMask(i)<<(i*ASICsPerQuad/2);
     }
 
-    new(ubegin) ConfigV3(runDelay, 
+    ProtectionSystemThreshold pth[4];
+    PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
+    if (pst) {
+      for(unsigned q=0; q<PyList_Size(pst); q++) {
+	unsigned adcThreshold, pixelCountThreshold;
+        PyObject* it = PyList_GetItem(pst,q);
+        if ((i=PyDict_GetItemString(it,"adcThreshold")))
+          adcThreshold = PyLong_AsLong(i);
+        if ((i=PyDict_GetItemString(it,"pixelCountThreshold")))
+          pixelCountThreshold = PyLong_AsLong(i);
+        pth[q] = ProtectionSystemThreshold(adcThreshold,pixelCountThreshold);
+      }
+    }    
+
+    unsigned enable=0;
+    if((i=PyDict_GetItemString(o,"protectionEnable")))
+      enable = PyLong_AsLong(i);
+
+    ConfigV1QuadReg quads[4];
+    PyObject* i = PyDict_GetItemString(o,"quads");
+    if (i) {
+      for(unsigned q=0; q<PyList_Size(i); q++)
+        if (!set_quad(&quads[q],PyList_GetItem(i,q))) {
+          Py_DECREF(o);
+          return NULL;
+        }
+    }
+  
+    new(ubegin) ConfigV3(0,    runDelay, 
                                eventCode,
+                               pth, enable,
                                inactiveRunMode,
                                activeRunMode,
                                tdi,
@@ -746,30 +793,9 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
                                badAsicMask1,
                                asicMask,
                                quadMask,
-                               roiMask);
+                               roiMask,
+                               quads);
     
-    PyObject* i = PyDict_GetItemString(o,"quads");
-    if (i) {
-      for(unsigned q=0; q<PyList_Size(i); q++)
-        if (!set_quad(&cfg->quads()[q],PyList_GetItem(i,q))) {
-          Py_DECREF(o);
-          return NULL;
-        }
-    }
-
-    PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
-    if (pst) {
-      for(unsigned q=0; q<PyList_Size(pst); q++) {
-        PyObject* it = PyList_GetItem(pst,q);
-        if ((i=PyDict_GetItemString(it,"adcThreshold")))
-          cfg->protectionThresholds()[q].adcThreshold = PyLong_AsLong(i);
-        if ((i=PyDict_GetItemString(it,"pixelCountThreshold")))
-          cfg->protectionThresholds()[q].pixelCountThreshold = PyLong_AsLong(i);
-      }
-    }    
-
-    if((i=PyDict_GetItemString(o,"protectionEnable")))
-      cfg->protectionEnable(PyLong_AsLong(i));
   }
   else if (xtc->contains.version()==4) {
     ConfigV4* cfg = 
@@ -797,9 +823,38 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
         roiMask |= cfg->roiMask(i)<<(i*ASICsPerQuad/2);
     }
 
-    new(ubegin) ConfigV4(runDelay, 
-              	         eventCode,
-                	 inactiveRunMode,
+    ProtectionSystemThreshold pth[4];
+    PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
+    if (pst) {
+      for(unsigned q=0; q<PyList_Size(pst); q++) {
+	unsigned adcThreshold, pixelCountThreshold;
+        PyObject* it = PyList_GetItem(pst,q);
+        if ((i=PyDict_GetItemString(it,"adcThreshold")))
+          adcThreshold = PyLong_AsLong(i);
+        if ((i=PyDict_GetItemString(it,"pixelCountThreshold")))
+          pixelCountThreshold = PyLong_AsLong(i);
+        pth[q] = ProtectionSystemThreshold(adcThreshold,pixelCountThreshold);
+      }
+    }    
+
+    unsigned enable=0;
+    if((i=PyDict_GetItemString(o,"protectionEnable")))
+      enable = PyLong_AsLong(i);
+
+    ConfigV2QuadReg quads[4];
+    PyObject* i = PyDict_GetItemString(o,"quads");
+    if (i) {
+      for(unsigned q=0; q<PyList_Size(i); q++)
+        if (!set_quad(&quads[q],PyList_GetItem(i,q))) {
+          Py_DECREF(o);
+          return NULL;
+        }
+    }
+  
+    new(ubegin) ConfigV4(0,    runDelay, 
+              	               eventCode,
+                               pth, enable,
+                 	       inactiveRunMode,
                                activeRunMode,
                                tdi,
                                payloadSize, 
@@ -807,30 +862,9 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
                                badAsicMask1,
                                asicMask,
                                quadMask,
-                               roiMask);
+                               roiMask,
+                               quads);
     
-    PyObject* i = PyDict_GetItemString(o,"quads");
-    if (i) {
-      for(unsigned q=0; q<PyList_Size(i); q++)
-        if (!set_quad(&cfg->quads()[q],PyList_GetItem(i,q))) {
-          Py_DECREF(o);
-          return NULL;
-        }
-    }
-
-    PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
-    if (pst) {
-      for(unsigned q=0; q<PyList_Size(pst); q++) {
-        PyObject* it = PyList_GetItem(pst,q);
-        if ((i=PyDict_GetItemString(it,"adcThreshold")))
-          cfg->protectionThresholds()[q].adcThreshold = PyLong_AsLong(i);
-        if ((i=PyDict_GetItemString(it,"pixelCountThreshold")))
-          cfg->protectionThresholds()[q].pixelCountThreshold = PyLong_AsLong(i);
-      }
-    }    
-
-    if((i=PyDict_GetItemString(o,"protectionEnable")))
-      cfg->protectionEnable(PyLong_AsLong(i));
   }
   else if (xtc->contains.version()==5) {
     ConfigV5* cfg = 
@@ -859,8 +893,37 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
         roiMask |= cfg->roiMask(i)<<(i*ASICsPerQuad/2);
     }
 
-    new(ubegin) ConfigV5(runDelay, 
+    ProtectionSystemThreshold pth[4];
+    PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
+    if (pst) {
+      for(unsigned q=0; q<PyList_Size(pst); q++) {
+	unsigned adcThreshold, pixelCountThreshold;
+        PyObject* it = PyList_GetItem(pst,q);
+        if ((i=PyDict_GetItemString(it,"adcThreshold")))
+          adcThreshold = PyLong_AsLong(i);
+        if ((i=PyDict_GetItemString(it,"pixelCountThreshold")))
+          pixelCountThreshold = PyLong_AsLong(i);
+        pth[q] = ProtectionSystemThreshold(adcThreshold,pixelCountThreshold);
+      }
+    }    
+
+    unsigned enable=0;
+    if((i=PyDict_GetItemString(o,"protectionEnable")))
+      enable = PyLong_AsLong(i);
+
+    ConfigV3QuadReg quads[4];
+    PyObject* i = PyDict_GetItemString(o,"quads");
+    if (i) {
+      for(unsigned q=0; q<PyList_Size(i); q++)
+        if (!set_quad(&quads[q],PyList_GetItem(i,q))) {
+          Py_DECREF(o);
+          return NULL;
+        }
+    }
+  
+    new(ubegin) ConfigV5(0, runDelay, 
                          eventCode,
+                         pth, enable,
                          inactiveRunMode,
                          activeRunMode,
                          internalTriggerDelay,
@@ -870,30 +933,9 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
                          badAsicMask1,
                          asicMask,
                          quadMask,
-                         roiMask);
+                         roiMask,
+                         quads);
     
-    PyObject* i = PyDict_GetItemString(o,"quads");
-    if (i) {
-      for(unsigned q=0; q<PyList_Size(i); q++)
-        if (!set_quad(&cfg->quads()[q],PyList_GetItem(i,q))) {
-          Py_DECREF(o);
-          return NULL;
-        }
-    }
-
-    PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
-    if (pst) {
-      for(unsigned q=0; q<PyList_Size(pst); q++) {
-        PyObject* it = PyList_GetItem(pst,q);
-        if ((i=PyDict_GetItemString(it,"adcThreshold")))
-          cfg->protectionThresholds()[q].adcThreshold = PyLong_AsLong(i);
-        if ((i=PyDict_GetItemString(it,"pixelCountThreshold")))
-          cfg->protectionThresholds()[q].pixelCountThreshold = PyLong_AsLong(i);
-      }
-    }    
-
-    if((i=PyDict_GetItemString(o,"protectionEnable")))
-      cfg->protectionEnable(PyLong_AsLong(i));
   }
   else {
     return NULL;

@@ -9,8 +9,8 @@
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/XtcFileIterator.hh"
-#include "pdsdata/camera/FrameV1.hh"
-#include "pdsdata/pnCCD/fformat.h"
+#include "pdsdata/psddl/camera.ddl.h"
+#include "pdsapp/devtest/fformat.h"
 #include "pds/service/GenericPool.hh"
 #include "pds/xtc/Datagram.hh"
 

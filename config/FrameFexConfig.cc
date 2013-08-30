@@ -54,13 +54,13 @@ namespace Pds_ConfigDb {
       _forwarding.value = tc.forwarding();
       _fwd_prescale.value = tc.forward_prescale();
       _processing.value    = tc.processing();
-      _roi_begin_col.value = tc.roiBegin().column;
-      _roi_begin_row.value = tc.roiBegin().row;
-      _roi_end_col.value = tc.roiEnd().column;
-      _roi_end_row.value = tc.roiEnd().row;
+      _roi_begin_col.value = tc.roiBegin().column();
+      _roi_begin_row.value = tc.roiBegin().row();
+      _roi_end_col.value = tc.roiEnd().column();
+      _roi_end_row.value = tc.roiEnd().row();
       _threshold.value   = tc.threshold();
       _masked_pixels.value = NoPixels;
-      return tc.size();
+      return tc._sizeof();
     }
 
     int push(void* to) {
@@ -74,7 +74,7 @@ namespace Pds_ConfigDb {
 							    _roi_end_row.value),
 				    _threshold.value,
 				    0, 0);
-      return tc.size();
+      return tc._sizeof();
     }
 
     int dataSize() const {

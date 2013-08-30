@@ -14,7 +14,6 @@
 #include <QtGui/QLabel>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
-#include <QtGui/QLabel>
 #include <QtGui/QButtonGroup>
 #include <QtGui/QCheckBox>
 #include <QtGui/QPushButton>
@@ -209,7 +208,7 @@ bool PartitionSelect::_checkReadGroupEnable()
   
   static const unsigned MaxUserCodes      = 16;
   static const unsigned MaxGlobalCodes    = 4;  
-  int iMaxEvrDataSize = sizeof(EvrConfigType) + (MaxUserCodes+MaxGlobalCodes) * sizeof(EvrConfigType::EventCodeType);
+  int iMaxEvrDataSize = sizeof(EvrConfigType) + (MaxUserCodes+MaxGlobalCodes) * sizeof(EventCodeType);
   char* lcConfigBuffer = (char*) malloc( iMaxEvrDataSize );
   if ( lcConfigBuffer == NULL )
   {
@@ -240,7 +239,7 @@ bool PartitionSelect::_checkReadGroupEnable()
   bool bEneableReadoutGroup = false;
   for(unsigned i=0; i<evrConfig.neventcodes(); i++) 
   {
-    const EvrConfigType::EventCodeType& e = evrConfig.eventcode(i);
+    const EventCodeType& e = evrConfig.eventcodes()[i];
     if (e.readoutGroup() > 1)
       bEneableReadoutGroup = true;
   }

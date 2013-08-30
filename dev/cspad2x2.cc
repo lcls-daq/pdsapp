@@ -11,7 +11,7 @@
 #include "pds/cspad2x2/Cspad2x2Manager.hh"
 #include "pds/cspad2x2/Cspad2x2Server.hh"
 #include "pds/config/CfgClientNfs.hh"
-#include "pdsdata/cspad2x2/ElementV1.hh"
+#include "pdsdata/psddl/cspad2x2.ddl.h"
 
 #include "pds/client/FrameCompApp.hh"
 

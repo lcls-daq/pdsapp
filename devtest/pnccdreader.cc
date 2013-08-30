@@ -8,11 +8,10 @@
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/XtcFileIterator.hh"
-#include "pdsdata/pnCCD/ConfigV1.hh"
-#include "pdsdata/pnCCD/FrameV1.hh"
+#include "pdsdata/psddl/pnccd.ddl.h"
 #include "pdsapp/tools/PnccdFrameDetail.hh"
 
-static PNCCD::ConfigV1 cfg;
+static PNCCD::ConfigV1 cfg(0,0);
 
 static unsigned short expectedPattern[] = {0xfedc,0xba98,0x7654,0};
 static unsigned cpoframes=0;
@@ -27,7 +26,7 @@ public:
   myLevelIter(Xtc* xtc, unsigned depth) : XtcIterator(xtc), _depth(depth) {}
 
   void patternCheck(unsigned link, const PNCCD::FrameV1* f) {
-    PNCCD::Line* line = (PNCCD::Line*)(const_cast<uint16_t*>(f->data()));
+    PNCCD::Line* line = (PNCCD::Line*)(const_cast<uint16_t*>(f->data(cfg).data()));
     expectedPattern[3]=0;
     for (unsigned j=0;j<PNCCD::ImageQuadrant::NumLines;j++) {
       for (unsigned k=0;k<PNCCD::Camex::NumChan;k++) {
@@ -46,16 +45,15 @@ public:
     }
   }
 
-  void process(const DetInfo& d, const PNCCD::FrameV1* f) {
+  void process(const DetInfo& d, const PNCCD::FramesV1* f) {
     cpoframes++;
-    for (unsigned i=0;i<cfg.numLinks();i++) {
+    for (unsigned i=0;i<f->numLinks(cfg);i++) {
 //       printf("*** Processing pnCCD frame number %x segment %d time 0x%x/0x%x\n",f->frameNumber(),i,f->timeStampHi(),f->timeStampLo());
 //       const uint16_t* data = f->data();
 //       unsigned last  = f->sizeofData(cfg); 
 //       printf("First data words: 0x%4.4x 0x%4.4x\n",data[0],data[1]);
 //       printf("Last  data words: 0x%4.4x 0x%4.4x\n",data[last-2],data[last-1]);
-      patternCheck(i,f);
-      f = f->next(cfg);
+      patternCheck(i,&f->frame(cfg,i));
     }
   }
 
@@ -79,12 +77,16 @@ public:
       iter.iterate();
       break;
     }
-    case (TypeId::Id_pnCCDframe) :
-      process(info, (const PNCCD::FrameV1*)(xtc->payload()));
+    case Pds::PNCCD::FramesV1::TypeId:
+      process(info, (const PNCCD::FramesV1*)(xtc->payload()));
       break;
-    case (TypeId::Id_pnCCDconfig) :
-      process(info, *(const PNCCD::ConfigV1*)(xtc->payload()));
-      break;
+    case Pds::PNCCD::ConfigV1::TypeId:
+      switch (xtc->contains.version()) {
+      case Pds::PNCCD::ConfigV1::Version:
+        process(info, *(const PNCCD::ConfigV1*)(xtc->payload()));
+      default:
+        break;
+      }
     default :
       break;
     }

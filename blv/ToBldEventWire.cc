@@ -16,7 +16,7 @@
 #include "pds/xtc/EvrDatagram.hh"
 #include "pds/service/Ins.hh"
 #include "pds/service/Routine.hh"
-#include "pdsdata/camera/FrameV1.hh"
+#include "pdsdata/psddl/camera.ddl.h"
 #include "pdsdata/xtc/TypeId.hh"
 
 using namespace Pds;

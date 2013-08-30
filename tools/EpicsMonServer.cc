@@ -2,8 +2,7 @@
 
 #include "pdsdata/app/XtcMonitorServer.hh"
 
-#include "pdsdata/epics/EpicsPvData.hh"
-#include "pdsdata/epics/EpicsDbrTools.hh"
+#include "pdsdata/psddl/epics.ddl.h"
 
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"

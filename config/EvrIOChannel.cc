@@ -104,12 +104,12 @@ void EvrIOChannel::pull(const Pds::EvrData::IOChannel& c) {
   _ninfo = c.ninfo();
   _detnames->clear();
   for(unsigned i=0; i<c.ninfo(); i++) {
-    _detnames->addItem(Pds::DetInfo::name(c.info(i)));
-    _detinfo[i] = c.info(i);
+    _detnames->addItem(Pds::DetInfo::name(c.infos()[i]));
+    _detinfo[i] = c.infos()[i];
   }
 }
 void EvrIOChannel::push(Pds::EvrData::IOChannel& c) const {
-  *new(&c) Pds::EvrData::IOChannel(_label.value, _detinfo, _ninfo);
+  *new(&c) Pds::EvrData::IOChannel(_label.value, _ninfo, _detinfo);
 }
 
 #include "Parameters.icc"

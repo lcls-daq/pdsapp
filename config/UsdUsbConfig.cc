@@ -8,6 +8,18 @@
 
 #include <stdio.h>
 
+static const char* _count_mode_labels[] = { "WRAP_FULL",
+                                            "LIMIT",
+                                            "HALT",
+                                            "WRAP_PRESET",
+                                            NULL };
+
+static const char* _quad_mode_labels[] = { "CLOCK_DIR",
+                                           "X1",
+                                           "X2",
+                                           "X4",
+                                           NULL };
+
 using namespace Pds_ConfigDb;
 
 class Pds_ConfigDb::UsdUsbConfig::Private_Data {
@@ -33,10 +45,10 @@ Pds_ConfigDb::UsdUsbConfig::Private_Data::Private_Data()
     sprintf(_labels[i],"Chan %d",i);
     _count_mode[i] = new Enumerated<UsdUsbConfigType::Count_Mode>( _labels[i],
 								   UsdUsbConfigType::WRAP_FULL,
-								   UsdUsbConfigType::count_mode_labels() );
+								   _count_mode_labels );
     _quad_mode [i] =  new Enumerated<UsdUsbConfigType::Quad_Mode >( "",
 								    UsdUsbConfigType::X4,
-								    UsdUsbConfigType::quad_mode_labels() );
+								    _quad_mode_labels );
   }
 }
 
@@ -62,8 +74,8 @@ int Pds_ConfigDb::UsdUsbConfig::Private_Data::pull( void* from )
   UsdUsbConfigType& cfg = * new (from) UsdUsbConfigType;
   
   for(unsigned i=0; i<UsdUsbConfigType::NCHANNELS; i++) {
-    _count_mode[i]->value = cfg.counting_mode  (i);
-    _quad_mode [i]->value = cfg.quadrature_mode(i);
+    _count_mode[i]->value = UsdUsbConfigType::Count_Mode(cfg.counting_mode  ()[i]);
+    _quad_mode [i]->value = UsdUsbConfigType::Quad_Mode (cfg.quadrature_mode()[i]);
   }
   return sizeof(UsdUsbConfigType);
 }

@@ -2,12 +2,13 @@
 #include "pdsapp/monobs/ShmClient.hh"
 #include "pdsapp/monobs/Handler.hh"
 #include "pds/config/CsPadConfigType.hh"
+#include "pds/config/CsPadDataType.hh"
+#include "pds/config/CsPad2x2ConfigType.hh"
+#include "pds/config/CsPad2x2DataType.hh"
 #include "pds/config/EvrConfigType.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/Xtc.hh"
-#include "pdsdata/cspad/ElementIterator.hh"
-#include "pdsdata/cspad/MiniElementV1.hh"
 #include "pds/epicstools/PVWriter.hh"
 
 #include <math.h>
@@ -17,7 +18,6 @@
 #include <string.h>
 
 using Pds_Epics::PVWriter;
-using Pds::CsPad::ElementIterator;
 
 static const unsigned MaxSections=32;
 static const unsigned BYKIK=162;
@@ -55,8 +55,8 @@ namespace PdsCas {
     {
       const EvrDataType& d = *reinterpret_cast<const EvrDataType*>(payload);
       for(unsigned i=0; i<d.numFifoEvents(); i++)
-        if (d.fifoEvent(i).EventCode==BYKIK ||
-            d.fifoEvent(i).EventCode==ALKIK) {
+        if (d.fifoEvents()[i].eventCode()==BYKIK ||
+            d.fifoEvents()[i].eventCode()==ALKIK) {
           _bykik = true;
           return;
         }
@@ -97,14 +97,14 @@ namespace PdsCas {
     void  process()
     {
       if (_validConstants) {
-        const Xtc& xtc = *reinterpret_cast<const Xtc*>((const char*)_payload-sizeof(Xtc));
-        Pds::CsPad::ElementIterator iter(_config,xtc);
-        while( iter.next() ) {
-          unsigned section_id;
-          const Pds::CsPad::Section* s;
-          while((s=iter.next(section_id))) {
+        for(unsigned q=0; q<_config.numQuads(); q++) {
+          const CsPadElementType& elem = reinterpret_cast<const CsPadDataType*>(_payload)->quads(_config,q);
+          ndarray<const int16_t,3> a = elem.data(_config);
+          for(unsigned i=0; i<a.shape()[0]; i++) {
+            unsigned section_id = elem.quad()*8 + i;
+            ndarray<const int16_t,2> s = make_ndarray(&a[i][0][0],a.shape()[1],a.shape()[2]);
             try {
-              float mean_rms = _getPedestalConsistency(*s, _offsets[section_id], _status[section_id]);
+              float mean_rms = _getPedestalConsistency(s, _offsets[section_id], _status[section_id]);
               //  Fill a PV array with these values?
               printf("section %d : pedrms %g\n",section_id,mean_rms);
             }
@@ -166,17 +166,17 @@ namespace PdsCas {
       _validConstants = true;
     }
 
-    float  _getPedestalConsistency(const Pds::CsPad::Section& s,
+    float  _getPedestalConsistency(const ndarray<const int16_t,2>& s,
                                    const CspadSection&        o,
                                    const CspadPixelStatus&    m)
     {
       double s0 = 0.;
       double s1 = 0.;
       double s2 = 0.;
-      for(unsigned col=0; col<Pds::CsPad::ColumnsPerASIC; col++) {
-        for(unsigned row=0; row<2*Pds::CsPad::MaxRowsPerASIC; row++) {
+      for(unsigned col=0; col<s.shape()[0]; col++) {
+        for(unsigned row=0; row<s.shape()[1]; row++) {
           if (not m.ok(col, row)) continue; // simple if slow
-          float val = float(s.pixel[col][row]) - o[col][row];
+          float val = float(s[col][row]) - o[col][row];
           s0++;
           s1 += val;
           s2 += val*val;
@@ -192,7 +192,7 @@ namespace PdsCas {
     char              _pedFile  [64];
     bool              _validConstants;
     const void*       _payload;
-    CsPadConfigType _config;
+    CsPadConfigType   _config;
   };
 
   class CspadEHandler : public EvtHandler {
@@ -290,17 +290,14 @@ namespace PdsCas {
     {
       if (!_initialized) return;
 
-      const Xtc* xtc = reinterpret_cast<const Xtc*>(payload)-1;
-      ElementIterator* iter = new ElementIterator(_cfg, *xtc);
-      const Pds::CsPad::ElementHeader* hdr;
-      while( (hdr=iter->next()) ) {
-	for(int a=0; a<4; a++) {
-          int i = 4*hdr->quad()+a;
-          *reinterpret_cast<double*>(_valu_writer[i]->data()) = 
-            _cspad_temp.getTemp(hdr->sb_temp(a));
+      for(unsigned q=0; q<_cfg.numQuads(); q++) {
+        const CsPadElementType& elem = reinterpret_cast<const CsPadDataType*>(payload)->quads(_cfg,q);
+        ndarray<const uint16_t,1> a = elem.sb_temp();
+        for(unsigned j=0; j<a.shape()[0]; j++) {
+          int i = 4*elem.quad()+j;
+          *reinterpret_cast<double*>(_valu_writer[i]->data()) = _cspad_temp.getTemp(a[j]);
         }
       }
-      delete iter;
     }
     void   _damaged  () {}
   public:
@@ -327,8 +324,6 @@ namespace PdsCas {
     CsPadConfigType _cfg;
   };
 
-  typedef Pds::CsPad::MiniElementV1 CspadMiniElement;
-
   class CspadMiniTHandler : public Handler {
   public:
     enum { NTHERMS=4 };
@@ -348,16 +343,16 @@ namespace PdsCas {
   public:
     void   _configure(const void* payload, const Pds::ClockTime& t) 
     {
-      _cfg = *reinterpret_cast<const CsPadConfigType*>(payload);
+      _cfg = *reinterpret_cast<const CsPad2x2ConfigType*>(payload);
     }
     void   _event    (const void* payload, const Pds::ClockTime& t)
     {
       if (!_initialized) return;
 
-      const CspadMiniElement& elem = *reinterpret_cast<const CspadMiniElement*>(payload);
+      const CsPad2x2DataType& elem = *reinterpret_cast<const CsPad2x2DataType*>(payload);
       for(int a=0; a<NTHERMS; a++)
         *reinterpret_cast<double*>(_valu_writer[a]->data()) = 
-          _cspad_temp.getTemp(elem.sb_temp(a));
+          _cspad_temp.getTemp(elem.sb_temp()[a]);
     }
     void   _damaged  () {}
   public:
@@ -381,7 +376,7 @@ namespace PdsCas {
     char _pvName[PVNAMELEN];
     bool _initialized;
     PVWriter* _valu_writer[NTHERMS];
-    CsPadConfigType _cfg;
+    CsPad2x2ConfigType _cfg;
   };
 };
 

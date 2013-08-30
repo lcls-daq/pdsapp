@@ -18,7 +18,7 @@
 #include "pds/service/Routine.hh"
 #include "pdsdata/xtc/TypeId.hh"
 
-#include "pdsdata/bld/bldData.hh"
+#include "pdsdata/psddl/bld.ddl.h"
 
 static const Pds::TypeId inType(Pds::TypeId::Id_SharedAcqADC, Pds::BldDataAcqADC::version);
 

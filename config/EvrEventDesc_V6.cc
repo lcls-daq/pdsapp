@@ -1,6 +1,6 @@
 #include "pdsapp/config/EvrEventDesc_V6.hh"
 #include "pdsapp/config/EvrConfigType_V6.hh"
-#include "pdsdata/evr/EventCodeV5.hh"
+#include "pdsdata/psddl/evr.ddl.h"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QGridLayout>
@@ -146,25 +146,34 @@ void EvrEventDesc::push(Pds::EvrData::EventCodeV5* c) const
   uint32_t fill(0);
   switch(_type->currentIndex()) {
   case Readout:
-    *new(c) EvrConfigType::EventCodeType(get_code(),
-                                         _desc.value,
-                                         fill,fill,fill);
+    *new(c) EventCodeType(get_code(),
+                          true, false, false,
+                          0, 1,
+                          fill,fill,fill,
+                          _desc.value);
     break;
   case Command:
-    *new(c) EvrConfigType::EventCodeType(get_code(),
-                                         _desc.value);
+    *new(c) EventCodeType(get_code(),
+                          false, true, false,
+                          0, 1,
+                          fill,fill,fill,
+                          _desc.value);
     break;
   case Transient: // Transient
-    *new(c) EvrConfigType::EventCodeType(get_code(),
-                                         _desc.value, false,
-                                         _trans_delay.value,
-                                         _trans_width.value);
+    *new(c) EventCodeType(get_code(),
+                          false, false, false,
+                          _trans_delay.value,
+                          _trans_width.value,
+                          fill,fill,fill,
+                          _desc.value);
     break;
   case Latch: // Latch
-    *new(c) EvrConfigType::EventCodeType(get_code(),
-                                         _desc.value, true,
-                                         _latch_delay  .value,
-                                         _latch_release.value);
+    *new(c) EventCodeType(get_code(),
+                          false, false, true,
+                          _latch_delay  .value,
+                          _latch_release.value,
+                          fill,fill,fill,
+                          _desc.value);
     break;
   }
 }

@@ -111,7 +111,7 @@ namespace Pds {
       case DetInfo::Opal4000:
       case DetInfo::Opal1600:
       case DetInfo::Opal8000:
-        max_size = Opal1kConfigType::max_row_pixels(info)*Opal1kConfigType::max_column_pixels(info)*2;
+        max_size = Pds::Opal1k::max_row_pixels(info)*Pds::Opal1k::max_column_pixels(info)*2;
         _camman  = new Opal1kManager(src); break;
       case DetInfo::TM6740  :
         max_size = TM6740ConfigType::Row_Pixels*TM6740ConfigType::Column_Pixels*2;

@@ -17,12 +17,9 @@
 #include "pds/config/PimImageConfigType.hh"
 #include "pds/config/EncoderConfigType.hh"
 #include "pds/config/CsPadConfigType.hh"
-#include "pds/config/XampsConfigType.hh"
-#include "pds/config/FexampConfigType.hh"
 #include "pds/config/ImpConfigType.hh"
 #include "pds/config/Gsc16aiConfigType.hh"
 #include "pds/config/TimepixConfigType.hh"
-#include "pds/config/PhasicsConfigType.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
 #include "pds/config/OceanOpticsConfigType.hh"
 #include "pds/config/FliConfigType.hh"
@@ -31,6 +28,12 @@
 #include "pds/config/OrcaConfigType.hh"
 //#include "pds/config/ProjectionConfigType.hh"
 //#include "pds/config/SeqConfigType.hh"
+
+#ifdef BUILD_EXTRA
+#include "pds/config/XampsConfigType.hh"
+#include "pds/config/FexampConfigType.hh"
+#include "pds/config/PhasicsConfigType.hh"
+#endif
 
 #include <sstream>
 using std::istringstream;
@@ -80,12 +83,14 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case PimImage     : type = &_pimImageConfigType;  break;
   case RunControl   : type = &_controlConfigType;   break;
   case Cspad        : type = &_CsPadConfigType;     break;
+#ifdef BUILD_EXTRA
   case Xamps        : type = &_XampsConfigType;     break;
   case Fexamp       : type = &_FexampConfigType;    break;
+  case Phasics      : type = &_PhasicsConfigType;   break;
+#endif
   case Imp          : type = &_ImpConfigType;       break;
   case Gsc16ai      : type = &_gsc16aiConfigType;   break;
   case Timepix      : type = &_timepixConfigType;   break;
-  case Phasics      : type = &_PhasicsConfigType;   break;
   case Cspad2x2     : type = &_CsPad2x2ConfigType;  break;
   case OceanOptics  : type = &_oceanOpticsConfigType; break;
   case Fli          : type = &_fliConfigType; break;
@@ -122,12 +127,14 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_controlConfigType);
   test(_princetonConfigType);    
   test(_CsPadConfigType);
+#ifdef BUILD_EXTRA
   test(_XampsConfigType);
   test(_FexampConfigType);
+  test(_PhasicsConfigType);
+#endif
   test(_ImpConfigType);
   test(_gsc16aiConfigType);
   test(_timepixConfigType);
-  test(_PhasicsConfigType);
   test(_CsPad2x2ConfigType);
   test(_oceanOpticsConfigType);    
   test(_fliConfigType);    
@@ -165,12 +172,14 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_controlConfigType);
   test(_princetonConfigType);
   test(_CsPadConfigType);
+#ifdef BUILD_EXTRA
   test(_XampsConfigType);
   test(_FexampConfigType);
+  test(_PhasicsConfigType);
+#endif
   test(_ImpConfigType);
   test(_gsc16aiConfigType);
   test(_timepixConfigType);
-  test(_PhasicsConfigType);
   test(_CsPad2x2ConfigType);
   test(_oceanOpticsConfigType);    
   test(_fliConfigType);    
