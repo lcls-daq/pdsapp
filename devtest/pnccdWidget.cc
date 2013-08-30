@@ -20,6 +20,7 @@
 FILE*               writeFile           = 0;
 unsigned            laneMask            = 0xf;
 unsigned            laneErrors          = 0;
+unsigned            frameCount         = 0;
 bool                writing             = false;
 bool                flipFlag            = false;
 bool                includeElementID    = true;
@@ -211,10 +212,11 @@ pnCCDQuad::pnCCDQuad() : magic(pnCCDMagicWord), frameNumber(0), timeStampHi(0), 
 
 void pnCCDQuad::fill(uint16_t v) {
   unsigned i = 0;
-  uint16_t foo;
+//  ui1nt16_t foo;
   while (i < pnCCDPayloadSize/sizeof(uint16_t)) {
-    foo = v + i%v;
-    swab(&foo, &data[i++], 2);
+    data[i] = v + i%v;
+    i++;
+//    swab(&foo, &data[i++], 2);
   }
 }
 
@@ -315,11 +317,29 @@ pnCCDFrame* pnCCDFrameBuffers::readNext() {
       if (debug & 8) printf("readNext %u readstruc(%p) data(%p) address of quad(%p)\n", i, &rx[i], rx[i].data, &(f->q[i]));
       else {
         size = read(fd, &(rx[i]), sizeof(rx[i]));
-        if (size<0) perror("readNext");
+        if (size<0) {
+          if (errno == ERESTART) {
+            printf("Recommended restart so goodbye cruel world! frames(%u)\n", frameCount);
+            exit(size);
+          }
+          perror("readNext");
+        }
         else if ((unsigned)size != rx[i].maxSize) {
           printf("readNext read wrong size %u not %u in frame %u\n", size, rx[i].maxSize, f->q[i].frameNumber);
         } else {
           f->q[i].lane(rx[i].pgpLane);
+          unsigned u = f->q[i].lane() xor rx[i].pgpLane;
+          if (((debug & 4) && (f->q[i].frameNumber%printModuloBase == 0)) || u) {
+            printf("readNext %8u Lane %u rxlane %u ", f->q[i].frameNumber, f->q[i].lane(), rx[i].pgpLane);
+            if (u) {
+              printf(" <=== ");
+              if (u&2) printf("%4s ", (rx[i].pgpLane & 2) > (f->q[i].lane() & 2) ? "High" : "Low");
+              else printf("     ");
+              if (u&1) printf("%4s ", (rx[i].pgpLane & 1) > (f->q[i].lane() & 1) ? "High" : "Low");
+              laneErrors += 1;
+            }
+            printf("\n");
+          }
         }
       }
     }
@@ -333,7 +353,7 @@ pnCCDFrameBuffers* bufs;
 void sigHandler( int signal ) {
   psignal( signal, "Signal received by pnccdWidget");
   if (writing) fclose(writeFile);
-  printf("Signal handler pulling the plug after %u lane errors\n", laneErrors);
+  printf("Signal handler pulling the plug after %u frames and %u lane errors\n", frameCount, laneErrors);
   ::exit(signal);
 }
 
@@ -527,7 +547,6 @@ int main( int argc, char** argv )
   }
 
   if (debug & 1) printf("pnccdwidget writing frame size %u\n", pnCCDFrameSize);
-  else printf("pnccdwidget debug value %u\n", debug);
 
   p.model = sizeof(&p);
   p.cmd   = IOCTL_Write_Scratch;
@@ -586,6 +605,7 @@ int main( int argc, char** argv )
           firstLoop = false;
           if (debug & 1) printf("pnccdWidget wrote frame %u\n", f->q[0].frameNumber);
         }
+        frameCount += 1;
       }
       break;
     case readCommand:
@@ -617,7 +637,7 @@ int main( int argc, char** argv )
       break;
     case loopReadCommand:
       while (keepGoing) {
-        if (debug & 2) printf("pnccdwidget reading next\n");
+        if (debug & 1) printf("pnccdwidget reading next\n");
         f = bufs->readNext();
         unsigned mask = 0;
         for (idx=1; idx<4; idx++) if (f->q[0].frameNumber != f->q[idx].frameNumber)     {
@@ -630,11 +650,11 @@ int main( int argc, char** argv )
           for (idx=0; idx<4; idx++) printf("%u ", f->q[idx].frameNumber);
           printf("\n");
 //          keepGoing = false;
-        } else if ( (debug & 1) | (f->q[0].frameNumber % 1000 == 0)) {
-          if (f->q[0].frameNumber) {
+        } else if ( (debug & 1) | (f->q[0].frameNumber % printModuloBase == 0)) {
+          if (f->q[0].frameNumber > 10) {
             clock_gettime(CLOCK_REALTIME, &now);
             nanoSeconds = timeDiff(&now, &then);
-            Hertz = 1000.0 / (((float)nanoSeconds) / 1e9);
+            Hertz = (printModuloBase*1.0) / (((float)nanoSeconds) / 1e9);
             then = now;
           } else {
             clock_gettime(CLOCK_REALTIME, &then);
@@ -668,6 +688,7 @@ int main( int argc, char** argv )
             }
           }
         }
+        frameCount += 1;
       }
       break;
     case loopWriteReadCommand:
@@ -687,6 +708,7 @@ int main( int argc, char** argv )
           f = bufs->writeNext();
           if (printFlag)  printf("pnccdWidget wrote frame %u\n", f->q[0].frameNumber);
           f = bufs->readNext();
+          if (printFlag)  printf("pnccdWidget read frame\n");
           {
             unsigned mask = 0;
             for (idx=1; idx<4; idx++) if (f->q[0].frameNumber != f->q[idx].frameNumber) mask = 1 << idx;
@@ -694,11 +716,11 @@ int main( int argc, char** argv )
               printf("read out of sync %u ", idx);
               for (idx=0; idx<4; idx++) printf("%u ", f->q[idx].frameNumber);
               printf("\n");
-            } else if (printFlag | (f->q[0].frameNumber % 1000 == 0)) {
+            } else if (printFlag | (f->q[0].frameNumber % printModuloBase == 0)) {
               if (f->q[0].frameNumber) {
                 clock_gettime(CLOCK_REALTIME, &now);
                 nanoSeconds = timeDiff(&now, &then);
-                Hertz = 1000.0 / (((float)nanoSeconds) / 1e9);
+                Hertz = (printModuloBase*1.0) / (((float)nanoSeconds) / 1e9);
                 then = now;
               } else {
                 clock_gettime(CLOCK_REALTIME, &then);
@@ -707,6 +729,7 @@ int main( int argc, char** argv )
               printf("pnccdwidget read frame %u %6.2fHz\n", f->q[0].frameNumber, Hertz);
             }
           }
+          frameCount += 1;
         }
       }
       break;
