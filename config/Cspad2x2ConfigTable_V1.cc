@@ -309,8 +309,8 @@ namespace Pds_ConfigDb
         {
           Cspad2x2Temp temp;
           for(int i=0; i<Pds::CsPad2x2::TwoByTwosPerQuad; i++) {
-            _shiftSelect.value[i] = p.shiftSelect()[i];
-            _edgeSelect .value[i] = p.edgeSelect ()[i];
+            _shiftSelect.value[i] = p.shiftSelect();
+            _edgeSelect .value[i] = p.edgeSelect ();
           }
           _readClkSet      .value = p.readClkSet();
           _readClkHold     .value = p.readClkHold();
@@ -343,8 +343,8 @@ namespace Pds_ConfigDb
           Pds::CsPad2x2::CsPad2x2ReadOnlyCfg dummy;
           uint8_t* potsCfg = new uint8_t[Pds::CsPad2x2::PotsPerQuad];
 
-          *new(p) Pds::CsPad2x2::ConfigV1QuadReg(_shiftSelect     .value,
-                                                 _edgeSelect      .value,
+          *new(p) Pds::CsPad2x2::ConfigV1QuadReg(_shiftSelect     .value[0],
+                                                 _edgeSelect      .value[0],
                                                  _readClkSet      .value,
                                                  _readClkHold     .value,
                                                  _dataMode        .value,

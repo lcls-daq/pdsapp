@@ -28,16 +28,8 @@ static PyObject* get_quad(const Pds::CsPad2x2::ConfigV1QuadReg* cfg)
 {
   PyObject* o = PyDict_New();
 
-  { PyObject* l = PyList_New(Pds::CsPad2x2::TwoByTwosPerQuad);
-    for(unsigned i=0; i<Pds::CsPad2x2::TwoByTwosPerQuad; i++)
-      PyList_SetItem(l,i,PyLong_FromLong(cfg->shiftSelect()[i]));
-    PyDict_SetItemString(o,"shiftSelect",l); }
-
-  { PyObject* l = PyList_New(Pds::CsPad2x2::TwoByTwosPerQuad);
-    for(unsigned i=0; i<Pds::CsPad2x2::TwoByTwosPerQuad; i++)
-      PyList_SetItem(l,i,PyLong_FromLong(cfg->edgeSelect()[i]));
-    PyDict_SetItemString(o,"edgeSelect",l); }
-
+  SetMember(shiftSelect);
+  SetMember(edgeSelect);
   SetMember(readClkSet);
   SetMember(readClkHold);
   SetMember(dataMode);
@@ -224,30 +216,8 @@ PyObject* pds_Cspad2x2Config_get    (PyObject*   self, PyObject* args)
 static bool set_quad(Pds::CsPad2x2::ConfigV1QuadReg* cfg,
     PyObject* o)
 {
-  uint32_t shiftSelect[Pds::CsPad2x2::TwoByTwosPerQuad];
-  { PyObject* l = PyDict_GetItemString(o,"shiftSelect");
-  if (l) {
-    for(unsigned i=0; i<Pds::CsPad2x2::TwoByTwosPerQuad; i++)
-      shiftSelect[i] = PyLong_AsLong(PyList_GetItem(l,i));
-  }
-  else {
-    for(unsigned i=0; i<Pds::CsPad2x2::TwoByTwosPerQuad; i++)
-      shiftSelect[i] = cfg->shiftSelect()[i];
-  }
-  }
-
-  uint32_t edgeSelect[Pds::CsPad2x2::TwoByTwosPerQuad];
-  { PyObject* l = PyDict_GetItemString(o,"edgeSelect");
-  if (l) {
-    for(unsigned i=0; i<Pds::CsPad2x2::TwoByTwosPerQuad; i++)
-      edgeSelect[i] = PyLong_AsLong(PyList_GetItem(l,i));
-  }
-  else {
-    for(unsigned i=0; i<Pds::CsPad2x2::TwoByTwosPerQuad; i++)
-      edgeSelect[i] = cfg->edgeSelect()[i];
-  }
-  }
-
+  SetMember(shiftSelect);
+  SetMember(edgeSelect);
   SetMember(readClkSet);
   SetMember(readClkHold);
   SetMember(dataMode);
