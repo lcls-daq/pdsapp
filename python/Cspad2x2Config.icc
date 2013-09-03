@@ -391,7 +391,7 @@ PyObject* pds_Cspad2x2Config_set    (PyObject*   self, PyObject* args)
     SetMember(asicMask);
     SetMember(roiMask);
 
-    Pds::CsPad2x2::ProtectionSystemThreshold pth = cfg->protectionSystemThreshold();
+    Pds::CsPad2x2::ProtectionSystemThreshold pth = cfg->protectionThreshold();
     PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
     if (pst) {
       PyObject* it = PyList_GetItem(pst,0);
