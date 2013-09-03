@@ -9,8 +9,8 @@ CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
 libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc CspadShuffle.cc StripTransient.cc
 
-#tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump currentexp
-tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
+tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump currentexp
+#tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
 
 commonlibs := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs += pds/pnccdFrameV0
@@ -19,12 +19,12 @@ liblibs_tools += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
 libincs_tools := offlinedb/include pdsdata/include ndarray/include boost/include
 
 tgtsrcs_event := event.cc
-tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata pdsdata/evrdata
+tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata
 tgtslib_event := $(USRLIBDIR)/rt
 tgtincs_event := offlinedb/include pdsdata/include
 
 tgtsrcs_eventp := eventp.cc ParasiticRecorder.cc
-tgtlibs_eventp := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata pdsdata/evrdata pds/offlineclient
+tgtlibs_eventp := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata pds/offlineclient
 tgtlibs_eventp += offlinedb/mysqlclient offlinedb/offlinedb
 tgtslib_eventp := $(USRLIBDIR)/rt
 tgtincs_eventp := offlinedb/include pdsdata/include
@@ -80,12 +80,12 @@ tgtslib_bldServerTest := $(USRLIBDIR)/rt
 tgtincs_bldServerTest := pdsdata/include
 
 tgtsrcs_bldMonitor := bldMonitor.cc bldMonitor.hh 
-tgtlibs_bldMonitor := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/evrdata pdsdata/indexdata 
+tgtlibs_bldMonitor := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata 
 tgtslib_bldMonitor := $(USRLIBDIR)/rt
 tgtincs_bldMonitor := pdsdata/include
 
 tgtsrcs_observertest := observertest.cc
-tgtlibs_observertest := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/evrdata pdsdata/indexdata 
+tgtlibs_observertest := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata 
 tgtslib_observertest := $(USRLIBDIR)/rt
 tgtincs_observertest := pdsdata/include
 
