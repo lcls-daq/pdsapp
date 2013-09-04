@@ -43,7 +43,7 @@ static int ntime = 0;
 static int nforward = 1;
 static double ftime = 0;
 
-static const unsigned sizeof_Section = Pds::CsPad::ColumnsPerASIC*Pds::CsPad::MaxRowsPerASIC*sizeof(int16_t);
+static const unsigned sizeof_Section = 2*Pds::CsPad::ColumnsPerASIC*Pds::CsPad::MaxRowsPerASIC*sizeof(int16_t);
 
 typedef std::list<Pds::Appliance*> AppList;
 
@@ -236,8 +236,8 @@ public:
 	}
       }
       else if (depth<=16) {
-        ndarray<const uint8_t, 2> idata = f->data8();
-        ndarray<uint8_t, 2> fdata = make_ndarray(const_cast<uint8_t*>(idata.data()), idata.shape()[0], idata.shape()[1]);
+        ndarray<const uint16_t, 2> idata = f->data16();
+        ndarray<uint16_t, 2> fdata = make_ndarray(const_cast<uint16_t*>(idata.data()), idata.shape()[0], idata.shape()[1]);
 	unsigned i;
 	for(i=0; i<f->height()/2; i++) {
 	  unsigned j;
@@ -342,7 +342,7 @@ public:
 		      0, 0, 0xffffffff, 0xf, 0xffffffff,
                       quads);
     
-    const size_t sz = sizeof(CsPadDataType)+8*sizeof_Section+sizeof(uint32_t);
+    const size_t sz = sizeof(CsPadElementType)+8*sizeof_Section+sizeof(uint32_t);
     unsigned evtsz = 4*sz + sizeof(Xtc);
     unsigned evtst = (evtsz+3)&~3;
     _evtpayload = new char[NBuffers*evtst];
@@ -350,7 +350,7 @@ public:
     for(unsigned b=0; b<NBuffers; b++) {
       _evttc[b] = new(_evtpayload+b*evtst) Xtc(_CsPadDataType,src);
       for(unsigned i=0; i<4; i++) {
-	CsPadDataType* q = new (_evttc[b]->alloc(sz)) CsPadDataType;
+	CsPadElementType* q = new (_evttc[b]->alloc(sz)) CsPadElementType;
 	//  Set the quad number
 	reinterpret_cast<uint32_t*>(q)[1] = i<<24;
 	//  Set the payload
@@ -511,6 +511,7 @@ public:
       uint16_t* p = reinterpret_cast<uint16_t*>(q+1);
       uint16_t* e = p + Pds::ImpConfig::get(*cfg,ImpConfigType::NumberOfSamples)*Pds::Imp::Sample::channelsPerDevice;
       unsigned o = 0x150 + ((rand()>>8)&0x7f);
+      printf("SimImp buffer %d offset %d\n",b,o);
       while(p < e)
 	*p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
     }
