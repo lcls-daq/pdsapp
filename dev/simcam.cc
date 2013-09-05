@@ -161,11 +161,11 @@ public:
       break;
     case DetInfo::TM6740:
       _cfgtc = new(_cfgpayload) Xtc(_tm6740ConfigType,src);
-      _cfgtc->extent += sizeof(*new (_cfgtc->next()) TM6740ConfigType(32, 32, 100, 100, false,
-                                                                      TM6740ConfigType::Ten_bit,
-                                                                      TM6740ConfigType::x1,
-                                                                      TM6740ConfigType::x1,
-                                                                      TM6740ConfigType::Linear));
+      _cfgtc->extent += (new (_cfgtc->next()) TM6740ConfigType(32, 32, 100, 100, false,
+							       TM6740ConfigType::Ten_bit,
+							       TM6740ConfigType::x1,
+							       TM6740ConfigType::x1,
+							       TM6740ConfigType::Linear))->_sizeof();
       width  = TM6740ConfigType::Column_Pixels;
       height = TM6740ConfigType::Row_Pixels;
       depth  = 10;
@@ -187,8 +187,8 @@ public:
       break;
     case DetInfo::Fccd:
       _cfgtc = new(_cfgpayload) Xtc(_fccdConfigType,src);
-      _cfgtc->extent += sizeof(*new (_cfgtc->next()) FccdConfigType(0, true, false, 0,
-								    fdummy, usdummy));
+      _cfgtc->extent += (new (_cfgtc->next()) FccdConfigType(0, true, false, 0,
+							     fdummy, usdummy))->_sizeof();
       width  = FccdConfigType::Trimmed_Column_Pixels;
       height = FccdConfigType::Trimmed_Row_Pixels;
       depth  = 16;
@@ -422,7 +422,7 @@ public:
 			 0, 0xf, 0xf,
                          quad);
     
-    const size_t sz = sizeof(CsPad2x2DataType)+sizeof(uint32_t);
+    const size_t sz = CsPad2x2DataType::_sizeof()+sizeof(uint32_t);
     unsigned evtsz = sz + sizeof(Xtc);
     unsigned evtst = (evtsz+3)&~3;
     _evtpayload = new char[NBuffers*evtst];
