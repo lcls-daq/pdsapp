@@ -410,7 +410,8 @@ void Devices_Ui::add_component(const QString& type)
   int current;
   { string utype, uname;
     _current_component(utype,uname);
-    current = choices.indexOf(QString(uname.c_str())); }
+    current = choices.indexOf(QString(uname.c_str())); 
+    if (current<0) current=0; }
 
   bool ok;
   QString choice = QInputDialog::getItem(_devlist,
