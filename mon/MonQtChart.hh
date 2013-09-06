@@ -53,6 +53,7 @@ namespace Pds {
 
   private:
     unsigned _npoints;
+    unsigned _nfill;
     unsigned _nlines;
     unsigned _current;
 

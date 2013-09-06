@@ -90,18 +90,29 @@ int MonConsumerTH1F::update()
 {
   const MonEntryTH1F* entry = dynamic_cast<const MonEntryTH1F*>(_entry);
   if (entry->time() > _last->time()) {
-    _since->setto(*entry, *_prev);
-    _since->stats();
-    _diff ->setto(*entry, *_last);
-    _diff ->stats();
-    _hist ->setto(*entry);
-    _hist ->stats();
-    _chart->point(entry->last(), _diff->mean());
-    _last ->setto(*entry);
-    emit redraw();
+    if (_archive_mode) {
+      _chart->point(entry->last(), entry->mean());
+    }
+    else {
+      _since->setto(*entry, *_prev);
+      _since->stats();
+      _diff ->setto(*entry, *_last);
+      _diff ->stats();
+      _hist ->setto(*entry);
+      _hist ->stats();
+      _chart->point(entry->last(), _diff->mean());
+      _last ->setto(*entry);
+      emit redraw();
+    }
     return 1;
   }
   return 0;
+}
+
+int MonConsumerTH1F::replot()
+{
+  emit redraw();
+  return 1;
 }
 
 int MonConsumerTH1F::reset(const MonGroup& group)

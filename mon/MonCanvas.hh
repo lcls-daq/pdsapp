@@ -28,6 +28,7 @@ namespace Pds {
     virtual void info();
     virtual void dialog() = 0;
     virtual int update() = 0;
+    virtual int replot() { return 0; }
     virtual int reset(const MonGroup& group) = 0;
     virtual unsigned getplots(MonQtBase**, const char** names) = 0;
     virtual const MonQtBase* selected() const = 0;
@@ -79,6 +80,11 @@ namespace Pds {
     void setDifferenceY();
     void setChartX     ();
     void setChartY     ();
+
+  public:
+    void archive_mode  ();
+  protected:
+    bool _archive_mode;
   };
 };
 

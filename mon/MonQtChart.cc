@@ -23,7 +23,8 @@ MonQtChart::MonQtChart(const char* name,
 		       const MonDescProf& desc) :
   MonQtBase(Chart, desc, name),
   _npoints(Points),
-  _nlines(0),
+  _nfill  (0),
+  _nlines (0),
   _current(0),
   _xl(0),
   _yl(0),
@@ -37,7 +38,8 @@ MonQtChart::MonQtChart(const char* name,
 		       const MonDescTH1F& desc) : 
   MonQtBase(Chart, desc, name),
   _npoints(Points),
-  _nlines(1),
+  _nfill  (0),
+  _nlines (1),
   _current(0),
   _xl(new double[2*_npoints]),
   _yl(new double[2*_npoints]),
@@ -52,7 +54,8 @@ MonQtChart::MonQtChart(const char* name,
 		       Axis ax) : 
   MonQtBase(Chart, desc, name, ax == X ? true : false),
   _npoints(Points),
-  _nlines(1),
+  _nfill  (0),
+  _nlines (1),
   _current(0),
   _xl(new double[2*_npoints]),
   _yl(new double[2*_npoints]),
@@ -67,7 +70,8 @@ MonQtChart::MonQtChart(const char* name,
 		       Axis ax) : 
   MonQtBase(Chart, desc, name, ax == X ? true : false),
   _npoints(Points),
-  _nlines(1),
+  _nfill  (0),
+  _nlines (1),
   _current(0),
   _xl(new double[2*_npoints]),
   _yl(new double[2*_npoints]),
@@ -97,13 +101,6 @@ void MonQtChart::params(unsigned nl, const char* names)
     _yl = new double[m*nl];
   }
   
-  struct timespec tv;
-  clock_gettime(CLOCK_REALTIME,&tv);
-  for(unsigned k=0; k<m; k++)
-    _xl[k] = tv.tv_sec;
-
-  memset(_yl, 0, m*nl*sizeof(double));
-
   // create the curves
   if (_curves) {
     for(unsigned k=0; k<_nlines; k++) {
@@ -112,7 +109,7 @@ void MonQtChart::params(unsigned nl, const char* names)
     }
     delete[] _curves;
   }
-  
+
   _nlines = nl;
   _curves = new QwtPlotCurve*[_nlines];
     
@@ -128,27 +125,32 @@ void MonQtChart::params(unsigned nl, const char* names)
     _curves[k] = c;
   }
   delete[] snames;
+  _nfill = 0;
 }
 
 void MonQtChart::params(const MonDescProf& desc)
 {
   params(desc.nbins(),desc.names());
   points(_npoints);
+  _nfill = 0;
 }
 
 void MonQtChart::params(const MonDescTH1F& desc)
 {
   MonQtBase::params(desc);
+  _nfill = 0;
 }
 
 void MonQtChart::params(const MonDescTH2F& desc)
 {
   MonQtBase::params(desc);
+  _nfill = 0;
 }
 
 void MonQtChart::params(const MonDescImage& desc)
 {
   MonQtBase::params(desc);
+  _nfill = 0;
 }
 
 void MonQtChart::points(unsigned np) 
@@ -211,9 +213,13 @@ void MonQtChart::point(double time, const double* y)
   if (++_current >= _npoints)
     _current = 0;
 
-  double* yl = &_yl[_current];
+  if (_nfill < _npoints)
+    _nfill++;
+
+  unsigned start = _current+_npoints-_nfill;
+  double* yl = &_yl[start];
   for(unsigned k=0; k<_nlines; k++) {
-    _curves[k]->setRawData(&_xl[_current], yl, _npoints);
+    _curves[k]->setRawData(&_xl[start], yl, _nfill);
     yl += 2*_npoints;
   }
 }
@@ -227,7 +233,10 @@ void MonQtChart::point(double time, double y)
   _yl[_current+_npoints] = y;
   if (++_current >= _npoints)
     _current = 0;
-  _curves[0]->setRawData(&_xl[_current], &_yl[_current], _npoints);
+  if (_nfill < _npoints)
+    _nfill++;
+  unsigned start = _current+_npoints-_nfill;
+  _curves[0]->setRawData(&_xl[start], &_yl[start], _nfill);
 }
 
 float MonQtChart::min(Axis ax) const 

@@ -25,6 +25,7 @@ namespace Pds {
     virtual void info();
     virtual void dialog();
     virtual int update();
+    virtual int replot();
     virtual int reset(const MonGroup& group);
     virtual unsigned getplots(MonQtBase**, const char** names);
     virtual const MonQtBase* selected() const;
