@@ -38,7 +38,7 @@ static bool verbose = false;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> [-g <grabberId>] [-C <N>] [-v] [-h]\n"
+  printf("Usage: %s -i <detinfo> -p <platform> [-g <grabberId>] [-C <N>] [-u <alias>] [-v] [-h]\n"
          "       -C <N> : compress data and copy every N\n", p);
 }
 
@@ -51,6 +51,7 @@ static void help()
          "  -g <grabberId>        grabber ID (default=0)\n"
          "  -C <N>                compress and copy every Nth event\n"
          "  -v                    be verbose (default=false)\n"
+         "  -u <alias>            set device alias\n"
          "  -h                    help: print this message and exit\n");
 }
 
@@ -97,7 +98,8 @@ namespace Pds {
 	    const Src&            src,
 	    unsigned              grabberId,
             const AppList&        user_apps,
-            bool                  lCompress) :
+            bool                  lCompress,
+      const char *aliasName) :
       _task     (task),
       _platform (platform),
       _grabberId(grabberId),
@@ -129,6 +131,11 @@ namespace Pds {
         _user_apps.push_front(new FrameCompApp(max_size));
 
       _sources.push_back(_camman->server().client());
+      if (aliasName) {
+        SrcAlias tmpAlias(_camman->server().client(), aliasName);
+        _aliases.push_back(tmpAlias);
+      }
+
     }
 
     virtual ~SegTest()
@@ -150,6 +157,10 @@ namespace Pds {
       wire.add_input(&_camman->server());
     }
     const std::list<Src>& sources() const { return _sources; }
+    const std::list<SrcAlias>* pAliases() const
+    {
+      return (_aliases.size() > 0) ? &_aliases : NULL;
+    }
   private:
     // Implements EventCallback
     void attached(SetOfStreams& streams)
@@ -198,6 +209,7 @@ namespace Pds {
     CameraManager* _camman;
     int            _grabberId;
     std::list<Src> _sources;
+    std::list<SrcAlias> _aliases;
     AppList        _user_apps;
   };
 }
@@ -221,8 +233,9 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   char* endPtr;
+  char* uniqueid = (char *)NULL;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:L:C:vh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:L:C:u:vh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -283,6 +296,13 @@ int main(int argc, char** argv) {
         }
         break;
       }
+    case 'u':
+      if (strlen(optarg) > SrcAlias::AliasNameMax) {
+        printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax);
+      } else {
+        uniqueid = optarg;
+      }
+      break;
     case 'v':
       verbose = true;
       break;
@@ -335,7 +355,8 @@ int main(int argc, char** argv) {
                                  info,
 				 grabberId,
                                  user_apps,
-                                 lCompress);
+                                 lCompress,
+                                 uniqueid);
 
   printf("Creating segment level ...\n");
   SegmentLevel* segment = new SegmentLevel(platform, 

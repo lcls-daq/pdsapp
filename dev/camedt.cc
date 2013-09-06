@@ -40,9 +40,24 @@ static bool verbose = false;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -c <channel> -C <N> -v\n",p);
+  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -c <channel> -C <N> [-u <alias>] [-v] [-h]\n",p);
   printf("<detinfo> = integer/integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n");
   printf("-C <N> = compress data and copy every Nth event\n");
+}
+
+
+static void help()
+{
+  printf("Options:\n"
+         "  -i <detinfo>          integer/integer/integer/integer or string/integer/string/integer\n"
+         "                          (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
+         "  -p <platform>         platform number\n"
+         "  -g <grabberId>        grabber ID (default=0)\n"
+         "  -c <channel>          channel number (default=0)\n"
+         "  -C <N>                compress and copy every Nth event\n"
+         "  -v                    be verbose (default=false)\n"
+         "  -u <alias>            set device alias\n"
+         "  -h                    help: print this message and exit\n");
 }
 
 static Pds::CameraDriver* _driver(int id, int channel, const Pds::Src& src)
@@ -81,12 +96,13 @@ namespace Pds {
   class SegTest : public EventCallback, public SegWireSettings {
   public:
     SegTest(Task*                 task,
-	    unsigned              platform,
-	    const Src&            src,
-	    unsigned              grabberId,
-	    unsigned              channel,
+            unsigned              platform,
+            const Src&            src,
+            unsigned              grabberId,
+            unsigned              channel,
             const AppList&        user_apps,
-            bool                  lCompress) :
+            bool                  lCompress,
+            const char *aliasName) :
       _task     (task),
       _platform (platform),
       _grabberId(grabberId),
@@ -111,7 +127,7 @@ namespace Pds {
         _camman  = new QuartzManager(src); break;
       case DetInfo::OrcaFl40:
         max_size = OrcaConfigType::Row_Pixels*OrcaConfigType::Column_Pixels*2;
-	_camman = new OrcaManager(src); break;
+        _camman = new OrcaManager(src); break;
       default:
         printf("Unsupported camera %s\n",DetInfo::name(info.device()));
         exit(1);
@@ -122,6 +138,10 @@ namespace Pds {
         _user_apps.push_front(new FrameCompApp(max_size));
 
       _sources.push_back(_camman->server().client());
+      if (aliasName) {
+        SrcAlias tmpAlias(_camman->server().client(), aliasName);
+        _aliases.push_back(tmpAlias);
+      }
     }
 
     virtual ~SegTest()
@@ -137,18 +157,22 @@ namespace Pds {
   public:    
     // Implements SegWireSettings
     void connect (InletWire& wire,
-		  StreamParams::StreamType s,
-		  int interface)
+                  StreamParams::StreamType s,
+                  int interface)
     {
       wire.add_input(&_camman->server());
     }
     const std::list<Src>& sources() const { return _sources; }
+    const std::list<SrcAlias>* pAliases() const
+    {
+      return (_aliases.size() > 0) ? &_aliases : NULL;
+    }
   private:
     // Implements EventCallback
     void attached(SetOfStreams& streams)
     {
       printf("SegTest connected to platform 0x%x\n", 
-	     _platform);
+             _platform);
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
 
@@ -161,10 +185,10 @@ namespace Pds {
     void failed(Reason reason)
     {
       static const char* reasonname[] = { "platform unavailable", 
-					  "crates unavailable", 
-					  "fcpm unavailable" };
+                                          "crates unavailable", 
+                                          "fcpm unavailable" };
       printf("SegTest: unable to allocate crates on platform 0x%x : %s\n", 
-	     _platform, reasonname[reason]);
+             _platform, reasonname[reason]);
       delete this;
     }
     void dissolved(const Node& who)
@@ -178,7 +202,7 @@ namespace Pds {
       Node::ip_name(who.ip(),ipname, iplen);
       
       printf("SegTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
-	     who.platform(), username, who.pid(), ipname);
+             who.platform(), username, who.pid(), ipname);
       
       _camman->detach();
 
@@ -192,6 +216,7 @@ namespace Pds {
     int            _grabberId;
     int            _channel;
     std::list<Src> _sources;
+    std::list<SrcAlias> _aliases;
     AppList        _user_apps;
   };
 }
@@ -211,11 +236,13 @@ int main(int argc, char** argv) {
 
   unsigned grabberId(0);
   unsigned channel  (0);
+  bool helpFlag = false;
 
   extern char* optarg;
   char* endPtr;
+  char* uniqueid = (char *)NULL;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:c:L:C:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:c:L:C:vu:h")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -263,14 +290,31 @@ int main(int argc, char** argv) {
         }
         break;
       }
+    case 'u':
+      if (strlen(optarg) > SrcAlias::AliasNameMax) {
+        printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax);
+      } else {
+        uniqueid = optarg;
+      }
+      break;
     case 'v':
       verbose = true;
+      break;
+    case 'h':
+      helpFlag = true;
       break;
     }
   }
 
+  if (helpFlag) {
+    usage(argv[0]);
+    help();
+    return 0;
+  }
+
   if (platform == NO_PLATFORM) {
     printf("%s: platform required\n",argv[0]);
+    usage(argv[0]);
     return 0;
   }
 
@@ -279,7 +323,7 @@ int main(int argc, char** argv) {
     if (arp->error()) {
       char message[128];
       sprintf(message, "failed to create Arp : %s", 
-	      strerror(arp->error()));
+              strerror(arp->error()));
       printf("%s %s\n",argv[0], message);
       delete arp;
       return 0;
@@ -291,21 +335,22 @@ int main(int argc, char** argv) {
   info = DetInfo(node.pid(), info.detector(), info.detId(), info.device(), info.devId());
 
   SegTest* segtest = new SegTest(task, 
-				 platform, 
+                                 platform, 
                                  info,
-				 grabberId,
-				 channel,
+                                 grabberId,
+                                 channel,
                                  user_apps,
-                                 lCompress);
+                                 lCompress,
+                                 uniqueid);
 
   if (info.device()==DetInfo::Opal4000)
     ToEventWireScheduler::setMaximum(3);
 
   printf("Creating segment level ...\n");
   SegmentLevel* segment = new SegmentLevel(platform, 
-					   *segtest,
-					   *segtest, 
-					   arp);
+                                           *segtest,
+                                           *segtest, 
+                                           arp);
   if (segment->attach()) {
     task->mainLoop();
   }
