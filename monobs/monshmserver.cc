@@ -1,6 +1,5 @@
 #include "pdsapp/tools/PnccdShuffle.hh"
 #include "pdsapp/tools/CspadShuffle.hh"
-#include "pdsapp/monobs/MonShmComm.hh"
 
 #include "pds/service/Task.hh"
 #include "pds/collection/Arp.hh"
@@ -21,6 +20,7 @@
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/Dgram.hh"
 #include "pdsdata/app/XtcMonitorServer.hh"
+#include "pdsdata/app/MonShmComm.hh"
 
 #include <stdio.h>
 #include <stdlib.h>
