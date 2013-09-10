@@ -187,7 +187,7 @@ namespace Pds_ConfigDb
       }
       void push   (Pds::CsPad::ConfigV1QuadReg* p) 
       {
-        Pds::CsPad::CsPadReadOnlyCfg dummy;
+        Pds::CsPad::CsPadReadOnlyCfg dummy(-1U,-1U);
 
         uint8_t potscfg[Pds::CsPad::PotsPerQuad];
 	uint8_t* pots = potscfg;
@@ -237,7 +237,7 @@ namespace Pds_ConfigDb
 					    _rowColShiftPer  .value,
                                             dummy,
                                             reinterpret_cast<const Pds::CsPad::CsPadDigitalPotsCfg&>(potscfg),
-                                            reinterpret_cast<const Pds::CsPad::CsPadGainMapCfg&>(gainMap)
+                                            Pds::CsPad::CsPadGainMapCfg(gainMap)
                                             );
 
         delete[] gainMap;

@@ -4,17 +4,17 @@ tgtnames    := evgr pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccom
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
-tgtlibs_evrobs := pdsdata/xtcdata pdsdata/aliasdata evgr/evr evgr/evg pds/service pds/collection pds/xtc pds/utility pds/management pds/client pds/evgr 
+tgtlibs_evrobs := pdsdata/xtcdata evgr/evr evgr/evg pds/service pds/collection pds/xtc pds/utility pds/management pds/client pds/evgr 
 tgtslib_evrobs := $(USRLIB)/rt
 
 tgtsrcs_evgr := evgr.cc
 tgtincs_evgr := evgr
-tgtlibs_evgr := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/aliasdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata
+tgtlibs_evgr := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata
 tgtslib_evgr := $(USRLIB)/rt
 
 tgtsrcs_evgrd := evgrd.cc
 tgtincs_evgrd := evgr
-tgtlibs_evgrd := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/aliasdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr
+tgtlibs_evgrd := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr
 tgtslib_evgrd := $(USRLIB)/rt
 
 tgtsrcs_xtcwriter := xtcwriter.cc

@@ -119,7 +119,7 @@ tgtnames       += configdb_readxtc
 
 # executable python modules: configdb_gui.py
 
-datalibs := pdsdata/xtcdata pdsdata/aliasdata pdsdata/psddl_pdsdata
+datalibs := pdsdata/xtcdata pdsdata/psddl_pdsdata
 
 tgtsrcs_configdb_cmd := configdb.cc
 tgtincs_configdb_cmd := pdsdata/include

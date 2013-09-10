@@ -90,7 +90,8 @@ void ListUi::update_device_list()
       }
       else if (strlen(src)==8) {
 	DeviceEntry entry(phy);
-	*new QListWidgetItem(Pds::DetInfo::name(reinterpret_cast<const Pds::DetInfo&>(entry)),_devlist);
+        Pds::Src& sentry = entry;
+	*new QListWidgetItem(Pds::DetInfo::name(static_cast<const Pds::DetInfo&>(sentry)),_devlist);
       }
       else {
 	printf("config source %s does not compute.  Skipping.\n",src);

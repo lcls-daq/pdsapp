@@ -1,6 +1,6 @@
 tgtnames := control_gui catest
 
-datalibs := pdsdata/xtcdata pdsdata/aliasdata pdsdata/psddl_pdsdata
+datalibs := pdsdata/xtcdata pdsdata/psddl_pdsdata
 
 tgtsrcs_control_gui := control.cc 
 tgtsrcs_control_gui += MainWindow.cc      MainWindow_moc.cc

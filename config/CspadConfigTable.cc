@@ -278,7 +278,7 @@ namespace Pds_ConfigDb
       }
       void push   (CspadConfigQuadRegType* p, Pds::CsPad::CsPadGainMapCfg* gm)
       {
-        Pds::CsPad::CsPadReadOnlyCfg dummy;
+        Pds::CsPad::CsPadReadOnlyCfg dummy(-1U,-1U);
 
         uint8_t* potsCfg = new uint8_t[Pds::CsPad::PotsPerQuad];
         uint8_t* pots = potsCfg;

@@ -24,7 +24,7 @@ tgtnames    += ipmbldsim
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata pdsdata/compressdata
-commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/aliasdata
+commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config
 #commonlibs  += pdsapp/blv
 
 #ifeq ($(shell uname -m | egrep -c '(x86_|amd)64$$'),1)
@@ -62,7 +62,7 @@ tgtlibs_pimblvedt += $(edt_libs)
 tgtslib_pimblvedt := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
 tgtincs_pimblvedt := edt/include pdsdata/include ndarray/include
 
-datalibs := pdsdata/xtcdata pdsdata/aliasdata pdsdata/psddl_pdsdata
+datalibs := pdsdata/xtcdata pdsdata/psddl_pdsdata
 
 tgtsrcs_evrbld := evrbld.cc EvrBldManager.cc IdleStream.cc PipeApp.cc
 tgtlibs_evrbld := $(commonlibs) $(datalibs)

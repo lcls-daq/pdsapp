@@ -8,9 +8,9 @@ tgtnames    := bldIpimb bldipimbclient
 
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata
-commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/aliasdata
+commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config
 
-datalibs := pdsdata/xtcdata pdsdata/aliasdata pdsdata/psddl_pdsdata
+datalibs := pdsdata/xtcdata pdsdata/psddl_pdsdata
 
 #ifeq ($(shell uname -m | egrep -c '(x86_|amd)64$$'),1)
 #ARCHCODE=64

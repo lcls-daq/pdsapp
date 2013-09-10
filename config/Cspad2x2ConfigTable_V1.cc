@@ -340,7 +340,7 @@ namespace Pds_ConfigDb
         {
           Cspad2x2Temp temp;
           uint32_t setPoint = temp.tempToAdc(_setPoint.value);
-          Pds::CsPad2x2::CsPad2x2ReadOnlyCfg dummy;
+          Pds::CsPad2x2::CsPad2x2ReadOnlyCfg dummy(-1U,-1U);
           uint8_t* potsCfg = new uint8_t[Pds::CsPad2x2::PotsPerQuad];
 
           *new(p) Pds::CsPad2x2::ConfigV1QuadReg(_shiftSelect     .value[0],

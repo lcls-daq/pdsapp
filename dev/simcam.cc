@@ -412,7 +412,7 @@ public:
     _cfgpayload = new char[CfgSize];
     _cfgtc = new(_cfgpayload) Xtc(_CsPad2x2ConfigType,src);
 
-    Pds::CsPad2x2::ProtectionSystemThreshold pt;
+    Pds::CsPad2x2::ProtectionSystemThreshold pt(-1U,-1U);
     Pds::CsPad2x2::ConfigV2QuadReg quad;
 
     new (_cfgtc->alloc(sizeof(CsPad2x2ConfigType)))

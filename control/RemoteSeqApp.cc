@@ -233,7 +233,7 @@ void RemoteSeqApp::routine()
 		if (errno==0)
 		  printf("RemoteSeqApp: remote end closed\n");
 		else
-		  printf("RemoteSeqApp failed to read options(%d/%ld) : %s\n",
+		  printf("RemoteSeqApp failed to read options(%d/%lu) : %s\n",
 			 len,sizeof(options),strerror(errno));
 		break;
 	      }
@@ -249,7 +249,7 @@ void RemoteSeqApp::routine()
 		  if (errno==0)
 		    printf("RemoteSeqApp: remote end closed\n");
 		  else
-		    printf("RemoteSeqApp failed to read partition(%d/%ld) : %s\n",
+		    printf("RemoteSeqApp failed to read partition(%d/%lu) : %s\n",
 			   len,sizeof(*partition),strerror(errno));
 		  break;
 		}

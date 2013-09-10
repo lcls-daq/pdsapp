@@ -46,7 +46,7 @@ endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config 
-commonlibs  += pdsapp/devapp pdsdata/aliasdata
+commonlibs  += pdsapp/devapp
 
 tgtsrcs_fexamp := fexamp.cc
 tgtlibs_fexamp := $(commonlibs) pds/fexamp pds/pgp
@@ -172,7 +172,7 @@ tgtsrcs_camedt := camedt.cc
 tgtlibs_camedt := pdsdata/xtcdata pdsdata/compressdata
 tgtlibs_camedt += $(cam_libs)
 tgtlibs_camedt += pds/service pds/collection pds/xtc pds/mon pds/vmon 
-tgtlibs_camedt += pds/utility pds/management pds/client pds/config pdsdata/aliasdata
+tgtlibs_camedt += pds/utility pds/management pds/client pds/config
 tgtlibs_camedt += pds/camera pds/epicstools epics/ca epics/Com
 tgtlibs_camedt += pds/clientcompress pdsdata/compressdata pds/configdata
 tgtlibs_camedt += pdsapp/devapp
