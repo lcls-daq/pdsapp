@@ -18,8 +18,7 @@ MonCanvas::MonCanvas(QWidget&        parent,
 		     const MonEntry& entry) :
   QGroupBox(entry.desc().name(),&parent),
   _entry(&entry),
-  _selected(Undefined),
-  _archive_mode(false)
+  _selected(Undefined)
 {
   QVBoxLayout* layout = new QVBoxLayout(this);
 
@@ -208,9 +207,3 @@ void MonCanvas::settings()
   dialog();
 }
 
-void MonCanvas::archive_mode()
-{
-  setChart();
-  _select->setEnabled(false);
-  _archive_mode=true;
-}

@@ -12,6 +12,7 @@ namespace Pds {
   class MonEntryTH1F;
   class MonQtTH1F;
   class MonQtChart;
+  class MonStats1D;
 
   class MonConsumerTH1F : public MonCanvas {
   public:
@@ -32,6 +33,7 @@ namespace Pds {
 
     void select(MonCanvas::Select);
 
+    void archive_mode (unsigned);
   private:
     MonEntryTH1F* _last;
     MonEntryTH1F* _prev;
@@ -41,6 +43,9 @@ namespace Pds {
     MonQtTH1F* _since;
     MonQtTH1F* _diff;
     MonQtChart* _chart;
+    MonStats1D* _last_stats;
+
+    bool     _archive_mode;
 
     QwtPlot* _plot;
   };

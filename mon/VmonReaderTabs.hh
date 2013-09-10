@@ -17,7 +17,7 @@ namespace Pds {
   public:
     MyTab( const MonGroup& );
     void update(bool redraw);
-    void reset ();
+    void reset (unsigned);
   private:
     const MonGroup& _group;
     std::vector<MonCanvas*> _canvases;
@@ -28,7 +28,7 @@ namespace Pds {
     VmonReaderTabs(QWidget& parent);
     virtual ~VmonReaderTabs();
 
-    void reset();
+    void reset(unsigned);
     void reset(const MonCds&);
     void update(bool redraw);
   };

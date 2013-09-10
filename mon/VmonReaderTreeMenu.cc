@@ -189,7 +189,7 @@ void VmonReaderTreeMenu::execute()
     for(int k=0; k<gr->nentries(); k++)
       usage.use((g<<16)|k);
   }
-  _tabs.reset();
+  _tabs.reset(_reader->nrecords(_start_time,_stop_time));
   _reader->reset();
   _reader->use(src,usage);
 

@@ -30,7 +30,6 @@ MyTab::MyTab( const MonGroup& group ) : QWidget(0) , _group(group)
 						   "title",
 						   group.desc(),
 						   entry);
-    canvas->archive_mode();
     _canvases.push_back(canvas);
     layout->addWidget(canvas, i/columns, i%columns);
   }
@@ -46,10 +45,12 @@ void MyTab::update(bool lredraw)
   }
 }
 
-void MyTab::reset()
+void MyTab::reset(unsigned n)
 {
-  for(std::vector<MonCanvas*>::iterator it=_canvases.begin(); it!=_canvases.end(); it++)
+  for(std::vector<MonCanvas*>::iterator it=_canvases.begin(); it!=_canvases.end(); it++) {
     (*it)->reset(_group);
+    (*it)->archive_mode(n);
+  }
 }
 
 VmonReaderTabs::VmonReaderTabs(QWidget& parent) : 
@@ -61,11 +62,11 @@ VmonReaderTabs::~VmonReaderTabs()
 {
 }
 
-void VmonReaderTabs::reset()
+void VmonReaderTabs::reset(unsigned n)
 {
   for(int i=0; i<count(); i++) {
     QScrollArea* scroll = static_cast<QScrollArea*>(widget(i));
-    static_cast<MyTab*>(scroll->widget())->reset();
+    static_cast<MyTab*>(scroll->widget())->reset(n);
   }
 }
 

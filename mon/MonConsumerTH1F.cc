@@ -37,7 +37,9 @@ MonConsumerTH1F::MonConsumerTH1F(QWidget& parent,
   _hist(0),
   _since(0),
   _diff(0),
-  _chart(0)
+  _chart(0),
+  _last_stats(0),
+  _archive_mode(false)
 {
   // Prepares menus
   _menu_service(Integrated, false);
@@ -64,6 +66,8 @@ MonConsumerTH1F::MonConsumerTH1F(QWidget& parent,
   snprintf(tmp, 128, "%s:%s:%s:CHART", clientname, dirname, entryname);
   _chart = new MonQtChart(tmp,desc);
 
+  _last_stats = new MonStats1D;
+
   _plot = new QwtPlot(this);
   connect( this, SIGNAL(redraw()), _plot, SLOT(replot()) );
   layout()->addWidget(_plot);
@@ -79,6 +83,7 @@ MonConsumerTH1F::~MonConsumerTH1F()
   delete _since;
   delete _diff;
   delete _chart;
+  delete _last_stats;
 }
 
 void MonConsumerTH1F::dialog()
@@ -91,7 +96,11 @@ int MonConsumerTH1F::update()
   const MonEntryTH1F* entry = dynamic_cast<const MonEntryTH1F*>(_entry);
   if (entry->time() > _last->time()) {
     if (_archive_mode) {
-      _chart->point(entry->last(), entry->mean());
+      MonStats1D diff;
+      diff.setto(*entry, *_last_stats);
+      if (diff.sum())
+	_chart->point(entry->last(), diff.mean());
+      _last_stats->setto(*entry);
     }
     else {
       _since->setto(*entry, *_prev);
@@ -130,6 +139,14 @@ int MonConsumerTH1F::reset(const MonGroup& group)
   }
   _entry = 0;
   return 0;
+}
+
+void MonConsumerTH1F::archive_mode (unsigned n)
+{
+  _archive_mode=true;
+  _chart->points(n);
+  setChart();
+  _select->setEnabled(false);
 }
 
 static const unsigned Nplots = 4;

@@ -82,9 +82,7 @@ namespace Pds {
     void setChartY     ();
 
   public:
-    void archive_mode  ();
-  protected:
-    bool _archive_mode;
+    virtual void archive_mode (unsigned) {}
   };
 };
 
