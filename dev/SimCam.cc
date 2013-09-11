@@ -9,7 +9,7 @@ template <class T>
 static void _stuffIt(Pds::Camera::FrameV1& f)
 {
   static unsigned _p = 0x55555555;
-  T* d = (T*)f.data8().data() + f.height()/4*f.width();
+  T* d = (T*)(&f+1) + f.height()/4*f.width();
   const T v = _p&((1<<f.depth())-1);
   printf("stuff %x\n",v);
   for(unsigned i=0; i<f.width(); i++)

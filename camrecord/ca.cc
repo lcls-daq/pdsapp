@@ -332,9 +332,9 @@ class caconn {
             /* This is to keep the compiler happy.  We never get here! */
             exit(1);
         }
-        frm->alloc(f->data8().size());
+        frm->alloc(f->_sizeof()-sizeof(*f));
         if (bld >= 0)
-          hdr->alloc(f->data8().size());
+          hdr->alloc(f->_sizeof()-sizeof(*f));
         free(buf); /* We're done with r, which lives in buf. */
 
         int result = ca_create_channel(pvname.c_str(),

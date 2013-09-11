@@ -151,7 +151,7 @@ namespace Pds {
       FrameType frame;
       int advance = iter.copy(&frame, sizeof(FrameType));
 
-      unsigned remaining = frame.data8().size();
+      unsigned remaining = frame._sizeof()-sizeof(frame);
       unsigned short offset = frame.offset();
       iovec iov;
       unsigned ix=0,iy=0;
@@ -175,7 +175,7 @@ namespace Pds {
 	}
       }
       
-      advance += frame.data8().size();
+      advance += frame._sizeof()-sizeof(frame);
 
       //  zero out the information overlay
       for(unsigned ip=0; ip<4; ip++)
