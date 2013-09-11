@@ -755,10 +755,13 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
     }
 
     ProtectionSystemThreshold pth[4];
+    { for(unsigned q=0; q<4; q++)
+        pth[q] = cfg->protectionThresholds()[q]; }
     PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
     if (pst) {
       for(unsigned q=0; q<PyList_Size(pst); q++) {
-	unsigned adcThreshold, pixelCountThreshold;
+	unsigned adcThreshold = pth[q].adcThreshold();
+        unsigned pixelCountThreshold = pth[q].pixelCountThreshold();
         PyObject* it = PyList_GetItem(pst,q);
         if ((i=PyDict_GetItemString(it,"adcThreshold")))
           adcThreshold = PyLong_AsLong(i);
@@ -824,10 +827,13 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
     }
 
     ProtectionSystemThreshold pth[4];
+    { for(unsigned q=0; q<4; q++)
+        pth[q] = cfg->protectionThresholds()[q]; }
     PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
     if (pst) {
       for(unsigned q=0; q<PyList_Size(pst); q++) {
-	unsigned adcThreshold, pixelCountThreshold;
+	unsigned adcThreshold        = pth[q].adcThreshold();
+        unsigned pixelCountThreshold = pth[q].pixelCountThreshold();
         PyObject* it = PyList_GetItem(pst,q);
         if ((i=PyDict_GetItemString(it,"adcThreshold")))
           adcThreshold = PyLong_AsLong(i);
@@ -894,10 +900,13 @@ PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args)
     }
 
     ProtectionSystemThreshold pth[4];
+    { for(unsigned q=0; q<4; q++)
+        pth[q] = cfg->protectionThresholds()[q]; }
     PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
     if (pst) {
       for(unsigned q=0; q<PyList_Size(pst); q++) {
-	unsigned adcThreshold, pixelCountThreshold;
+	unsigned adcThreshold        = pth[q].adcThreshold();
+        unsigned pixelCountThreshold = pth[q].pixelCountThreshold();
         PyObject* it = PyList_GetItem(pst,q);
         if ((i=PyDict_GetItemString(it,"adcThreshold")))
           adcThreshold = PyLong_AsLong(i);

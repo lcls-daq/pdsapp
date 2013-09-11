@@ -450,10 +450,11 @@ PyObject* pds_Cspad2x2Config_set    (PyObject*   self, PyObject* args)
       }
     }
 
-    Pds::CsPad2x2::ProtectionSystemThreshold pth;
+    Pds::CsPad2x2::ProtectionSystemThreshold pth = cfg->protectionThreshold();
     PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
     if (pst) {
-      unsigned adcThreshold, pixelCountThreshold;
+      unsigned adcThreshold        = pth.adcThreshold();
+      unsigned pixelCountThreshold = pth.pixelCountThreshold();
       PyObject* it = PyList_GetItem(pst,0);
       if ((i=PyDict_GetItemString(it,"adcThreshold")))
         adcThreshold = PyLong_AsLong(i);
