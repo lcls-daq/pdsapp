@@ -102,7 +102,7 @@ int main(int argc, char** argv)
       lwrite=false;
       glob_t g;
       glob(path.key_path("[0-9,a-f]*").c_str(),0,0,&g);
-      printf("Found %d[0x%x] global keys ending in %s\n",
+      printf("Found %zu[0x%zx] global keys ending in %s\n",
              g.gl_pathc,
              g.gl_pathc,
              g.gl_pathv[g.gl_pathc-1]);
