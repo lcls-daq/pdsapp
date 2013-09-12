@@ -9,8 +9,8 @@
 #include "pds/mon/MonConsumerClient.hh"
 #include "pds/management/VmonClientManager.hh"
 #include "pds/vmon/VmonRecorder.hh"
-
 #include "pds/mon/MonPort.hh"
+#include "pds/utility/Transition.hh"
 
 void printHelp(const char* program);
 
@@ -43,6 +43,14 @@ namespace Pds {
       request_payload();
     }
     unsigned repetitive() const { return 1; }
+  public:
+    void post(const Transition& tr) {
+      if (tr.id()==TransitionId::BeginRun)
+        _recorder->begin(tr.env().value());
+      else if (tr.id()==TransitionId::EndRun)
+        _recorder->end();
+      VmonClientManager::post(tr);
+    }
   private:
     // Implements MonConsumerClient
     void process(MonClient& client, MonConsumerClient::Type type, int result=0) {

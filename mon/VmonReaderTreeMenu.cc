@@ -25,7 +25,6 @@
 
 using namespace Pds;
 
-
 VmonReaderTreeMenu::VmonReaderTreeMenu(QWidget&        p, 
 				       VmonReaderTabs& tabs,
 				       const char*     path) :
