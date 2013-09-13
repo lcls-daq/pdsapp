@@ -45,8 +45,11 @@ namespace Pds {
     unsigned repetitive() const { return 1; }
   public:
     void post(const Transition& tr) {
-      if (tr.id()==TransitionId::BeginRun)
-        _recorder->begin(tr.env().value());
+      if (tr.id()==TransitionId::BeginRun) {
+        const unsigned MAX_RUNS=100000;
+        unsigned env = tr.env().value();
+        _recorder->begin(env < MAX_RUNS ? int(env) : -1);
+      }
       else if (tr.id()==TransitionId::EndRun)
         _recorder->end();
       VmonClientManager::post(tr);
