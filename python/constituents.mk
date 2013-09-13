@@ -9,5 +9,5 @@ CPPFLAGS += -fno-strict-aliasing
 
 libsrcs_pydaq := pydaq.cc
 libincs_pydaq := python/include/python2.5 pdsdata/include ndarray/include boost/include
-liblibs_pydaq += pdsdata/xtcdata pdsdata/psddl_pdsdata
+liblibs_pydaq += pdsdata/xtcdata pdsdata/psddl_pdsdata pds/configdata
 libslib_pydaq := $(USRLIBDIR)/rt
