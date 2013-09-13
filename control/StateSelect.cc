@@ -1,4 +1,5 @@
-#include "StateSelect.hh"
+#include "pdsapp/control/StateSelect.hh"
+#include "pdsapp/control/Preferences.hh"
 
 #include "pds/management/PartitionControl.hh"
 #include "pds/utility/Occurrence.hh"
@@ -54,13 +55,11 @@ StateSelect::StateSelect(QWidget* parent,
   {
     const int BUFF_SIZE=64;
     char* buff = (char*)malloc(BUFF_SIZE);
-    sprintf(buff,".%s for platform %u",qPrintable(title()), _control.header().platform());
-    FILE* f = fopen(buff,"r");
-    if (f) {
+    Preferences pref(qPrintable(title()), _control.header().platform(),"r");
+    if (pref.file()) {
       size_t linesz = BUFF_SIZE;
-      if (getline(&buff,&linesz,f)!=-1)
+      if (getline(&buff,&linesz,pref.file())!=-1)
 	do_record = strncmp(buff,YES_STR,sizeof(YES_STR))==0;
-      fclose(f);
     }
     free(buff);
   }
@@ -168,15 +167,9 @@ void StateSelect::set_record(bool r)
   _record->setPalette(r ? *_green : *_yellow);
   _control.use_run_info(r);
 
-  const int BUFF_SIZE=64;
-  char* buff = (char*)malloc(BUFF_SIZE);
-  sprintf(buff,".%s for platform %u",qPrintable(title()), _control.header().platform());
-  FILE* f = fopen(buff,"w");
-  if (f) {
-    fprintf(f,"%s", r ? YES_STR : NO_STR);
-    fclose(f);
-  }
-  free(buff);
+  Preferences pref(qPrintable(title()), _control.header().platform(), "w");
+  if (pref.file())
+    fprintf(pref.file(),"%s", r ? YES_STR : NO_STR);
 }
 
 Transition* StateSelect::transitions(Transition* tr) 

@@ -1,4 +1,5 @@
-#include "NodeSelect.hh"
+#include "pdsapp/control/NodeSelect.hh"
+#include "pdsapp/control/Preferences.hh"
 
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -59,32 +60,6 @@ static QList<int> _bldOrder =
          << BldInfo::NumberOf;
 
 static const char* cTransient = "Monitor";
-
-static FILE* open_pref(const char* title, unsigned platform, const char* mode)
-{
-  const int BUFF_SIZE=256;
-  char* buff = new char[BUFF_SIZE];
-
-  char* home = getenv("HOME");
-  if (home) {
-    snprintf(buff, NODE_BUFF_SIZE-1, "%s/.%s for platform %u", home, title, platform);
-  }
-  else {
-    snprintf(buff, NODE_BUFF_SIZE-1, ".%s for platform %u", title, platform);
-  }
-  
-  FILE* f = fopen(buff,mode);
-  if (!f) {
-    std::string msg("Failed to open ");
-    msg.append(buff);
-    msg.append(" in mode ");
-    msg.append(mode);
-    perror(msg.c_str());
-  }
-  delete[] buff;
-
-  return f;
-}
 
 NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, int iUseReadoutGroup, bool useTransient) :
   QWidget  (parent),
@@ -339,27 +314,26 @@ QList<Node> NodeGroup::selected()
   }
 
   //  Write persistent selected nodes
-  FILE* f = open_pref(qPrintable(title()), _platform,"w");
-  if (f) {
+  Preferences pref(qPrintable(title()), _platform, "w");
+  if (pref.file()) {
     for (int iNode = 0; iNode < _persist.size(); ++iNode)
     {
       //foreach(QString p, _persist) {      
         //fprintf(f,"%s;%d\n",qPrintable(p), _persistGroup);
         
       if (_iUseReadoutGroup != 0)
-        fprintf(f,"%s;%d;%s\n",
+        fprintf(pref.file(),"%s;%d;%s\n",
 		qPrintable(_persist[iNode]), 
 		_persistGroup[iNode], 
 		_persistTrans[iNode]?cTransient:"Record");
       else if (_useTransient)
-        fprintf(f,"%s;%s\n",
+        fprintf(pref.file(),"%s;%s\n",
 		qPrintable(_persist[iNode]),
 		_persistTrans[iNode]?cTransient:"Record");
       else
-        fprintf(f,"%s\n",
+        fprintf(pref.file(),"%s\n",
 		qPrintable(_persist[iNode]));      
     }
-    fclose(f);
   }
 
   return nodes;
@@ -469,13 +443,12 @@ void NodeGroup::_read_pref(const QString&  title,
     return;
   }
     
-  FILE* f = open_pref(qPrintable(title), _platform, "r");
-  if (f) {
+  Preferences pref(qPrintable(title), _platform, "r");
+  if (pref.file()) {
     char* lptr=buff;
     size_t linesz = NODE_BUFF_SIZE;         // initialize for getline
     
-    printf("Reading pref file \"%s\"\n", qPrintable(title));
-    while(getline(&lptr,&linesz,f)!=-1) {
+    while(getline(&lptr,&linesz,pref.file())!=-1) {
       QString p(lptr);
       p.chop(1);  // remove new-line
       p.replace('\t','\n');        
@@ -495,7 +468,6 @@ void NodeGroup::_read_pref(const QString&  title,
 	break;
       }
     }
-    fclose(f);
   }
   free(buff);
 }
@@ -512,12 +484,12 @@ void NodeGroup::_read_pref(const QString&  title,
     return;
   }
     
-  FILE* f = open_pref(qPrintable(title), _platform, "r");
-  if (f) {
+  Preferences pref(qPrintable(title), _platform, "r");
+  if (pref.file()) {
     char* lptr=buff;
     size_t linesz = NODE_BUFF_SIZE;         // initialize for getline
     
-    while(getline(&lptr,&linesz,f)!=-1) {
+    while(getline(&lptr,&linesz,pref.file())!=-1) {
       QString p(lptr);
       p.chop(1);  // remove new-line
       p.replace('\t','\n');        
@@ -544,7 +516,6 @@ void NodeGroup::_read_pref(const QString&  title,
 	break;
       }
     }
-    fclose(f);
   }
 }
 

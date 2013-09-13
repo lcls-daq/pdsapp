@@ -1,4 +1,5 @@
 #include "pdsapp/control/ConfigSelect.hh"
+#include "pdsapp/control/Preferences.hh"
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Reconfig_Ui.hh"
 #include "pdsapp/config/ControlScan.hh"
@@ -266,18 +267,12 @@ void ConfigSelect::enable_scan(bool l)
 
 void ConfigSelect::_writeSettings()
 {
-  char buff[64];
-  snprintf(buff, sizeof(buff)-1, ".%s for platform %u", qPrintable(title()), _pcontrol.header().platform());
-  FILE* f = fopen(buff,"w");
-  if (f) {
-    fprintf(f,"%s\n",qPrintable(_runType->currentText()));
-    fprintf(f,"%s\n",_bScan->isEnabled() && _bScan->isChecked() ? "scan":"no_scan");
-    fclose(f);
-  }
-  else {
-    std::string msg("Failed to open ");
-    msg.append(buff);
-    perror(msg.c_str());
+  Preferences pref(qPrintable(title()),
+                   _pcontrol.header().platform(),
+                   "w");
+  if (pref.file()) {
+    fprintf(pref.file(),"%s\n",qPrintable(_runType->currentText()));
+    fprintf(pref.file(),"%s\n",_bScan->isEnabled() && _bScan->isChecked() ? "scan":"no_scan");
   }
 }
 
@@ -291,34 +286,22 @@ void ConfigSelect::_readSettings()
   if (buff == (char *)NULL) {
     printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, SETTINGS_SIZE, errno);
   } else {
-    char* home = getenv("HOME");
-    if (home) {
-      snprintf(buff, SETTINGS_SIZE-1, "%s/.%s for platform %u", home, "Configuration", _pcontrol.header().platform());
-    }
-    else {
-      snprintf(buff, SETTINGS_SIZE-1, ".%s for platform %u", "Configuration", _pcontrol.header().platform());
-    }
-
-    FILE* f = fopen(buff,"r");
-    if (f) {
-      printf("Opened %s\n",buff);
+    Preferences pref(qPrintable(title()),
+                     _pcontrol.header().platform(),
+                     "r");
+    if (pref.file()) {
       char* lptr=buff;
       size_t linesz = SETTINGS_SIZE;         // initialize for getline
-      if (getline(&lptr,&linesz,f)!=-1) {
+      if (getline(&lptr,&linesz,pref.file())!=-1) {
         QString p(lptr);
         p.chop(1);  // remove new-line
         int index = _runType->findText(p);
         if (index >= 0)
           _runType->setCurrentIndex(index);
       }
-      if (getline(&lptr,&linesz,f)!=-1 &&
+      if (getline(&lptr,&linesz,pref.file())!=-1 &&
           strcmp(lptr,"scan")==0)
         _bScan->setChecked(true);
-
-      fclose(f);
-    }
-    else {
-      printf("Failed to open %s\n", buff);
     }
     free(buff);
   }
