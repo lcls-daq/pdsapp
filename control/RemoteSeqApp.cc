@@ -21,6 +21,7 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 
 #define DBUG
 
@@ -82,7 +83,7 @@ bool RemoteSeqApp::readTransition()
     if (errno==0)
       printf("RemoteSeqApp: remote end closed\n");
     else
-      printf("RemoteSeqApp failed to read config hdr(%d/%u) : %s\n",
+      printf("RemoteSeqApp failed to read config hdr(%d/%zu) : %s\n",
        len,sizeof(config),strerror(errno));
     return false;
   }
@@ -129,7 +130,7 @@ bool RemoteSeqApp::processTransitionCmd(RemoteSeqCmd& cmd)
     int64_t iEventNum = _runStatus.getEventNum();
     ::write(_socket,&iEventNum,sizeof(iEventNum));
 #ifdef DBUG
-    printf("RemoteSeqApp get events [%lld]\n",iEventNum);
+    printf("RemoteSeqApp get events [%ld]\n",long(iEventNum));
 #endif
     break;
   }
@@ -233,7 +234,7 @@ void RemoteSeqApp::routine()
 		if (errno==0)
 		  printf("RemoteSeqApp: remote end closed\n");
 		else
-		  printf("RemoteSeqApp failed to read options(%d/%lu) : %s\n",
+		  printf("RemoteSeqApp failed to read options(%d/%zu) : %s\n",
 			 len,sizeof(options),strerror(errno));
 		break;
 	      }
@@ -249,7 +250,7 @@ void RemoteSeqApp::routine()
 		  if (errno==0)
 		    printf("RemoteSeqApp: remote end closed\n");
 		  else
-		    printf("RemoteSeqApp failed to read partition(%d/%lu) : %s\n",
+		    printf("RemoteSeqApp failed to read partition(%d/%zu) : %s\n",
 			   len,sizeof(*partition),strerror(errno));
 		  break;
 		}
@@ -298,7 +299,7 @@ void RemoteSeqApp::routine()
 
 	      _control.wait_for_target();
 	      _control.set_transition_env    (TransitionId::Configure,options & DbKeyMask);
-	      _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);  /* XXX */ printf("*** calling set_transition_payload() from %s line %d\n", __PRETTY_FUNCTION__, __LINE__);
+	      _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
 	      
 	      _control.set_target_state(PartitionControl::Configured);
 	      
@@ -320,7 +321,7 @@ void RemoteSeqApp::routine()
 		}
 		else {
 		  _control.wait_for_target();
-		  _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);  /* XXX */ printf("*** calling set_transition_payload() from %s line %d\n", __PRETTY_FUNCTION__, __LINE__);
+		  _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
 		  _control.set_transition_env(TransitionId::Enable,
 					      config.uses_duration() ?
 					      EnableEnv(config.duration()).value() :
@@ -354,7 +355,7 @@ void RemoteSeqApp::routine()
             _configtc.extent = sizeof(Xtc) + config._sizeof();
 
             _control.set_transition_env    (TransitionId::Configure,old_key);
-            _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);  /* XXX */ printf("*** calling set_transition_payload() from %s line %d\n", __PRETTY_FUNCTION__, __LINE__);
+            _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
             _control.set_transition_env    (TransitionId::Enable,
                                             config.uses_duration() ?
                                             EnableEnv(config.duration()).value() :

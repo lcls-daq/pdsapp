@@ -3,7 +3,10 @@
 
 #include "pdsapp/control/PartitionSelect.hh"
 #include "pdsapp/tools/SummaryDg.hh"
+#include "pds/management/PartitionControl.hh"
 #include "pds/xtc/InDatagramIterator.hh"
+#include "pdsdata/psddl/alias.ddl.h"
+#include "pdsdata/xtc/SrcAlias.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 
@@ -21,9 +24,11 @@ static inline bool matches(const Src& a, const Src& b)
   return a==b;
 }
 
-DamageStats::DamageStats(PartitionSelect& partition) :
+DamageStats::DamageStats(PartitionSelect& partition,
+                         const PartitionControl& pcontrol) :
   QWidget(0),
-  _partition(partition)
+  _partition(partition),
+  _pcontrol (pcontrol )
 {
   setWindowTitle("Damage Stats");
 
@@ -37,7 +42,15 @@ DamageStats::DamageStats(PartitionSelect& partition) :
     const DetInfo&  det  = _partition.detectors().at(i);
     const ProcInfo& proc = _partition.segments ().at(i);
     if (det.detector() != DetInfo::BldEb) {
-      l->addWidget(new QLabel(DetInfo::name(det)),row,0,Qt::AlignRight);
+      const char* alias = _pcontrol.lookup_src_alias(det);
+      if (alias) {
+        QLabel* label = new QLabel(alias);
+        label->setToolTip(DetInfo::name(det));
+        l->addWidget(label,row,0,Qt::AlignRight);
+      }
+      else {
+        l->addWidget(new QLabel(DetInfo::name(det)),row,0,Qt::AlignRight);
+      }
       QCounter* cnt = new QCounter;
       l->addWidget(cnt->widget(),row,1,Qt::AlignRight);
       _counts   << cnt;

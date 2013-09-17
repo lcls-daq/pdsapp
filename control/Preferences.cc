@@ -17,7 +17,7 @@ Preferences::Preferences(const char* title,
 
   _f = fopen(o.str().c_str(),mode);
   if (_f) {
-    printf("Opened %s in %s mode\n",o.str().c_str(),mode);
+    //    printf("Opened %s in %s mode\n",o.str().c_str(),mode);
   }
   else {
     std::string msg("Failed to open ");

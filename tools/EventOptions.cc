@@ -107,28 +107,28 @@ bool        EventOptions::parse_opt (int c)
     break;
   case 'L':
     { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
-  printf("dlopen %s\n",p);
+        printf("dlopen %s\n",p);
 
-  void* handle = dlopen(p, RTLD_LAZY);
-  if (!handle) {
-    printf("dlopen failed : %s\n",dlerror());
-    break;
-  }
+        void* handle = dlopen(p, RTLD_LAZY);
+        if (!handle) {
+          printf("dlopen failed : %s\n",dlerror());
+          break;
+        }
 
-  // reset errors
-  const char* dlsym_error;
-  dlerror();
+        // reset errors
+        const char* dlsym_error;
+        dlerror();
 
-  // load the symbols
-  create_app* c_user = (create_app*) dlsym(handle, "create");
-  if ((dlsym_error = dlerror())) {
-    fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
-    break;
-  }
-  if (apps != NULL)
-    c_user()->connect(apps);
-  else
-    apps = c_user();
+        // load the symbols
+        create_app* c_user = (create_app*) dlsym(handle, "create");
+        if ((dlsym_error = dlerror())) {
+          fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
+          break;
+        }
+        if (apps != NULL)
+          c_user()->connect(apps);
+        else
+          apps = c_user();
       }
       break;
     }

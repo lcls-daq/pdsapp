@@ -22,7 +22,6 @@ static const char* _Enable        = "ENABLE";
 static const char* _Next_Cycle    = "NEXT CYCLE";
 static const char* _End_Running   = "END RUNNING";
 static const char* _Shutdown      = "SHUTDOWN";
-static const char* _NoChange      = "NO CHANGE";
 static const char* YES_STR = "DO_RECORD";
 static const char* NO_STR  = "DO_NOT_RECORD";
 
@@ -103,7 +102,7 @@ void StateSelect::populate(QString label)
   case PartitionControl::Unmapped:   
                                        _select->addItem(_Allocate);
 				       _select->addItem(_Begin_Running);
-				       emit configured(false);
+				       // emit configured(false);
 				       _record->setEnabled(true);
 				       break;
   case PartitionControl::Mapped:
@@ -119,25 +118,24 @@ void StateSelect::populate(QString label)
   case PartitionControl::Running :
                                        _select->addItem(_End_Running);
 				       _select->addItem(_Shutdown);
-				       emit configured(true);
+				       // emit configured(true);
 				       _record->setEnabled(false);
 				       break;
   case PartitionControl::Disabled:
                                       _select->addItem(_Enable);
                                       _select->addItem(_End_Running);
 				      _select->addItem(_Shutdown);
-				       emit configured(true);
+                                      // emit configured(true);
 				      break;
   case PartitionControl::Enabled :
                                        _select->addItem(_Disable);
 				       _select->addItem(_Next_Cycle);
 				       _select->addItem(_End_Running);
 				       _select->addItem(_Shutdown);
-				       emit configured(true);
+				       // emit configured(true);
 				       break;
   case PartitionControl::NumberOfStates: break;
   }
-  _select->addItem(_NoChange);
   QObject::connect(_select, SIGNAL(activated(const QString&)), 
 		   this, SLOT(selected(const QString&)));
 

@@ -299,7 +299,7 @@ MainWindow::MainWindow(unsigned          platform,
   layout->addWidget(_partition= new PartitionSelect(this, *_control, partition, db_path, partition_options));
   layout->addWidget(state     = new StateSelect    (this, *_control));
   layout->addWidget(pvs       = new PVDisplay      (this, *_control));
-  layout->addWidget(run       = new RunStatus      (this, *_partition));
+  layout->addWidget(run       = new RunStatus      (this, *_control, *_partition));
   layout->addWidget(_log      = new ControlLog);
 
   _pvmanager = new PVManager(*pvs);

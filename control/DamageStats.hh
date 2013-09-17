@@ -6,14 +6,17 @@
 #include <QtCore/QList>
 
 namespace Pds {
+  namespace Alias { class ConfigV1; }
   class InDatagramIterator;
   class PartitionSelect;
+  class PartitionControl;
   class QCounter;
 
   class DamageStats : public QWidget {
     Q_OBJECT
   public:
-    DamageStats(PartitionSelect&);
+    DamageStats(PartitionSelect&,
+                const PartitionControl&);
     ~DamageStats();
   public:
     int   increment(InDatagramIterator*,int);
@@ -22,6 +25,7 @@ namespace Pds {
     void  update_stats();
   private:
     PartitionSelect& _partition;
+    const PartitionControl& _pcontrol;
     QList<Src>       _segments;
     QList<QCounter*> _counts;
   };

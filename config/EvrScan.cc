@@ -18,6 +18,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+//#define DBUG
+
 using namespace Pds_ConfigDb;
 
 static void _parse_range(const QString& lo,
@@ -177,7 +179,9 @@ void EvrScan::read(const char* dbuf, int len)
   connect(_pulse_id, SIGNAL(activated(int)), this, SLOT(set_pulse(int)));
 
   _pulse_id->setCurrentIndex(0);
+#ifdef DBUG
   printf("EvrScan::read npulses %u\n",cfg.npulses());
+#endif
 }
 
 
@@ -185,7 +189,9 @@ void EvrScan::set_pulse(int index)
 {
   const EvrConfigType& cfg = *reinterpret_cast<const EvrConfigType*>(_buff);
   const Pds::EvrData::PulseConfigV3& pulse = cfg.pulses()[index];
+#ifdef DBUG
   printf("EvrScan::set_pulse %d\n", index);
+#endif
 
   int offs = 0;
   for(unsigned i=0; i<cfg.neventcodes(); i++)
