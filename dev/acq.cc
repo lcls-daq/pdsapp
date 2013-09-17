@@ -1,4 +1,5 @@
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/SrcAlias.hh"
 
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
@@ -34,10 +35,15 @@ namespace Pds {
   //
   class MySegWire : public SegWireSettings {
   public:
-    MySegWire(std::list<AcqServer*>& servers) : _servers(servers) 
+    MySegWire(std::list<AcqServer*>& servers, const char *aliasName) : _servers(servers) 
     {
-      for(std::list<AcqServer*>::iterator it=servers.begin(); it!=servers.end(); it++)
-	_sources.push_back((*it)->client()); 
+      for(std::list<AcqServer*>::iterator it=servers.begin(); it!=servers.end(); it++) {
+        _sources.push_back((*it)->client()); 
+        if ((aliasName) && (it == servers.begin())) {
+          SrcAlias tmpAlias((*it)->client(), aliasName);
+          _aliases.push_back(tmpAlias);
+        }
+      }
     }
     virtual ~MySegWire() {}
     void connect (InletWire& wire,
@@ -47,9 +53,15 @@ namespace Pds {
 	wire.add_input(*it);
     }
     const std::list<Src>& sources() const { return _sources; }
+    const std::list<SrcAlias>* pAliases() const
+    {
+      return (_aliases.size() > 0) ? &_aliases : NULL;
+    }
+
   private:
     std::list<AcqServer*>& _servers;
     std::list<Src>         _sources;
+    std::list<SrcAlias>    _aliases;
   };
 
   //
@@ -171,12 +183,13 @@ static void calibrate(AcqFinder& acqFinder,
 static void usage(char *p)
 {
   printf("Usage: %s -i <detid> -p <platform> \n"
-         "           [-d <devid>] [-t] [-C] [-c <nConverters>] [-m <mask>]\n\n"
+         "           [-d <devid>] [-t] [-u <alias>] [-C] [-c <nConverters>] [-m <mask>]\n\n"
          "Options:\n"
          "\t -i <detid>        detector ID (e.g. 12 for SxrEndstation)\n"
          "\t -d <devid>        device ID \n"
          "\t -p <platform>     platform number\n"
          "\t -t                multi-instrument (look for more than one module, ADC or TDC, in crate)\n"
+         "\t -u <alias>        set device alias\n"
          "\t -C                calibrate\n"
          "\t -c <nConverters>  number of converters (used by calibrate function only)\n"
          "\t -m <mask>         calibration channel mask (used by calibrate function only)\n", p);
@@ -193,10 +206,11 @@ int main(int argc, char** argv) {
   bool lcalibrate = false;
   unsigned nbrConverters=0;
   unsigned calChannelMask=0;
+  char* uniqueid = (char *)NULL;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:d:p:tCc:m:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:d:p:tCc:m:u:h")) != EOF ) {
     switch(c) {
     case 'i':
       detid  = strtoul(optarg, NULL, 0);
@@ -209,6 +223,13 @@ int main(int argc, char** argv) {
       break;
     case 't':
       multi_instruments_only = false;
+      break;
+    case 'u':
+      if (strlen(optarg) > SrcAlias::AliasNameMax) {
+        printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax);
+      } else {
+        uniqueid = optarg;
+      }
       break;
     case 'C':
       lcalibrate = true;
@@ -262,7 +283,7 @@ int main(int argc, char** argv) {
   }
   
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings(servers);
+  MySegWire settings(servers, uniqueid);
   Seg* seg = new Seg(task, platform, settings, 0, D1Managers, T3Managers);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
   seglevel->attach();
