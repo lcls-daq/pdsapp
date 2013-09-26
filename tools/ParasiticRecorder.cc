@@ -45,7 +45,7 @@ namespace Pds {
     {
       glob_t g;
       glob(pathname,0,0,&g);
-      printf("Found %d files in path %s\n",g.gl_pathc,pathname);
+      printf("Found %zd files in path %s\n",g.gl_pathc,pathname);
       time_t now = time(0);
       for(unsigned i=0; i<g.gl_pathc; i++) {
 	struct stat64 s;

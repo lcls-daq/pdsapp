@@ -494,7 +494,7 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
   if (partition) {
     // Translate partition dict to Allocation and write
     if (PyList_Size(partition)!=daq->partition->nodes()) {
-      printf("partition list size (%d) does not match original size (%d).\nPartition unchanged.\n",
+      printf("partition list size (%zd) does not match original size (%d).\nPartition unchanged.\n",
 	     PyList_Size(partition),daq->partition->nodes());
       PyErr_SetString(PyExc_RuntimeError,"Partition size changed.");
       return NULL;
@@ -548,7 +548,7 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
   }
   else if (l3t_events>=0) {
     cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,
-                                   ControlConfig::L3TEvents(l3t_events));
+                                   Pds::ControlConfig::L3TEvents(l3t_events));
   }
   else {
     PyErr_SetString(PyExc_RuntimeError,"Configuration lacks duration or events input.");

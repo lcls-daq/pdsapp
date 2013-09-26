@@ -90,7 +90,7 @@ int EvrBldServer::fetch(char* payload, int flags)
   int length = ::read(fd(),(char*)_evrDatagram,sizeof(EvrDatagram));
   if(length != sizeof(EvrDatagram)) {
     if (nPrint) {
-      printf("*** EvrBldServer::fetch() : EvrDatagram not received in full  (%d/%u)\n", length,sizeof(EvrDatagram));
+      printf("*** EvrBldServer::fetch() : EvrDatagram not received in full  (%d/%zu)\n", length,sizeof(EvrDatagram));
       nPrint--;
     }
   }

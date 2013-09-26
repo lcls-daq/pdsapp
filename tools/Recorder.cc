@@ -271,7 +271,7 @@ Transition* Recorder::transitions(Transition* tr) {
         printf("expname %s ", _expname);
       }
       if (_chunkSize < ULLONG_MAX) {
-        printf("chunk_size %llu", _chunkSize);
+        printf("chunk_size %zu", ssize_t(_chunkSize));
       }
       printf("\n");
 

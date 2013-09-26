@@ -256,7 +256,7 @@ void ControlScan::read(const char* ifile)
 
     int len = fread(_buf_control, 1, sstat.st_size, f);
     if (len != sstat.st_size) {
-      printf("Read %d/%lld bytes from %s\n",len,sstat.st_size,namebuf);
+      printf("Read %d/%zd bytes from %s\n",len,sstat.st_size,namebuf);
     }
     else {
       const ControlConfigType& cfg = 
@@ -317,7 +317,7 @@ void ControlScan::read(const char* ifile)
 
 	int len = fread(_buf_evr, 1, sstat.st_size, f);
 	if (len != sstat.st_size) {
-	  printf("Read %d/%lld bytes from %s\n",len,sstat.st_size,namebuf);
+	  printf("Read %d/%zd bytes from %s\n",len,sstat.st_size,namebuf);
 	}
         else {
           _evr->read(_buf_evr, len);

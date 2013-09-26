@@ -34,7 +34,7 @@ namespace Pds {
       }
       ssize_t sz = ::read(_fd, dg.xtc.payload(), payloadSize);
       if (sz != (ssize_t)payloadSize) {
-	printf("XtcFileIterator::next read incomplete payload %d/%d\n",
+	printf("XtcFileIterator::next read incomplete payload %zd/%zd\n",
 	       sz,payloadSize);
       }
       

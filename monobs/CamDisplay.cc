@@ -242,7 +242,7 @@ namespace Pds {
 					     Opal1kConfigType::Row_Pixels,
 					     cfg.output_resolution_bits(),
 					     _monsrv.cds()));
-	  printf("Created group %d @ xtc %p\n", _groups.size(), &xtc);
+	  printf("Created group %zd @ xtc %p\n", _groups.size(), &xtc);
 	  break; }
       case TypeId::Id_TM6740Config:
 	{ const TM6740ConfigType& cfg = *reinterpret_cast<const TM6740ConfigType*>(xtc.payload());
