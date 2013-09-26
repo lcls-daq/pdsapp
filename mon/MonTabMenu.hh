@@ -17,6 +17,7 @@ namespace Pds {
     MonTabMenu(QWidget& parent);
     virtual ~MonTabMenu();
 
+    void reset();
     void reset(MonClient& client);
     void update(const MonClient& client);
     unsigned add(MonClient& client, MonGroup& group);

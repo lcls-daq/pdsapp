@@ -43,6 +43,7 @@ namespace Pds {
     void control_updated();
     void record_updated();
     void client_added(void*);
+    void cleared();
   public slots:
     void control_start();
     void control_stop();
@@ -57,7 +58,7 @@ namespace Pds {
     //    void change_config_file();
     void set_tree(QAbstractButton*);
     void add_client(void*);
-
+    void clear_tabs();
   private:
     // Implements MonConsumerClient
     virtual void process(MonClient& client, MonConsumerClient::Type type, int result=0);

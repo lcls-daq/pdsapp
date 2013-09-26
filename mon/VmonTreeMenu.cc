@@ -133,6 +133,7 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
   QObject::connect(this, SIGNAL(record_updated()), this, SLOT(record_update()));
   QObject::connect(this, SIGNAL(client_added(void*)), 
 		   this, SLOT(add_client(void*)));
+  QObject::connect(this, SIGNAL(cleared()), this, SLOT(clear_tabs()));
 
   setLayout(layout);
 
@@ -269,8 +270,15 @@ void VmonTreeMenu::add_client(void* cptr)
   _map.insert(std::pair<MonClient*,MonTree*>(&client,tree));
 }
 
+void VmonTreeMenu::clear_tabs()
+{
+  _tabs.reset();
+}
+
 void VmonTreeMenu::clear()
 {
+  emit cleared();
+
   _map.clear();
 
   QList<QAbstractButton*> buttons = _client_bg->buttons();

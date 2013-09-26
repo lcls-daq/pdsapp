@@ -29,9 +29,8 @@ MonTabMenu::~MonTabMenu()
 {
 }
 
-void MonTabMenu::reset(MonClient& client)
+void MonTabMenu::reset()
 {
-  //  if (_needread) readconfig(client);
   for (unsigned tabid=0; tabid<_maxtabs; tabid++) {
     if (_tabs[tabid]) { 
       removeTab(0);
@@ -39,6 +38,12 @@ void MonTabMenu::reset(MonClient& client)
       _tabs[tabid]=0;
     }
   }
+}
+
+void MonTabMenu::reset(MonClient& client)
+{
+  //  if (_needread) readconfig(client);
+  reset();
   for(unsigned tabid=0; tabid<client.cds().ngroups(); tabid++) {
     MonGroup* gr = client.cds().group(tabid);
     add(client, *gr);
