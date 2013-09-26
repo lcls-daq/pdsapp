@@ -328,7 +328,7 @@ namespace Pds_ConfigDb
                                        _biasTuning      .value,
                                        0,  // pdpmndnmBalancing
                                        dummy,
-                                       reinterpret_cast<const Pds::CsPad::CsPadDigitalPotsCfg&>(pots),
+                                       *reinterpret_cast<const Pds::CsPad::CsPadDigitalPotsCfg*>(potsCfg),
                                        *gm);
         
         delete[] potsCfg;

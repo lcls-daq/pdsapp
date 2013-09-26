@@ -321,8 +321,9 @@ namespace Pds_ConfigDb
                                               _injTotal        .value,
                                               _rowColShiftPer  .value,
                                               dummy,
-                                              reinterpret_cast<const Pds::CsPad::CsPadDigitalPotsCfg&>(potsCfg),
+                                              *reinterpret_cast<const Pds::CsPad::CsPadDigitalPotsCfg*>(potsCfg),
                                               *gm);
+          delete[] potsCfg;
         }
 
       public:

@@ -318,7 +318,7 @@ namespace Pds_ConfigDb
                                               _digCount        .value,
                                               _digPeriod       .value,
                                               dummy,
-                                              reinterpret_cast<const Pds::CsPad::CsPadDigitalPotsCfg&>(pots),
+                                              reinterpret_cast<const Pds::CsPad::CsPadDigitalPotsCfg&>(potsCfg),
                                               *gm);
 
           delete[] potsCfg;
