@@ -27,8 +27,8 @@
 #include "pds/service/Task.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/xtc/SrcAlias.hh"
 #include "pdsdata/psddl/camera.ddl.h"
+#include "pdsdata/psddl/alias.ddl.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -49,6 +49,7 @@ typedef std::list<Pds::Appliance*> AppList;
 
 using namespace Pds;
 using Pds::Camera::FrameV1;
+using Pds::Alias::SrcAlias;
 
 class SimApp : public Appliance {
 public:

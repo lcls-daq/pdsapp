@@ -125,7 +125,7 @@ tgtlibs_usdusb := $(commonlibs) pds/usdusb usdusb4/usdusb4 libusb/usb-1.0
 tgtslib_usdusb := $(USRLIBDIR)/rt 
 
 tgtsrcs_evr := evr.cc
-tgtincs_evr := evgr pdsdata/include
+tgtincs_evr := evgr pdsdata/include ndarray/include boost/include
 tgtlibs_evr := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/configdata
 tgtlibs_evr += evgr/evr evgr/evg 
 tgtlibs_evr += $(commonlibs) pds/evgr 

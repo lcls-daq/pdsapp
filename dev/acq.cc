@@ -1,5 +1,5 @@
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsdata/xtc/SrcAlias.hh"
+#include "pdsdata/psddl/alias.ddl.h"
 
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
@@ -26,6 +26,8 @@
 #include <stdio.h>
 
 #include <list>
+
+using Pds::Alias::SrcAlias;
 
 namespace Pds {
 
