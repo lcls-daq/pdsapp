@@ -182,7 +182,7 @@ Transition* StateSelect::transitions(Transition* tr)
 InDatagram* StateSelect::events     (InDatagram* dg) 
 {
   if (dg->datagram().seq.type()==Sequence::Event &&
-      dg->datagram().seq.type()!=TransitionId::L1Accept) {
+      dg->datagram().seq.service()!=TransitionId::L1Accept) {
     QString label(TransitionId::name(dg->datagram().seq.service()));
     emit state_changed(label); 
   }

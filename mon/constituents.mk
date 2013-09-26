@@ -40,7 +40,7 @@ tgtlibs_vmonservertest := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/
 tgtslib_vmonservertest := $(USRLIBDIR)/rt
 tgtincs_vmonservertest := pdsdata/include
 
-tgtsrcs_vmonreader += vmonreader.cc VmonReaderTreeMenu.cc VmonReaderTreeMenu_moc.cc VmonReaderTabs.cc VmonReaderTabs_moc.cc
+tgtsrcs_vmonreader += vmonreader.cc VmonReaderTreeMenu.cc VmonReaderTreeMenu_moc.cc VmonReaderTabs.cc
 tgtlibs_vmonreader := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
 tgtlibs_vmonreader += pdsapp/monapp
 tgtlibs_vmonreader += $(qtlibdir)  qwt/qwt
