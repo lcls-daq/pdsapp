@@ -15,6 +15,7 @@ namespace Pds {
   class PartitionSelect;
   class QCounter;
   class DamageStats;
+  class L3TStats;
 
   class RunStatus : public QGroupBox,
         public Appliance,
@@ -38,10 +39,12 @@ namespace Pds {
     void reset();
     void update_stats();
     void set_damage_alarm(bool);
+    void use_l3t(bool);
   signals:
     void reset_s();
     void changed();
     void damage_alarm_changed(bool);
+    void l3t_used(bool);
     
   public:
     unsigned long long getEventNum();
@@ -53,6 +56,7 @@ namespace Pds {
     QCounter* _events;
     QCounter* _damaged;
     QCounter* _bytes;
+    L3TStats* _l3t;
     PartitionControl& _pcontrol;
     PartitionSelect& _partition;
     QPushButton* _detailsB;

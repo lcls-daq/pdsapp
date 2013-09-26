@@ -243,7 +243,7 @@ void ControlScan::read(const char* ifile)
       // Create it
       printf("ControlScan::creating %s\n",namebuf);
       FILE* f = fopen(namebuf,"w");
-      ControlConfigType* cfg = new (_buf_control)ControlConfigType(1,0,0,0,0,0,0,0,0,0);
+      ControlConfigType* cfg = new (_buf_control)ControlConfigType(1,0,0,0,0,0,0,0,0,0,0);
       fwrite(cfg, cfg->_sizeof(), 1, f);
       fclose(f);
       // retry stat()

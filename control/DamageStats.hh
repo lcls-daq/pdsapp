@@ -11,6 +11,7 @@ namespace Pds {
   class PartitionSelect;
   class PartitionControl;
   class QCounter;
+  class SummaryDg;
 
   class DamageStats : public QWidget {
     Q_OBJECT
@@ -19,7 +20,7 @@ namespace Pds {
                 const PartitionControl&);
     ~DamageStats();
   public:
-    int   increment(InDatagramIterator*,int);
+    void  increment(const SummaryDg&);
     void  dump() const;
   public slots:
     void  update_stats();

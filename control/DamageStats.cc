@@ -4,9 +4,7 @@
 #include "pdsapp/control/PartitionSelect.hh"
 #include "pdsapp/tools/SummaryDg.hh"
 #include "pds/management/PartitionControl.hh"
-#include "pds/xtc/InDatagramIterator.hh"
 #include "pdsdata/psddl/alias.ddl.h"
-#include "pdsdata/xtc/SrcAlias.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 
@@ -94,17 +92,13 @@ DamageStats::~DamageStats()
 {
 }
 
-int DamageStats::increment(InDatagramIterator* iter, int extent)
+void DamageStats::increment(const SummaryDg& dg)
 {
   static int _ndbgPrints=32;
 
-  int advance=0;
-
   const QList<Src>& segm = _segments;
-  ProcInfo info(Level::Control,0,0);
-  while(extent) {
-    advance += iter->copy(&info, sizeof(info));
-    extent  -= sizeof(info);
+  for(unsigned j=0; j<dg.nSources(); j++) {
+    const Src& info = dg.source(j);
     int i=0;
     /*
     printf("incr [%08x.%08x]\n", info.log(),info.phy());
@@ -117,13 +111,11 @@ int DamageStats::increment(InDatagramIterator* iter, int extent)
       i++;
     }
     if (i==segm.size() && _ndbgPrints) {
-      printf("DmgStats no match for proc %x/%d [%08x.%08x]\n",
-	     info.ipAddr(), info.processId(),
+      printf("DmgStats no match for proc [%08x.%08x]\n",
              info.log(), info.phy());
       _ndbgPrints--;
     }
   }
-  return advance;
 }
 
 void DamageStats::update_stats()

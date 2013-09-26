@@ -2,6 +2,7 @@
 #include "DamageStats.hh"
 #include "QCounter.hh"
 
+#include "pdsapp/tools/SummaryDg.hh"
 #include "pds/service/GenericPool.hh"
 #include "pds/service/Task.hh"
 #include "pds/service/TaskObject.hh"
@@ -12,6 +13,53 @@
 #include <QtGui/QGridLayout>
 #include <QtGui/QPushButton>
 #include <QtGui/QPalette>
+
+namespace Pds {
+  class L3TStats {
+  public:
+    L3TStats(QGridLayout* layout, unsigned row) :
+      _title(new QLabel("L3TPass/Fail")),
+      _sep  (new QLabel("/")),
+      _pass (new QCounter),
+      _fail (new QCounter)
+    {
+      layout->addWidget(_title,row,0,Qt::AlignRight);
+      layout->addWidget(_pass->widget(),row,1,Qt::AlignLeft);
+      layout->addWidget(_sep,row,2);
+      layout->addWidget(_fail->widget(),row,3,Qt::AlignLeft);
+    }
+    ~L3TStats() {
+    }
+  public:
+    void show(bool v) 
+    {
+      _title->setVisible(v); 
+      _pass ->widget()->setVisible(v);
+      _sep  ->setVisible(v);
+      _fail ->widget()->setVisible(v);
+    }
+    void increment(bool v) 
+    {
+      if (v) _pass->increment();
+      else   _fail->increment();
+    }
+    void reset() 
+    {
+      _pass->reset();
+      _fail->reset();
+    }
+    void update()
+    {
+      _pass->update_count();
+      _fail->update_count();
+    }
+  private:
+    QLabel*   _title;
+    QLabel*   _sep;
+    QCounter* _pass;
+    QCounter* _fail;
+  };
+};
 
 using namespace Pds;
 
@@ -34,21 +82,23 @@ RunStatus::RunStatus(QWidget* parent,
 {
   _detailsB = new QPushButton("Damage Stats");
   QGridLayout* layout = new QGridLayout(this);
-  layout->addWidget(new QLabel("Duration",this),0,0,Qt::AlignRight);
-  layout->addWidget(_duration->widget(),0,1,Qt::AlignLeft);
-  layout->addWidget(new QLabel("Events",this),1,0,Qt::AlignRight);
-  layout->addWidget(_events->widget(),1,1,Qt::AlignLeft);
-  layout->addWidget(new QLabel("Damaged",this),2,0,Qt::AlignRight);
-  layout->addWidget(_damaged->widget(),2,1,Qt::AlignLeft);
-  layout->addWidget(new QLabel("Size",this),3,0,Qt::AlignRight);
-  layout->addWidget(_bytes->widget(),3,1,Qt::AlignLeft);
-  layout->addWidget(_detailsB,4,0,1,2);
+  unsigned row=0;
+  layout->addWidget(new QLabel("Duration",this),row,0,Qt::AlignRight);
+  layout->addWidget(_duration->widget(),row,1,1,3,Qt::AlignLeft); row++;
+  layout->addWidget(new QLabel("Events",this),row,0,Qt::AlignRight);
+  layout->addWidget(_events->widget(),row,1,1,3,Qt::AlignLeft); row++;
+  _l3t = new L3TStats(layout,row); row++;
+  layout->addWidget(new QLabel("Damaged",this),row,0,Qt::AlignRight);
+  layout->addWidget(_damaged->widget(),row,1,1,3,Qt::AlignLeft); row++;
+  layout->addWidget(new QLabel("Size",this),row,0,Qt::AlignRight);
+  layout->addWidget(_bytes->widget(),row,1,1,3,Qt::AlignLeft); row++;
+  layout->addWidget(_detailsB,row,0,1,4);
   setLayout(layout);
 
   QObject::connect(this, SIGNAL(changed()), this    , SLOT(update_stats()));
   QObject::connect(this, SIGNAL(reset_s()), this    , SLOT(reset()));
   QObject::connect(this, SIGNAL(damage_alarm_changed(bool)), this    , SLOT(set_damage_alarm(bool)));
-
+  QObject::connect(this, SIGNAL(l3t_used(bool)), this, SLOT(use_l3t(bool)));
   _detailsB->setEnabled(false);
 }
 
@@ -58,6 +108,7 @@ RunStatus::~RunStatus()
   delete _events;
   delete _damaged;
   delete _bytes;
+  delete _l3t;
   if (_details) {
     _detailsB->setEnabled(false);
     QObject::disconnect(_detailsB, SIGNAL(clicked()), _details, SLOT(show()));
@@ -95,6 +146,7 @@ void RunStatus::reset()
   _events  ->reset();
   _damaged ->reset();
   _bytes   ->reset();
+  _l3t     ->reset();
 
   _prev_events  = 0;
   _prev_damaged = 0;
@@ -135,12 +187,22 @@ InDatagram* RunStatus::events     (InDatagram* dg)
     }
 
     _events->increment();
+    if (dg->datagram().xtc.damage.value()!=0)
+      _damaged->increment();
 
+    if (dg->datagram().xtc.contains.value() == SummaryDg::typeId().value()) {
+      const SummaryDg& s = *reinterpret_cast<const SummaryDg*>(dg);
+      _bytes -> increment(s.payload());
+      _details->increment(s);
+    }
+
+    return 0;
+  }
+  else if (dg->datagram().seq.service()==TransitionId::Configure) {
+    emit l3t_used(false);
     InDatagramIterator* iter = dg->iterator(&_pool);
     iterate(dg->datagram().xtc,iter);
     delete iter;
-
-    return 0;
   }
   return dg; 
 }
@@ -150,16 +212,10 @@ int RunStatus::process(const Xtc& xtc, InDatagramIterator* iter) {
   if (xtc.contains.id()==TypeId::Id_Xtc)
     return iterate(xtc,iter);
 
-  int advance=0;
-  if (xtc.contains.id()==TypeId::Any) {
-    unsigned payload;
-    advance = iter->copy(&payload, sizeof(payload));
-    _bytes -> increment(payload);
-    if (xtc.damage.value()!=0)
-      _damaged->increment();
-    advance += _details->increment(iter,xtc.sizeofPayload()-sizeof(payload));
-  }
-  return advance;
+  if (xtc.contains.id()==TypeId::Id_L3TConfig)
+    emit l3t_used(true);
+
+  return 0;
 }
 
 void  RunStatus::expired() 
@@ -174,6 +230,7 @@ void RunStatus::update_stats()
   _events  ->update_count();
   _damaged ->update_count();
   _bytes   ->update_bytes();
+  _l3t     ->update();
 
   const double DamageAlarmFraction = 0.2;
   unsigned uevents  = _events ->get_count();
@@ -203,4 +260,9 @@ void RunStatus::set_damage_alarm(bool alarm)
 unsigned long long RunStatus::getEventNum()
 {
   return _events->get_count();
+}
+
+void RunStatus::use_l3t(bool v)
+{
+  _l3t->show(v);
 }

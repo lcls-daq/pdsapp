@@ -240,7 +240,7 @@ PyObject* pdsdaq_connect(PyObject* self)
     uint32_t len=0;
     if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
     {
-      printf("pdsdaq_connect(): get dbpath len failed\n");
+      printf("pdsdaq_connect(): get dbpath len failed.  Is DAQ allocated?\n");
       break;
     }
 
@@ -435,7 +435,8 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
   }
 
   int       key      = daq->dbkey;
-  int       events   = -1;
+  int       l1t_events = -1;
+  int       l3t_events = -1;
   PyObject* record   = 0;
   PyObject* duration = 0;
   PyObject* controls = 0;
@@ -452,7 +453,13 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
       if (!ParseInt (obj,key   ,"key"   )) return NULL;
     }
     else if (strcmp("events"  ,name)==0) {
-      if (!ParseInt (obj,events,"events")) return NULL;
+      if (!ParseInt (obj,l1t_events,"events")) return NULL;
+    }
+    else if (strcmp("l1t_events"  ,name)==0) {
+      if (!ParseInt (obj,l1t_events,"l1t_events")) return NULL;
+    }
+    else if (strcmp("l3t_events"  ,name)==0) {
+      if (!ParseInt (obj,l3t_events,"l3t_events")) return NULL;
     }
     else if (strcmp("record"  ,name)==0)  record  =obj;
     else if (strcmp("duration",name)==0)  duration=obj;
@@ -536,8 +543,16 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
                        PyLong_AsUnsignedLong(PyList_GetItem(duration,1)));
     cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,dur);
   }
+  else if (l1t_events>=0) {
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,l1t_events);
+  }
+  else if (l3t_events>=0) {
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,
+                                   ControlConfig::L3TEvents(l3t_events));
+  }
   else {
-    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,events);
+    PyErr_SetString(PyExc_RuntimeError,"Configuration lacks duration or events input.");
+    return NULL;
   }
 
   daq->state = Configured;
@@ -562,7 +577,8 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     return NULL;
   }
 
-  int       events   = -1;
+  int       l1t_events = -1;
+  int       l3t_events = -1;
   PyObject* duration = 0;
   PyObject* controls = 0;
   PyObject* monitors = 0;
@@ -574,7 +590,13 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     const char* name = PyString_AsString(PyList_GetItem(keys,i));
     PyObject* obj = PyList_GetItem(vals,i);
     if (strcmp("events"  ,name)==0) {
-      if (!ParseInt (obj,events,"events")) return NULL;
+      if (!ParseInt (obj,l1t_events,"events")) return NULL;
+    }
+    else if (strcmp("l1t_events",name)==0) {
+      if (!ParseInt (obj,l1t_events,"l1t_events")) return NULL;
+    }
+    else if (strcmp("l3t_events",name)==0) {
+      if (!ParseInt (obj,l3t_events,"l3t_events")) return NULL;
     }
     else if (strcmp("duration",name)==0)  duration=obj;
     else if (strcmp("controls",name)==0)  controls=obj;
@@ -588,8 +610,13 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     }
   }
 
-  if (duration && events!=-1) {
+  if (duration && (l1t_events!=-1 || l3t_events!=-1)) {
     PyErr_SetString(PyExc_TypeError,"Cannot specify both events and duration");
+    return NULL;
+  }
+
+  if (l1t_events!=1 && l3t_events!=-1) {
+    PyErr_SetString(PyExc_TypeError,"Cannot specify both events (L1 and L3)");
     return NULL;
   }
 
@@ -680,16 +707,29 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
                        PyLong_AsUnsignedLong(PyList_GetItem(duration,1)));
     cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,dur);
   }
-  else if (events>=0) {
-    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,events);
+  else if (l1t_events>=0) {
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,l1t_events);
+  }
+  else if (l3t_events>=0) {
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,
+                                   Pds::ControlConfig::L3TEvents(l3t_events));
   }
   else if (cfg->uses_duration()) {
     Pds::ClockTime dur(cfg->duration());
     cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,dur);
   }
+  else if (cfg->uses_events()) {
+    l1t_events = cfg->events();
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,l1t_events);
+  }
+  else if (cfg->uses_l3t_events()) {
+    l3t_events = cfg->events();
+    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,
+                                   Pds::ControlConfig::L3TEvents(l3t_events));
+  }
   else {
-    events = cfg->events();
-    cfg = Pds::ControlConfig::_new(daq->buffer,clist,mlist,llist,events);
+    PyErr_SetString(PyExc_RuntimeError,"Begin lacks duration or events input.");
+    return NULL;
   }
 
   ::write(daq->socket,daq->buffer,cfg->_sizeof());

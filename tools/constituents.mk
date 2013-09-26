@@ -1,4 +1,4 @@
-libnames := tools
+libnames := tools l3test
 
 #CPPFLAGS += -D_FILE_OFFSET_BITS=64 -fopenmp
 # 
@@ -9,12 +9,15 @@ CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
 libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc CspadShuffle.cc StripTransient.cc
 
+libsrcs_l3test := L3TestModule.cc
+libincs_l3test := pdsdata/include ndarray/include
+
 tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump currentexp
 #tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
 
-commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
+commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs += pds/pnccdFrameV0
-liblibs_tools := pdsdata/psddl_pdsdata
+liblibs_tools :=
 liblibs_tools += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
 libincs_tools := offlinedb/include pdsdata/include ndarray/include boost/include
 
@@ -32,12 +35,12 @@ tgtincs_eventp := offlinedb/include pdsdata/include
 tgtsrcs_segtest := segtest.cc
 tgtlibs_segtest := $(commonlibs)
 tgtslib_segtest := $(USRLIBDIR)/rt
-tgtincs_segtest := pdsdata/include
+tgtincs_segtest := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_control := control.cc
 tgtlibs_control := $(commonlibs)
 tgtslib_control := $(USRLIBDIR)/rt
-tgtincs_control := pdsdata/include
+tgtincs_control := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_source := source.cc
 tgtlibs_source := $(commonlibs)

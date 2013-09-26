@@ -53,6 +53,7 @@ namespace Pds {
     RunInfo            _last_run;
     volatile int       _socket;
     volatile bool      _wait_for_configure;
+    unsigned           _l3t_events;
   };
 };
 

@@ -1,5 +1,9 @@
 #include "EventOptions.hh"
 #include "pds/utility/Appliance.hh"
+#include "pds/client/L3FilterDriver.hh"
+#include "pds/collection/Route.hh"
+#include "pdsdata/app/L3FilterModule.hh"
+#include "pdsdata/xtc/ProcInfo.hh"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +18,69 @@ using namespace Pds;
 const unsigned DefaultBuffers    = 0;
 const unsigned DefaultBufferSize = 0x1000000;
 const uint64_t DefaultChunkSize = ULLONG_MAX;
+
+static void load_appliance(char*       arg,
+                           Appliance*& apps)
+{
+  for(const char* p = strtok(arg,","); p!=NULL; p=strtok(NULL,",")) {
+    printf("dlopen %s\n",p);
+
+    void* handle = dlopen(p, RTLD_LAZY);
+    if (!handle) {
+      printf("dlopen failed : %s\n",dlerror());
+    }
+    else {
+      // reset errors
+      const char* dlsym_error;
+      dlerror();
+
+      // load the symbols
+      create_app* c_user = (create_app*) dlsym(handle, "create");
+      if ((dlsym_error = dlerror())) {
+        fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
+      }
+      else {
+        if (apps != NULL)
+          c_user()->connect(apps);
+        else
+          apps = c_user();
+      }
+    }
+  }
+}
+
+static void load_filter(char*       arg,
+                        Appliance*& apps)
+{
+  {
+    const char* p = arg;
+    printf("dlopen %s\n",p);
+
+    void* handle = dlopen(p, RTLD_LAZY);
+    if (!handle) {
+      printf("dlopen failed : %s\n",dlerror());
+    }
+    else {
+      // reset errors
+      const char* dlsym_error;
+      dlerror();
+
+      // load the symbols
+      create_m* c_user = (create_m*) dlsym(handle, "create");
+      if ((dlsym_error = dlerror())) {
+        fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
+      }
+      else {
+        L3FilterDriver* driver = new L3FilterDriver(c_user());
+        if (apps != NULL)
+          driver->connect(apps);
+        else
+          apps = driver;
+      }
+    }
+  }
+}
+
 
 EventOptions::EventOptions() :
   platform((unsigned)-1),
@@ -55,7 +122,7 @@ EventOptions::EventOptions(int argc, char** argv) :
 
 const char* EventOptions::opt_string()
 {
-  return "f:p:b:a:s:c:n:edDE:L:w:";
+  return "f:p:b:a:s:c:n:edDE:L:F:w:";
 }
 
 bool        EventOptions::parse_opt (int c)
@@ -106,32 +173,11 @@ bool        EventOptions::parse_opt (int c)
     if (errno != 0 || endPtr == optarg) chunkSize = DefaultChunkSize;
     break;
   case 'L':
-    { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
-        printf("dlopen %s\n",p);
-
-        void* handle = dlopen(p, RTLD_LAZY);
-        if (!handle) {
-          printf("dlopen failed : %s\n",dlerror());
-          break;
-        }
-
-        // reset errors
-        const char* dlsym_error;
-        dlerror();
-
-        // load the symbols
-        create_app* c_user = (create_app*) dlsym(handle, "create");
-        if ((dlsym_error = dlerror())) {
-          fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
-          break;
-        }
-        if (apps != NULL)
-          c_user()->connect(apps);
-        else
-          apps = c_user();
-      }
-      break;
-    }
+    load_appliance(optarg, apps);
+    break;
+  case 'F':
+    load_filter   (optarg, apps);
+    break;
   default:
     return false;
   }
@@ -155,6 +201,7 @@ int EventOptions::validate(const char* arg0) const
      "         -s <slice_ID>\n"
      "         -E <experimentname>\n"
      "         -L <plugin>\n"
+     "         -F <L3 filter plugin>\n"
      "         -w <0/1> : enable slow readout support\n",
      arg0);
     return 0;

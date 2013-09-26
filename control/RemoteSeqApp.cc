@@ -4,6 +4,8 @@
 #include "PartitionSelect.hh"
 #include "PVManager.hh"
 #include "RemotePartition.hh"
+#include "pdsapp/tools/SummaryDg.hh"
+
 #include "pds/management/PartitionControl.hh"
 #include "pds/utility/Transition.hh"
 #include "pds/xtc/EnableEnv.hh"
@@ -50,7 +52,8 @@ RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
   _port         (Control_Port + control.header().platform()),
   _last_run     (0,0),
   _socket       (-1),
-  _wait_for_configure(false)
+  _wait_for_configure(false),
+  _l3t_events   (0)
 {
   _task->call(this);
 }
@@ -381,12 +384,14 @@ Transition* RemoteSeqApp::transitions(Transition* tr)
   if (_socket >= 0) {
     if (tr->id()==TransitionId::BeginRun) {
       if (tr->size() == sizeof(Transition))
-  _last_run = RunInfo(0,0);
+        _last_run = RunInfo(0,0);
       else
-  _last_run = *reinterpret_cast<RunInfo*>(tr);
+        _last_run = *reinterpret_cast<RunInfo*>(tr);
     }
-    else if (tr->id()==TransitionId::BeginCalibCycle)
+    else if (tr->id()==TransitionId::BeginCalibCycle) {
       _pvmanager.configure(*reinterpret_cast<ControlConfigType*>(_cfgmon_buffer));
+      _l3t_events = 0;
+    }
     else if (tr->id()==TransitionId::EndCalibCycle)
       _pvmanager.unconfigure();
   }
@@ -419,6 +424,18 @@ InDatagram* RemoteSeqApp::events     (InDatagram* dg)
 {
   if (_socket >= 0) {
     int id   = dg->datagram().seq.service();
+    if (id==TransitionId::L1Accept &&
+        dg->datagram().xtc.contains.value()==SummaryDg::typeId().value()) {
+      const SummaryDg& s = *static_cast<const SummaryDg*>(dg);
+      ControlConfigType& config =
+        *reinterpret_cast<ControlConfigType*>(_config_buffer);
+      if (config.uses_l3t_events() &&
+          s.l3tresult()==SummaryDg::Pass &&
+          ++_l3t_events == config.events()) {
+        _control.set_target_state(PartitionControl::Running);
+      }
+      return 0;
+    }
     int info = _last_run.run() | (_last_run.experiment()<<16);
     if (dg->datagram().xtc.damage.value()!=0) {
       info = -id;

@@ -77,8 +77,9 @@ namespace Pds {
   public:
     Transition* transitions(Transition* tr) { return tr; }
     InDatagram* events     (InDatagram* dg)
-    { if (dg->datagram().xtc.damage.value())
-  _w.transition_damaged(*dg);
+    { if (dg->datagram().xtc.damage.value() && 
+          dg->datagram().seq.service()!=TransitionId::L1Accept)
+        _w.transition_damaged(*dg);
       return dg;
     }
     Occurrence* occurrences(Occurrence* occ)
