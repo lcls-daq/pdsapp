@@ -215,14 +215,14 @@ namespace Pds {
   //  Iterate through the input datagram to strip out the BLD
   //  and copy the remaining data.
   //
-  class MyIterator : public XtcIterator {
+  class MyIterator : public PdsClient::XtcIterator {
     public:
       MyIterator(Datagram& dg) : _dg(dg) {}
     private:
       Datagram& _dg;
   };
 
-  class MyFEX : public XtcIterator {
+  class MyFEX : public PdsClient::XtcIterator {
     public:
       enum { EventSize = 2*1024*1024 };
       enum Algorithm { Input, Full, TenPercent, None, Sink, NumberOf };

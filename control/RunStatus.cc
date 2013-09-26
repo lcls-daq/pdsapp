@@ -7,10 +7,12 @@
 #include "pds/service/Task.hh"
 #include "pds/service/TaskObject.hh"
 #include "pds/xtc/CDatagramIterator.hh"
+#include "pdsdata/xtc/XtcIterator.hh"
 
 #include <QtCore/QString>
 #include <QtGui/QLabel>
 #include <QtGui/QGridLayout>
+#include <QtGui/QHBoxLayout>
 #include <QtGui/QPushButton>
 #include <QtGui/QPalette>
 
@@ -23,10 +25,12 @@ namespace Pds {
       _pass (new QCounter),
       _fail (new QCounter)
     {
-      layout->addWidget(_title,row,0,Qt::AlignRight);
-      layout->addWidget(_pass->widget(),row,1,Qt::AlignLeft);
-      layout->addWidget(_sep,row,2);
-      layout->addWidget(_fail->widget(),row,3,Qt::AlignLeft);
+      _layout = new QHBoxLayout;
+      _layout->addWidget(_pass->widget());
+      _layout->addWidget(_sep );
+      _layout->addWidget(_fail->widget());
+      layout->addWidget(_title ,row,0,Qt::AlignRight);
+      layout->addLayout(_layout,row,1,Qt::AlignRight);
     }
     ~L3TStats() {
     }
@@ -55,9 +59,29 @@ namespace Pds {
     }
   private:
     QLabel*   _title;
+    QHBoxLayout* _layout;
     QLabel*   _sep;
     QCounter* _pass;
     QCounter* _fail;
+  };
+
+  class L3TIterator : public XtcIterator {
+  public:
+    L3TIterator() : _found(false) {}
+  public:
+    bool found() const { return _found; }
+  public:
+    int process(Xtc* xtc) {
+      if (xtc->contains.id()==TypeId::Id_Xtc) {
+        iterate(xtc);
+        return 1;
+      }
+      if (xtc->contains.id()==TypeId::Id_L3TConfig)
+        _found=true;
+      return 0;
+    }
+  private:
+    bool _found;
   };
 };
 
@@ -84,15 +108,15 @@ RunStatus::RunStatus(QWidget* parent,
   QGridLayout* layout = new QGridLayout(this);
   unsigned row=0;
   layout->addWidget(new QLabel("Duration",this),row,0,Qt::AlignRight);
-  layout->addWidget(_duration->widget(),row,1,1,3,Qt::AlignLeft); row++;
+  layout->addWidget(_duration->widget(),row,1,Qt::AlignLeft); row++;
   layout->addWidget(new QLabel("Events",this),row,0,Qt::AlignRight);
-  layout->addWidget(_events->widget(),row,1,1,3,Qt::AlignLeft); row++;
+  layout->addWidget(_events->widget(),row,1,Qt::AlignLeft); row++;
   _l3t = new L3TStats(layout,row); row++;
   layout->addWidget(new QLabel("Damaged",this),row,0,Qt::AlignRight);
-  layout->addWidget(_damaged->widget(),row,1,1,3,Qt::AlignLeft); row++;
+  layout->addWidget(_damaged->widget(),row,1,Qt::AlignLeft); row++;
   layout->addWidget(new QLabel("Size",this),row,0,Qt::AlignRight);
-  layout->addWidget(_bytes->widget(),row,1,1,3,Qt::AlignLeft); row++;
-  layout->addWidget(_detailsB,row,0,1,4);
+  layout->addWidget(_bytes->widget(),row,1,Qt::AlignLeft); row++;
+  layout->addWidget(_detailsB,row,0,1,2);
   setLayout(layout);
 
   QObject::connect(this, SIGNAL(changed()), this    , SLOT(update_stats()));
@@ -190,19 +214,16 @@ InDatagram* RunStatus::events     (InDatagram* dg)
     if (dg->datagram().xtc.damage.value()!=0)
       _damaged->increment();
 
-    if (dg->datagram().xtc.contains.value() == SummaryDg::typeId().value()) {
-      const SummaryDg& s = *reinterpret_cast<const SummaryDg*>(dg);
-      _bytes -> increment(s.payload());
-      _details->increment(s);
-    }
+    InDatagramIterator* iter = dg->iterator(&_pool);
+    iterate(dg->datagram().xtc,iter);
+    delete iter;
 
     return 0;
   }
   else if (dg->datagram().seq.service()==TransitionId::Configure) {
-    emit l3t_used(false);
-    InDatagramIterator* iter = dg->iterator(&_pool);
-    iterate(dg->datagram().xtc,iter);
-    delete iter;
+    L3TIterator it;
+    it.iterate(&dg->datagram().xtc);
+    emit l3t_used(it.found());
   }
   return dg; 
 }
@@ -212,8 +233,12 @@ int RunStatus::process(const Xtc& xtc, InDatagramIterator* iter) {
   if (xtc.contains.id()==TypeId::Id_Xtc)
     return iterate(xtc,iter);
 
-  if (xtc.contains.id()==TypeId::Id_L3TConfig)
-    emit l3t_used(true);
+  if (xtc.contains.value() == SummaryDg::Xtc::typeId().value()) {
+    const SummaryDg::Xtc& s = reinterpret_cast<const SummaryDg::Xtc&>(xtc);
+    _bytes -> increment(s.payload());
+    _details->increment(s);
+    return iter->skip(xtc.sizeofPayload());
+  }
 
   return 0;
 }
@@ -265,4 +290,6 @@ unsigned long long RunStatus::getEventNum()
 void RunStatus::use_l3t(bool v)
 {
   _l3t->show(v);
+  updateGeometry();
+  resize(minimumWidth(),minimumHeight());
 }

@@ -7,11 +7,12 @@
 #include "pds/service/GenericPool.hh"
 
 namespace Pds {
-  class SummaryDg;
+  namespace SummaryDg { class Dg; }
+
   class BldStats;
 
   class DgSummary : public Appliance,
-		    public XtcIterator {
+		    public PdsClient::XtcIterator {
   public:
     DgSummary();
     ~DgSummary();
@@ -21,7 +22,7 @@ namespace Pds {
   public:
     int process(const Xtc&, InDatagramIterator*);
   private:
-    SummaryDg*  _out;
+    SummaryDg::Dg* _out;
     GenericPool _dgpool;
     GenericPool _itpool;
     BldStats*   _bld;

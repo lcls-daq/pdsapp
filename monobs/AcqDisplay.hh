@@ -61,7 +61,7 @@ namespace Pds {
     AcqDisplayL1Action* _l1;
   };
 
-  class AcqDisplayConfigAction : public Action, public XtcIterator {
+  class AcqDisplayConfigAction : public Action, public PdsClient::XtcIterator {
   public:
     AcqDisplayConfigAction(MonServerManager& monsrv,DisplayConfig& disp, DisplayConfig& dispprofile);
     ~AcqDisplayConfigAction();
@@ -75,7 +75,7 @@ namespace Pds {
     GenericPool    _iter;
   };
 
-  class AcqDisplayL1Action : public Action, public XtcIterator {
+  class AcqDisplayL1Action : public Action, public PdsClient::XtcIterator {
   public:
     AcqDisplayL1Action(DisplayConfig& disp, DisplayConfig& dispprofile);
     ~AcqDisplayL1Action();

@@ -117,7 +117,7 @@ namespace Pds {
     unsigned _sum;
   };
 
-  class MyStats : public Appliance, public XtcIterator {
+  class MyStats : public Appliance, public PdsClient::XtcIterator {
   public:
     MyStats(int n) : _n(n > 0 ? n : 1), _count(_n), _pool(sizeof(ZcpDatagramIterator),1)
     {

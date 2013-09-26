@@ -4,6 +4,7 @@
 #include "PartitionSelect.hh"
 #include "PVManager.hh"
 #include "RemotePartition.hh"
+#include "RunStatus.hh"
 #include "pdsapp/tools/SummaryDg.hh"
 
 #include "pds/management/PartitionControl.hh"
@@ -14,7 +15,7 @@
 #include "pds/service/Sockaddr.hh"
 #include "pds/service/Ins.hh"
 #include "pdsdata/psddl/control.ddl.h"
-
+#include "pdsdata/xtc/XtcIterator.hh"
 #include "pds/config/ControlConfigType.hh"
 
 #include <sys/types.h>
@@ -29,6 +30,31 @@
 
 static const int MaxConfigSize = 0x100000;
 static const int Control_Port  = 10130;
+
+namespace Pds {
+  class L3TIterator : public Pds::XtcIterator {
+  public:
+    L3TIterator() : _pass(false) {}
+  public:
+    bool pass() const { return _pass; }
+  public:
+    int process(Xtc* xtc) 
+    {
+      if (xtc->contains.id()==TypeId::Id_Xtc) {
+        iterate(xtc);
+        return 1;
+      }
+      if (xtc->contains.value()==SummaryDg::Xtc::typeId().value()) {
+        const SummaryDg::Xtc& s = *static_cast<SummaryDg::Xtc*>(xtc);
+        _pass = s.l3tresult();
+        return 0;
+      }
+      return 0;
+    }
+  private:
+    bool _pass;
+  };
+};
 
 using namespace Pds;
 
@@ -424,15 +450,14 @@ InDatagram* RemoteSeqApp::events     (InDatagram* dg)
 {
   if (_socket >= 0) {
     int id   = dg->datagram().seq.service();
-    if (id==TransitionId::L1Accept &&
-        dg->datagram().xtc.contains.value()==SummaryDg::typeId().value()) {
-      const SummaryDg& s = *static_cast<const SummaryDg*>(dg);
+    if (id==TransitionId::L1Accept) {
       ControlConfigType& config =
         *reinterpret_cast<ControlConfigType*>(_config_buffer);
-      if (config.uses_l3t_events() &&
-          s.l3tresult()==SummaryDg::Pass &&
-          ++_l3t_events == config.events()) {
-        _control.set_target_state(PartitionControl::Running);
+      if (config.uses_l3t_events()) {
+        L3TIterator it;
+        it.iterate(&dg->datagram().xtc);
+        if (it.pass() && ++_l3t_events == config.events())
+          _control.set_target_state(PartitionControl::Running);
       }
       return 0;
     }

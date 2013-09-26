@@ -14,6 +14,8 @@
 
 #include <stdio.h>
 
+#define DBUG
+
 using namespace Pds;
 
 static inline bool matches(const Src& a, const Src& b)
@@ -92,17 +94,17 @@ DamageStats::~DamageStats()
 {
 }
 
-void DamageStats::increment(const SummaryDg& dg)
+void DamageStats::increment(const SummaryDg::Xtc& xtc)
 {
   static int _ndbgPrints=32;
 
   const QList<Src>& segm = _segments;
-  for(unsigned j=0; j<dg.nSources(); j++) {
-    const Src& info = dg.source(j);
+  for(unsigned j=0; j<xtc.nSources(); j++) {
+    const Src& info = xtc.source(j);
     int i=0;
-    /*
+#ifdef DBUG
     printf("incr [%08x.%08x]\n", info.log(),info.phy());
-    */
+#endif
     while( i<segm.size() ) {
       if (matches(segm.at(i),info)) {
 	_counts.at(i)->increment();

@@ -8,7 +8,7 @@
 #include "pdsdata/xtc/BldInfo.hh"
 
 namespace Pds {
-  class BldStats : private XtcIterator {
+  class BldStats : private PdsClient::XtcIterator {
   public:
     BldStats() {}
   public:
@@ -16,7 +16,7 @@ namespace Pds {
       _mask = 0;
       iterate(xtc, iter);
     }
-    void fill(SummaryDg& out) {
+    void fill(SummaryDg::Dg& out) {
       for(unsigned i=0; i<BldInfo::NumberOf; i++)
 	if (_mask & (1<<i))
 	  out.append(BldInfo(static_cast<const ProcInfo&>(_src).processId(),
@@ -51,7 +51,7 @@ using namespace Pds;
 
 
 DgSummary::DgSummary() : 
-  _dgpool(sizeof(SummaryDg),16),
+  _dgpool(sizeof(SummaryDg::Dg),16),
   _itpool(sizeof(ZcpDatagramIterator),16),
   _bld   (new BldStats)
 {
@@ -69,7 +69,7 @@ InDatagram* DgSummary::events     (InDatagram* dg) {
     delete it;
   }
 
-  _out = new(&_dgpool) SummaryDg(dg->datagram());
+  _out = new(&_dgpool) SummaryDg::Dg(dg->datagram());
   if (dg->datagram().xtc.damage.value()) {
     InDatagramIterator* it = dg->iterator(&_itpool);
     iterate(dg->datagram().xtc, it);

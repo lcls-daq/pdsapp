@@ -1,7 +1,6 @@
 #ifndef Pds_RemoteSeqApp_hh
 #define Pds_RemoteSeqApp_hh
 
-#include "RunStatus.hh"
 #include "pds/utility/Appliance.hh"
 #include "pds/service/Routine.hh"
 
@@ -12,11 +11,13 @@
 
 namespace Pds {
   class PartitionControl;
+  class PartitionSelect;
   class PVManager;
   class ConfigSelect;
   class StateSelect;
   class Src;
   class Task;
+  class RunStatus;
 
   class RemoteSeqApp : public Appliance,
            public Routine {

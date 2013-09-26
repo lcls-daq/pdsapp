@@ -198,7 +198,7 @@ namespace Pds {
     CamFex*        _fex;
   };
 
-  class ConfigAction : public Action, XtcIterator {
+  class ConfigAction : public Action, PdsClient::XtcIterator {
   public:
     ConfigAction(MonServerManager& monsrv) : 
       _monsrv(monsrv), 
@@ -283,7 +283,7 @@ namespace Pds {
     ConfigAction& _config;
   };
 
-  class L1Action : public Action, XtcIterator {
+  class L1Action : public Action, PdsClient::XtcIterator {
   public:
     L1Action(ConfigAction& config) : 
       _config(config), 

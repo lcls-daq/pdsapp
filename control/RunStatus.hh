@@ -18,9 +18,9 @@ namespace Pds {
   class L3TStats;
 
   class RunStatus : public QGroupBox,
-        public Appliance,
-        public Timer,
-        public XtcIterator {
+                    public Appliance,
+                    public Timer,
+                    public PdsClient::XtcIterator {
     Q_OBJECT
   public:
     RunStatus(QWidget*, PartitionControl&, PartitionSelect&);

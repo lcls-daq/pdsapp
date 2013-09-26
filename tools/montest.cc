@@ -29,7 +29,7 @@
 
 using namespace Pds;
 
-class CamDisplay : public Appliance, XtcIterator {
+class CamDisplay : public Appliance, PdsClient::XtcIterator {
   enum { Columns=1024 };
   enum { Rows=1024 };
   enum { BinShift=1 };
