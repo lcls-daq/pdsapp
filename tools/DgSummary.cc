@@ -7,6 +7,8 @@
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 
+//#define DBUG
+
 namespace Pds {
   class BldStats : private PdsClient::XtcIterator {
   public:
@@ -15,6 +17,9 @@ namespace Pds {
     void discover(const Xtc& xtc, InDatagramIterator* iter) {
       _mask = 0;
       iterate(xtc, iter);
+#ifdef DBUG
+      printf("BldStats::discover %x\n",_mask);
+#endif
     }
     void fill(SummaryDg::Dg& out) {
       for(unsigned i=0; i<BldInfo::NumberOf; i++)
@@ -71,6 +76,9 @@ InDatagram* DgSummary::events     (InDatagram* dg) {
 
   _out = new(&_dgpool) SummaryDg::Dg(dg->datagram());
   if (dg->datagram().xtc.damage.value()) {
+#ifdef DBUG
+    printf("DgSummary::events dmg %x\n",dg->datagram().xtc.damage.value());
+#endif
     InDatagramIterator* it = dg->iterator(&_itpool);
     iterate(dg->datagram().xtc, it);
     delete it;
