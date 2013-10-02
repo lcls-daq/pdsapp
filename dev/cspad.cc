@@ -76,7 +76,8 @@ class Pds::Seg
         Arp* arp,
         CspadServer* cspadServer,
         unsigned pgpcard,
-        bool compress = false);
+        bool compress = false,
+        unsigned nthreads = 0);
 
    virtual ~Seg();
    bool didYouFail() { return _failed; }
@@ -93,6 +94,7 @@ class Pds::Seg
    CspadServer*  _cspadServer;
    unsigned      _pgpcard;
    bool          _compress;
+  unsigned       _nthreads;
    bool          _failed;
 };
 
@@ -139,13 +141,15 @@ Pds::Seg::Seg( Task* task,
                Arp* arp,
                CspadServer* cspadServer,
                unsigned pgpcard,
-               bool compress)
+               bool compress,
+               unsigned nthreads)
    : _task(task),
      _platform(platform),
      _cfg   (cfgService),
      _cspadServer(cspadServer),
      _pgpcard(pgpcard),
      _compress(compress),
+     _nthreads(nthreads),
      _failed(false)
 {}
 
@@ -163,7 +167,9 @@ void Pds::Seg::attached( SetOfStreams& streams )
    //   CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard, _compress );
    //   if (_compress) cspadMgr.appProcessor().connect( frmk->inlet() );
    CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard, false );
-   if (_compress) (new FrameCompApp(0x500000))->connect( frmk->inlet() );
+   if (_compress) 
+     (new FrameCompApp(0x500000,_nthreads))->connect( frmk->inlet() );
+
    cspadMgr.appliance().connect( frmk->inlet() );
 }
 
@@ -248,8 +254,10 @@ int main( int argc, char** argv )
   char                runTimeConfigname[256] = {""};
   bool                platformMissing     = true;
   bool                compressFlag        = false;
+  unsigned            compressThreads     = 0;
 
    extern char* optarg;
+   char* endPtr;
    int c;
    while( ( c = getopt( argc, argv, "hd:i:p:m:C:D:xP:r:" ) ) != EOF ) {
      bool     found;
@@ -288,7 +296,9 @@ int main( int argc, char** argv )
            break;
          case 'C':
            compressFlag = 1;
-	   FrameCompApp::setCopyPresample(strtoul(optarg, NULL, 0));
+	   FrameCompApp::setCopyPresample(strtoul(optarg, &endPtr, 0));
+           if (*endPtr)
+             compressThreads = strtoul(endPtr+1,NULL,0);
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
@@ -346,7 +356,8 @@ int main( int argc, char** argv )
                        0,
                        cspadServer,
                        pgpcard,
-                       compressFlag);
+                       compressFlag,
+                       compressThreads);
 
    SegmentLevel* seglevel = new SegmentLevel( platform,
                                               settings,
