@@ -59,8 +59,9 @@ namespace Pds_ConfigDb {
                                                        _binning.value,
                                                        _mirroring.value,
                                                        _vertical_remap.value==Enums::True,
+                                                       false, // lookup table
                                                        _defect_pixel_corr.value==Enums::True,
-                                                       false, 0, 0, 0);
+                                                       0, 0, 0);
       return tc._sizeof();
     }
 
