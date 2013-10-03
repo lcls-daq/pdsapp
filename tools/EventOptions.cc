@@ -1,6 +1,7 @@
 #include "EventOptions.hh"
 #include "pds/utility/Appliance.hh"
 #include "pds/client/L3FilterDriver.hh"
+#include "pds/client/L3FilterThreads.hh"
 #include "pds/collection/Route.hh"
 #include "pdsdata/app/L3FilterModule.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
@@ -71,7 +72,11 @@ static void load_filter(char*       arg,
         fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
       }
       else {
+#if 1
         L3FilterDriver* driver = new L3FilterDriver(c_user());
+#else
+        L3FilterThreads* driver = new L3FilterThreads(c_user);
+#endif
         if (apps != NULL)
           driver->connect(apps);
         else
