@@ -556,6 +556,7 @@ public:
           const Src&            src,
           const AppList&        user_apps,
           bool                  lCompress,
+	  unsigned              nCompressThreads,
           const char *          aliasName = NULL) :
     _task     (task),
     _platform (platform),
@@ -571,7 +572,7 @@ public:
       _app = new SimImp(src);
 
     if (lCompress)
-      _user_apps.push_front(new FrameCompApp(_app->max_size()));
+      _user_apps.push_front(new FrameCompApp(_app->max_size(),nCompressThreads));
 
     _sources.push_back(src);
 
@@ -641,7 +642,7 @@ void printUsage(char* s) {
 	  "                    (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
 	  "    -u <alias>  Set device alias\n"
 	  "    -v          Toggle verbose mode\n"
-	  "    -C <N>      Compress frames and add uncompressed frame every N events\n"
+	  "    -C <N> or \"<N>,<T>\" Compress frames and add uncompressed frame every N events (using T threads)\n"
 	  "    -O          Use OpenMP\n"
 	  "    -D <N>      Drop every N events\n"
 	  "    -T <S>,<N>  Delay S seconds every N events\n"
@@ -656,6 +657,7 @@ int main(int argc, char** argv) {
   const unsigned NO_PLATFORM = unsigned(-1UL);
   unsigned platform = NO_PLATFORM;
   bool lCompress = false;
+  unsigned            compressThreads     = 0;
 
   DetInfo info;
   AppList user_apps;
@@ -681,7 +683,9 @@ int main(int argc, char** argv) {
       break;
     case 'C':
       lCompress = true;
-      FrameCompApp::setCopyPresample(strtoul(optarg, NULL, 0));
+      FrameCompApp::setCopyPresample(strtoul(optarg, &endPtr, 0));
+      if (*endPtr)
+	compressThreads = strtoul(endPtr+1,NULL,0);
       break;
     case 'O':
       FrameCompApp::useOMP(true);
@@ -753,7 +757,8 @@ int main(int argc, char** argv) {
                                  info,
                                  user_apps,
                                  lCompress,
-                                 uniqueid);
+				 compressThreads,
+                                uniqueid);
 
   SegmentLevel* segment = new SegmentLevel(platform, 
              *segtest,

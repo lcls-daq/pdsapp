@@ -9,7 +9,7 @@
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
 
-#define DBUG
+//#define DBUG
 
 namespace Pds {
   class BldStats : private PdsClient::XtcIterator {

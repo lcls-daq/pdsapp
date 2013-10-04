@@ -21,19 +21,6 @@
 #include <signal.h>
 #include <new>
 
-/*
- *
- * Note by Tomy:
- *  
- * This file has support for Cspad Compression, but the function is turned off now.
- *
- * To enable the compression, find the following line in this file:
- *   // cspadMgr.appProcessor().connect( frmk->inlet() );
- *
- *  Uncomment the line to enable the compression
- *
- */
-
 namespace Pds
 {
    class MySegWire;
@@ -218,7 +205,7 @@ void printUsage(char* s) {
       "                the index of the card and the top nybble being a port mask where one bit is for\n"
       "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
       "                applications that use the whole card\n"
-      "    -C <N>  Compress and copy every Nth event\n"
+      "    -C <N> or \"<N>,<T>\"  Compress and copy every Nth event (and use <T> threads)\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
