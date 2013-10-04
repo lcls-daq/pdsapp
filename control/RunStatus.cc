@@ -2,12 +2,12 @@
 #include "DamageStats.hh"
 #include "QCounter.hh"
 
-#include "pdsapp/tools/SummaryDg.hh"
+#include "pds/xtc/SummaryDg.hh"
 #include "pds/service/GenericPool.hh"
 #include "pds/service/Task.hh"
 #include "pds/service/TaskObject.hh"
 #include "pds/xtc/CDatagramIterator.hh"
-#include "pdsdata/xtc/XtcIterator.hh"
+#include "pds/client/L3TIterator.hh"
 
 #include <QtCore/QString>
 #include <QtGui/QLabel>
@@ -16,30 +16,32 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QPalette>
 
+//#define DBUG
+
 namespace Pds {
   class L3TStats {
   public:
-    L3TStats(QGridLayout* layout, unsigned row) :
-      _title(new QLabel("L3TPass/Fail")),
-      _sep  (new QLabel("/")),
+    L3TStats(QGridLayout* layout, unsigned& row) :
+      _title_pass(new QLabel("L3TPass")),
+      _title_fail(new QLabel("L3TFail")),
       _pass (new QCounter),
       _fail (new QCounter)
     {
-      _layout = new QHBoxLayout;
-      _layout->addWidget(_pass->widget());
-      _layout->addWidget(_sep );
-      _layout->addWidget(_fail->widget());
-      layout->addWidget(_title ,row,0,Qt::AlignRight);
-      layout->addLayout(_layout,row,1,Qt::AlignRight);
+      layout->addWidget(_title_pass    ,row,0,Qt::AlignRight);
+      layout->addWidget(_pass->widget(),row,1,Qt::AlignLeft);
+      row++;
+      layout->addWidget(_title_fail    ,row,0,Qt::AlignRight);
+      layout->addWidget(_fail->widget(),row,1,Qt::AlignLeft);
+      row++;
     }
     ~L3TStats() {
     }
   public:
     void show(bool v) 
     {
-      _title->setVisible(v); 
+      _title_pass->setVisible(v); 
+      _title_fail->setVisible(v); 
       _pass ->widget()->setVisible(v);
-      _sep  ->setVisible(v);
       _fail ->widget()->setVisible(v);
     }
     void increment(bool v) 
@@ -58,30 +60,10 @@ namespace Pds {
       _fail->update_count();
     }
   private:
-    QLabel*   _title;
-    QHBoxLayout* _layout;
-    QLabel*   _sep;
+    QLabel*   _title_pass;
+    QLabel*   _title_fail;
     QCounter* _pass;
     QCounter* _fail;
-  };
-
-  class L3TIterator : public XtcIterator {
-  public:
-    L3TIterator() : _found(false) {}
-  public:
-    bool found() const { return _found; }
-  public:
-    int process(Xtc* xtc) {
-      if (xtc->contains.id()==TypeId::Id_Xtc) {
-        iterate(xtc);
-        return 1;
-      }
-      if (xtc->contains.id()==TypeId::Id_L3TConfig)
-        _found=true;
-      return 0;
-    }
-  private:
-    bool _found;
   };
 };
 
@@ -111,7 +93,7 @@ RunStatus::RunStatus(QWidget* parent,
   layout->addWidget(_duration->widget(),row,1,Qt::AlignLeft); row++;
   layout->addWidget(new QLabel("Events",this),row,0,Qt::AlignRight);
   layout->addWidget(_events->widget(),row,1,Qt::AlignLeft); row++;
-  _l3t = new L3TStats(layout,row); row++;
+  _l3t = new L3TStats(layout,row);
   layout->addWidget(new QLabel("Damaged",this),row,0,Qt::AlignRight);
   layout->addWidget(_damaged->widget(),row,1,Qt::AlignLeft); row++;
   layout->addWidget(new QLabel("Size",this),row,0,Qt::AlignRight);
@@ -124,6 +106,8 @@ RunStatus::RunStatus(QWidget* parent,
   QObject::connect(this, SIGNAL(damage_alarm_changed(bool)), this    , SLOT(set_damage_alarm(bool)));
   QObject::connect(this, SIGNAL(l3t_used(bool)), this, SLOT(use_l3t(bool)));
   _detailsB->setEnabled(false);
+
+  emit l3t_used(false);
 }
 
 RunStatus::~RunStatus()
@@ -205,20 +189,18 @@ InDatagram* RunStatus::events     (InDatagram* dg)
       printf("\n");
     }
     */
-    if (!_details) {
-      printf("RunStatus::events L1Accept and no details\n");
-      return 0;
+    if (_details) {
+      _events->increment();
+      if (dg->datagram().xtc.damage.value()!=0)
+	_damaged->increment();
+
+      InDatagramIterator* iter = dg->iterator(&_pool);
+      iterate(dg->datagram().xtc,iter);
+      delete iter;
     }
-
-    _events->increment();
-    if (dg->datagram().xtc.damage.value()!=0)
-      _damaged->increment();
-
-    InDatagramIterator* iter = dg->iterator(&_pool);
-    iterate(dg->datagram().xtc,iter);
-    delete iter;
-
-    return 0;
+    else {
+      printf("RunStatus::events L1Accept and no details\n");
+    }
   }
   else if (dg->datagram().seq.service()==TransitionId::Configure) {
     L3TIterator it;
@@ -235,8 +217,12 @@ int RunStatus::process(const Xtc& xtc, InDatagramIterator* iter) {
 
   if (xtc.contains.value() == SummaryDg::Xtc::typeId().value()) {
     const SummaryDg::Xtc& s = reinterpret_cast<const SummaryDg::Xtc&>(xtc);
+#ifdef DBUG
+    printf("RunStatus event %08x\n",*reinterpret_cast<uint32_t*>(xtc.payload()));
+#endif
     _bytes -> increment(s.payload());
     _details->increment(s);
+    _l3t    ->increment(s.l3tresult()==SummaryDg::Pass);
     return iter->skip(xtc.sizeofPayload());
   }
 

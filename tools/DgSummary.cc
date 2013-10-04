@@ -1,13 +1,15 @@
 #include "DgSummary.hh"
-#include "SummaryDg.hh"
 
+#include "pds/xtc/SummaryDg.hh"
 #include "pds/xtc/ZcpDatagramIterator.hh"
+#include "pdsdata/psddl/l3t.ddl.h"
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/Damage.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
+#include "pdsdata/xtc/XtcIterator.hh"
 
-//#define DBUG
+#define DBUG
 
 namespace Pds {
   class BldStats : private PdsClient::XtcIterator {
@@ -50,6 +52,44 @@ namespace Pds {
     Src      _src;
     unsigned _mask;
   };
+
+  class L3CIterator : public XtcIterator {
+  public:
+    L3CIterator() : _found(false) {}
+  public:
+    bool found() const { return _found; }
+  public:
+    int process(Xtc* xtc) {
+      if (xtc->contains.id()==TypeId::Id_Xtc) {
+        iterate(xtc);
+        return 1;
+      }
+      if (xtc->contains.id()==TypeId::Id_L3TConfig)
+        _found=true;
+      return 0;
+    }
+  private:
+    bool _found;
+  };
+
+  class L3TIterator : public XtcIterator {
+  public:
+    L3TIterator() : _result(SummaryDg::None) {}
+  public:
+    SummaryDg::L3TResult result() const { return _result; }
+  public:
+    int process(Xtc* xtc) {
+      if (xtc->contains.id()==TypeId::Id_Xtc) {
+        iterate(xtc);
+        return 1;
+      }
+      if (xtc->contains.id()==TypeId::Id_L3TData)
+        _result= reinterpret_cast<const Pds::L3T::DataV1*>(xtc->payload())->accept()!=0 ? SummaryDg::Pass : SummaryDg::Fail;
+      return 0;
+    }
+  private:
+    SummaryDg::L3TResult _result;
+  };
 };
 
 using namespace Pds;
@@ -68,21 +108,39 @@ Transition* DgSummary::transitions(Transition* tr) { return tr; }
 
 InDatagram* DgSummary::events     (InDatagram* dg) { 
 
+  _out = new(&_dgpool) SummaryDg::Dg(dg->datagram());
+
   if (dg->datagram().seq.service()==TransitionId::Configure) {
     InDatagramIterator* it = dg->iterator(&_itpool);
     _bld->discover(dg->datagram().xtc, it);
     delete it;
+
+    L3CIterator lit;
+    lit.iterate(&dg->datagram().xtc);
+    if (lit.found())
+      _out->append(Pds::SummaryDg::Pass);
+
+#ifdef DBUG
+    printf("DgSummary::configure ctns %x payload %d\n",
+	   _out->datagram().xtc.contains.value(),
+	   _out->datagram().xtc.sizeofPayload());
+#endif
+  }
+  else {
+    if (dg->datagram().xtc.damage.value()) {
+#ifdef DBUG
+      printf("DgSummary::events dmg %x\n",dg->datagram().xtc.damage.value());
+#endif
+      InDatagramIterator* it = dg->iterator(&_itpool);
+      iterate(dg->datagram().xtc, it);
+      delete it;
+    }
+
+    L3TIterator lit;
+    lit.iterate(&dg->datagram().xtc);
+    _out->append(lit.result());
   }
 
-  _out = new(&_dgpool) SummaryDg::Dg(dg->datagram());
-  if (dg->datagram().xtc.damage.value()) {
-#ifdef DBUG
-    printf("DgSummary::events dmg %x\n",dg->datagram().xtc.damage.value());
-#endif
-    InDatagramIterator* it = dg->iterator(&_itpool);
-    iterate(dg->datagram().xtc, it);
-    delete it;
-  }
   return _out;
 }
 

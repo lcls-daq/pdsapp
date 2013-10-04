@@ -47,7 +47,7 @@ namespace Pds {
     void l3t_used(bool);
     
   public:
-    unsigned long long getEventNum();
+    unsigned long long getEventNum ();
     
   private:
     Task*     _task;

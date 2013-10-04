@@ -5,7 +5,6 @@
 #include "PVManager.hh"
 #include "RemotePartition.hh"
 #include "RunStatus.hh"
-#include "pdsapp/tools/SummaryDg.hh"
 
 #include "pds/management/PartitionControl.hh"
 #include "pds/utility/Transition.hh"
@@ -15,8 +14,8 @@
 #include "pds/service/Sockaddr.hh"
 #include "pds/service/Ins.hh"
 #include "pdsdata/psddl/control.ddl.h"
-#include "pdsdata/xtc/XtcIterator.hh"
 #include "pds/config/ControlConfigType.hh"
+#include "pds/client/L3TIterator.hh"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -30,31 +29,6 @@
 
 static const int MaxConfigSize = 0x100000;
 static const int Control_Port  = 10130;
-
-namespace Pds {
-  class L3TIterator : public Pds::XtcIterator {
-  public:
-    L3TIterator() : _pass(false) {}
-  public:
-    bool pass() const { return _pass; }
-  public:
-    int process(Xtc* xtc) 
-    {
-      if (xtc->contains.id()==TypeId::Id_Xtc) {
-        iterate(xtc);
-        return 1;
-      }
-      if (xtc->contains.value()==SummaryDg::Xtc::typeId().value()) {
-        const SummaryDg::Xtc& s = *static_cast<SummaryDg::Xtc*>(xtc);
-        _pass = s.l3tresult();
-        return 0;
-      }
-      return 0;
-    }
-  private:
-    bool _pass;
-  };
-};
 
 using namespace Pds;
 
@@ -132,6 +106,10 @@ bool RemoteSeqApp::readTransition()
            config.npvControls());
   else if (config.uses_events())
     printf("received remote configuration for %d events, %d controls\n",
+           config.events(),
+           config.npvControls());
+  else if (config.uses_l3t_events())
+    printf("received remote configuration for %d l3t_events, %d controls\n",
            config.events(),
            config.npvControls());
 
@@ -351,10 +329,17 @@ void RemoteSeqApp::routine()
 		else {
 		  _control.wait_for_target();
 		  _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
-		  _control.set_transition_env(TransitionId::Enable,
-					      config.uses_duration() ?
-					      EnableEnv(config.duration()).value() :
-					      EnableEnv(config.events()).value());
+		  if (config.uses_duration())
+		    _control.set_transition_env(TransitionId::Enable,
+						EnableEnv(config.duration()).value());
+		  else if (config.uses_l3t_events())
+		    _control.set_transition_env(TransitionId::Enable,
+						EnableEnv(-1).value());
+		  else if (config.uses_events())
+		    _control.set_transition_env(TransitionId::Enable,
+						EnableEnv(config.events()).value());
+		  else
+		    ;
 		  _control.set_target_state(PartitionControl::Enabled);
 		  _control.release_target();
 		}
@@ -432,6 +417,9 @@ Occurrence* RemoteSeqApp::occurrences(Occurrence* occ)
     switch (occ->id()) {
     case OccurrenceId::SequencerDone:
       _control.set_target_state(PartitionControl::Running);
+#ifdef DBUG
+      printf("RemoteSeqApp SequencerDone [%d]\n",info);
+#endif
       return 0;
     case OccurrenceId::EvrEnabled:
       ::write(_socket,&info,sizeof(info));

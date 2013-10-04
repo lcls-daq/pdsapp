@@ -2,7 +2,7 @@
 #include "QCounter.hh"
 
 #include "pdsapp/control/PartitionSelect.hh"
-#include "pdsapp/tools/SummaryDg.hh"
+#include "pds/xtc/SummaryDg.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pdsdata/psddl/alias.ddl.h"
 #include "pdsdata/xtc/DetInfo.hh"
