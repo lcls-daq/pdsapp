@@ -28,6 +28,9 @@ void L3TestModule::event(const Pds::DetInfo& src,
     _evr = reinterpret_cast<const EvrData::DataV3*>(payload);
 }
 
+bool L3TestModule::complete()
+{ return _evr; }
+
 bool L3TestModule::accept()
 {
   if (_evr) {

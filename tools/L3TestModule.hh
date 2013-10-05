@@ -36,6 +36,7 @@ namespace Pds {
   public:
     std::string name() const;
     std::string configuration() const;
+    bool complete ();
     bool accept ();
   private:
     const EvrData::DataV3* _evr;
