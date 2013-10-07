@@ -44,7 +44,7 @@ namespace Pds {
     void record_updated();
     void client_added(void*);
     void cleared();
-  public slots:
+  private slots:
     void control_start();
     void control_stop();
     void control_update();
