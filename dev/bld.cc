@@ -60,7 +60,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-typedef Pds::Bld::BldDataEBeamV3 BldDataEBeam;
+typedef Pds::Bld::BldDataEBeamV4 BldDataEBeam;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV1 BldDataGMD;
 //    typedef BldDataAcqADCV1 BldDataAcqADC;
