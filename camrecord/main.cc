@@ -78,6 +78,7 @@ string username = "";
 int expid = -1;
 int runnum = -1;
 int strnum = -1;
+int haveH = 0;
 string curdir = "";
 string logbook[LCPARAMS];
 static string lb_params[LCPARAMS] = { /* This is the order of parameters to LogBook::Connection::open! */
@@ -245,7 +246,8 @@ static void read_config_file(const char *name)
             outfile = strdup(arrayTokens[1].c_str());
         } else if (arrayTokens[0] == "hostname") {
             hostname = arrayTokens[1];
-            curdir = NFSBASE + arrayTokens[1] + "/";
+            if (!haveH)
+                curdir = NFSBASE + arrayTokens[1] + "/";
             prefix = arrayTokens[1] + " ";
         } else if (arrayTokens[0] == "timeout") {
             delay = atoi(arrayTokens[1].c_str());
@@ -320,6 +322,7 @@ static void usage(void)
     printf("    -d DIRECTORY                     = Change to the specified directory.\n");
     printf("    -k SECS, --keepalive SECS        = Seconds to wait for input before closing down.\n");
     printf("    -s                               = Run silently (for use as a daemon).\n");
+    printf("    -H HOSTNAME                      = Specify the hostname to use for the NFS mount point.\n");
     printf("If no timeout is specified, recording will continue until interrupted with ^C.\n");
     exit(0);
 }
@@ -474,6 +477,7 @@ int main(int argc, char **argv)
         {"directory", 1, 0, 'd'},
         {"silent",    0, 0, 's'},
         {"keepalive", 1, 0, 'k'},
+        {"hostname",  1, 0, 'H'},
         {NULL, 0, NULL, 0}
     };
 
@@ -496,6 +500,10 @@ int main(int argc, char **argv)
             break;
         case 'd':
             chdir(optarg);
+            break;
+        case 'H':
+            curdir = ((std::string) NFSBASE) + optarg + "/";
+            haveH = 1;
             break;
         case 's':
             verbose = 0;
