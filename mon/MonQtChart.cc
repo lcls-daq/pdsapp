@@ -273,10 +273,12 @@ void MonQtChart::attach(QwtPlot* plot)
     _curves[k]->attach(plot);
   if (plot) {
     plot->setAxisAutoScale(QwtPlot::xBottom);
+
     if (isautorng(MonQtBase::Y))
       plot->setAxisAutoScale(QwtPlot::yLeft);
     else
       plot->setAxisScale(QwtPlot::yLeft, _ymin, _ymax);
+
     if (islog(MonQtBase::Y))
       plot->setAxisScaleEngine(QwtPlot::yLeft, new QwtLog10ScaleEngine);
     else

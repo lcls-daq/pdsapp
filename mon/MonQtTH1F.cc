@@ -220,14 +220,16 @@ void MonQtTH1F::attach(QwtPlot* plot)
       plot->setAxisAutoScale(QwtPlot::xBottom);
     else
       plot->setAxisScale(QwtPlot::xBottom, _xmin, _xmax);
-    if (islog(MonQtBase::Y))
-      plot->setAxisScaleEngine(QwtPlot::yLeft, new QwtLog10ScaleEngine);
-    else
-      plot->setAxisScaleEngine(QwtPlot::yLeft, new QwtLinearScaleEngine);
+
     if (isautorng(MonQtBase::Y))
       plot->setAxisAutoScale(QwtPlot::yLeft);
     else
       plot->setAxisScale(QwtPlot::yLeft, _ymin, _ymax, 0.2*(_ymax-_ymin));
+
+    if (islog(MonQtBase::Y))
+      plot->setAxisScaleEngine(QwtPlot::yLeft, new QwtLog10ScaleEngine);
+    else
+      plot->setAxisScaleEngine(QwtPlot::yLeft, new QwtLinearScaleEngine);
   }
 }
 

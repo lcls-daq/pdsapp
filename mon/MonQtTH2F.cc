@@ -213,10 +213,12 @@ void MonQtTH2F::attach(QwtPlot* plot)
       plot->setAxisAutoScale(QwtPlot::xBottom);
     else
       plot->setAxisScale(QwtPlot::xBottom, _xmin, _xmax);
+
     if (isautorng(MonQtBase::Y))
       plot->setAxisAutoScale(QwtPlot::yLeft);
     else
       plot->setAxisScale(QwtPlot::yLeft, _ymin, _ymax);
+
     if (islog(MonQtBase::Y))
       plot->setAxisScaleEngine(QwtPlot::yLeft, new QwtLog10ScaleEngine);
     else
@@ -226,6 +228,7 @@ void MonQtTH2F::attach(QwtPlot* plot)
       plot->setAxisAutoScale(QwtPlot::xTop);
     else
       plot->setAxisScale(QwtPlot::xTop, _zmin, _zmax);
+
     if (islog(MonQtBase::Z)) {
       plot->setAxisScaleEngine(QwtPlot::xTop, new QwtLog10ScaleEngine);
       LogColorMap map;
@@ -237,6 +240,7 @@ void MonQtTH2F::attach(QwtPlot* plot)
       colorMap.addColorStop(0.5,Qt::green);
       setColorMap(colorMap);
     }
+
     QwtScaleWidget *zAxis = plot->axisWidget(QwtPlot::xTop);
     zAxis->setColorBarEnabled(true);
     zAxis->setColorMap(data().range(),colorMap());
