@@ -71,25 +71,6 @@ namespace Pds {
   private:
     bool _found;
   };
-
-  class L3TIterator : public XtcIterator {
-  public:
-    L3TIterator() : _result(SummaryDg::None) {}
-  public:
-    SummaryDg::L3TResult result() const { return _result; }
-  public:
-    int process(Xtc* xtc) {
-      if (xtc->contains.id()==TypeId::Id_Xtc) {
-        iterate(xtc);
-        return 1;
-      }
-      if (xtc->contains.id()==TypeId::Id_L3TData)
-        _result= reinterpret_cast<const Pds::L3T::DataV1*>(xtc->payload())->accept()!=0 ? SummaryDg::Pass : SummaryDg::Fail;
-      return 0;
-    }
-  private:
-    SummaryDg::L3TResult _result;
-  };
 };
 
 using namespace Pds;
@@ -118,7 +99,7 @@ InDatagram* DgSummary::events     (InDatagram* dg) {
     L3CIterator lit;
     lit.iterate(&dg->datagram().xtc);
     if (lit.found())
-      _out->append(Pds::SummaryDg::Pass);
+      _out->append(Pds::L1AcceptEnv::Pass);
 
 #ifdef DBUG
     printf("DgSummary::configure ctns %x payload %d\n",
@@ -136,9 +117,10 @@ InDatagram* DgSummary::events     (InDatagram* dg) {
       delete it;
     }
 
-    L3TIterator lit;
-    lit.iterate(&dg->datagram().xtc);
-    _out->append(lit.result());
+    if (dg->datagram().seq.service()==TransitionId::L1Accept) {
+      const L1AcceptEnv& l1 = static_cast<const L1AcceptEnv&>(dg->datagram().env);
+      _out->append(l1.l3t_result());
+    }
   }
 
   return _out;

@@ -223,10 +223,9 @@ int RunStatus::process(const Xtc& xtc, InDatagramIterator* iter) {
     _bytes -> increment(s.payload());
     _details->increment(s);
     switch(s.l3tresult()) {
-    case SummaryDg::Pass: _l3t    ->increment(true); break;
-    case SummaryDg::Fail: _l3t    ->increment(false); break;
-    default: break;
-    }
+    case L1AcceptEnv::Pass:  _l3t->increment(true); break;
+    case L1AcceptEnv::Fail:  _l3t->increment(false); break;
+    default: break; }
     return iter->skip(xtc.sizeofPayload());
   }
 
