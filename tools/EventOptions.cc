@@ -72,7 +72,7 @@ static void load_filter(char*       arg,
         fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
       }
       else {
-#if 1
+#if 0
         L3FilterDriver* driver = new L3FilterDriver(c_user());
 #else
         L3FilterThreads* driver = new L3FilterThreads(c_user);
