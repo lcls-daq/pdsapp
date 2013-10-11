@@ -92,6 +92,9 @@ InDatagram* DgSummary::events     (InDatagram* dg) {
   _out = new(&_dgpool) SummaryDg::Dg(dg->datagram());
 
   if (dg->datagram().seq.service()==TransitionId::Configure) {
+
+    _out->datagram().xtc.damage.increase(dg->datagram().xtc.damage.value());
+
     InDatagramIterator* it = dg->iterator(&_itpool);
     _bld->discover(dg->datagram().xtc, it);
     delete it;

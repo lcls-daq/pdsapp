@@ -191,8 +191,6 @@ InDatagram* RunStatus::events     (InDatagram* dg)
     */
     if (_details) {
       _events->increment();
-      if (dg->datagram().xtc.damage.value()!=0)
-	_damaged->increment();
 
       InDatagramIterator* iter = dg->iterator(&_pool);
       iterate(dg->datagram().xtc,iter);
@@ -221,6 +219,8 @@ int RunStatus::process(const Xtc& xtc, InDatagramIterator* iter) {
     printf("RunStatus event %08x\n",*reinterpret_cast<uint32_t*>(xtc.payload()));
 #endif
     _bytes -> increment(s.payload());
+    if (s.damage.value()!=0)
+      _damaged->increment();
     _details->increment(s);
     switch(s.l3tresult()) {
     case L1AcceptEnv::Pass:  _l3t->increment(true); break;
