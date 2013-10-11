@@ -20,20 +20,22 @@ namespace Pds {
       _mask = 0;
       iterate(xtc, iter);
 #ifdef DBUG
-      printf("BldStats::discover %x\n",_mask);
+      printf("BldStats::discover %x %08x.%08x\n",_mask,_src.log(),_src.phy());
 #endif
     }
     void fill(SummaryDg::Dg& out) {
       for(unsigned i=0; i<BldInfo::NumberOf; i++)
-	if (_mask & (1<<i))
-	  out.append(BldInfo(static_cast<const ProcInfo&>(_src).processId(),
-			     BldInfo::Type(i)),
-                     Damage(1<<Damage::DroppedContribution));
+	if (_mask & (1<<i)) {
+	  BldInfo info(static_cast<const ProcInfo&>(_src).processId(),BldInfo::Type(i));
+	  out.append(info,Damage(1<<Damage::DroppedContribution));
+	}
     }
-    const Src& src() const { return _src; }
-    const Src& src(const Src& input) const { 
-      return BldInfo(static_cast<const ProcInfo&>(_src).processId(),
-                     BldInfo::Type(input.phy())); }
+    Src src() const { return _src; }
+    Src src(const Src& input) const { 
+      BldInfo info(static_cast<const ProcInfo&>(_src).processId(),
+		   BldInfo::Type(input.phy()));
+      return info;
+    }
   private:
     int process(const Xtc& xtc, InDatagramIterator* iter) {
       if (xtc.contains.id() == TypeId::Id_Xtc) {
@@ -103,12 +105,6 @@ InDatagram* DgSummary::events     (InDatagram* dg) {
     lit.iterate(&dg->datagram().xtc);
     if (lit.found())
       _out->append(Pds::L1AcceptEnv::Pass);
-
-#ifdef DBUG
-    printf("DgSummary::configure ctns %x payload %d\n",
-	   _out->datagram().xtc.contains.value(),
-	   _out->datagram().xtc.sizeofPayload());
-#endif
   }
   else {
     if (dg->datagram().xtc.damage.value()) {
@@ -118,6 +114,13 @@ InDatagram* DgSummary::events     (InDatagram* dg) {
       InDatagramIterator* it = dg->iterator(&_itpool);
       iterate(dg->datagram().xtc, it);
       delete it;
+
+#ifdef DBUG
+      const SummaryDg::Xtc& s = static_cast<const SummaryDg::Xtc&>(_out->datagram().xtc);
+      printf("\tdmg %08x\n",s.damage.value());
+      for(unsigned j=0; j<s.nSources(); j++)
+	printf("\t%08x.%08x\n", s.source(j).log(), s.source(j).phy());
+#endif
     }
 
     if (dg->datagram().seq.service()==TransitionId::L1Accept) {
