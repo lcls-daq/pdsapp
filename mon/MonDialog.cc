@@ -142,7 +142,7 @@ MonDialogAxis::MonDialogAxis(QWidget* p,
   else        layout->addStretch();
 
   setLayout(layout);
-  
+  hide();
 }
 
 void MonDialogAxis::applied(MonQtBase& hist, MonQtBase::Axis ax)
@@ -253,7 +253,7 @@ MonDialog::MonDialog(MonCanvas* canvas,
   _entries[_nentries++] = new MonDialogEntry(this, "Chart X", chartx);
   _entries[_nentries++] = new MonDialogEntry(this, "Chart Y", charty);
 
-  setAttribute(Qt::WA_DeleteOnClose);
+  //  setAttribute(Qt::WA_DeleteOnClose);
   addbuttons(canvas);
 }
 

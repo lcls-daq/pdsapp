@@ -9,6 +9,7 @@ class QwtPlot;
 namespace Pds {
 
   class MonDesc;
+  class MonDialog;
   class MonGroup;
   class MonEntryProf;
   class MonQtProf;
@@ -40,6 +41,7 @@ namespace Pds {
     MonQtProf* _since;
     MonQtProf* _diff;
     MonQtChart* _chart;
+    MonDialog*  _dialog;
 
     QwtPlot* _plot;
   };

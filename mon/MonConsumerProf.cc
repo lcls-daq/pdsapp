@@ -28,7 +28,8 @@ MonConsumerProf::MonConsumerProf(QWidget& parent,
   _hist(0),
   _since(0),
   _diff(0),
-  _chart(0)
+  _chart(0),
+  _dialog(0)
 {
   // Prepares menus
   _menu_service(Integrated, false);
@@ -70,6 +71,7 @@ MonConsumerProf::~MonConsumerProf()
   delete _since;
   delete _diff;
   delete _chart;
+  if (_dialog) delete _dialog;
 }
 
 const MonQtBase* MonConsumerProf::selected() const
@@ -136,7 +138,10 @@ void MonConsumerProf::select(Select selection)
 
 void MonConsumerProf::dialog()
 {
-  new MonDialog(this, _hist, _since, _diff, _chart);
+  if (!_dialog)
+    _dialog = new MonDialog(this, _hist, _since, _diff, _chart);
+
+  _dialog->show();
 }
 
 int MonConsumerProf::update() 

@@ -34,6 +34,7 @@ MonConsumerWaveform::MonConsumerWaveform(QWidget& parent,
   MonCanvas(parent, entry),
   _desc(new MonDescWaveform(entry.desc())),
   _hist(0),
+  _dialog(0),
   _time(0,0)
 {
   // Initialize histograms
@@ -59,11 +60,14 @@ MonConsumerWaveform::~MonConsumerWaveform()
 {
   delete _desc;
   delete _hist;
+  if (_dialog) delete _dialog;
 }
 
 void MonConsumerWaveform::dialog()
 {
-  new MonDialog(this, _hist);
+  if (!_dialog)
+    _dialog = new MonDialog(this, _hist);
+  _dialog->show();
 }
 
 int MonConsumerWaveform::update() 

@@ -9,6 +9,7 @@ class QwtPlot;
 namespace Pds {
 
   class MonDesc;
+  class MonDialog;
   class MonGroup;
   class MonEntryWaveform;
   class MonDescWaveform;
@@ -35,6 +36,7 @@ namespace Pds {
   private:
     MonDescWaveform* _desc;
     MonQtWaveform* _hist;
+    MonDialog*  _dialog;
     QwtPlot* _plot;
     ClockTime _time;
   };

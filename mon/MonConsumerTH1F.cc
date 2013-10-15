@@ -38,6 +38,7 @@ MonConsumerTH1F::MonConsumerTH1F(QWidget& parent,
   _since(0),
   _diff(0),
   _chart(0),
+  _dialog(0),
   _last_stats(0),
   _archive_mode(false)
 {
@@ -83,12 +84,16 @@ MonConsumerTH1F::~MonConsumerTH1F()
   delete _since;
   delete _diff;
   delete _chart;
+  if (_dialog) delete _dialog;
   delete _last_stats;
 }
 
 void MonConsumerTH1F::dialog()
 {
-  new MonDialog(this, _hist, _since, _diff, _chart);
+  if (!_dialog)
+    _dialog = new MonDialog(this, _hist, _since, _diff, _chart);
+
+  _dialog->show();
 }
 
 int MonConsumerTH1F::update() 

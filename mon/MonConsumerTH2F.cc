@@ -31,7 +31,8 @@ MonConsumerTH2F::MonConsumerTH2F(QWidget& parent,
   _diff_x(0),
   _diff_y(0),
   _chartx(0),
-  _charty(0)
+  _charty(0),
+  _dialog(0)
 {
   // Prepares menus
   _menu_service(Integrated, false);
@@ -93,12 +94,15 @@ MonConsumerTH2F::~MonConsumerTH2F()
   delete _diff_y;
   delete _chartx;
   delete _charty;
+  if (_dialog) delete _dialog;
 }
 
 void MonConsumerTH2F::dialog()
 {
-  new MonDialog(this, _hist, _diff, _hist_x, _hist_y,
-		_diff_x, _diff_y, _chartx, _charty);
+  if (!_dialog)
+    _dialog = new MonDialog(this, _hist, _diff, _hist_x, _hist_y,
+                            _diff_x, _diff_y, _chartx, _charty);
+  _dialog->show();
 }
 
 int MonConsumerTH2F::update() 

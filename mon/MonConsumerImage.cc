@@ -34,6 +34,7 @@ MonConsumerImage::MonConsumerImage(QWidget& parent,
   _hist_y(0),
   _chartx(0),
   _charty(0),
+  _dialog(0),
   _time  (0,0)
 {
   // Initialize histograms
@@ -89,14 +90,17 @@ MonConsumerImage::~MonConsumerImage()
   delete _hist_y;
   delete _chartx;
   delete _charty;
+  if (_dialog) delete _dialog;
 }
 
 void MonConsumerImage::dialog()
 {
-  new MonDialog(this,
-		_hist, 
-		_hist_x, _hist_y,
-		_chartx, _charty);
+  if (!_dialog)
+    _dialog = new MonDialog(this,
+                            _hist, 
+                            _hist_x, _hist_y,
+                            _chartx, _charty);
+  _dialog->show();
 }
 
 int MonConsumerImage::update() 

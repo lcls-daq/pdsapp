@@ -12,6 +12,7 @@ class QStackedWidget;
 namespace Pds {
 
   class MonDesc;
+  class MonDialog;
   class MonGroup;
   class MonDescImage;
   class MonEntryImage;
@@ -47,6 +48,7 @@ namespace Pds {
 
     MonQtChart* _chartx;
     MonQtChart* _charty;
+    MonDialog*  _dialog;
 
     ClockTime   _time;
 
