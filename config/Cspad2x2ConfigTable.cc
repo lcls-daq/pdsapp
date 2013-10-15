@@ -76,7 +76,8 @@ namespace Pds_ConfigDb
                                     _activeRunMode  .value,
                                     _runTriggerDelay.value,
                                     _testDataIndex  .value,
-                                    sizeof(Pds::CsPad2x2::ElementV1) + sizeof(uint32_t),  // space for the last word
+				    //                                    sizeof(Pds::CsPad2x2::ElementV1) + sizeof(uint32_t),  // space for the last word
+				    Pds::CsPad2x2::ElementV1::_sizeof()+sizeof(uint32_t),
                                     _badAsicMask    .value,
                                     1,
                                     _sectors.value,
