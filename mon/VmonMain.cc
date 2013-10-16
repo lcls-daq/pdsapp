@@ -12,7 +12,8 @@ using namespace Pds;
 
 VmonMain::VmonMain(Task* workTask, 
 		   unsigned char platform,
-		   const char* partition) :
+		   const char* partition,
+		   const char* path) :
   _task(workTask)
 {
   int argc=1;
@@ -26,7 +27,7 @@ VmonMain::VmonMain(Task* workTask,
   _tabs = new MonTabMenu(*top);
 
   // Tree(s)
-  _trees = new VmonTreeMenu(*top, *_task, *_tabs, platform, partition);
+  _trees = new VmonTreeMenu(*top, *_task, *_tabs, platform, partition, path);
 
   layout->addWidget(_trees,0);
   layout->addWidget(_tabs ,1);

@@ -16,15 +16,19 @@ int main(int argc, char **argv)
   const unsigned NO_PLATFORM = (unsigned)-1;
   unsigned platform = NO_PLATFORM;
   const char* partition = 0;
+  const char* path = "./";
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:o:")) != -1) {
     switch (c) {
     case 'p':
       platform = strtoul(optarg, NULL, 0);
       break;
     case 'P':
       partition = optarg;
+      break;
+    case 'o':
+      path = optarg;
       break;
     default:
       printHelp(argv[0]);
@@ -38,7 +42,7 @@ int main(int argc, char **argv)
   }
 
   Task* workTask = new Task(TaskObject("VmonMain"));
-  VmonMain dspl(workTask, platform, partition);
+  VmonMain dspl(workTask, platform, partition, path);
 }
 
 

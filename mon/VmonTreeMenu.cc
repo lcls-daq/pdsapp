@@ -63,7 +63,8 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
 			   Task& task, 
 			   MonTabMenu& tabs,
 			   unsigned char platform,
-			   const char*   partition) :
+			   const char*   partition,
+			   const char*   path) :
   QGroupBox (&p),
   VmonClientManager(platform, partition, *this),
   _task     (task),
@@ -71,7 +72,7 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
   _selected (0),
   _partition_id(0),
   _last_transition(TransitionId::Unknown),
-  _recorder (new VmonRecorder)
+  _recorder (new VmonRecorder(path))
 {
   QVBoxLayout* layout = new QVBoxLayout(this);
 
@@ -89,6 +90,7 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
     sprintf(buff,"LastTr: %s",TransitionId::name(_last_transition));
     _transition_label   = new QLabel(buff,control);
     clayout->addWidget(_transition_label  );
+#if 0
     { QHBoxLayout* hlayout = new QHBoxLayout;
       QPushButton* startButton = new QPushButton("Start", control);
       QPushButton* stopButton  = new QPushButton("Stop", control);
@@ -98,6 +100,7 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
       QObject::connect(startButton, SIGNAL(clicked()), this, SLOT(control_start()));
       QObject::connect(stopButton , SIGNAL(clicked()), this, SLOT(control_stop()));
     }
+#endif
     control->setLayout(clayout); 
   }
   layout->addWidget(control);
@@ -137,6 +140,8 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
 
   setLayout(layout);
 
+  _recorder->enable();
+
   VmonClientManager::start();
   if (!CollectionManager::connect()) {
     printf("platform %x unavailable\n",platform);
@@ -146,6 +151,7 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
 
 VmonTreeMenu::~VmonTreeMenu() 
 {
+  _recorder->disable();
   delete _recorder;
 }
 
@@ -185,12 +191,10 @@ void VmonTreeMenu::control_update()
 
 void VmonTreeMenu::record_start()
 {
-  _recorder->enable();
 }
 
 void VmonTreeMenu::record_stop()
 {
-  _recorder->disable();
 }
 
 void VmonTreeMenu::record_update()
@@ -248,6 +252,14 @@ void VmonTreeMenu::allocated(const Allocation& alloc,
 
 void VmonTreeMenu::post(const Transition& tr)
 {
+  if (tr.id()==TransitionId::BeginRun) {
+    const unsigned MAX_RUNS=100000;
+    unsigned env = tr.env().value();
+    _recorder->begin(env < MAX_RUNS ? int(env) : -1);
+  }
+  else if (tr.id()==TransitionId::EndRun)
+    _recorder->end();
+  
   _last_transition = tr.id();
   VmonClientManager::post(tr);
   emit control_updated();

@@ -12,7 +12,8 @@ namespace Pds {
   public:
     VmonMain(Task* workTask, 
 	     unsigned char platform, 
-	     const char* partition);
+	     const char* partition,
+	     const char* path);
     virtual ~VmonMain();
 
   private:

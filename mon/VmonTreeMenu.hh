@@ -33,7 +33,8 @@ namespace Pds {
 		 Task& task,
 		 MonTabMenu& tabs,
 		 unsigned char platform,
-		 const char*   partition);
+		 const char*   partition,
+		 const char*   path);
     virtual ~VmonTreeMenu();
 
     void expired();
