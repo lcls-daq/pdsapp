@@ -146,6 +146,7 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
 
 VmonTreeMenu::~VmonTreeMenu() 
 {
+  delete _recorder;
 }
 
 void VmonTreeMenu::expired() 

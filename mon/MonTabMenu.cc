@@ -27,6 +27,7 @@ MonTabMenu::MonTabMenu(QWidget& parent) :
 
 MonTabMenu::~MonTabMenu() 
 {
+  reset();
 }
 
 void MonTabMenu::reset()

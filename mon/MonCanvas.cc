@@ -47,6 +47,7 @@ MonCanvas::MonCanvas(QWidget&        parent,
 
 MonCanvas::~MonCanvas() 
 {
+  delete _select;
 }
 
 void MonCanvas::menu_service(Select s, const char* label, const char* slot,

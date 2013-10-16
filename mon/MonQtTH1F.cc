@@ -88,7 +88,7 @@ MonQtTH1F::~MonQtTH1F()
 void MonQtTH1F::SetBins(unsigned nb, double xlow, double xhi)
 {
   _x = new double[nb+1];
-  _y = new double[nb+1];
+  _y = new double[nb+3];
   double dx = nb ? (xhi - xlow) / double(nb) : 0;
   double x0 = xlow;
   for(unsigned k=0; k<=nb; k++)
@@ -99,7 +99,7 @@ void MonQtTH1F::SetBins(unsigned nb, double xlow, double xhi)
 
 void MonQtTH1F::reset() 
 {
-  memset(_y, 0, sizeof(double)*(NBINS+1));
+  memset(_y, 0, sizeof(double)*(NBINS+3));
 }
 
 void MonQtTH1F::params(const MonDescTH1F& desc) 

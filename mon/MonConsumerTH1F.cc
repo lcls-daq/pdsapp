@@ -38,8 +38,8 @@ MonConsumerTH1F::MonConsumerTH1F(QWidget& parent,
   _since(0),
   _diff(0),
   _chart(0),
-  _dialog(0),
   _last_stats(0),
+  _dialog(0),
   _archive_mode(false)
 {
   // Prepares menus
