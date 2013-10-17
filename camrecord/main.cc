@@ -481,7 +481,7 @@ int main(int argc, char **argv)
         {NULL, 0, NULL, 0}
     };
 
-    while ((c = getopt_long(argc, argv, "hc:o:t:d:sk:", long_options, &idx)) != -1) {
+    while ((c = getopt_long(argc, argv, "hc:o:t:d:sk:H:", long_options, &idx)) != -1) {
         switch (c) {
         case 'h':
             usage();
