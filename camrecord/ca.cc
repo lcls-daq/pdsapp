@@ -126,8 +126,6 @@ class caconn {
         char             *bf2 = NULL;
         Xtc              *cfg = NULL;
         Xtc              *frm = NULL;
-        Xtc              *r1  = NULL;
-        Xtc              *r2  = NULL;
         Camera::FrameV1  *f   = NULL;
         unsigned int     w, h;
 
@@ -163,10 +161,13 @@ class caconn {
         ProcInfo bldInfo(Level::Reporter, pid, bld);
         Camera::FrameCoord origin(0, 0);
 
+        if (bld < 0)
+            register_alias(name, sourceInfo);
+
         switch (ctp) {
         case DetInfo::TM6740:
-            size = ((bld < 0) ? 3 : 4) * sizeof(Xtc) + sizeof(Pulnix::TM6740ConfigV2) +
-                   sizeof(Camera::FrameFexConfigV1) + sizeof(Lusi::PimImageConfigV1);
+            size = ((bld < 0) ? 2 : 3) * sizeof(Xtc) + sizeof(Pulnix::TM6740ConfigV2) +
+                sizeof(Camera::FrameFexConfigV1);
             buf = (char *) calloc(1, size);
             if (bld < 0) {
                 cfg = new (buf) Xtc(TypeId(TypeId::Id_TM6740Config, 2), sourceInfo);
@@ -174,7 +175,6 @@ class caconn {
                 cfg = new (buf) Xtc(TypeId(TypeId::Id_Xtc, 1), sourceInfo);
                 cfg = new ((char *)cfg->alloc(size - sizeof(Xtc)))
                           Xtc(TypeId(TypeId::Id_TM6740Config, 2), bldInfo);
-                r1 = cfg;
             }
             // Fake a configuration!
             // black_level_a = black_level_b = 32, gaina = gainb = 0x1e8 (max, min is 0x42),
@@ -201,8 +201,8 @@ class caconn {
             }
             break;
         case DetInfo::Opal1000:
-            size = ((bld < 0) ? 3 : 4) * sizeof(Xtc) + sizeof(Pulnix::TM6740ConfigV2) +
-                   sizeof(Camera::FrameFexConfigV1) + sizeof(Lusi::PimImageConfigV1);
+            size = ((bld < 0) ? 2 : 3) * sizeof(Xtc) + sizeof(Pulnix::TM6740ConfigV2) +
+                sizeof(Camera::FrameFexConfigV1);
             buf = (char *) calloc(1, size);
             if (bld < 0) {
                 cfg = new (buf) Xtc(TypeId(TypeId::Id_Opal1kConfig, 1), sourceInfo);
@@ -210,7 +210,6 @@ class caconn {
                 cfg = new (buf) Xtc(TypeId(TypeId::Id_Xtc, 1), sourceInfo);
                 cfg = new ((char *)cfg->alloc(size - sizeof(Xtc)))
                            Xtc(TypeId(TypeId::Id_Opal1kConfig, 2), bldInfo);
-                r1 = cfg;
             }
             // Fake a configuration!
             // black = 32, gain = 100, Depth = 12 bit, binning = x1, mirroring = None,
@@ -234,7 +233,7 @@ class caconn {
             printf("Unknown device: %s!\n", DetInfo::name(ctp));
             exit(1);
         }
-        // These are on every camera.
+        // This is on every camera.
         if (bld < 0)
             cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), sourceInfo);
         else
@@ -243,34 +242,12 @@ class caconn {
             Camera::FrameFexConfigV1(Camera::FrameFexConfigV1::FullFrame, 1,
                                      Camera::FrameFexConfigV1::NoProcessing, origin, origin, 0, 0, 0);
 
-        if (bld < 0)
-            cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_PimImageConfig, 1), sourceInfo);
-        else {
-            cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_PimImageConfig, 1), bldInfo);
-            r2 = cfg;
-        }
-        new ((void *)cfg->alloc(sizeof(Lusi::PimImageConfigV1)))
-            Lusi::PimImageConfigV1(1.0, 1.0);   // What should these be?!?
         configure_xtc(xid, buf, size, 0, 0);
 
-        if (bld < 0) {
-            hdrlen = sizeof(Xtc) + sizeof(Camera::FrameV1);
-            bf2 = (char *) calloc(1, hdrlen);
-            frm = hdr = new (bf2) Xtc(TypeId(TypeId::Id_Frame, 1), sourceInfo);
-        } else {
-            hdrlen = size - sizeof(Camera::FrameFexConfigV1) + sizeof(Camera::FrameV1);
-            bf2 = (char *) calloc(1, hdrlen);
-            hdr = new (bf2) Xtc(TypeId(TypeId::Id_Xtc, 1), bldInfo);
+        hdrlen = sizeof(Xtc) + sizeof(Camera::FrameV1);
+        bf2 = (char *) calloc(1, hdrlen);
+        frm = hdr = new (bf2) Xtc(TypeId(TypeId::Id_Frame, 1), sourceInfo);
 
-            // Copy the configuration xtc.
-            memcpy((void *)hdr->alloc(r1->extent), (void *)r1, r1->extent);
-
-            // Copy the PimImageConfig xtc.
-            memcpy((void *)hdr->alloc(r2->extent), (void *)r2, r2->extent);
-
-            frm = new ((char *)hdr->alloc(sizeof(Xtc) + sizeof(Camera::FrameV1)))
-                Xtc(TypeId(TypeId::Id_Frame, 1), bldInfo);
-        }
         switch (ctp) {
         case DetInfo::TM6740:
             switch (binned) {

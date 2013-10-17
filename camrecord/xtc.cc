@@ -27,6 +27,7 @@
 #include"pdsdata/psddl/opal1k.ddl.h"
 #include"pdsdata/psddl/camera.ddl.h"
 #include"pdsdata/psddl/bld.ddl.h"
+#include"pdsdata/psddl/alias.ddl.h"
 #include"pds/service/NetServer.hh"
 #include"pds/service/Ins.hh"
 #include"LogBook/Connection.h"
@@ -76,11 +77,13 @@ static unsigned int cnsec = 0;
 static unsigned int dsec = 0;  // Last data timestamp.
 static unsigned int dnsec = 0;
 static vector<xtcsrc *> src;
+static vector<Alias::SrcAlias *> alias;
 
 static Dgram *dg = NULL;
 static Xtc   *seg = NULL;
 static ProcInfo *evtInfo = NULL;
 static ProcInfo *segInfo = NULL;
+static ProcInfo *ctrlInfo = NULL;
 
 #define MAX_EVENTS    64
 static struct event {
@@ -220,6 +223,7 @@ static void write_xtc_config(void)
 {
     int i;
     sigset_t oldsig;
+    Xtc *xtc1 = NULL, *xtc = NULL;
 
     dg = (Dgram *) malloc(sizeof(Dgram) + sizeof(Xtc));
     
@@ -239,12 +243,24 @@ static void write_xtc_config(void)
 
     evtInfo = new ProcInfo(Level::Event, pid, ipaddr);
     segInfo = new ProcInfo(Level::Segment, pid, ipaddr);
+    ctrlInfo = new ProcInfo(Level::Control, pid, ipaddr);
 
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
     if (start_sec != 0) {
         csec = start_sec;
         cnsec = start_nsec;
     }
+
+    int cnt = alias.size();
+    if (cnt) {
+        int len = 2 * sizeof(Xtc) + sizeof(Alias::ConfigV1) + alias.size() * sizeof(Alias::SrcAlias);
+        xtc1 = new ((char *) malloc(len)) Xtc(TypeId(TypeId::Id_Xtc, 1), *ctrlInfo);
+        xtc1->extent = len;
+        xtc = new ((char *) (xtc1+1)) Xtc(TypeId(TypeId::Id_AliasConfig, 1), *ctrlInfo);
+        totalcfglen += len;
+        printf("Alias info = %d bytes\n", len);
+    } else
+        printf("No alias info!\n");
     write_datagram(TransitionId::Configure, totalcfglen);
     for (i = 0; i < numsrc; i++) {
         if (!fwrite(src[i]->val, src[i]->len, 1, fp)) {
@@ -256,6 +272,17 @@ static void write_xtc_config(void)
         delete src[i]->val;
         src[i]->val = NULL;
         src[i]->len = 0;
+    }
+    if (cnt) {
+        *reinterpret_cast<uint32_t *>(xtc->alloc(sizeof(uint32_t))) = cnt;
+        for (vector<Alias::SrcAlias *>::iterator it = alias.begin(); it != alias.end(); it++) {
+            new (xtc->alloc(sizeof(Alias::SrcAlias))) Alias::SrcAlias(**it);
+        }
+        if (!fwrite(xtc1, xtc1->extent, 1, fp)) {
+            printf("Cannot write to file!\n");
+            exit(1);
+        }
+        fflush(fp);
     }
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
 
@@ -346,6 +373,14 @@ int register_xtc(int sync, string name)
     else
         asyncsrc++;
     return numsrc++;
+}
+
+/*
+ * Create an alias.
+ */
+void register_alias(std::string name, DetInfo &sourceInfo)
+{
+    alias.push_back(new Alias::SrcAlias(sourceInfo, name.c_str()));
 }
 
 /*
