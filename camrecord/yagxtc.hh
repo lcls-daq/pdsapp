@@ -1,4 +1,5 @@
 #include"pdsdata/xtc/Xtc.hh"
+#include"pdsdata/xtc/DetInfo.hh"
 #include<string>
 #include<iostream>
 
