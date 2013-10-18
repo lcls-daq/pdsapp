@@ -356,13 +356,10 @@ public:
 	reinterpret_cast<uint32_t*>(q)[1] = i<<24;
 	//  Set the payload
 	uint16_t* p = reinterpret_cast<uint16_t*>(q+1);
-	uint16_t* e = p;
-	for(unsigned j=0; j<8; j++) {
-	  e += sizeof_Section/sizeof(uint16_t);
-	  unsigned o = 0x150 + ((rand()>>8)&0x7f);
-	  while(p < e)
-	    *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
-	}
+	for(unsigned j=0; j<8; j++)
+	  for(unsigned k=0; k<Pds::CsPad::ColumnsPerASIC; k++)
+	    for(unsigned m=0; m<Pds::CsPad::MaxRowsPerASIC*2; m++)
+	      *p++ = 0x150 + i*0x40 + k*b/5 + m;
       }
     }
   }
