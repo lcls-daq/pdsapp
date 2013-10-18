@@ -35,7 +35,10 @@ namespace Pds {
   //
   class MySegWire : public SegWireSettings {
   public:
-    MySegWire(const Src& src, const char *aliasName)
+    MySegWire(const Src& src, 
+              const char *aliasName,
+              Server&    srv) :
+      _srv(srv)
     {
       _sources.push_back(src);
       if (aliasName) {
@@ -46,13 +49,17 @@ namespace Pds {
     virtual ~MySegWire() {}
     void connect (InletWire& wire,
       StreamParams::StreamType s,
-      int interface) {}
+      int interface) 
+    {
+      wire.add_input(&_srv);
+    }
     const std::list<Src>& sources() const { return _sources; }
     const std::list<SrcAlias>* pAliases() const
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
   private:
+    Server& _srv;
     std::list<Src> _sources;
     std::list<SrcAlias> _aliases;
   };
@@ -65,16 +72,12 @@ namespace Pds {
   public:
     Seg(Task*                 task,
         unsigned              platform,
-        CfgClientNfs&         cfgService,
         SegWireSettings&      settings,
-        Arp*                  arp,
-        char*                 evrdev,
-        bool                  bTurnOffBeamCodes ) :
+        EvrManager&           evrmgr,
+        Arp*                  arp) :
       _task             (task),
       _platform         (platform),
-      _cfg              (cfgService),
-      _evrdev           (evrdev),
-      _bTurnOffBeamCodes (bTurnOffBeamCodes)
+      _evrmgr           (evrmgr)
     {
     }
 
@@ -92,13 +95,7 @@ namespace Pds {
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       (new TimeStampApp())->connect(frmk->inlet());
-      EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(_evrdev);
-      {
-	uint32_t* p = reinterpret_cast<uint32_t*>(&erInfo.board());
-	printf("Found EVR FPGA Version %x\n",p[11]);
-      }
-      EvrManager& evrmgr = *new EvrManager(erInfo, _cfg, _bTurnOffBeamCodes);
-      evrmgr.appliance().connect(frmk->inlet());
+      _evrmgr.appliance().connect(frmk->inlet());
     }
     void failed(Reason reason)
     {
@@ -128,9 +125,7 @@ namespace Pds {
   private:
     Task*           _task;
     unsigned        _platform;
-    CfgClientNfs&   _cfg;
-    const char*     _evrdev;
-    bool            _bTurnOffBeamCodes;
+    EvrManager&     _evrmgr;
   };
 }
 
@@ -239,9 +234,18 @@ int main(int argc, char** argv) {
 
   CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings(detInfo, uniqueid);
-  Seg* seg = new Seg(task, platform, *cfgService,
-         settings, arp, evrdev, bTurnOffBeamCodes);
+
+  EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
+  {
+    uint32_t* p = reinterpret_cast<uint32_t*>(&erInfo.board());
+    printf("Found EVR FPGA Version %x\n",p[11]);
+  }
+  EvrManager& evrmgr = *new EvrManager(erInfo,
+                                       *cfgService,
+                                       bTurnOffBeamCodes);
+
+  MySegWire settings(detInfo, uniqueid, evrmgr.server());
+  Seg* seg = new Seg(task, platform, settings, evrmgr, arp);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 
