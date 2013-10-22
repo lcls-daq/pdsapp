@@ -26,6 +26,8 @@ static void* _attach(void* arg)
   return arg;
 }
 
+static const char* pref_name = "Configuration";
+
 ConfigSelect::ConfigSelect(QWidget*          parent,
 			   PartitionControl& control,
 			   const char*       db_path) :
@@ -267,7 +269,7 @@ void ConfigSelect::enable_scan(bool l)
 
 void ConfigSelect::_writeSettings()
 {
-  Preferences pref(qPrintable(title()),
+  Preferences pref(pref_name,
                    _pcontrol.header().platform(),
                    "w");
   if (pref.file()) {
@@ -286,7 +288,7 @@ void ConfigSelect::_readSettings()
   if (buff == (char *)NULL) {
     printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, SETTINGS_SIZE, errno);
   } else {
-    Preferences pref(qPrintable(title()),
+    Preferences pref(pref_name,
                      _pcontrol.header().platform(),
                      "r");
     if (pref.file()) {
