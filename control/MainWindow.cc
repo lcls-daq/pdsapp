@@ -301,7 +301,7 @@ MainWindow::MainWindow(unsigned          platform,
   layout->addWidget(state     = new StateSelect    (this, *_control));
   layout->addWidget(pvs       = new PVDisplay      (this, *_control));
   layout->addWidget(run       = new RunStatus      (this, *_control, *_partition));
-  layout->addWidget(_log      = new ControlLog);
+  layout->addWidget(_log      = new ControlLog, 1);
 
   _pvmanager = new PVManager(*pvs);
 
