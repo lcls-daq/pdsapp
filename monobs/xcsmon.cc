@@ -13,7 +13,7 @@ using namespace PdsCas;
 
 void usage(const char* p)
 {
-  printf("Usage: %s -f <config file> %s\n",
+  printf("Usage: %s -v -f <config file> %s\n",
 	 p, ShmClient::options());
 }
 
@@ -25,9 +25,12 @@ int main(int argc, char* argv[])
 
   int c;
   char opts[128];
-  sprintf(opts,"?hf:%s",client.opts());
+  sprintf(opts,"?hvf:%s",client.opts());
   while ((c = getopt(argc, argv, opts)) != -1) {
     switch (c) {
+    case 'v':
+      CspadMon::verbose();
+      break;
     case '?':
     case 'h':
       usage(argv[0]);
@@ -68,7 +71,7 @@ int main(int argc, char* argv[])
       if (!CmdLineTools::parseDetInfo(args,info))
         return -1;
 
-      char* pvbase = strtok(NULL,"\t ");
+      char* pvbase = strtok(NULL,"\t\n ");
       if (!pvbase) {
         printf("No PV field for %s\n",args);
         return -1;

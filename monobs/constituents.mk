@@ -35,7 +35,7 @@ tgtincs_offlineobs += epics/include epics/include/os/Linux
 tgtincs_offlineobs += pdsdata/include
 
 tgtsrcs_common := Handler.cc ShmClient.cc
-tgtlibs_common := pds/epicstools epics/ca epics/Com pdsdata/appdata
+tgtlibs_common := pds/epicstools epics/ca epics/Com pdsdata/appdata pdsdata/compressdata
 #tgtsrcs_common := Handler.cc ShmClient.cc EpicsCA.cc
 #tgtlibs_common := pds/epicstools epics/ca epics/Com
 

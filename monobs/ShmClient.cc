@@ -6,6 +6,7 @@
 
 #include "pdsdata/xtc/Dgram.hh"
 #include "pdsdata/app/XtcMonitorClient.hh"
+#include "pdsdata/compress/CompressedXtc.hh"
 
 #include "cadef.h"
 
@@ -13,6 +14,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <boost/shared_ptr.hpp>
+
+static void Destroy(Xtc*) {}
 
 namespace PdsCas {
   class ShmClient::MyTimer : public Timer {
@@ -158,6 +163,8 @@ int ShmClient::process(Pds::Xtc* xtc)
     iterate(xtc);
   }
   else {
+    boost::shared_ptr<Xtc> pxtc = boost::shared_ptr<Xtc>((Xtc*)0,Destroy);
+
     for(HList::iterator it = _handlers.begin(); it != _handlers.end(); it++) {
       Handler* h = *it;
 
@@ -167,8 +174,13 @@ int ShmClient::process(Pds::Xtc* xtc)
         if (_seq->isEvent() && xtc->contains.id()==h->data_type()) {
           if (xtc->damage.value())
             h->_damaged();
-          else
-            h->_event(xtc->payload(),_seq->clock());
+          else {
+            if (pxtc.get()==0) 
+              pxtc = xtc->contains.compressed() ? 
+                Pds::CompressedXtc::uncompress(*xtc) :
+                boost::shared_ptr<Xtc>(xtc,Destroy);
+            h->_event(pxtc->payload(),_seq->clock());
+          }
         }
         else if (_seq->service()==Pds::TransitionId::Configure &&
                  xtc->contains.id()==h->config_type()) {

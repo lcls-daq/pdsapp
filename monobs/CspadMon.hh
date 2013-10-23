@@ -14,6 +14,7 @@ namespace PdsCas {
                         const char*    pvbase,
                         unsigned       detid,
                         unsigned       devid);
+    static void verbose();
   };
 }
 

@@ -23,6 +23,7 @@ static const unsigned MaxSections=32;
 static const unsigned BYKIK=162;
 static const unsigned ALKIK=163;
 static const Pds::DetInfo evrInfo(0,Pds::DetInfo::NoDetector, 0, Pds::DetInfo::Evr, 0);
+static bool _verbose = false;
 
 typedef float    CspadSection  [Pds::CsPad::ColumnsPerASIC][2*Pds::CsPad::MaxRowsPerASIC];
 typedef unsigned CspadStatusMap[Pds::CsPad::ColumnsPerASIC][2*Pds::CsPad::MaxRowsPerASIC];
@@ -296,6 +297,11 @@ namespace PdsCas {
         for(unsigned j=0; j<a.shape()[0]; j++) {
           int i = 4*elem.quad()+j;
           *reinterpret_cast<double*>(_valu_writer[i]->data()) = _cspad_temp.getTemp(a[j]);
+          if (_verbose)
+            printf("sb_temp  quad %d  therm %d  %f [%d]\n",
+                   elem.quad(), j,
+                   *reinterpret_cast<double*>(_valu_writer[i]->data()),
+                   a[j]);
         }
       }
     }
@@ -412,3 +418,5 @@ void PdsCas::CspadMon::monitor(ShmClient&     client,
     client.insert(new CspadMiniTHandler(pvbase,info));
   }
 }
+
+void PdsCas::CspadMon::verbose() { _verbose=true; }

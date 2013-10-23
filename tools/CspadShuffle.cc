@@ -120,7 +120,7 @@ private:
 
 	    // Copy the xtc header
             uint32_t* pwrite = _pwrite;
-	    xtc->contains = TypeId(TypeId::Id_CspadElement,CsPad::DataV1::Version);
+	    xtc->contains = TypeId(TypeId::Id_CspadElement,CsPad::DataV2::Version);
 	    _write(xtc, sizeof(Xtc));
 
             for(int i=0; i<data.quads_shape(cfg)[0]; i++) {
@@ -142,12 +142,17 @@ private:
             reinterpret_cast<Xtc*>(pwrite)->extent = (_pwrite-pwrite)*sizeof(uint32_t);
 	    return;
 	  }
+        printf("Found Cspad::ElementV1 from unexpected src %08x.%08x\n",info.log(),info.phy());
+        break;
       }
       case (TypeId::Id_CspadConfig) : {
 	if (xtc->contains.version()==_CsPadConfigType.version()) {
+          printf("Caching Cspad::Configv%d\n",xtc->contains.version());
 	  _config.push_back(*reinterpret_cast<const CsPadConfigType*>(xtc->payload()));
 	  _info  .push_back(info);
 	}
+        else
+          printf("Failed to cache Cspad::Configv%d\n",xtc->contains.version());
 	break;
       }
       default :
