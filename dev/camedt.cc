@@ -334,6 +334,8 @@ int main(int argc, char** argv) {
   Node node(Level::Source,platform);
   info = DetInfo(node.pid(), info.detector(), info.detId(), info.device(), info.devId());
 
+  printf("Compression is %s.\n", lCompress ? "enabled" : "disabled");
+
   SegTest* segtest = new SegTest(task, 
                                  platform, 
                                  info,
