@@ -2,6 +2,7 @@
 
 #include "pdsapp/control/NodeSelect.hh"
 #include "pds/management/PartitionControl.hh"
+#include "pds/ioc/IocControl.hh"
 #include "pds/collection/PingReply.hh"
 #include "pds/collection/AliasReply.hh"
 #include "pds/utility/StreamPorts.hh"
@@ -11,22 +12,28 @@ using namespace Pds;
 static bool _useTransient = false;
 
 SelectDialog::SelectDialog(QWidget* parent,
-         PartitionControl& control, bool bReadGroupEnable) :
+			   PartitionControl& control, 
+			   IocControl& icontrol, 
+			   bool bReadGroupEnable) :
   QDialog  (parent),
   _pcontrol(control),
+  _icontrol(icontrol),
   _bReadGroupEnable(bReadGroupEnable)
 {
   setWindowTitle("Partition Selection");
 
+  unsigned platform = _pcontrol.header().platform();
   QGridLayout* layout = new QGridLayout(this);
-  layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, _pcontrol.header().platform(), 
+  layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, platform, 
                                             (_bReadGroupEnable? 1:2), _useTransient ), 
                     0, 0);
-  layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this, _pcontrol.header().platform()), 
+  layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this, platform), 
                     1, 0);
-  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this, _pcontrol.header().platform(),
+  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this, platform,
 					    0, _useTransient ),
                     2, 0);
+  layout->addWidget(_iocbox = new NodeGroup("Camera IOCs",this, platform),
+		    3, 0);
 
   _acceptb = new QPushButton("Ok",this);
   QPushButton* rejectb = new QPushButton("Cancel",this);
@@ -43,14 +50,20 @@ SelectDialog::SelectDialog(QWidget* parent,
   connect(_evtbox , SIGNAL(list_changed()), this, SLOT(check_ready()));
 
   _pcontrol.platform_rollcall(this);
+  _icontrol.host_rollcall(this);
 }
 
 SelectDialog::~SelectDialog() 
 {
   _pcontrol.platform_rollcall(0);
+  _icontrol.host_rollcall(0);
 }
 
-void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
+void        SelectDialog::available(const Node& hdr, const PingReply& msg) 
+{
+  std::vector<Src> sources(msg.nsources());
+  for(unsigned i=0; i<msg.nsources(); i++)
+    sources[i] = msg.source(i);
   switch(hdr.level()) {
   case Level::Control : _control = hdr; break;
   case Level::Segment : 
@@ -78,16 +91,21 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg) {
         char namebuf[SrcAlias::AliasNameMax+1];
         strncpy(namebuf, aliasName, SrcAlias::AliasNameMax);
         namebuf[SrcAlias::AliasNameMax] = '\0';
-        _segbox->addNode(NodeSelect(hdr, msg, QString(namebuf)));
+        _segbox->addNode(NodeSelect(hdr, msg.ready(), sources, QString(namebuf)));
       } else {
-        _segbox->addNode(NodeSelect(hdr, msg));
+        _segbox->addNode(NodeSelect(hdr, msg.ready(), sources));
       }
       break; 
     }
-  case Level::Event   : _evtbox->addNode(NodeSelect(hdr, msg)); break;
+  case Level::Event   : _evtbox->addNode(NodeSelect(hdr, msg.ready(), sources)); break;
   default: break;
   }
 
+  emit changed();
+}
+
+void        SelectDialog::connected(const IocNode& ioc) {
+  _iocbox->addNode(NodeSelect(ioc));
   emit changed();
 }
 
@@ -110,32 +128,81 @@ void SelectDialog::update_layout()
   unsigned ns = _segbox->nodes();
   unsigned ne = _evtbox->nodes();
   unsigned nr = _rptbox->nodes();
+  unsigned ni = _iocbox->nodes();
   QGridLayout* layout = static_cast<QGridLayout*>(this->layout());
   if (ns+ne>MaxRows) {
     _clearLayout();
     if (ne+nr > MaxRows) {
-      layout->addWidget(_segbox,0,0);
-      layout->addWidget(_evtbox,0,1);
-      layout->addWidget(_rptbox,0,2);
+      if (nr+ni > MaxRows) {
+	layout->addWidget(_segbox,0,0);
+	layout->addWidget(_evtbox,0,1);
+	layout->addWidget(_rptbox,0,2);
+	layout->addWidget(_iocbox,0,3);
+      }
+      else {
+	layout->addWidget(_segbox,0,0,2,1);
+	layout->addWidget(_evtbox,0,1,2,1);
+	layout->addWidget(_rptbox,0,2);
+	layout->addWidget(_iocbox,1,2);
+      }
     }
     else {
-      layout->addWidget(_segbox,0,0,2,1);
-      layout->addWidget(_evtbox,0,1);
-      layout->addWidget(_rptbox,1,1);
+      if (ne+nr+ni > MaxRows) {
+	if (ne > ni) {
+	  layout->addWidget(_segbox,0,0,2,1);
+	  layout->addWidget(_evtbox,0,1,2,1);
+	  layout->addWidget(_rptbox,0,2);
+	  layout->addWidget(_iocbox,1,2);
+	}
+	else {
+	  layout->addWidget(_segbox,0,0,2,1);
+	  layout->addWidget(_evtbox,0,1);
+	  layout->addWidget(_rptbox,1,1);
+	  layout->addWidget(_iocbox,0,2,2,1);
+	}
+      }
+      else {
+	layout->addWidget(_segbox,0,0,3,1);
+	layout->addWidget(_evtbox,0,1);
+	layout->addWidget(_rptbox,1,1);
+	layout->addWidget(_iocbox,2,1);
+      }
     }
   }
   else if (ns+ne+nr > MaxRows) {
     _clearLayout();
-    if (ns+ne < ne+nr) {
+    if (nr+ni > MaxRows) {
       layout->addWidget(_segbox,0,0);
       layout->addWidget(_evtbox,1,0);
       layout->addWidget(_rptbox,0,1,2,1);
+      layout->addWidget(_iocbox,0,2,2,1);
     }
     else {
-      layout->addWidget(_segbox,0,0,2,1);
+      layout->addWidget(_segbox,0,0);
+      layout->addWidget(_evtbox,1,0);
+      layout->addWidget(_rptbox,0,1);
+      layout->addWidget(_iocbox,1,1);
+    }
+  }
+  else if (ns+ne+nr+ni > MaxRows) {
+    if (ns > ni) {
+      layout->addWidget(_segbox,0,0,3,1);
       layout->addWidget(_evtbox,0,1);
       layout->addWidget(_rptbox,1,1);
+      layout->addWidget(_iocbox,2,1);
     }
+    else {
+      layout->addWidget(_segbox,0,0);
+      layout->addWidget(_evtbox,1,0);
+      layout->addWidget(_rptbox,2,0);
+      layout->addWidget(_iocbox,0,1,3,1);
+    }
+  }
+  else {
+      layout->addWidget(_segbox,0,0);
+      layout->addWidget(_evtbox,1,0);
+      layout->addWidget(_rptbox,2,0);
+      layout->addWidget(_iocbox,3,0);
   }
   updateGeometry();
 }
@@ -152,6 +219,8 @@ const QList<BldInfo >& SelectDialog::reporters() const { return _rptinfo; }
 
 const QList<BldInfo >& SelectDialog::transients() const { return _trninfo; }
 
+const QList<DetInfo >& SelectDialog::iocs      () const { return _iocinfo; }
+
 QWidget* SelectDialog::display() {
   QWidget* d = new QWidget((QWidget*)0);
   d->setAttribute(Qt::WA_DeleteOnClose,false);
@@ -160,6 +229,7 @@ QWidget* SelectDialog::display() {
   layout->addWidget(_segbox->freeze()); 
   layout->addWidget(_evtbox->freeze()); 
   layout->addWidget(_rptbox->freeze()); 
+  layout->addWidget(_iocbox->freeze()); 
   d->setLayout(layout);
   return d;
 }
@@ -170,6 +240,7 @@ void SelectDialog::select() {
   _selected << _segbox->selected();
   _selected << _evtbox->selected();
   _rptbox->selected();
+  _iocbox->selected();
 
   _detinfo << _segbox->detectors();
   _deviceNames = _segbox->deviceNames();
@@ -179,6 +250,7 @@ void SelectDialog::select() {
 
   _rptinfo = _rptbox->reporters();
   _trninfo = _rptbox->transients();
+  _iocinfo = _iocbox->detectors();
 
   accept();
 }
@@ -194,6 +266,7 @@ void SelectDialog::_clearLayout()
   layout()->removeWidget(_segbox);
   layout()->removeWidget(_evtbox);
   layout()->removeWidget(_rptbox);
+  layout()->removeWidget(_iocbox);
 }
 
 void SelectDialog::useTransient(bool v) { _useTransient=v; }

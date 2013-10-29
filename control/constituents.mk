@@ -25,6 +25,7 @@ tgtsrcs_control_gui += PVControl.cc
 tgtsrcs_control_gui += EventSequencer.cc
 tgtlibs_control_gui := $(datalibs)
 tgtlibs_control_gui += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/client pds/offlineclient pds/config pds/management pds/epicstools
+tgtlibs_control_gui += pds/ioc
 tgtlibs_control_gui += pds/epicstools
 tgtlibs_control_gui += pds/configdata
 tgtlibs_control_gui += pdsapp/configdb

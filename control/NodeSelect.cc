@@ -5,6 +5,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pds/collection/PingReply.hh"
 #include "pds/config/EvrConfigType.hh"
+#include "pds/ioc/IocNode.hh"
 
 #include <QtCore/QString>
 #include <QtGui/QButtonGroup>
@@ -531,20 +532,23 @@ NodeSelect::NodeSelect(const Node& node) :
   _label += QString(" : %1").arg(node.pid());
 }
 
-NodeSelect::NodeSelect(const Node& node, const PingReply& msg, QString alias) :
+NodeSelect::NodeSelect(const Node& node, 
+		       bool ready,
+		       const std::vector<Src> sources,
+		       QString alias) :
   _node    (node),
-  _ready   (msg.ready()),
+  _ready   (ready),
   _alias   (alias)
 {
-  if (msg.nsources()) {
+  if (sources.size()) {
     bool found=false;
-    for(unsigned i=0; i<msg.nsources(); i++) {
-      if (msg.source(i).level()==Level::Source) {
-        const DetInfo& src = static_cast<const DetInfo&>(msg.source(i));
+    for(unsigned i=0; i<sources.size(); i++) {
+      if (sources[i].level()==Level::Source) {
+        const DetInfo& src = static_cast<const DetInfo&>(sources[i]);
         _deviceNames.insert(DetInfo::name(src));
         if (!found) {
           found=true;
-          _src    = msg.source(i);
+          _src    = sources[i];
           _label  = QString("%1/%2").arg(DetInfo::name(src.detector())).arg(src.detId());
         }
         else
@@ -582,6 +586,15 @@ NodeSelect::NodeSelect(const Node& node, const BldInfo& info) :
   _label (BldInfo::name(info)),
   _ready (true),
   _alias (QString(""))
+{
+}
+
+NodeSelect::NodeSelect(const IocNode& node) :
+  _node  (node.node()),
+  _src   (node.src()),
+  _label (node.alias()),
+  _ready (true),
+  _alias (QString(node.alias()))
 {
 }
 

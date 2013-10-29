@@ -7,6 +7,7 @@
 #include "pdsapp/control/SelectDialog.hh"
 #include "pds/management/PlatformCallback.hh"
 #include "pds/management/PartitionControl.hh"
+#include "pds/ioc/IocControl.hh"
 #include "pds/collection/Node.hh"
 #include "pds/config/CfgPath.hh"
 #include "pds/config/EvrConfigType.hh"
@@ -24,11 +25,13 @@ using namespace Pds;
 
 PartitionSelect::PartitionSelect(QWidget*          parent,
                                  PartitionControl& control,
+				 IocControl&       icontrol,
                                  const char*       pt_name,
                                  const char*       db_path,
                                  unsigned          options) :
   QGroupBox ("Partition",parent),
   _pcontrol (control),
+  _icontrol (icontrol),
   _pt_name  (pt_name),
   _display  (0),
   _options  (options)
@@ -76,7 +79,7 @@ void PartitionSelect::select_dialog()
 
   bool bReadGroupEnable = _checkReadGroupEnable();
   
-  SelectDialog* dialog = new SelectDialog(this, _pcontrol, bReadGroupEnable);
+  SelectDialog* dialog = new SelectDialog(this, _pcontrol, _icontrol, bReadGroupEnable);
   bool ok = dialog->exec();
   if (ok) {
     QList<Node> nodes = dialog->selected();
@@ -90,6 +93,11 @@ void PartitionSelect::select_dialog()
     _segments  = dialog->segments ();
     _reporters = dialog->reporters();
 
+    QList<DetInfo> iocs = dialog->iocs();
+    std::list<DetInfo> inodes;
+    for(int i=0; i<iocs.size(); i++)
+      inodes.push_back(iocs[i]);
+
     uint64_t bld_mask = 0 ;
     foreach(BldInfo n, _reporters) {
       bld_mask |= 1ULL<<n.type();
@@ -102,6 +110,7 @@ void PartitionSelect::select_dialog()
     }
 
     if (_validate(bld_mask)) {
+      _icontrol.set_partition(inodes);
       _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes, bld_mask, bld_mask_mon,_options);
       _pcontrol.set_target_state(PartitionControl::Configured);
     }

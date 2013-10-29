@@ -14,6 +14,7 @@
 #include "pdsapp/control/FileRunAllocator.hh"
 
 #include "pds/offlineclient/OfflineClient.hh"
+#include "pds/ioc/IocControl.hh"
 #include "pds/management/QualifiedControl.hh"
 #include "pds/management/ControlCallback.hh"
 #include "pds/utility/SetOfStreams.hh"
@@ -231,6 +232,7 @@ MainWindow::MainWindow(unsigned          platform,
   QWidget(0),
   _controlcb(new CCallback(*this)),
   _control  (new QualifiedControl(platform, *_controlcb, slowReadout, new ControlTimeout(*this))),
+  _icontrol (new IocControl),
   _config   (new CfgClientNfs(Node(Level::Control,platform).procInfo())),
   _override_errors(false)
 {
@@ -297,7 +299,7 @@ MainWindow::MainWindow(unsigned          platform,
 
   QVBoxLayout* layout = new QVBoxLayout(this);
   layout->addWidget(config    = new ConfigSelect   (this, *_control, db_path));
-  layout->addWidget(_partition= new PartitionSelect(this, *_control, partition, db_path, partition_options));
+  layout->addWidget(_partition= new PartitionSelect(this, *_control, *_icontrol, partition, db_path, partition_options));
   layout->addWidget(state     = new StateSelect    (this, *_control));
   layout->addWidget(pvs       = new PVDisplay      (this, *_control));
   layout->addWidget(run       = new RunStatus      (this, *_control, *_partition));
@@ -311,6 +313,7 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(new ShutdownTest(*_control));
   _controlcb->add_appliance(new ControlDamage(*this));
   _controlcb->add_appliance(new FileReport(*_log));
+  _controlcb->add_appliance(_icontrol);
   if (_offlineclient) {
     _controlcb->add_appliance(new OfflineReport(*_partition, *_runallocator));
   }

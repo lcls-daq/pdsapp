@@ -15,12 +15,14 @@ class QPushButton;
 namespace Pds {
 
   class PartitionControl;
+  class IocControl;
 
   class PartitionSelect : public QGroupBox {
     Q_OBJECT
   public:
     PartitionSelect(QWidget*          parent,
                     PartitionControl& control,
+                    IocControl&       icontrol,
                     const char*       pt_name,
                     const char*       db_name,
                     unsigned          options);
@@ -39,6 +41,7 @@ namespace Pds {
     bool _checkReadGroupEnable();
   private:
     PartitionControl&  _pcontrol;
+    IocControl&        _icontrol;
     const char*        _pt_name;
     char               _db_path[128];
     char               _db_path_org[128];

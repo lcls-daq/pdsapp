@@ -12,6 +12,7 @@ namespace Pds {
   class CCallback;
   class ControlLog;
   class CfgClientNfs;
+  class IocControl;
   class QualifiedControl;
   class PVManager;
   class InDatagram;
@@ -60,6 +61,7 @@ namespace Pds {
     friend class ControlTimeout;
     CCallback*        _controlcb;
     QualifiedControl* _control;
+    IocControl*       _icontrol;
     CfgClientNfs*     _config;
     PVManager*        _pvmanager;
     ControlLog*       _log;

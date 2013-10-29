@@ -16,15 +16,19 @@ class QButtonGroup;
 class QPalette;
 
 namespace Pds {
-  class PingReply;
   class AliasReply;
+  class IocNode;
 
   class NodeSelect {
   public:
     NodeSelect(const Node& node);
-    NodeSelect(const Node& node, const PingReply& msg, QString alias="");
+    NodeSelect(const Node& node, 
+	       bool ready,
+	       const std::vector<Src> sources,
+	       QString alias="");
     NodeSelect(const Node& node, const char* desc);
     NodeSelect(const Node& node, const BldInfo& info);
+    NodeSelect(const IocNode& node);
     NodeSelect(const NodeSelect&);
     ~NodeSelect();
   public:
@@ -55,8 +59,11 @@ namespace Pds {
   class NodeGroup : public QWidget {
     Q_OBJECT
   public:
-    NodeGroup(const QString& label, QWidget* parent, unsigned platform, 
-	      int iUseReadoutGroup = 0, bool useTransient=false);
+    NodeGroup(const QString& label, 
+	      QWidget*       parent, 
+	      unsigned       platform, 
+	      int            iUseReadoutGroup = 0, 
+	      bool           useTransient=false);
     ~NodeGroup();
   public slots:
     void add_node    (int);
@@ -74,6 +81,7 @@ namespace Pds {
     std::set<std::string>  deviceNames();
     QList<BldInfo> reporters();
     QList<BldInfo> transients();
+    QList<DetInfo> iocs      ();
     NodeGroup*     freeze  ();
     bool           ready   () const;
   private:
