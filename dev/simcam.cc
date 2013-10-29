@@ -343,15 +343,15 @@ public:
 		      0, 0, 0xffffffff, 0xf, 0xffffffff,
                       quads);
     
-    const size_t sz = sizeof(CsPadElementType)+8*sizeof_Section+sizeof(uint32_t);
+    const size_t sz = sizeof(CsPad::ElementV1)+8*sizeof_Section+sizeof(uint32_t);
     unsigned evtsz = 4*sz + sizeof(Xtc);
     unsigned evtst = (evtsz+3)&~3;
     _evtpayload = new char[NBuffers*evtst];
 
     for(unsigned b=0; b<NBuffers; b++) {
-      _evttc[b] = new(_evtpayload+b*evtst) Xtc(_CsPadDataType,src);
+      _evttc[b] = new(_evtpayload+b*evtst) Xtc(TypeId(TypeId::Id_CspadElement,1),src);
       for(unsigned i=0; i<4; i++) {
-	CsPadElementType* q = new (_evttc[b]->alloc(sz)) CsPadElementType;
+	CsPad::ElementV1* q = new (_evttc[b]->alloc(sz)) CsPad::ElementV1;
 	//  Set the quad number
 	reinterpret_cast<uint32_t*>(q)[1] = i<<24;
 	//  Set the payload
