@@ -26,6 +26,7 @@
 #include "pds/config/AndorConfigType.hh"
 #include "pds/config/UsdUsbConfigType.hh"
 #include "pds/config/OrcaConfigType.hh"
+#include "pds/config/RayonixConfigType.hh"
 //#include "pds/config/ProjectionConfigType.hh"
 //#include "pds/config/SeqConfigType.hh"
 
@@ -97,6 +98,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case Andor        : type = &_andorConfigType; break;
   case UsdUsb       : type = &_usdusbConfigType; break;
   case Orca         : type = &_orcaConfigType; break;
+  case Rayonix      : type = &_rayonixConfigType;   break;
     //  case Projection   : type = &_projectionConfigType; break;
   default: 
     printf("PdsDefs::typeId id %d not found\n",unsigned(id));
@@ -140,7 +142,8 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_fliConfigType);    
   test(_andorConfigType);    
   test(_usdusbConfigType);    
-  test(_orcaConfigType);    
+  test(_orcaConfigType);   
+  test(_rayonixConfigType); 
   //  test(_projectionConfigType);    
 #undef test
   //  database-only types
@@ -184,7 +187,8 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_oceanOpticsConfigType);    
   test(_fliConfigType);    
   test(_andorConfigType);    
-  test(_usdusbConfigType);    
+  test(_usdusbConfigType); 
+  test(_rayonixConfigType);   
   //  test(_projectionConfigType);    
 #undef test
   //  database-only types
