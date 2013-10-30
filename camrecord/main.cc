@@ -71,6 +71,7 @@ static int running = 0;
 int record_cnt = 0;
 static int nrec = 0;
 int verbose = 1;
+int quiet = 0;
 static char *outfile = NULL;
 string hostname = "";
 string prefix = "";
@@ -123,8 +124,10 @@ void remove_socket(int s)
 
 void begin_run(void)
 {
-    fprintf(stderr, "%sinitialized, recording...\n", prefix.c_str());
-    fflush(stderr);
+    if (!quiet) {
+        fprintf(stderr, "%sinitialized, recording...\n", prefix.c_str());
+        fflush(stderr);
+    }
     running = 1;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
@@ -213,6 +216,8 @@ static void read_config_file(const char *name)
             arrayTokens[0] == "defhost" || arrayTokens[0] == "defport") {
             /* Ignore blank lines, comments, and client commands! */
             continue;
+        } else if (arrayTokens[0] == "quiet") {
+            quiet = 1;
         } else if (arrayTokens[0] == "starttime") {
             if (arrayTokens.size() >= 3) {
                 start_sec = atoi(arrayTokens[1].c_str());
@@ -358,7 +363,7 @@ static void initialize(char *config)
     initialize_xtc(outfile);
 }
 
-static void stats(int verbose)
+static void stats(int v)
 {
     double runtime;
     struct timeval now;
@@ -376,7 +381,7 @@ static void stats(int verbose)
         fprintf(stderr, "%sstill waiting to initialize.\n", prefix.c_str());
         fflush(stderr);
     }
-    if (verbose)
+    if (v)
         xtc_stats();
 }
 

@@ -2,7 +2,7 @@
 #define FIDUCIAL_MATCH       1
 #define APPROXIMATE_MATCH    2
 #define MATCH_TYPE           FIDUCIAL_MATCH
-// #define TRACE
+//#define TRACE
 #include<stdio.h>
 #include<signal.h>
 #include<string.h>
@@ -442,8 +442,14 @@ void send_event(struct event *ev)
 {
     sigset_t oldsig;
 
-    if (paused)
+    if (paused) {
+#ifdef TRACE
+        printf("%08x:%08x D event %d\n", ev->sec, ev->nsec, ev->id);
+#endif
+        dsec = ev->sec;
+        dnsec = ev->nsec;
         return;
+    }
 
 #ifdef TRACE
     printf("%08x:%08x T event %d\n", ev->sec, ev->nsec, ev->id);
@@ -749,7 +755,14 @@ void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int f
         break;
     case TransitionId::Enable:
         write_datagram(TransitionId::Enable, 0);
-        begin_run();
+        if (!started)
+            begin_run();
+        if (havedata == numsrc) {
+            // Re-initialize the header!
+            setup_datagram(TransitionId::L1Accept);
+            seg->extent    += totaldlen;
+            dg->xtc.extent += totaldlen;
+        }
         started = 1;
         paused = 0;
         break;
