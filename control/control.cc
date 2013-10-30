@@ -16,17 +16,18 @@ using Pds_ConfigDb::Experiment;
 static void usage(char *argv0)
 {
   printf("usage: %s -p <platform> -P <partition_description> -D <db name> [options]\n"
-   "Options: -L <offlinerc>        : offline db access\n"
-   "         -E <experiment_name>  : offline db experiment\n"
-   "         -R <run_number_file>  : no offline db\n"
-   "         -N <seconds>          : log long NFS accesses\n"
-   "         -O                    : override errors\n"
-   "         -T                    : collect transient data\n"
-   "         -w <0/1>              : slow readout\n"
-   "         -o <options>          : partition options\n"
+   "Options: -L <offlinerc>            : offline db access\n"
+   "         -E <experiment_name>      : offline db experiment\n"
+   "         -R <run_number_file>      : no offline db\n"
+   "         -N <seconds>              : log long NFS accesses\n"
+   "         -C <controls_config_file> : configuration of controls recorder\n"
+   "         -O                        : override errors\n"
+   "         -T                        : collect transient data\n"
+   "         -w <0/1>                  : slow readout\n"
+   "         -o <options>              : partition options\n"
    "            1=CXI slow runningkludge\n"
    "            2=XPP short timeout on Disable\n"
-   "         -h                    : print usage information\n"
+   "         -h                        : print usage information\n"
    "         -v\n",
    argv0);
 }
@@ -40,6 +41,7 @@ int main(int argc, char** argv)
   const char* offlinerc = (char *)NULL;
   const char* runNumberFile = (char *)NULL;
   const char* experiment = (char *)NULL;
+  const char* controlrc = (char *)NULL;
   double nfs_log_threshold = -1;
   unsigned    sequencer_id = 0;
   int         slowReadout = 0;
@@ -49,7 +51,7 @@ int main(int argc, char** argv)
   unsigned partition_options = 0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:OTS:w:o:hv")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:C:OTS:w:o:hv")) != -1) {
     char* endPtr;
     switch (c) {
     case 'p':
@@ -76,6 +78,9 @@ int main(int argc, char** argv)
       break;
     case 'N':
       nfs_log_threshold = strtod(optarg, NULL);
+      break;
+    case 'C':
+      controlrc = optarg;
       break;
     case 'O':
       override = true;
@@ -123,7 +128,8 @@ int main(int argc, char** argv)
                                       sequencer_id,
                                       slowReadout,
                                       partition_options,
-                                      (verbose > 0));
+                                      (verbose > 0),
+                                      controlrc);
   window->override_errors(override);
   window->show();
   app.exec();

@@ -228,7 +228,8 @@ MainWindow::MainWindow(unsigned          platform,
                        unsigned          sequencer_id,
                        int               slowReadout,
                        unsigned          partition_options,
-                       bool              verbose) :
+                       bool              verbose,
+                       const char*       controlrc) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
   _control  (new QualifiedControl(platform, *_controlcb, slowReadout, new ControlTimeout(*this))),
@@ -273,6 +274,8 @@ MainWindow::MainWindow(unsigned          platform,
         printf("%s: instrument '%s:%u' experiment '%s' (#%u)\n", __FUNCTION__,
                instname, station, expname, experiment_number);
         _runallocator = new MySqlRunAllocator(_offlineclient);
+        delete _icontrol;
+        _icontrol = new IocControl(expname,instname,station,experiment_number,controlrc);
       } else {
         // error: run number fixed at 0
         _runallocator = new RunAllocator;

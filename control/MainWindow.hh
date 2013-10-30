@@ -32,7 +32,8 @@ namespace Pds {
                unsigned          sequencer_id,
                int               slowReadout,
                unsigned          partition_options,
-               bool              verbose);
+               bool              verbose,
+               const char*       controlrc);
     ~MainWindow();
 
     // Unix signal handlers.
