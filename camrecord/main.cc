@@ -242,6 +242,13 @@ static void read_config_file(const char *name)
             }
         } else if (arrayTokens[0] == "end") {
             break;
+        } else if (arrayTokens[0] == "trans") {
+            if (arrayTokens.size() >= 4)
+                do_transition(atoi(arrayTokens[1].c_str()),
+                              atoi(arrayTokens[2].c_str()),
+                              atoi(arrayTokens[3].c_str()),
+                              atoi(arrayTokens[4].c_str()));
+            break;
         } else if (arrayTokens[0] == "output") {
             outfile = strdup(arrayTokens[1].c_str());
         } else if (arrayTokens[0] == "hostname") {
@@ -392,6 +399,11 @@ static void handle_stdin(fd_set *rfds)
                     }
                 }
                 haveint = 1;
+            } else if (!strncmp(buf, "trans", 5)) {
+                int id;
+                unsigned int sec, nsec, fid;
+                if (sscanf(buf, "trans %d %d %d %d", &id, &sec, &nsec, &fid) == 4)
+                    do_transition(id, sec, nsec, fid);
             } else if (buf[0] == 0 || !strcmp(buf, "stats")) {
                 gettimeofday(&now, NULL);
                 if (delay && (now.tv_sec > ka_finish.tv_sec || 

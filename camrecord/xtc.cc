@@ -63,6 +63,7 @@ static int chunk = 0;          // The current chunk number.
 static long long fsize = 0;    // The size of the current file, so far.
 static sigset_t blockset;
 static int started = 0;        // We are actually running.
+static int paused = 0;         // We are temporarily paused.
 static int numsrc = 0;         // Total number of sources.
 static int syncsrc = 0;        // Number of synchronous sources.
 static int asyncsrc = 0;       // Number of asynchronous sources.
@@ -74,8 +75,10 @@ static int totalcfglen = 0;    // Total number of bytes in all of the configurat
 static int totaldlen   = 0;    // Total number of bytes in all of the data records.
 static unsigned int csec = 0;  // Configuration timestamp.
 static unsigned int cnsec = 0;
+static unsigned int cfid = 0;
 static unsigned int dsec = 0;  // Last data timestamp.
 static unsigned int dnsec = 0;
+static int havetransitions = 0;
 static vector<xtcsrc *> src;
 static vector<Alias::SrcAlias *> alias;
 
@@ -184,9 +187,8 @@ static int ts_match(struct event *_ev, int _sec, int _nsec)
 
 static void setup_datagram(TransitionId::Value val)
 {
-
     new ((void *) &dg->seq) Sequence(Sequence::Event, val, ClockTime(csec, cnsec),
-                                     TimeStamp(0, cnsec & 0x1ffff, 0, 0));
+                                     TimeStamp(0, cfid, 0, 0));
     if ((cnsec += 0x20000) > 1000000000) {
         cnsec -= 1000000000;
         csec++;
@@ -249,6 +251,7 @@ static void write_xtc_config(void)
     if (start_sec != 0) {
         csec = start_sec;
         cnsec = start_nsec;
+        cfid = start_nsec & 0x1ffff;
     }
 
     int cnt = alias.size();
@@ -286,12 +289,14 @@ static void write_xtc_config(void)
     }
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
 
-    write_datagram(TransitionId::BeginRun,        0);
-    write_datagram(TransitionId::BeginCalibCycle, 0);
-    write_datagram(TransitionId::Enable,          0);
+    if (!havetransitions) {
+        write_datagram(TransitionId::BeginRun,        0);
+        write_datagram(TransitionId::BeginCalibCycle, 0);
+        write_datagram(TransitionId::Enable,          0);
 
-    begin_run();
-    started = 1;
+        begin_run();
+        started = 1;
+    }
 }
 
 /*
@@ -397,6 +402,7 @@ void configure_xtc(int id, char *xtc, int size, unsigned int secs, unsigned int 
     if (csec == 0 && cnsec == 0) {
         csec = secs;
         cnsec = nsecs;
+        cfid = nsecs & 0x1ffff;
     }
 
     /*
@@ -435,6 +441,10 @@ static void reset_event(struct event *ev)
 void send_event(struct event *ev)
 {
     sigset_t oldsig;
+
+    if (paused)
+        return;
+
 #ifdef TRACE
     printf("%08x:%08x T event %d\n", ev->sec, ev->nsec, ev->id);
 #endif
@@ -578,6 +588,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
         if (fp != NULL && cfgcnt == numsrc && csec == 0) {
             csec = sec;
             cnsec = nsec;
+            cfid = nsec & 0x1ffff;
             write_xtc_config();
         } else
             return;
@@ -694,9 +705,11 @@ void cleanup_xtc(void)
         if (end_sec != 0) {
             csec = end_sec;
             cnsec = end_nsec;
+            cfid = end_nsec & 0x1ffff;
         } else {
             csec = dsec;
             cnsec = dnsec;
+            cfid = dnsec & 0x1ffff;
         }
         write_datagram(TransitionId::Disable,       0);
         write_datagram(TransitionId::EndCalibCycle, 0);
@@ -713,4 +726,43 @@ void xtc_stats(void)
         fprintf(stderr, "     %s     %5d received\n", src[i]->name.c_str(), src[i]->cnt);
     }
     fflush(stderr);
+}
+
+void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int fid)
+{
+    havetransitions = 1;
+    csec = secs;
+    cnsec = nsecs;
+    cfid = fid;
+    switch (id) {
+    case TransitionId::Configure:
+        /*
+         * We don't have to do anything, since we are breaking out of
+         * read_config_file and will immediately call initialize_xtc,
+         * which will write this transition.
+         */
+        break;
+    case TransitionId::BeginRun:
+    case TransitionId::BeginCalibCycle:
+    case TransitionId::EndCalibCycle:
+        write_datagram((TransitionId::Value) id, 0);
+        break;
+    case TransitionId::Enable:
+        write_datagram(TransitionId::Enable, 0);
+        begin_run();
+        started = 1;
+        paused = 0;
+        break;
+    case TransitionId::Disable:
+        write_datagram(TransitionId::Disable, 0);
+        paused = 1;
+        break;
+    case TransitionId::EndRun:
+        write_datagram(TransitionId::EndRun, 0);
+        write_datagram(TransitionId::Unconfigure, 0);
+        if (fp)
+            fclose(fp);
+        cleanup_ca();
+        exit(0);
+    }
 }
