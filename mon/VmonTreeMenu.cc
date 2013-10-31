@@ -286,13 +286,6 @@ void VmonTreeMenu::add_client(void* cptr)
 void VmonTreeMenu::clear_tabs()
 {
   _tabs.reset();
-}
-
-void VmonTreeMenu::clear()
-{
-  emit cleared();
-
-  _map.clear();
 
   QList<QAbstractButton*> buttons = _client_bg->buttons();
   for(QList<QAbstractButton*>::iterator iter = buttons.begin();
@@ -302,12 +295,19 @@ void VmonTreeMenu::clear()
     delete *iter;
   }
   
-  VmonClientManager::clear();
-
   for(list<MonTree*>::iterator iter = _trees.begin();
       iter != _trees.end(); iter++) 
     delete (*iter);
   _trees.clear();
 
   update();
+}
+
+void VmonTreeMenu::clear()
+{
+  emit cleared();
+
+  _map.clear();
+
+  VmonClientManager::clear();
 }
