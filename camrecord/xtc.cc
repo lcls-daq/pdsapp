@@ -132,10 +132,13 @@ static FILE *myfopen(char *name, char *flags)
             conn->commitTransaction();
         } catch (LogBook::DatabaseError* e) {
             /* Is there anything really to do here? */
+            printf("Caught DatabaseError, ignoring.\n");
         } catch (LogBook::ValueTypeMismatch* e) {
             /* Is there anything really to do here? */
+            printf("Caught ValueTypeMismatch, ignoring.\n");
         } catch (LogBook::WrongParams* e) {
             /* Is there anything really to do here? */
+            printf("Caught WrongParams, ignoring.\n");
         }
     }
     return fp;
