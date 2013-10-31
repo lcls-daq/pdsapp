@@ -147,29 +147,6 @@ void begin_run(void)
         setitimer(ITIMER_REAL, &timer, NULL);
 }
 
-static istream *open_config_file(char *name)
-{
-    char buf[512];
-
-    if (!name)
-        return &cin;
-    ifstream *res = new ifstream(name);
-    if (res->good())
-        return res;
-    if (name[0] != '/') {
-        sprintf(buf, "%s/%s", getenv("HOME"), name);
-        res->open(buf);
-        if (res->good())
-            return res;
-        sprintf(buf, "%s/%s", DEFAULT_DIR, name);
-        res->open(buf);
-        if (res->good())
-            return res;
-    }
-    delete res;
-    return NULL;
-}
-
 static void record(string name, const char *arg)
 {
     symbol *s = symbol::find(name);
@@ -196,15 +173,29 @@ static void record(string name, const char *arg)
     nrec++;
 }
 
-static void read_config_file(const char *name)
+static int getstdin(char *buf, int n)
 {
-    string line;
-    istream *in = open_config_file(const_cast<char *>(name));
+    int c, i;
+    for (i = 0; i < n-1;) {
+        c = read(0, &buf[i], 1);  /* This will hang.  But that's OK. */
+        if (c < 0)
+            return 0; /* EOF! */
+        if (buf[i++] == '\n') {
+            buf[i] = 0;
+            return i;
+        }
+    }
+    buf[i] = 0;
+    return i;
+}
+
+static void read_config_file(void)
+{
+    char buf[1024];
     int lineno = 0;
 
-    if (!in)
-        return;
-    while(getline(*in, line)) {
+    while(getstdin(buf, 1024)) {
+        string line = buf;
         istringstream ss(line);
         istream_iterator<std::string> begin(ss), end;
         vector<string> arrayTokens(begin, end); 
@@ -269,11 +260,6 @@ static void read_config_file(const char *name)
             keepalive = atoi(arrayTokens[1].c_str());
             if (keepalive < 0)
                 keepalive = 0;
-        } else if (arrayTokens[0] == "include") {
-            if (arrayTokens.size() >= 1)
-                read_config_file(arrayTokens[1].c_str());
-            else
-                read_config_file(NULL);
         } else if (arrayTokens[0] == "camera") {
             if (arrayTokens.size() >= 5) {
                 int binned = 0;
@@ -319,8 +305,6 @@ static void read_config_file(const char *name)
                 record(arrayTokens[0], arrayTokens[1].c_str());
         }
     }
-    if (in != &cin)
-        delete in;
 }
 
 static void usage(void)
@@ -339,7 +323,7 @@ static void usage(void)
     exit(0);
 }
 
-static void initialize(char *config)
+static void initialize()
 {
     char *s;
 
@@ -347,7 +331,7 @@ static void initialize(char *config)
     add_socket(0);
     initialize_bld();
     initialize_ca();
-    read_config_file(config);
+    read_config_file();
     if (!outfile) {
         printf("No output file specified!\n\n");
         usage();
@@ -385,55 +369,61 @@ static void stats(int v)
         xtc_stats();
 }
 
-static void handle_stdin(fd_set *rfds)
+static void process_command(char *buf)
 {
     struct timeval now;
+
+    printf("%s\n", buf);
+    if (!strncmp(buf, "stop", 4)) {
+        printf("Got stop!\n");
+        if (buf[4]) {
+            int sec, nsec;
+            if (sscanf(buf, "stop %d %d", &sec, &nsec) == 2) {
+                end_sec = sec;
+                end_nsec = nsec;
+            }
+        }
+        haveint = 1;
+    } else if (!strncmp(buf, "trans", 5)) {
+        int id;
+        unsigned int sec, nsec, fid;
+        if (sscanf(buf, "trans %d %d %d %d", &id, &sec, &nsec, &fid) == 4)
+            do_transition(id, sec, nsec, fid);
+    } else if (buf[0] == 0 || !strcmp(buf, "stats")) {
+        gettimeofday(&now, NULL);
+        if (delay && (now.tv_sec > ka_finish.tv_sec || 
+                      (now.tv_sec == ka_finish.tv_sec && now.tv_usec > ka_finish.tv_usec))) {
+            if (now.tv_sec > finish.tv_sec || 
+                (now.tv_sec == finish.tv_sec && now.tv_usec > finish.tv_usec)) {
+                int_handler(SIGALRM);      /* Past the time?!? */
+                timer.it_value.tv_sec = keepalive;
+                timer.it_value.tv_usec = 0;
+            } else if (now.tv_usec <= ka_finish.tv_usec) {
+                timer.it_value.tv_usec = ka_finish.tv_usec - now.tv_usec;
+                timer.it_value.tv_sec = keepalive + ka_finish.tv_sec - now.tv_sec;
+            } else {
+                timer.it_value.tv_usec = 1000000 + ka_finish.tv_usec - now.tv_usec;
+                timer.it_value.tv_sec = keepalive - 1 + ka_finish.tv_sec - now.tv_sec;
+            }
+        } else {
+            timer.it_value.tv_sec = keepalive;
+            timer.it_value.tv_usec = 0;
+        }
+        setitimer(ITIMER_REAL, &timer, NULL);
+        stats(buf[0] != 0);
+    } else {
+        // This is an error, which we will silently ignore.
+    }
+}
+
+static void handle_stdin(fd_set *rfds)
+{
     if (FD_ISSET(0, rfds)) {
         char buf[1024];
         int cnt = read(0, buf, sizeof(buf) - 1);
         if (cnt > 0) {
             buf[cnt - 1] = 0; // Kill the newline!
-            printf("%s\n", buf);
-            if (!strncmp(buf, "stop", 4)) {
-                printf("Got stop!\n");
-                if (buf[4]) {
-                    int sec, nsec;
-                    if (sscanf(buf, "stop %d %d", &sec, &nsec) == 2) {
-                        end_sec = sec;
-                        end_nsec = nsec;
-                    }
-                }
-                haveint = 1;
-            } else if (!strncmp(buf, "trans", 5)) {
-                int id;
-                unsigned int sec, nsec, fid;
-                if (sscanf(buf, "trans %d %d %d %d", &id, &sec, &nsec, &fid) == 4)
-                    do_transition(id, sec, nsec, fid);
-            } else if (buf[0] == 0 || !strcmp(buf, "stats")) {
-                gettimeofday(&now, NULL);
-                if (delay && (now.tv_sec > ka_finish.tv_sec || 
-                              (now.tv_sec == ka_finish.tv_sec && now.tv_usec > ka_finish.tv_usec))) {
-                    if (now.tv_sec > finish.tv_sec || 
-                        (now.tv_sec == finish.tv_sec && now.tv_usec > finish.tv_usec)) {
-                        int_handler(SIGALRM);      /* Past the time?!? */
-                        timer.it_value.tv_sec = keepalive;
-                        timer.it_value.tv_usec = 0;
-                    } else if (now.tv_usec <= ka_finish.tv_usec) {
-                        timer.it_value.tv_usec = ka_finish.tv_usec - now.tv_usec;
-                        timer.it_value.tv_sec = keepalive + ka_finish.tv_sec - now.tv_sec;
-                    } else {
-                        timer.it_value.tv_usec = 1000000 + ka_finish.tv_usec - now.tv_usec;
-                        timer.it_value.tv_sec = keepalive - 1 + ka_finish.tv_sec - now.tv_sec;
-                    }
-                } else {
-                    timer.it_value.tv_sec = keepalive;
-                    timer.it_value.tv_usec = 0;
-                }
-                setitimer(ITIMER_REAL, &timer, NULL);
-                stats(buf[0] != 0);
-            } else {
-                // This is an error, which we will silently ignore.
-            }
+            process_command(buf);
         } else {
             printf("Standard input is closed, terminating!\n");
             haveint = 1;
@@ -484,11 +474,9 @@ void cleanup(void)
 int main(int argc, char **argv)
 {
     int c;
-    char *config = NULL;
     int idx = 0;
     static struct option long_options[] = {
         {"help",      0, 0, 'h'},
-        {"config",    1, 0, 'c'},
         {"output",    1, 0, 'o'},
         {"timeout",   1, 0, 't'},
         {"directory", 1, 0, 'd'},
@@ -498,13 +486,10 @@ int main(int argc, char **argv)
         {NULL, 0, NULL, 0}
     };
 
-    while ((c = getopt_long(argc, argv, "hc:o:t:d:sk:H:", long_options, &idx)) != -1) {
+    while ((c = getopt_long(argc, argv, "ho:t:d:sk:H:", long_options, &idx)) != -1) {
         switch (c) {
         case 'h':
             usage();
-            break;
-        case 'c':
-            config = optarg;
             break;
         case 'o':
             outfile = strdup(optarg);
@@ -528,7 +513,7 @@ int main(int argc, char **argv)
         }
     }
 
-    initialize(config);
+    initialize();
 
     signal(SIGINT, int_handler);
     signal(SIGALRM, int_handler);
