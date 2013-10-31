@@ -91,6 +91,7 @@ libsrcs_configdbg += EncoderConfig.cc EncoderConfig_V1.cc
 libsrcs_configdbg += UsdUsbConfig.cc
 libsrcs_configdbg += Gsc16aiConfig.cc
 libsrcs_configdbg += TimepixConfig.cc TimepixConfig_V2.cc
+libsrcs_configdbg += RayonixConfig.cc
 libsrcs_configdbg += OceanOpticsConfig.cc
 libsrcs_configdbg += AcqChannelMask.cc AcqChannelMask_moc.cc
 libsrcs_configdbg += AcqConfig.cc

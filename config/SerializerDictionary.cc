@@ -43,6 +43,7 @@
 #include "pdsapp/config/Gsc16aiConfig.hh"
 #include "pdsapp/config/TimepixConfig.hh"
 #include "pdsapp/config/TimepixConfig_V2.hh"
+#include "pdsapp/config/RayonixConfig.hh"
 #include "pdsapp/config/Cspad2x2Config_V1.hh"
 #include "pdsapp/config/Cspad2x2Config.hh"
 #include "pdsapp/config/OceanOpticsConfig.hh"
@@ -71,6 +72,7 @@
 #include "pds/config/ImpConfigType.hh"
 #include "pds/config/Gsc16aiConfigType.hh"
 #include "pds/config/TimepixConfigType.hh"
+#include "pds/config/RayonixConfigType.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
 #include "pds/config/OceanOpticsConfigType.hh"
 #include "pds/config/FliConfigType.hh"
@@ -129,6 +131,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_ImpConfigType         ,new ImpConfig);
   enroll(_gsc16aiConfigType     ,new Gsc16aiConfig);
   enroll(_timepixConfigType     ,new TimepixConfig);
+  enroll(_rayonixConfigType     ,new RayonixConfig);
   enroll(_CsPad2x2ConfigType    ,new Cspad2x2Config);
   enroll(_oceanOpticsConfigType ,new OceanOpticsConfig);  
   enroll(_fliConfigType         ,new FliConfig);  
