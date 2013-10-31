@@ -275,7 +275,7 @@ MainWindow::MainWindow(unsigned          platform,
                instname, station, expname, experiment_number);
         _runallocator = new MySqlRunAllocator(_offlineclient);
         delete _icontrol;
-        _icontrol = new IocControl(expname,instname,station,experiment_number,controlrc);
+        _icontrol = new IocControl(offlinerc,instname,station,experiment_number,controlrc);
       } else {
         // error: run number fixed at 0
         _runallocator = new RunAllocator;
