@@ -775,7 +775,7 @@ void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int f
         break;
     case TransitionId::EndRun:
         write_datagram(TransitionId::EndRun, 0);
-        write_datagram(TransitionId::Unconfigure, 0);
+        // write_datagram(TransitionId::Unconfigure, 0);
         if (fp)
             fclose(fp);
         cleanup_ca();
