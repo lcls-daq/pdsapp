@@ -147,6 +147,27 @@ void begin_run(void)
         setitimer(ITIMER_REAL, &timer, NULL);
 }
 
+static istream *open_config_file(char *name)
+{
+    char buf[512];
+
+    ifstream *res = new ifstream(name);
+    if (res->good())
+        return res;
+    if (name[0] != '/') {
+        sprintf(buf, "%s/%s", getenv("HOME"), name);
+        res->open(buf);
+        if (res->good())
+            return res;
+        sprintf(buf, "%s/%s", DEFAULT_DIR, name);
+        res->open(buf);
+        if (res->good())
+            return res;
+    }
+    delete res;
+    return NULL;
+}
+
 static void record(string name, const char *arg)
 {
     symbol *s = symbol::find(name);
@@ -173,29 +194,38 @@ static void record(string name, const char *arg)
     nrec++;
 }
 
-static int getstdin(char *buf, int n)
+static void *getstdin(char *buf, int n)
 {
     int c, i;
     for (i = 0; i < n-1;) {
         c = read(0, &buf[i], 1);  /* This will hang.  But that's OK. */
         if (c < 0)
-            return 0; /* EOF! */
+            return NULL; /* EOF! */
         if (buf[i++] == '\n') {
             buf[i] = 0;
-            return i;
+            return buf;
         }
     }
     buf[i] = 0;
-    return i;
+    return buf;
 }
 
-static void read_config_file(void)
+static void read_config_file(const char *name)
 {
     char buf[1024];
     int lineno = 0;
+    istream *in = NULL;
+    string line;
 
-    while(getstdin(buf, 1024)) {
-        string line = buf;
+    if (name) {
+        in = open_config_file(const_cast<char *>(name));
+        if (!in)
+            return;
+    }
+
+    while(name ? getline(*in, line) : getstdin(buf, 1024)) {
+        if (!name)
+            line = buf;
         istringstream ss(line);
         istream_iterator<std::string> begin(ss), end;
         vector<string> arrayTokens(begin, end); 
@@ -260,6 +290,11 @@ static void read_config_file(void)
             keepalive = atoi(arrayTokens[1].c_str());
             if (keepalive < 0)
                 keepalive = 0;
+        } else if (arrayTokens[0] == "include") {
+            if (arrayTokens.size() >= 1)
+                read_config_file(arrayTokens[1].c_str());
+            else
+                read_config_file(NULL);
         } else if (arrayTokens[0] == "camera") {
             if (arrayTokens.size() >= 5) {
                 int binned = 0;
@@ -305,6 +340,8 @@ static void read_config_file(void)
                 record(arrayTokens[0], arrayTokens[1].c_str());
         }
     }
+    if (in)
+        delete in;
 }
 
 static void usage(void)
@@ -323,7 +360,7 @@ static void usage(void)
     exit(0);
 }
 
-static void initialize()
+static void initialize(char *config)
 {
     char *s;
 
@@ -331,7 +368,7 @@ static void initialize()
     add_socket(0);
     initialize_bld();
     initialize_ca();
-    read_config_file();
+    read_config_file(config);
     if (!outfile) {
         printf("No output file specified!\n\n");
         usage();
@@ -474,9 +511,11 @@ void cleanup(void)
 int main(int argc, char **argv)
 {
     int c;
+    char *config = NULL;
     int idx = 0;
     static struct option long_options[] = {
         {"help",      0, 0, 'h'},
+        {"config",    1, 0, 'c'},
         {"output",    1, 0, 'o'},
         {"timeout",   1, 0, 't'},
         {"directory", 1, 0, 'd'},
@@ -486,10 +525,13 @@ int main(int argc, char **argv)
         {NULL, 0, NULL, 0}
     };
 
-    while ((c = getopt_long(argc, argv, "ho:t:d:sk:H:", long_options, &idx)) != -1) {
+    while ((c = getopt_long(argc, argv, "hc:o:t:d:sk:H:", long_options, &idx)) != -1) {
         switch (c) {
         case 'h':
             usage();
+            break;
+        case 'c':
+            config = optarg;
             break;
         case 'o':
             outfile = strdup(optarg);
@@ -513,7 +555,7 @@ int main(int argc, char **argv)
         }
     }
 
-    initialize();
+    initialize(config);
 
     signal(SIGINT, int_handler);
     signal(SIGALRM, int_handler);
