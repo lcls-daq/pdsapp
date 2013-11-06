@@ -315,6 +315,7 @@ int main( int argc, char** argv )
            } else {
              uniqueid = optarg;
            }
+           break;
          default:
            printf("Error: Option could not be parsed!\n");
            printUsage(argv[0]);
