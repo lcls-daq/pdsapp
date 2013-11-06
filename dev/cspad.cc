@@ -34,7 +34,7 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-   MySegWire(CspadServer* cspadServer);
+   MySegWire(CspadServer* cspadServer, const char *aliasName);
    virtual ~MySegWire() {}
 
    void connect( InletWire& wire,
@@ -42,10 +42,15 @@ class Pds::MySegWire
                  int interface );
 
    const std::list<Src>& sources() const { return _sources; }
+   const std::list<SrcAlias>* pAliases() const
+   {
+     return (_aliases.size() > 0) ? &_aliases : NULL;
+   }
 
  private:
    CspadServer* _cspadServer;
    std::list<Src> _sources;
+   std::list<SrcAlias> _aliases;
 };
 
 //
@@ -86,10 +91,14 @@ class Pds::Seg
 };
 
 
-Pds::MySegWire::MySegWire( CspadServer* cspadServer )
+Pds::MySegWire::MySegWire( CspadServer* cspadServer, const char *aliasName )
    : _cspadServer(cspadServer)
 { 
    _sources.push_back(cspadServer->client());
+   if (aliasName) {
+     SrcAlias tmpAlias(cspadServer->client(), aliasName);
+     _aliases.push_back(tmpAlias);
+   }
 }
 
 static Pds::InletWire* myWire = 0;
@@ -206,6 +215,7 @@ void printUsage(char* s) {
       "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
       "                applications that use the whole card\n"
       "    -C <N> or \"<N>,<T>\"  Compress and copy every Nth event (and use <T> threads)\n"
+      "    -u <alias>             Set device alias\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -245,8 +255,9 @@ int main( int argc, char** argv )
 
    extern char* optarg;
    char* endPtr;
+   char* uniqueid = (char *)NULL;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:C:D:xP:r:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:C:D:xP:r:u:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -298,6 +309,12 @@ int main( int argc, char** argv )
            printUsage(argv[0]);
            return 0;
            break;
+         case 'u':
+           if (strlen(optarg) > SrcAlias::AliasNameMax) {
+             printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax);
+           } else {
+             uniqueid = optarg;
+           }
          default:
            printf("Error: Option could not be parsed!\n");
            printUsage(argv[0]);
@@ -334,7 +351,7 @@ int main( int argc, char** argv )
    cspadServer->debug(debug);
    cspadServer->runTimeConfigName(runTimeConfigname);
 
-   MySegWire settings(cspadServer);
+   MySegWire settings(cspadServer, uniqueid);
 
    Seg* seg = new Seg( task,
                        platform,
