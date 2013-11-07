@@ -175,7 +175,7 @@ int main( int argc, char** argv )
 
   extern char* optarg;
   int c;
-  while( ( c = getopt( argc, argv, "i:p:m:vd:T:o:I:a:h" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "i:p:vhu:" ) ) != EOF ) {
     switch(c) {
       case 'i':
         errno = 0;
@@ -186,6 +186,8 @@ int main( int argc, char** argv )
           usage(argv[0]);
           return -1;
         }
+        break;
+      case 'u':
         break;
       case 'h':
         helpFlag = true;
