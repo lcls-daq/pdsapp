@@ -31,6 +31,7 @@ tgtnames :=  evr \
     cspad    \
     gsc16ai  \
     timepix  \
+    rayonix  \
     simcam   \
     cspad2x2 \
     oceanoptics \
@@ -238,6 +239,11 @@ tgtsrcs_timepix := timepix.cc
 tgtlibs_timepix := $(commonlibs) pds/timepix relaxd/mpxhwrelaxd pds/configdata
 tgtslib_timepix := $(USRLIBDIR)/rt
 tgtincs_timepix := relaxd/include/common relaxd/include/src pdsdata/include ndarray/include
+
+tgtsrcs_rayonix := rayonix.cc
+tgtlibs_rayonix := $(commonlibs) pds/rayonix
+tgtslib_rayonix := $(USRLIBDIR)/rt
+tgtincs_rayonix := pdsdata/include ndarray/include
 
 tgtsrcs_oceanoptics := oceanoptics.cc
 tgtlibs_oceanoptics := $(commonlibs) pds/oceanoptics pds/oopt
