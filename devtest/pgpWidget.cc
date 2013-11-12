@@ -304,13 +304,13 @@ int main( int argc, char** argv )
             uint32_t* u32p = (uint32_t*) pgpCardRx.data;
             uint16_t* up = (uint16_t*) &u32p[9];
             unsigned readBytes = readRet * sizeof(uint32_t);
-            for (unsigned i=0; i<8; i++) {
+            for (unsigned i=0; i<(readRet == 4 ? 4 : 8); i++) {
               printf("%0x ", u32p[i]/*pgpCardRx.data[i]*/);
               readBytes -= sizeof(uint32_t);
             }
             up = (uint16_t*) &u32p[8];
             unsigned i=0;
-            while ((readBytes>0) && (maxPrint >= (8+i))) {
+            while ((readBytes>0) && (maxPrint > (8+i)) && (readRet != 4)) {
               printf("%0x ", up[i++]);
               readBytes -= sizeof(uint16_t);
             }
