@@ -203,6 +203,8 @@ int main( int argc, char** argv )
   dest = new Pds::Pgp::Destination::Destination(d);
 
   if (strlen(runTimeConfigname)) {
+    bool writingSaved = writing;
+    writing = false;
     FILE* f;
     Pgp::Destination _d;
     unsigned maxCount = 1024;
@@ -234,6 +236,7 @@ int main( int argc, char** argv )
 //          printf("\nSleeping 200 microseconds\n");
 //          microSpin(200);
     }
+    writing = writingSaved;
   }
 
   if (debug & 1) printf("pgpWidget destination %s\n", dest->name());
