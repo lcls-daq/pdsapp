@@ -51,7 +51,8 @@ tgtslib_xcasttest := $(USRLIB)/rt
 
 tgtsrcs_xtccompress := xtccompress.cc
 tgtlibs_xtccompress := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata 
-tgtlibs_xtccompress += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client pds/clientcompress 
+tgtlibs_xtccompress += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
+tgtlibs_xtccompress += pds/clientcompress pds/pnccdFrameV0 
 tgtslib_xtccompress := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread 
 tgtincs_xtccompress := pdsdata/include ndarray/include
 #CPPFLAGS += -fno-strict-aliasing
