@@ -27,6 +27,7 @@
 #include <QtGui/QMenuBar>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QMessageBox>
+#include <QtGui/QLabel>
 #include <QtCore/QTime>
 
 #include <stdlib.h>
@@ -244,6 +245,7 @@ MainWindow::MainWindow(unsigned          platform,
   PVDisplay*        pvs;
   RunStatus*        run;
   unsigned int      experiment_number = 0;
+  QLabel* experiment_label = 0;
 
   if (offlinerc) {
     // option A: run number maintained in a mysql database
@@ -274,6 +276,10 @@ MainWindow::MainWindow(unsigned          platform,
         printf("%s: instrument '%s:%u' experiment '%s' (#%u)\n", __FUNCTION__,
                instname, station, expname, experiment_number);
         _runallocator = new MySqlRunAllocator(_offlineclient);
+
+	experiment_label = new QLabel(QString("%1 [%2]").arg(expname).arg(experiment_number));
+	experiment_label->setAlignment(Qt::AlignHCenter);
+
         delete _icontrol;
         _icontrol = new IocControl(offlinerc,instname,station,experiment_number,controlrc);
       } else {
@@ -301,6 +307,8 @@ MainWindow::MainWindow(unsigned          platform,
   _control->set_runAllocator(_runallocator);
 
   QVBoxLayout* layout = new QVBoxLayout(this);
+  if (experiment_label)
+    layout->addWidget(experiment_label);
   layout->addWidget(config    = new ConfigSelect   (this, *_control, db_path));
   layout->addWidget(_partition= new PartitionSelect(this, *_control, *_icontrol, partition, db_path, partition_options));
   layout->addWidget(state     = new StateSelect    (this, *_control));
