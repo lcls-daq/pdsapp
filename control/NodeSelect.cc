@@ -121,8 +121,11 @@ NodeGroup::~NodeGroup()
 void NodeGroup::addNode(const NodeSelect& node)
 {
   int index = _nodes.indexOf(node);
-  if (index >= 0) {
+  if (index >= 0) {                  
+    NodeSelect old(_nodes[index]); // Capture user preferences
     _nodes.replace(index, node);
+    this->node(index).setGroup    (old.node().group());
+    this->node(index).setTransient(old.node().transient());
     emit node_replaced(index);
   }
   else {
@@ -247,6 +250,11 @@ void NodeGroup::add_node(int index)
     else
     {
       iNodeGroup = ( indexPersist >= 0 ? _persistGroup[indexPersist] : 1 );            
+      if (iNodeGroup == 0) {
+        printf("NodeSelect::add_node _persistGroup=0 for non EVR/BLD node [%s].  Defaulting to group 1.\n",
+               qPrintable(_persist[indexPersist]));
+        iNodeGroup = 1;
+      }
       for (int iGroup=1; iGroup <= EventCodeType::MaxReadoutGroup; ++iGroup)
         ciUseReadoutGroup->addItem(QString().setNum(iGroup));
       ciUseReadoutGroup->setCurrentIndex( iNodeGroup-1 );    

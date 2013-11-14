@@ -68,6 +68,9 @@ int main(int argc, char* argv[])
   while(getline(&line, &line_sz, f) != -1) {
     if (line[0]!='#') {
       char* args = strtok(line,"\t ");
+      if (args==NULL || args[0]=='\n')
+        break;
+
       if (!CmdLineTools::parseDetInfo(args,info))
         return -1;
 
