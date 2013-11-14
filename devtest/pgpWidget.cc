@@ -203,8 +203,6 @@ int main( int argc, char** argv )
   dest = new Pds::Pgp::Destination::Destination(d);
 
   if (strlen(runTimeConfigname)) {
-    bool writingSaved = writing;
-    writing = false;
     FILE* f;
     Pgp::Destination _d;
     unsigned maxCount = 1024;
@@ -236,7 +234,6 @@ int main( int argc, char** argv )
 //          printf("\nSleeping 200 microseconds\n");
 //          microSpin(200);
     }
-    writing = writingSaved;
   }
 
   if (debug & 1) printf("pgpWidget destination %s\n", dest->name());
@@ -297,9 +294,9 @@ int main( int argc, char** argv )
       int readRet;
       while (keepGoing) {
         if ((readRet = ::read(fd, &pgpCardRx, sizeof(PgpCardRx))) >= 0) {
-          if (writing) {
+          if (writing && (readRet > 4)) {
             fwrite(pgpCardRx.data, sizeof(uint32_t), readRet, writeFile);
-          } else if (debug & 1) {
+          } else if (debug & 1 || (readRet <= 4)) {
             inFrame = (Pds::Pgp::DataImportFrame*) pgpCardRx.data;
             printf("read returned %u, DataImportFrame lane(%u) vc(%u) pgpCardRx lane(%u), vc(%u)\n",
                 readRet, inFrame->lane(), inFrame->vc(), pgpCardRx.pgpLane, pgpCardRx.pgpVc);
