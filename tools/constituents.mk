@@ -10,7 +10,7 @@ CPPFLAGS += -D_FILE_OFFSET_BITS=64
 libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc CspadShuffle.cc StripTransient.cc
 
 libsrcs_l3test := L3TestModule.cc
-libincs_l3test := pdsdata/include ndarray/include
+libincs_l3test := pdsdata/include ndarray/include boost/include 
 
 tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump currentexp
 #tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
@@ -19,7 +19,7 @@ commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection p
 commonlibs += pds/pnccdFrameV0
 liblibs_tools :=
 liblibs_tools += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
-libincs_tools := offlinedb/include pdsdata/include ndarray/include boost/include
+libincs_tools := offlinedb/include pdsdata/include ndarray/include boost/include  
 
 tgtsrcs_event := event.cc
 tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata
@@ -35,12 +35,12 @@ tgtincs_eventp := offlinedb/include pdsdata/include
 tgtsrcs_segtest := segtest.cc
 tgtlibs_segtest := $(commonlibs)
 tgtslib_segtest := $(USRLIBDIR)/rt
-tgtincs_segtest := pdsdata/include ndarray/include boost/include
+tgtincs_segtest := pdsdata/include ndarray/include boost/include  
 
 tgtsrcs_control := control.cc
 tgtlibs_control := $(commonlibs)
 tgtslib_control := $(USRLIBDIR)/rt
-tgtincs_control := pdsdata/include ndarray/include boost/include
+tgtincs_control := pdsdata/include ndarray/include boost/include  
 
 tgtsrcs_source := source.cc
 tgtlibs_source := $(commonlibs)
@@ -60,7 +60,7 @@ tgtincs_bldtest := pdsdata/include
 tgtsrcs_montest := montest.cc
 tgtlibs_montest := $(commonlibs) pds/mon
 tgtslib_montest := $(USRLIBDIR)/rt
-tgtincs_montest := pdsdata/include ndarray/include
+tgtincs_montest := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_showPartitions := showPartitions.cc
 tgtlibs_showPartitions := $(commonlibs)
@@ -106,13 +106,13 @@ tgtincs_currentexp := offlinedb/include offlineclient
 
 libnames += padmon
 libsrcs_padmon := PadMonServer.cc CspadShuffle.cc
-libincs_padmon := pdsdata/include ndarray/include boost/include 
+libincs_padmon := pdsdata/include ndarray/include boost/include   
 
 tgtnames += padmonservertest
 tgtsrcs_padmonservertest := padmonservertest.cc
 tgtlibs_padmonservertest := pdsapp/padmon pds/configdata pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 tgtslib_padmonservertest := $(USRLIBDIR)/rt
-tgtincs_padmonservertest := pdsdata/include ndarray/include
+tgtincs_padmonservertest := pdsdata/include ndarray/include boost/include 
 
 tgtnames += epixmonservertest
 tgtsrcs_epixmonservertest := epixmonservertest.cc
@@ -129,4 +129,4 @@ tgtslib_epixmonservertest := $(USRLIBDIR)/rt
 tgtsrcs_epicsmonservertest := epicsmonservertest.cc EpicsMonServer.cc
 tgtlibs_epicsmonservertest := pdsapp/epicsmon pdsdata/xtcdata pdsdata/appdata pdsdata/epics
 tgtslib_epicsmonservertest := $(USRLIBDIR)/rt
-tgtincs_epicsmonservertest := pdsdata/include ndarray/include
+tgtincs_epicsmonservertest := pdsdata/include ndarray/include boost/include 

@@ -24,17 +24,17 @@ tgtslib_xtcwriter := $(USRLIB)/rt
 tgtsrcs_pnccdreader := pnccdreader.cc
 tgtlibs_pnccdreader := pdsdata/psddl_pdsdata pdsdata/xtcdata pds/service
 tgtslib_pnccdreader := $(USRLIB)/rt
-tgtincs_pnccdreader := pdsdata/include ndarray/include
+tgtincs_pnccdreader := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_pnccdwriter := pnccd.cc
 tgtlibs_pnccdwriter := pdsdata/xtcdata pds/service
 tgtslib_pnccdwriter := $(USRLIB)/rt
-tgtincs_pnccdwriter := pdsdata/include ndarray/include
+tgtincs_pnccdwriter := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_xtctruncate := xtctruncate.cc
 tgtlibs_xtctruncate := pdsdata/xtcdata pds/service
 tgtslib_xtctruncate := $(USRLIB)/rt
-tgtincs_xtctruncate := pdsdata/include ndarray/include
+tgtincs_xtctruncate := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_dsstest := dsstest.cc
 tgtlibs_dsstest := pds/service
@@ -54,7 +54,7 @@ tgtlibs_xtccompress := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdat
 tgtlibs_xtccompress += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
 tgtlibs_xtccompress += pds/clientcompress pds/pnccdFrameV0 
 tgtslib_xtccompress := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread 
-tgtincs_xtccompress := pdsdata/include ndarray/include
+tgtincs_xtccompress := pdsdata/include ndarray/include boost/include 
 #CPPFLAGS += -fno-strict-aliasing
 CPPFLAGS += -fopenmp
 DEFINES += -fopenmp
@@ -76,5 +76,5 @@ tgtincs_xtccamfix := pdsdata/include
 tgtsrcs_compressstat := compressstat.cc
 tgtlibs_compressstat := pdsdata/xtcdata pdsdata/compressdata pdsdata/anadata pdsdata/indexdata
 #tgtslib_compressstat := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread 
-tgtincs_compressstat := pdsdata/include
+tgtincs_compressstat := pdsdata/include boost/include
 

@@ -3,7 +3,7 @@
 #libnames    := bldIpimblib
 
 libsrcs_bldIpimblib := BldIpimbStream.cc  ToBldEventWire.cc EvrBldManager.cc EvrBldServer.cc
-libincs_bldIpimblib := evgr pdsdata/include ndarray/include 
+libincs_bldIpimblib := evgr pdsdata/include ndarray/include boost/include  
 tgtnames    := bldIpimb bldipimbclient
 
 
@@ -22,7 +22,7 @@ qt_libs := $(qtlibdir)
 
 tgtsrcs_bldIpimb := BldIpimb.cc
 tgtsrcs_bldIpimb += $(libsrcs_bldIpimblib)
-tgtincs_bldIpimb := evgr pdsdata/include ndarray/include 
+tgtincs_bldIpimb := evgr pdsdata/include ndarray/include boost/include  
 tgtlibs_bldIpimb := $(commonlibs) $(datalibs) evgr/evr evgr/evg pds/evgr pds/ipimb pdsapp/configdb
 #tgtlibs_bldIpimb := $(commonlibs) $(datalibs) evgr/evr evgr/evg pds/evgr pds/ipimb pdsapp/configdb pdsapp/bldIpimblib
 tgtlibs_bldIpimb += $(qtlibdir) pds/configdata

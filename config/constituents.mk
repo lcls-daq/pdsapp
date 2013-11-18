@@ -9,7 +9,7 @@ libsrcs_configdb += GlobalCfg.cc
 libsrcs_configdb += PdsDefs.cc
 libsrcs_configdb += EventcodeTiming.cc
 libsrcs_configdb += XML.cc
-libincs_configdb := pdsdata/include ndarray/include 
+libincs_configdb := pdsdata/include ndarray/include boost/include  
 
 libsrcs_configdbg := ControlScan.cc ControlScan_moc.cc
 libsrcs_configdbg += PvScan.cc PvScan_moc.cc
@@ -99,7 +99,7 @@ libsrcs_configdbg += AcqTdcConfig.cc
 libsrcs_configdbg += Parameters.cc
 libsrcs_configdbg += BitCount.cc
 libsrcs_configdbg += templates.cc
-libincs_configdbg := $(qtincdir) pdsdata/include ndarray/include  boost/include
+libincs_configdbg := $(qtincdir) pdsdata/include ndarray/include boost/include   
 
 ifeq ($(build_extra),$(true))
   DEFINES += -DBUILD_EXTRA
