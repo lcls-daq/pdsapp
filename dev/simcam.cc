@@ -37,7 +37,10 @@
 #include <dlfcn.h>
 #include <new>
 
+#include "rnxtrigger.hh"
+
 static bool verbose = false;
+static bool triggerEnable = false;
 static int ndrop = 0;
 static int ntime = 0;
 static int nforward = 1;
@@ -98,6 +101,12 @@ public:
       if (++iforward==nforward) {
 	iforward=0;
 	_insert_event(dg);
+        if (triggerEnable) {
+          if (verbose) {
+            printf(" *** calling trigger() from %s ***\n", __PRETTY_FUNCTION__);
+          }
+          trigger();
+        }
       }
 
       break;
@@ -639,6 +648,7 @@ void printUsage(char* s) {
 	  "                    (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
 	  "    -u <alias>  Set device alias\n"
 	  "    -v          Toggle verbose mode\n"
+	  "    -t          Trigger simulator (Rayonix)\n"
 	  "    -C <N> or \"<N>,<T>\" Compress frames and add uncompressed frame every N events (using T threads)\n"
 	  "    -O          Use OpenMP\n"
 	  "    -D <N>      Drop every N events\n"
@@ -663,7 +673,7 @@ int main(int argc, char** argv) {
   char* endPtr;
   char* uniqueid = (char *)NULL;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:vC:OD:T:L:P:S:u:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:vtC:OD:T:L:P:S:u:h")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
@@ -721,6 +731,9 @@ int main(int argc, char** argv) {
     case 'P':
       nforward = strtoul(optarg,NULL,0);
       break;
+    case 't':
+      triggerEnable = true;
+      break;
     case 'S':
       ToEventWireScheduler::setMaximum(strtoul(optarg,NULL,0));
       break;
@@ -744,6 +757,13 @@ int main(int argc, char** argv) {
   if (platform == NO_PLATFORM) {
     printf("%s: platform required\n",argv[0]);
     return 0;
+  }
+
+  if (triggerEnable) {
+    if (verbose) {
+      printf(" *** calling triggerInit() from %s ***\n", __PRETTY_FUNCTION__);
+    }
+    triggerInit();
   }
 
   Task* task = new Task(Task::MakeThisATask);
