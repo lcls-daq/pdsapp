@@ -34,7 +34,7 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-   MySegWire(Cspad2x2Server* cspad2x2Server);
+   MySegWire(Cspad2x2Server* cspad2x2Server, const char *aliasName);
    virtual ~MySegWire() {}
 
    void connect( InletWire& wire,
@@ -42,10 +42,15 @@ class Pds::MySegWire
                  int interface );
 
    const std::list<Src>& sources() const { return _sources; }
+   const std::list<SrcAlias>* pAliases() const
+   {
+     return (_aliases.size() > 0) ? &_aliases : NULL;
+   }
 
  private:
    Cspad2x2Server* _cspad2x2Server;
    std::list<Src> _sources;
+   std::list<SrcAlias> _aliases;
 };
 
 //
@@ -84,10 +89,14 @@ class Pds::Seg
 };
 
 
-Pds::MySegWire::MySegWire( Cspad2x2Server* cspad2x2Server )
+Pds::MySegWire::MySegWire( Cspad2x2Server* cspad2x2Server, const char *aliasName )
    : _cspad2x2Server(cspad2x2Server)
 { 
    _sources.push_back(cspad2x2Server->client());
+   if (aliasName) {
+     SrcAlias tmpAlias(cspad2x2Server->client(), aliasName);
+     _aliases.push_back(tmpAlias);
+   }
 }
 
 static Pds::InletWire* myWire = 0;
@@ -184,7 +193,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-C <nevents>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] [-R <runTriggerFactor>] -p <platform>\n"
+  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-C <nevents>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] [-R <runTriggerFactor>] -p <platform>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
@@ -198,6 +207,7 @@ void printUsage(char* s) {
       "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
       "                applications that use the whole card\n"
       "    -C <N>  Compress and copy every Nth event\n"
+      "    -u      Set device alias          [Default: none]\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -235,8 +245,9 @@ int main( int argc, char** argv )
   bool                compressFlag        = false;
 
    extern char* optarg;
+   char* uniqueid = (char *)NULL;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:C:D:xP:r:R:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:C:D:xP:u:r:R:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -270,6 +281,13 @@ int main( int argc, char** argv )
          case 'P':
            pgpcard = strtoul(optarg, NULL, 0);
            printf("Cspad2x2 using pgpcard 0x%x\n", pgpcard);
+           break;
+         case 'u':
+           if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
+             printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+           } else {
+             uniqueid = optarg;
+           }
            break;
          case 'C':
            compressFlag = 1;
@@ -325,7 +343,7 @@ int main( int argc, char** argv )
    cspad2x2Server->runTimeConfigName(runTimeConfigname);
    cspad2x2Server->runTrigFactor(runTriggerFactor);
 
-   MySegWire settings(cspad2x2Server);
+   MySegWire settings(cspad2x2Server, uniqueid);
 
    Seg* seg = new Seg( task,
                        platform,
