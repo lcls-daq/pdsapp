@@ -63,6 +63,7 @@
 typedef Pds::Bld::BldDataEBeamV4 BldDataEBeam;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV1 BldDataGMD;
+typedef Pds::Bld::BldDataSpectrometerV0 BldDataSpectrometer;
 //    typedef BldDataAcqADCV1 BldDataAcqADC;
 using Pds::Bld::BldDataPhaseCavity;
 using Pds::Bld::BldDataFEEGasDetEnergy;
@@ -191,6 +192,9 @@ namespace Pds {
     ((1ULL<<(BldInfo::HfxMonCam+1)) - (1ULL<<BldInfo::HxxDg1Cam)) |
     ((1ULL<<(BldInfo::CxiDg4Pim+1)) - (1ULL<<BldInfo::CxiDg1Pim));
   uint64_t OpalMask = 1ULL<<BldInfo::CxiDg3Spec;
+  uint64_t SpecMask = (1ULL<<BldInfo::FeeSpec0) |
+    (1ULL<<BldInfo::SxrSpec0) |
+    (1ULL<<BldInfo::XppSpec0);
 #define TEST_CREAT(mask, idType, dataType)                  \
   if (im & mask) {                                          \
     Xtc tc(TypeId(TypeId::idType,dataType::Version),        \
@@ -214,6 +218,7 @@ namespace Pds {
       TEST_CREAT(PhaseCavityMask,Id_PhaseCavity      ,BldDataPhaseCavity);
       TEST_CREAT(FEEGasDetMask  ,Id_FEEGasDetEnergy  ,BldDataFEEGasDetEnergy);
       TEST_CREAT(GMDMask        ,Id_GMD              ,BldDataGMD);
+      TEST_CREAT(SpecMask       ,Id_Spectrometer     ,BldDataSpectrometer);
       TEST_CACHE(IpimbMask      ,_ipimbConfigType    ,IpimbConfigType);
       if (im & IpimbMask) {
         Xtc tc(_ipmFexConfigType, BldInfo(_pid,BldInfo::Type(i)));
@@ -269,7 +274,10 @@ namespace Pds {
           break; }
       case Level::Reporter:
         { const BldInfo& info = static_cast<const BldInfo&>(xtc->src);
-          xtc->src = BldInfo(_pid, info.type());
+          if (info.type()==94)  // special exception for broken transmission
+            xtc->src = BldInfo(_pid, BldInfo::FeeSpec0);
+          else
+            xtc->src = BldInfo(_pid, info.type());
           break; }
       default:
         break;
