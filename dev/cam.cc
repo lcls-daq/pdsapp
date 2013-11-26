@@ -105,7 +105,7 @@ namespace Pds {
       _grabberId(grabberId),
       _user_apps(user_apps)
     {
-      size_t max_size;
+      size_t max_size;      
       const Pds::DetInfo info = static_cast<const Pds::DetInfo&>(src);
       switch(info.device()) {
       case DetInfo::Opal1000:
@@ -127,8 +127,10 @@ namespace Pds {
         break;
       }
 
-      if (lCompress)
+      if (lCompress) {
         _user_apps.push_front(new FrameCompApp(max_size));
+        max_size *= 2;
+      }
 
       _sources.push_back(_camman->server().client());
       if (aliasName) {
@@ -136,6 +138,7 @@ namespace Pds {
         _aliases.push_back(tmpAlias);
       }
 
+      _max_size = max_size + 0x10000;
     }
 
     virtual ~SegTest()
@@ -202,7 +205,7 @@ namespace Pds {
 
       delete this;
     }
-    
+    unsigned max_event_size() const { return _max_size; }
   private:
     Task*          _task;
     unsigned       _platform;
@@ -211,6 +214,7 @@ namespace Pds {
     std::list<Src> _sources;
     std::list<SrcAlias> _aliases;
     AppList        _user_apps;
+    unsigned       _max_size;
   };
 }
 
