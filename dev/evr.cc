@@ -11,9 +11,9 @@
 #include "pds/service/Task.hh"
 #include "pds/client/Fsm.hh"
 #include "pds/client/Action.hh"
-#include "pds/config/CfgClientNfs.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
 #include "pds/evgr/EvrManager.hh"
+#include "pds/evgr/EvrCfgClient.hh"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -141,6 +141,7 @@ static void usage(const char *p)
          "\t -r <evrid>        evr ID (e.g., a, b, c, or d)\n"
          "\t -a <arp>          arp\n"
          "\t -d                NOT USED\n"
+         "\t -E <eventcode list> default record eventcodes (e.g. \"40-46,140-146\")\n"
          "\t -R                randomize nodes\n"
          "\t -n                turn off beam codes\n"
          "\t -u <alias>        set device alias\n"
@@ -154,6 +155,7 @@ int main(int argc, char** argv) {
   uint32_t  platform  = NO_PLATFORM;
   Arp*      arp       = 0;
   char*     evrid     = 0;
+  const char* evtcodelist = 0;
 
   DetInfo::Detector det(DetInfo::NoDetector);
   unsigned detid(0), devid(0);
@@ -163,7 +165,7 @@ int main(int argc, char** argv) {
   bool  bTurnOffBeamCodes = false;
   
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:r:d:u:nRh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:r:d:u:nE:Rh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -190,6 +192,9 @@ int main(int argc, char** argv) {
       } else {
         uniqueid = optarg;
       }
+      break;
+    case 'E':
+      evtcodelist = optarg;
       break;
     case 'R':
       EvrManager::randomize_nodes(true);
@@ -232,7 +237,7 @@ int main(int argc, char** argv) {
   printf("Using src %x/%x/%x/%x\n",det,detid,DetInfo::Evr,devid);
   DetInfo detInfo(node.pid(),det,detid,DetInfo::Evr,devid);
 
-  CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
+  EvrCfgClient* cfgService = new EvrCfgClient(detInfo,const_cast<char*>(evtcodelist));
   Task* task = new Task(Task::MakeThisATask);
 
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
