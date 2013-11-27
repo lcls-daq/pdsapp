@@ -300,6 +300,7 @@ public:
     }
 
     while(1) {
+      printf("Comm listening\n");
       if (::listen(_socket,10)<0)
 	perror("Comm listen failed");
       else {
@@ -366,13 +367,16 @@ void sigfunc(int sig_no) {
   static bool _handled=false;
   if (!_handled) {
     _handled = true;
-    printf("handling signal %d\n",sig_no);
+    printf("handling signal %d app %p\n",sig_no,apps);
     if (apps) {
       apps->unlink();
       apps = 0;
-      printf("done with signal %d\n",sig_no);
-      exit(EXIT_SUCCESS);
     }
+    else
+      printf("nothing to do\n");
+
+    printf("done with signal %d\n",sig_no);
+    exit(EXIT_SUCCESS);
   }
 }
 
@@ -407,6 +411,7 @@ int main(int argc, char** argv) {
   REGISTER(SIGSEGV);
   REGISTER(SIGABRT);
   REGISTER(SIGTERM);
+  REGISTER(SIGKILL);
 
 #undef REGISTER
 
@@ -504,15 +509,15 @@ int main(int argc, char** argv) {
 
   Stats* stats = new Stats;
 
-  LiveMonitorServer* srv = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nevqueues);
-  srv->distribute(ldist);
+  apps = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nevqueues);
+  apps->distribute(ldist);
 
-  srv->connect(stats);
+  apps->connect(stats);
 
   if (uapps)
     uapps->connect(stats);
 
-  if (srv) {
+  if (apps) {
     Task* task = new Task(Task::MakeThisATask);
     MyCallback* display = new MyCallback(task,
 					 stats);
@@ -539,6 +544,8 @@ int main(int argc, char** argv) {
       delete stats;
       delete event;
     }
+    delete apps;
+    apps = 0 ;
   } else {
     printf("%s: Error creating LiveMonitorServer\n", __FUNCTION__);
   }
