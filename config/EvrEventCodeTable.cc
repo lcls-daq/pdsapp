@@ -2,6 +2,7 @@
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/EvrSeqEventDesc.hh"
 #include "pdsapp/config/EvrGlbEventDesc.hh"
+#include "pdsapp/config/EvrEventDefault.hh"
 
 //#include "pds/config/SeqConfigType.hh"
 
@@ -23,31 +24,6 @@ static const unsigned MaxGlobalCodes    = 4;
 
 static void showLayoutItem(QLayoutItem* item, bool show);
 
-namespace Pds_ConfigDb {
-
-  class FixedEventCode {
-  public:
-    FixedEventCode(const char* label) :
-      _label(new QLineEdit(label)),
-      _code (new QLabel) {}
-  public:
-    QLayout* initialize(QGridLayout* grid, int row) {
-      QCheckBox* cb = new QCheckBox; cb->setChecked(true); cb->setEnabled(false);
-      grid->addWidget(cb    , row, 0, Qt::AlignCenter);
-      grid->addWidget(_code , row, 1, Qt::AlignCenter);
-      grid->addWidget(_label, row, 3, Qt::AlignCenter);
-      _label->setEnabled(false);
-      return grid;
-    }
-    void set_code(unsigned n) { _code->setText(QString::number(n,10)); }
-    unsigned get_code() const { return _code->text().toInt(); }
-  private:
-    QLineEdit* _label;
-    QLabel* _code;
-  };
-
-};
-
 using namespace Pds_ConfigDb;
 
 
@@ -65,6 +41,7 @@ EvrEventCodeTable::EvrEventCodeTable(EvrPulseTables* pPulseTables) :
 {
   _seq_code = new EvrSeqEventDesc[MaxUserCodes];
   _glb_code = new EvrGlbEventDesc[MaxGlobalCodes];
+  _defaults = Parameter::readFromData() ? new EvrEventDefault : 0;
 }
 
 EvrEventCodeTable::~EvrEventCodeTable()
@@ -87,6 +64,9 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
   for(unsigned i=0; i<MaxGlobalCodes; i++)
     _glb_code[i].set_enable(false);
 
+  if (_defaults)
+    _defaults->clear();
+
   unsigned max_seq = 0;
   unsigned min_seq = 256;
   unsigned nglb=0;
@@ -96,6 +76,8 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
     const EventCodeType& e = cfg.eventcodes()[i];
     if (e.readoutGroup() > 1)
       bEneableReadoutGroup = true;
+    if (_defaults && _defaults->pull(e))
+      continue;
     if (EvrGlbEventDesc::global_code(e.code())) {
       _glb_code[nglb++].pull(e);
       continue;
@@ -124,6 +106,8 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
     
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
     const EventCodeType& e = cfg.eventcodes()[i];
+    if (_defaults && _defaults->pull(e))
+      continue;
     if (EvrGlbEventDesc::global_code(e.code())) 
       continue;      
     
@@ -185,6 +169,9 @@ bool EvrEventCodeTable::validate() {
   for(unsigned i=0; i<MaxGlobalCodes; i++)
     if (_glb_code[i].enabled())
       _glb_code[i].push(codep++);
+
+  if (_defaults)
+    _defaults->push(codep);
 
   _ncodes = codep - reinterpret_cast<EventCodeType*>(_code_buffer);
 
@@ -252,6 +239,8 @@ QLayout* EvrEventCodeTable::initialize(QWidget*)
       vl->addLayout(layout); }
     box->setLayout(vl); 
     l->addWidget(box); }
+  if (_defaults)
+    l->addWidget(_defaults);
 
   _range_lo.widget()->setMaximumWidth(40);
   _range_hi.widget()->setMaximumWidth(40);
@@ -295,6 +284,8 @@ void EvrEventCodeTable::flush() {
     _seq_code[i].flush();
   for(unsigned i=0; i<MaxGlobalCodes; i++)
     _glb_code[i].flush();
+  if (_defaults)
+    _defaults->flush();
 }
 void EvrEventCodeTable::enable(bool v) {
 }

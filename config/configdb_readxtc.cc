@@ -1,5 +1,6 @@
 #include "pdsapp/config/XtcFileServer.hh"
 #include "pdsapp/config/Xtc_Ui.hh"
+#include "pdsapp/config/Parameters.hh"
 
 #include <QtGui/QApplication>
 #include <QtGui/QWidget>
@@ -15,6 +16,8 @@ int main(int argc, char** argv)
     printf("Usage: %s <path>\n",argv[0]);
     return 0;
   }
+
+  Parameter::readFromData(true);
 
   QApplication app(argc, argv);
 

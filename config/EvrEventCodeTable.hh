@@ -24,7 +24,8 @@ namespace Pds {
 namespace Pds_ConfigDb {
 
   class EvrSeqEventDesc;
-  class EvrGlbEventDesc;
+  class EvrGlbEventDesc;  
+  class EvrEventDefault;
 
   class EvrEventCodeTable : public QObject, public Parameter {
     Q_OBJECT
@@ -61,6 +62,7 @@ namespace Pds_ConfigDb {
     QGridLayout*         _elayout;
     EvrSeqEventDesc*     _seq_code;
     EvrGlbEventDesc*     _glb_code;
+    EvrEventDefault*     _defaults;
     unsigned             _ncodes;
     QLabel*              _pLabelGroup1;
     QLabel*              _pLabelGroup2;

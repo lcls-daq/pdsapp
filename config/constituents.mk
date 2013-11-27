@@ -45,6 +45,7 @@ libsrcs_configdbg += EvrPulseTable_V5.cc EvrPulseTable_V5_moc.cc
 libsrcs_configdbg += EvrPulseTable_V4.cc EvrPulseTable_V4_moc.cc
 libsrcs_configdbg += EvrPulseTable.cc EvrPulseTable_moc.cc
 libsrcs_configdbg += EvrEventDesc.cc EvrEventDesc_moc.cc
+libsrcs_configdbg += EvrEventDefault.cc
 libsrcs_configdbg += EvrSeqEventDesc.cc
 libsrcs_configdbg += EvrGlbEventDesc.cc
 libsrcs_configdbg += EvrEventDesc_V6.cc EvrEventDesc_V6_moc.cc

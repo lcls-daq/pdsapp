@@ -51,6 +51,9 @@ namespace Pds_ConfigDb {
 
     static void allowEdit(bool);
     bool allowEdit() const;
+
+    static void readFromData(bool);
+    static bool readFromData();
   protected:
     const char* _label;
     bool        _allowEdit;

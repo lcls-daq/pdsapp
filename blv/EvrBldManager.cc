@@ -89,7 +89,7 @@ EvrBldManager::EvrBldManager(const DetInfo&        src,
   _erInfo      ((std::string("/dev/er")+evr_id[0]+'3').c_str()),
   _er          (_erInfo.board()), 
   _write_fd    (write_fd),
-  _cfg         (*new CfgClientNfs(src)),
+  _cfg         (*new EvrCfgClient(src,"")),
   _evtCounter  (0),
   _configBuffer(new char[0x10000]),
   _hsignal     ("EvrSignal")

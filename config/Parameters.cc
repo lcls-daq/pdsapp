@@ -14,12 +14,16 @@ const char* Enums::Enabled_Names[]  = { "Enable", "Disable", NULL };
 const char* Enums::Disabled_Names[] = { "Disable", "Enable", NULL };
 
 static bool _edit = false;
+static bool _read = false;
 
 Parameter::Parameter() : _label(0), _allowEdit(_edit) {}
 Parameter::Parameter(const char* l) : _label(l), _allowEdit(_edit) {}
 
 void Parameter::allowEdit(bool edit) { _edit = edit; }
 bool Parameter::allowEdit() const { return _allowEdit; }
+
+void Parameter::readFromData(bool r) { _read = r; }
+bool Parameter::readFromData() { return _read; }
 
 TextParameter::TextParameter(const char* label, const char* val, unsigned size) :
   Parameter(label),
