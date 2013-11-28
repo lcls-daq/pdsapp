@@ -102,7 +102,8 @@ namespace Pds {
             unsigned              channel,
             const AppList&        user_apps,
             bool                  lCompress,
-            const char *aliasName) :
+            bool                  lCopy,
+            const char*           aliasName) :
       _task     (task),
       _platform (platform),
       _grabberId(grabberId),
@@ -136,7 +137,8 @@ namespace Pds {
 
       if (lCompress) {
         _user_apps.push_front(new FrameCompApp(max_size));
-        max_size *= 2;
+        if (lCopy)
+          max_size *= 2;
       }
 
       _sources.push_back(_camman->server().client());
@@ -235,6 +237,7 @@ int main(int argc, char** argv) {
   const unsigned NO_PLATFORM = ~0;
   unsigned platform = NO_PLATFORM;
   bool lCompress = false;
+  bool lCopy     = false;
   Arp* arp = 0;
 
   DetInfo info;
@@ -269,9 +272,11 @@ int main(int argc, char** argv) {
       channel = strtoul(optarg, &endPtr, 0);
       break;
     case 'C':
-      lCompress = true;
-      FrameCompApp::setCopyPresample(strtoul(optarg, NULL, 0));
-      break;
+      { unsigned ncopy = strtoul(optarg, NULL, 0);
+        lCompress = true;
+        lCopy = ncopy!=0;
+        FrameCompApp::setCopyPresample(ncopy);
+      } break;
     case 'L':
       { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
           printf("dlopen %s\n",p);
@@ -349,6 +354,7 @@ int main(int argc, char** argv) {
                                  channel,
                                  user_apps,
                                  lCompress,
+                                 lCopy,
                                  uniqueid);
 
   if (info.device()==DetInfo::Opal4000)
