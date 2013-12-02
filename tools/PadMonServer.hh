@@ -21,12 +21,20 @@ namespace Pds {
     class ConfigV1;
     class ElementV1;
   };
+  namespace Epix {
+    class ConfigV1;
+    class ElementV1; 
+  }
+  namespace EpixSampler {
+    class ConfigV1;
+    class ElementV1; 
+  }
 
   class MyMonitorServer;
 
   class PadMonServer {
   public:
-    enum PadType { CsPad, CsPad140k, Fexamp, Imp, Epix };
+    enum PadType { CsPad, CsPad140k, Fexamp, Imp, Epix, EpixSampler, NumberOf };
 
     PadMonServer(PadType, const char* tag);
     ~PadMonServer();
@@ -40,6 +48,12 @@ namespace Pds {
   public:
     void configure(const Pds::Imp::ConfigV1&);
     void event    (const Pds::Imp::ElementV1&);       // Imp
+  public:
+    void configure(const Pds::Epix::ConfigV1&);       // Epix
+    void event    (const Pds::Epix::ElementV1&);
+  public:
+    void configure(const Pds::EpixSampler::ConfigV1&);// EpixSampler
+    void event    (const Pds::EpixSampler::ElementV1&);
   public:
     void config_1d(unsigned nsamples);                // reformat into Imp
     void event_1d (const uint16_t*,

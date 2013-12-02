@@ -60,8 +60,9 @@ CPPFLAGS += -fopenmp
 DEFINES += -fopenmp
 
 tgtsrcs_pgpwidget := pgpWidget.cc
-tgtlibs_pgpwidget := pds/pgp
+tgtlibs_pgpwidget := pds/pgp pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 tgtslib_pgpwidget := $(USRLIB)/rt
+tgtincs_pgpwidget := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_pnccdwidget := pnccdWidget.cc
 tgtlibs_pnccdwidget := pds/pgp

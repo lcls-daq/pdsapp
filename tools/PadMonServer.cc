@@ -10,6 +10,8 @@
 #include "pdsdata/psddl/imp.ddl.h"
 #include "pdsdata/psddl/opal1k.ddl.h"
 #include "pdsdata/psddl/camera.ddl.h"
+//#include "pdsdata/psddl/epix.ddl.h"
+#include "pdsdata/psddl/epixsampler.ddl.h"
 
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -28,6 +30,7 @@
 
 static Pds::TypeId _testCnfgType(Pds::TypeId::Any,1);
 static Pds::TypeId _testDataType(Pds::TypeId::Any,2);
+static unsigned    _ievent=0;
 
 namespace Pds {
 
@@ -86,6 +89,8 @@ static const DetInfo  srcInfo[] = { DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::
                                     DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Cspad2x2,0),
                                     DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Fexamp  ,0),
                                     DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Imp     ,0),
+                                    DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::Epix    ,0),
+                                    DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::EpixSampler,0),
 				    DetInfo(0,DetInfo::CxiEndstation,0,DetInfo::NumDevice,0)};
 
 //
@@ -100,7 +105,7 @@ static Dgram* insert(Dgram*              dg,
   new((void*)&dg->seq) Sequence(Sequence::Event, 
                                 tr, 
                                 ClockTime(tv.tv_sec,tv.tv_nsec), 
-                                TimeStamp(0,0,0,0));
+                                TimeStamp(0,0x1ffff,0,0));
   new((char*)&dg->xtc) Xtc(TypeId(TypeId::Id_Xtc,0), segInfo);
   return dg;
 }
@@ -115,10 +120,11 @@ static Dgram* insert(Dgram*              dg,
   timespec tv;
   clock_gettime(CLOCK_REALTIME, &tv);
 
+  unsigned v = tr==TransitionId::L1Accept ? _ievent++ : 0;
   new((void*)&dg->seq) Sequence(Sequence::Event, 
                                 tr, 
                                 ClockTime(tv.tv_sec,tv.tv_nsec), 
-                                TimeStamp(0,0,0,0));
+                                TimeStamp(0,0x1ffff,v,0));
   Xtc* seg = new((char*)&dg->xtc) Xtc(TypeId(TypeId::Id_Xtc,0), segInfo);
   Xtc* src = new((char*)seg->alloc(sizeofPayload+sizeof(Xtc))) Xtc(tid, srcid);
   char* p  = new((char*)src->alloc(sizeofPayload)) char[sizeofPayload];
@@ -220,7 +226,7 @@ void PadMonServer::configure(const Pds::Imp::ConfigV1& c)
          srcInfo[_t],
          &c, 
          sizeof(c));
-  payloadsize = Pds::ImpConfig::get(c,ImpConfigType::NumberOfSamples)*sizeof(Pds::Imp::Sample)+sizeof(Pds::Imp::ElementV1);
+  payloadsize = Pds::Imp::ElementV1::_sizeof(c);
   _srv->events(dg);
 
   _srv->events(insert(_srv->newDatagram(), TransitionId::BeginRun));
@@ -239,6 +245,75 @@ void PadMonServer::event    (const Pds::Imp::ElementV1& e)
          payloadsize);
   _srv->events(dg);
 }
+
+
+void PadMonServer::configure(const Pds::Epix::ConfigV1& c)
+{
+#if 0
+  _srv->events(insert(_srv->newDatagram(), TransitionId::Map));
+
+  Dgram* dg = _srv->newDatagram();
+  insert(dg,
+         TransitionId::Configure, 
+         TypeId(TypeId::Id_EpixConfig,1),
+         srcInfo[_t],
+         &c, 
+         c._sizeof());
+  payloadsize = Pds::Epix::ElementV1::_sizeof(c);
+  _srv->events(dg);
+
+  _srv->events(insert(_srv->newDatagram(), TransitionId::BeginRun));
+  _srv->events(insert(_srv->newDatagram(), TransitionId::BeginCalibCycle));
+  _srv->events(insert(_srv->newDatagram(), TransitionId::Enable));
+#endif
+}
+
+void PadMonServer::event    (const Pds::Epix::ElementV1& e)
+{
+#if 0
+  Dgram* dg = _srv->newDatagram();
+  insert(dg,
+         TransitionId::L1Accept, 
+         TypeId(TypeId::Id_EpixElement,1),
+         srcInfo[_t],
+         &e, 
+         payloadsize);
+  _srv->events(dg);
+#endif
+}
+
+
+void PadMonServer::configure(const Pds::EpixSampler::ConfigV1& c)
+{
+  _srv->events(insert(_srv->newDatagram(), TransitionId::Map));
+
+  Dgram* dg = _srv->newDatagram();
+  insert(dg,
+         TransitionId::Configure, 
+         TypeId(TypeId::Id_EpixSamplerConfig,1),
+         srcInfo[_t],
+         &c, 
+         c._sizeof());
+  payloadsize = Pds::EpixSampler::ElementV1::_sizeof(c);
+  _srv->events(dg);
+
+  _srv->events(insert(_srv->newDatagram(), TransitionId::BeginRun));
+  _srv->events(insert(_srv->newDatagram(), TransitionId::BeginCalibCycle));
+  _srv->events(insert(_srv->newDatagram(), TransitionId::Enable));
+}
+
+void PadMonServer::event    (const Pds::EpixSampler::ElementV1& e)
+{
+  Dgram* dg = _srv->newDatagram();
+  insert(dg,
+         TransitionId::L1Accept, 
+         TypeId(TypeId::Id_EpixSamplerElement,1),
+         srcInfo[_t],
+         &e, 
+         payloadsize);
+  _srv->events(dg);
+}
+
 
 void PadMonServer::config_1d(unsigned nsamples)
 {

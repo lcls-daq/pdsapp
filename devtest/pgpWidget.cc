@@ -1,3 +1,6 @@
+#include "pdsapp/tools/PadMonServer.hh"
+//#include "pdsdata/psddl/epix.ddl.h"
+#include "pdsdata/psddl/epixsampler.ddl.h"
 #include "pds/pgp/Pgp.hh"
 #include "pds/pgp/Destination.hh"
 #include "pds/pgp/DataImportFrame.hh"
@@ -28,7 +31,7 @@ Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
-  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
+  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-S detID,sharedMemoryTag][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
       "    -h      Show usage\n"
       "    -P      Set pgpcard index number  (REQUIRED)\n"
       "                The format of the index number is a one byte number with the bottom nybble being\n"
@@ -49,6 +52,7 @@ void printUsage(char* name) {
       "    -t      Test registers, loop from addr counting up count times\n"
       "    -d      Dump count registers starting at addr\n"
       "    -R      Loop reading data until interrupted, resulting data will be written to the standard output.\n"
+      "    -S      Loop reading data until interrupted, resulting data will be written with the device type to the shared memory.  [Example: -S \"EpixSampler,0_1_DAQ\"\n"
       "    -o      Print out up to maxPrint words when reading data\n"
       "    -s      Save to file when reading data\n"
       "    -D      Set debug value           [Default: 0]\n"
@@ -81,10 +85,13 @@ int main( int argc, char** argv )
   ::signal( SIGINT, sigHandler );
   char                runTimeConfigname[256] = {""};
   char                writeFileName[256] = {""};
+  PadMonServer*       shm                 = 0;
+  PadMonServer::PadType typ               = PadMonServer::NumberOf;
+
   char*               endptr;
   extern char*        optarg;
   int c;
-  while( ( c = getopt( argc, argv, "hP:w:W:D:P:r:d:Ro:s:f:p:t:" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hP:w:W:D:r:d:RS:o:s:f:p:t:" ) ) != EOF ) {
      switch(c) {
       case 'P':
         pgpcard = strtoul(optarg, NULL, 0);
@@ -132,6 +139,53 @@ int main( int argc, char** argv )
       case 'R':
         command = readAsyncCommand;
         break;
+      case 'S':
+	command = readAsyncCommand;
+	{ char* dev  = strtok(optarg,",");
+	  if      (strcmp(dev,"Epix")==0)        typ = PadMonServer::Epix;
+	  else if (strcmp(dev,"EpixSampler")==0) typ = PadMonServer::EpixSampler;
+	  else { printf("device type %s not understood\n",dev); return -1; }
+	  char* tag  = strtok(NULL,",");
+	  shm = new PadMonServer(typ, tag); 
+	  switch(typ) {
+#if 0
+	  case PadMonServer::Epix:
+	    { const unsigned AsicsPerRow=2;
+	      const unsigned AsicsPerColumn=2;
+	      const unsigned Asics=AsicsPerRow*AsicsPerColumn;
+	      const unsigned Rows   =2*96;
+	      const unsigned Columns=2*88;
+	      Epix::AsicConfigV1 asics[Asics];
+	      uint32_t* testarray = new uint32_t[Asics*Rows*(Columns+31)/32];
+	      memset(testarray, 0, Asics*Rows*(Columns+31)/32*sizeof(uint32_t));
+	      uint32_t* maskarray = new uint32_t[Asics*Rows*(Columns+31)/32];
+	      memset(maskarray, 0, Asics*Rows*(Columns+31)/32*sizeof(uint32_t));
+
+	      shm->configure(Epix::ConfigV1( 0, 1, 0, 1, 0,
+					     0, 0, 0, 0, 0, 
+					     0, 0, 0, 0, 0, 
+					     0, 0, 0, 0, 0, 
+					     0, 0, 0, 0, 0, 
+					     1, 0, 0, 0, 0, 
+					     0, 0, 0, 0, 0,
+					     AsicsPerRow, AsicsPerColumn, 
+					     Rows, Columns, 
+					     asics, testarray, maskarray ) );
+	    } break;
+#endif
+	  case PadMonServer::EpixSampler:
+	    { const unsigned Channels = 8;
+	      const unsigned Samples  = 8192;
+	      const unsigned BaseClkFreq = 100000000;
+	      shm->configure(EpixSampler::ConfigV1( 0, 0, 0, 0, 1,
+						    0, 0, 0, 0, 0, 
+						    Channels, Samples, 
+						    BaseClkFreq, 0 ) ); 
+	    } break;
+	  default:
+	    break;
+	  } }
+	break;
       case 'o':
         maxPrint = strtoul(optarg, NULL, 0);
         break;
@@ -206,10 +260,11 @@ int main( int argc, char** argv )
     FILE* f;
     Pgp::Destination _d;
     unsigned maxCount = 1024;
-    char path[240];
-    char* home = getenv("HOME");
-    sprintf(path,"%s/%s",home, runTimeConfigname);
-    printf("Configuring from %s", path);
+    //    char path[240];
+    //    char* home = getenv("HOME");
+    //    sprintf(path,"%s/%s",home, runTimeConfigname);
+    const char* path = runTimeConfigname;
+    printf("Configuring from %s\n", path);
     f = fopen (path, "r");
     if (!f) {
       char s[200];
@@ -294,7 +349,16 @@ int main( int argc, char** argv )
       int readRet;
       while (keepGoing) {
         if ((readRet = ::read(fd, &pgpCardRx, sizeof(PgpCardRx))) >= 0) {
-          if (writing && (readRet > 4)) {
+	  if (shm) {
+	    switch(typ) {
+	    case PadMonServer::Epix:
+	      shm->event(*reinterpret_cast<Epix::ElementV1*>(pgpCardRx.data)); break;
+	    case PadMonServer::EpixSampler:
+	      shm->event(*reinterpret_cast<EpixSampler::ElementV1*>(pgpCardRx.data)); break;
+	    default:
+	      break;
+	    }
+          } else if (writing && (readRet > 4)) {
             fwrite(pgpCardRx.data, sizeof(uint32_t), readRet, writeFile);
           } else if (debug & 1 || (readRet <= 4)) {
             inFrame = (Pds::Pgp::DataImportFrame*) pgpCardRx.data;
@@ -304,6 +368,7 @@ int main( int argc, char** argv )
             uint32_t* u32p = (uint32_t*) pgpCardRx.data;
             uint16_t* up = (uint16_t*) &u32p[9];
             unsigned readBytes = readRet * sizeof(uint32_t);
+	    printf("[%d] ",readBytes);
             for (unsigned i=0; i<(readRet == 4 ? 4 : 8); i++) {
               printf("%0x ", u32p[i]/*pgpCardRx.data[i]*/);
               readBytes -= sizeof(uint32_t);
