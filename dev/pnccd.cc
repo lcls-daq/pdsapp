@@ -106,9 +106,9 @@ void sigHandler( int signal ) {
     if (myWire != 0) {
       myWire->remove_input(server);
     }
-    server->disable();
-    server->dumpFrontEnd();
-    server->die();
+    if (server != 0) {
+      server->dumpFrontEnd();
+    }
   }
   printf("Signal handler pulling the plug\n");
   ::exit(signal);
