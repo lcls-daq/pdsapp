@@ -206,7 +206,7 @@ int main( int argc, char** argv )
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:D:P:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:D:P:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
