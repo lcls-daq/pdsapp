@@ -232,6 +232,16 @@ int main( int argc, char** argv )
     return 1;
   }
 
+  unsigned offset = 0;
+  while ((((ports>>offset) & 1) == 0) && (offset < 5)) {
+    offset += 1;
+  }
+
+  Pds::Pgp::Pgp::portOffset(offset);
+
+  pgp = new Pds::Pgp::Pgp::Pgp(fd, debug != 0);
+  dest = new Pds::Pgp::Destination::Destination(d);
+
   if (writing) {
 //    char path[512];
 //    char* home = getenv("HOME");
@@ -245,16 +255,6 @@ int main( int argc, char** argv )
       return 1;
     }
   }
-
-  unsigned offset = 0;
-  while ((((ports>>offset) & 1) == 0) && (offset < 5)) {
-    offset += 1;
-  }
-
-  Pds::Pgp::Pgp::portOffset(offset);
-
-  pgp = new Pds::Pgp::Pgp::Pgp(fd, debug != 0);
-  dest = new Pds::Pgp::Destination::Destination(d);
 
   if (strlen(runTimeConfigname)) {
     FILE* f;
