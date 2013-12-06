@@ -246,7 +246,6 @@ void PadMonServer::event    (const Pds::Imp::ElementV1& e)
   _srv->events(dg);
 }
 
-
 void PadMonServer::configure(const Pds::Epix::ConfigV1& c)
 {
 #if 0

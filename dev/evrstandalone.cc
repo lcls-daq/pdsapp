@@ -26,6 +26,15 @@ const unsigned MAX_PULSES = 10;
 unsigned    npulses = 0;
 PulseParams pulse[MAX_PULSES];
 
+class SrcParams {
+public:
+  unsigned eventcode;
+  unsigned period;
+};
+
+unsigned nsrc = 0;
+SrcParams src;
+
 //
 //  AMO : {41,0,11900,8}  // pnCCD clear
 //        {41,0,11900,9}  // pnCCD clear
@@ -65,6 +74,20 @@ void EvrStandAloneManager::configure() {
 
   _er.DumpPulses(npulses);
 
+  if (nsrc) {
+    _er.InternalSequenceEnable(0);
+    _er.ExternalSequenceEnable(0);
+    if (src.period) {
+      _er.InternalSequenceSetCode    (src.eventcode);
+      _er.InternalSequenceSetPrescale(src.period-1);
+      _er.InternalSequenceEnable     (1);
+    }
+    else {
+      _er.ExternalSequenceSetCode (src.eventcode);
+      _er.ExternalSequenceEnable  (1);
+    }
+  }
+
   _er.IrqEnable(EVR_IRQ_MASTER_ENABLE | EVR_IRQFLAG_EVENT);
   _er.EnableFIFO(1);
   _er.Enable(1);
@@ -98,7 +121,7 @@ EvrStandAloneManager::EvrStandAloneManager(EvgrBoardInfo<Evr> &erInfo) :
 }
 
 void usage(const char* p) {
-  printf("Usage: %s -r <evr a/b> -p <eventcode,delay,width,output[,polarity]> [-p ...] [-k]\n",p);
+  printf("Usage: %s -r <evr a/b> -s <eventcode,rate> -p <eventcode,delay,width,output[,polarity]> [-p ...] [-k]\n",p);
   printf("\teventcode : [40=120Hz, 41=60Hz, ..]\n");
   printf("\tdelay,width in 119MHz ticks [1=8.4ns, 2=16.8ns, ..]\n");
   printf("\toutput : connector number [0=Univ0,..]\n");
@@ -118,13 +141,18 @@ int main(int argc, char** argv) {
   unsigned ticks;
   int delta;
   unsigned udelta;
-  while ( (c=getopt( argc, argv, "r:p:khT")) != EOF ) {
+  while ( (c=getopt( argc, argv, "r:p:s:khT")) != EOF ) {
     switch(c) {
     case 'k':
       keepAlive = true;
       break;
     case 'r':
       evrid  = optarg;
+      break;
+    case 's':
+      src.eventcode = strtoul(optarg,&endptr,0);
+      src.period    = 119000000/strtoul(endptr+1,&endptr,0);
+      nsrc++;
       break;
     case 'p':
       pulse[npulses].eventcode = strtoul(optarg  ,&endptr,0);

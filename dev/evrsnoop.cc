@@ -250,7 +250,7 @@ void selectOpcodes( char opcodes[256], char* strSelection )
 
 void showUsage()
 {
-  printf( "Usage:  evrstandalone  [-h] [-r <a/b/c/d>] [-n <max event num>] [-o <event list>]"
+  printf( "Usage:  evrsnoop  [-h] [-r <a/b/c/d>] [-n <max event num>] [-o <event list>]"
     "  Options:\n"
     "    -h                   Show usage\n"
     "    -r <a/b/c/d>         Use evr device a/b/c/d\n"

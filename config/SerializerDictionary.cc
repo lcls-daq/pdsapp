@@ -4,6 +4,7 @@
 
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/EvrIOConfig.hh"
+#include "pdsapp/config/EvsConfig.hh"
 #include "pdsapp/config/EvrConfigP.hh"
 #include "pdsapp/config/EvrConfigP_V6.hh"
 #include "pdsapp/config/EvrConfig_V5.hh"
@@ -51,6 +52,7 @@
 #include "pdsapp/config/FliConfig.hh"
 #include "pdsapp/config/AndorConfig.hh"
 
+#include "pds/config/EvsConfigType.hh"
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/EvrIOConfigType.hh"
 #include "pds/config/AcqConfigType.hh"
@@ -109,6 +111,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_usdusbConfigType      ,new UsdUsbConfig);
   enroll(_acqConfigType         ,new AcqConfig);
   enroll(_acqTdcConfigType      ,new AcqTdcConfig);
+  enroll(_evsConfigType         ,new EvsConfig);
   enroll(_evrConfigType         ,new EvrConfigP);
   enroll(_evrIOConfigType       ,new EvrIOConfig);
   enroll(_opal1kConfigType      ,new Opal1kConfig);

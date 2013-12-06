@@ -13,6 +13,7 @@
 #include "pds/client/Action.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
 #include "pds/evgr/EvrManager.hh"
+#include "pds/evgr/EvsManager.hh"
 #include "pds/evgr/EvrCfgClient.hh"
 
 #include <unistd.h>
@@ -73,11 +74,11 @@ namespace Pds {
     Seg(Task*                 task,
         unsigned              platform,
         SegWireSettings&      settings,
-        EvrManager&           evrmgr,
+        Appliance&            app,
         Arp*                  arp) :
       _task             (task),
       _platform         (platform),
-      _evrmgr           (evrmgr)
+      _app              (app)
     {
     }
 
@@ -95,7 +96,7 @@ namespace Pds {
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
       (new TimeStampApp())->connect(frmk->inlet());
-      _evrmgr.appliance().connect(frmk->inlet());
+      _app.connect(frmk->inlet());
     }
     void failed(Reason reason)
     {
@@ -125,7 +126,7 @@ namespace Pds {
   private:
     Task*           _task;
     unsigned        _platform;
-    EvrManager&     _evrmgr;
+    Appliance&      _app;
   };
 }
 
@@ -156,16 +157,17 @@ int main(int argc, char** argv) {
   Arp*      arp       = 0;
   char*     evrid     = 0;
   const char* evtcodelist = 0;
-
+  
   DetInfo::Detector det(DetInfo::NoDetector);
   unsigned detid(0), devid(0);
 
   char* endPtr;
   char* uniqueid = (char *)NULL;
   bool  bTurnOffBeamCodes = false;
-  
+  bool  internalSequence  = false;
+
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:r:d:u:nE:Rh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:r:d:u:nE:IRh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -195,6 +197,9 @@ int main(int argc, char** argv) {
       break;
     case 'E':
       evtcodelist = optarg;
+      break;
+    case 'I':
+      internalSequence = true;
       break;
     case 'R':
       EvrManager::randomize_nodes(true);
@@ -237,7 +242,6 @@ int main(int argc, char** argv) {
   printf("Using src %x/%x/%x/%x\n",det,detid,DetInfo::Evr,devid);
   DetInfo detInfo(node.pid(),det,detid,DetInfo::Evr,devid);
 
-  EvrCfgClient* cfgService = new EvrCfgClient(detInfo,const_cast<char*>(evtcodelist));
   Task* task = new Task(Task::MakeThisATask);
 
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
@@ -245,12 +249,26 @@ int main(int argc, char** argv) {
     uint32_t* p = reinterpret_cast<uint32_t*>(&erInfo.board());
     printf("Found EVR FPGA Version %x\n",p[11]);
   }
-  EvrManager& evrmgr = *new EvrManager(erInfo,
-                                       *cfgService,
-                                       bTurnOffBeamCodes);
+  Appliance* app;
+  Server*    srv;
+  if (internalSequence) {
+    CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
+    EvsManager& evrmgr = *new EvsManager(erInfo,
+					 *cfgService);
+    srv = &evrmgr.server();
+    app = &evrmgr.appliance();
+  }
+  else {
+    EvrCfgClient* cfgService = new EvrCfgClient(detInfo,const_cast<char*>(evtcodelist));
+    EvrManager& evrmgr = *new EvrManager(erInfo,
+					 *cfgService,
+					 bTurnOffBeamCodes);
+    srv = &evrmgr.server();
+    app = &evrmgr.appliance();
+  }
 
-  MySegWire settings(detInfo, uniqueid, evrmgr.server());
-  Seg* seg = new Seg(task, platform, settings, evrmgr, arp);
+  MySegWire settings(detInfo, uniqueid, *srv);
+  Seg* seg = new Seg(task, platform, settings, *app, arp);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
 

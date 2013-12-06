@@ -170,6 +170,7 @@ int main( int argc, char** argv )
 					     0, 0, 0, 0, 0,
 					     AsicsPerRow, AsicsPerColumn, 
 					     Rows, Columns, 
+					     0x200000, // 200MHz
 					     asics, testarray, maskarray ) );
 	    } break;
 #endif

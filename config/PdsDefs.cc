@@ -5,6 +5,7 @@
 #include "pds/config/QuartzConfigType.hh"
 #include "pds/config/FccdConfigType.hh"
 #include "pds/config/TM6740ConfigType.hh"
+#include "pds/config/EvsConfigType.hh"
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/EvrIOConfigType.hh"
 #include "pds/config/ControlConfigType.hh"
@@ -69,6 +70,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case Encoder      : type = &_encoderConfigType;   break;
   case Evr          : type = &_evrConfigType;       break;
   case EvrIO        : type = &_evrIOConfigType;     break;
+  case Evs          : type = &_evsConfigType;       break;
     //  case Sequencer    : type = &_seqConfigType;       break;
   case AcqADC       : type = &_acqConfigType;       break;
   case AcqTDC       : type = &_acqTdcConfigType;    break;
@@ -114,6 +116,7 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
 #define test(type) { if (name==Pds::TypeId::name(type.id())) return &type; }
   test(_evrConfigType);
   test(_evrIOConfigType);
+  test(_evsConfigType);
   //  test(_seqConfigType);
   test(_acqConfigType);
   test(_acqTdcConfigType);
@@ -161,6 +164,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
 #define test(type) { if (name==PdsDefs::qtypeName(type)) return &type; }
   test(_evrConfigType);
   test(_evrIOConfigType);
+  test(_evsConfigType);
   //  test(_seqConfigType);
   test(_acqConfigType);
   test(_acqTdcConfigType);
