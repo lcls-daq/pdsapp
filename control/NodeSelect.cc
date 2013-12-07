@@ -179,7 +179,7 @@ void NodeGroup::add_node(int index)
       QLayout* h = l->itemAt(index)->layout();
       QString sLabel = static_cast<QCheckBox*>(static_cast<QHBoxLayout*>(h)
 					       ->itemAt(0)->widget()) ->text();
-      if (node.label() < sLabel)
+      if (button->text() < sLabel)
         break;
     }
   }
@@ -283,7 +283,12 @@ void NodeGroup::replace_node(int index)
 { 
   const NodeSelect& node = _nodes[index];
   QCheckBox* button = static_cast<QCheckBox*>(_buttons->button(index));
-  button->setText(node.label());
+  if (node.alias().size()) {
+    button->setText(node.alias());
+    button->setToolTip(node.label());
+  }
+  else
+    button->setText(node.label());
   button->setPalette( node.ready() ? *_ready : *_notready );
 
   emit list_changed();
