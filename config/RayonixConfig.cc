@@ -4,6 +4,7 @@
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsdata/psddl/rayonix.ddl.h"
+#include "pds/config/RayonixConfigType.hh"
 
 #include <new>
 
@@ -18,10 +19,11 @@ namespace Pds_ConfigDb {
     enum Resolution { res1920x1920=0, res960x960=1 }; 
 
     Private_Data() :
-      _readoutMode    ("Readout mode", Pds::Rayonix::ConfigV1::Standard, readoutMode_to_name),
+      _readoutMode    ("Readout mode", RayonixConfigType::Standard, readoutMode_to_name),
       _resolution     ("Resolution",      res1920x1920,           res_to_name),
       _binning_f      (0),    // derived from _resolution
       _binning_s      (0),    // derived from _resolution
+      _testPattern    ("Test pattern",          0,            0,1),
       _exposure_ms    ("Exposure (ms)",         0,            0,10000),
       _trigger        ("Trigger (hex)",         0,            0,0xffffffff, Hex),
       _rawMode        ("Raw mode (0 or 1)",     0,            0,1),
@@ -32,6 +34,7 @@ namespace Pds_ConfigDb {
       pList.insert(&_readoutMode);
       pList.insert(&_resolution);
       pList.insert(&_exposure_ms);
+      pList.insert(&_testPattern);
       pList.insert(&_trigger);
       pList.insert(&_rawMode);
       pList.insert(&_darkFlag);
@@ -48,11 +51,12 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      Pds::Rayonix::ConfigV1& tc = *reinterpret_cast<Pds::Rayonix::ConfigV1*>(from);
+      RayonixConfigType& tc = *reinterpret_cast<RayonixConfigType*>(from);
 
       _binning_f = tc.binning_f();
       _binning_s = tc.binning_s();
       _resolution.value = (_binning_f == 4) ? res960x960 : res1920x1920;
+      _testPattern.value = tc.testPattern();
       _exposure_ms.value = tc.exposure();
       _trigger.value = tc.trigger();
       _rawMode.value = tc.rawMode();
@@ -65,10 +69,11 @@ namespace Pds_ConfigDb {
       // restriction: binning_f == binning_s
       _binning_f = _binning_s = binningEnum2int(_resolution.value);
 
-      Pds::Rayonix::ConfigV1& tc = *new(to) Pds::Rayonix::ConfigV1(
+      RayonixConfigType& tc = *new(to) RayonixConfigType(
         _binning_f,
         _binning_s,
         _exposure_ms.value,
+        _testPattern.value,
         _trigger.value,
         _rawMode.value,
         _darkFlag.value,
@@ -80,14 +85,15 @@ namespace Pds_ConfigDb {
     }
 
     int dataSize() const {
-      return sizeof(Pds::Rayonix::ConfigV1);
+      return sizeof(RayonixConfigType);
     }
 
   public:
-    Enumerated<Pds::Rayonix::ConfigV1::ReadoutMode> _readoutMode;
+    Enumerated<RayonixConfigType::ReadoutMode> _readoutMode;
     Enumerated<uint32_t> _resolution;
     uint8_t _binning_f;
     uint8_t _binning_s;
+    NumericInt<int16_t> _testPattern;
     NumericInt<uint16_t> _exposure_ms;
     NumericInt<uint32_t> _trigger;
     NumericInt<uint16_t> _rawMode;
