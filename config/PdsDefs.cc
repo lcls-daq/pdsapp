@@ -31,6 +31,7 @@
 #include "pds/config/EpixSamplerConfigType.hh"
 //#include "pds/config/ProjectionConfigType.hh"
 //#include "pds/config/SeqConfigType.hh"
+#include <cassert>
 
 #ifdef BUILD_EXTRA
 #include "pds/config/XampsConfigType.hh"
@@ -231,7 +232,9 @@ QTypeName PdsDefs::qtypeName(const Pds::TypeId& type)
 
 QTypeName PdsDefs::qtypeName(const UTypeName& utype)
 {
-  return PdsDefs::qtypeName(*PdsDefs::typeId(utype));
+  const Pds::TypeId* type_id = PdsDefs::typeId(utype);
+  assert(type_id != 0);
+  return PdsDefs::qtypeName(*type_id);
 }
 
 

@@ -359,6 +359,14 @@ void Devices_Ui::view_component()
   _current_component(utype,uname);
   QString qname(uname.c_str());
 
+  // check for NULL before PdsDefs::typeId() is dereferenced by data_path()
+  if (!PdsDefs::typeId(UTypeName(utype))) {
+    QString qtype(utype.c_str());
+    QString msg = QString("Device type \'%1\' not recognized.").arg(qtype);
+    QMessageBox::warning(this, "Unknown device", msg);
+    return;
+  }
+
   string path(_expt.path().data_path("",UTypeName(utype)));
   QString qpath(path.c_str());
   QString qfile = qpath + "/" + qname;
