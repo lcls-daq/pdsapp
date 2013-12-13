@@ -116,15 +116,13 @@ void sigHandler( int signal ) {
   Pds::CspadServer* server = Pds::CspadServer::instance();
   psignal( signal, "Signal received by CspadServer");
   if (server != 0) {
-    server->ignoreFetch(true);
-  }
-  if (server != 0) {
-    server->die();
-  }
-  if (server != 0) {
-    if (server->debug() & 0x1000) {
-      server->dumpFrontEnd();
+    if (myWire != 0) {
+      myWire->remove_input(server);
     }
+    if (server != 0) server->ignoreFetch(true);
+    if (server != 0) server->disable();
+    if (server != 0) server->dumpFrontEnd();
+    if (server != 0) server->die();
   }
   printf("Signal handler pulling the plug\n");
   ::exit(signal);

@@ -115,13 +115,13 @@ void sigHandler( int signal ) {
   Pds::Cspad2x2Server* server = Pds::Cspad2x2Server::instance();
   psignal( signal, "Signal received by Cspad2x2Server");
   if (server != 0) {
-    server->ignoreFetch(true);
-  }
-  if (server != 0) {
-    server->dumpFrontEnd();
-  }
-    if (server != 0) {
-    server->die();
+    if (myWire != 0) {
+      myWire->remove_input(server);
+    }
+    if (server != 0) server->ignoreFetch(true);
+    if (server != 0) server->disable();
+    if (server != 0) server->dumpFrontEnd();
+    if (server != 0) server->die();
     shutdown = true;
   }
   printf("Signal handler pulling the plug %s shutting down\n", shutdown ? "after" : "without");
