@@ -48,6 +48,7 @@
 #include "pdsapp/config/Cspad2x2Config_V1.hh"
 #include "pdsapp/config/Cspad2x2Config.hh"
 #include "pdsapp/config/EpixSamplerConfig.hh"
+#include "pdsapp/config/EpixConfig.hh"
 #include "pdsapp/config/OceanOpticsConfig.hh"
 #include "pdsapp/config/FliConfig.hh"
 #include "pdsapp/config/AndorConfig.hh"
@@ -78,6 +79,7 @@
 #include "pds/config/RayonixConfigType.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
 #include "pds/config/EpixSamplerConfigType.hh"
+#include "pds/config/EpixConfigType.hh"
 #include "pds/config/OceanOpticsConfigType.hh"
 #include "pds/config/FliConfigType.hh"
 #include "pds/config/AndorConfigType.hh"
@@ -139,6 +141,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_rayonixConfigType     ,new RayonixConfig);
   enroll(_CsPad2x2ConfigType    ,new Cspad2x2Config);
   enroll(_epixSamplerConfigType ,new EpixSamplerConfig);
+  enroll(_epixConfigType        ,new EpixConfig);
   enroll(_oceanOpticsConfigType ,new OceanOpticsConfig);  
   enroll(_fliConfigType         ,new FliConfig);  
   enroll(_andorConfigType       ,new AndorConfig);

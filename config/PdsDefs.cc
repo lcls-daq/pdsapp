@@ -29,6 +29,7 @@
 #include "pds/config/OrcaConfigType.hh"
 #include "pds/config/RayonixConfigType.hh"
 #include "pds/config/EpixSamplerConfigType.hh"
+#include "pds/config/EpixConfigType.hh"
 //#include "pds/config/ProjectionConfigType.hh"
 //#include "pds/config/SeqConfigType.hh"
 #include <cassert>
@@ -104,6 +105,7 @@ const Pds::TypeId* PdsDefs::typeId(ConfigType id)
   case Orca         : type = &_orcaConfigType; break;
   case Rayonix      : type = &_rayonixConfigType;   break;
   case EpixSampler  : type = &_epixSamplerConfigType;   break;
+  case Epix         : type = &_epixConfigType;   break;
     //  case Projection   : type = &_projectionConfigType; break;
   default: 
     printf("PdsDefs::typeId id %d not found\n",unsigned(id));
@@ -150,7 +152,8 @@ const Pds::TypeId* PdsDefs::typeId(const UTypeName& name)
   test(_usdusbConfigType);    
   test(_orcaConfigType);   
   test(_rayonixConfigType); 
-  test(_epixSamplerConfigType); 
+  test(_epixSamplerConfigType);
+  test(_epixConfigType);
   //  test(_projectionConfigType);    
 #undef test
   //  database-only types
@@ -197,6 +200,7 @@ const Pds::TypeId* PdsDefs::typeId(const QTypeName& name)
   test(_andorConfigType);    
   test(_usdusbConfigType); 
   test(_epixSamplerConfigType);   
+  test(_epixConfigType);
   //  test(_projectionConfigType);    
 #undef test
   //  database-only types

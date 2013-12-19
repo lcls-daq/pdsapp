@@ -36,7 +36,7 @@ namespace Pds {
   public:
     enum PadType { CsPad, CsPad140k, Fexamp, Imp, Epix, EpixSampler, NumberOf };
 
-    PadMonServer(PadType, const char* tag);
+    PadMonServer(PadType, const char* tag, unsigned nclient=1);
     ~PadMonServer();
   public:
     void configure(const Pds::CsPad::ConfigV5&);

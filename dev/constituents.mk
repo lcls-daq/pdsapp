@@ -40,7 +40,8 @@ tgtnames :=  evr \
     cam \
     imp \
     pnccd \
-    epixsampler
+    epixsampler \
+    epix
   ifeq ($(build_extra),$(true))
     tgtnames += xamps fexamp
   endif
@@ -73,6 +74,14 @@ tgtincs_epixsampler := pdsdata/include ndarray/include boost/include
 CPPFLAGS += -fno-strict-aliasing
 #CPPFLAGS += -fopenmp
 #DEFINES += -fopenmp
+
+tgtsrcs_epix := epix.cc
+tgtlibs_epix := $(commonlibs) pds/epix pds/pgp pds/configdata
+tgtslib_epix := $(USRLIBDIR)/rt
+tgtincs_epix := pdsdata/include ndarray/include boost/include 
+CPPFLAGS += -fno-strict-aliasing
+CPPFLAGS += -fopenmp
+DEFINES += -fopenmp
 
 tgtsrcs_imp := imp.cc
 tgtlibs_imp := $(commonlibs) pds/imp pds/pgp pds/configdata

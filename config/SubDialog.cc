@@ -20,10 +20,22 @@ SubDialog::SubDialog(QWidget* parent,
     layout->addLayout(p->initialize(this));
     p = p->forward();
   }
-  if (tbi) layout->addWidget(tbi);
-  QPushButton* bReturn = new QPushButton("Return",this);
-  layout->addWidget(bReturn);
-  connect(bReturn, SIGNAL(clicked()), this, SLOT(_return()));
+  if (tbi) {
+    QHBoxLayout* l = new QHBoxLayout;
+    l->addStretch();
+    l->addWidget(tbi);
+    l->addStretch();
+    layout->addLayout(l);
+  }
+  
+  { QPushButton* bReturn = new QPushButton("Return",this);
+    QHBoxLayout* l = new QHBoxLayout;
+    l->addStretch();
+    l->addWidget(bReturn);
+    l->addStretch();
+    layout->addLayout(l);
+    connect(bReturn, SIGNAL(clicked()), this, SLOT(_return()));
+  }
 
   setLayout(layout);
 }
