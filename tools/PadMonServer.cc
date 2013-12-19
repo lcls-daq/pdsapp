@@ -10,7 +10,7 @@
 #include "pdsdata/psddl/imp.ddl.h"
 #include "pdsdata/psddl/opal1k.ddl.h"
 #include "pdsdata/psddl/camera.ddl.h"
-//#include "pdsdata/psddl/epix.ddl.h"
+#include "pdsdata/psddl/epix.ddl.h"
 #include "pdsdata/psddl/epixsampler.ddl.h"
 
 #include "pdsdata/xtc/ProcInfo.hh"
@@ -134,12 +134,14 @@ static Dgram* insert(Dgram*              dg,
 
 static const unsigned sizeofBuffers = 0xA00000;
 static const unsigned numberofBuffers = 8;
-static const unsigned nclients = 1;
 static const unsigned sequenceLength = 1;
 static unsigned payloadsize = 0;
+static char* shuffle = 0;
+static char* config  = 0;
 
 PadMonServer::PadMonServer(PadType t,
-                           const char* partitionTag) :
+                           const char* partitionTag,
+			   unsigned    nclients) :
   _t   (t),
   _srv (new MyMonitorServer(partitionTag,
                             sizeofBuffers, 
@@ -248,7 +250,10 @@ void PadMonServer::event    (const Pds::Imp::ElementV1& e)
 
 void PadMonServer::configure(const Pds::Epix::ConfigV1& c)
 {
-#if 0
+#if 1
+  config = new char[c._sizeof()];
+  memcpy(config, &c, c._sizeof());
+
   _srv->events(insert(_srv->newDatagram(), TransitionId::Map));
 
   Dgram* dg = _srv->newDatagram();
@@ -259,6 +264,7 @@ void PadMonServer::configure(const Pds::Epix::ConfigV1& c)
          &c, 
          c._sizeof());
   payloadsize = Pds::Epix::ElementV1::_sizeof(c);
+  shuffle = new char[payloadsize];
   _srv->events(dg);
 
   _srv->events(insert(_srv->newDatagram(), TransitionId::BeginRun));
@@ -269,13 +275,35 @@ void PadMonServer::configure(const Pds::Epix::ConfigV1& c)
 
 void PadMonServer::event    (const Pds::Epix::ElementV1& e)
 {
-#if 0
+#if 1
+  //
+  //  unshuffle the data
+  //
+  const Pds::Epix::ConfigV1*  c = reinterpret_cast<const Pds::Epix::ConfigV1*>(config);
+  Pds::Epix::ElementV1* o = reinterpret_cast<Pds::Epix::ElementV1*>(shuffle);
+
+  //  header
+  memcpy(o, &e, sizeof(e));
+
+  //  frame data
+  unsigned nrows = c->numberOfRows()/2;
+  ndarray<const uint16_t,2> iframe = e. frame(*c);
+  ndarray<const uint16_t,2> oframe = o->frame(*c);
+  for(unsigned i=0; i<nrows; i++) {
+    memcpy(const_cast<uint16_t*>(&oframe[nrows+i+0][0]), &iframe[2*i+0][0], c->numberOfColumns()*sizeof(uint16_t));
+    memcpy(const_cast<uint16_t*>(&oframe[nrows-i-1][0]), &iframe[2*i+1][0], c->numberOfColumns()*sizeof(uint16_t));
+  }
+
+  //  after frame data
+  unsigned tsz = reinterpret_cast<const uint8_t*>(&e) + e._sizeof(*c) - reinterpret_cast<const uint8_t*>(iframe.end());
+  memcpy(const_cast<uint16_t*>(oframe.end()), iframe.end(), tsz);
+
   Dgram* dg = _srv->newDatagram();
   insert(dg,
          TransitionId::L1Accept, 
          TypeId(TypeId::Id_EpixElement,1),
          srcInfo[_t],
-         &e, 
+         o, 
          payloadsize);
   _srv->events(dg);
 #endif
