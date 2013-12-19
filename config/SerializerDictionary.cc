@@ -45,6 +45,7 @@
 #include "pdsapp/config/TimepixConfig.hh"
 #include "pdsapp/config/TimepixConfig_V2.hh"
 #include "pdsapp/config/RayonixConfig.hh"
+#include "pdsapp/config/RayonixConfig_V2.hh"
 #include "pdsapp/config/Cspad2x2Config_V1.hh"
 #include "pdsapp/config/Cspad2x2Config.hh"
 #include "pdsapp/config/EpixSamplerConfig.hh"
@@ -164,6 +165,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_DiodeFexConfig,1), new DiodeFexConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,1),new ControlConfig_V1::ControlConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_TimepixConfig,2),new TimepixConfig_V2);
+  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,2), new RayonixConfig_V2);
 #undef enroll
   return 0;
 }
