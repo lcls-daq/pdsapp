@@ -144,7 +144,7 @@ void DamageStats::dump() const
   if (bldProcess) {
     for(int i=0; i<_partition.reporters().size(); i++) {
       const BldInfo& info = _partition.reporters().at(i);
-      printf("%20.20s.%08x: %lld\n", BldInfo::name(info), info.phy(), _counts.at(row)->value());
+      printf("%32.32s.%08x: %lld\n", BldInfo::name(info), info.phy(), _counts.at(row)->value());
       row++;
     }
     //
