@@ -30,6 +30,5 @@ tgtslib_bldIpimb := $(USRLIBDIR)/rt $(qtslibdir)
 
 tgtsrcs_bldipimbclient := bldIpimbClient.cc bldIpimbClient_moc.cc
 tgtlibs_bldipimbclient := $(datalibs) pdsapp/configdb pdsapp/configdbg pds/configdata
-tgtlibs_bldipimbclient += pdsalg/pdsalg
 tgtlibs_bldipimbclient += $(qt_libs)
 tgtincs_bldipimbclient := pdsdata/include $(qtincdir)
