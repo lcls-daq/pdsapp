@@ -30,7 +30,7 @@
 #include "pdsdata/psddl/camera.ddl.h"
 #include "pdsdata/psddl/alias.ddl.h"
 
-//#include "pdsdata/psddl/epix.ddl.h"
+#include "pdsdata/psddl/epix.ddl.h"
 #include "pdsdata/psddl/epixsampler.ddl.h"
 
 #include <unistd.h>
@@ -58,13 +58,13 @@ using Pds::Camera::FrameV1;
 using Pds::Alias::SrcAlias;
 
 //
-//#include "pds/config/EpixConfig.hh"
+//#include "pds/config/EpixConfigType.hh"
 //
 static TypeId _EpixConfigType(TypeId::Id_EpixConfig,1);
-//typedef Epix::ConfigV1 EpixConfigType;
+typedef Epix::ConfigV1 EpixConfigType;
 
 static TypeId _EpixDataType  (TypeId::Id_EpixElement,1);
-//typedef Epix::ElementV1 EpixDataType;
+typedef Epix::ElementV1 EpixDataType;
 
 static TypeId _EpixSamplerConfigType(TypeId::Id_EpixSamplerConfig,1);
 typedef EpixSampler::ConfigV1 EpixSamplerConfigType;
@@ -586,7 +586,7 @@ private:
 };
 
 
-#if 0
+#if 1
 class SimEpixBase : public SimApp {
 public:
   SimEpixBase(const Src& src, unsigned AsicsPerColumn, unsigned AsicsPerRow, unsigned Rows, unsigned Columns) 
@@ -605,18 +605,20 @@ public:
     memset(testarray, 0, Asics*Rows*(Columns+31)/32*sizeof(uint32_t));
     uint32_t* maskarray = new uint32_t[Asics*Rows*(Columns+31)/32];
     memset(maskarray, 0, Asics*Rows*(Columns+31)/32*sizeof(uint32_t));
+    unsigned asicMask = src.phy()&0xf;
 
     EpixConfigType* cfg = 
-      new (_cfgtc->next()) EpixConfigType( 0, 1, 0, 1, 0,
-					   0, 0, 0, 0, 0, 
-					   0, 0, 0, 0, 0, 
-					   0, 0, 0, 0, 0, 
-					   0, 0, 0, 0, 0, 
-					   1, 0, 0, 0, 0, 
-					   0, 0, 0, 0, 0,
+      new (_cfgtc->next()) EpixConfigType( 0, 1, 0, 1, 0, // version
+					   0, 0, 0, 0, 0, // asicAcq
+					   0, 0, 0, 0, 0, // asicGRControl
+					   0, 0, 0, 0, 0, // asicR0Control
+					   0, 0, 0, 0, 0, // asicR0ToAsicAcq
+					   1, 0, 0, 0, 0, // adcClkHalfT
+					   0, 0, 0, 0, 0, // digitalCardId0
 					   AsicsPerRow, AsicsPerColumn, 
 					   Rows, Columns, 
 					   0x200000, // 200MHz
+					   asicMask,
 					   asics, testarray, maskarray );
 					 
     _cfgtc->alloc(cfg->_sizeof());
@@ -825,7 +827,7 @@ public:
       _app = new SimCspad140k(src);
     else if (SimImp::handles(src))
       _app = new SimImp(src);
-#if 0
+#if 1
     else if (SimEpix100::handles(src))
       _app = new SimEpix100(src);
     else if (SimEpix10k::handles(src))
