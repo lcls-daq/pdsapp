@@ -31,27 +31,38 @@ namespace Pds
   class SegWireSettingsOceanOptics:public SegWireSettings
   {
   public:
-    SegWireSettingsOceanOptics(const Src & src, OceanOpticsServer* pServer) :
+    SegWireSettingsOceanOptics(const Src & src, OceanOpticsServer* pServer, string sAliasName) :
       _pServer(pServer)
     {
       _sources.push_back(src);
+      if (sAliasName.length())
+      {
+        SrcAlias tmpAlias(src, sAliasName.c_str());
+        _aliases.push_back(tmpAlias);
+      }
     }
+
     virtual ~SegWireSettingsOceanOptics()
     {
     }
     void connect(InletWire & wire, StreamParams::StreamType s, int interface)
     {
       printf("Adding input of server, fd %d\n", _pServer->fd() );
-      wire.add_input( _pServer );      
+      wire.add_input( _pServer );
     }
     const std::list < Src > &sources() const
     {
       return _sources;
     }
 
+    const std::list<SrcAlias>* pAliases() const
+    {
+      return (_aliases.size() > 0) ? &_aliases : NULL;
+    }
   private:
     std::list < Src >   _sources;
     OceanOpticsServer*  _pServer;
+    std::list<SrcAlias> _aliases;
   };
 
 //
@@ -61,10 +72,10 @@ namespace Pds
   class EventCallBackOceanOptics:public EventCallback
   {
   public:
-    EventCallBackOceanOptics(OceanOpticsServer* pServer, 
-      int iPlatform, CfgClientNfs & cfgService, 
+    EventCallBackOceanOptics(OceanOpticsServer* pServer,
+      int iPlatform, CfgClientNfs & cfgService,
       int iDevice, int iDebugLevel):
-      _pServer(pServer), _pManager(NULL), _iPlatform(iPlatform), _cfg(cfgService), _iDevice(iDevice), 
+      _pServer(pServer), _pManager(NULL), _iPlatform(iPlatform), _cfg(cfgService), _iDevice(iDevice),
       _iDebugLevel(iDebugLevel), _bAttached(false)
     {
     }
@@ -78,7 +89,7 @@ namespace Pds
     {
       return _bAttached;
     }
-    
+
   private:
     void reset()
     {
@@ -104,7 +115,7 @@ namespace Pds
 
     virtual void failed(Reason reason)
     {
-      static const char *reasonname[] = 
+      static const char *reasonname[] =
       { "platform unavailable",
         "crates unavailable",
         "fcpm unavailable"
@@ -130,9 +141,9 @@ namespace Pds
 
       reset();
     }
-    
+
   private:
-    OceanOpticsServer*  _pServer;    
+    OceanOpticsServer*  _pServer;
     OceanOpticsManager* _pManager;
     int                 _iPlatform;
     CfgClientNfs &      _cfg;
@@ -142,7 +153,7 @@ namespace Pds
   };        // class EventCallBackOceanOptics
 
 
-}       // namespace Pds 
+}       // namespace Pds
 
 
 using namespace Pds;
@@ -152,12 +163,13 @@ static void showUsage()
 {
   printf
     ("Usage:  oceanoptics  [-v|--version] [-h|--help] [-d|--device <0-9> ]\n"
-     "                     [-i|--id <id>] [-l|--debug <level>] [-i|--id <id>]\n"
+     "                     [-i|--id <id>] [-l|--debug <level>] [-u|--uniqueid <alias>]\n"
      "                     -p|--platform <platform id>\n"
      "  Options:\n" "    -v|--version                 Show file version.\n"
      "    -h|--help                    Show usage.\n"
      "    -d|--device   [0-9]          Select the oceanOptics device. (Default: 0)\n"
      "    -i|--id       <id>           Set ID. Format: Detector/DetectorId/DeviceId. (Default: NoDetector/0/0)\n"
+     "    -u|--uniqueid <alias>        Set device alias.\n"
      "    -l|--debug    <level>        Set debug level. (Default: 0)\n"
      "    -p|--platform <platform id>  [*required*] Set platform id.\n");
 }
@@ -182,24 +194,26 @@ void oceanOpticsSignalIntHandler(int iSignalNo)
 
 int main(int argc, char **argv)
 {
-  const char *strOptions = ":vhp:d:i:l:";
+  const char *strOptions = ":vhp:d:i:u:l:";
   const struct option loOptions[] = {
     {"ver"      , 0, 0, 'v'},
     {"help"     , 0, 0, 'h'},
     {"platform" , 1, 0, 'p'},
     {"device"   , 1, 0, 'd'},
     {"id"       , 1, 0, 'i'},
+    {"uniqueid" , 1, 0, 'u'},
     {"debug"    , 1, 0, 'l'},
     {0, 0, 0, 0}
   };
 
   // parse the command line for our boot parameters
-  int               iDevice = 0;
-  DetInfo::Detector detector = DetInfo::NoDetector;
+  int               iDevice     = 0;
+  DetInfo::Detector detector    = DetInfo::NoDetector;
   int               iDetectorId = 0;
-  int               iDeviceId = 0;
+  int               iDeviceId   = 0;
+  string            sUniqueId;
   int               iDebugLevel = 0;
-  int               iPlatform = -1;  
+  int               iPlatform   = -1;
 
   int iOptionIndex = 0;
   while (int opt =
@@ -225,19 +239,25 @@ int main(int argc, char **argv)
       ++pNextToken;
       if (*pNextToken == 0)
         break;
-        
+
       iDetectorId = strtoul(pNextToken, &pNextToken, 0);
       ++pNextToken;
       if (*pNextToken == 0)
         break;
-        
+
       iDeviceId = strtoul(pNextToken, &pNextToken, 0);
+      break;
+    case 'u':
+      sUniqueId = optarg;
       break;
     case 'l':
       iDebugLevel = strtoul(optarg, NULL, 0);
       break;
-    case '?':     /* Terse output mode */
-      printf("oceanOptics:main(): Unknown option: %c\n", optopt);
+    case '?':               /* Terse output mode */
+      if (optopt)
+        printf( "oceanOptics:main(): Unknown option: %c\n", optopt );
+      else
+        printf( "oceanOptics:main(): Unknown option: %s\n", argv[optind-1] );
       break;
     case ':':     /* Terse output mode */
       printf("oceanOptics:main(): Missing argument for %c\n", optopt);
@@ -282,26 +302,28 @@ int main(int argc, char **argv)
     const DetInfo detInfo(getpid(), detector, iDetectorId,
         DetInfo::OceanOptics, iDeviceId);
     printf("  DetInfo: %s  Debug Level: %d\n", DetInfo::name(detInfo), iDebugLevel);
+    if (sUniqueId.length())
+      printf("  Alias: %s\n", sUniqueId.c_str());
 
     Task *task = new Task(Task::MakeThisATask);
     taskMainThread = task;
-    
+
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
-    
+
     // Note: pServer will be deleted inside ~SegementLevel
-    OceanOpticsServer* pServer = new OceanOpticsServer(cfgService.src(), iDevice, iDebugLevel);    
-    
+    OceanOpticsServer* pServer = new OceanOpticsServer(cfgService.src(), iDevice, iDebugLevel);
+
     EventCallBackOceanOptics eventCallBackOceanOptics(pServer, iPlatform, cfgService, iDevice, iDebugLevel);
-    
-    SegWireSettingsOceanOptics settings(detInfo, pServer);    
+
+    SegWireSettingsOceanOptics settings(detInfo, pServer, sUniqueId);
     SegmentLevel segmentLevel(iPlatform, settings, eventCallBackOceanOptics, NULL);
 
     segmentLevel.attach();
     if (eventCallBackOceanOptics.IsAttached())
-      task->mainLoop();   // Enter the event processing loop, and never returns (unless the program terminates)                  
-      
+      task->mainLoop();   // Enter the event processing loop, and never returns (unless the program terminates)
+
     // Note: ~SegmentLevel() will delete the server internally, so we don't call delete pServer here
-  }  
+  }
   catch ( OceanOpticsServerException& eServer )
   {
     printf
@@ -315,6 +337,6 @@ int main(int argc, char **argv)
     else
       printf("main(): Unknown exception\n");
   }
-  
+
   return 0;
 }

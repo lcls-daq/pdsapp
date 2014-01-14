@@ -31,13 +31,25 @@ static const char sFliVersion[] = "0.9";
 class SegWireSettingsFli : public SegWireSettings
 {
 public:
-    SegWireSettingsFli(const Src& src) { _sources.push_back(src); }
+    SegWireSettingsFli(const Src& src, string sAliasName)
+    {
+      _sources.push_back(src);
+      if (sAliasName.length())
+      {
+        SrcAlias tmpAlias(src, sAliasName.c_str());
+        _aliases.push_back(tmpAlias);
+      }
+    }
     virtual ~SegWireSettingsFli() {}
     void connect (InletWire& wire, StreamParams::StreamType s, int interface) {}
     const std::list<Src>& sources() const { return _sources; }
-
+    const std::list<SrcAlias>* pAliases() const
+    {
+      return (_aliases.size() > 0) ? &_aliases : NULL;
+    }
 private:
     std::list<Src> _sources;
+    std::list<SrcAlias> _aliases;
 };
 
 //
@@ -144,12 +156,13 @@ static void showUsage()
 {
     printf( "Usage:  fli  [-v|--version] [-h|--help] [-c|--camera <0-9> ] "
       "[-i|--id <id>] [-d|--delay] [-n|--init] [-g|--config <db_path>] [-s|--sleep <ms>] "
-      "[-l|--debug <level>] [-i|--id <id>] -p|--platform <platform id>\n"
+      "[-l|--debug <level>] [-u|--uniqueid <alias>] -p|--platform <platform id>\n"
       "  Options:\n"
       "    -v|--version                 Show file version.\n"
       "    -h|--help                    Show usage.\n"
       "    -c|--camera   [0-9]          Select the fli device. (Default: 0)\n"
       "    -i|--id       <id>           Set ID. Format: Detector/DetectorId/DeviceId. (Default: NoDetector/0/0)\n"
+      "    -u|--uniqueid <alias>        Set device alias.\n"
       "    -d|--delay                   Use delay mode.\n"
       "    -n|--init                    Run a testing capture to avoid the initial delay.\n"
       "    -g|--config   <db_path>      Intial fli camera based on the config db at <db_path>\n"
@@ -177,7 +190,7 @@ void fliSignalIntHandler( int iSignalNo )
 
 int main(int argc, char** argv)
 {
-    const char*   strOptions    = ":vhp:c:i:dnl:g:s:";
+    const char*   strOptions    = ":vhp:c:i:u:dnl:g:s:";
     const struct option loOptions[]   =
     {
        {"ver",      0, 0, 'v'},
@@ -185,6 +198,7 @@ int main(int argc, char** argv)
        {"platform", 1, 0, 'p'},
        {"camera",   1, 0, 'c'},
        {"id",       1, 0, 'i'},
+       {"uniqueid", 1, 0, 'u'},
        {"delay",    0, 0, 'd'},
        {"init",     0, 0, 'n'},
        {"config",   1, 0, 'g'},
@@ -198,6 +212,7 @@ int main(int argc, char** argv)
     DetInfo::Detector detector      = DetInfo::NoDetector;
     int               iDetectorId   = 0;
     int               iDeviceId     = 0;
+    string            sUniqueId;
     bool              bDelayMode    = false;
     bool              bInitTest     = false;
     int               iDebugLevel   = 0;
@@ -229,7 +244,10 @@ int main(int argc, char** argv)
             if ( *pNextToken == 0 ) break;
             iDeviceId   = strtoul(pNextToken, &pNextToken, 0);
             break;
-        case 'd':
+          case 'u':
+            sUniqueId = optarg;
+            break;
+          case 'd':
             bDelayMode = true;
             break;
         case 'n':
@@ -245,7 +263,10 @@ int main(int argc, char** argv)
             iSleepInt = strtoul(optarg, NULL, 0);
             break;
         case '?':               /* Terse output mode */
-            printf( "fli:main(): Unknown option: %c\n", optopt );
+            if (optopt)
+              printf( "fli:main(): Unknown option: %c\n", optopt );
+            else
+              printf( "fli:main(): Unknown option: %s\n", argv[optind-1] );
             break;
         case ':':               /* Terse output mode */
             printf( "fli:main(): Missing argument for %c\n", optopt );
@@ -290,12 +311,14 @@ int main(int argc, char** argv)
     printf("  DetInfo: %s  ConfigDb: %s  Sleep: %d ms\n", DetInfo::name(detInfo), sConfigDb.c_str(), iSleepInt );
     printf("  Delay Mode: %s  Init Test: %s  Debug Level: %d\n", (bDelayMode?"Yes":"No"), (bInitTest?"Yes":"No"),
       iDebugLevel);
+    if (sUniqueId.length())
+      printf("  Alias: %s\n", sUniqueId.c_str());
 
     Task* task = new Task(Task::MakeThisATask);
     taskMainThread = task;
 
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
-    SegWireSettingsFli settings(detInfo);
+    SegWireSettingsFli settings(detInfo, sUniqueId);
 
     EventCallBackFli  eventCallBackFli(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iDebugLevel);
     SegmentLevel segmentLevel(iPlatform, settings, eventCallBackFli, NULL);
