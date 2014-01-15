@@ -15,7 +15,7 @@ namespace Pds_ConfigDb {
     EvsCode() : 
       Parameter(NULL),
       _code  ("Code",0,0,255),
-      _rate  ("Rate [Hz]",120,119e6/double(0xffffffff),119e6)
+      _rate  ("Rate [Hz]",120,0,119e6)
     {}
   public:
     QLayout* initialize(QWidget*) {
@@ -37,10 +37,12 @@ namespace Pds_ConfigDb {
   public:
     void pull(const EvsConfigType& tc) {
       _code  .value = tc.eventcodes()[0].code();
-      _rate  .value = 119.e6/double(tc.eventcodes()[0].period());
+      unsigned period = tc.eventcodes()[0].period();
+      _rate  .value = period ? 119.e6/double(period) : 0;
     }
     bool validate() {
-      new(_result) Pds::EvrData::SrcEventCode(_code.value, unsigned(119e6/_rate.value+0.5),
+      new(_result) Pds::EvrData::SrcEventCode(_code.value, 
+					      _rate.value ? unsigned(119e6/_rate.value+0.5) : 0,
 					      0, 0, 
 					      0, 1);
       return true;

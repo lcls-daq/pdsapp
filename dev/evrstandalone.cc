@@ -57,6 +57,9 @@ void EvrStandAloneManager::start() {
 
 void EvrStandAloneManager::configure() {
   printf("Configuring evr\n");
+  _er.InternalSequenceEnable     (0);
+  _er.ExternalSequenceEnable     (0);
+
   _er.Reset();
 
   // setup map ram
@@ -75,8 +78,6 @@ void EvrStandAloneManager::configure() {
   _er.DumpPulses(npulses);
 
   if (nsrc) {
-    _er.InternalSequenceEnable(0);
-    _er.ExternalSequenceEnable(0);
     if (src.period) {
       _er.InternalSequenceSetCode    (src.eventcode);
       _er.InternalSequenceSetPrescale(src.period-1);

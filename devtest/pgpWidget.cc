@@ -1,5 +1,5 @@
 #include "pdsapp/tools/PadMonServer.hh"
-//#include "pdsdata/psddl/epix.ddl.h"
+#include "pdsdata/psddl/epix.ddl.h"
 #include "pdsdata/psddl/epixsampler.ddl.h"
 #include "pds/pgp/Pgp.hh"
 #include "pds/pgp/Destination.hh"
@@ -31,7 +31,7 @@ Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
-  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-S detID,sharedMemoryTag][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
+  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-S detID,sharedMemoryTag,nclients][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
       "    -h      Show usage\n"
       "    -P      Set pgpcard index number  (REQUIRED)\n"
       "                The format of the index number is a one byte number with the bottom nybble being\n"
@@ -146,32 +146,40 @@ int main( int argc, char** argv )
 	  else if (strcmp(dev,"EpixSampler")==0) typ = PadMonServer::EpixSampler;
 	  else { printf("device type %s not understood\n",dev); return -1; }
 	  char* tag  = strtok(NULL,",");
-	  shm = new PadMonServer(typ, tag); 
+	  char* nclstr = strtok(NULL,",");
+	  unsigned nclients=1;
+	  if (nclstr)
+	    nclients=strtoul(nclstr,NULL,0);
+	  shm = new PadMonServer(typ, tag, nclients); 
 	  switch(typ) {
-#if 0
+#if 1
 	  case PadMonServer::Epix:
 	    { const unsigned AsicsPerRow=2;
 	      const unsigned AsicsPerColumn=2;
 	      const unsigned Asics=AsicsPerRow*AsicsPerColumn;
-	      const unsigned Rows   =2*96;
-	      const unsigned Columns=2*88;
+	      const unsigned Rows   =4*88;
+	      const unsigned Columns=4*96;
 	      Epix::AsicConfigV1 asics[Asics];
 	      uint32_t* testarray = new uint32_t[Asics*Rows*(Columns+31)/32];
 	      memset(testarray, 0, Asics*Rows*(Columns+31)/32*sizeof(uint32_t));
 	      uint32_t* maskarray = new uint32_t[Asics*Rows*(Columns+31)/32];
 	      memset(maskarray, 0, Asics*Rows*(Columns+31)/32*sizeof(uint32_t));
-
-	      shm->configure(Epix::ConfigV1( 0, 1, 0, 1, 0,
-					     0, 0, 0, 0, 0, 
-					     0, 0, 0, 0, 0, 
-					     0, 0, 0, 0, 0, 
-					     0, 0, 0, 0, 0, 
-					     1, 0, 0, 0, 0, 
-					     0, 0, 0, 0, 0,
-					     AsicsPerRow, AsicsPerColumn, 
-					     Rows, Columns, 
-					     0x200000, // 200MHz
-					     asics, testarray, maskarray ) );
+	      unsigned asicMask=0xf;
+	      
+	      char* p = new char[0x1000000];
+	      shm->configure(*new(p)Epix::ConfigV1( 0, 1, 0, 1, 0,
+						    0, 0, 0, 0, 0, 
+						    0, 0, 0, 0, 0, 
+						    0, 0, 0, 0, 0, 
+						    0, 0, 0, 0, 0, 
+						    1, 0, 0, 0, 0, 
+						    0, 0, 0, 0, 0,
+						    AsicsPerRow, AsicsPerColumn, 
+						    Rows, Columns, 
+						    0x200000, // 200MHz
+						    asicMask,
+						    asics, testarray, maskarray ) );
+	      delete[] p;
 	    } break;
 #endif
 	  case PadMonServer::EpixSampler:
@@ -274,6 +282,7 @@ int main( int argc, char** argv )
     } else {
       unsigned myi = 0;
       unsigned dest, addr, data;
+      unsigned tid = 0x2dbeef;
       while (fscanf(f, "%x %x %x", &dest, &addr, &data) && !feof(f) && myi++ < maxCount) {
         _d.dest(dest);
         printf("\nConfig from file, dest %s, addr 0x%x, data 0x%x ", _d.name(), addr, data);
@@ -353,7 +362,8 @@ int main( int argc, char** argv )
 	  if (shm) {
 	    switch(typ) {
 	    case PadMonServer::Epix:
-	      shm->event(*reinterpret_cast<Epix::ElementV1*>(pgpCardRx.data)); break;
+	      if (readRet > 1000) // ignore configure returns
+		shm->event(*reinterpret_cast<Epix::ElementV1*>(pgpCardRx.data)); break;
 	    case PadMonServer::EpixSampler:
 	      shm->event(*reinterpret_cast<EpixSampler::ElementV1*>(pgpCardRx.data)); break;
 	    default:

@@ -56,6 +56,10 @@ void EvrStandAloneManager::resume() {
 
 void EvrStandAloneManager::configure() {
   printf("Configuring evr\n");
+
+  _er.InternalSequenceEnable     (0);
+  _er.ExternalSequenceEnable     (0);
+
   _er.Reset();
 
   //int pulse = 0; int presc = 1; int enable = 1;
