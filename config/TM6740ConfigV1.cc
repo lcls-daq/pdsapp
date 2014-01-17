@@ -58,10 +58,10 @@ namespace Pds_ConfigDb {
     }
 
     int push(void* to) {
-      TM6740ConfigType& tc = *new(to) TM6740ConfigType(_vref  .value,
-						       _gain_a.value,
+      TM6740ConfigType& tc = *new(to) TM6740ConfigType(_gain_a.value,
 						       _gain_b.value,
-						       _shutter_width.value,
+						       _vref  .value,
+                                                       _shutter_width.value,
 						       _gain_balance.value==Enums::True,
 						       _depth.value,
 						       _hbinning.value,
