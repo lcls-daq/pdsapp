@@ -950,6 +950,7 @@ int main(int argc, char** argv) {
   unsigned platform = NO_PLATFORM;
   bool lCompress = false;
   uint64_t mask = (1ULL<<BldInfo::NumberOf)-1;
+  EbBase::printSinks(false);
 
   extern char* optarg;
   int c;
