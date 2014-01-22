@@ -298,12 +298,16 @@ bool EvrPulseTable::validate(unsigned ncodes,
     int adjusted_delay = p._delay.value + delay_offset;
 
     if (adjusted_delay < 0) {
-      QString msg = QString("Pulse %1 delay too small (by %2 ticks, %3 ns)\n")
+      QString msg = QString("Pulse %1 delay too small (by %2 ticks, %3 ns)\n"
+                            "Readout eventcode %4 occurs %5 ns later than eventcode 140\n")
         .arg(npt)
         .arg(-adjusted_delay)
-        .arg(double(-adjusted_delay)*EvrPeriod*1e9);
-      QMessageBox::warning(0,"Input Error",msg);
-      result = false;
+        .arg(double(-adjusted_delay)*EvrPeriod*1e9)
+        .arg(primary_readout)
+        .arg(double(-delay_offset)*EvrPeriod*1e9);
+      QMessageBox::warning(0,"Input Warning",msg);
+      //  Allow this, EVR will configure delay to 0
+      //      result = false;
     }
 
     if (p._width.value > readout_period) {
