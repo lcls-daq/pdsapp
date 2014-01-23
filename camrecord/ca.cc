@@ -182,6 +182,7 @@ class caconn {
             switch (binned) {
             case CAMERA_ROI:
             case CAMERA_SIZE:
+            case CAMERA_ADET:
             case CAMERA_NONE:
                 new ((void *)cfg->alloc(sizeof(Pulnix::TM6740ConfigV2)))
                     Pulnix::TM6740ConfigV2(32, 32, 0x1e8, 0x1e8, false,
@@ -217,6 +218,7 @@ class caconn {
             switch (binned) {
             case CAMERA_ROI:
             case CAMERA_SIZE:
+            case CAMERA_ADET:
             case CAMERA_NONE:
                 new ((void *)cfg->alloc(sizeof(Opal1k::ConfigV1)))
                     Opal1k::ConfigV1(32, 100, Opal1k::ConfigV1::Twelve_bit, Opal1k::ConfigV1::x1,
@@ -274,6 +276,14 @@ class caconn {
                     f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, 10, 32);
                     nelem = w * h;
                 }
+            case CAMERA_ADET:
+                if (get_image_size(pvname.c_str(), ":ArraySize0_RBV", ":ArraySize1_RBV", &w, &h)) {
+                    /* Print an error! */
+                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(640, 480, 10, 32);
+                } else {
+                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, 10, 32);
+                    nelem = w * h;
+                }
                 break;
             }
             break;
@@ -296,6 +306,15 @@ class caconn {
                 break;
             case CAMERA_SIZE:
                 if (get_image_size(pvname.c_str(), ":N_OF_COL", ":N_OF_ROW", &w, &h)) {
+                    /* Print an error! */
+                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 1024, 12, 32);
+                } else {
+                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, 12, 32);
+                    nelem = w * h;
+                }
+                break;
+            case CAMERA_ADET:
+                if (get_image_size(pvname.c_str(), ":ArraySize0_RBV", ":ArraySize1_RBV", &w, &h)) {
                     /* Print an error! */
                     f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 1024, 12, 32);
                 } else {

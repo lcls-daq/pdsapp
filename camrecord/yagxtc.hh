@@ -16,8 +16,9 @@
 /* Flags that can modify cameras */
 #define CAMERA_NONE    0
 #define CAMERA_BINNED  1    /* The image is binned in a standard way. */
-#define CAMERA_ROI     2    /* The image has a ROI described by :ROI_YNP and :ROI_XNP. */
+#define CAMERA_ROI     2    /* The image has a size described by :ROI_YNP and :ROI_XNP. */
 #define CAMERA_SIZE    4    /* The image has a size described by :N_OF_ROW and :N_OF_COL. */
+#define CAMERA_ADET    8    /* The image has a size described by :ArraySize0_RBV and :ArraySize1_RBV */
 
 
 /* How many parameters does LogBook::Connection::open have? */

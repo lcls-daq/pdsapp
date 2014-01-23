@@ -305,6 +305,8 @@ static void read_config_file(const char *name)
                         binned |= CAMERA_ROI;
                     if (arrayTokens[5] == "size")
                         binned |= CAMERA_SIZE;
+                    if (arrayTokens[5] == "areadet")
+                        binned |= CAMERA_ADET;
                 }
                 printf("New symbol %s, binned = %d\n", arrayTokens[1].c_str(), binned);
                 new symbol(arrayTokens[1], arrayTokens[2], arrayTokens[3], arrayTokens[4], binned);
