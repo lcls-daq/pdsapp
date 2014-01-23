@@ -407,7 +407,7 @@ static void get_handler(struct event_handler_args args)
     caconn *c = (caconn *)args.usr;
     DetInfo sourceInfo(getpid(), DetInfo::EpicsArch, 0, DetInfo::NoDevice, 0);
     int hdrsize = sizeof(EpicsPvCtrlHeader);
-    int ctrlsize = dbr_size_n(args.type, 1);
+    int ctrlsize = dbr_size_n(args.type, args.count);
 
     if (hdrsize % 4)
         hdrsize += 4 - (hdrsize % 4); /* Sigh.  Padding in the middle! */
@@ -415,7 +415,7 @@ static void get_handler(struct event_handler_args args)
     char             *buf = (char *) calloc(1, sizeof(Xtc) + hdrsize + ctrlsize);
     Xtc              *cfg = new (buf) Xtc(TypeId(TypeId::Id_Epics, 1), sourceInfo);
     void             *h   = cfg->alloc(hdrsize);
-    new (h) EpicsPvCtrlHeader(c->caid, args.type, 1, c->getpvname());
+    new (h) EpicsPvCtrlHeader(c->caid, args.type, args.count, c->getpvname());
 
     void             *buf2 = cfg->alloc(ctrlsize);
     memcpy(buf2, args.dbr, ctrlsize);
@@ -428,7 +428,7 @@ static void get_handler(struct event_handler_args args)
     c->hdrlen = sizeof(Xtc) + hdrsize;
     buf = (char *) calloc(1, c->hdrlen);
     c->hdr = new (buf) Xtc(TypeId(TypeId::Id_Epics, 1), sourceInfo);
-    new ((char *)c->hdr->alloc(hdrsize)) EpicsPvHeader(c->caid, c->dbrtype, 1);
+    new ((char *)c->hdr->alloc(hdrsize)) EpicsPvHeader(c->caid, c->dbrtype, args.count);
     c->hdr->alloc(c->size); // This is in the data packet, not the header!
 
     int status = ca_create_subscription(c->dbrtype, c->nelem, c->chan, DBE_VALUE | DBE_ALARM,
@@ -461,7 +461,7 @@ static void connection_handler(struct connection_handler_args args)
                 exit(0);
             }
         } else {
-            int status = ca_get_callback(dbf_type_to_DBR_CTRL(c->dbftype), args.chid, get_handler, (void *) c);
+            int status = ca_array_get_callback(dbf_type_to_DBR_CTRL(c->dbftype), c->nelem, args.chid, get_handler, (void *) c);
             if (status != ECA_NORMAL) {
                 printf("Get failed! error %d!\n", status);
                 exit(0);
