@@ -33,6 +33,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define DBUG
+
 // forward declaration
 static int setup_unix_signal_handlers();
 
@@ -246,6 +248,10 @@ MainWindow::MainWindow(unsigned          platform,
   RunStatus*        run;
   unsigned int      experiment_number = 0;
   QLabel* experiment_label = 0;
+
+#ifdef DBUG
+  printf("MainWindow  offlinerc %s   controlrc %s\n", offlinerc, controlrc);
+#endif
 
   if (offlinerc) {
     // option A: run number maintained in a mysql database

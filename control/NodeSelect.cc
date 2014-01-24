@@ -226,7 +226,9 @@ void NodeGroup::add_node(int index)
     int iNodeGroup = ( (bEvrNode||bBldNode) ? 0:1);
     this->node(iNodeIndex).setGroup(iNodeGroup);          
     
+#ifdef DBUG
     printf("Added node %s Group (Default) %d\n",qPrintable(node.plabel()), iNodeGroup);
+#endif
   }
   else
   if (_iUseReadoutGroup == 1)
@@ -267,11 +269,15 @@ void NodeGroup::add_node(int index)
     
     _lCallback.append(new CallbackNodeGroup(*this, iNodeIndex));
     connect(ciUseReadoutGroup, SIGNAL(currentIndexChanged(int)), _lCallback.last(), SLOT(currentIndexChanged(int)));    
+#ifdef DBUG
     printf("Added node %s Group %d\n",qPrintable(node.plabel()), iNodeGroup);
+#endif
   }
   else
   {
+#ifdef DBUG
     printf("Added node %s\n",qPrintable(node.plabel()));
+#endif
   }    
 
   l->insertLayout(index,layoutButton); 
