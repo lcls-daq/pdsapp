@@ -461,8 +461,16 @@ static void handle_stdin(fd_set *rfds)
         char buf[1024];
         int cnt = read(0, buf, sizeof(buf) - 1);
         if (cnt > 0) {
-            buf[cnt - 1] = 0; // Kill the newline!
-            process_command(buf);
+            char *s, *t = buf;
+            while (*t) {
+                s = t;
+                while (*t && *t != '\n')
+                    t++;
+                if (!*t)
+                    break; // No final newline?!?  This shouldn't happen.
+                *t++ = 0; // Kill the newline!
+                process_command(s);
+            }
         } else {
             printf("Standard input is closed, terminating!\n");
             haveint = 1;
