@@ -4,22 +4,25 @@
 
 using namespace Pds_ConfigDb;
 
-EvrSeqEventDesc::EvrSeqEventDesc() {}
+EvrSeqEventDesc::EvrSeqEventDesc() :
+  _code(NULL, 0, 0, 255) 
+{
+}
 
 QWidget* EvrSeqEventDesc::code_widget()
 {
-  _code = new QLabel("0");
-  _code->setMaximumWidth(40);
-  return _code;
+  return _code.widget();
 }
 
 unsigned EvrSeqEventDesc::get_code() const
 {
-  return _code->text().toInt();
+  const_cast<EvrSeqEventDesc*>(this)->_code.update();
+  return _code.value;
 }
 
 void EvrSeqEventDesc::set_code(unsigned n)
 {
-  _code->setText(QString::number(n,10));
+  _code.value = n;
+  _code.flush();
 }
 

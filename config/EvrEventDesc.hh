@@ -43,7 +43,6 @@ namespace Pds_ConfigDb {
   public:
     QCheckBox*                   _enable;
   private:
-    QLabel*                      _code;
     QComboBox*                   _type;
     QComboBox*                   _group;
     QStackedWidget*              _stack;

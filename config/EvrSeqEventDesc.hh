@@ -2,6 +2,7 @@
 #define Pds_EvrSeqEventDesc_hh
 
 #include "pdsapp/config/EvrEventDesc.hh"
+#include "pdsapp/config/Parameters.hh"
 
 class QLabel;
 
@@ -14,7 +15,7 @@ namespace Pds_ConfigDb {
     unsigned get_code() const;
     void     set_code  (unsigned);
   private:
-    QLabel* _code;
+    NumericInt<unsigned> _code;
   };
 };
 
