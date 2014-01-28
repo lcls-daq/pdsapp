@@ -16,6 +16,7 @@ namespace Pds_ConfigDb {
     void     set_code  (unsigned);
   private:
     NumericInt<unsigned> _code;
+    QWidget*             _widget;
   };
 };
 

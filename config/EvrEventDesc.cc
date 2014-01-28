@@ -54,14 +54,13 @@ void EvrEventDesc::initialize(QGridLayout* l, unsigned row)
   _desc.widget()->setMaximumWidth(100);
 
   _stack = new QStackedWidget;
-  { QWidget* w = new QWidget(_stack);
-    _stack->addWidget(w); }
-  { QWidget* w = new QWidget(_stack);
-    _stack->addWidget(w); }
+  _stack->addWidget(new QWidget);
+  _stack->addWidget(new QWidget);
   { QWidget* w = new QWidget(_stack);
     QHBoxLayout* hl = new QHBoxLayout;
     hl->addLayout(_trans_delay.initialize(0));
     hl->addLayout(_trans_width.initialize(0));
+    hl->setContentsMargins(0,0,0,0);
     w->setLayout(hl);
     _trans_delay.widget()->setMaximumWidth(47);
     _trans_width.widget()->setMaximumWidth(47);
@@ -70,6 +69,7 @@ void EvrEventDesc::initialize(QGridLayout* l, unsigned row)
     QHBoxLayout* hl = new QHBoxLayout;
     hl->addLayout(_latch_delay  .initialize(0));
     hl->addLayout(_latch_release.initialize(0));
+    hl->setContentsMargins(0,0,0,0);
     w->setLayout(hl);
     _latch_delay  .widget()->setMaximumWidth(47);
     _latch_release.widget()->setMaximumWidth(47);

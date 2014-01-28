@@ -5,13 +5,16 @@
 using namespace Pds_ConfigDb;
 
 EvrSeqEventDesc::EvrSeqEventDesc() :
-  _code(NULL, 0, 0, 255) 
+  _code(NULL, 0, 0, 255),
+  _widget(new QWidget)
 {
+  _widget->setLayout(_code.initialize(0));
+  _widget->setMaximumWidth(40);
 }
 
 QWidget* EvrSeqEventDesc::code_widget()
 {
-  return _code.widget();
+  return _widget;
 }
 
 unsigned EvrSeqEventDesc::get_code() const

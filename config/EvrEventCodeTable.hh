@@ -53,12 +53,9 @@ namespace Pds_ConfigDb {
     unsigned    code_lookup(unsigned) const; // code value from list index
     unsigned    code_index (unsigned) const; // list index from code value
   public slots:
-    void update_range();
     void onEnableReadGroup(int iIndex);
   private:
     EvrPulseTables*      _pPulseTables;
-    NumericInt<unsigned> _range_lo;
-    NumericInt<unsigned> _range_hi;
     QGridLayout*         _elayout;
     EvrSeqEventDesc*     _seq_code;
     EvrGlbEventDesc*     _glb_code;
