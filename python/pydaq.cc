@@ -615,7 +615,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     return NULL;
   }
 
-  if (l1t_events!=1 && l3t_events!=-1) {
+  if (l1t_events!=-1 && l3t_events!=-1) {
     PyErr_SetString(PyExc_TypeError,"Cannot specify both events (L1 and L3)");
     return NULL;
   }
