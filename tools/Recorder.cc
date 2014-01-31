@@ -202,7 +202,7 @@ InDatagram* Recorder::events(InDatagram* in) {
               unsigned lquiet(0);
               Index::XtcIterL1Accept iterL1Accept(&(in->datagram().xtc), 0,
                 i64Offset + sizeof(Xtc) + sizeof(in->datagram()) - sizeof(in->datagram().xtc),
-                                                  _indexList, lquiet);           
+                                                  _indexList);           
               iterL1Accept.iterate();
                     
               bool bPrintNode = false;
