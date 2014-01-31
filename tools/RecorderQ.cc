@@ -24,7 +24,9 @@ namespace Pds {
       ClockTime now(_in->datagram().seq.clock());
       unsigned sample = SysClk::sample();
       _rec.post(_rec.Recorder::events(_in));
-      _rec.record_time(SysClk::since(sample),now);
+      _rec.record_time(double(SysClk::since(sample))/
+                       double(_in->xtc.sizeofPayload()),
+                       now);
 
       if (_sem)	_sem->give();
       delete this;
@@ -47,13 +49,20 @@ RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize
   MonGroup* group = new MonGroup("RecQ");
   VmonServerManager::instance()->cds().add(group);
 
-  const int logt_bins = 64;
-  const float lt0 = 6.; // 1ms
-  const float lt1 = 9.; // 1s
-  MonDescTH1F rec_time("Log Rec Time", "log10 [ns]", "",
-		       logt_bins, lt0, lt1);
-  _rec_time = new MonEntryTH1F(rec_time);
-  group->add(_rec_time);
+  { const int t_bins = 64;
+    const float lt1 = 10.; // 100MB/s
+    MonDescTH1F rec_time("Rec Time", "[ms/MB]", "",
+                         t_bins, 0., lt1);
+    _rec_time = new MonEntryTH1F(rec_time);
+    group->add(_rec_time); }
+
+  { const int logt_bins = 64;
+    const float lt0 = -1.; // 10GB/s
+    const float lt1 =  2.; // 10MB/s
+    MonDescTH1F rec_time("Log Rec Time", "log10 [ms/MB]", "",
+                         logt_bins, lt0, lt1);
+    _rec_time_log = new MonEntryTH1F(rec_time);
+    group->add(_rec_time_log); }
 }
 
 InDatagram* RecorderQ::events(InDatagram* in) 
@@ -71,9 +80,11 @@ InDatagram* RecorderQ::events(InDatagram* in)
   return (InDatagram*)Appliance::DontDelete;
 }
 
-void RecorderQ::record_time(unsigned t, const ClockTime& now)
+void RecorderQ::record_time(double t_ns_byte, const ClockTime& now)
 {
-  _rec_time->addcontent(1., log10f(double(t)));
-  _rec_time->time(now);
+  _rec_time    ->addcontent(1., t_ns_byte);
+  _rec_time_log->addcontent(1., log10f(t_ns_byte));
+  _rec_time    ->time(now);
+  _rec_time_log->time(now);
   _busy = false;
 }

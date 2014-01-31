@@ -12,7 +12,7 @@ libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary
 libsrcs_l3test := L3TestModule.cc
 libincs_l3test := pdsdata/include ndarray/include boost/include 
 
-tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump currentexp
+tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump currentexp showPlatform
 #tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
 
 commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
@@ -71,6 +71,12 @@ tgtsrcs_killPartition := killPartition.cc
 tgtlibs_killPartition := $(commonlibs)
 tgtslib_killPartition := $(USRLIBDIR)/rt
 tgtincs_killPartition := pdsdata/include
+
+tgtsrcs_showPlatform := showPlatform.cc
+tgtlibs_showPlatform := $(commonlibs)
+tgtslib_showPlatform := $(USRLIBDIR)/rt
+tgtincs_showPlatform := pdsdata/include ndarray/include boost/include
+
 
 tgtsrcs_bldClientTest := bldClientTest.cc bldClientTest.hh
 tgtlibs_bldClientTest := pds/service

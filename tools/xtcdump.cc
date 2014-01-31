@@ -62,7 +62,7 @@ static void dump(const Pds::Datagram* dg)
 using namespace Pds;
 
 void usage(char* progname) {
-  fprintf(stderr,"Usage: %s -f <filename> [-t l1Timestamp] [-T trTimestamp] [-n ndump] [-s nskip] [-l bytes] [-H] [-h]\n", progname);
+  fprintf(stderr,"Usage: %s -f <filename> [-t l1Timestamp] [-T trTimestamp] [-n ndump] [-s nskip] [-l bytes] [-b bytes (buffer size)] [-H] [-h]\n", progname);
   fprintf(stderr,"  timestamp format is XXXXXXXX/XXXXXXXX (hi/lo)\n");
 }
 
@@ -88,8 +88,9 @@ int main(int argc, char* argv[]) {
   unsigned bytes=80;
   bool lHeader=false;
   int parseErr = 0;
+  unsigned max_dg_size = 0x900000;
 
-  while ((c = getopt(argc, argv, "hHf:t:T:n:s:l:")) != -1) {
+  while ((c = getopt(argc, argv, "hHf:t:T:n:s:l:b:")) != -1) {
     switch (c) {
     case 'h':
       usage(argv[0]);
@@ -101,6 +102,7 @@ int main(int argc, char* argv[]) {
     case 'n': ndump = strtoul(optarg,NULL,0); break;
     case 's': nskip = strtoul(optarg,NULL,0); break;
     case 'l': bytes = strtoul(optarg,NULL,0); break;
+    case 'b': max_dg_size = strtoul(optarg,NULL,0); break;
     default:
       parseErr++;
     }
@@ -124,7 +126,7 @@ int main(int argc, char* argv[]) {
   (new Decoder(Level::Reporter))->connect(inlet);
   Browser::setDumpLength(bytes);
 
-  XtcFileIteratorC iter(fd,0x900000);
+  XtcFileIteratorC iter(fd,max_dg_size);
   CDatagram* cdg;
   ClockTime l1clk = parseClock(l1timestamp);
   ClockTime trclk = parseClock(trtimestamp);
