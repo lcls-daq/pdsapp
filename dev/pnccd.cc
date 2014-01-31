@@ -41,9 +41,13 @@ class Pds::MySegWire
 
    const std::list<Src>& sources() const { return _sources; }
 
+   unsigned max_event_size () const { return 8*1024*1024; }
+   unsigned max_event_depth() const { return _max_event_depth; }
+   void max_event_depth(unsigned d) { _max_event_depth = d; }
  private:
    pnCCDServer* _pnccdServer;
    std::list<Src> _sources;
+   unsigned _max_event_depth;
 };
 
 //
@@ -83,7 +87,7 @@ class Pds::Seg
 
 
 Pds::MySegWire::MySegWire( pnCCDServer* pnccdServer )
-   : _pnccdServer(pnccdServer)
+   : _pnccdServer(pnccdServer), _max_event_depth(64)
 { 
    _sources.push_back(pnccdServer->client());
 }
@@ -178,13 +182,14 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: pnccd [-h] -p <platform> -f <cnfgFileName> -P <pgpcardNumb> [-d <detector>] [-i <deviceID>] [-D <debug>]\n"
+  printf( "Usage: pnccd [-h] -p <platform> -f <cnfgFileName> -P <pgpcardNumb> [-d <detector>] [-i <deviceID>] [-e <numb>] [-D <debug>]\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -f      Set the config file name  [required]\n"
       "    -P      Set pgpcard index number  [required]\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
+      "    -e <N>  Set the maximum event depth, default is 64\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offset and count calls\n"
@@ -208,12 +213,13 @@ int main( int argc, char** argv )
   unsigned            mask                = 0;
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
+  unsigned            eventDepth          = 64;
   std::string         sConfigFile;
   ::signal( SIGINT, sigHandler );
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:D:P:f:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:e:D:P:f:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -247,6 +253,10 @@ int main( int argc, char** argv )
          case 'P':
            pgpcard = strtoul(optarg, NULL, 0);
            pgpcardEntered = true;
+           break;
+         case 'e':
+           eventDepth = strtoul(optarg, NULL, 0);
+           printf("pnCCD using event depth of  %u\n", eventDepth);
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
@@ -306,6 +316,7 @@ int main( int argc, char** argv )
 
    printf("MySegWire settings\n");
    MySegWire settings(pnccdServer);
+   settings.max_event_depth(eventDepth);
 
    printf("making Seg\n");
    Seg* seg = new Seg( task,

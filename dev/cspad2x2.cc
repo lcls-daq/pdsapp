@@ -47,10 +47,14 @@ class Pds::MySegWire
      return (_aliases.size() > 0) ? &_aliases : NULL;
    }
 
+   unsigned max_event_size () const { return 2*1024*1024; }
+   unsigned max_event_depth() const { return _max_event_depth; }
+   void max_event_depth(unsigned d) { _max_event_depth = d; }
  private:
    Cspad2x2Server* _cspad2x2Server;
    std::list<Src> _sources;
    std::list<SrcAlias> _aliases;
+   unsigned _max_event_depth;
 };
 
 //
@@ -90,7 +94,7 @@ class Pds::Seg
 
 
 Pds::MySegWire::MySegWire( Cspad2x2Server* cspad2x2Server, const char *aliasName )
-   : _cspad2x2Server(cspad2x2Server)
+   : _cspad2x2Server(cspad2x2Server), _max_event_depth(256)
 { 
    _sources.push_back(cspad2x2Server->client());
    if (aliasName) {
@@ -193,7 +197,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-C <nevents>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] [-R <runTriggerFactor>] -p <platform>\n"
+  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <nevents>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] [-R <runTriggerFactor>] -p <platform>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
@@ -206,6 +210,7 @@ void printUsage(char* s) {
       "                the index of the card and the top nybble being a port mask where one bit is for\n"
       "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
       "                applications that use the whole card\n"
+      "    -e <N>  Set the maximum event depth, default is 256\n"
       "    -C <N>  Compress and copy every Nth event\n"
       "    -u      Set device alias          [Default: none]\n"
       "    -D      Set debug value           [Default: 0]\n"
@@ -238,6 +243,7 @@ int main( int argc, char** argv )
   unsigned            mask                = 0;
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
+  unsigned            eventDepth          = 256;
   unsigned            runTriggerFactor       = 1;
   ::signal( SIGINT, sigHandler );
   char                runTimeConfigname[256] = {""};
@@ -247,7 +253,7 @@ int main( int argc, char** argv )
    extern char* optarg;
    char* uniqueid = (char *)NULL;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:C:D:xP:u:r:R:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:C:e:D:xP:u:r:R:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -288,6 +294,10 @@ int main( int argc, char** argv )
            } else {
              uniqueid = optarg;
            }
+           break;
+         case 'e':
+           eventDepth = strtoul(optarg, NULL, 0);
+           printf("Cspad2x2 using event depth of  %u\n", eventDepth);
            break;
          case 'C':
            compressFlag = 1;
@@ -344,6 +354,7 @@ int main( int argc, char** argv )
    cspad2x2Server->runTrigFactor(runTriggerFactor);
 
    MySegWire settings(cspad2x2Server, uniqueid);
+   settings.max_event_depth(eventDepth);
 
    Seg* seg = new Seg( task,
                        platform,

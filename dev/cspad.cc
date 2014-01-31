@@ -47,10 +47,14 @@ class Pds::MySegWire
      return (_aliases.size() > 0) ? &_aliases : NULL;
    }
 
+   unsigned max_event_size () const { return 8*1024*1024; }
+   unsigned max_event_depth() const { return _max_event_depth; }
+   void max_event_depth(unsigned d) { _max_event_depth = d; }
  private:
    CspadServer* _cspadServer;
    std::list<Src> _sources;
    std::list<SrcAlias> _aliases;
+   unsigned _max_event_depth;
 };
 
 //
@@ -92,7 +96,7 @@ class Pds::Seg
 
 
 Pds::MySegWire::MySegWire( CspadServer* cspadServer, const char *aliasName )
-   : _cspadServer(cspadServer)
+   : _cspadServer(cspadServer), _max_event_depth(64)
 { 
    _sources.push_back(cspadServer->client());
    if (aliasName) {
@@ -199,7 +203,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: %s [-h] -p <platform> [-d <detector>] [-i <deviceID>] [-m <configMask>] [-C <compressFlag>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>]\n"
+  printf( "Usage: %s [-h] -p <platform> [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <compressFlag>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>]\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
@@ -212,6 +216,7 @@ void printUsage(char* s) {
       "                the index of the card and the top nybble being a port mask where one bit is for\n"
       "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
       "                applications that use the whole card\n"
+      "    -e <N>  Set the maximum event depth, default is 64\n"
       "    -C <N> or \"<N>,<T>\"  Compress and copy every Nth event (and use <T> threads)\n"
       "    -u      Set device alias          [Default: none]\n"
       "    -D      Set debug value           [Default: 0]\n"
@@ -245,6 +250,7 @@ int main( int argc, char** argv )
   unsigned            mask                = 0;
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
+  unsigned            eventDepth          = 64;
   ::signal( SIGINT, sigHandler );
   char                runTimeConfigname[256] = {""};
   bool                platformMissing     = true;
@@ -255,7 +261,7 @@ int main( int argc, char** argv )
    char* endPtr;
    char* uniqueid = (char *)NULL;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:C:D:xP:r:u:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:e:C:D:xP:r:u:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -289,6 +295,10 @@ int main( int argc, char** argv )
          case 'P':
            pgpcard = strtoul(optarg, NULL, 0);
            printf("Cspad using pgpcard 0x%x\n", pgpcard);
+           break;
+         case 'e':
+           eventDepth = strtoul(optarg, NULL, 0);
+           printf("Cspad using event depth of  %u\n", eventDepth);
            break;
          case 'C':
            compressFlag = 1;
@@ -351,6 +361,7 @@ int main( int argc, char** argv )
    cspadServer->runTimeConfigName(runTimeConfigname);
 
    MySegWire settings(cspadServer, uniqueid);
+   settings.max_event_depth(eventDepth);
 
    Seg* seg = new Seg( task,
                        platform,
