@@ -18,7 +18,7 @@ namespace Pds_ConfigDb {
       _uBinY                ("Binning Y",           1,    1,    64),
       // Note: Here the min exposure time need to set 9.99e-4 to allow user to input 1e-3, due to floating points imprecision
       _f32ExposureTime      ("Exposure time (sec)", 1e-3, 9.99e-4, 3600),
-      _f32CoolingTemp       ("Cooling Temp (C)",    25,   -100,  25),
+      _f32CoolingTemp       ("Cooling Temp (C)",    25,   -300,  25),
       _u16GainIndex         ("Gain Index",          3,    0,    5),
       _u16ReadoutSpeedIndex ("Readout Speed",       1,    0,    5),
       _uMaskedHeight        ("Masked Height",       0,    0,    2048),
