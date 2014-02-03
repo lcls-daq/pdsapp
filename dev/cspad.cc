@@ -166,7 +166,7 @@ void Pds::Seg::attached( SetOfStreams& streams )
    //   if (_compress) cspadMgr.appProcessor().connect( frmk->inlet() );
    CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard, false );
    if (_compress) 
-     (new FrameCompApp(0x500000,_nthreads))->connect( frmk->inlet() );
+     (new FrameCompApp(0x600000,_nthreads))->connect( frmk->inlet() );
 
    cspadMgr.appliance().connect( frmk->inlet() );
 }
