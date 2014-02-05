@@ -14,8 +14,8 @@ namespace Pds_ConfigDb {
       _uHeight              ("Height",              16, 1,      4128),
       _uOrgX                ("Orgin X",             0,    0,    4151),
       _uOrgY                ("Orgin Y",             0,    0,    4127),
-      _uBinX                ("Binning X",           1,    1,    16),
-      _uBinY                ("Binning Y",           1,    1,    16),
+      _uBinX                ("Binning X",           1,    1,    4152),
+      _uBinY                ("Binning Y",           1,    1,    4128),
       // Note: Here the min exposure time need to set 9.99e-4 to allow user to input 1e-3, due to floating points imprecision
       _f32ExposureTime      ("Exposure time (sec)", 1e-3, 9.99e-4, 3600),
       _f32CoolingTemp       ("Cooling Temp (C)",    25,   -300,  25),      
