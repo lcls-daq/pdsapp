@@ -394,11 +394,10 @@ PyObject* pds_Cspad2x2Config_set    (PyObject*   self, PyObject* args)
     Pds::CsPad2x2::ProtectionSystemThreshold pth = cfg->protectionThreshold();
     PyObject* pst = PyDict_GetItemString(o,"protectionSystem");
     if (pst) {
-      PyObject* it = PyList_GetItem(pst,0);
       unsigned adcThreshold=pth.adcThreshold(), pixelCountThreshold=pth.pixelCountThreshold();
-      if ((i=PyDict_GetItemString(it,"adcThreshold")))
+      if ((i=PyDict_GetItemString(pst,"adcThreshold")))
         adcThreshold = PyLong_AsLong(i);
-      if ((i=PyDict_GetItemString(it,"pixelCountThreshold")))
+      if ((i=PyDict_GetItemString(pst,"pixelCountThreshold")))
         pixelCountThreshold = PyLong_AsLong(i);
       pth = Pds::CsPad2x2::ProtectionSystemThreshold(adcThreshold,pixelCountThreshold);
     }    
@@ -410,7 +409,7 @@ PyObject* pds_Cspad2x2Config_set    (PyObject*   self, PyObject* args)
     Pds::CsPad2x2::ConfigV1QuadReg quad(cfg->quad());
     PyObject* i = PyDict_GetItemString(o,"quad");
     if (i) {
-      if (!set_quad(&quad,PyList_GetItem(i,0))) {
+      if (!set_quad(&quad,i)) {
         Py_DECREF(o);
         return NULL;
       }
@@ -444,7 +443,7 @@ PyObject* pds_Cspad2x2Config_set    (PyObject*   self, PyObject* args)
     Pds::CsPad2x2::ConfigV2QuadReg quad;
     PyObject* i = PyDict_GetItemString(o,"quad");
     if (i) {
-      if (!set_quad(&quad,PyList_GetItem(i,0))) {
+      if (!set_quad(&quad,i)) {
         Py_DECREF(o);
         return NULL;
       }
@@ -455,10 +454,9 @@ PyObject* pds_Cspad2x2Config_set    (PyObject*   self, PyObject* args)
     if (pst) {
       unsigned adcThreshold        = pth.adcThreshold();
       unsigned pixelCountThreshold = pth.pixelCountThreshold();
-      PyObject* it = PyList_GetItem(pst,0);
-      if ((i=PyDict_GetItemString(it,"adcThreshold")))
+      if ((i=PyDict_GetItemString(pst,"adcThreshold")))
         adcThreshold = PyLong_AsLong(i);
-      if ((i=PyDict_GetItemString(it,"pixelCountThreshold")))
+      if ((i=PyDict_GetItemString(pst,"pixelCountThreshold")))
         pixelCountThreshold = PyLong_AsLong(i);
       pth = Pds::CsPad2x2::ProtectionSystemThreshold(adcThreshold,pixelCountThreshold);
     }    

@@ -10,7 +10,7 @@ CPPFLAGS += -D_ACQIRIS -D_LINUX
 ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames := \
   oceanoptics fli andor usdusb camedt simcam \
-  bld evr
+  bld evr cspad
   ifeq ($(build_extra),$(true))
     tgtnames += phasics
   endif
