@@ -17,10 +17,7 @@
 
 #include <stdio.h>
 
-static const unsigned DefaultLo = 67;
-static const unsigned DefaultHi = 74;
 static const unsigned MaxUserCodes      = Pds_ConfigDb::EvrEventCodeTable::MaxCodes;
-static const unsigned MinUserCodes      = 8;
 static const unsigned MaxGlobalCodes    = 4;
 
 static void showLayoutItem(QLayoutItem* item, bool show);

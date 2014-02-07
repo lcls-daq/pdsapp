@@ -14,6 +14,7 @@
 #include "pds/evgr/EvgrBoardInfo.hh"
 #include "pds/evgr/EvrManager.hh"
 #include "pds/evgr/EvsManager.hh"
+#include "pds/evgr/EvrSimManager.hh"
 #include "pds/evgr/EvrCfgClient.hh"
 
 #include <unistd.h>
@@ -157,6 +158,7 @@ int main(int argc, char** argv) {
   Arp*      arp       = 0;
   char*     evrid     = 0;
   const char* evtcodelist = 0;
+  bool      simulate  = false;
   
   DetInfo::Detector det(DetInfo::NoDetector);
   unsigned detid(0), devid(0);
@@ -167,7 +169,7 @@ int main(int argc, char** argv) {
   bool  internalSequence  = false;
 
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:r:d:u:nE:IRh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:r:d:u:nE:IRSh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -204,6 +206,9 @@ int main(int argc, char** argv) {
     case 'R':
       EvrManager::randomize_nodes(true);
       break;
+    case 'S':
+      simulate = true;
+      break;
     case 'n':
       bTurnOffBeamCodes = true;
       break;
@@ -234,37 +239,48 @@ int main(int argc, char** argv) {
     }
   }
   
-  char evrdev[16];
-  sprintf(evrdev,"/dev/er%c3",*evrid);
-  printf("Using evr %s\n",evrdev);
 
   Node node(Level::Source, platform);
   printf("Using src %x/%x/%x/%x\n",det,detid,DetInfo::Evr,devid);
   DetInfo detInfo(node.pid(),det,detid,DetInfo::Evr,devid);
-
+  
   Task* task = new Task(Task::MakeThisATask);
-
-  EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
-  {
-    uint32_t* p = reinterpret_cast<uint32_t*>(&erInfo.board());
-    printf("Found EVR FPGA Version %x\n",p[11]);
-  }
+  
   Appliance* app;
   Server*    srv;
-  if (internalSequence) {
+
+  if (simulate) {
     CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
-    EvsManager& evrmgr = *new EvsManager(erInfo,
-					 *cfgService);
+    EvrSimManager& evrmgr = *new EvrSimManager(*cfgService);
     srv = &evrmgr.server();
     app = &evrmgr.appliance();
   }
   else {
-    EvrCfgClient* cfgService = new EvrCfgClient(detInfo,const_cast<char*>(evtcodelist));
-    EvrManager& evrmgr = *new EvrManager(erInfo,
-					 *cfgService,
-					 bTurnOffBeamCodes);
-    srv = &evrmgr.server();
-    app = &evrmgr.appliance();
+    char evrdev[16];
+    sprintf(evrdev,"/dev/er%c3",*evrid);
+    printf("Using evr %s\n",evrdev);
+
+    EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
+    {
+      uint32_t* p = reinterpret_cast<uint32_t*>(&erInfo.board());
+      printf("Found EVR FPGA Version %x\n",p[11]);
+    }
+
+    if (internalSequence) {
+      CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
+      EvsManager& evrmgr = *new EvsManager(erInfo,
+					   *cfgService);
+      srv = &evrmgr.server();
+      app = &evrmgr.appliance();
+    }
+    else {
+      EvrCfgClient* cfgService = new EvrCfgClient(detInfo,const_cast<char*>(evtcodelist));
+      EvrManager& evrmgr = *new EvrManager(erInfo,
+					   *cfgService,
+					   bTurnOffBeamCodes);
+      srv = &evrmgr.server();
+      app = &evrmgr.appliance();
+    }
   }
 
   MySegWire settings(detInfo, uniqueid, *srv);

@@ -44,7 +44,8 @@
 
 static bool verbose = false;
 static bool triggerEnable = false;
-static int ndrop = 0;
+static int fdrop = 0;
+static int ndrop = 1;
 static int ntime = 0;
 static int nforward = 1;
 static double ftime = 0;
@@ -111,10 +112,12 @@ public:
       }
 
       static int idrop=0;
-      if (++idrop==ndrop) {
+      if (++idrop==fdrop) {
 	idrop=0;
 	return 0;
       }
+      else if (idrop<fdrop && idrop>fdrop-ndrop)
+	return 0;
       
       static int iforward=0;
       if (++iforward==nforward) {
@@ -375,19 +378,34 @@ public:
     unsigned evtsz = 4*sz + sizeof(Xtc);
     unsigned evtst = (evtsz+3)&~3;
     _evtpayload = new char[NBuffers*evtst];
+    memset(_evtpayload, 0, NBuffers*evtst);
 
     for(unsigned b=0; b<NBuffers; b++) {
       _evttc[b] = new(_evtpayload+b*evtst) Xtc(TypeId(TypeId::Id_CspadElement,1),src);
       for(unsigned i=0; i<4; i++) {
 	CsPad::ElementV1* q = new (_evttc[b]->alloc(sz)) CsPad::ElementV1;
+	//  Initialize the header
+	memset(q, 0, sizeof(*q));
 	//  Set the quad number
 	reinterpret_cast<uint32_t*>(q)[1] = i<<24;
 	//  Set the payload
 	uint16_t* p = reinterpret_cast<uint16_t*>(q+1);
+#ifdef TESTPATTERN
 	for(unsigned j=0; j<8; j++)
 	  for(unsigned k=0; k<Pds::CsPad::ColumnsPerASIC; k++)
 	    for(unsigned m=0; m<Pds::CsPad::MaxRowsPerASIC*2; m++)
 	      *p++ = 0x150 + i*0x40 + k*b/5 + m;
+#else
+	uint16_t off = rand()&0x2fff;
+	for(unsigned j=0; j<8; j++)
+	  for(unsigned k=0; k<Pds::CsPad::ColumnsPerASIC; k++)
+	    for(unsigned m=0; m<Pds::CsPad::MaxRowsPerASIC*2; m++)
+	      *p++ = (rand()&0x03ff)+off;
+	      //*p++ = ((m<<8) + (k<<0))&0x3fff;
+#endif
+        // trailer word
+	*p++ = 0;
+	*p++ = 0;
       }
     }
   }
@@ -627,9 +645,9 @@ public:
 	     _cfgtc->extent, CfgSize);
 							
       printf("  Asics %d  Rows %d  Columns %d\n",Asics,Rows,Columns);
-      printf("  sizeof(ConfigV1)\t%d\n", sizeof(Epix::ConfigV1));
+      printf("  sizeof(ConfigV1)\t%zd\n", sizeof(Epix::ConfigV1));
       printf("  sizeof(AsicConfigV1)\t%d\n", Epix::AsicConfigV1::_sizeof());
-      printf("  sizeof(PixelArray)\t%d\n", Rows*(Columns+31)/32*sizeof(uint32_t));
+      printf("  sizeof(PixelArray)\t%zd\n", Rows*(Columns+31)/32*sizeof(uint32_t));
       printf("  AsicsPerRow %d  AsicsPerCol %d  RowsPerAsic %d  PixelsPerAsicRow %d\n",
 	     cfg->numberOfAsicsPerRow(),
 	     cfg->numberOfAsicsPerColumn(),
@@ -837,7 +855,7 @@ public:
       _app = new SimEpixSampler(src);
 
     if (lCompress)
-      _user_apps.push_front(new FrameCompApp(_app->max_size(),nCompressThreads));
+      _user_apps.push_front(new FrameCompApp(_app->max_size()*2,nCompressThreads));
 
     _sources.push_back(src);
 
@@ -910,7 +928,7 @@ void printUsage(char* s) {
 	  "    -t          Trigger simulator (Rayonix)\n"
 	  "    -C <N> or \"<N>,<T>\" Compress frames and add uncompressed frame every N events (using T threads)\n"
 	  "    -O          Use OpenMP\n"
-	  "    -D <N>      Drop every N events\n"
+	  "    -D <F>[,<N>] Drop N events (default 1) out of every F events\n"
 	  "    -T <S>,<N>  Delay S seconds every N events\n"
 	  "    -P <N>      Only forward payload every N events\n",
 	  s
@@ -945,6 +963,7 @@ int main(int argc, char** argv) {
       break;
     case 'v':
       verbose = !verbose;
+      FrameCompApp::setVerbose(verbose);
       printf("Verbose mode now %s\n", verbose ? "true" : "false");
       break;
     case 'C':
@@ -957,7 +976,9 @@ int main(int argc, char** argv) {
       FrameCompApp::useOMP(true);
       break;
     case 'D':
-      ndrop = strtoul(optarg, NULL, 0);
+      fdrop = strtoul(optarg, &endPtr, 0);
+      if (*endPtr)
+	ndrop = strtoul(endPtr+1, &endPtr, 0);
       break;
     case 'T':
       ntime = strtoul(optarg, &endPtr, 0);

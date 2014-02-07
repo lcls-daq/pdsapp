@@ -27,7 +27,7 @@ MonTab::MonTab(MonClient& client,
   QGridLayout* layout = new QGridLayout(this);
   unsigned n = group.nentries();
   unsigned rows = (n+2)/3;
-  unsigned columns = (n+rows-1)/rows;
+  unsigned columns = rows ? (n+rows-1)/rows : 0;
 
   for(_used = 0; _used < group.nentries(); _used++) {
     const MonEntry& entry = *group.entry(_used);
