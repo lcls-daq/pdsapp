@@ -273,8 +273,8 @@ bool EvrPulseTable::validate(unsigned ncodes,
           delay_offset    =
                     EventcodeTiming::timeslot(140) -
                     EventcodeTiming::timeslot(codes[i].code());                                                                                    
-          printf("Adjusting pulse [%d] for readout event code [%d] %d, delays %+d ticks (%lg ns)\n",
-                 npt, i, codes[i].code(), delay_offset, (double)(delay_offset*EvrPeriod*1e9));
+          //printf("Adjusting pulse [%d] for readout event code [%d] %d, delays %+d ticks (%lg ns)\n",
+          //npt, i, codes[i].code(), delay_offset, (double)(delay_offset*EvrPeriod*1e9));
 
           
           readout_period = EventcodeTiming::period(codes[i].code());
