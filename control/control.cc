@@ -1,5 +1,6 @@
 #include "pdsapp/control/MainWindow.hh"
 #include "pdsapp/control/SelectDialog.hh"
+#include "pdsapp/control/EventcodeQuery.hh"
 #include "pdsapp/config/Experiment.hh"
 
 #include <QtGui/QApplication>
@@ -115,6 +116,9 @@ int main(int argc, char** argv)
 
   Experiment::log_threshold(nfs_log_threshold);
 
+  ca_context_create(ca_enable_preemptive_callback);
+  EventcodeQuery::execute();
+
   int _argc=1;
   const char* _argv[] = { "DAQ Control", NULL };
   QApplication app(_argc, const_cast<char**>(_argv));
@@ -133,6 +137,8 @@ int main(int argc, char** argv)
   window->override_errors(override);
   window->show();
   app.exec();
+
+  ca_context_destroy();
 
   return 0;
 }
