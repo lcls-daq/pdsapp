@@ -145,7 +145,7 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
   VmonClientManager::start();
   if (!CollectionManager::connect()) {
     printf("platform %x unavailable\n",platform);
-    exit(-1);
+    //    exit(-1);
   }
 }
 

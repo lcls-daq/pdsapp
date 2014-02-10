@@ -131,6 +131,7 @@ int MonConsumerTH1F::replot()
 
 int MonConsumerTH1F::reset(const MonGroup& group)
 {
+  _last_stats->reset();
   _entry = group.entry(_entry->desc().name());
   if (_entry && _entry->desc().type() == MonDescEntry::TH1F) {
     const MonEntryTH1F* entry = dynamic_cast<const MonEntryTH1F*>(_entry);
@@ -151,7 +152,7 @@ void MonConsumerTH1F::archive_mode (unsigned n)
   _archive_mode=true;
   _chart->points(n);
   setChart();
-  _select->setEnabled(false);
+  _select_group->setEnabled(false);
 }
 
 static const unsigned Nplots = 4;
