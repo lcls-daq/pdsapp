@@ -2,11 +2,13 @@
 
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Device.hh"
-#include "pdsapp/config/PdsDefs.hh"
+#include "pds/config/PdsDefs.hh"
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/Serializer.hh"
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/GlobalCfg.hh"
+
+#include "pds/config/DbClient.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -158,10 +160,13 @@ void Reconfig_Ui::update_component_list()
 
 void Reconfig_Ui::change_component()
 {
+  DbClient& db = _expt.path();
+
   std::string t(qPrintable(_cmplist->currentItem()->text()));
   UTypeName stype(t);
-  string path = _expt.path().data_path("",stype);
   QString qchoice;
+  char*    payload = 0;
+  unsigned payload_sz = 0;
   const TableEntry* entry;
   if (GlobalCfg::contains(stype)) {
     entry = _device()->table().get_top_entry(string(GlobalCfg::name()));
@@ -173,19 +178,42 @@ void Reconfig_Ui::change_component()
     for(list<FileEntry>::const_iterator iter=entry->entries().begin();
 	iter!=entry->entries().end(); iter++)
       if (iter->name()==t) {
-	qchoice = QString("%1/%2").arg(path.c_str()).arg(iter->entry().c_str());
+        XtcEntry x;
+        x.type_id = *PdsDefs::typeId(stype);
+        x.name    = iter->entry();
+
+        db.begin();
+        if ((payload_sz = db.getXTC(x))<=0)
+          db.abort();
+        else {
+          db.commit();
+
+          payload = new char[payload_sz];
+          db.begin();
+          db.getXTC(x,payload,payload_sz);
+          db.commit();
+          
+          qchoice = iter->entry().c_str();
+
+          //  edit the contents of the file	
+          Parameter::allowEdit(true);
+          Dialog* d = new Dialog(this, lookup(stype), qchoice,
+                                 payload, payload_sz, true);
+          d->exec();
+          
+          x.name = qPrintable(d->name());
+          db.begin();
+          db.setXTC(x, d->payload(), d->payload_size());
+          db.commit();
+          
+          delete d;
+          delete[] payload;
+        }
 	break;
       }
   }
   if (qchoice.isEmpty())
     printf("Error looking up %s\n", t.c_str());
-  else {
-    //  edit the contents of the file	
-    Parameter::allowEdit(true);
-    Dialog* d = new Dialog(this, lookup(stype), qchoice);
-    d->exec();
-    delete d;
-  }
 }
 
 void Reconfig_Ui::expert_mode() { _expert_mode=true; }
@@ -196,6 +224,6 @@ Serializer& Reconfig_Ui::lookup(const UTypeName& stype)
   Serializer& s = _expert_mode ? 
     *_xdict.lookup(*PdsDefs::typeId(stype)) :
     *_dict .lookup(*PdsDefs::typeId(stype));
-  s.setPath(_expt.path());
+  //  s.setPath(_expt.path());
   return s;
 }    

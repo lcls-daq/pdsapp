@@ -203,7 +203,7 @@ int main(int argc, char* argv[]) {
   glob(buff, 0, 0, &g);
 
   if (debug)
-    printf("glob %s found %d files\n",buff,g.gl_pathc);
+    printf("glob %s found %zu files\n",buff,g.gl_pathc);
 
   for(unsigned i=0; i<g.gl_pathc; i++) {
     char* p = g.gl_pathv[i];

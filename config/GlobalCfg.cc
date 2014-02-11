@@ -1,16 +1,15 @@
 #include "pdsapp/config/GlobalCfg.hh"
 
 #include "pdsapp/config/Device.hh"
-#include "pdsapp/config/Path.hh"
-#include "pdsapp/config/PdsDefs.hh"
+#include "pdsapp/config/Table.hh"
+#include "pds/config/PdsDefs.hh"
+#include "pds/config/DbClient.hh"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 using namespace Pds_ConfigDb;
-
-static const char* globalAlias = "_GLOBAL_";
 
 static const int bsize = 0x100000;
 static char* _buffer = new char[bsize];
@@ -24,8 +23,9 @@ static void _clearAll()
   _next = _buffer;
 }
 
-static void _loadType(const Pds::TypeId& id,
-                      const char* file)
+static void _loadType(DbClient&          db,
+                      const Pds::TypeId& id,
+                      const std::string& name)
 {
   //
   //  This is incomplete
@@ -33,21 +33,23 @@ static void _loadType(const Pds::TypeId& id,
   unsigned i = PdsDefs::configType(id);
   if (i == PdsDefs::NumberOf) return;
 
-  FILE* f = fopen(file,"r");
-  if (f) {
-    size_t sz = fread(_next, 1, _buffer_end-_next, f);
-    if (sz < 0) 
-      printf("GlobalCfg error reading %s\n",file);
-    else {
-      printf("GlobalCfg read %d bytes from %s\n",int(sz),file);
-      _btype[i] = _next;
-      _next += sz;
-    }
-    fclose(f);
+  XtcEntry x;
+  x.type_id = id;
+  x.name    = name;
+
+  db.begin();
+  int sz = db.getXTC(x, _next, _buffer_end-_next);
+  if (sz <= 0) {
+    printf("GlobalCfg error reading %s\n",name.c_str());
+    db.abort();
+  }
+  else {
+    printf("GlobalCfg read %d bytes from %s\n",int(sz),name.c_str());
+    _btype[i] = _next;
+    _next += sz;
+    db.commit();
   }
 }
-
-const char* GlobalCfg::name() { return globalAlias; }
 
 bool GlobalCfg::contains(const UTypeName& utype)
 {
@@ -58,19 +60,17 @@ bool GlobalCfg::contains(const UTypeName& utype)
   return (_types & (1<<t));
 }
 
-void GlobalCfg::cache(const Path& path, const Device* device)
+void GlobalCfg::cache(DbClient& path, const Device* device)
 {
   _clearAll();
   
   // construct the list of types
-  const TableEntry* entry = device->table().get_top_entry(globalAlias);
+  const TableEntry* entry = device->table().get_top_entry(name());
   if (entry) {
     for(list<FileEntry>::const_iterator iter=entry->entries().begin();
 	iter!=entry->entries().end(); iter++) {
       UTypeName stype(iter->name());
-      string spath(path.data_path("",stype));
-      string qfile = spath + "/" + iter->entry();
-      _loadType(*PdsDefs::typeId(stype),qfile.c_str());
+      _loadType(path,*PdsDefs::typeId(stype),iter->entry());
     }
   }
 }

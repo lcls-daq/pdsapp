@@ -72,7 +72,6 @@ Experiment_Ui::Experiment_Ui(QWidget* parent,
   else {
     _cfgnewbutton ->setEnabled(false);
     _cfgcopybutton->setEnabled(false);
-    _devlist      ->setEnabled(false);
     _adddevlist   ->setEnabled(false);
     _remdevlist   ->setEnabled(false);
   }

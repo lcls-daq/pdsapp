@@ -2,7 +2,6 @@
 #include "pdsapp/blv/ToBldEventWire.hh"
 #include "pdsapp/blv/EvrBldManager.hh"
 #include "pdsapp/blv/PipeApp.hh"
-#include "pdsapp/config/Path.hh"
 #include "pdsapp/config/Experiment.hh"
 #include "pds/management/EventBuilder.hh"
 #include "pds/utility/OpenOutlet.hh"
@@ -121,8 +120,8 @@ int main(int argc, char** argv) {
   ProcInfo idleSrc(Level::Segment,0,0);
   unsigned key(0);
   if (dbpath) {
-    Pds_ConfigDb::Path path(dbpath);
-    Pds_ConfigDb::Experiment expt(path,Pds_ConfigDb::Experiment::NoLock);
+    Pds_ConfigDb::Experiment expt(dbpath,
+                                  Pds_ConfigDb::Experiment::NoLock);
     expt.read();
     key = strtoul(expt.table().get_top_entry("BLD")->key().c_str(),NULL,16);
   }

@@ -1,5 +1,4 @@
 #include "pdsapp/config/Table.hh"
-#include "pdsapp/config/XML.hh"
 
 #include <sys/stat.h>
 
@@ -19,23 +18,6 @@ using namespace Pds_ConfigDb;
 
 const int line_size=128;
 
-static list<FileEntry> _read_table(const string& path)
-{
-  list<FileEntry> l;
-  ifstream f(path.c_str());
-  for(FileEntry e(f); f.good(); e=FileEntry(f))
-    l.push_back(e);
-  l.sort();
-  return l;
-}
-
-static void _write_table(const list<FileEntry>& table, const string& path)
-{
-  ofstream f(path.c_str());
-  for(list<FileEntry>::const_iterator iter = table.begin(); iter != table.end(); iter++)
-    f << iter->name() << '\t' << iter->entry() << std::endl;
-}
-
 //===============
 //  FileEntry 
 //===============
@@ -49,22 +31,6 @@ FileEntry::FileEntry(istream& i)
 
 FileEntry::FileEntry(const string& name, const string& entry) :
   _name(name), _entry(entry) {}
-
-void FileEntry::load(const char*& p)
-{
-  XML_iterate_open(p,tag)
-    if      (tag.name == "_name")
-      _name  = XML::IO::extract_s(p);
-    else if (tag.name == "_entry")
-      _entry = XML::IO::extract_s(p);
-  XML_iterate_close(FileEntry,tag);
-}
-
-void FileEntry::save(char*& p) const
-{
-  XML_insert(p, "string", "_name" , XML::IO::insert(p,_name));
-  XML_insert(p, "string", "_entry", XML::IO::insert(p,_entry));
-}
 
 bool FileEntry::operator==(const FileEntry& e) const
 {
@@ -104,35 +70,6 @@ TableEntry::TableEntry(const string& name, const string& key,
   _name(name), _key(key), _entries(entries), _changed(false)
 {}
 
-void TableEntry::load(const char*& p)
-{
-  _entries.clear();
-
-  XML_iterate_open(p,tag)
-    if      (tag.name == "_name")
-      _name = XML::IO::extract_s(p);
-    else if (tag.name == "_key")
-      _key  = XML::IO::extract_s(p);
-    else if (tag.name == "_entries") {
-      FileEntry e;
-      e.load(p);
-      _entries.push_back(e);
-    }
-  XML_iterate_close(TableEntry,tag);
-
-  _changed = false;
-}
-
-void TableEntry::save(char*& p) const
-{
-  XML_insert(p, "string", "_name", XML::IO::insert(p,_name));
-  XML_insert(p, "string", "_key" , XML::IO::insert(p,_key));
-  for(list<FileEntry>::const_iterator it=_entries.begin(); it!=_entries.end(); it++) {
-    XML_insert(p, "FileEntry", "_entries", it->save(p) );
-  }
-  _changed = false;
-}
-
 bool TableEntry::operator==(const TableEntry& e) const
 {
   return _name == e._name;
@@ -146,7 +83,8 @@ void TableEntry::set_entry(const FileEntry& e)
 
 void TableEntry::remove(const FileEntry& e)
 {
-  _entries.remove(e);
+  FileEntry o(e);
+  _entries.remove(o);
 }
 
 void TableEntry::update(unsigned key) 
@@ -167,55 +105,6 @@ Table::Table() : _next_key(0)
 {
 }
 
-Table::Table(const string& path) : _next_key(0)
-{
-  struct stat64 s;
-  if (!stat64(path.c_str(),&s)) {
-    char buff[line_size];
-    list<FileEntry> top(_read_table(path));
-    for(list<FileEntry>::iterator iter = top.begin(); iter != top.end(); iter++) {
-      sprintf(buff,"%s.%s",path.c_str(),iter->name().c_str());
-      _entries.push_back(TableEntry(iter->name(),iter->entry(),_read_table(buff)));
-    }
-  }
-}
-
-void Table::load(const char*& p)
-{
-  _entries.clear();
-
-  XML_iterate_open(p,tag)
-    if      (tag.element == "TableEntry") {
-      TableEntry e;
-      e.load(p);
-      _entries.push_back(e);
-    }
-    else if (tag.name == "_next_key")
-      _next_key = XML::IO::extract_i(p);
-  XML_iterate_close(Table,tag);
-}
-
-void Table::save(char*& p) const
-{
-  XML_insert(p, "unsigned", "_next_key", XML::IO::insert(p, _next_key) );
-  for(list<TableEntry>::const_iterator it=_entries.begin(); it!=_entries.end(); it++) {
-    XML_insert(p, "TableEntry", "_entries", it->save(p) );
-  }
-}
-
-void Table::write(const string& path) const
-{
-  list<FileEntry> top;
-  for(list<TableEntry>::const_iterator iter=_entries.begin(); iter!=_entries.end(); iter++)
-    top.push_back(FileEntry(iter->name(),iter->key()));
-  _write_table(top,path);
-
-  for(list<TableEntry>::const_iterator iter=_entries.begin(); iter!=_entries.end(); iter++) {
-    string p = path + "." + iter->name();
-    _write_table(iter->entries(),p);
-  }
-}
- 
 void Table::dump(const string& path) const
 {
   printf("\nCfgTable %s\n",path.c_str());

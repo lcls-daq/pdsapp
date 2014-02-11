@@ -4,10 +4,6 @@
 static void      pdsxtc_dealloc(pdsxtc* self);
 static PyObject* pdsxtc_new    (PyTypeObject* type, PyObject* args, PyObject* kwds);
 static int       pdsxtc_init   (pdsxtc*       self, PyObject* args, PyObject* kwds);
-static int       pdsxtc_read   (PyObject*     self, 
-				const Pds::Src& info, 
-				const Pds::TypeId& contains, 
-				const char* fname);
 
 static PyMemberDef pdsxtc_members[] = {
   {NULL} 
@@ -78,31 +74,3 @@ int pdsxtc_init(pdsxtc* self, PyObject* args, PyObject* kwds)
   return -1;
 }
 
-int       pdsxtc_read  (PyObject*     self, 
-			const Pds::Src& info, 
-			const Pds::TypeId& contains, 
-			const char* fname)
-{
-  pdsxtc* xtc = (pdsxtc*)self;
-  xtc->src      = info;
-  xtc->contains = contains;
-  xtc->extent   = 0;
-
-  struct stat64 file_stat;
-  if (stat64(fname,&file_stat)) {
-    char buff[128];
-    sprintf(buff,"Error opening %s\n",fname);
-    printf("%s\n",buff);
-    PyErr_SetString(PyExc_RuntimeError,buff);
-    return -1;
-  }
-  char* buff = new char[file_stat.st_size];
-  FILE* input = fopen(fname,"r");
-  fread(buff, file_stat.st_size, 1, input);
-  fclose(input);
-
-  xtc->extent  = file_stat.st_size;
-  xtc->payload = buff;
-
-  return 0;
-}

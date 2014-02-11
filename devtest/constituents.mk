@@ -9,8 +9,8 @@ tgtslib_evrobs := $(USRLIB)/rt
 
 tgtsrcs_evgr := evgr.cc
 tgtincs_evgr := evgr
-tgtlibs_evgr := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata
-tgtslib_evgr := $(USRLIB)/rt
+tgtlibs_evgr := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata pds/configdbc pds/confignfs pds/configsql
+tgtslib_evgr := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
 
 tgtsrcs_evgrd := evgrd.cc
 tgtincs_evgrd := evgr

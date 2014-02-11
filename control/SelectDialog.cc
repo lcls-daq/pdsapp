@@ -68,6 +68,8 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg)
   case Level::Control : _control = hdr; break;
   case Level::Segment : 
     {       
+      _segment_map.push_back(NodeMap(hdr,sources));
+
       for(unsigned i=0; i<msg.nsources(); i++) 
       {
         if (msg.source(i).level()==Level::Reporter) 
@@ -220,6 +222,8 @@ const QList<BldInfo >& SelectDialog::reporters() const { return _rptinfo; }
 const QList<BldInfo >& SelectDialog::transients() const { return _trninfo; }
 
 const QList<DetInfo >& SelectDialog::iocs      () const { return _iocinfo; }
+
+const std::list<NodeMap>& SelectDialog::segment_map() const { return _segment_map; }
 
 QWidget* SelectDialog::display() {
   QWidget* d = new QWidget((QWidget*)0);

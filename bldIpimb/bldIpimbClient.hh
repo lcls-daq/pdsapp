@@ -42,6 +42,7 @@ namespace Pds {
     private:
       SList                      _servers;
       Pds_ConfigDb::Experiment   _expt;
+      const char*                _db_path;
       Pds_ConfigDb::Reconfig_Ui* _reconfig;
       QComboBox*                 _runType;
       unsigned                   _run_key;

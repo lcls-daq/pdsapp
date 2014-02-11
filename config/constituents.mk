@@ -1,14 +1,8 @@
 libnames       := configdb configdbg
-libsrcs_configdb := Path.cc
-libsrcs_configdb += Table.cc
-libsrcs_configdb += XtcTable.cc
-libsrcs_configdb += Device.cc
-libsrcs_configdb += DeviceEntry.cc
+libsrcs_configdb := Table.cc
+libsrcs_configdb += Device.cc GlobalCfg.cc
 libsrcs_configdb += Experiment.cc
-libsrcs_configdb += GlobalCfg.cc
-libsrcs_configdb += PdsDefs.cc
 libsrcs_configdb += EventcodeTiming.cc
-libsrcs_configdb += XML.cc
 libincs_configdb := pdsdata/include ndarray/include boost/include  
 
 libsrcs_configdbg := ControlScan.cc ControlScan_moc.cc
@@ -96,7 +90,7 @@ libsrcs_configdbg += Gsc16aiConfig.cc
 libsrcs_configdbg += TimepixConfig.cc TimepixConfig_V2.cc
 libsrcs_configdbg += RayonixConfig.cc RayonixConfig_V2.cc
 libsrcs_configdbg += EpixSamplerConfig.cc
-libsrcs_configdbg += EpixConfig.cc EpixConfig_moc.cc EpixCopyAsicDialog.cc EpixCopyAsicDialog_moc.cc
+libsrcs_configdbg += EpixConfig.cc EpixCopyAsicDialog.cc EpixCopyAsicDialog_moc.cc
 libsrcs_configdbg += OceanOpticsConfig.cc
 libsrcs_configdbg += AcqChannelMask.cc AcqChannelMask_moc.cc
 libsrcs_configdbg += AcqConfig.cc
@@ -105,6 +99,7 @@ libsrcs_configdbg += Parameters.cc
 libsrcs_configdbg += BitCount.cc
 libsrcs_configdbg += templates.cc
 libincs_configdbg := $(qtincdir) pdsdata/include ndarray/include boost/include   
+libincs_configdbg += configdb/include
 
 ifeq ($(build_extra),$(true))
   DEFINES += -DBUILD_EXTRA
@@ -131,9 +126,10 @@ tgtsrcs_configdb_cmd := configdb.cc
 tgtincs_configdb_cmd := pdsdata/include
 tgtlibs_configdb_cmd := $(datalibs)
 tgtlibs_configdb_cmd += pdsapp/configdb
-#tgtlibs_configdb_cmd += pdsapp/configdbg
+tgtlibs_configdb_cmd += pds/configdbc pds/confignfs pds/configsql
+tgtlibs_configdb_cmd += pds/config pds/utility pds/collection pds/service pds/vmon pds/mon pds/xtc
 tgtlibs_configdb_cmd += $(qtlibdir)
-tgtslib_configdb_cmd := $(USRLIBDIR)/rt $(qtslibdir)
+tgtslib_configdb_cmd := $(USRLIBDIR)/rt $(qtslibdir) $(USRLIBDIR)/mysql/mysqlclient
 
 tgtsrcs_configdb_gui := configdb_gui.cc
 tgtsrcs_configdb_gui += Ui.cc
@@ -143,13 +139,16 @@ tgtsrcs_configdb_gui += Transaction_Ui.cc   Transaction_Ui_moc.cc
 tgtsrcs_configdb_gui += Info_Ui.cc    Info_Ui_moc.cc
 tgtsrcs_configdb_gui += ListUi.cc     ListUi_moc.cc
 tgtsrcs_configdb_gui += DetInfoDialog_Ui.cc   DetInfoDialog_Ui_moc.cc
-tgtincs_configdb_gui := $(qtincdir) pdsdata/include
+tgtincs_configdb_gui := $(qtincdir) pdsdata/include configdb/include
 tgtlibs_configdb_gui := $(datalibs)
 tgtlibs_configdb_gui += $(qtlibdir)
 tgtlibs_configdb_gui += pds/configdata
+tgtlibs_configdb_gui += pds/configdbc
+tgtlibs_configdb_gui += pds/confignfs pds/configsql
 tgtlibs_configdb_gui += pdsapp/configdb
 tgtlibs_configdb_gui += pdsapp/configdbg
-tgtslib_configdb_gui := $(USRLIBDIR)/rt $(qtslibdir)
+tgtslib_configdb_gui := $(USRLIBDIR)/rt $(qtslibdir) $(USRLIBDIR)/mysql/mysqlclient
+
 
 tgtsrcs_configdb_list := configdb_list.cc
 tgtsrcs_configdb_list += ListUi.cc ListUi_moc.cc
@@ -157,9 +156,11 @@ tgtincs_configdb_list := $(qtincdir) pdsdata/include
 tgtlibs_configdb_list := $(datalibs)
 tgtlibs_configdb_list += $(qtlibdir)
 tgtlibs_configdb_list += pds/configdata
+tgtlibs_configdb_list += pds/configdbc
+tgtlibs_configdb_list += pds/confignfs pds/configsql
 tgtlibs_configdb_list += pdsapp/configdb
 tgtlibs_configdb_list += pdsapp/configdbg
-tgtslib_configdb_list := $(USRLIBDIR)/rt $(qtslibdir)
+tgtslib_configdb_list := $(USRLIBDIR)/rt $(qtslibdir) $(USRLIBDIR)/mysql/mysqlclient
 
 tgtsrcs_create_scan := create_scan_config.cc
 tgtincs_create_scan := $(qtincdir) pdsdata/include
@@ -176,6 +177,15 @@ tgtincs_configdb_readxtc := $(qtincdir) pdsdata/include
 tgtlibs_configdb_readxtc := $(datalibs)
 tgtlibs_configdb_readxtc += $(qtlibdir)
 tgtlibs_configdb_readxtc += pds/configdata
+tgtlibs_configdb_readxtc += pds/configdbc
+tgtlibs_configdb_readxtc += pds/confignfs pds/configsql
 tgtlibs_configdb_readxtc += pdsapp/configdb
 tgtlibs_configdb_readxtc += pdsapp/configdbg
-tgtslib_configdb_readxtc := $(USRLIBDIR)/rt $(qtslibdir)
+tgtslib_configdb_readxtc := $(USRLIBDIR)/rt $(qtslibdir) $(USRLIBDIR)/mysql/mysqlclient
+
+tgtsrcs_nfs_to_sql := nfs_to_sql.cc
+tgtincs_nfs_to_sql := pdsdata/include
+tgtlibs_nfs_to_sql := pdsdata/xtcdata
+tgtlibs_nfs_to_sql += pds/configdbc
+tgtlibs_nfs_to_sql += pds/confignfs pds/configsql
+tgtslib_nfs_to_sql := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient

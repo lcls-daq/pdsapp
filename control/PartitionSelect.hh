@@ -44,7 +44,6 @@ namespace Pds {
     IocControl&        _icontrol;
     const char*        _pt_name;
     char               _db_path[128];
-    char               _db_path_org[128];
     QWidget*           _display;
     unsigned           _options;
     enum { MAX_NODES=64 };

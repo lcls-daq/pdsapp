@@ -1,5 +1,6 @@
 #include "pdsapp/config/ListUi.hh"
 #include "pdsapp/config/Parameters.hh"  // set edit mode
+#include "pds/config/DbClient.hh"
 
 #include <QtGui/QApplication>
 
@@ -29,15 +30,15 @@ int main(int argc, char** argv)
 
   QApplication app(argc, argv);
 
-  Path path(dbname);
-  if (!path.is_valid()) {
-    printf("Database root %s is not valid\n",dbname.data());
+  DbClient* db = DbClient::open(dbname.c_str());
+  if (!db) {
+    printf("Database root %s is not valid\n",dbname.c_str());
     if (!edit) return -1;
   }
 
   Parameter::allowEdit(edit);
 
-  ListUi* ui = new ListUi(path);
+  ListUi* ui = new ListUi(*db);
   ui->show();
   app.exec();
 

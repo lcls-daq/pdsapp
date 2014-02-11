@@ -1,7 +1,7 @@
 #include "pdsapp/config/SequencerConfig_V6.hh"
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/GlobalCfg.hh"
-#include "pdsapp/config/PdsDefs.hh"
+#include "pds/config/PdsDefs.hh"
 #include "pdsapp/config/EvrEventCodeTable_V6.hh"
 #include "pdsapp/config/EvrConfigType_V6.hh"
 #include "pdsdata/psddl/evr.ddl.h"

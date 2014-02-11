@@ -141,5 +141,5 @@ int main(int argc, char **argv)
 
 void printHelp(const char* program)
 {
-  printf("usage: %s [-p <platform>] [-P <partition name>]\n", program);
+  printf("usage: %s [-p <platform>] [-P <partition name>] [-o <output path>]\n", program);
 }

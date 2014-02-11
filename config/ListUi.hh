@@ -4,7 +4,6 @@
 #include <QtGui/QWidget>
 
 #include "pdsapp/config/SerializerDictionary.hh"
-#include "pdsapp/config/Path.hh"
 
 #include <vector>
 using std::vector;
@@ -15,10 +14,12 @@ class QListWidget;
 
 namespace Pds_ConfigDb {
 
+  class DbClient;
+
   class ListUi : public QWidget {
     Q_OBJECT
   public:
-    ListUi(const Path&);
+    ListUi(DbClient&);
     ~ListUi();
   public slots:    
     void update_device_list();
@@ -26,12 +27,14 @@ namespace Pds_ConfigDb {
     void view_xtc();
   private:
     SerializerDictionary _dict;
-    Path         _path;
+    DbClient&            _db;
     QListWidget* _keylist;
     QListWidget* _devlist;
     QListWidget* _xtclist;
-    vector<string> _devices;
-    vector<string> _types;
+    vector<uint64_t>    _devices;
+    vector<Pds::TypeId> _types;
+    unsigned         _lenbuff;
+    char*            _xtcbuff;
   };
 };
 

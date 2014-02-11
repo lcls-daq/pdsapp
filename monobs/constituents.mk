@@ -6,7 +6,7 @@ endif
 
 libnames := 
 
-commonlibs := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/config pdsdata/xtcdata pdsdata/psddl_pdsdata
+commonlibs := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/configdata pdsdata/xtcdata pdsdata/psddl_pdsdata
 commonlibs += pds/pnccdFrameV0
 liblibs_tools := pdsdata/psddl_pdsdata
 

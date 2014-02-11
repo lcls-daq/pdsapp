@@ -36,7 +36,8 @@ ConfigSelect::ConfigSelect(unsigned     interface,
 			   const char*  db_path) :
   QGroupBox("Control"),
   _servers (servers),
-  _expt    (Pds_ConfigDb::Path(db_path)),
+  _expt    (db_path),
+  _db_path (db_path),
   _sendEnb(0)
 {
   _expt.read();
@@ -121,7 +122,7 @@ void ConfigSelect::read_db()
 void ConfigSelect::_reconfigure()
 {
   Pds::IdleControlMsg msg;
-  sprintf(msg.dbpath,"%s/keys",_expt.path().base().c_str());
+  sprintf(msg.dbpath,"%s/keys",_db_path);
   msg.key = _run_key;
 
   for(SList::const_iterator it = _servers.begin(); it != _servers.end(); it++) {

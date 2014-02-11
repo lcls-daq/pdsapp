@@ -25,10 +25,11 @@ tgtsrcs_bldIpimb += $(libsrcs_bldIpimblib)
 tgtincs_bldIpimb := evgr pdsdata/include ndarray/include boost/include  
 tgtlibs_bldIpimb := $(commonlibs) $(datalibs) evgr/evr evgr/evg pds/evgr pds/ipimb pdsapp/configdb
 #tgtlibs_bldIpimb := $(commonlibs) $(datalibs) evgr/evr evgr/evg pds/evgr pds/ipimb pdsapp/configdb pdsapp/bldIpimblib
-tgtlibs_bldIpimb += $(qtlibdir) pds/configdata
-tgtslib_bldIpimb := $(USRLIBDIR)/rt $(qtslibdir)
+tgtlibs_bldIpimb += $(qtlibdir) pds/configdata pds/configdbc pds/confignfs pds/configsql
+tgtslib_bldIpimb := $(USRLIBDIR)/rt $(qtslibdir) $(USRLIBDIR)/mysql/mysqlclient
 
 tgtsrcs_bldipimbclient := bldIpimbClient.cc bldIpimbClient_moc.cc
-tgtlibs_bldipimbclient := $(datalibs) pdsapp/configdb pdsapp/configdbg pds/configdata
+tgtlibs_bldipimbclient := $(datalibs) pdsapp/configdb pdsapp/configdbg pds/configdata pds/configdbc pds/confignfs pds/configsql
 tgtlibs_bldipimbclient += $(qt_libs)
+tgtslib_bldipimbclient := $(USRLIBDIR)/mysql/mysqlclient
 tgtincs_bldipimbclient := pdsdata/include $(qtincdir)

@@ -1,7 +1,6 @@
-#include "pdsapp/config/PdsDefs.hh"
-#include "pdsapp/config/Path.hh"
 #include "pdsapp/config/Experiment.hh"
-#include "pdsapp/config/XtcTable.hh"
+#include "pds/config/PdsDefs.hh"
+#include "pds/config/DbClient.hh"
 
 #include <string>
 #include <vector>
@@ -148,7 +147,6 @@ void pdsdb_dealloc(pdsdb* self)
 {
   if (self->expt) {
     delete self->expt;
-    delete self->path;
   }
 
   self->ob_type->tp_free((PyObject*)self);
@@ -161,7 +159,6 @@ PyObject* pdsdb_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
   self = (pdsdb*)type->tp_alloc(type,0);
   if (self != NULL) {
     self->expt = 0;
-    self->path = 0;
   }
 
   return (PyObject*)self;
@@ -176,8 +173,7 @@ int pdsdb_init(pdsdb* self, PyObject* args, PyObject* kwds)
     sts = MyArg_ParseTupleAndKeywords(args,kwds,"s",const_cast<char**>(kwlist),
                                       &path);
     if (sts) {
-      self->path = new Path(path);
-      self->expt = new Experiment(*self->path);
+      self->expt = new Experiment(path);
       self->expt->read();
       return 0;
     }
@@ -256,19 +252,32 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
 
     Pds::TypeId contains(Pds::TypeId::Type(typid&0xffff),
                          typid>>16);
-    string xpath = self->path->data_path(PdsDefs::qtypeName(contains));
-    xpath += "/" + string(file);
-
-    int i = PyTuple_Size(result);
-    _PyTuple_Resize(&result, i+1);
-
-    PyObject* o = _new_xtc(contains);
 
     Pds::DetInfo info(0, 
                       Pds::DetInfo::Detector((phy>>24)&0xff), (phy>>16)&0xff,
                       Pds::DetInfo::Device  ((phy>> 8)&0xff), (phy>> 0)&0xff);
         
-    pdsxtc_read(o, info, contains, xpath.c_str());
+    XtcEntry x;
+    x.type_id = contains;
+    x.name    = file;
+    int sz = self->expt->path().getXTC(x);
+    if (sz <= 0) {
+      PyErr_SetString(PyExc_RuntimeError,
+	              (std::string("Failed to retrieve ")+x.name).c_str());
+      return NULL;
+    }
+
+    int i = PyTuple_Size(result);
+    _PyTuple_Resize(&result, i+1);
+
+    PyObject* o   = _new_xtc(contains);
+    pdsxtc* xtc   = (pdsxtc*)o;
+    xtc->src      = info;
+    xtc->contains = contains;
+    xtc->extent   = sz;
+    xtc->payload  = new char[sz];
+    self->expt->path().getXTC(x,xtc->payload,sz);
+
     PyTuple_SetItem(result,i,o);
 
     return result;    
@@ -287,52 +296,39 @@ PyObject* pdsdb_get(PyObject* self_o, PyObject* args, PyObject* kwds)
     return result;
   }
 
-  char kname[256];
-  sprintf(kname,"%08x/[0-9]*",key);
+  std::list<KeyEntry> entries = self->expt->path().getKey(key);
+  for(std::list<KeyEntry>::iterator it=entries.begin();
+      it!=entries.end(); it++) {
+    DeviceEntry dev(it->source);
+    if ((level==Default               && phy==dev.phy()) ||
+        (level==unsigned(dev.level()) && phy==Default ) ||
+        (level==Default               && phy==Default)) {
+      if (typid==Default ||
+          typid==it->xtc.type_id.value() ||
+          typid==unsigned(it->xtc.type_id.id())) {
 
-  //  Match source
-  vector<string> devices;
-  string kpath = self->path->key_path(kname);
-  glob_t g;
-  glob(kpath.c_str(),0,0,&g);
-
-  for(unsigned k=0; k<g.gl_pathc; k++) {
-    const char* src = basename(g.gl_pathv[k]);
-    unsigned    dev = strtoul(src,NULL,16);
-    if ((level==Default && phy==dev) ||
-        (level==dev && phy==Default) ||
-        (level==Default && phy==Default)) {
-
-      Pds::Src info = Pds::Src(Pds::Level::Type(level));
-      if (strlen(src)>2)
-        *new((void*)&info) 
-          Pds::DetInfo(0, 
-                       Pds::DetInfo::Detector((dev>>24)&0xff), (dev>>16)&0xff,
-                       Pds::DetInfo::Device  ((dev>> 8)&0xff), (dev>> 0)&0xff);
-        
-      string kpath = string(g.gl_pathv[k]) + "/*";
-      glob_t gk;
-      glob(kpath.c_str(),0,0,&gk);
-      for(unsigned m=0; m<gk.gl_pathc; m++) {
-        unsigned typ = strtoul(basename(gk.gl_pathv[m]),NULL,16);
-        //  Match type
-        if (typid==Default || 
-      typid==typ ||
-            typid==(typ&0xffff)) {
-          int i = PyTuple_Size(result);
-          _PyTuple_Resize(&result, i+1);
-
-          Pds::TypeId contains(Pds::TypeId::Type(typ&0xffff),
-                               typ>>16);
-          PyObject* o = _new_xtc(contains);
-          pdsxtc_read(o, info, contains, gk.gl_pathv[m]);
-          PyTuple_SetItem(result,i,o);
+        int sz = self->expt->path().getXTC(it->xtc);
+        if (sz <= 0) {
+          PyErr_SetString(PyExc_RuntimeError,
+	                  (std::string("Failed to retrieve ")+it->xtc.name).c_str());
+          return NULL;
         }
+
+        int i = PyTuple_Size(result);
+        _PyTuple_Resize(&result, i+1);
+
+        PyObject* o = _new_xtc(it->xtc.type_id);
+        pdsxtc* xtc   = (pdsxtc*)o;
+        xtc->src      = dev;
+        xtc->contains = it->xtc.type_id;
+        xtc->extent   = sz;
+        xtc->payload  = new char[sz];
+        self->expt->path().getXTC(it->xtc,xtc->payload,sz);
+
+        PyTuple_SetItem(result,i,o);
       }
-      globfree(&gk);
     }
   }
-  globfree(&g);
 
   return result;
 }
@@ -374,80 +370,37 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
   pdsxtc* xtc = (pdsxtc*)o;
 
   if (file != 0) {
-    string xpath = self->path->data_path(PdsDefs::qtypeName(xtc->contains));
-    xpath += "/" + string(file);
-
-    FILE* f = fopen(xpath.c_str(),"w");
-    fwrite(xtc->payload,xtc->extent,1,f);
-    fclose(f);
-
-    XtcTable xfs(self->path->base());
-    xfs.update_xtc(PdsDefs::qtypeName(xtc->contains),
-                   string(file));
-    xfs.write(self->path->base());
+    XtcEntry x;
+    x.type_id = xtc->contains;
+    x.name    = file;
+    self->expt->path().setXTC(x, xtc->payload, xtc->extent);
 
     Py_INCREF(Py_None);
     return Py_None;
   }
 
-  //
-  //  Lookup device entry matching the xtc Src field
-  //
-  Device* dev = 0;
-  for(list<Device>::iterator it=self->expt->devices().begin(); 
-      it!=self->expt->devices().end(); it++) {
-    const list<DeviceEntry>& slist = it->src_list();
-    for(list<DeviceEntry>::const_iterator sit = slist.begin();
-        sit != slist.end(); sit++) {
-      if (*sit == xtc->src) {
-        dev = &(*it);
-        break;
-      }
-    }
-  }
-    
-  if (dev==0) {
-    printf("Device lookup failed\n");
-    return NULL;
-  }
+  std::list<ExptAlias>  alist = self->expt->path().getExptAliases();
+  std::list<DeviceType> dlist = self->expt->path().getDevices();
 
-  //
-  //  Lookup the configuration set for this alias
-  //
-  string name(alias);
-  const TableEntry* entry = self->expt->table().get_top_entry(name);
+  for(std::list<ExptAlias>::iterator ait=alist.begin(); ait!=alist.end(); ait++)
+    if (ait->name == alias)  // experiment alias match
+      for(std::list<DeviceEntryRef>::iterator eit=ait->devices.begin();
+          eit!=ait->devices.end(); eit++)
+        for(std::list<DeviceType>::iterator dit=dlist.begin();
+            dit!=dlist.end(); dit++)
+          if (eit->device == dit->name)  // device name match
+            for(std::list<DeviceEntries>::iterator qit=dit->entries.begin();
+                qit!=dit->entries.end(); qit++)
+              if (qit->name == eit->name)  // device alias match
+                for(std::list<XtcEntry>::iterator xit=qit->entries.begin();
+                    xit!=qit->entries.end(); xit++)
+                  if (xit->type_id.value() == xtc->contains.value()) {  // typeid match
+                    self->expt->path().setXTC(*xit, xtc->payload, xtc->extent);
+                    Py_INCREF(Py_None);
+                    return Py_None;
+                  }
 
-  const UTypeName stype = PdsDefs::utypeName(xtc->contains);
-
-  for(list<FileEntry>::const_iterator iter=entry->entries().begin();
-      iter!=entry->entries().end(); iter++) {
-    if (iter->name() == dev->name()) {
-      const TableEntry* dentry = dev->table().get_top_entry(iter->entry());
-      for(list<FileEntry>::const_iterator it=dentry->entries().begin();
-          it!=dentry->entries().end(); it++) {
-        if (it->name()==stype) {
-          // make the change
-          string xpath = dev->xtcpath(self->path->base(),
-                                      stype, it->entry());
-
-          printf("Writing %s\n",xpath.c_str());
-
-          FILE* xfile = fopen(xpath.c_str(),"w");
-          fwrite(xtc->payload, xtc->extent, 1, xfile);
-          fclose(xfile);
-
-	  XtcTable xfs(self->path->base());
-	  xfs.update_xtc(PdsDefs::qtypeName(xtc->contains),
-        	         it->entry());
-	  xfs.write(self->path->base());
-
-	  Py_INCREF(Py_None);
-          return Py_None;
-        }
-      }
-    }
-  }
-
+  PyErr_SetString(PyExc_RuntimeError,"No match found for alias, source, and type");
   return NULL;
 }
 

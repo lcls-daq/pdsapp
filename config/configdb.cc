@@ -1,154 +1,417 @@
-#include "Path.hh"
 #include "Experiment.hh"
-#include "PdsDefs.hh"
+#include "pds/config/PdsDefs.hh"
+#include "pds/config/DbClient.hh"
+#include "pds/config/CfgClientNfs.hh"
+#include "pds/confignfs/Path.hh"
+#include "pds/configsql/DbClient.hh"
+#include "pds/utility/Transition.hh"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <glob.h>
+#include <getopt.h>
 
 using namespace Pds_ConfigDb;
 
 // Commands
-static string create_cmd("--create");
-static string update_cmd("--update-keys");
-static string branch_cmd("--branch");
-static string create_device_cmd("--create-device");
-static string create_device_alias_cmd("--create-device-alias");
-static string copy_device_alias_cmd("--copy-device-alias");
-static string import_device_data_cmd("--import-device-data");
-static string assign_device_alias_cmd("--assign-device-alias");
-static string create_expt_alias_cmd("--create-expt-alias");
-static string copy_expt_alias_cmd("--copy-expt-alias");
-static string assign_expt_alias_cmd("--assign-expt-alias");
-static string validate_cmd("--validate");
+int create_db  (int argc, char** argv);
+int copy_db    (int argc, char** argv);
+int branch_db  (int argc, char** argv);
+int update_db  (int argc, char** argv);
+int fetch_xtc  (int argc, char** argv);
+int truncate_db(int argc, char** argv);
+
+typedef int command_fcn(int,char**);
+
+struct command { 
+  const char* key;
+  const char* options;
+  const char* descr;
+  command_fcn* fcn;
+};
+
+static struct command _commands[] =
+  { { "--create",
+      "--db <path>",
+      "Create a new database",
+      create_db },
+    { "--copy",
+      "--idb <ipath> --odb <opath>",
+      "Copy an existing database (ipath) to a new database(opath) including history",
+      copy_db },
+    { "--branch",
+      "--idb <ipath> --odb <opath>",
+      "Copy an existing database (ipath) to a new database(opath) excluding history",
+      branch_db },
+    { "--update-keys",
+      "--db <path>",
+      "Update the run keys",
+      update_db },
+    { "--fetch-xtc",
+      "--db <path> --source <64b source> --typeid <32b type> --key <run key>",
+      "Fetch the xtc",
+      fetch_xtc },
+    { "--truncate-db",
+      "--db <path> [--keys <from-to>] [--time <from-to>]",
+      "Truncate/delete the history",
+      truncate_db },
+    { NULL, NULL, NULL, NULL }
+  };
 
 void print_help(const char* p)
 {
-  printf("Usage: %s <--command> <db path> <options>\n",p);
-  printf("Command Options follow\n");
-  printf("<--command> <options>\n\n");
-  printf( "Transactions:\n"
-	  "  Create device with source ids\n"
-	  " --create-device <DEV> <Src1> .. <SrcN>\n");
-  printf( "  Create an alias entry for device\n");
-  printf(" --create-device-alias <DEV> <ALIAS>\n");
-  printf( "  Copy an alias entry for device\n");
-  printf(" --copy-device-alias <DEV> <NEW_ALIAS> <OLD_ALIAS>\n");
-  printf( "  Import configuration data for device\n");
-  printf(" --import-device-data <DEV> <Type> <File> Description\n");
-  printf( "  Assign configuration data to an alias entry for device\n");
-  printf(" --assign-device-alias <DEV> <ALIAS> <Type> <File>\n");
-  printf( "\n" );
-  printf( "  Create a expt alias entry\n");
-  printf(" --create-expt-alias <ALIAS>\n");
-  printf( "  Copy a expt alias entry\n");
-  printf(" --copy-expt-alias <NEW_ALIAS> <OLD_ALIAS>\n");
-  printf( "  Assign a device alias entry to a expt alias entry\n");
-  printf(" --assign-expt-alias <ALIAS> <DEV> <DEV_ALIAS>\n");
-  printf( "\n");
-  printf( "  Create the database\n");
-  printf(" --create\n");
-  printf( "\n");
-  printf( "DB Management\n");
-  printf( "  Update keys\n");
-  printf(" --update-keys\n");
-  printf( "  Branch a new db\n");
-  printf(" --branch\n");
-  printf("   Validate a db / check consistentcy\n");
-  printf(" --validate\n");
+  printf("Usage: %s [options]\n",p); 
+  for(unsigned i=0; _commands[i].options; i++)
+    printf("%s %s: %s\n",_commands[i].key,_commands[i].options,_commands[i].descr);
 }
+
+static void _copy_xtc(DbClient&,DbClient&,const XtcEntry&);
 
 int main(int argc, char** argv)
 {
-  if (argc<3) {
-    printf("Too few arguments\n");
-    print_help(argv[0]);
-    exit(1);
-  }
-      
   string cmd(argv[1]);
-  string dbname(argv[2]);
-  Path path(dbname);
-  Experiment db(dbname);
-
-  bool lwrite = true;
-
-  if (!path.is_valid()) {
-    if (cmd==create_cmd)
-      path.create();
-    else {
-      printf("No valid database found at %s\nExiting.\n",argv[2]);
-      exit(1);
+  for(unsigned i=0; _commands[i].options; i++) {
+    if (cmd == std::string(_commands[i].key)) {
+      int v = _commands[i].fcn(argc-1,&argv[1]);
+      if (v>=0) return v;
     }
   }
-  else {
-    db.read();
+  print_help(argv[0]);
+  return 1;
+}
 
-    printf("\n==BEFORE==\n");
-    db.dump();
+//
+//  Create an empty database
+//
+int create_db(int argc, char** argv)
+{
+  static struct option _options[] = { {"db", 1, 0, 0},
+                                      { 0, 0, 0, 0 } };
 
-    if (cmd==update_cmd)
-      db.update_keys();
-    else if (cmd==branch_cmd || strcmp(cmd.c_str(),branch_cmd.c_str())==0) {
-      lwrite = false;
-      Experiment* newdb = db.branch(string(argv[3]));
-      newdb->read();
-      printf("\n==NEWDB==\n");
-      newdb->dump();
+  const char* path = 0;
+  
+  char c;
+  while( (c=getopt_long(argc, argv, "", _options, NULL)) != -1 ) {
+    switch(c) {
+    case 0: path = optarg; break;
+    default: return -1;
+    }
+  }
+
+  if (!path) return -1;
+
+  try {
+    Sql::DbClient::open(path);
+    printf("SQL database from authorization file %s exists\n",path);
+  } catch(...) {
+    if (DbClient::open(path))
+      printf("NFS database at %s exists\n",path);
+    else {
+      printf("Creating NFS database at %s\n",path);
+      Pds_ConfigDb::Nfs::Path nfspath(path);
+      nfspath.create();
+    }
+  }
+  return 0;
+}
+
+//
+//  Copy a database with its history
+//
+int copy_db(int argc, char** argv)
+{
+  static struct option _options[] = { {"idb", 1, 0, 0},
+                                      {"odb", 1, 0, 1},
+                                      { 0, 0, 0, 0 } };
+
+  const char *ipath=0, *opath=0;
+
+  char c;
+  while( (c=getopt_long(argc, argv, "", _options, NULL)) != -1 ) {
+    switch(c) {
+    case 0: ipath = optarg; break;
+    case 1: opath = optarg; break;
+    default: return -1;
+    }
+  }
+
+  if (!ipath || !opath) return -1;
+
+  DbClient* newdb = 0;
+  try {
+    newdb = Sql::DbClient::open(opath);
+    printf("Opened SQL database from authorization file %s\n",opath);
+  } catch(...) {
+    if (DbClient::open(opath)) {
+      printf("NFS database at %s exists.  Delete and try again\n",opath);
       delete newdb;
-    }
-    else if (cmd==validate_cmd) {
-      lwrite=false;
-      glob_t g;
-      glob(path.key_path("[0-9,a-f]*").c_str(),0,0,&g);
-      printf("Found %zu[0x%zx] global keys ending in %s\n",
-             g.gl_pathc,
-             g.gl_pathc,
-             g.gl_pathv[g.gl_pathc-1]);
-      globfree(&g);
+      return 0;
     }
     else {
-      string dev(argv[3]);
-
-      if (cmd==create_device_cmd) {
-	list<DeviceEntry> devices;
-	for(int k=4; k<argc; k++)
-	  devices.push_back(DeviceEntry(string(argv[k])));
-	db.add_device(dev,devices);
-      }
-      else if (cmd==create_device_alias_cmd)
-	db.device(dev)->table().new_top_entry(string(argv[4]));
-      else if (cmd==copy_device_alias_cmd)
-	db.device(dev)->table().copy_top_entry(string(argv[4]),
-					       string(argv[5]));
-      else if (cmd==import_device_data_cmd) {
-	string type(argv[4]);
-	UTypeName utype(type);
-	db.import_data(dev,
-		       utype,
-		       string(argv[5]),
-		       string(argv[6]));
-      }
-      else if (cmd==assign_device_alias_cmd)
-	db.device(dev)->table().set_entry(string(argv[4]),
-					  FileEntry(string(argv[5]),
-						    string(argv[6])));
-      else if (cmd==create_expt_alias_cmd)
-	db.table().new_top_entry(string(argv[3]));
-      else if (cmd==copy_expt_alias_cmd)
-	db.table().copy_top_entry(string(argv[3]),string(argv[4]));
-      else if (cmd==assign_expt_alias_cmd)
-	db.table().set_entry(string(argv[3]),FileEntry(string(argv[4]),
-						       string(argv[5])));
-      else
-	printf("unknown command %s, try --help\n",cmd.c_str());
+      printf("Creating NFS database at %s\n",opath);
+      Pds_ConfigDb::Nfs::Path nfspath(opath);
+      nfspath.create();
+      newdb = DbClient::open(opath);
     }
   }
 
-  if (lwrite) {
-    printf("\n==AFTER==\n");
-    db.dump();
-    db.write();
+  Experiment db(ipath, Pds_ConfigDb::Experiment::NoLock);
+  std::list<ExptAlias>  alist = db.path().getExptAliases();    
+  std::list<DeviceType> dlist = db.path().getDevices();
+  
+  newdb->begin();
+  newdb->setExptAliases(alist);
+  newdb->setDevices    (dlist);
+  newdb->commit();
+
+  std::list<Key> klist = db.path().getKeys();
+  for(std::list<Key>::iterator it=klist.begin();
+      it!=klist.end(); it++) {
+    std::list<KeyEntry> entries = db.path().getKey(it->key);
+    for(std::list<KeyEntry>::iterator eit=entries.begin();
+        eit!=entries.end(); eit++)
+      if (newdb->getXTC(eit->xtc)<0)
+        _copy_xtc(db.path(),*newdb,eit->xtc);
+
+    newdb->begin();
+    newdb->setKey(*it, entries);
+    newdb->commit();
   }
+
+  for(std::list<DeviceType>::iterator it=dlist.begin();
+      it!=dlist.end(); it++)
+    for(std::list<DeviceEntries>::iterator eit=it->entries.begin();
+        eit!=it->entries.end(); eit++)
+      for(std::list<XtcEntry>::iterator xit=eit->entries.begin();
+          xit!=eit->entries.end(); xit++)
+        _copy_xtc(db.path(),*newdb,*xit);
+
+  newdb->begin();
+  newdb->updateKeys();
+  newdb->commit();
+  
+  delete newdb;
+  return 0; 
+}
+
+//
+//  Copy a database without its history
+//
+int branch_db(int argc, char** argv)
+{
+  static struct option _options[] = { {"idb", 1, 0, 0},
+                                      {"odb", 1, 0, 1},
+                                      { 0, 0, 0, 0 } };
+
+  const char *ipath=0, *opath=0;
+
+  char c;
+  while( (c=getopt_long(argc, argv, "", _options, NULL)) != -1 ) {
+    switch(c) {
+    case 0: ipath = optarg; break;
+    case 1: opath = optarg; break;
+    default: return -1;
+    }
+  }
+
+  if (!ipath || !opath) return -1;
+
+  DbClient* newdb = 0;
+  try {
+    newdb = Sql::DbClient::open(opath);
+    printf("Opened SQL database from authorization file %s\n",opath);
+  } catch(...) {
+    if (DbClient::open(opath)) {
+      printf("NFS database at %s exists.  Delete and try again\n",opath);
+      delete newdb;
+      return 0;
+    }
+    else {
+      printf("Creating NFS database at %s\n",opath);
+      Pds_ConfigDb::Nfs::Path nfspath(opath);
+      nfspath.create();
+      newdb = DbClient::open(opath);
+    }
+  }
+
+  Experiment db(ipath);
+  std::list<ExptAlias>  alist = db.path().getExptAliases();    
+  std::list<DeviceType> dlist = db.path().getDevices();
+  
+  newdb->begin();
+  newdb->setExptAliases(alist);
+  newdb->setDevices    (dlist);
+  newdb->commit();
+
+  for(std::list<DeviceType>::iterator it=dlist.begin();
+      it!=dlist.end(); it++)
+    for(std::list<DeviceEntries>::iterator eit=it->entries.begin();
+        eit!=it->entries.end(); eit++)
+      for(std::list<XtcEntry>::iterator xit=eit->entries.begin();
+          xit!=eit->entries.end(); xit++) 
+        _copy_xtc(db.path(),*newdb,*xit);
+  
+  newdb->begin();
+  newdb->updateKeys();
+  newdb->commit();
+  
+  delete newdb;
+  return 0; 
+}
+
+//
+//  Update the database runkeys
+//
+int update_db(int argc, char** argv)
+{
+  static struct option _options[] = { {"db", 1, 0, 0},
+                                      { 0, 0, 0, 0 } };
+
+  const char* path = 0;
+  
+  char c;
+  while( (c=getopt_long(argc, argv, "", _options, NULL)) != -1 ) {
+    switch(c) {
+    case 0: path = optarg; break;
+    default: return -1;
+    }
+  }
+
+  if (!path) return -1;
+
+  DbClient* newdb = DbClient::open(path);
+
+  newdb->begin();
+  newdb->updateKeys();
+  newdb->commit();
+  
+  delete newdb;
+  return 0; 
+}
+
+//
+//  Fetch the xtc
+//
+int fetch_xtc(int argc, char** argv)
+{
+  static struct option _options[] = { {"db"     , 1, 0, 0},
+                                      { "source", 1, 0, 1},
+                                      { "typeid", 1, 0, 2},
+                                      { "key"   , 1, 0, 3},
+                                      { 0, 0, 0, 0 } };
+
+  const char* path = 0;
+  uint64_t    source = 0;
+  uint32_t    type_id = 0;
+  uint32_t    runkey = 0;
+
+  char c;
+  while( (c=getopt_long(argc, argv, "", _options, NULL)) != -1 ) {
+    switch(c) {
+    case 0: path    = optarg; break;
+    case 1: source  = strtoull(optarg, NULL, 16); break;
+    case 2: type_id = strtoul (optarg, NULL, 16); break;
+    case 3: runkey  = strtoul (optarg, NULL, 0); break;
+    default: return -1;
+    }
+  }
+
+  printf("fetch_xtc path [%s] source [%016llx] typeid [%08x] key [%08x]\n",
+         path,source,type_id,runkey);
+
+  if (!path) return -1;
+
+  DeviceEntry src(source);
+  unsigned maxSize = 0x1000000;
+  char* p = new char[maxSize];
+
+  Pds::CfgClientNfs cl(src);
+
+  Pds::Allocation alloc("configdb",path,0);
+  cl.initialize(alloc);
+
+  Pds::Transition tr(Pds::TransitionId::Configure, Pds::Env(runkey));
+  int sz = cl.fetch(tr, 
+                    reinterpret_cast<const Pds::TypeId&>(type_id),
+                    p, maxSize);
+  printf("XTC size is %d\n",sz);
+
+  delete[] p;
+  return 0; 
+}
+
+//
+//  Fetch the xtc
+//
+int truncate_db(int argc, char** argv)
+{
+  static struct option _options[] = { { "db"  , 1, 0, 0},
+                                      { "key" , 1, 0, 1},
+                                      { "time", 1, 0, 2},
+                                      { 0, 0, 0, 0 } };
+
+  const char* path = 0;
+  time_t      tfrom=0,tto=0;
+  uint32_t    kfrom=0,kto=0;
+
+  char* endPtr;
+  char c;
+  while( (c=getopt_long(argc, argv, "", _options, NULL)) != -1 ) {
+    switch(c) {
+    case 0: path    = optarg; break;
+    case 1: 
+      kfrom   = strtoul(optarg,&endPtr,0);
+      kto     = strtoul(endPtr+1,&endPtr,0);
+      break;
+    case 2:
+      { struct tm tm_v;
+        strptime(strtok(optarg,"-"),"%Y%m%d",&tm_v);
+        tfrom   = mktime(&tm_v);
+        strptime(strtok(optarg,"-"),"%Y%m%d",&tm_v);
+        tto     = mktime(&tm_v);
+      } break;
+    default: return -1;
+    }
+  }
+
+  printf("truncate_db path [%s] key [%d-%d] time [%s-%s]\n",
+         path,kfrom,kto,ctime(&tfrom),ctime(&tto));
+
+  if (!path) return -1;
+
+  DbClient* db = DbClient::open(path);
+  
+  std::list<KeyEntry> none;
+  std::list<Key> klist = db->getKeys();
+  for(std::list<Key>::iterator it=klist.begin();
+      it!=klist.end(); it++) {
+    if ((it->key  >= kfrom && it->key  < kto) ||
+        (it->time >= tfrom && it->time < tto)) {
+      printf("Removing key %d\n",it->key);
+      db->setKey(*it,none);
+    }
+  }
+
+  return 0; 
+}
+
+static void _copy_xtc(DbClient& idb, DbClient& odb, const XtcEntry& x)
+{
+  int sz = idb.getXTC(x);
+  if (sz > 0) {
+    char* payload = new char[sz];
+    idb.getXTC(x,payload,sz);
+    
+    odb.begin();
+    odb.setXTC(x,payload,sz);
+    odb.commit();
+  
+    delete[] payload;
+  }
+  else
+    printf("Error seeking %s_v%u %s\n",
+           Pds::TypeId::name(x.type_id.id()),
+           x.type_id.version(),
+           x.name.c_str());
 }

@@ -37,7 +37,6 @@
 #include "evgr/evr/evr.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
 
-#include "pdsapp/config/Path.hh"
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Table.hh"
 #include "pdsapp/config/EventcodeTiming.hh"
@@ -285,12 +284,11 @@ int main(int argc, char** argv) {
   } else 
     printf("Using BLD Multicast Addr:(%s.%d)\n",getBldAddrBase(),*bldIdMap);
   
-  // Setup ConfigDB and Run Key 
-  Pds_ConfigDb::Experiment expt((const Pds_ConfigDb::Path&)Pds_ConfigDb::Path(std::string(ipimbConfigDb)));
+  // Setup ConfigDB and Run Key
+  Pds_ConfigDb::Experiment expt(ipimbConfigDb,
+                                Pds_ConfigDb::Experiment::NoLock);
   expt.read();
-  std::string runtype("BLD");
-  const Pds_ConfigDb::TableEntry* entry = expt.table().get_top_entry(runtype);
-  int runKey = strtoul(entry->key().c_str(),NULL,16);
+  int runKey = strtoul(expt.table().get_top_entry("BLD")->key().c_str(),NULL,16);
     
   // Setup the Bld Idle stream
   ProcInfo idleSrc(Level::Segment,0,0);

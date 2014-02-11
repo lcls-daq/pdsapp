@@ -9,7 +9,7 @@
 #include "pds/management/PartitionControl.hh"
 #include "pds/ioc/IocControl.hh"
 #include "pds/collection/Node.hh"
-#include "pds/config/CfgPath.hh"
+#include "pds/config/XtcClient.hh"
 #include "pds/config/EvrConfigType.hh"
 
 #include <QtGui/QLabel>
@@ -20,6 +20,8 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QDialog>
 #include <QtGui/QMessageBox>
+
+#define DBUG
 
 using namespace Pds;
 
@@ -36,8 +38,7 @@ PartitionSelect::PartitionSelect(QWidget*          parent,
   _display  (0),
   _options  (options)
 {
-  sprintf(_db_path,"%s/keys",db_path);
-  strncpy(_db_path_org,db_path, sizeof(_db_path_org));
+  strncpy(_db_path,db_path, sizeof(_db_path));
 
   QPushButton* display;
 
@@ -92,7 +93,7 @@ void PartitionSelect::select_dialog()
     _deviceNames = dialog->deviceNames();
     _segments  = dialog->segments ();
     _reporters = dialog->reporters();
-
+    
     QList<DetInfo> iocs = dialog->iocs();
     std::list<DetInfo> inodes;
     for(int i=0; i<iocs.size(); i++)
@@ -110,9 +111,69 @@ void PartitionSelect::select_dialog()
     }
 
     if (_validate(bld_mask)) {
+#if 1
+      unsigned nsrc=0;
+      const std::list<NodeMap>& map = dialog->segment_map();
+      for(std::list<NodeMap>::const_iterator it=map.begin();
+          it!=map.end(); it++)
+        nsrc += it->sources.size();
+
+      Partition::Source* sources = new Partition::Source[nsrc];
+      unsigned isrc=0;
+      for(std::list<NodeMap>::const_iterator it=map.begin();
+          it!=map.end(); it++) {
+#ifdef DBUG
+        printf("Segment %08x.%08x contains ",
+               it->node.procInfo().log(),
+               it->node.procInfo().phy());
+#endif
+        for(std::vector<Pds::Src>::const_iterator sit=it->sources.begin();
+            sit!=it->sources.end(); sit++) {
+#ifdef DBUG
+          printf(" [%08x.%08x]",sit->log(),sit->phy());
+#endif
+          if (sit->level()==Pds::Level::Source &&
+              static_cast<const Pds::DetInfo&>(*sit).detector()==Pds::DetInfo::BldEb)
+            continue;
+
+          foreach(Node node, nodes) {
+            if (node == it->node) {
+              sources[isrc++] = Partition::Source(*sit, node.group());
+#ifdef DBUG
+              printf("*");
+#endif
+              break;
+            }
+          }
+        }
+#ifdef DBUG
+        printf("\n");
+#endif
+      }
+
+      unsigned sz = sizeof(Partition::ConfigV1)+isrc*sizeof(Partition::Source);
+      char* buff = new char[sz];
+      
+      PartitionConfigType* cfg = new(buff) 
+        PartitionConfigType(bld_mask&~bld_mask_mon,isrc,sources);
+
       _icontrol.set_partition(inodes);
-      _pcontrol.set_partition(_pt_name, _db_path, _nodes, _nnodes, bld_mask, bld_mask_mon,_options);
+      _pcontrol.set_partition(_pt_name, _db_path, 
+                              _nodes  , _nnodes, 
+                              bld_mask, bld_mask_mon,
+                              _options, cfg);
       _pcontrol.set_target_state(PartitionControl::Configured);
+
+      delete[] buff;
+      delete[] sources;
+#else
+      _icontrol.set_partition(inodes);
+      _pcontrol.set_partition(_pt_name, _db_path, 
+                              _nodes  , _nnodes, 
+                              bld_mask, bld_mask_mon,
+                              _options);
+      _pcontrol.set_target_state(PartitionControl::Configured);
+#endif
     }
 
     _display = dialog->display();
@@ -205,13 +266,10 @@ bool PartitionSelect::_checkReadGroupEnable()
   unsigned int uRunKey = _pcontrol.get_transition_env(TransitionId::Configure);
   
   const DetInfo det(0,DetInfo::NoDetector,0,DetInfo::Evr,0);
-  char strConfigPath[128];
-  sprintf(strConfigPath,"%s/keys/%s",_db_path_org,CfgPath::path(uRunKey,det,_evrConfigType).c_str());
-  
-  int fdConfig = ::open(strConfigPath, O_RDONLY);
-  if ( fdConfig == -1 )
-  {
-    printf("PartitionSelect::_checkReadGroupEnable(): Read Evr config file (%s) failed\n", strConfigPath);      
+
+  Pds_ConfigDb::XtcClient* cl = Pds_ConfigDb::XtcClient::open(_db_path);
+  if (!cl) {
+    printf("PartitionSelect::_checkReadGroupEnable(): failed to get configuration data\n");
     return false;
   }
   
@@ -224,22 +282,15 @@ bool PartitionSelect::_checkReadGroupEnable()
     printf("PartitionSelect::_checkReadGroupEnable(): malloc(%d) failed. Error: %s\n", iMaxEvrDataSize, strerror(errno));      
     return false;
   }
-    
-  int iSizeRead = ::read(fdConfig, lcConfigBuffer, iMaxEvrDataSize);
+
+  int iSizeRead = cl->getXTC(uRunKey, det, _evrConfigType, lcConfigBuffer, iMaxEvrDataSize);
   if (iSizeRead == -1 )
   {
     printf("PartitionSelect::_checkReadGroupEnable():: Read failed. Error: %s\n", strerror(errno));      
-    ::close(fdConfig);
+    free(lcConfigBuffer);
     return false;
   }
     
-  int iCloseFail = ::close(fdConfig);
-  if ( iCloseFail == -1 )
-  {
-    printf("PartitionSelect::_checkReadGroupEnable(): Close Evr config file (%s) failed. Error: %s\n", strConfigPath, strerror(errno));      
-    return false;
-  }
-  
   EvrConfigType& evrConfig  = (EvrConfigType&) *(EvrConfigType*) lcConfigBuffer;    
     
   printf("Evr config event %d pulse %d output %d\n", 

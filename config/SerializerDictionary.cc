@@ -84,7 +84,7 @@
 #include "pds/config/OceanOpticsConfigType.hh"
 #include "pds/config/FliConfigType.hh"
 #include "pds/config/AndorConfigType.hh"
-#include "pdsapp/config/PdsDefs.hh"
+#include "pds/config/PdsDefs.hh"
 
 #include "pdsdata/psddl/lusi.ddl.h"
 

@@ -1,8 +1,11 @@
 #include "pdsapp/config/ListUi.hh"
 
-#include "pdsapp/config/DeviceEntry.hh"
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/Parameters.hh"
+
+#include "pds/config/DbClient.hh"
+#include "pds/config/PdsDefs.hh"
+#include "pds/config/DeviceEntry.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -10,18 +13,16 @@
 #include <QtGui/QListWidget>
 #include <QtGui/QListWidgetItem>
 
-#include <sys/stat.h>
-#include <glob.h>
-#include <libgen.h>
-
 #include <fstream>
 using std::ifstream;
 
 using namespace Pds_ConfigDb;
 
-ListUi::ListUi(const Path& path) :
-  QWidget(0),
-  _path(path)
+ListUi::ListUi(DbClient& path) :
+  QWidget (0),
+  _db     (path),
+  _lenbuff(0x100000),
+  _xtcbuff(new char[_lenbuff])
 {
   QHBoxLayout* layout = new QHBoxLayout;
   { QVBoxLayout* layout1 = new QVBoxLayout;
@@ -40,27 +41,19 @@ ListUi::ListUi(const Path& path) :
   setLayout(layout);
 
   // populate key list
-  string kname = "[0-9]*";
-  string kpath = _path.key_path(kname);
-  glob_t g;
-  glob(kpath.c_str(),0,0,&g);
-  for(unsigned k=0; k<g.gl_pathc; k++) {
-    struct stat64 s;
-    stat64(g.gl_pathv[k],&s);
-    QString entry(basename(g.gl_pathv[k]));
-    entry += "  [" + QString(ctime(&s.st_mtime)).remove('\n') + "]";
-
-    string info_path(g.gl_pathv[k]);
-    info_path += "/Info";
-    ifstream fi(info_path.c_str());
-    if (fi.good()) {
-      char buff[16];
-      fi.getline(buff,16);
-      entry += "  [" + QString(buff) + "]";
-    }
+  std::list<Key> keys = _db.getKeys();
+  for(std::list<Key>::const_iterator it=keys.begin();
+      it!=keys.end(); it++) {
+    time_t t(it->time);
+    char keynum[10];
+    sprintf(keynum,"%08x",it->key);
+    QString entry = QString("%1  [%2]")
+      .arg(keynum)
+      .arg(QString(ctime(&t)).remove('\n'));
+    if (it->name.size())
+      entry += "  [" + QString(it->name.c_str()) + "]";
     *new QListWidgetItem(entry,_keylist);
   }
-  globfree(&g);
 
   connect(_keylist, SIGNAL(itemSelectionChanged()), this, SLOT(update_device_list()));
   connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_xtc_list()));
@@ -69,6 +62,7 @@ ListUi::ListUi(const Path& path) :
 
 ListUi::~ListUi()
 {
+  delete[] _xtcbuff;
 }
 
 void ListUi::update_device_list()
@@ -78,28 +72,29 @@ void ListUi::update_device_list()
   _devices .clear();
   QListWidgetItem* item = _keylist->currentItem();
   if (item) {
-    string kname = string(qPrintable(item->text().split(' ')[0])) + "/[0-9]*";
-    string kpath = _path.key_path(kname);
-    glob_t g;
-    glob(kpath.c_str(),0,0,&g);
-    for(unsigned k=0; k<g.gl_pathc; k++) {
-      const char* src = basename(g.gl_pathv[k]);
-      unsigned phy = strtoul(src,NULL,16);
-      if (strlen(src)==1) {
-	*new QListWidgetItem(Pds::Level::name((Pds::Level::Type)phy),_devlist);
+    bool ok;
+    std::list<KeyEntry> entries = _db.getKey(item->text().split(' ')[0].toUInt(&ok,16));
+
+    for(std::list<KeyEntry>::const_iterator it=entries.begin();
+        it!=entries.end(); it++) {
+
+      bool lfound=false;
+      for(unsigned i=0; i<_devices.size(); i++)
+        if (_devices[i]==it->source) {
+          lfound=true;
+          break;
+        }
+      if (!lfound) {
+        DeviceEntry phy(it->source);
+        const Pds::Src& src = phy;
+        QString name = (src.level()==Pds::Level::Source) ?
+          QString(Pds::DetInfo::name(static_cast<const Pds::DetInfo&>(src))) :
+          QString(Pds::Level::name(src.level()));
+        *new QListWidgetItem(name,_devlist);
+
+        _devices.push_back(it->source);
       }
-      else if (strlen(src)==8) {
-	DeviceEntry entry(phy);
-        Pds::Src& sentry = entry;
-	*new QListWidgetItem(Pds::DetInfo::name(static_cast<const Pds::DetInfo&>(sentry)),_devlist);
-      }
-      else {
-	printf("config source %s does not compute.  Skipping.\n",src);
-	continue;
-      }
-      _devices.push_back(string(g.gl_pathv[k]));
     }
-    globfree(&g);
   }
   if (ok) connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_xtc_list()));
   update_xtc_list();
@@ -112,35 +107,43 @@ void ListUi::update_xtc_list()
   _types   .clear();
   QListWidgetItem* item = _devlist->currentItem();
   if (item) {
-    string kpath = _devices[_devlist->currentRow()] + "/*";
-    glob_t g;
-    glob(kpath.c_str(),0,0,&g);
-    for(unsigned k=0; k<g.gl_pathc; k++) {
-      unsigned typ = strtoul(basename(g.gl_pathv[k]),NULL,16);
-      *new QListWidgetItem(Pds::TypeId::name(reinterpret_cast<const Pds::TypeId&>(typ).id()),_xtclist);
-      _types.push_back(string(g.gl_pathv[k]));
-    }
-    globfree(&g);
+    bool lok;
+    std::list<KeyEntry> entries = _db.getKey(_keylist->currentItem()->text().split(' ')[0].toUInt(&lok,16));
+    for(std::list<KeyEntry>::const_iterator it=entries.begin();
+        it!=entries.end(); it++)
+      if (it->source == _devices[_devlist->currentRow()]) {
+        *new QListWidgetItem(Pds::TypeId::name(it->xtc.type_id.id()),_xtclist);
+        _types.push_back(it->xtc.type_id);
+      }
   }
   if (ok) connect(_xtclist, SIGNAL(itemSelectionChanged()), this, SLOT(view_xtc()));
 }
 
 void ListUi::view_xtc()
 {
-  char path[128];
-  strcpy(path,_types[_xtclist->currentRow()].c_str());
-  QString qpath(dirname(path));
-
-  strcpy(path,_types[_xtclist->currentRow()].c_str());
-  unsigned typ = strtoul(basename(path),NULL,16);
-  const Pds::TypeId& t = reinterpret_cast<Pds::TypeId&>(typ);
-
-  QString qfile(_types[_xtclist->currentRow()].c_str());
+  int len=0;
+  bool ok;
+  unsigned key     = _keylist->currentItem()->text().split(' ')[0].toUInt(&ok,16);
+  std::list<KeyEntry> entry = _db.getKey(key);
+  for(std::list<KeyEntry>::iterator it=entry.begin();
+      it!=entry.end(); it++)
+    if (it->source              == _devices[_devlist->currentRow()] &&
+        it->xtc.type_id.value() == _types  [_xtclist->currentRow()].value()) {
+      while(1) {
+        len = _db.getXTC(it->xtc,_xtcbuff,_lenbuff);
+        if (len<0)
+          return;
+        if (len<int(_lenbuff))
+          break;
+        delete _xtcbuff;
+        _xtcbuff = new char[_lenbuff*=2];
+      }
+    }
 
   Parameter::allowEdit(false);
-  Dialog* d = new Dialog(_xtclist, *_dict.lookup(t), qpath, qpath, qfile, false);
-  //  d->exec();
-  //  delete d;
+  Dialog* d = new Dialog(_xtclist, 
+                         *_dict.lookup(_types[_xtclist->currentRow()]),
+                         "xtc", _xtcbuff, len, false);
   d->setAttribute(::Qt::WA_DeleteOnClose, true);
   d->show();
 }

@@ -1,10 +1,9 @@
 #include "pdsapp/config/ControlScan.hh"
 
 #include "pdsapp/config/Experiment.hh"
-#include "pdsapp/config/PdsDefs.hh"
+#include "pds/config/PdsDefs.hh"
 #include "pdsapp/config/PvScan.hh"
 #include "pdsapp/config/EvrScan.hh"
-#include "pdsapp/config/XtcTable.hh"
 
 #include "pdsdata/psddl/control.ddl.h"
 #include "pdsdata/xtc/ClockTime.hh"
@@ -15,6 +14,8 @@
 #include "pdsdata/xtc/Level.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
+
+#include "pds/config/DbClient.hh"
 
 #include <QtGui/QTabWidget>
 #include <QtGui/QGroupBox>
@@ -140,25 +141,10 @@ void ControlScan::set_run_type(const QString& runType)
 
 void ControlScan::write()
 {
-  char buff[128];
-
-  XtcTable xtc(_expt.path().base());
-
   //
   //  Create Control Config xtc file (always)
   //
   {
-    UTypeName utype = PdsDefs::utypeName(PdsDefs::RunControl);
-    string path = _expt.path().data_path("",utype);
-    QString file = QString("%1/%2").arg(path.c_str()).arg(scan_file);
-
-    if (file.isNull() || file.isEmpty())
-      return;
-
-    sprintf(buff,"%s",qPrintable(file));
-
-    FILE* output = fopen(buff,"w");
-
     unsigned steps = _steps->text().toInt();
 
     char* p = _buf_control;
@@ -170,51 +156,47 @@ void ControlScan::write()
         int len = usePvs ? 
           _pv->write(k, steps, usePvs, ctime, p) :
           _evr->write_control(k, steps, ctime, p);
-	fwrite(p, len, 1, output);
         p += len;
       }
       else {
 	int len = usePvs ?
           _pv->write(k, steps, usePvs, _events_value->text().toInt(), p) :
           _evr->write_control(k, steps, _events_value->text().toInt(), p);
-        fwrite(p, len, 1, output);
         p += len;
       }
     }
-    fclose(output);
 
-    xtc.update_xtc(PdsDefs::qtypeName(utype), scan_file);
+    XtcEntry x;
+    x.type_id = *PdsDefs::typeId(PdsDefs::RunControl);
+    x.name    = scan_file;
+    
+    DbClient& db = _expt.path();
+    db.begin();
+    db.setXTC(x,_buf_control,p-_buf_control);
+    db.commit();
   }
   //
   //  Create EVR Config xtc file
   //
   if (_tab->currentIndex() == TriggerTab) {
-    UTypeName utype = PdsDefs::utypeName(PdsDefs::Evr);
-    string path = _expt.path().data_path("",utype);
-    QString file = QString("%1/%2").arg(path.c_str()).arg(scan_file);
-
-    if (file.isNull() || file.isEmpty())
-      return;
-
-    sprintf(buff,"%s",qPrintable(file));
-
-    FILE* output = fopen(buff,"w");
 
     unsigned steps = _steps->text().toInt();
 
     char* p = _buf_evr;
     for(unsigned k=0; k<=steps; k++) {
       int len = _evr->write(k,steps,p);
-      fwrite(p, len, 1, output);
       p += len;
     }
 
-    fclose(output);
-
-    xtc.update_xtc(PdsDefs::qtypeName(utype), scan_file);
+    XtcEntry x;
+    x.type_id = *PdsDefs::typeId(PdsDefs::Evr);
+    x.name    = scan_file;
+    
+    DbClient& db = _expt.path();
+    db.begin();
+    db.setXTC(x,_buf_evr,p-_buf_evr);
+    db.commit();
   }
-
-  xtc.write(_expt.path().base());
 }
 
 
@@ -222,43 +204,48 @@ void ControlScan::read(const char* ifile)
 {
   printf("ControlScan::read %s\n",ifile);
 
-  char namebuf[256];
+  DbClient& db = _expt.path();
 
   {
     //
     //  Fetch the last ControlConfig scan setting
     //
-    UTypeName utype = PdsDefs::utypeName(PdsDefs::RunControl);
-    string path = _expt.path().data_path("",utype);
-    QString file = QString("%1/%2").arg(path.c_str()).arg(ifile);
+    XtcEntry x;
+    x.type_id = *PdsDefs::typeId(PdsDefs::RunControl);
+    x.name    = ifile;
 
-    snprintf(namebuf,sizeof(namebuf),"%s",qPrintable(file));
-
-    printf("ControlScan::read %s\n",namebuf);
-
-    struct stat64 sstat;
-    if (stat64(namebuf,&sstat)) {
-      printf("ControlScan::read stat failed on controlconfig file %s\n",namebuf);
+    db.begin();
+    int sz = db.getXTC(x);
+    if (sz<=0) {
+      db.abort();
+      printf("ControlScan::read getXTC failed on %s\n",ifile);
 
       // Create it
-      printf("ControlScan::creating %s\n",namebuf);
-      FILE* f = fopen(namebuf,"w");
+      printf("ControlScan::creating %s\n",ifile);
       ControlConfigType* cfg = new (_buf_control)ControlConfigType(1,0,0,0,0,0,0,0,0,0,0);
-      fwrite(cfg, cfg->_sizeof(), 1, f);
-      fclose(f);
-      // retry stat()
-      if (stat64(namebuf,&sstat)) {
-        printf("ControlScan::read stat failed on controlconfig file %s\n",namebuf);
+
+      db.begin();
+      sz = cfg->_sizeof();
+      int len = db.setXTC(x,_buf_control,sz);
+      if (len!=sz) {
+        db.abort();
+        printf("ControlScan::read setXTC failed %s [%d/%d]\n",ifile,len,sz);
       }
+      else
+        db.commit();
     }
+    else
+      db.commit();
 
-    FILE* f = fopen(namebuf,"r");
-
-    int len = fread(_buf_control, 1, sstat.st_size, f);
-    if (len != sstat.st_size) {
-      printf("Read %d/%zd bytes from %s\n",len,sstat.st_size,namebuf);
+    db.begin();
+    int len = db.getXTC(x,_buf_control,sz);
+    if (len != sz) {
+      db.abort();
+      printf("Read %d/%d bytes from %s\n",len,sz,x.name.c_str());
     }
     else {
+      db.commit();
+
       const ControlConfigType& cfg = 
         *reinterpret_cast<const ControlConfigType*>(_buf_control);
 
@@ -279,51 +266,49 @@ void ControlScan::read(const char* ifile)
 
       _pv->read(_buf_control, len);
     }
-
-    fclose(f);
   }
 
   { 
     //
     //  Fetch the current EVR configuration (not last scan setting)
     //
-    UTypeName utype = PdsDefs::utypeName(PdsDefs::Evr);
     const TableEntry* entry = _expt.table().get_top_entry(_run_type);
     if (!entry)
       printf("ControlScan no EVR entry for run type %s\n",_run_type.c_str());
     else {
-      string path = _expt.path().key_path(entry->key());
       Pds::DetInfo info(0,Pds::DetInfo::NoDetector,0,Pds::DetInfo::Evr,0);
-      QString file = QString("%1/%2/%3")
-	.arg(path.c_str())
-	.arg(info.phy(),8,16,QChar('0'))
-	.arg(_evrConfigType.value(),8,16,QChar('0'));
 
-      if (file.isNull() || file.isEmpty()) {
-	printf("No EVR configuration found for run type %s\n",_run_type.c_str());
-      }
-      else {
-	sprintf(namebuf,"%s",qPrintable(file));
+      db.begin();
+      std::list<KeyEntry> entries = 
+        db.getKey(strtoul(entry->key().c_str(),NULL,16));
+      db.commit();
 
-	printf("ControlScan::read %s\n",namebuf);
+      for(std::list<KeyEntry>::const_iterator it=entries.begin();
+          it!=entries.end(); it++)
+        if (DeviceEntry(it->source) == info) {
+          db.begin();
+          int sz = db.getXTC(it->xtc);
+          if (sz<=0) {
+            db.abort();
+            printf("ControlScan no EVR entry for run type %s\n",
+                   _run_type.c_str());
+          }
+          else {
+            db.commit();
 
-	struct stat64 sstat;
-	if (stat64(namebuf,&sstat)) {
-	  printf("ControlScan::read stat failed on evrconfig file %s\n",namebuf);
-	  return;
-	}
-
-	FILE* f = fopen(namebuf,"r");
-
-	int len = fread(_buf_evr, 1, sstat.st_size, f);
-	if (len != sstat.st_size) {
-	  printf("Read %d/%zd bytes from %s\n",len,sstat.st_size,namebuf);
-	}
-        else {
-          _evr->read(_buf_evr, len);
+            db.begin();
+            int len = db.getXTC(it->xtc, _buf_evr, sz);
+            if (len != sz) {
+              db.abort();
+              printf("Read %d/%d bytes from %s\n",len,sz,it->xtc.name.c_str());
+            }
+            else {
+              db.commit();
+              _evr->read(_buf_evr, len);
+            }
+          }
+          break;
         }
-	fclose(f);
-      }
     }
   }
 }

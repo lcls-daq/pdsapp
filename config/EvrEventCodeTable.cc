@@ -74,7 +74,8 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
     if (_defaults && _defaults->pull(e))
       continue;
     if (EvrGlbEventDesc::global_code(e.code())) {
-      _glb_code[nglb++].pull(e);
+      if (nglb < MaxGlobalCodes)
+        _glb_code[nglb++].pull(e);
       continue;
     }
     if (nseq < MaxUserCodes)

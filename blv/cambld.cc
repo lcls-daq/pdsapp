@@ -44,11 +44,6 @@ public:
   unsigned wait_us;
 };
 
-static Pds::CameraDriver* _driver(int id)
-{
-  return new PdsLeutron::PicPortCL(*new TM6740Camera, id);
-}
-
 static void *thread_signals(void*)
 {
   while(1) sleep(100);

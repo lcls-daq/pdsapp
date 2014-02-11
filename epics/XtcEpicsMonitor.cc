@@ -109,7 +109,7 @@ int XtcEpicsMonitor::runMonitorLoop()
         if ( bPvUpdated )
         {
             /// !! For debug print
-            printf("Size of Data: Xtc %d Datagram %d Payload %d Total %d\n", 
+            printf("Size of Data: Xtc %zu Datagram %zu Payload %d Total %zu\n", 
                 sizeof(Xtc), sizeof(Datagram), pDatagram->xtc.sizeofPayload(), 
                 sizeof(Datagram) + pDatagram->xtc.sizeofPayload() );
             fwrite(pDatagram, sizeof(Datagram) + pDatagram->xtc.sizeofPayload(), 1, _fhXtc);

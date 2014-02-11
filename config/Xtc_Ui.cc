@@ -121,7 +121,7 @@ namespace Pds_ConfigDb {
       else if (_cmp==QString(PdsDefs::utypeName(xtc->contains).c_str()) &&
                _dev==sname(xtc->src)) {
 	Parameter::allowEdit(false);
-        Dialog* d = new Dialog(_ui, _ui->lookup(xtc->contains), xtc->payload(), xtc->sizeofPayload());
+        Dialog* d = new Dialog(_ui, _ui->lookup(xtc->contains), "xtc", xtc->payload(), xtc->sizeofPayload());
         d->exec();
         _found = true;
         return 0;

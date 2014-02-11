@@ -43,6 +43,6 @@ void trigger()
   if (sent == -1) {
     perror("sendto");
   } else if (sent != sizeof(triggerMsg)) {
-    printf("%s: sent %d of %u bytes\n", __FUNCTION__, sent, sizeof(triggerMsg));
+    printf("%s: sent %d of %zu bytes\n", __FUNCTION__, sent, sizeof(triggerMsg));
   }
 }

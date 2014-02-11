@@ -12,41 +12,26 @@ int main(int argc, char** argv)
 {
   bool edit=false;
   bool dbnamed=false;
-  string dbname;
+  string path;
   bool lusage=false;
 
   for(int i=1; i<argc; i++) {
     if (strcmp(argv[i],"--edit")==0) edit=true;
     else if (strcmp(argv[i],"--db")==0) {
-      dbname = string(argv[++i]);
+      path = string(argv[++i]);
       dbnamed = true;
     }
     else lusage=true;
   }
   lusage |= !dbnamed;
   if (lusage) {
-    printf("%s --db <dbname> [--edit]\n",argv[0]);
+    printf("%s --sql <path> [--edit]\n",argv[0]);
     return 1;
   }
 
   QApplication app(argc, argv);
 
-  Path path(dbname);
-  if (!path.is_valid()) {
-    printf("Database root %s is not valid\n",dbname.data());
-    if (!edit) return -1;
-
-    printf("Create? [y/n]: ");
-    const int maxlen=128;
-    char line[maxlen];
-    char* result = fgets(line, maxlen, stdin);
-    if (*result!='y' && *result!='Y')
-      return -1;
-
-    path.create();
-  }
-
-  Experiment db(path,edit?Experiment::Lock:Experiment::NoLock);
+  Experiment db(path.c_str(),edit?Experiment::Lock:Experiment::NoLock);
 
   Ui* ui = new Ui(db,edit);
   ui->show();

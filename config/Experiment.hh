@@ -1,7 +1,6 @@
 #ifndef Pds_ConfigDb_Experiment_hh
 #define Pds_ConfigDb_Experiment_hh
 
-#include "pdsapp/config/Path.hh"
 #include "pdsapp/config/Table.hh"
 #include "pdsapp/config/Device.hh"
 #include "pdsdata/xtc/TypeId.hh"
@@ -14,29 +13,26 @@ using std::list;
 namespace Pds_ConfigDb {
 
   class UTypeName;
+  class DbClient;
 
   class Experiment {
   public:
     //
     //  Objects created with the NoLock option may not change the database
-    //  contents (db/expt.xml, db/xtc.xml).
+    //  contents.
     //
     enum Option { Lock, NoLock };
-    Experiment(const Path&, Option=Lock);
+    Experiment(const char* path, Option=Lock);
     ~Experiment();
   public:
-    void load(const char*&);
-    void save(char*&) const;
+    void load();
+    void save() const;
   public:
     void create();
     void read();
     void write() const;
-    Experiment* branch(const string&) const;
   public:
-    void read_file();
-    void write_file() const;
-  public:
-    const Path& path() const { return _path; }
+    DbClient& path() { return *_db; }
     const Table& table() const { return _table; }
     Table& table() { return _table; }
     const list<Device>& devices() const { return _devices; }
@@ -66,13 +62,12 @@ namespace Pds_ConfigDb {
 
     static void log_threshold(double);
   private:
-    Path _path;
-    Option _lock;
-    FILE* _f;
-    Table  _table;
-    list<Device> _devices;
-    mutable time_t   _time_db;
-    time_t   _time_key;
+    void    _substitute (unsigned key, const Pds::Src&, const Pds::TypeId&, const char*) const;
+  private:
+    DbClient*           _db;
+    Option              _lock;
+    Table               _table;
+    list<Device>        _devices;
   };
 };
 

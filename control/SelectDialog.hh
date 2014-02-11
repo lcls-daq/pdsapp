@@ -24,6 +24,15 @@ namespace Pds {
   class IocControl;
   class NodeGroup;
 
+  class NodeMap {
+  public:
+    NodeMap(const Node& n, const std::vector<Src>& s) :
+      node(n), sources(s) {}
+  public:
+    Node node;
+    std::vector<Src> sources;
+  };
+
   class SelectDialog : public QDialog,
 		       public PlatformCallback,
 		       public IocHostCallback {
@@ -46,6 +55,7 @@ namespace Pds {
     const QList<BldInfo >& reporters() const;
     const QList<BldInfo >& transients() const;
     const QList<DetInfo >& iocs      () const;
+    const std::list<NodeMap>& segment_map() const;
     QWidget*               display ();
   public:
     static void useTransient(bool);
@@ -61,16 +71,12 @@ namespace Pds {
     PartitionControl& _pcontrol;
     IocControl&       _icontrol;
     bool              _bReadGroupEnable;
-    enum { MAX_NODES=32 };
     Node _control;
-    Node _segments [MAX_NODES];
-    Node _events   [MAX_NODES];
-    Node _recorders[MAX_NODES];
     NodeGroup* _segbox;
     NodeGroup* _evtbox;
     NodeGroup* _rptbox;
     NodeGroup* _iocbox;
-    QList<Node>    _selected;
+    QList<Node>     _selected;
     QList<DetInfo > _detinfo;
     std::set<std::string> _deviceNames;
     QList<ProcInfo> _seginfo;
@@ -78,7 +84,7 @@ namespace Pds {
     QList<BldInfo > _trninfo;
     QList<DetInfo > _iocinfo;
     QPushButton*   _acceptb;
-    std::list<AliasReply> _aliases;
+    std::list<NodeMap> _segment_map;
   };
 };
 

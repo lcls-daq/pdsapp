@@ -4,10 +4,12 @@
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Device.hh"
 #include "pdsapp/config/Serializer.hh"
-#include "pdsapp/config/PdsDefs.hh"
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/GlobalCfg.hh"
 #include "pdsapp/config/Parameters.hh"
+
+#include "pds/config/DbClient.hh"
+#include "pds/config/PdsDefs.hh"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -117,6 +119,8 @@ Devices_Ui::Devices_Ui(QWidget* parent,
     _cfgnewbutton ->setEnabled(false);
     _cfgcpybutton ->setEnabled(false);
     connect(_cmplist, SIGNAL(itemSelectionChanged()), this, SLOT(view_component()));
+    _cmpaddlist   ->setEnabled(false);
+    _cmpremlist   ->setEnabled(false);
   }
   update_device_list();
 }
@@ -357,30 +361,45 @@ void Devices_Ui::view_component()
 {
   string utype, uname;
   _current_component(utype,uname);
-  QString qname(uname.c_str());
 
-  // check for NULL before PdsDefs::typeId() is dereferenced by data_path()
-  if (!PdsDefs::typeId(UTypeName(utype))) {
-    QString qtype(utype.c_str());
-    QString msg = QString("Device type \'%1\' not recognized.").arg(qtype);
-    QMessageBox::warning(this, "Unknown device", msg);
-    return;
-  }
+  const Pds::TypeId& type_id = *PdsDefs::typeId(UTypeName(utype));
 
-  string path(_expt.path().data_path("",UTypeName(utype)));
-  QString qpath(path.c_str());
-  QString qfile = qpath + "/" + qname;
+  XtcEntry entry;
+  entry.type_id = type_id;
+  entry.name    = uname;
 
-  struct stat64 s;
-  if (stat64(qPrintable(qfile),&s)) {
-    QString msg = QString("File \'%1\' is either old configuration version or missing.\n  Try \'Browse Keys\' to read old version.").arg(qname);
+  DbClient& db = _expt.path();
+  db.begin();
+  int size = db.getXTC(entry);
+  if (size <= 0) {
+    QString msg = QString("Entry \'%1\' is either old configuration version or missing.\n  Try \'Browse Keys\' to read old version.").arg(uname.c_str());
     QMessageBox::warning(this, "Read file failed", msg);
+    db.abort();
   }
   else {
-    Dialog* d = new Dialog(_cmpaddlist, lookup(UTypeName(utype),_edit), 
-			   qpath, qpath, qfile, _edit);
-    d->exec();
-    delete d;
+    char* buff = new char[size];
+    if (db.getXTC(entry,buff,size)==size) {
+      db.commit();
+      Dialog* d = new Dialog(_cmpaddlist, lookup(UTypeName(utype),_edit), 
+                             entry.name.c_str(),
+                             buff, size, _edit);
+      if (d->exec()==QDialog::Accepted) {
+        entry.name = qPrintable(d->name());
+        db.begin();
+        db.setXTC(entry, d->payload(), d->payload_size());
+        db.commit();
+
+        QListWidgetItem* item;
+        item = _devlist->currentItem();
+        if (!item) return;
+        string det(qPrintable(item->text()));
+
+        FileEntry entry(utype,qPrintable(d->name()));
+        _expt.device(det)->table().set_entry(utype,entry);
+      }
+      delete d;
+    }
+    delete[] buff;
   }
 }
 
@@ -388,6 +407,7 @@ void Devices_Ui::add_component(const QString& type)
 {
   string strtype(qPrintable(type));
   UTypeName stype(strtype);
+  const Pds::TypeId& type_id = *PdsDefs::typeId(stype);
 
   QListWidgetItem* item;
   item = _devlist->currentItem();
@@ -406,10 +426,12 @@ void Devices_Ui::add_component(const QString& type)
     cfg = string(qPrintable(item->text()));
   }
 
-  list<string> xtc_files = _expt.path().xtc_files(det,stype);
   QStringList choices;
-  for(list<string>::const_iterator iter=xtc_files.begin(); iter!=xtc_files.end(); iter++)
-    choices << iter->c_str();
+  list<XtcEntry> entries = _expt.path().getXTC(type_id.value());
+  for(list<XtcEntry>::const_iterator it=entries.begin();
+      it!=entries.end(); it++)
+    choices << it->name.c_str();
+
   const string create_str("-CREATE-");
   const string import_str("-IMPORT-");
   choices << create_str.c_str();
@@ -427,46 +449,73 @@ void Devices_Ui::add_component(const QString& type)
            "Select File",
            choices, current, 0, &ok);
   if (ok) {
+    Dialog*        d = 0;
+    char*    payload = 0;
+    int   payload_sz = 0;
+    DbClient& db = _expt.path();
+    XtcEntry x;
+    x.type_id = type_id;
+
     string schoice(qPrintable(choice));
-    if (schoice==import_str) {
+    if (schoice==create_str) {
+      d = new Dialog(_cmpaddlist, lookup(stype,true), "example.xtc", true);
+    }
+    else if (schoice==import_str) {
       QString file = QFileDialog::getOpenFileName(_devlist,
               "Import Data File",
               "","");
+      schoice = basename(const_cast<char*>(qPrintable(file)));
       if (!file.isEmpty()) {
 	string sfile(qPrintable(file));
-	_expt.import_data(det,stype,sfile,"");
-	FileEntry entry(stype,basename(const_cast<char*>(sfile.c_str())));
-	_expt.device(det)->table().set_entry(cfg,entry);
-      }
-    }
-    else if (schoice==create_str) {
-      string path(_expt.path().data_path("",stype));
-      QString qpath(path.c_str());
-
-      Dialog* d = new Dialog(_cmpaddlist, lookup(stype,true), 
-			     qpath, qpath, true);
-      d->exec();
-      QString file(d->file());
-      delete d;
-      if (!file.isEmpty()) {
-	string sfile(qPrintable(file));
-	FileEntry entry(stype,sfile);
-	_expt.device(det)->table().set_entry(cfg,entry);
+        struct stat64 s;
+        if (stat64(sfile.c_str(),&s))
+          perror("stat64 xtc file");
+        else {
+          payload_sz = s.st_size;
+          payload = new char[payload_sz];
+          FILE* f = fopen(sfile.c_str(),"r");
+          if (fread(payload, 1, payload_sz, f) != size_t(payload_sz)) {
+            perror("fread xtc file");
+            delete[] payload;
+            payload = 0;
+          }
+          d = new Dialog(_cmpaddlist, lookup(stype,true), 
+                         schoice.c_str(),
+                         payload, payload_sz, true);
+        }
       }
     }
     else {
-      string path(_expt.path().data_path("",stype));
-      QString qpath(path.c_str());
-      QString qchoice = qpath + "/" + choice;
-
-      Dialog* d = new Dialog(_cmpaddlist, lookup(stype,true), 
-			     qpath, qpath, qchoice, true);
-      d->exec();
-      delete d;
-
-      FileEntry entry(stype,schoice);
-      _expt.device(det)->table().set_entry(cfg,entry);
+      x.name    = schoice;
+      payload_sz = db.getXTC(x);
+      if (payload_sz <= 0) {
+        perror("Error fetching xtc");
+        payload_sz = 0;
+      }
+      else {
+        payload = new char[payload_sz];
+        db.getXTC(x,payload,payload_sz);
+        d = new Dialog(_cmpaddlist, lookup(stype,true), 
+                       schoice.c_str(),
+                       payload, payload_sz, true);
+      }
     }
+
+    if (d) {
+      if (d->exec()==QDialog::Accepted) {
+        x.name = qPrintable(d->name());
+        db.begin();
+        db.setXTC(x, d->payload(), d->payload_size());
+        db.commit();
+
+        FileEntry entry(stype,qPrintable(d->name()));
+        _expt.device(det)->table().set_entry(cfg,entry);
+      }
+      delete d;
+    }
+
+    if (payload)
+      delete[] payload;
   }
   update_component_list();
 }
@@ -508,7 +557,7 @@ Serializer& Devices_Ui::lookup(const UTypeName& stype, bool edit)
   Serializer& s = _expert_mode ?
     *_xdict.lookup(*PdsDefs::typeId(stype)) :
     *_dict .lookup(*PdsDefs::typeId(stype));
-  s.setPath(_expt.path());
+  //  s.setPath(_expt.path());
   return s;
 }    
 
