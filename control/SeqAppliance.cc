@@ -97,7 +97,7 @@ Transition* SeqAppliance::transitions(Transition* tr)
       _configtc.extent = sizeof(Xtc) + _cur_config->_sizeof();
       _configtc.damage = damage;
       _control.set_transition_payload(TransitionId::Configure,&_configtc,_cur_config);
-
+      break;
     }
   case TransitionId::BeginCalibCycle:
     //  apply the configuration
