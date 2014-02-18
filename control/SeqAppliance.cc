@@ -37,7 +37,8 @@ SeqAppliance::SeqAppliance(PartitionControl& control,
   _end_config   (0),
   _pvmanager    (pvmanager),
   _sequencer_id (sequencer_id),
-  _sequencer    (0)
+  _sequencer    (0),
+  _ca_context   (ca_current_context())
 {
 }
 
@@ -57,9 +58,10 @@ Transition* SeqAppliance::transitions(Transition* tr)
       const Allocation& alloc = reinterpret_cast<const Allocate&>(*tr).allocation();
       _config.initialize(alloc);
 
-      //  EPICS thread initialization
-      SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), 
-               "PVDisplay calling ca_context_create" );
+      if (_ca_context) {
+        ca_attach_context(_ca_context);
+        _ca_context = 0;
+      }
       if (_sequencer_id) {
         _sequencer = new EventSequencer(_sequencer_id);
         _sequencer->initialize(alloc);
@@ -69,8 +71,6 @@ Transition* SeqAppliance::transitions(Transition* tr)
   case TransitionId::Unmap:
     if (_sequencer)
       delete _sequencer;
-    //  EPICS thread cleanup
-    ca_context_destroy();
     break;
   case TransitionId::Configure:
     {
@@ -97,7 +97,7 @@ Transition* SeqAppliance::transitions(Transition* tr)
       _configtc.extent = sizeof(Xtc) + _cur_config->_sizeof();
       _configtc.damage = damage;
       _control.set_transition_payload(TransitionId::Configure,&_configtc,_cur_config);
-
+      break;
     }
   case TransitionId::BeginCalibCycle:
     //  apply the configuration
@@ -139,6 +139,7 @@ InDatagram* SeqAppliance::events     (InDatagram* dg)
 
   switch(dg->datagram().seq.service()) {
   case TransitionId::Configure:
+    _cselect.configured_(true);
   case TransitionId::BeginCalibCycle:
     _done = false;
     //    dg->insert(_configtc,_cur_config); 
@@ -162,6 +163,9 @@ InDatagram* SeqAppliance::events     (InDatagram* dg)
       }
       _configtc.extent = sizeof(Xtc) + _cur_config->_sizeof();
     }
+    break;
+  case TransitionId::Unconfigure:
+    _cselect.configured_(true);
     break;
   default:
     break;

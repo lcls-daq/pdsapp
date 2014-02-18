@@ -116,7 +116,9 @@ int main(int argc, char** argv)
 
   Experiment::log_threshold(nfs_log_threshold);
 
-  ca_context_create(ca_enable_preemptive_callback);
+  //  EPICS thread initialization
+  SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), 
+           "control calling ca_context_create" );
   EventcodeQuery::execute();
 
   int _argc=1;

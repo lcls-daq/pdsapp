@@ -6,6 +6,8 @@
 #include "pds/config/ControlConfigType.hh"
 #include "pdsdata/xtc/Xtc.hh"
 
+struct ca_client_context;
+
 namespace Pds {
   class PartitionControl;
   class StateSelect;
@@ -41,6 +43,7 @@ namespace Pds {
     PVManager&         _pvmanager;
     unsigned           _sequencer_id;
     EventSequencer*    _sequencer;
+    struct ca_client_context* _ca_context;
   };
 };
 

@@ -7,6 +7,7 @@
 
 #include <pthread.h>
 
+class QCheckBox;
 class QComboBox;
 class QPushButton;
 class QMessageBox;
@@ -18,6 +19,7 @@ namespace Pds_ConfigDb {
 
 namespace Pds {
   class PartitionControl;
+  class Sequencer;
   class ConfigSelect : public QGroupBox {
     Q_OBJECT
   public:
@@ -30,6 +32,7 @@ namespace Pds {
     string getType();
     void enable_control(bool);
     bool controlpvs() const;
+    void configured_   (bool);
   public slots:
     void attached();
     void set_run_type(const QString&); // a run type has been selected
@@ -57,6 +60,9 @@ namespace Pds {
     unsigned                   _run_key;
     QPushButton*               _bEdit;
     QPushButton*               _bScan;
+    QCheckBox*                 _cSeq;
+    QComboBox*                 _bSeq;
+    Sequencer*                 _seq;
 
     bool                       _control_busy;
     pthread_mutex_t            _control_mutex;

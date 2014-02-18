@@ -14,7 +14,7 @@
 using namespace Pds_ConfigDb;
 
 // combo box items
-enum { Readout, Command, Transient, Latch };
+enum { Readout, Command, Trigger, Transient, Latch };
 
 static const unsigned DescLength = EventCodeType::DescSize;
 EvrEventDesc::EvrEventDesc() :
@@ -40,6 +40,7 @@ void EvrEventDesc::initialize(QGridLayout* l, unsigned row)
   _type = new QComboBox;
   _type->addItem("Readout");
   _type->addItem("Command");
+  _type->addItem("Trigger");
   _type->addItem("Control[Transient]");
   _type->addItem("Control[Latch]");
   l->addWidget(_type, row, column++, Qt::AlignCenter);
@@ -54,6 +55,7 @@ void EvrEventDesc::initialize(QGridLayout* l, unsigned row)
   _desc.widget()->setMaximumWidth(100);
 
   _stack = new QStackedWidget;
+  _stack->addWidget(new QWidget);
   _stack->addWidget(new QWidget);
   _stack->addWidget(new QWidget);
   { QWidget* w = new QWidget(_stack);
@@ -78,15 +80,14 @@ void EvrEventDesc::initialize(QGridLayout* l, unsigned row)
 
   if (_desc.allowEdit()) {
     ::QObject::connect(_desc._input, SIGNAL(editingFinished()), this, SLOT(update_p()));
-    ::QObject::connect(_type, SIGNAL(currentIndexChanged(int)), _stack, SLOT(setCurrentIndex(int)));
-    ::QObject::connect(_enable, SIGNAL(toggled(bool)), this, SLOT(enable(bool)));
   }
   else {
     _enable->setEnabled(false);
     _type  ->setEnabled(false);
-    ::QObject::connect(_type, SIGNAL(currentIndexChanged(int)), _stack, SLOT(setCurrentIndex(int)));
-    ::QObject::connect(_enable, SIGNAL(toggled(bool)), this, SLOT(enable(bool)));
   }
+  ::QObject::connect(_type, SIGNAL(currentIndexChanged(int)), _stack, SLOT(setCurrentIndex(int)));
+  ::QObject::connect(_type, SIGNAL(currentIndexChanged(int)), this, SLOT(update_group(int)));
+  ::QObject::connect(_enable, SIGNAL(toggled(bool)), this, SLOT(enable(bool)));
 }
 
 bool EvrEventDesc::enabled() const { return _enabled; }
@@ -95,9 +96,9 @@ void EvrEventDesc::enable(bool v)
 {
   _enabled = v;
   _type         ->setVisible(v);
-  _group        ->setVisible(v && _bEnableGroup);
   _desc.widget()->setVisible(v);
   _stack        ->setVisible(v);
+  update_group(0);
 }
 
 const char* EvrEventDesc::get_label() const
@@ -142,12 +143,18 @@ void EvrEventDesc::pull(const EventCodeType& c)
     _latch_delay  .value = c.reportDelay();
     _latch_release.value = c.releaseCode();
   }
+  else if (c.readoutGroup()) {
+    _type->setCurrentIndex(Trigger);
+    _group->setCurrentIndex(c.readoutGroup()-1);
+  }
   else {
     _type->setCurrentIndex(Transient);
     _trans_delay.value = c.reportDelay();
     _trans_width.value = c.reportWidth();
   }
+
   _enabled = c.code()!=Disabled;
+  update_group(0);
 }
 
 void EvrEventDesc::push(EventCodeType* c) const
@@ -169,6 +176,14 @@ void EvrEventDesc::push(EventCodeType* c) const
                           fill,fill,fill,
                           _desc.value,
                           0);
+    break;
+  case Trigger: // Trigger
+    *new(c) EventCodeType(get_code(),
+                          false, false, false,
+                          0, 1,
+                          fill,fill,fill,
+                          _desc.value,
+                          1+_group->currentIndex());
     break;
   case Transient: // Transient
     *new(c) EventCodeType(get_code(),
@@ -196,9 +211,17 @@ void EvrEventDesc::set_enable(bool v) { _enable->setChecked(v); }
 void EvrEventDesc::setGroupEnable(bool bEnableGroup)
 {
   _bEnableGroup = bEnableGroup;
-  _group->setVisible(_enabled && _bEnableGroup);  
+  update_group(0);
   if (!_bEnableGroup)
     _group->setCurrentIndex(0);
 }
 
+void EvrEventDesc::update_group(int)
+{
+  _group->setVisible(_enabled && _bEnableGroup && 
+		     (_type->currentIndex()==Readout ||
+		      _type->currentIndex()==Trigger));  
+}
+
 #include "Parameters.icc"
+

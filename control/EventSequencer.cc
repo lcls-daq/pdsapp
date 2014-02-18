@@ -13,7 +13,7 @@ static const int MaxConfigSize = 0x100000;
 using namespace Pds;
 
 static char _buff[64];
-const char* pvname(const char* format, const char* base, unsigned id)
+static const char* pvname(const char* format, const char* base, unsigned id)
 {
   sprintf(_buff,format,base,id);
   return _buff;
