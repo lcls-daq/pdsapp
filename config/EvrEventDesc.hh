@@ -38,6 +38,7 @@ namespace Pds_ConfigDb {
   public slots:
     void enable    (bool);
     void update_p  ();
+    void update_group(int);
   private:
     bool                         _enabled;
   public:

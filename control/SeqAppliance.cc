@@ -139,6 +139,7 @@ InDatagram* SeqAppliance::events     (InDatagram* dg)
 
   switch(dg->datagram().seq.service()) {
   case TransitionId::Configure:
+    _cselect.configured_(true);
   case TransitionId::BeginCalibCycle:
     _done = false;
     //    dg->insert(_configtc,_cur_config); 
@@ -162,6 +163,9 @@ InDatagram* SeqAppliance::events     (InDatagram* dg)
       }
       _configtc.extent = sizeof(Xtc) + _cur_config->_sizeof();
     }
+    break;
+  case TransitionId::Unconfigure:
+    _cselect.configured_(true);
     break;
   default:
     break;

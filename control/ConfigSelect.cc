@@ -1,10 +1,12 @@
 #include "pdsapp/control/ConfigSelect.hh"
 #include "pdsapp/control/Preferences.hh"
+#include "pdsapp/control/SequencerSync.hh"
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Reconfig_Ui.hh"
 #include "pdsapp/config/ControlScan.hh"
 #include "pds/management/PartitionControl.hh"
 
+#include <QtGui/QCheckBox>
 #include <QtGui/QComboBox>
 #include <QtGui/QLabel>
 #include <QtGui/QHBoxLayout>
@@ -27,6 +29,7 @@ static void* _attach(void* arg)
 }
 
 static const char* pref_name = "Configuration";
+static const char* seq_name  = "sequencer";
 
 ConfigSelect::ConfigSelect(QWidget*          parent,
 			   PartitionControl& control,
@@ -47,6 +50,11 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   _bEdit = new QPushButton("Edit");
   _bScan = new QPushButton("Scan");
 
+  _cSeq  = new QCheckBox;
+  _bSeq  = new QComboBox;
+  for(unsigned i=1; i<9; i++)
+    _bSeq->addItem(QString("%1").arg(i));
+
   QVBoxLayout* layout = new QVBoxLayout;
   { QHBoxLayout* layout1 = new QHBoxLayout;
     layout1->addStretch();
@@ -62,6 +70,13 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   { QHBoxLayout* layout1 = new QHBoxLayout;
     layout1->addStretch();
     layout1->addWidget(_bScan);
+    layout1->addStretch();
+    layout->addLayout(layout1); }
+  { QHBoxLayout* layout1 = new QHBoxLayout;
+    layout1->addStretch();
+    layout1->addWidget(_cSeq);
+    layout1->addWidget(new QLabel("Sync Sequence"));
+    layout1->addWidget(_bSeq);
     layout1->addStretch();
     layout->addLayout(layout1); }
   setLayout(layout);
@@ -203,7 +218,7 @@ void ConfigSelect::_open_db()
   bool asserted=false;
   while(1) {
     try {
-      _expt = new Pds_ConfigDb::Experiment(_db_path);
+      _expt = new Pds_ConfigDb::Experiment(Pds_ConfigDb::Path(_db_path));
     }
     catch(std::string& serr) {
       if (!asserted) {
@@ -256,7 +271,17 @@ void ConfigSelect::_read_db()
 void ConfigSelect::configured(bool v)
 {
   _runType->setEnabled(!v);
+  _cSeq   ->setEnabled(!v);
+  _bSeq   ->setEnabled(!v);
   _writeSettings();
+}
+
+void ConfigSelect::configured_(bool v)
+{
+  if (_seq) { delete _seq; _seq=0; }
+  if (_cSeq->isChecked())
+    _seq = new SequencerSync(_bSeq->currentIndex()+1);
+  _pcontrol.set_sequencer(_seq);
 }
 
 void ConfigSelect::enable_scan(bool l)
@@ -275,6 +300,7 @@ void ConfigSelect::_writeSettings()
   if (pref.file()) {
     fprintf(pref.file(),"%s\n",qPrintable(_runType->currentText()));
     fprintf(pref.file(),"%s\n",_bScan->isEnabled() && _bScan->isChecked() ? "scan":"no_scan");
+    fprintf(pref.file(),"%s %s\n",seq_name,qPrintable(_bSeq->currentText()));
   }
 }
 
@@ -304,6 +330,16 @@ void ConfigSelect::_readSettings()
       if (getline(&lptr,&linesz,pref.file())!=-1 &&
           strcmp(lptr,"scan")==0)
         _bScan->setChecked(true);
+      if (getline(&lptr,&linesz,pref.file())!=-1 &&
+          strncmp(lptr,seq_name,strlen(seq_name))==0) {
+        QString p(lptr+strlen(seq_name)+1);
+        p.chop(1);  // remove new-line
+        int index = _bSeq->findText(p);
+        if (index >= 0) {
+          _cSeq->setChecked(true);
+          _bSeq->setCurrentIndex(index);
+        }
+      }
     }
     free(buff);
   }

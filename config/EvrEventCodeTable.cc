@@ -66,11 +66,11 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
   unsigned nglb=0;
   unsigned nseq=0;
 
-  bool bEneableReadoutGroup = false;
+  bool bEnableReadoutGroup = false;
   for(unsigned i=0; i<cfg.neventcodes(); i++) {
     const EventCodeType& e = cfg.eventcodes()[i];
     if (e.readoutGroup() > 1)
-      bEneableReadoutGroup = true;
+      bEnableReadoutGroup = true;
     if (_defaults && _defaults->pull(e))
       continue;
     if (EvrGlbEventDesc::global_code(e.code())) {
@@ -82,9 +82,15 @@ void EvrEventCodeTable::pull(const EvrConfigType& cfg)
       _seq_code[nseq++].pull(e);
   }
   
-  _cbEnableReadGroup->setCurrentIndex(bEneableReadoutGroup? 1 : 0);      
+  _cbEnableReadGroup->setCurrentIndex(bEnableReadoutGroup? 1 : 0);      
 }
 
+//
+//  Valid criteria:
+//    Every "latch" type has a matching "release"
+//    No code is assigned two types
+//    Readout groups only contain one "readout" type or one "trigger" type
+//
 bool EvrEventCodeTable::validate() {
 
   bool result=true;
@@ -155,6 +161,28 @@ bool EvrEventCodeTable::validate() {
       QString msg = QString("Event codes specified multiple times {%1").arg(*it);
       while(++it != dcodes.end())
         msg += QString(",%1").arg(*it);
+      msg += QString("}");
+      QMessageBox::warning(0,"Input Error",msg);
+      result=false;
+    }
+
+    std::vector<unsigned> tcodes(EventCodeType::MaxReadoutGroup+1);
+    for(int i=0; i<int(_ncodes); i++)
+      if (pcode[i].maskTrigger())
+        tcodes[pcode[i].readoutGroup()]++;
+
+    bool tcodes_fail=false;
+    QString msg;
+    for(int i=0; i<EventCodeType::MaxReadoutGroup+1; i++)
+      if (tcodes[i]>1) {
+        if (!tcodes_fail) {
+          tcodes_fail=true;
+          msg += QString("Multiple Readout/Trigger codes for groups {%1").arg(i);
+        }
+        else
+          msg += QString(",%1").arg(i);
+      }
+    if (tcodes_fail) {
       msg += QString("}");
       QMessageBox::warning(0,"Input Error",msg);
       result=false;

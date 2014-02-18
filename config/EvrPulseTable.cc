@@ -162,7 +162,7 @@ bool EvrPulseTable::pull(const EvrConfigType& tc) {
     const EventCodeType* pCodeReadout = NULL;
     for(unsigned i=0; i<tc.neventcodes(); i++) {
       const EventCodeType& ec = tc.eventcodes()[i];
-      if (ec.isReadout() && ( ec.maskTrigger() & uPulseBit ) != 0) {
+      if (( ec.maskTrigger() & uPulseBit ) != 0) {
         //printf( "EvrPulseTable::pull(): pulse %d event code [%d] %d readout group %d maskTrigger 0x%x\n", 
         //  j, i, ec.code(), ec.readoutGroup(), ec.maskTrigger()); //!!!debug
 
@@ -256,28 +256,31 @@ bool EvrPulseTable::validate(unsigned ncodes,
     int iGroup = 1+p._group->currentIndex();
     uint32_t pm = 1<<(npt+p0);
     uint32_t fill = 0;
-    for(unsigned i=0; i<ncodes; i++)
-      if (codes[i].isReadout() && codes[i].readoutGroup() == iGroup )
+    for(unsigned i=0; i<ncodes; i++) {
+      const EventCodeType& c = codes[i];
+      if (c.readoutGroup() == iGroup && iGroup>0)
       {
-        *new(const_cast<EventCodeType*>(&codes[i]))
-             EventCodeType(codes[i].code(),
-                           true, false, false,
-                           0, 1,
-                           codes[i].maskTrigger()|pm,fill,fill,
-                           codes[i].desc(),
-                           codes[i].readoutGroup());
+        *new(const_cast<EventCodeType*>(&c))
+             EventCodeType(c.code(),
+			   c.isReadout(),
+			   c.isCommand(),
+			   c.isLatch(),
+			   c.reportDelay(), c.reportWidth(),
+                           c.maskTrigger()|pm,fill,fill,
+                           c.desc(),
+                           c.readoutGroup());
                                           
         if ( primary_readout == -1 )
         {
-          primary_readout = codes[i].code();
+          primary_readout = c.code();
           delay_offset    =
                     EventcodeTiming::timeslot(140) -
-                    EventcodeTiming::timeslot(codes[i].code());                                                                                    
+                    EventcodeTiming::timeslot(c.code());                                                                                    
           //printf("Adjusting pulse [%d] for readout event code [%d] %d, delays %+d ticks (%lg ns)\n",
-          //npt, i, codes[i].code(), delay_offset, (double)(delay_offset*EvrPeriod*1e9));
+          //npt, i, c.code(), delay_offset, (double)(delay_offset*EvrPeriod*1e9));
 
           
-          readout_period = EventcodeTiming::period(codes[i].code());
+          readout_period = EventcodeTiming::period(c.code());
         }
         //!!! dont warn about the secondary readout eventcode
         //else
@@ -294,6 +297,7 @@ bool EvrPulseTable::validate(unsigned ncodes,
         //  QMessageBox::warning(0,"",msg);          
         //}
       }
+    }
                                         
     int adjusted_delay = p._delay.value + delay_offset;
 
