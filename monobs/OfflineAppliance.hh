@@ -7,6 +7,7 @@
 #include "pds/client/Fsm.hh"
 #include "pds/offlineclient/OfflineClient.hh"
 #include "LogBook/Connection.h"
+#include "pds/utility/PvConfigFile.hh"
 
 // EPICS
 #include "cadef.h"
@@ -21,7 +22,7 @@ namespace Pds {
   class OfflineAppliance : public Fsm {
     enum { NotRecording=0xffffffff };
   public:
-    OfflineAppliance(OfflineClient*, const char*);
+    OfflineAppliance(OfflineClient*, const char*, int, bool);
 
     // Appliance methods
     Transition* transitions(Transition* tr);
@@ -30,18 +31,14 @@ namespace Pds {
 
   private:
 
-    typedef std::vector<std::string> TPvList;
-
     typedef struct parm_channel {
       chid         value_channel;
-      chid         description_channel;
       bool         created;
       dbr_string_t value;
-      dbr_string_t description;
     } parm_channel_t;
 
-    static int _readConfigFile( const std::string& sFnConfig, TPvList& vsPvNameList );
-    static int _splitPvList( const std::string& sPvList, TPvList& vsPv );
+    static int _readConfigFile( const std::string& sFnConfig, PvConfigFile::TPvList& vsPvNameList );
+    static int _splitPvList( const std::string& sPvList, PvConfigFile::TPvList& vsPv );
 
     static const char sPvListSeparators[];
 
@@ -49,7 +46,7 @@ namespace Pds {
                       const char *experiment, unsigned int run, const char *parmName,
                       const char *parmValue, const char *parmDescription);
 
-    int _readEpicsPv(TPvList in, TPvList& pvValues, TPvList& pvDescriptions);
+    int _readEpicsPv(PvConfigFile::TPvList in, std::vector<std::string> & pvValues);
 
     const char * _path;
     const char * _instrument_name;
@@ -59,7 +56,11 @@ namespace Pds {
     unsigned int _station;
     const char * _parm_list_file;
     bool         _parm_list_initialized;
+    int          _parm_list_size;
     parm_channel_t  *_channels;
+    PvConfigFile::TPvList _vsPvNameList;
+    int          _maxParms;
+    bool         _verbose;
   };
 
 }

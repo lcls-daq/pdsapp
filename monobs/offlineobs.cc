@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
     if (expnum != OFFLINECLIENT_DEFAULT_EXPNUM) {
       printf("%s: instrument %s:%u experiment %s (#%u)\n", argv[0],
              pd.GetInstrumentName().c_str(), pd.GetStationNumber(), offlineclient->GetExperimentName(), expnum);
-      app = new OfflineAppliance(offlineclient, parm_list_file);
+      app = new OfflineAppliance(offlineclient, parm_list_file, OFFLINECLIENT_MAX_PARMS, (verbose > 0));
     } else {
       fprintf(stderr, "%s: failed to find experiment '%s'\n", argv[0], experiment_name);
       app = NULL;
@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
     if (expname) {
       printf("%s: instrument %s:%u experiment %s (#%u)\n", argv[0],
              pd.GetInstrumentName().c_str(), pd.GetStationNumber(), expname, offlineclient->GetExperimentNumber());
-      app = new OfflineAppliance(offlineclient, parm_list_file);
+      app = new OfflineAppliance(offlineclient, parm_list_file, OFFLINECLIENT_MAX_PARMS, (verbose > 0));
     } else {
       fprintf(stderr, "%s: failed to find current experiment\n", argv[0]);
       app = NULL;
