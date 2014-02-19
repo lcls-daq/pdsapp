@@ -218,7 +218,7 @@ void ConfigSelect::_open_db()
   bool asserted=false;
   while(1) {
     try {
-      _expt = new Pds_ConfigDb::Experiment(Pds_ConfigDb::Path(_db_path));
+      _expt = new Pds_ConfigDb::Experiment(_db_path);
     }
     catch(std::string& serr) {
       if (!asserted) {
