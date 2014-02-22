@@ -40,6 +40,7 @@ ConfigSelect::ConfigSelect(QWidget*          parent,
   _expt    (0),
   _reconfig(0),
   _scan    (0),
+  _seq     (0),
   _control_busy(false)
 {
   setPalette(QPalette(::Qt::yellow));
@@ -300,7 +301,7 @@ void ConfigSelect::_writeSettings()
   if (pref.file()) {
     fprintf(pref.file(),"%s\n",qPrintable(_runType->currentText()));
     fprintf(pref.file(),"%s\n",_bScan->isEnabled() && _bScan->isChecked() ? "scan":"no_scan");
-    fprintf(pref.file(),"%s %s\n",seq_name,qPrintable(_bSeq->currentText()));
+    fprintf(pref.file(),"%s%s %s\n",_cSeq->isChecked() ? "" : "no ",seq_name,qPrintable(_bSeq->currentText()));
   }
 }
 
@@ -330,14 +331,17 @@ void ConfigSelect::_readSettings()
       if (getline(&lptr,&linesz,pref.file())!=-1 &&
           strcmp(lptr,"scan")==0)
         _bScan->setChecked(true);
-      if (getline(&lptr,&linesz,pref.file())!=-1 &&
-          strncmp(lptr,seq_name,strlen(seq_name))==0) {
-        QString p(lptr+strlen(seq_name)+1);
-        p.chop(1);  // remove new-line
-        int index = _bSeq->findText(p);
-        if (index >= 0) {
-          _cSeq->setChecked(true);
-          _bSeq->setCurrentIndex(index);
+      if (getline(&lptr,&linesz,pref.file())!=-1) {
+        char* lstr = strstr(lptr,seq_name);
+        if (lstr) {
+          QString p(lstr+strlen(seq_name)+1);
+          p.chop(1);  // remove new-line
+          int index = _bSeq->findText(p);
+          if (index >= 0) {
+            _bSeq->setCurrentIndex(index);
+            if (lptr==lstr)
+              _cSeq->setChecked(true);
+          }
         }
       }
     }
