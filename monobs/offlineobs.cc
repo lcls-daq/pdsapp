@@ -45,7 +45,11 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <parm_list_file>] [-w <slow readout:0/1] [-v]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <parm_list_file>] [-w <slow readout:0/1] [-v] [-h]\n", progname);
+}
+
+static void configHelp() {
+  printf("%s", Pds::PvConfigFile::helpText.c_str());
 }
 
 // Appliance* app;
@@ -79,7 +83,7 @@ int main(int argc, char** argv) {
   int verbose = 0;
   (void) signal(SIGINT, sigfunc);
   int c;
-  while ((c = getopt(argc, argv, "p:P:E:L:V:w:v")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:E:L:V:w:vh")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -102,6 +106,11 @@ int main(int argc, char** argv) {
     case 'v':
       ++verbose;
       break;
+    case 'h':
+      usage(argv[0]);
+      printf("\n");
+      configHelp();
+      return 0;
     case 'w':
       slowReadout = strtoul(optarg, &endPtr, 0);
       break;
