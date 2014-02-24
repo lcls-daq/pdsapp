@@ -21,6 +21,22 @@
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/Dgram.hh"
 
+static const char *helpText =
+  "PV Config File Format:\n"
+  "  - Each line of the file can contain one PV name\n"
+  "  - Use '#' at the beginning of the line to comment out whole line\n"
+  "  - Use '#' in the middle of the line to comment out the remaining characters\n"
+  "  - Use '*' at the beginning of the line to define an alias for the immediately following PV(s)\n"
+  "  - Use '<' to include file(s)\n\n"
+  "Example:\n"
+  "  % cat logbook.txt\n"
+  "  < PvList0.txt, PvList1.txt # Include Two Files\n"
+  "  iocTest:aiExample          # PV Name\n"
+  "  # This is a comment line\n"
+  "  iocTest:calcExample1\n"
+  "  * electron beam energy     # Alias for BEND:DMP1:400:BDES\n"
+  "  BEND:DMP1:400:BDES\n";
+
 using namespace Pds;
 
 class MyCallback : public EventCallback {
@@ -46,10 +62,6 @@ private:
 
 void usage(char* progname) {
   printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <pv_config_file>] [-w <slow readout:0/1] [-v] [-h]\n", progname);
-}
-
-static void configHelp() {
-  printf("%s", Pds::PvConfigFile::helpText.c_str());
 }
 
 // Appliance* app;
@@ -108,8 +120,7 @@ int main(int argc, char** argv) {
       break;
     case 'h':
       usage(argv[0]);
-      printf("\n");
-      configHelp();
+      printf("\n%s", helpText);
       return 0;
     case 'w':
       slowReadout = strtoul(optarg, &endPtr, 0);
