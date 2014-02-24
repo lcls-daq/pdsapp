@@ -45,7 +45,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <parm_list_file>] [-w <slow readout:0/1] [-v] [-h]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <pv_config_file>] [-w <slow readout:0/1] [-v] [-h]\n", progname);
 }
 
 static void configHelp() {
