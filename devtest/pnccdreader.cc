@@ -105,11 +105,14 @@ int main(int argc, char* argv[]) {
   char* xtcname=0;
   int parseErr = 0;
 
-  while ((c = getopt(argc, argv, "f:")) != -1) {
+  while ((c = getopt(argc, argv, "f:h")) != -1) {
     switch (c) {
     case 'f':
       xtcname = optarg;
       break;
+    case 'h':
+      usage(argv[0]);
+      exit(0);
     default:
       parseErr++;
     }
