@@ -280,7 +280,7 @@ void ConfigSelect::configured(bool v)
 void ConfigSelect::configured_(bool v)
 {
   if (_seq) { delete _seq; _seq=0; }
-  if (_cSeq->isChecked())
+  if (_cSeq->checkState()==::Qt::Checked)
     _seq = new SequencerSync(_bSeq->currentIndex()+1);
   _pcontrol.set_sequencer(_seq);
 }
@@ -301,7 +301,7 @@ void ConfigSelect::_writeSettings()
   if (pref.file()) {
     fprintf(pref.file(),"%s\n",qPrintable(_runType->currentText()));
     fprintf(pref.file(),"%s\n",_bScan->isEnabled() && _bScan->isChecked() ? "scan":"no_scan");
-    fprintf(pref.file(),"%s%s %s\n",_cSeq->isChecked() ? "" : "no ",seq_name,qPrintable(_bSeq->currentText()));
+    fprintf(pref.file(),"%s%s %s\n",_cSeq->checkState()==::Qt::Checked ? "" : "no ",seq_name,qPrintable(_bSeq->currentText()));
   }
 }
 
