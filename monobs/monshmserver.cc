@@ -239,7 +239,7 @@ public:
     _appliances->connect(frmk->inlet());
     (new MyEbDump(streams.wire()))->connect(frmk->inlet());
   }
-  void failed   (Reason reason)   { _task->destroy(); delete this; }
+  void failed   (Reason reason)   {}
   void dissolved(const Node& who) { _task->destroy(); delete this; }
 private:
   Task*       _task;
@@ -530,7 +530,8 @@ int main(int argc, char** argv) {
 			  slowReadout,
 			  sizeOfBuffers);
 
-    new Comm(*event, *stats);
+    if (!uniqueID)
+      new Comm(*event, *stats);
 
     if (event->attach()) {
       task->mainLoop();
