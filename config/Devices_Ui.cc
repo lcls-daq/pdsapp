@@ -384,18 +384,23 @@ void Devices_Ui::view_component()
                              entry.name.c_str(),
                              buff, size, _edit);
       if (d->exec()==QDialog::Accepted) {
-        entry.name = qPrintable(d->name());
-        db.begin();
-        db.setXTC(entry, d->payload(), d->payload_size());
-        db.commit();
+        bool ok;
+        QString file = QInputDialog::getText(this,"Configuration:","Name:",
+                                             QLineEdit::Normal,d->name(),&ok);
+        if (ok && !file.isEmpty()) {
+          entry.name = qPrintable(file);
+          db.begin();
+          db.setXTC(entry, d->payload(), d->payload_size());
+          db.commit();
 
-        QListWidgetItem* item;
-        item = _devlist->currentItem();
-        if (!item) return;
-        string det(qPrintable(item->text()));
-
-        FileEntry entry(utype,qPrintable(d->name()));
-        _expt.device(det)->table().set_entry(utype,entry);
+          QListWidgetItem* item;
+          item = _devlist->currentItem();
+          if (!item) return;
+          string det(qPrintable(item->text()));
+          
+          FileEntry entry(utype,qPrintable(d->name()));
+          _expt.device(det)->table().set_entry(utype,entry);
+        }
       }
       delete d;
     }
@@ -503,13 +508,18 @@ void Devices_Ui::add_component(const QString& type)
 
     if (d) {
       if (d->exec()==QDialog::Accepted) {
-        x.name = qPrintable(d->name());
-        db.begin();
-        db.setXTC(x, d->payload(), d->payload_size());
-        db.commit();
-
-        FileEntry entry(stype,qPrintable(d->name()));
-        _expt.device(det)->table().set_entry(cfg,entry);
+        bool ok;
+        QString file = QInputDialog::getText(this,"Configuration:","Name:",
+                                             QLineEdit::Normal,d->name(),&ok);
+        if (ok && !file.isEmpty()) {
+          x.name = qPrintable(file);
+          db.begin();
+          db.setXTC(x, d->payload(), d->payload_size());
+          db.commit();
+          
+          FileEntry entry(stype,qPrintable(d->name()));
+          _expt.device(det)->table().set_entry(cfg,entry);
+        }
       }
       delete d;
     }

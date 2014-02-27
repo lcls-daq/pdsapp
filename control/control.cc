@@ -56,8 +56,12 @@ int main(int argc, char** argv)
     char* endPtr;
     switch (c) {
     case 'p':
+      errno = 0;
       platform = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) platform = 0;
+      if (errno != 0 || endPtr == optarg) {
+        printf("platform [%s] not parsed\n",optarg);
+        exit(1);
+      }
       break;
     case 'P':
       partition = optarg;

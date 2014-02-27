@@ -15,7 +15,7 @@ using namespace PdsCas;
 
 void usage(const char* p)
 {
-  printf("Usage: %s -f <config file> %s\n",
+  printf("Usage: %s -f <config file> [-v] %s\n",
 	 p, ShmClient::options());
 }
 
@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 
   int c;
   char opts[128];
-  sprintf(opts,"?hf:%s",client.opts());
+  sprintf(opts,"?hf:v%s",client.opts());
   while ((c = getopt(argc, argv, opts)) != -1) {
     switch (c) {
     case '?':
@@ -36,6 +36,9 @@ int main(int argc, char* argv[])
       exit(0);
     case 'f':
       filename = optarg;
+      break;
+    case 'v':
+      CspadMon::verbose();
       break;
     default:
       if (!client.arg(c,optarg)) {

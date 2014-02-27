@@ -119,18 +119,6 @@ void Dialog::write()
   _payload = new char[_payload_sz];
   _s.writeParameters(_payload);
 
-  if (!_name.isNull()) {
-    bool ok;
-    QString file = QInputDialog::getText(this,"Configuration:","Name:",
-                                         QLineEdit::Normal,_name,&ok);
-    if (!ok)
-      return;
-    if (file.isEmpty())
-      return;
-
-    _name=file;
-  }
-
   accept();
 }
 
