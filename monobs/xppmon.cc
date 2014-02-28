@@ -69,13 +69,13 @@ int main(int argc, char* argv[])
 
   while(getline(&line, &line_sz, f) != -1) {
     if (line[0]!='#') {
-      char* args = strtok(line,"\t ");
+      char* args = strtok(line,"\t\n ");
       if (args==NULL || args[0]=='\n')
         break;
 
       DetInfo info(args);
 
-      char* pvbase = strtok(NULL,"\t ");
+      char* pvbase = strtok(NULL,"\t\n ");
       if (!pvbase) {
         printf("No PV field for %s\n",args);
         return -1;
