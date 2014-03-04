@@ -479,7 +479,19 @@ void send_event(struct event *ev)
     fflush(fp);
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
     if (fsize >= CHUNK_SIZE) { /* Next chunk! */
+#if 0
+        /*
+         * MCB - OK, this is bad.
+         *
+         * We aren't generating index files until we are done recording.
+         * Therefore, we need to hold on to this file descriptor so we
+         * keep the lock.  We'll let it dangle... it will get cleaned up
+         * when we exit.
+         *
+         * Yeah, I know.
+         */
         fclose(fp);
+#endif
         sprintf(cpos, "-c%02d.xtc", ++chunk);
         if (!(fp = myfopen(fname, "w"))) {
             printf("Cannot open %s for output!\n", fname);
@@ -726,7 +738,7 @@ void cleanup_xtc(void)
         write_datagram(TransitionId::Unconfigure,   0);
     }
     if (fp)
-        fclose(fp);
+        fflush(fp);
 
 #if 1
     /*
@@ -736,7 +748,6 @@ void cleanup_xtc(void)
 #define MKIDX "/reg/common/package/pdsdata/7.2.16/x86_64-linux-opt/bin/xtcindex"
         int i;
         char buf[4096], *base;
-        FILE *fp;
 
         base = rindex(fname, '/');
         *base++ = 0;
@@ -746,15 +757,12 @@ void cleanup_xtc(void)
             sprintf(buf, "%s -f %s/%s -o %s/index/%s.idx >/dev/null 2>1",
                     MKIDX, fname, base, fname, base);
             system(buf);
-            sprintf(buf, "%s/index/%s.idx", fname, base);
-            fp = myfopen(buf, "a");
-            if (fp) {
-                fclose(fp);
-                fp = NULL;
-            }
         }
     }
 #endif
+
+    if (fp)
+        fclose(fp);
 }
 
 void xtc_stats(void)
