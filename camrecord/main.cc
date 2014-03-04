@@ -379,7 +379,7 @@ static void initialize(char *config)
     if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
         char buf[1024];
         *s = 0;
-        sprintf(buf, "mkdir -p %s", outfile);
+        sprintf(buf, "mkdir -p %s/index", outfile);
         *s = '/';
         system(buf);
     }

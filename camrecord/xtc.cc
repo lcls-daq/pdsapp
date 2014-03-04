@@ -727,6 +727,34 @@ void cleanup_xtc(void)
     }
     if (fp)
         fclose(fp);
+
+#if 1
+    /*
+     * Temporary index generation code!!!
+     */
+    {
+#define MKIDX "/reg/common/package/pdsdata/7.2.16/x86_64-linux-opt/bin/xtcindex"
+        int i;
+        char buf[4096], *base;
+        FILE *fp;
+
+        base = rindex(fname, '/');
+        *base++ = 0;
+        /* So, fname = "USER/xtc" and base = "e...xtc" */
+        for (i = 0; i <= chunk; i++) {
+            sprintf(cpos, "-c%02d.xtc", i);
+            sprintf(buf, "%s -f %s/%s -o %s/index/%s.idx >/dev/null 2>1",
+                    MKIDX, fname, base, fname, base);
+            system(buf);
+            sprintf(buf, "%s/index/%s.idx", fname, base);
+            fp = myfopen(buf, "a");
+            if (fp) {
+                fclose(fp);
+                fp = NULL;
+            }
+        }
+    }
+#endif
 }
 
 void xtc_stats(void)
