@@ -13,6 +13,8 @@
 #include "pdsapp/control/RemoteSeqCmd.hh"
 #include "pds/config/ControlConfigType.hh"
 #include "pdsdata/psddl/control.ddl.h"
+#include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/TypeId.hh"
 using Pds::ControlData::PVControl;
 using Pds::ControlData::PVMonitor;
 using Pds::ControlData::PVLabel;
@@ -50,7 +52,10 @@ static PyObject* pdsdaq_dbkey    (PyObject* self);
 static PyObject* pdsdaq_partition(PyObject* self);
 static PyObject* pdsdaq_runnum   (PyObject* self);
 static PyObject* pdsdaq_expt     (PyObject* self);
+static PyObject* pdsdaq_detectors(PyObject* self);
+static PyObject* pdsdaq_devices  (PyObject* self);
 static PyObject* pdsdaq_disconnect(PyObject* self);
+static PyObject* pdsdaq_types    (PyObject* self);
 static PyObject* pdsdaq_connect  (PyObject* self);
 static PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds);
@@ -66,6 +71,9 @@ static PyMethodDef pdsdaq_methods[] = {
   {"partition" , (PyCFunction)pdsdaq_partition , METH_NOARGS  , "Get partition"},
   {"runnumber" , (PyCFunction)pdsdaq_runnum    , METH_NOARGS  , "Get run number"},
   {"experiment", (PyCFunction)pdsdaq_expt      , METH_NOARGS  , "Get experiment number"},
+  {"detectors" , (PyCFunction)pdsdaq_detectors , METH_NOARGS  , "Get the detector names"},
+  {"devices"   , (PyCFunction)pdsdaq_devices   , METH_NOARGS  , "Get the device names"},
+  {"types"     , (PyCFunction)pdsdaq_types     , METH_NOARGS  , "Get the type names"},
   {"configure" , (PyCFunction)pdsdaq_configure , METH_KEYWORDS, "Configure the scan"},
   {"begin"     , (PyCFunction)pdsdaq_begin     , METH_KEYWORDS, "Configure the cycle"},
   {"end"       , (PyCFunction)pdsdaq_end       , METH_NOARGS  , "Wait for the cycle end"},
@@ -406,6 +414,45 @@ PyObject* pdsdaq_expt     (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
   return PyLong_FromLong(daq->runinfo >> 16);
+}
+
+PyObject* pdsdaq_detectors (PyObject* self)
+{
+  Pds::DetInfo  d;
+  unsigned i = (unsigned)Pds::DetInfo::NoDetector;
+  PyObject* o = PyList_New(Pds::DetInfo::NumDetector);
+  while (i<Pds::DetInfo::NumDetector)
+  {
+    PyList_SetItem(o, i, PyString_FromString(d.name((Pds::DetInfo::Detector)i)));
+    i += 1;
+  }
+  return o;
+}
+
+PyObject* pdsdaq_devices (PyObject* self)
+{
+  Pds::DetInfo d;
+  unsigned i = (unsigned) Pds::DetInfo::NoDevice;
+  PyObject* o = PyList_New(Pds::DetInfo::NumDevice);
+  while (i<(unsigned)Pds::DetInfo::NumDevice)
+  {
+    PyList_SetItem(o, i, PyString_FromString(d.name((Pds::DetInfo::Device)i)));
+    i += 1;
+  }
+  return o;
+}
+
+PyObject* pdsdaq_types (PyObject* self)
+{
+  Pds::TypeId t;
+  unsigned i = (unsigned) Pds::TypeId::Any;
+  PyObject* o = PyList_New(Pds::TypeId::NumberOf);
+  while (i<(unsigned)Pds::TypeId::NumberOf)
+  {
+    PyList_SetItem(o, i, PyString_FromString(t.name((Pds::TypeId::Type)i)));
+    i += 1;
+  }
+  return o;
 }
 
 static bool ParseInt(PyObject* obj, int& var, const char* name)

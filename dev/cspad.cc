@@ -118,16 +118,16 @@ void Pds::MySegWire::connect( InletWire& wire,
 
 void sigHandler( int signal ) {
   Pds::CspadServer* server = Pds::CspadServer::instance();
-  psignal( signal, "Signal received by CspadServer");
+  psignal( signal, "Signal received by Cspad segment level");
   if (server != 0) {
+    server->disable();
     if (myWire != 0) {
       myWire->remove_input(server);
-    }
-    if (server != 0) server->ignoreFetch(true);
-    if (server != 0) server->disable();
-    if (server != 0) server->dumpFrontEnd();
-    if (server != 0) server->die();
-  }
+    } else printf("\tmyWire is gone!\n");
+    if (server != 0) server->ignoreFetch(true); else printf("\tServer is gone!\n");
+    if (server != 0) server->dumpFrontEnd(); else printf("\tServer is gone!\n");
+    if (server != 0) server->die(); else printf("\tServer is gone!\n");
+  } else printf("\tServer is gone! Did nothing\n");
   printf("Signal handler pulling the plug\n");
   ::exit(signal);
 }
