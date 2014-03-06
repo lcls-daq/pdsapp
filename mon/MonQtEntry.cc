@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "MonQtEntry.hh"
 
 #include <QtGui/QLabel>
@@ -24,7 +26,7 @@ MonQtEntry::MonQtEntry(const char* title, QWidget* p) :
 
 void MonQtEntry::setEntry(const char* s)
 {
-  _line->setText(QString(s)); 
+  _line->setText(QString(s));
 }
 
 // MonQtFloatEntry
@@ -36,7 +38,7 @@ MonQtFloatEntry::MonQtFloatEntry(const char* title, float v, QWidget* p) :
   _line->setValidator(new QDoubleValidator(_line));
 }
 
-void MonQtFloatEntry::setEntry(float e) 
+void MonQtFloatEntry::setEntry(float e)
 {
   char buff[32];
   sprintf(buff,"%g",e);
@@ -45,7 +47,7 @@ void MonQtFloatEntry::setEntry(float e)
 
 float MonQtFloatEntry::entry() const
 {
-  return _line->text().toFloat(); 
+  return _line->text().toFloat();
 }
 
 // MonQtIntEntry
@@ -57,7 +59,7 @@ MonQtIntEntry::MonQtIntEntry(const char* title, int v, QWidget* p) :
   _line->setValidator(new QIntValidator(_line));
 }
 
-void MonQtIntEntry::setEntry(int e) 
+void MonQtIntEntry::setEntry(int e)
 {
   char buff[32];
   sprintf(buff,"%d",e);
@@ -66,5 +68,5 @@ void MonQtIntEntry::setEntry(int e)
 
 int MonQtIntEntry::entry() const
 {
-  return _line->text().toInt(); 
+  return _line->text().toInt();
 }

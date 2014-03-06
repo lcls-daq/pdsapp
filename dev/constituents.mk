@@ -47,6 +47,10 @@ tgtnames :=  evr \
   endif
 endif
 
+ifneq ($(findstring x86_64-rhel6,$(tgt_arch)),)
+tgtnames += pimax
+endif
+
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs  += pds/config pds/configdbc pds/confignfs pds/configsql
@@ -286,3 +290,15 @@ tgtlibs_andor += pds/pdsandor pds/configdata andor/andor
 tgtslib_andor := $(commonslib) ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 
 tgtincs_andor := pdsdata/include ndarray/include boost/include 
 
+libPicam := picam/picam picam/GenApi_gcc40_v2_2 picam/GCBase_gcc40_v2_2 picam/MathParser_gcc40_v2_2 picam/log4cpp_gcc40_v2_2 picam/Log_gcc40_v2_2
+libPicam += picam/pidi picam/picc picam/pida picam/PvBase picam/PvDevice picam/PvBuffer picam/PvPersistence
+libPicam += picam/PvStreamRaw picam/PvStream picam/PvGenICam picam/PvSerial picam/PtUtilsLib picam/EbNetworkLib
+libPicam += picam/PtConvertersLib picam/EbTransportLayerLib picam/log4cxx
+
+tgtsrcs_pimax := pimax.cc
+tgtlibs_pimax := $(commonlibs)
+tgtlibs_pimax += pdsapp/configdb $(qtlibdir) # for accessing configdb
+tgtlibs_pimax += pds/pdspimax pds/configdata
+tgtlibs_pimax +=  $(libPicam)
+tgtslib_pimax := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
+tgtincs_pimax := pdsdata/include ndarray/include boost/include

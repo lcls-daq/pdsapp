@@ -26,8 +26,8 @@ namespace Pds_ConfigDb {
 
     int push(void* to) {
       double dummy[] = {0,0,0,0,0,0,0,0};
-      OceanOpticsConfigType tc = *new(to) 
-        OceanOpticsConfigType (_f32ExposureTime.value, dummy, dummy, dummy[0]);
+      OceanOpticsConfigType tc = *new(to)
+        OceanOpticsConfigType (_f32ExposureTime.value, -1, dummy, dummy, dummy[0]);
       return tc._sizeof();
     }
 
@@ -36,13 +36,13 @@ namespace Pds_ConfigDb {
     }
 
   public:
-    NumericFloat<float>     _f32ExposureTime;    
+    NumericFloat<float>     _f32ExposureTime;
   };
 };
 
 using namespace Pds_ConfigDb;
 
-OceanOpticsConfig::OceanOpticsConfig() : 
+OceanOpticsConfig::OceanOpticsConfig() :
   Serializer("OceanOptics_Config"),
   _private_data( new Private_Data )
 {

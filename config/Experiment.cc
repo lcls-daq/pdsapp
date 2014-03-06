@@ -2,6 +2,7 @@
 #include "pds/config/PdsDefs.hh"
 #include "pds/config/DbClient.hh"
 
+#include <stdio.h>
 #include <iostream>
 using std::cout;
 using std::cerr;
@@ -15,6 +16,7 @@ using std::hex;
 
 #include <string>
 #include <string.h>
+#include <stdlib.h>
 
 #define DBUG
 

@@ -24,7 +24,7 @@ namespace Pds_ConfigDb {
       _uMaskedHeight        ("Masked Height",       0,    0,    2048),
       _uKineticHeight       ("Kinetic Height",      0,    0,    2048),
       _f32VsSpeed           ("VShift Speed",        0,    0,    60),
-      _i16InfoReportInterval("Info Report Interval",0,    0,    1000),
+      _i16InfoReportInterval("Info Report Interval",0,    0,    10000),
       _u16ExposureEventCode ("Exposure Event Code", 1,    1,    255),
       _u32NumDelayShots     ("Number Delay Shots",  1,    0,    0x7FFFFFFF)
     {}

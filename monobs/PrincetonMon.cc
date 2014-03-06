@@ -7,6 +7,7 @@
 #include "pdsdata/psddl/princeton.ddl.h"
 #include "pds/epicstools/PVWriter.hh"
 
+#include <stdio.h>
 #include <math.h>
 #include <string.h>
 
@@ -18,8 +19,8 @@ namespace PdsCas {
     PrincetonTHandler(const char* pvbase, const DetInfo& info) :
       Handler(info, Pds::TypeId::Id_PrincetonInfo, Pds::TypeId::Id_PrincetonConfig),
       _initialized(false)
-    { 
-      strncpy(_pvName,pvbase,PVNAMELEN); 
+    {
+      strncpy(_pvName,pvbase,PVNAMELEN);
     }
     ~PrincetonTHandler()
     {
@@ -44,7 +45,7 @@ namespace PdsCas {
       _valu_writer = new PVWriter(_pvName);
       _initialized = true;
     }
-    void    update_pv () 
+    void    update_pv ()
     {
       _valu_writer->put();
     }

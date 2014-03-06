@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "MonTab.hh"
 #include "MonCanvas.hh"
 #include "MonConsumerFactory.hh"
@@ -14,7 +16,7 @@ static const unsigned Step = 64;
 using namespace Pds;
 
 MonTab::MonTab(MonClient& client,
-	       const MonGroup& group) :
+         const MonGroup& group) :
   QWidget(0),
   _client(client),
   _used(0),
@@ -32,10 +34,10 @@ MonTab::MonTab(MonClient& client,
   for(_used = 0; _used < group.nentries(); _used++) {
     const MonEntry& entry = *group.entry(_used);
     MonCanvas* canvas = MonConsumerFactory::create(*this,
-						   client.cds().desc(),
-						   group.desc(),
-						   entry);
-    
+               client.cds().desc(),
+               group.desc(),
+               entry);
+
     _canvases[_used] = canvas;
     _client.use(entry.desc().signature());
     layout->addWidget(canvas, _used/columns, _used%columns);
@@ -43,7 +45,7 @@ MonTab::MonTab(MonClient& client,
   setLayout(layout);
 }
 
-MonTab::~MonTab() 
+MonTab::~MonTab()
 {
 }
 
@@ -52,7 +54,7 @@ QSize MonTab::sizeHint() const
   return QSize(500,480);
 }
 
-int MonTab::reset() 
+int MonTab::reset()
 {
   /*
   const MonGroup* newgroup = _client.cds().group(_groupname);
@@ -61,9 +63,9 @@ int MonTab::reset()
     for (int short e=_used-1; e>=0; e--) {
       MonCanvas* canvas = _canvases[e];
       if (!canvas->reset(*_group)) {
-	destroy(e);
+  destroy(e);
       } else {
-	_client.use(canvas->entry().desc().signature());
+  _client.use(canvas->entry().desc().signature());
       }
     }
     layout();
@@ -74,14 +76,14 @@ int MonTab::reset()
   return 0;
 }
 
-// void MonTab::add(MonEntry& entry) 
+// void MonTab::add(MonEntry& entry)
 // {
 //   /*
 //   if (getcanvas(entry.desc().name())) return;
 //   if (_used == _maxcanvases) adjust();
-//   MonCanvas* canvas = 
-//     MonConsumerFactory::create(*this, _client.cds().desc(), 
-// 				   _group->desc(), entry);
+//   MonCanvas* canvas =
+//     MonConsumerFactory::create(*this, _client.cds().desc(),
+//           _group->desc(), entry);
 //   AddFrame(canvas);
 //   _client.use(entry.desc().signature());
 //   _canvases[_used] = canvas;
@@ -91,7 +93,7 @@ int MonTab::reset()
 
 void MonTab::current(bool iscurrent) {_iscurrent = iscurrent;}
 
-void MonTab::update() 
+void MonTab::update()
 {
   //  if (!_iscurrent) return;
 
@@ -102,7 +104,7 @@ void MonTab::update()
 }
 
 /*
-void MonTab::destroy(int short which) 
+void MonTab::destroy(int short which)
 {
   MonCanvas* canvas = _canvases[which];
   canvas->DestroyWindow();

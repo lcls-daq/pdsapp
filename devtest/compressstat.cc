@@ -11,6 +11,7 @@
 
 #include <glob.h>
 #include <math.h>
+#include <string.h>
 
 using namespace Pds;
 

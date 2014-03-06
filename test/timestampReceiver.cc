@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <memory.h>
 #include <errno.h>
 #include <string>
@@ -15,7 +16,7 @@
 using std::string;
 
 namespace PdsUser {
-  
+
   class EvrDatagram {
   public:
     enum {NumFiducialBits = 17};
@@ -122,7 +123,7 @@ int main(int argc, char** argv)
     if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&y, sizeof(y)) == -1) {
       perror("set reuseaddr error");
       return -1; }
-    
+
     sockaddr_in sa;
     sa.sin_family      = AF_INET;
     sa.sin_addr.s_addr = htonl(mcast_addr);
@@ -140,7 +141,7 @@ int main(int argc, char** argv)
     bzero ((char*)&ipMreq, sizeof(ipMreq));
     ipMreq.imr_multiaddr.s_addr = htonl(mcast_addr);
     ipMreq.imr_interface.s_addr = htonl(mcast_interface);
-    int error_join = setsockopt (fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, 
+    int error_join = setsockopt (fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                                  (char*)&ipMreq, sizeof(ipMreq));
     if (error_join==-1) {
       perror("failed to join mcast group");
@@ -163,15 +164,15 @@ int main(int argc, char** argv)
   int nfds = 1;
 
   printf("%6.6s  %6.6s  %9.9s.%9.9s %9.9s\n",
-	 "count","fiduc","seconds","nseconds","is_event");
+   "count","fiduc","seconds","nseconds","is_event");
 
   while(1) {
     if (::poll(pfd, nfds, 1000) > 0) {
       if (pfd[0].revents & (POLLIN|POLLERR)) {
         while (recvfrom(pfd[0].fd, buff, len, MSG_DONTWAIT, (sockaddr*)&sa, &sa_len)>0) {
           const PdsUser::EvrDatagram& dg = *reinterpret_cast<const PdsUser::EvrDatagram*>(buff);
-	  printf("%06d  %06d  %09d.%09d    %c\n",
-		 dg.evr, dg.fiducials(), dg.seconds, dg.nanoseconds,
+    printf("%06d  %06d  %09d.%09d    %c\n",
+     dg.evr, dg.fiducials(), dg.seconds, dg.nanoseconds,
                  dg.is_event()?'*':' ');
         }
         pfd[0].revents = 0;

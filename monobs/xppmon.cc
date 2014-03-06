@@ -9,14 +9,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 using namespace PdsCas;
 
 void usage(const char* p)
 {
-  printf("Usage: %s -f <config file> [-v] %s\n",
-	 p, ShmClient::options());
+  printf("Usage: %s -f <config file> %s\n",
+   p, ShmClient::options());
 }
 
 int main(int argc, char* argv[])
@@ -27,7 +28,7 @@ int main(int argc, char* argv[])
 
   int c;
   char opts[128];
-  sprintf(opts,"?hf:v%s",client.opts());
+  sprintf(opts,"?hf:%s",client.opts());
   while ((c = getopt(argc, argv, opts)) != -1) {
     switch (c) {
     case '?':
@@ -37,23 +38,20 @@ int main(int argc, char* argv[])
     case 'f':
       filename = optarg;
       break;
-    case 'v':
-      CspadMon::verbose();
-      break;
     default:
       if (!client.arg(c,optarg)) {
-	usage(argv[0]);
-	exit(1);
+  usage(argv[0]);
+  exit(1);
       }
       break;
     }
   }
-  
+
   if (filename==0 || !client.valid()) {
     usage(argv[0]);
     exit(1);
   }
-  
+
   FILE* f = fopen(filename,"r");
   if (!f) {
     char buff[128];
@@ -69,23 +67,23 @@ int main(int argc, char* argv[])
 
   while(getline(&line, &line_sz, f) != -1) {
     if (line[0]!='#') {
-      char* args = strtok(line,"\t\n ");
+      char* args = strtok(line,"\t ");
       if (args==NULL || args[0]=='\n')
         break;
 
       DetInfo info(args);
 
-      char* pvbase = strtok(NULL,"\t\n ");
+      char* pvbase = strtok(NULL,"\t ");
       if (!pvbase) {
         printf("No PV field for %s\n",args);
         return -1;
       }
-      
+
       if (info.detector()!=DetInfo::NumDetector) {
         switch(info.device()) {
         case DetInfo::Cspad:
         case DetInfo::Cspad2x2:
-          CspadMon::monitor(client, 
+          CspadMon::monitor(client,
                             pvbase,
                             info);
           break;
@@ -95,7 +93,7 @@ int main(int argc, char* argv[])
             case Pds::DetInfo::XppSb3Pim:
             case Pds::DetInfo::XppSb4Pim:
               client.insert(new XppPim(pvbase,info.detector()));
-              //	  break;
+              //    break;
             case Pds::DetInfo::XppSb1Ipm:
             case Pds::DetInfo::XppSb2Ipm:
             case Pds::DetInfo::XppSb3Ipm:

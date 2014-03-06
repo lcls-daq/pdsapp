@@ -1,5 +1,6 @@
 #include "pdsapp/control/Preferences.hh"
 
+#include <stdlib.h>
 #include <sstream>
 #include <string>
 

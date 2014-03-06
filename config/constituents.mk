@@ -25,6 +25,7 @@ libsrcs_configdbg += pnCCDConfig.cc
 libsrcs_configdbg += princetonConfig.cc
 libsrcs_configdbg += FliConfig.cc
 libsrcs_configdbg += AndorConfig.cc
+libsrcs_configdbg += PimaxConfig.cc
 libsrcs_configdbg += TM6740Config.cc
 libsrcs_configdbg += TM6740ConfigV1.cc
 libsrcs_configdbg += FrameFexConfig.cc

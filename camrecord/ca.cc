@@ -9,6 +9,7 @@
 #include"pdsdata/psddl/epics.ddl.h"
 #include"yagxtc.hh"
 
+#include <stdio.h>
 #include<stdlib.h>
 #include<string.h>
 #include<vector>   //for std::vector
@@ -66,7 +67,7 @@ static int read_ca_long(char *name, unsigned int *value)
 {
     int result;
     chid chan;
-    
+
     result = ca_create_channel (name, 0, name, 50, &chan);
     if (result != ECA_NORMAL) {
         fprintf(stderr, "CA error %s while creating channel to %s!\n", ca_message(result), name);
@@ -77,7 +78,7 @@ static int read_ca_long(char *name, unsigned int *value)
         fprintf(stderr, "CA error %s while connecting to %s!\n", ca_message(result), name);
         return 1;
     }
-    result = ca_array_get(DBR_LONG, 1, chan, value);    
+    result = ca_array_get(DBR_LONG, 1, chan, value);
     if (result != ECA_NORMAL) {
         fprintf(stderr, "CA error %s while reading %s!\n", ca_message(result), name);
         return 1;
