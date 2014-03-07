@@ -269,7 +269,7 @@ PyObject* pdsdaq_connect(PyObject* self)
     }
 
     buff[len] = 0;
-    *strrchr(buff,'/') = 0;
+//    *strrchr(buff,'/') = 0;
     strcpy(daq->dbpath,buff);
 
 #ifdef DBUG
