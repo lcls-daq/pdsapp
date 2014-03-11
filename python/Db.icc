@@ -136,6 +136,9 @@ static PyObject* _new_xtc(Pds::TypeId& contains)
           case Pds::TypeId::Id_AndorConfig:
             o = _PyObject_New(&pds_AndorConfig_type);
             break;
+          case Pds::TypeId::Id_PimaxConfig:
+            o = _PyObject_New(&pds_PimaxConfig_type);
+            break;
           default:
             o = _PyObject_New(&pds_Xtc_type);
             break;

@@ -22,6 +22,7 @@
 #include "pdsapp/python/EvrConfig.icc"
 #include "pdsapp/python/FliConfig.icc"
 #include "pdsapp/python/AndorConfig.icc"
+#include "pdsapp/python/PimaxConfig.icc"
 #include "pdsapp/python/Db.icc"
 #include "pdsapp/python/pycdbHelp.icc"
 
@@ -78,6 +79,9 @@ initpycdb(void)
   if (PyType_Ready(&pds_AndorConfig_type) < 0)
     return; 
     
+  if (PyType_Ready(&pds_PimaxConfig_type) < 0)
+    return; 
+
   PyObject *m = Py_InitModule("pycdb", PycdbMethods);
   if (m == NULL)
     return;
@@ -117,4 +121,7 @@ initpycdb(void)
   
   Py_INCREF(&pds_AndorConfig_type);
   PyModule_AddObject(m, "AndorConfig", (PyObject*)&pds_AndorConfig_type);       
+
+  Py_INCREF(&pds_PimaxConfig_type);
+  PyModule_AddObject(m, "PimaxConfig", (PyObject*)&pds_PimaxConfig_type);       
 }

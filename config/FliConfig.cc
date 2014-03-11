@@ -18,11 +18,11 @@ namespace Pds_ConfigDb {
       _uBinY                ("Binning Y",           1,    1,    4128),
       // Note: Here the min exposure time need to set 9.99e-4 to allow user to input 1e-3, due to floating points imprecision
       _f32ExposureTime      ("Exposure time (sec)", 1e-3, 9.99e-4, 3600),
-      _f32CoolingTemp       ("Cooling Temp (C)",    25,   -300,  25),      
+      _f32CoolingTemp       ("Cooling Temp (C)",    25,   -300,  25),
       _u8GainIndex          ("Gain Index",          1,    0,    5),
       _u8ReadoutSpeedIndex  ("Readout Speed",       1,    0,    5),
       _u16ExposureEventCode ("Exposure Event Code", 1,    1,    255),
-      _u32NumDelayShots     ("Number Delay Shots",  1,    0,    0x7FFFFFFF)
+      _u32NumDelayShots     ("Num Integration Shots",  1,    0,    0x7FFFFFFF)
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
@@ -81,15 +81,15 @@ namespace Pds_ConfigDb {
 
   public:
     NumericInt<uint32_t>    _uWidth;
-    NumericInt<uint32_t>    _uHeight;    
+    NumericInt<uint32_t>    _uHeight;
     NumericInt<uint32_t>    _uOrgX;
-    NumericInt<uint32_t>    _uOrgY;    
+    NumericInt<uint32_t>    _uOrgY;
     NumericInt<uint32_t>    _uBinX;
-    NumericInt<uint32_t>    _uBinY;    
-    NumericFloat<float>     _f32ExposureTime;    
-    NumericFloat<float>     _f32CoolingTemp;        
-    NumericInt<uint8_t>     _u8GainIndex;        
-    NumericInt<uint8_t>     _u8ReadoutSpeedIndex;        
+    NumericInt<uint32_t>    _uBinY;
+    NumericFloat<float>     _f32ExposureTime;
+    NumericFloat<float>     _f32CoolingTemp;
+    NumericInt<uint8_t>     _u8GainIndex;
+    NumericInt<uint8_t>     _u8ReadoutSpeedIndex;
     NumericInt<uint16_t>    _u16ExposureEventCode;
     NumericInt<uint32_t>    _u32NumDelayShots;
   };
@@ -107,7 +107,7 @@ namespace Pds_ConfigDb {
 
 using namespace Pds_ConfigDb;
 
-FliConfig::FliConfig() : 
+FliConfig::FliConfig() :
   Serializer("fli_Config"),
   _private_data( new Private_Data )
 {

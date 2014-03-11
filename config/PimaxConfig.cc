@@ -19,9 +19,9 @@ public:
     _f32CoolingTemp       ("Cooling Temp (C)",      25,   -300,  25),
     _enumReadoutSpeed     ("Readout Speed",         0,    lsReadoutSpeed),
     _enumGainIndex        ("Gain Index",            0,    lsGainIndex),
-    _u16IntesifierGain    ("Intensifier Gain",      1,    1,    100),
-    _f64GateDelay         ("Gate Delay",            1000, 32,   3e10),
-    _f64GateWidth         ("Gate Width",            1e6,  32,   3e10),
+    _u16IntensifierGain   ("Intensifier Gain",      1,    1,    100),
+    _f64GateDelay         ("Gate Delay (ns)",       1000, 32,   3e10),
+    _f64GateWidth         ("Gate Width (ns)",       1e6,  32,   3e10),
     // skip _u32MaskedHeight, _u32KineticHeight and _f32VsSpeed
     _i16InfoReportInterval("Info Report Interval ", 1,    1,    10000),
     _u16ExposureEventCode ("Exposure Event Code",   1,    1,    255),
@@ -39,7 +39,7 @@ public:
   //float coolingTemp() const { return _f32CoolingTemp; }
   //float readoutSpeed() const { return _f32ReadoutSpeed; }
   //uint16_t gainIndex() const { return _u16GainIndex; }
-  //uint16_t intesifierGain() const { return _u16IntesifierGain; }
+  //uint16_t intensifierGain() const { return _u16IntensifierGain; }
   //double gateDelay() const { return _f64GateDelay; }
   //double gateWidth() const { return _f64GateWidth; }
   //uint32_t maskedHeight() const { return _u32MaskedHeight; }
@@ -59,7 +59,7 @@ public:
     pList.insert(&_f32CoolingTemp);
     pList.insert(&_enumReadoutSpeed);
     pList.insert(&_enumGainIndex);
-    pList.insert(&_u16IntesifierGain);
+    pList.insert(&_u16IntensifierGain);
     pList.insert(&_f64GateDelay);
     pList.insert(&_f64GateWidth);
     pList.insert(&_i16InfoReportInterval);
@@ -78,7 +78,7 @@ public:
     _f32CoolingTemp         .value = tc.coolingTemp ();
     _enumReadoutSpeed       .value = readoutSpeedToEnum(tc.readoutSpeed());
     _enumGainIndex          .value = gainIndexToEnum(tc.gainIndex());
-    _u16IntesifierGain      .value = tc.intesifierGain();
+    _u16IntensifierGain     .value = tc.intensifierGain();
     _f64GateDelay           .value = tc.gateDelay();
     _f64GateWidth           .value = tc.gateWidth();
     _i16InfoReportInterval  .value = tc.infoReportInterval();
@@ -99,7 +99,7 @@ public:
                             _f32CoolingTemp         .value,
                             lfReadoutSpeed          [_enumReadoutSpeed.value],
                             liGainIndex             [_enumGainIndex   .value],
-                            _u16IntesifierGain      .value,
+                            _u16IntensifierGain     .value,
                             _f64GateDelay           .value,
                             _f64GateWidth           .value,
                             0                             , // maskedHeight is not supported yet in PI-MAX3
@@ -126,7 +126,7 @@ public:
   NumericFloat<float>     _f32CoolingTemp;
   Enumerated<int>         _enumReadoutSpeed;
   Enumerated<int>         _enumGainIndex;
-  NumericInt<uint16_t>    _u16IntesifierGain;
+  NumericInt<uint16_t>    _u16IntensifierGain;
   NumericFloat<double>    _f64GateDelay;
   NumericFloat<double>    _f64GateWidth;
   NumericInt<uint16_t>    _i16InfoReportInterval;

@@ -26,7 +26,7 @@ namespace Pds_ConfigDb {
       _f32VsSpeed           ("VShift Speed",        0,    0,    60),
       _i16InfoReportInterval("Info Report Interval",0,    0,    10000),
       _u16ExposureEventCode ("Exposure Event Code", 1,    1,    255),
-      _u32NumDelayShots     ("Number Delay Shots",  1,    0,    0x7FFFFFFF)
+      _u32NumDelayShots     ("Num Integration Shots",  1,    0,    0x7FFFFFFF)
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {

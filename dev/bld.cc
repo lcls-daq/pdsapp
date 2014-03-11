@@ -60,7 +60,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-typedef Pds::Bld::BldDataEBeamV4 BldDataEBeam;
+typedef Pds::Bld::BldDataEBeamV5 BldDataEBeam;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV1 BldDataGMD;
 typedef Pds::Bld::BldDataSpectrometerV0 BldDataSpectrometer;

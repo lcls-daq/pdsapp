@@ -213,7 +213,7 @@ int main(int argc, char** argv)
     int               iDetectorId   = 0;
     int               iDeviceId     = 0;
     string            sUniqueId;
-    bool              bDelayMode    = false;
+    bool              bDelayMode    = true; // always use delay mode
     bool              bInitTest     = false;
     int               iDebugLevel   = 0;
     int               iPlatform     = -1;
