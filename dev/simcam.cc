@@ -156,6 +156,7 @@ public:
     case DetInfo::TM6740:
     case DetInfo::Quartz4A150:
     case DetInfo::Fccd:
+    case DetInfo::Fccd960:
       return true;
     default:
       break;
@@ -224,7 +225,16 @@ public:
       width  = FccdConfigType::Trimmed_Column_Pixels;
       height = FccdConfigType::Trimmed_Row_Pixels;
       depth  = 16;
-      offset = 0;
+      offset = 0x1000;
+      break;
+    case DetInfo::Fccd960:
+      _cfgtc = new(_cfgpayload) Xtc(_fccdConfigType,src);
+      _cfgtc->extent += (new (_cfgtc->next()) FccdConfigType(0, true, false, 0,
+							     fdummy, usdummy))->_sizeof();
+      width  = 960;
+      height = 960;
+      depth  = 16;      // depth=16: corrected frame; depth=13: raw frame
+      offset = 0x1000;
       break;
     default:
       printf("Unsupported camera %s\n",Pds::DetInfo::name(info.device()));
@@ -853,6 +863,11 @@ public:
 #endif
     else if (SimEpixSampler::handles(src))
       _app = new SimEpixSampler(src);
+    else {
+      const DetInfo& printInfo = static_cast<const DetInfo&>(src);
+      fprintf(stderr,"Unsupported camera %s\n",Pds::DetInfo::name(printInfo.device()));
+      exit(1);
+    }
 
     if (lCompress)
       _user_apps.push_front(new FrameCompApp(_app->max_size()*2,nCompressThreads));
