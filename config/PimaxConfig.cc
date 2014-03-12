@@ -23,7 +23,7 @@ public:
     _f64GateDelay         ("Gate Delay (ns)",       1000, 32,   3e10),
     _f64GateWidth         ("Gate Width (ns)",       1e6,  32,   3e10),
     // skip _u32MaskedHeight, _u32KineticHeight and _f32VsSpeed
-    _i16InfoReportInterval("Info Report Interval ", 1,    1,    10000),
+    _i16InfoReportInterval("Info Report Interval ", 1,    0,    10000),
     _u16ExposureEventCode ("Exposure Event Code",   1,    1,    255),
     _u32NumIntegrationShots
                           ("Num Integration Shots", 1,    0,    0x7FFFFFFF)
