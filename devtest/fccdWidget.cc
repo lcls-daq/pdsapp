@@ -22,17 +22,18 @@
 #include </usr/include/netinet/in.h>
 #include <endian.h>
 FILE*               binFile           = 0;
-bool                writing             = false;
 unsigned            printModuloBase     = 1000;
 uint16_t            frameCount          = 0;
 uint8_t             packetCount         = 0;
 unsigned            frameSize           = 0;
 unsigned            extraPixels         = 3664;
 unsigned            IPAddrToSendFrom    = 0xc0a80366;
+unsigned            IPAddrToSendTo      = 0xc0a80365;
+unsigned            IPPortToSendTo      = 30060;
 uint8_t  sof[5] = {0xf0, 0xf1, 0xf2, 0xf3, 0xf4};
 uint8_t  eof[8] = {0xF0, 0xF1, 0xF2, 0xDE, 0xAD, 0xF0, 0x0D, 0x01};
 enum {fccdFrameSize=1843208, bytesPerPacket=8184, udpJumbo=9000};
-enum { IPAddrToSendTo=(0xc0a80365), SendFlags=0, IPPortToSendTo=30060};
+enum { SendFlags=0};
 
 unsigned            debug               = 0;
 
@@ -66,35 +67,35 @@ class MyEvrReceiver {
 MyEvrReceiver::MyEvrReceiver(unsigned uAddr, unsigned uPort, unsigned int uMaxDataSize, char* sInterfaceIp)  :
     _iSocket(-1), _uMaxDataSize(uMaxDataSize), _uAddr(uAddr), _uPort(uPort), _bInitialized(false) {
   _iSocket    = socket(AF_INET, SOCK_DGRAM, 0);
-  if ( _iSocket == -1 ) printf("pnccdwidget MyEvrReceiver socket() failed!\n");
+  if ( _iSocket == -1 ) printf("fccdwidget MyEvrReceiver socket() failed!\n");
   else {
     int iRecvBufSize = _uMaxDataSize + sizeof(struct sockaddr_in);
     iRecvBufSize += 2048;
 
     if ( iRecvBufSize < 5000 ) iRecvBufSize = 5000;
     if (setsockopt(_iSocket, SOL_SOCKET, SO_RCVBUF, (char*)&iRecvBufSize, sizeof(iRecvBufSize)) == -1) {
-      printf("pnccdwidget MyEvrReceiver setsockopt(...SO_RCVBUF) failed!\n");
+      printf("fccdwidget MyEvrReceiver setsockopt(...SO_RCVBUF) failed!\n");
     } else {
       int iYes = 1;
       if(setsockopt(_iSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&iYes, sizeof(iYes)) == -1) {
-        printf("pnccdwidget MyEvrReceiver setsockopt(...SO_REUSEADDR) failed!\n");
+        printf("fccdwidget MyEvrReceiver setsockopt(...SO_REUSEADDR) failed!\n");
       } else {
         sockaddr_in sockaddrSrc;
         sockaddrSrc.sin_family      = AF_INET;
         sockaddrSrc.sin_addr.s_addr = htonl(_uAddr);
         sockaddrSrc.sin_port        = htons(_uPort);
         if (bind( _iSocket, (struct sockaddr*) &sockaddrSrc, sizeof(sockaddrSrc) ) == -1 ) {
-          printf("pnccdwidget MyEvrReceiver bind() failed!\n");
+          printf("fccdwidget MyEvrReceiver bind() failed!\n");
         } else {
           sockaddr_in sockaddrName;
           unsigned iLength = sizeof(sockaddrName);
           if(getsockname(_iSocket, (sockaddr*)&sockaddrName, &iLength) != 0) {
-            printf("pnccdwidget MyEvrReceiver getsockname() failed!\n");
+            printf("fccdwidget MyEvrReceiver getsockname() failed!\n");
           } else {
             char s[20];
             unsigned int uSockAddr = ntohl(sockaddrName.sin_addr.s_addr);
             unsigned int uSockPort = (unsigned int )ntohs(sockaddrName.sin_port);
-            printf( "pnccdwidget Server addr: %s  Port %u  Buffer Size %u\n", addressToStr(uSockAddr, s), uSockPort, iRecvBufSize );
+            printf( "fccdwidget Server addr: %s  Port %u  Buffer Size %u\n", addressToStr(uSockAddr, s), uSockPort, iRecvBufSize );
             memset((void*)&_hdr, 0, sizeof(_hdr));
             _hdr.msg_name       = (caddr_t)&_src;
             _hdr.msg_namelen    = sizeof(_src);
@@ -117,13 +118,13 @@ MyEvrReceiver::MyEvrReceiver(unsigned uAddr, unsigned uPort, unsigned int uMaxDa
               }
             }
             if ( uiInterface != 0 ) {
-              printf( "pnccdwidget multicast interface IP: %s\n", addressToStr(uiInterface, s) );
+              printf( "fccdwidget multicast interface IP: %s\n", addressToStr(uiInterface, s) );
               struct ip_mreq ipMreq;
               memset((char*)&ipMreq, 0, sizeof(ipMreq));
               ipMreq.imr_multiaddr.s_addr = htonl(_uAddr);
               ipMreq.imr_interface.s_addr = htonl(uiInterface);
               if (setsockopt (_iSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&ipMreq, sizeof(ipMreq)) < 0) {
-                printf("pnccdwidget MyEvrReceiver setsockopt(...IP_ADD_MEMBERSHIP) failed!\n");
+                printf("fccdwidget MyEvrReceiver setsockopt(...IP_ADD_MEMBERSHIP) failed!\n");
               } else {
                 _bInitialized = true;
               }
@@ -137,11 +138,11 @@ MyEvrReceiver::MyEvrReceiver(unsigned uAddr, unsigned uPort, unsigned int uMaxDa
 
 int MyEvrReceiver::fetch(unsigned int iBufSize, void* pFetchBuffer, unsigned int& iRecvDataSize) {
   if ( iBufSize > _uMaxDataSize || pFetchBuffer == NULL ) {
-    printf( "pnccdwidget MyEvrReceiver::fetch() : Input parameter invalid\n" );
+    printf( "fccdwidget MyEvrReceiver::fetch() : Input parameter invalid\n" );
     return 1;
   }
   if ( !_bInitialized ) {
-    printf( "pnccdwidget MyEvrReceiver::fetch() : MyEvrReceiver is not initialized successfully\n" );
+    printf( "fccdwidget MyEvrReceiver::fetch() : MyEvrReceiver is not initialized successfully\n" );
     return 2;
   }
   _iov.iov_base = pFetchBuffer;
@@ -331,17 +332,19 @@ void sigHandler( int signal ) {
 
 void printUsage(char* name) {
   printf( "Usage: %s [-h]  [-w][-W count,delay][-b filename]"
-      "[-e port,multAddr][-i eth][-F <val>][-D <debug>][-p pf]\n"
+      "[-e port,multAddr][-i eth][-f fromAddr][-t toAddr][-p toPort][-D debug][-P pf]\n"
       "    -h      Show usage\n"
       "    -w      Write one frame\n"
       "    -W      Loop writing count frames, unless count = 0 which means forever\n"
       "                 delay is time between frames sent in microseconds\n"
       "    -b      Binary image file name to read from\n"
+      "    -f      From address to send frames\n"
+      "    -t      To address to send frames\n"
       "    -e      Sync to evr multicasts coming from multAddr to port\n"
       "    -i      Interface to use if syncing to evr multicasts\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          print out progress\n"
-      "    -p      set print flag to value given\n",
+      "    -P      set print flag to value given\n",
       name
   );
 }
@@ -355,7 +358,6 @@ int main( int argc, char** argv )
   unsigned            delay               = 1000;
   unsigned            printFlag           = 0;
   bool                evrActive           = false;
-  unsigned            idx                 = 0;
   fccdFrame*          f                   = 0;
   ::signal( SIGINT, sigHandler );
   std::vector<unsigned char> vcFetchBuffer( uDefaultMaxDataSize );
@@ -371,7 +373,7 @@ int main( int argc, char** argv )
   char*               interfaceP         = (char*) calloc(20, 1);
 //  char*               uAddrStr           = (char*) calloc(20, 1);
   int c;
-  while( ( c = getopt( argc, argv, "hwW:D:b:e:i:p:" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hwW:D:b:f:t:p:e:i:P:" ) ) != EOF ) {
      switch(c) {
       case 'w':
         command = writeCommand;
@@ -383,7 +385,15 @@ int main( int argc, char** argv )
         break;
       case 'b':
         strcpy(binFileName, optarg);
-        writing = true;
+        break;
+      case 'f':
+        IPAddrToSendFrom = strtoul(optarg, NULL, 0);
+        break;
+      case 't':
+        IPAddrToSendTo = strtoul(optarg, NULL, 0);
+        break;
+      case 'p':
+        IPPortToSendTo = strtoul(optarg, NULL, 0);
         break;
       case 'e':
         uPort = strtoul(optarg,&endptr,0);
@@ -398,7 +408,7 @@ int main( int argc, char** argv )
         debug = strtoul(optarg, NULL, 0);
         printf("fccdwidget debug value given %u\n", debug);
         break;
-      case 'p':
+      case 'P':
         printFlag = strtoul(optarg, NULL, 0);
         break;
       case 'h':
@@ -415,6 +425,9 @@ int main( int argc, char** argv )
 
 
   f = new fccdFrame(binFileName);
+  printf("fccdwidget sending from address 0x%x", IPAddrToSendFrom);
+  printf(" and to address 0x%x", IPAddrToSendTo);
+  printf(" and port %u\n", IPPortToSendTo);
 
   if (evrActive) {
     myEvrReceiver = new MyEvrReceiver(uAddr, uPort, uMaxDataSize, sInterfaceP);
@@ -435,9 +448,8 @@ int main( int argc, char** argv )
       break;
     case loopWriteCommand:
       if (count==0) count = 0xffffffff;
-      idx = 0;
-      if (!evrActive) {
-        printf("pnccdwidget looping writing %u times separated by %u microseconds\n", count, delay);
+       if (!evrActive) {
+        printf("fccdwidget looping writing %u times separated by %u microseconds\n", count, delay);
       }
       while (count--) {
         if (evrActive) {
