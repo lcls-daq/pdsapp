@@ -458,7 +458,7 @@ int main( int argc, char** argv )
         flipFlag = (strtoul(optarg, NULL, 0) != 0);
         printf("pnccdwidget flip flag is %s\n", flipFlag ? "true" : "false");
         break;
-        case 'D':
+      case 'D':
         debug = strtoul(optarg, NULL, 0);
         printf("pnccdwidget debug value given %u\n", debug);
         break;
