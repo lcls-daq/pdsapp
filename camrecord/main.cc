@@ -516,6 +516,8 @@ void cleanup(void)
                 prefix.c_str());
         fflush(stderr);
     }
+
+    cleanup_index();
 }
 
 int main(int argc, char **argv)

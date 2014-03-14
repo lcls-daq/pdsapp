@@ -739,30 +739,34 @@ void cleanup_xtc(void)
     }
     if (fp)
         fflush(fp);
+}
 
+void cleanup_index(void)
+{
 #if 1
     /*
      * Temporary index generation code!!!
      */
-    {
 #define MKIDX "/reg/common/package/pdsdata/7.2.16/x86_64-linux-opt/bin/xtcindex"
-        int i;
-        char buf[4096], *base;
+    int i;
+    char buf[4096], *base;
 
-        base = rindex(fname, '/');
-        *base++ = 0;
-        /* So, fname = "USER/xtc" and base = "e...xtc" */
-        for (i = 0; i <= chunk; i++) {
-            sprintf(cpos, "-c%02d.xtc", i);
-            sprintf(buf, "%s -f %s/%s -o %s/index/%s.idx >/dev/null 2>1",
-                    MKIDX, fname, base, fname, base);
-            system(buf);
-        }
+    close(2); /* Let the client go right away! */
+
+    base = rindex(fname, '/');
+    *base++ = 0;
+    /* So, fname = "USER/xtc" and base = "e...xtc" */
+    for (i = 0; i <= chunk; i++) {
+        sprintf(cpos, "-c%02d.xtc", i);
+        sprintf(buf, "%s -f %s/%s -o %s/index/%s.idx >/dev/null 2>&1",
+                MKIDX, fname, base, fname, base);
+        system(buf);
     }
 #endif
-
+#if 0
     if (fp)
         fclose(fp);
+#endif
 }
 
 void xtc_stats(void)
