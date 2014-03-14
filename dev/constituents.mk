@@ -32,6 +32,7 @@ tgtnames :=  evr \
     gsc16ai  \
     timepix  \
     rayonix  \
+    udpcam   \
     simcam   \
     cspad2x2 \
     oceanoptics \
@@ -270,6 +271,11 @@ tgtsrcs_rayonix := rayonix.cc
 tgtlibs_rayonix := $(commonlibs) pds/rayonix
 tgtslib_rayonix := $(commonslib)
 tgtincs_rayonix := pdsdata/include ndarray/include boost/include 
+
+tgtsrcs_udpcam := udpcam.cc
+tgtlibs_udpcam := $(commonlibs) pds/udpcam
+tgtslib_udpcam := $(commonslib)
+tgtincs_udpcam := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_oceanoptics := oceanoptics.cc
 tgtlibs_oceanoptics := $(commonlibs) pds/oceanoptics pds/oopt
