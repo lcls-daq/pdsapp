@@ -27,7 +27,7 @@
 
 static void usage(const char *p)
 {
-  printf("Usage: %s -i <device info> -p <platform> [-P <port>] [-v] [-h] [-d <debug flags>]\n", p);
+  printf("Usage: %s -i <device info> -p <platform> [-P <port>] [-v] [-h] [-d <debug flags>] [-a affinity cpu]\n", p);
 }
 
 static void help()
@@ -40,9 +40,10 @@ static void help()
          "  -D <port>       Data port             (default: %d)\n"
          "  -v              Increase verbosity    (may be repeated)\n"
          "  -d              Debug flags\n"
+         "  -a              Affinity CPU Id\n"
          "  -h              Help: print this message and exit\n"
          "Debug flags:\n"
-         "  0x0010          ignore frame counter\n", UDPCAM_DEFAULT_DATA_PORT);
+         "  0x0010          Ignore frame counter\n", UDPCAM_DEFAULT_DATA_PORT);
 }
 
 namespace Pds
@@ -186,11 +187,12 @@ int main( int argc, char** argv )
   Arp* arp = 0;
   unsigned verbosity = 0;
   bool helpFlag = false;
+  int cpu0 = -1;
   char *endPtr;
 
   extern char* optarg;
   int c;
-  while( ( c = getopt( argc, argv, "i:D:vhp:u:d:" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "i:D:vhp:u:d:a:" ) ) != EOF ) {
     switch(c) {
       case 'i':
         if (!CmdLineTools::parseDetInfo(optarg,info)) {
@@ -214,6 +216,16 @@ int main( int argc, char** argv )
         platform = strtoul(optarg, &endPtr, 0);
         if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
           printf("Error: failed to parse platform number\n");
+          usage(argv[0]);
+          return -1;
+        }
+        break;
+      case 'a':
+        errno = 0;
+        endPtr = NULL;
+        cpu0 = strtoul(optarg, &endPtr, 0);
+        if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
+          printf("Error: failed to parse affinity cpu\n");
           usage(argv[0]);
           return -1;
         }
@@ -259,7 +271,7 @@ int main( int argc, char** argv )
 
   cfgService = new CfgClientNfs(info);
 
-  udpCamServer = new UdpCamServer(info, verbosity, dataPort, debugFlags);
+  udpCamServer = new UdpCamServer(info, verbosity, dataPort, debugFlags, cpu0);
 
   MySegWire settings(udpCamServer);
 
