@@ -44,7 +44,8 @@ static void help()
          "  -h              Help: print this message and exit\n"
          "Debug flags:\n"
          "  0x0010          Ignore frame count errors\n"
-         "  0x0020          Ignore packet count errors\n", UDPCAM_DEFAULT_DATA_PORT);
+         "  0x0020          Ignore packet count errors\n"
+         "  0x0040          Do not reorder frame data\n", UDPCAM_DEFAULT_DATA_PORT);
 }
 
 namespace Pds
