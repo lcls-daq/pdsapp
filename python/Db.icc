@@ -391,7 +391,18 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
           eit!=ait->devices.end(); eit++)
         for(std::list<DeviceType>::iterator dit=dlist.begin();
             dit!=dlist.end(); dit++)
-          if (eit->device == dit->name)  // device name match
+          if (eit->device == dit->name) { // device name match
+	    bool lmatch=false;            // source match
+            for(std::list<uint64_t>::iterator sit=dit->sources.begin();
+                sit!=dit->sources.end(); sit++) {
+              DeviceEntry dev(*sit);
+              if (dev.phy()   == xtc->src.phy() &&
+                  dev.level() == xtc->src.level()) {
+                lmatch=true;
+                break;
+              }
+            }
+            if (!lmatch) continue;
             for(std::list<DeviceEntries>::iterator qit=dit->entries.begin();
                 qit!=dit->entries.end(); qit++)
               if (qit->name == eit->name)  // device alias match
@@ -402,7 +413,7 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
                     Py_INCREF(Py_None);
                     return Py_None;
                   }
-
+          }
   PyErr_SetString(PyExc_RuntimeError,"No match found for alias, source, and type");
   return NULL;
 }
