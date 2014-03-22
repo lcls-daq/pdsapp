@@ -45,7 +45,7 @@ static void help()
          "Debug flags:\n"
          "  0x0010          Ignore frame count errors\n"
          "  0x0020          Ignore packet count errors\n"
-         "  0x0040          Do not reorder frame data\n",
+         "  0x0040          Do not reorder frame data\n"
          "  0x8000          Receive broadcast UDP\n", UDPCAM_DEFAULT_DATA_PORT);
 }
 
