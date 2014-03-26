@@ -22,7 +22,7 @@
 #include <errno.h>
 
 #ifndef UDPCAM_DEFAULT_DATA_PORT
-#define UDPCAM_DEFAULT_DATA_PORT 30060
+#define UDPCAM_DEFAULT_DATA_PORT 49201
 #endif
 
 static void usage(const char *p)
@@ -46,6 +46,7 @@ static void help()
          "  0x0010          Ignore frame count errors\n"
          "  0x0020          Ignore packet count errors\n"
          "  0x0040          Do not reorder frame data\n"
+         "  0x0080          Ignore packet signature errors\n"
          "  0x8000          Receive broadcast UDP\n", UDPCAM_DEFAULT_DATA_PORT);
 }
 
