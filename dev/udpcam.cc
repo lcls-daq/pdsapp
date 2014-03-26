@@ -27,7 +27,7 @@
 
 static void usage(const char *p)
 {
-  printf("Usage: %s -i <device info> -p <platform> [-P <port>] [-v] [-h] [-d <debug flags>] [-a affinity cpu]\n", p);
+  printf("Usage: %s -i <device info> -p <platform> [-D <port>] [-v] [-h] [-d <flags>]\n", p);
 }
 
 static void help()
@@ -39,8 +39,7 @@ static void help()
          "  -p <platform>   Platform number       [required]\n"
          "  -D <port>       Data port             (default: %d)\n"
          "  -v              Increase verbosity    (may be repeated)\n"
-         "  -d              Debug flags\n"
-         "  -a              Affinity CPU Id\n"
+         "  -d <flags>      Debug flags\n"
          "  -h              Help: print this message and exit\n"
          "Debug flags:\n"
          "  0x0010          Ignore frame count errors\n"
