@@ -59,10 +59,11 @@ class EventCallBackPrinceton : public EventCallback
 {
 public:
     EventCallBackPrinceton(int iPlatform, CfgClientNfs& cfgService, int iCamera, bool bDelayMode,
-      bool bInitTest, string sConfigDb, int iSleepInt, int iDebugLevel) :
+      bool bInitTest, string sConfigDb, int iSleepInt, int iCustW, int iCustH, int iDebugLevel) :
       _iPlatform(iPlatform), _cfg(cfgService), _iCamera(iCamera),
       _bDelayMode(bDelayMode), _bInitTest(bInitTest),
-      _sConfigDb(sConfigDb), _iSleepInt(iSleepInt), _iDebugLevel(iDebugLevel),
+      _sConfigDb(sConfigDb), _iSleepInt(iSleepInt), _iCustW(iCustW), _iCustH(iCustH),
+      _iDebugLevel(iDebugLevel),
       _bAttached(false), _princetonManager(NULL)
     {
     }
@@ -91,7 +92,7 @@ private:
 
         try
         {
-        _princetonManager = new PrincetonManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iSleepInt, _iDebugLevel);
+        _princetonManager = new PrincetonManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iSleepInt, _iCustW, _iCustH, _iDebugLevel);
         _princetonManager->initServer();
         }
         catch ( PrincetonManagerException& eManager )
@@ -140,6 +141,8 @@ private:
     bool                _bInitTest;
     string              _sConfigDb;
     int                 _iSleepInt;
+    int                 _iCustW;
+    int                 _iCustH;
     int                 _iDebugLevel;
     bool                _bAttached;
     PrincetonManager*   _princetonManager;
@@ -156,7 +159,8 @@ static void showUsage()
 {
     printf( "Usage:  princeton  [-v|--version] [-h|--help] [-c|--camera <0-9> ] "
       "[-i|--id <id>] [-d|--delay] [-n|--init] [-g|--config <db_path>] [-s|--sleep <ms>] "
-      "[-l|--debug <level>] [-u|--uniqueid <alias>] -p|--platform <platform id>\n"
+      "[-l|--debug <level>] [-u|--uniqueid <alias>] [--custw <width>] [--custh <heighth>]"
+      "-p|--platform <platform id>\n"
       "  Options:\n"
       "    -v|--version                 Show file version.\n"
       "    -h|--help                    Show usage.\n"
@@ -168,7 +172,9 @@ static void showUsage()
       "    -g|--config   <db_path>      Intial princeton camera based on the config db at <db_path>\n"
       "    -s|--sleep    <sleep_ms>     Sleep inteval between multiple perinceton camera. (Default: 0 ms)\n"
       "    -l|--debug    <level>        Set debug level. (Default: 0)\n"
-      "    -p|--platform <platform id>  [*required*] Set platform id.\n"
+      "    -p|--platform <platform id>  [*required*] Set platform id\n"
+      "    --custw       <width>        Set custom width\n"
+      "    --custh       <width>        Set custom height\n"
     );
 }
 
@@ -210,6 +216,8 @@ int main(int argc, char** argv)
        {"config",   1, 0, 'g'},
        {"sleep" ,   1, 0, 's'},
        {"debug" ,   1, 0, 'l'},
+       {"custw" ,   1, 0, 101},
+       {"custh" ,   1, 0, 102},
        {0,          0, 0,  0 }
     };
 
@@ -225,7 +233,8 @@ int main(int argc, char** argv)
     int               iPlatform     = -1;
     string            sConfigDb;
     int               iSleepInt     = 0; // 0 ms
-
+    int               iCustW        = -1;
+    int               iCustH        = -1;
     int               iOptionIndex  = 0;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
     {
@@ -267,6 +276,12 @@ int main(int argc, char** argv)
             break;
         case 's':
             iSleepInt = strtoul(optarg, NULL, 0);
+            break;
+        case 101:
+            iCustW    = strtoul(optarg, NULL, 0);
+            break;
+        case 102:
+            iCustH    = strtoul(optarg, NULL, 0);
             break;
         case '?':               /* Terse output mode */
             if (optopt)
@@ -317,6 +332,8 @@ int main(int argc, char** argv)
     printf("  DetInfo: %s  ConfigDb: %s  Sleep: %d ms\n", DetInfo::name(detInfo), sConfigDb.c_str(), iSleepInt );
     printf("  Delay Mode: %s  Init Test: %s  Debug Level: %d\n", (bDelayMode?"Yes":"No"), (bInitTest?"Yes":"No"),
       iDebugLevel);
+    if (iCustW != -1 || iCustH != -1)
+    printf("  Custom W: %d  H: %d\n", iCustW, iCustH);
     if (sUniqueId.length())
       printf("  Alias: %s\n", sUniqueId.c_str());
 
@@ -326,7 +343,7 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsPrinceton settings(detInfo, sUniqueId);
 
-    EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iDebugLevel);
+    EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iCustW, iCustH, iDebugLevel);
 
     /* slow readout = 0, becuase we do the data polling by ourselves, not by event builder */
     SegmentLevel segmentLevel(iPlatform, settings, eventCallBackPrinceton, NULL, 0);
