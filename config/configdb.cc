@@ -318,7 +318,7 @@ int fetch_xtc(int argc, char** argv)
   }
 
   printf("fetch_xtc path [%s] source [%016llx] typeid [%08x] key [%08x]\n",
-         path,source,type_id,runkey);
+         path,(unsigned long long)source,type_id,runkey);
 
   if (!path) return -1;
 

@@ -266,10 +266,10 @@ void EpixWriter::fill_event(Xtc& xtc) const
     int idx = (dx>0) ? ix+1:ix-1;
     int idy = (dy>0) ? iy+1:iy-1;
     
-    if (ix<0 || ix>=ncols ||
-	iy<0 || iy>=nrows ||
-	idx<0 || idx>=ncols ||
-	idy<0 || idy>=nrows ||
+    if (ix<0 || ix>=int(ncols) ||
+	iy<0 || iy>=int(nrows) ||
+	idx<0 || idx>=int(ncols) ||
+	idy<0 || idy>=int(nrows) ||
 	bx>=_nx || by>=_ny)
       printf("\n == [%f,%f] [%d,%d] [%d,%d] [%d,%d] == \n",
 	     x,y,ix,iy,bx,by,idx,idy);

@@ -199,7 +199,6 @@ InDatagram* Recorder::events(InDatagram* in) {
             
             if ( !bInvalidNodeData )
             {            
-              unsigned lquiet(0);
               Index::XtcIterL1Accept iterL1Accept(&(in->datagram().xtc), 0,
                 i64Offset + sizeof(Xtc) + sizeof(in->datagram()) - sizeof(in->datagram().xtc),
                                                   _indexList);           

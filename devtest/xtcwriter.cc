@@ -80,48 +80,47 @@ int main(int argc,char **argv)
   GenericPool* pool = new GenericPool(1<<18,1);
 
   InDatagram* dg;
-  Xtc*      xtc;
 
   dg = createTransition(*pool,TransitionId::Configure);
   for(AppList::iterator it=user_apps.begin(); it!=user_apps.end(); it++)
     dg = (*it)->events(dg);
-  fwrite(static_cast<Datagram*>(dg),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
+  fwrite(&dg->datagram(),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
   delete dg;
 
   dg = createTransition(*pool,TransitionId::BeginRun);
-  fwrite(static_cast<Datagram*>(dg),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
+  fwrite(&dg->datagram(),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
   delete dg;
 
   dg = createTransition(*pool,TransitionId::BeginCalibCycle);
-  fwrite(static_cast<Datagram*>(dg),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
+  fwrite(&dg->datagram(),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
   delete dg;
 
   dg = createTransition(*pool,TransitionId::Enable);
-  fwrite(static_cast<Datagram*>(dg),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
+  fwrite(&dg->datagram(),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
   delete dg;
 
   while (nevents--) {
     dg = createTransition(*pool,TransitionId::L1Accept);
     for(AppList::iterator it=user_apps.begin(); it!=user_apps.end(); it++)
       dg = (*it)->events(dg);
-    fwrite(static_cast<Datagram*>(dg),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
+    fwrite(&dg->datagram(),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
     delete dg;
   }
 
   dg = createTransition(*pool,TransitionId::Disable);
-  fwrite(static_cast<Datagram*>(dg),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
+  fwrite(&dg->datagram(),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
   delete dg;
 
   dg = createTransition(*pool,TransitionId::EndCalibCycle);
-  fwrite(static_cast<Datagram*>(dg),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
+  fwrite(&dg->datagram(),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
   delete dg;
 
   dg = createTransition(*pool,TransitionId::EndRun);
-  fwrite(static_cast<Datagram*>(dg),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
+  fwrite(&dg->datagram(),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
   delete dg;
 
   dg = createTransition(*pool,TransitionId::Unconfigure);
-  fwrite(static_cast<Datagram*>(dg),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
+  fwrite(&dg->datagram(),sizeof(Dgram)+dg->xtc.sizeofPayload(),1,f);
   delete dg;
 
   fclose(f);

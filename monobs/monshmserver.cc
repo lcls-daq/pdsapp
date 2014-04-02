@@ -343,8 +343,8 @@ public:
 		int r = ::read(s, &set, sizeof(set));
 		if (r<0)
 		  perror("MonShmComm socket read error");
-		else if (r<sizeof(set)) {
-		  printf("MonShmComm socket closed [%d/%d]\n",r,sizeof(set));
+		else if (unsigned(r)<sizeof(set)) {
+		  printf("MonShmComm socket closed [%d/%zu]\n",r,sizeof(set));
 		  break;
 		}
 		if (strcmp(set.hostname,get.hostname)!=0) {
