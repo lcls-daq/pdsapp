@@ -1,6 +1,28 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-tgtnames    := evgr pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget fccdwidget xtccamfix compressstat epixwriter microspin
+libnames    := simframe playframe acqsim epixsim
+
+libsrcs_simframe := SimFrame.cc
+liblibs_simframe := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata 
+liblibs_simframe += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
+libincs_simframe := pdsdata/include ndarray/include boost/include 
+
+libsrcs_playframe := PlayFrame.cc
+liblibs_playframe := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata 
+liblibs_playframe += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
+libincs_playframe := pdsdata/include ndarray/include boost/include 
+
+libsrcs_acqsim := AcqWriter.cc
+liblibs_acqsim := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata 
+liblibs_acqsim += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
+libincs_acqsim := pdsdata/include ndarray/include boost/include 
+
+libsrcs_epixsim := EpixWriter.cc
+liblibs_epixsim := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata 
+liblibs_epixsim += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
+libincs_epixsim := pdsdata/include ndarray/include boost/include 
+
+tgtnames    := evgr pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget xtccamfix compressstat epixwriter microspin xtcwriter
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
@@ -19,7 +41,8 @@ tgtslib_evgrd := $(USRLIB)/rt
 
 tgtsrcs_xtcwriter := xtcwriter.cc
 tgtlibs_xtcwriter := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility
-tgtslib_xtcwriter := $(USRLIB)/rt
+tgtslib_xtcwriter := $(USRLIB)/rt $(USRLIB)/dl
+tgtincs_xtcwriter := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_epixwriter := epixwriter.cc
 tgtlibs_epixwriter := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility
