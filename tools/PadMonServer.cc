@@ -39,25 +39,16 @@ namespace Pds {
     MyMonitorServer(const char* tag,
                     unsigned sizeofBuffers, 
                     unsigned numberofEvBuffers, 
-                    unsigned numberofClients,
-                    unsigned sequenceLength) :
+                    unsigned numberofClients) :
       XtcMonitorServer(tag,
                        sizeofBuffers,
                        numberofEvBuffers,
-                       numberofClients,
-                       sequenceLength) 
+                       numberofClients),
+      _sizeofBuffers(sizeofBuffers)
     {
-      //  sum of client queues (nEvBuffers) + clients + transitions + shuffleQ
-      unsigned depth = 2*numberofEvBuffers+XtcMonitorServer::numberofTrBuffers+numberofClients;
-      for(unsigned i=0; i<depth; i++)
-        _pool.push(reinterpret_cast<Dgram*>(new char[sizeofBuffers]));
     }
     ~MyMonitorServer() 
     {
-      while(!_pool.empty()) {
-        delete _pool.front();
-        _pool.pop();
-      }
     }
   public:
     XtcMonitorServer::Result events(Dgram* dg) {
@@ -67,18 +58,16 @@ namespace Pds {
     }
     Dgram* newDatagram() 
     { 
-      Dgram* dg = _pool.front(); 
-      _pool.pop(); 
-      return dg; 
+      return (Dgram*)new char[_sizeofBuffers];
     }
     void   deleteDatagram(Dgram* dg) { _deleteDatagram(dg); }
   private:
     void  _deleteDatagram(Dgram* dg)
     {
-      _pool.push(dg); 
+      delete[] (char*)dg;
     }
   private:
-    std::queue<Dgram*> _pool;
+    size_t _sizeofBuffers;
   };
 };
 
@@ -134,7 +123,6 @@ static Dgram* insert(Dgram*              dg,
 
 static const unsigned sizeofBuffers = 0xA00000;
 static const unsigned numberofBuffers = 8;
-static const unsigned sequenceLength = 1;
 static unsigned payloadsize = 0;
 static char* shuffle = 0;
 static char* config  = 0;
@@ -146,8 +134,7 @@ PadMonServer::PadMonServer(PadType t,
   _srv (new MyMonitorServer(partitionTag,
                             sizeofBuffers, 
                             numberofBuffers, 
-                            nclients,
-                            sequenceLength))
+                            nclients))
 {
 }
 

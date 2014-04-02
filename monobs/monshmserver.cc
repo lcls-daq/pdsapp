@@ -249,8 +249,9 @@ private:
 class Comm : public Routine {
 public:
   Comm(DynamicObserver& o,
-       Stats&           s) : 
-    _o(o), _s(s), _task(new Task(TaskObject("comm")))
+       Stats&           s,
+       unsigned         groups) : 
+    _o(o), _s(s), _groups(groups), _task(new Task(TaskObject("comm")))
   {
     _task->call(this);
   }
@@ -327,7 +328,7 @@ public:
 	    changed |= _s.changed();
 	    changed = true;
 	    if (changed) {
-	      get.groups = 6;
+	      get.groups = _groups;
 	      get.mask   = _o.mask  ();
 	      get.events = _s.events();
 	      get.dmg    = _s.dmg   ();
@@ -339,8 +340,18 @@ public:
 	    if (::poll(pfd,nfds,timeout)>0) {
 	      if (pfd[0].revents & (POLLIN|POLLERR)) {
 		MonShmComm::Set set;
-		if (::read(s, &set, sizeof(set))<=0)
+		int r = ::read(s, &set, sizeof(set));
+		if (r<0)
+		  perror("MonShmComm socket read error");
+		else if (r<sizeof(set)) {
+		  printf("MonShmComm socket closed [%d/%d]\n",r,sizeof(set));
 		  break;
+		}
+		if (strcmp(set.hostname,get.hostname)!=0) {
+		  printf("MonShmComm socket name invalid [%s/%s]\n",
+			 set.hostname,get.hostname);
+		  break;
+		}
 		_o.set_mask(set.mask);
 	      }
 	    }
@@ -354,11 +365,12 @@ public:
 private:
   DynamicObserver& _o;
   Stats&           _s;
+  unsigned         _groups;
   Task*            _task;
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c|-q <# event queues>] [-d] [-u <uniqueID>] [-h]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c|-q <# event queues>] [-d] [-u <uniqueID>] [-g <max groups>] [-h]\n", progname);
 }
 
 LiveMonitorServer* apps;
@@ -389,6 +401,7 @@ int main(int argc, char** argv) {
   unsigned sizeOfBuffers = 0;
   unsigned nevqueues = 1;
   unsigned node =  0xffff0;
+  unsigned nodes = 6;
   char partitionTag[80] = "";
   const char* uniqueID = 0;
   bool ldist = false;
@@ -415,7 +428,7 @@ int main(int argc, char** argv) {
 #undef REGISTER
 
   int c;
-  while ((c = getopt(argc, argv, "p:i:n:P:s:c:q:u:L:w:dh")) != -1) {
+  while ((c = getopt(argc, argv, "p:i:g:n:P:s:c:q:u:L:w:dh")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -425,6 +438,9 @@ int main(int argc, char** argv) {
       break;
     case 'i':
       node = strtoul(optarg, &endPtr, 0);
+      break;
+    case 'g':
+      nodes = strtoul(optarg, &endPtr, 0);
       break;
     case 'u':
       uniqueID = optarg;
@@ -530,7 +546,7 @@ int main(int argc, char** argv) {
 			  sizeOfBuffers);
 
     if (!uniqueID)
-      new Comm(*event, *stats);
+      new Comm(*event, *stats, nodes);
 
     if (event->attach()) {
       task->mainLoop();

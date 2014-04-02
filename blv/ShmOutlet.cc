@@ -30,8 +30,6 @@ ShmOutlet::~ShmOutlet()
 Transition* ShmOutlet::forward(Transition* tr) 
 {
   printf("ShmOutlet tr %s\n",TransitionId::name(tr->id()));
-  if (tr->id() == TransitionId::Unmap) 
-    _pop_transition();
   return 0;
 }
 
