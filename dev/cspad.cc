@@ -7,6 +7,7 @@
 #include "pds/management/SegStreams.hh"
 #include "pds/utility/SegWireSettings.hh"
 #include "pds/utility/InletWire.hh"
+#include "pds/utility/Appliance.hh"
 #include "pds/service/Task.hh"
 #include "pds/cspad/CspadManager.hh"
 #include "pds/cspad/CspadServer.hh"
@@ -20,12 +21,15 @@
 #include <stdio.h>
 #include <signal.h>
 #include <new>
+#include <dlfcn.h>
 
 namespace Pds
 {
    class MySegWire;
    class Seg;
 }
+
+typedef std::list<Pds::Appliance*> AppList;
 
 //
 //  This class creates the server when the streams are connected.
@@ -72,6 +76,7 @@ class Pds::Seg
         Arp* arp,
         CspadServer* cspadServer,
         unsigned pgpcard,
+	const AppList& user_apps,
         bool compress = false,
         unsigned nthreads = 0);
 
@@ -89,8 +94,9 @@ class Pds::Seg
    CfgClientNfs* _cfg;
    CspadServer*  _cspadServer;
    unsigned      _pgpcard;
+   AppList       _user_apps;
    bool          _compress;
-  unsigned       _nthreads;
+   unsigned       _nthreads;
    bool          _failed;
 };
 
@@ -139,6 +145,7 @@ Pds::Seg::Seg( Task* task,
                Arp* arp,
                CspadServer* cspadServer,
                unsigned pgpcard,
+	       const AppList& user_apps,
                bool compress,
                unsigned nthreads)
    : _task(task),
@@ -146,6 +153,7 @@ Pds::Seg::Seg( Task* task,
      _cfg   (cfgService),
      _cspadServer(cspadServer),
      _pgpcard(pgpcard),
+     _user_apps(user_apps),
      _compress(compress),
      _nthreads(nthreads),
      _failed(false)
@@ -153,7 +161,9 @@ Pds::Seg::Seg( Task* task,
 
 Pds::Seg::~Seg()
 {
-   _task->destroy();
+  for(AppList::iterator it=_user_apps.begin(); it!=_user_apps.end(); it++)
+    delete (*it);
+  _task->destroy();
 }
     
 void Pds::Seg::attached( SetOfStreams& streams )
@@ -167,6 +177,9 @@ void Pds::Seg::attached( SetOfStreams& streams )
    CspadManager& cspadMgr = * new CspadManager( _cspadServer, _pgpcard, false );
    if (_compress) 
      (new FrameCompApp(0x600000,_nthreads))->connect( frmk->inlet() );
+
+   for(AppList::iterator it=_user_apps.begin(); it!=_user_apps.end(); it++)
+     (*it)->connect(frmk->inlet());
 
    cspadMgr.appliance().connect( frmk->inlet() );
 }
@@ -203,7 +216,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: %s [-h] -p <platform> [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <compressFlag>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>]\n"
+  printf( "Usage: %s [-h] -p <platform> [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <compressFlag>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb> [-L <plugin>] [-r <runTimeConfigName>]\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
@@ -232,6 +245,7 @@ void printUsage(char* s) {
       "                bit 10          print out time dumping front end took\n"
       "                bit 11          print out the front end stat in end calib instead of unconfig\n"
       "                bit 12          print out compression status info\n"
+      "    -L <p>  Load the appliance plugin library from path <p>\n"
       "    -r      set run time config file name\n"
       "                The format of the file consists of lines: 'Dest Addr Data'\n"
       "                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
@@ -256,12 +270,13 @@ int main( int argc, char** argv )
   bool                platformMissing     = true;
   bool                compressFlag        = false;
   unsigned            compressThreads     = 0;
+  AppList user_apps;
 
    extern char* optarg;
    char* endPtr;
    char* uniqueid = (char *)NULL;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:e:C:D:xP:r:u:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:e:C:D:xL:P:r:u:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -310,6 +325,30 @@ int main( int argc, char** argv )
            debug = strtoul(optarg, NULL, 0);
            printf("Cspad using debug value of 0x%x\n", debug);
            break;
+         case 'L':
+	   { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
+	       printf("dlopen %s\n",p);
+
+	       void* handle = dlopen(p, RTLD_LAZY);
+	       if (!handle) {
+		 printf("dlopen failed : %s\n",dlerror());
+		 break;
+	       }
+
+	       // reset errors
+	       const char* dlsym_error;
+	       dlerror();
+
+	       // load the symbols
+	       create_app* c_user = (create_app*) dlsym(handle, "create");
+	       if ((dlsym_error = dlerror())) {
+		 fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
+		 break;
+	       }
+	       user_apps.push_back( c_user() );
+	     }
+	     break;
+	   }
          case 'r':
            strcpy(runTimeConfigname, optarg);
            break;
@@ -370,6 +409,7 @@ int main( int argc, char** argv )
                        0,
                        cspadServer,
                        pgpcard,
+		       user_apps,
                        compressFlag,
                        compressThreads);
 
