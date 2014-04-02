@@ -30,7 +30,8 @@ StateSelect::StateSelect(QWidget* parent,
   QGroupBox("Control",parent),
   _control (control),
   _green   (new QPalette(Qt::green)),
-  _yellow  (new QPalette(Qt::yellow))
+  _yellow  (new QPalette(Qt::yellow)),
+  _sem     (Semaphore::EMPTY)
 {
   _display = new QLabel("-",this);
   _display->setAutoFillBackground(true);
@@ -52,15 +53,10 @@ StateSelect::StateSelect(QWidget* parent,
 
   bool do_record=false;
   {
-    const int BUFF_SIZE=64;
-    char* buff = (char*)malloc(BUFF_SIZE);
+    QList<QString> t;
     Preferences pref(qPrintable(title()), _control.header().platform(),"r");
-    if (pref.file()) {
-      size_t linesz = BUFF_SIZE;
-      if (getline(&buff,&linesz,pref.file())!=-1)
-	do_record = strncmp(buff,YES_STR,sizeof(YES_STR))==0;
-    }
-    free(buff);
+    pref.read(t);
+    do_record = (t[0]==YES_STR);
   }
   _record->setEnabled(true);
   _record->setChecked(do_record);
@@ -76,6 +72,7 @@ StateSelect::StateSelect(QWidget* parent,
 		   this, SLOT(selected(const QString&)));
   QObject::connect(this, SIGNAL(_enable_control(bool)),
 		   _select, SLOT(setEnabled(bool)));
+  QObject::connect(this, SIGNAL(_qtsync()), this, SLOT(unblock()));
 		   
 }
 
@@ -89,7 +86,7 @@ bool StateSelect::control_enabled() const { return _select->isEnabled(); }
 void StateSelect::enable_control () { emit _enable_control(true); }
 void StateSelect::disable_control() { emit _enable_control(false); }
 bool StateSelect::record_state() const { return _record->isChecked(); }
-void StateSelect::set_record_state(bool r) { emit remote_record(r); }
+void StateSelect::set_record_state(bool r) { emit remote_record(r); qtsync(); }
 
 void StateSelect::populate(QString label)
 {
@@ -167,8 +164,7 @@ void StateSelect::set_record(bool r)
   _control.use_run_info(r);
 
   Preferences pref(qPrintable(title()), _control.header().platform(), "w");
-  if (pref.file())
-    fprintf(pref.file(),"%s", r ? YES_STR : NO_STR);
+  pref.write(r ? YES_STR:NO_STR);
 }
 
 Transition* StateSelect::transitions(Transition* tr) 
@@ -189,3 +185,7 @@ InDatagram* StateSelect::events     (InDatagram* dg)
   }
   return dg; 
 }
+
+void StateSelect::qtsync() { emit _qtsync(); _sem.take(); }
+
+void StateSelect::unblock() { _sem.give(); }

@@ -190,7 +190,7 @@ void ConfigSelect::set_run_type(const QString& run_type)
 
 bool ConfigSelect::controlpvs() const 
 {
-  return _scan->pvscan();
+  return (_bScan->isEnabled() && _bScan->isChecked() && _scan->pvscan());
 }
 
 string ConfigSelect::getType()
@@ -298,11 +298,12 @@ void ConfigSelect::_writeSettings()
   Preferences pref(pref_name,
                    _pcontrol.header().platform(),
                    "w");
-  if (pref.file()) {
-    fprintf(pref.file(),"%s\n",qPrintable(_runType->currentText()));
-    fprintf(pref.file(),"%s\n",_bScan->isEnabled() && _bScan->isChecked() ? "scan":"no_scan");
-    fprintf(pref.file(),"%s%s %s\n",_cSeq->checkState()==::Qt::Checked ? "" : "no ",seq_name,qPrintable(_bSeq->currentText()));
-  }
+  pref.write(_runType->currentText());
+  pref.write(_bScan->isEnabled() && _bScan->isChecked() ? "scan":"no_scan");
+  pref.write(QString("%1%2")
+	     .arg(_cSeq->checkState()==::Qt::Checked ? "":"no ")
+	     .arg(seq_name),
+	     qPrintable(_bSeq->currentText()));
 }
 
 static const unsigned SETTINGS_SIZE = 64;
@@ -310,43 +311,19 @@ static const unsigned SETTINGS_SIZE = 64;
 void ConfigSelect::_readSettings()
 {
   _bScan->setChecked(false);
+  
+  Preferences pref(pref_name,
+		   _pcontrol.header().platform(),
+		   "r");
+  QList<QString> l;
+  pref.read(l);
 
-  char *buff = (char *)malloc(SETTINGS_SIZE);  // use malloc w/ getline
-  if (buff == (char *)NULL) {
-    printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, SETTINGS_SIZE, errno);
-  } else {
-    Preferences pref(pref_name,
-                     _pcontrol.header().platform(),
-                     "r");
-    if (pref.file()) {
-      char* lptr=buff;
-      size_t linesz = SETTINGS_SIZE;         // initialize for getline
-      if (getline(&lptr,&linesz,pref.file())!=-1) {
-        QString p(lptr);
-        p.chop(1);  // remove new-line
-        int index = _runType->findText(p);
-        if (index >= 0)
-          _runType->setCurrentIndex(index);
-      }
-      if (getline(&lptr,&linesz,pref.file())!=-1 &&
-          strcmp(lptr,"scan")==0)
-        _bScan->setChecked(true);
-      if (getline(&lptr,&linesz,pref.file())!=-1) {
-        char* lstr = strstr(lptr,seq_name);
-        if (lstr) {
-          QString p(lstr+strlen(seq_name)+1);
-          p.chop(1);  // remove new-line
-          int index = _bSeq->findText(p);
-          if (index >= 0) {
-            _bSeq->setCurrentIndex(index);
-            if (lptr==lstr)
-              _cSeq->setChecked(true);
-          }
-        }
-      }
-    }
-    free(buff);
-  }
+  int index = _runType->findText(l[0]);
+  if (index >= 0)
+    _runType->setCurrentIndex(index);
+
+  if (l.size()>1 && l[1]=="scan")
+    _bScan->setChecked(true);
 }
 
 void ConfigSelect::attach()

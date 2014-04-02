@@ -50,11 +50,15 @@ int main(int argc, char** argv)
   int verbose = 0;
   bool override = false;
   unsigned partition_options = 0;
+  bool autorun = false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:C:OTS:w:o:hv")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:C:AOTS:w:o:hv")) != -1) {
     char* endPtr;
     switch (c) {
+    case 'A':
+      autorun = true;
+      break;
     case 'p':
       errno = 0;
       platform = strtoul(optarg, &endPtr, 0);
@@ -142,6 +146,9 @@ int main(int argc, char** argv)
                                       controlrc);
   window->override_errors(override);
   window->show();
+  if (autorun)
+    window->autorun();
+
   app.exec();
 
   ca_context_destroy();

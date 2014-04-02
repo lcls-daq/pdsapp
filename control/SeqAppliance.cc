@@ -21,6 +21,27 @@ static const int MaxConfigSize = 0x100000;
 
 using namespace Pds;
 
+#if 0
+SeqAppliance::SeqAppliance(PartitionControl& control,
+			   CfgClientNfs&     config,
+			   PVManager&        pvmanager,
+                           unsigned          sequencer_id) :
+  _control      (control),
+  _manual       (0),
+  _cselect      (0),
+  _config       (config),
+  _configtc     (_controlConfigType, config.src()),
+  _config_buffer(new char[MaxConfigSize]),
+  _cur_config   (0),
+  _end_config   (0),
+  _pvmanager    (pvmanager),
+  _sequencer_id (sequencer_id),
+  _sequencer    (0),
+  _ca_context   (ca_current_context())
+{
+}
+#endif
+
 SeqAppliance::SeqAppliance(PartitionControl& control,
 			   StateSelect&      manual,
 			   ConfigSelect&     cselect,
@@ -49,9 +70,6 @@ SeqAppliance::~SeqAppliance()
 
 Transition* SeqAppliance::transitions(Transition* tr) 
 { 
-  if (!_manual.control_enabled())
-    return tr;
-
   switch(tr->id()) {
   case TransitionId::Map:
     { 
@@ -100,14 +118,16 @@ Transition* SeqAppliance::transitions(Transition* tr)
       break;
     }
   case TransitionId::BeginCalibCycle:
-    //  apply the configuration
-    _control.set_transition_env(TransitionId::Enable, 
-				_cur_config->uses_duration() ?
-				EnableEnv(_cur_config->duration()).value() :
-				EnableEnv(_cur_config->events()).value());
-    if (_cselect.controlpvs())
-      _pvmanager.configure(*_cur_config);
-    _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_cur_config);
+    if (_manual.control_enabled()) {
+      //  apply the configuration
+      _control.set_transition_env(TransitionId::Enable, 
+				  _cur_config->uses_duration() ?
+				  EnableEnv(_cur_config->duration()).value() :
+				  EnableEnv(_cur_config->events()).value());
+      if (_cselect.controlpvs())
+	_pvmanager.configure(*_cur_config);
+      _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_cur_config);
+    }
     break;
   case TransitionId::EndCalibCycle:
   case TransitionId::Unconfigure:

@@ -2,6 +2,7 @@
 #define Pds_StateSelect_hh
 
 #include "pds/utility/Appliance.hh"
+#include "pds/service/Semaphore.hh"
 #include <QtGui/QGroupBox>
 #include <QtCore/QString>
 
@@ -30,15 +31,18 @@ namespace Pds {
     void disable_control();
     bool record_state() const;
     void set_record_state(bool);
+    void qtsync();
   signals:
     void remote_record(bool);
     void state_changed(QString);
     void configured   (bool);
     void _enable_control(bool);
+    void _qtsync();
   public slots:
     void populate(QString);
     void selected(const QString&);
     void set_record(bool);
+    void unblock();
   private:
     PartitionControl& _control;
     QCheckBox*        _record;
@@ -46,6 +50,7 @@ namespace Pds {
     QLabel*           _display;
     QPalette*         _green;
     QPalette*         _yellow;
+    Semaphore         _sem;
   };
 };
 

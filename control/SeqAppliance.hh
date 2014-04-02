@@ -19,6 +19,10 @@ namespace Pds {
   class SeqAppliance : public Appliance {
   public:
     SeqAppliance(PartitionControl& control,
+		 CfgClientNfs&     config,
+		 PVManager&        pvmanager,
+                 unsigned          sequencer_id);
+    SeqAppliance(PartitionControl& control,
 		 StateSelect&      manual,
 		 ConfigSelect&     cselect,
 		 CfgClientNfs&     config,

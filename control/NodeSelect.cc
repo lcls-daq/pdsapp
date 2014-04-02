@@ -61,6 +61,7 @@ static QList<int> _bldOrder =
          << BldInfo::NumberOf;
 
 static const char* cTransient = "Monitor";
+static const char* cRecord    = "Record";
 
 NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, int iUseReadoutGroup, bool useTransient) :
   QWidget  (parent),
@@ -84,7 +85,7 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, i
     if ( _iUseReadoutGroup > 2 ) _iUseReadoutGroup = 2;
     _read_pref(title(), 
 	       _persist, _persistGroup, _persistTrans);
-    _read_pref(QString("%1 required").arg(title()), 
+   _read_pref(QString("%1 required").arg(title()), 
 	       _require, _requireGroup, _requireTrans);
   }    
 
@@ -335,25 +336,16 @@ QList<Node> NodeGroup::selected()
 
   //  Write persistent selected nodes
   Preferences pref(qPrintable(title()), _platform, "w");
-  if (pref.file()) {
-    for (int iNode = 0; iNode < _persist.size(); ++iNode)
-    {
-      //foreach(QString p, _persist) {      
-        //fprintf(f,"%s;%d\n",qPrintable(p), _persistGroup);
-        
-      if (_iUseReadoutGroup != 0)
-        fprintf(pref.file(),"%s;%d;%s\n",
-		qPrintable(_persist[iNode]), 
-		_persistGroup[iNode], 
-		_persistTrans[iNode]?cTransient:"Record");
-      else if (_useTransient)
-        fprintf(pref.file(),"%s;%s\n",
-		qPrintable(_persist[iNode]),
-		_persistTrans[iNode]?cTransient:"Record");
-      else
-        fprintf(pref.file(),"%s\n",
-		qPrintable(_persist[iNode]));      
-    }
+  for (int iNode = 0; iNode < _persist.size(); ++iNode) {
+    if (_iUseReadoutGroup != 0)
+      pref.write(_persist[iNode],
+		 _persistGroup[iNode], 
+		 _persistTrans[iNode]?cTransient:cRecord);
+    else if (_useTransient)
+      pref.write(_persist[iNode],
+		 _persistTrans[iNode]?cTransient:cRecord);
+    else
+      pref.write(_persist[iNode]);      
   }
 
   return nodes;
@@ -442,10 +434,15 @@ NodeGroup* NodeGroup::freeze()
 bool NodeGroup::ready() const
 {
   QList<QAbstractButton*> buttons = _buttons->buttons();
-  for(int i=0; i<buttons.size(); i++)
+  QList<QString> require = _require;
+  int index;
+  for(int i=0; i<buttons.size(); i++) {
     if (buttons[i]->isChecked() && !_nodes[i].ready())
       return false;
-  return true;
+    if ((index=require.indexOf(_nodes[i].plabel()))>=0)
+      require.removeAt(index);
+  }
+  return require.empty();
 }
 
 Node& NodeGroup::node(int i)
@@ -457,39 +454,8 @@ void NodeGroup::_read_pref(const QString&  title,
                            QList<QString>& l,
                            QList<bool>&    lt)
 {
-  char *buff = (char *)malloc(NODE_BUFF_SIZE);  // use malloc w/ getline
-  if (buff == (char *)NULL) {
-    printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, NODE_BUFF_SIZE, errno);
-    return;
-  }
-    
   Preferences pref(qPrintable(title), _platform, "r");
-  if (pref.file()) {
-    char* lptr=buff;
-    size_t linesz = NODE_BUFF_SIZE;         // initialize for getline
-    
-    while(getline(&lptr,&linesz,pref.file())!=-1) {
-      QString p(lptr);
-      p.chop(1);  // remove new-line
-      p.replace('\t','\n');        
-
-      QStringList ls = p.split(';');
-
-      switch (ls.size()) {
-      case 1:
-	l .push_back(ls[0]);
-	lt.push_back(false);
-	break;
-      case 2:
-	l .push_back(ls[0]);
-	lt.push_back(ls[1].compare(cTransient,::Qt::CaseInsensitive)==0);
-	break;
-      default:
-	break;
-      }
-    }
-  }
-  free(buff);
+  pref.read(l,lt,cTransient);
 }
 
 
@@ -498,45 +464,8 @@ void NodeGroup::_read_pref(const QString&  title,
                            QList<int>&     lg,
 			   QList<bool>&    lt)
 {
-  char *buff = (char *)malloc(NODE_BUFF_SIZE);  // use malloc w/ getline
-  if (buff == (char *)NULL) {
-    printf("%s: malloc(%d) failed, errno=%d\n", __PRETTY_FUNCTION__, NODE_BUFF_SIZE, errno);
-    return;
-  }
-    
   Preferences pref(qPrintable(title), _platform, "r");
-  if (pref.file()) {
-    char* lptr=buff;
-    size_t linesz = NODE_BUFF_SIZE;         // initialize for getline
-    
-    while(getline(&lptr,&linesz,pref.file())!=-1) {
-      QString p(lptr);
-      p.chop(1);  // remove new-line
-      p.replace('\t','\n');        
-
-      QStringList ls = p.split(';');
-
-      switch (ls.size()) {
-      case 1:
-	l .push_back(ls[0]);
-	lg.push_back(0);
-	lt.push_back(false);
-	break;
-      case 2:
-	l .push_back(ls[0]);
-	lg.push_back(ls[1].toInt());
-	lt.push_back(false);
-	break;
-      case 3:
-	l .push_back(ls[0]);
-	lg.push_back(ls[1].toInt());
-	lt.push_back(ls[2].compare(cTransient,::Qt::CaseInsensitive)==0);
-	break;
-      default:
-	break;
-      }
-    }
-  }
+  pref.read(l,lg,lt,cTransient);
 }
 
 

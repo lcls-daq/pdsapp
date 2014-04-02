@@ -43,6 +43,7 @@ namespace Pds {
   signals:
     void message_received(const QString&,bool);
     void override_received(const QString&);
+    void auto_run_started();
     //    void platform_failed();
   public slots:
     void handle_message(const QString&,bool);
@@ -58,6 +59,7 @@ namespace Pds {
     void platform_error();
     void require_shutdown();
     void override_errors(bool);
+    void autorun();
   private:
     friend class ControlTimeout;
     CCallback*        _controlcb;

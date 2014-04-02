@@ -36,6 +36,7 @@ namespace Pds {
     void select_dialog();
     void display      ();
     void change_state(QString);
+    void autorun      ();
   private:
     bool _validate(uint64_t);
     bool _checkReadGroupEnable();
@@ -54,6 +55,7 @@ namespace Pds {
     QList<ProcInfo> _segments;
     QList<BldInfo > _reporters;
     QPushButton*    _selectb;
+    bool            _autorun;
   };
 };
 

@@ -14,11 +14,13 @@ static bool _useTransient = false;
 SelectDialog::SelectDialog(QWidget* parent,
 			   PartitionControl& control, 
 			   IocControl& icontrol, 
-			   bool bReadGroupEnable) :
+			   bool bReadGroupEnable,
+			   bool autorun) :
   QDialog  (parent),
   _pcontrol(control),
   _icontrol(icontrol),
-  _bReadGroupEnable(bReadGroupEnable)
+  _bReadGroupEnable(bReadGroupEnable),
+  _autorun (autorun)
 {
   setWindowTitle("Partition Selection");
 
@@ -261,8 +263,12 @@ void SelectDialog::select() {
 
 void SelectDialog::check_ready()
 {
-  _acceptb->setEnabled(_segbox->ready() && 
-           _evtbox->ready());
+  bool enable = _segbox->ready() && _evtbox->ready();
+  _acceptb->setEnabled(enable);
+  if (_autorun && enable) {
+    _autorun = false;
+    _acceptb->click();
+  }
 }
 
 void SelectDialog::_clearLayout()

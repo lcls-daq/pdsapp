@@ -41,7 +41,8 @@ namespace Pds {
     SelectDialog(QWidget* parent,
 		 PartitionControl& control, 
 		 IocControl& icontrol,
-		 bool bReadGroupEnable);
+		 bool bReadGroupEnable,
+		 bool autorun=false);
     ~SelectDialog();
   public:
     void        available(const Node& hdr, const PingReply& msg);
@@ -71,6 +72,7 @@ namespace Pds {
     PartitionControl& _pcontrol;
     IocControl&       _icontrol;
     bool              _bReadGroupEnable;
+    bool              _autorun;
     Node _control;
     NodeGroup* _segbox;
     NodeGroup* _evtbox;

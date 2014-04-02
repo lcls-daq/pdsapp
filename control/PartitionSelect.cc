@@ -36,7 +36,8 @@ PartitionSelect::PartitionSelect(QWidget*          parent,
   _icontrol (icontrol),
   _pt_name  (pt_name),
   _display  (0),
-  _options  (options)
+  _options  (options),
+  _autorun  (false)
 {
   strncpy(_db_path,db_path, sizeof(_db_path));
 
@@ -80,7 +81,7 @@ void PartitionSelect::select_dialog()
 
   bool bReadGroupEnable = _checkReadGroupEnable();
   
-  SelectDialog* dialog = new SelectDialog(this, _pcontrol, _icontrol, bReadGroupEnable);
+  SelectDialog* dialog = new SelectDialog(this, _pcontrol, _icontrol, bReadGroupEnable, _autorun);
   bool ok = dialog->exec();
   if (ok) {
     QList<Node> nodes = dialog->selected();
@@ -307,4 +308,10 @@ bool PartitionSelect::_checkReadGroupEnable()
   free(lcConfigBuffer);
     
   return bEneableReadoutGroup;
+}
+
+void PartitionSelect::autorun()
+{
+  _autorun=true;
+  select_dialog();
 }
