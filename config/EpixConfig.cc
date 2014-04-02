@@ -62,7 +62,7 @@ namespace Pds_ConfigDb {
           layout->addWidget(boff);
           layout->addWidget(bon); }
         layout->addStretch();
-        { layout->addWidget(new QLabel("Pixel Text"));
+        { layout->addWidget(new QLabel("Pixel Test"));
           _test_gr = new QButtonGroup;
           QRadioButton* boff = new QRadioButton("Off");
           QRadioButton* bon  = new QRadioButton("On");
