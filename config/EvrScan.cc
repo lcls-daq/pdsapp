@@ -160,6 +160,10 @@ int EvrScan::write(unsigned step, unsigned nsteps, char* buff) const
 
 void EvrScan::read(const char* dbuf, int len)
 {
+#ifdef DBUG
+  printf("\tEvrScan::read %p [%d]\n",dbuf,len);
+#endif
+
   if (_buff)
     delete[] _buff;
 

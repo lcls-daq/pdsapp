@@ -59,8 +59,6 @@ ControlScan::ControlScan(QWidget* parent, Experiment& expt) :
   _buf_control  (new char[0x100000]),
   _buf_evr      (new char[0x100000])
 {
-  printf("ControlScan::create[%p]\n",this);
-
   new QIntValidator(0,0x7fffffff,_steps);
   new QDoubleValidator(_events_value);
   new QDoubleValidator(_time_value);
@@ -134,7 +132,6 @@ void ControlScan::apply()
 
 void ControlScan::set_run_type(const QString& runType)
 {
-  printf("ControlScan::set_run_type[%p] %s\n",this,qPrintable(runType));
   _run_type = std::string(qPrintable(runType));
   read(scan_file);
 }
@@ -202,8 +199,6 @@ void ControlScan::write()
 
 void ControlScan::read(const char* ifile)
 {
-  printf("ControlScan::read %s\n",ifile);
-
   DbClient& db = _expt.path();
 
   {
@@ -250,7 +245,6 @@ void ControlScan::read(const char* ifile)
         *reinterpret_cast<const ControlConfigType*>(_buf_control);
 
       int npts = len/cfg._sizeof();
-      printf("cfg size %d/%d (%d)\n",cfg._sizeof(),len,npts);
       _steps->setText(QString::number(npts-1));
     
       if (cfg.uses_duration()) {
@@ -285,7 +279,8 @@ void ControlScan::read(const char* ifile)
 
       for(std::list<KeyEntry>::const_iterator it=entries.begin();
           it!=entries.end(); it++)
-        if (DeviceEntry(it->source) == info) {
+        if (DeviceEntry(it->source) == info &&
+	    it->xtc.type_id.value() == _evrConfigType.value()) {
           db.begin();
           int sz = db.getXTC(it->xtc);
           if (sz<=0) {

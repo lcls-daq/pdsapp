@@ -18,7 +18,7 @@ using std::hex;
 #include <string.h>
 #include <stdlib.h>
 
-#define DBUG
+//#define DBUG
 
 static void _handle_no_lock(const char* s)
 {

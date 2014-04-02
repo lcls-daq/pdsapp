@@ -20,7 +20,7 @@ using std::endl;
 using std::setw;
 using std::setfill;
 
-#define DBUG
+//#define DBUG
 
 using namespace Pds_ConfigDb;
 
