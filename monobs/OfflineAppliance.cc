@@ -250,7 +250,6 @@ int OfflineAppliance::_saveRunParameter(LogBook::Connection *conn, const char *i
 
     if (!parmError && !dbError && !parmFound) {
       // create run parameter
-      parmError = false;
       try {
         conn->createRunParam(instrument, experiment, parmName, "TEXT",
                              parmDescription);
@@ -316,7 +315,6 @@ int OfflineAppliance::_saveRunAttribute(LogBook::Connection *conn, const char *i
 
     if (!parmError && !dbError && !parmFound) {
       // create run attribute
-      parmError = false;
       try {
         conn->createRunAttr(instrument, experiment, run, EPICS_CLASS_NAME, attrName,
                              attrDescription, attrValue);
