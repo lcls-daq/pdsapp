@@ -15,6 +15,8 @@
 // timeout value for EPICS Channel Access calls
 #define OFFLINE_EPICS_TIMEOUT 1.0
 
+#define EPICS_CLASS_NAME  "EPICS:"
+
 namespace Pds {
 
 //class OfflineClient;
@@ -45,6 +47,10 @@ namespace Pds {
     static int _saveRunParameter(LogBook::Connection *conn, const char *instrument,
                       const char *experiment, unsigned int run, const char *parmName,
                       const char *parmValue, const char *parmDescription);
+
+    static int _saveRunAttribute(LogBook::Connection *conn, const char *instrument,
+                      const char *experiment, unsigned int run, const char *attrName,
+                      const char *attrValue, const char *attrDescription);
 
     int _readEpicsPv(PvConfigFile::TPvList in, std::vector<std::string> & pvValues);
 

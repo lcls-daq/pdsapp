@@ -77,6 +77,7 @@ InDatagram* OfflineAppliance::events(InDatagram* in) {
 Transition* OfflineAppliance::transitions(Transition* tr) {
   LogBook::Connection * conn = NULL;
   LusiTime::Time now;
+  int errs;
 
   if ((tr->id()==TransitionId::BeginRun) &&
       (tr->size() == sizeof(Transition))) {
@@ -116,10 +117,20 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
               continue;
             }
 
+            errs = 0;
+            if (_saveRunAttribute(conn, _instrument_name,
+                          _experiment_name, _run_number,
+                          _vsPvNameList[iPv].sPvName.c_str(), vsPvValueList[iPv].c_str(),
+                          _vsPvNameList[iPv].sPvDescription.c_str())) {
+              ++ errs;
+            }
             if (_saveRunParameter(conn, _instrument_name,
                           _experiment_name, _run_number,
                           _vsPvNameList[iPv].sPvName.c_str(), vsPvValueList[iPv].c_str(),
                           _vsPvNameList[iPv].sPvDescription.c_str())) {
+              ++ errs;
+            }
+            if (errs) {
               printf("Error: storing PV %s in LogBook failed\n", _vsPvNameList[iPv].sPvName.c_str());
             } else {
               ++parm_save_count;
@@ -134,10 +145,10 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
       }
 
     } catch (const LogBook::ValueTypeMismatch& e) {
-      printf ("Parameter type mismatch %s:\n", e.what());
+      printf ("Parameter type mismatch: %s\n", e.what());
 
     } catch (const LogBook::WrongParams& e) {
-      printf ("Problem with parameters %s:\n", e.what());
+      printf ("Problem with parameters: %s\n", e.what());
     
     } catch (const LogBook::DatabaseError& e) {
       printf ("Database operation failed: %s\n", e.what());
@@ -178,10 +189,10 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
       }
 
     } catch (const LogBook::ValueTypeMismatch& e) {
-      printf ("Parameter type mismatch %s:\n", e.what());
+      printf ("Parameter type mismatch: %s\n", e.what());
 
     } catch (const LogBook::WrongParams& e) {
-      printf ("Problem with parameters %s:\n", e.what());
+      printf ("Problem with parameters: %s\n", e.what());
     
     } catch (const LogBook::DatabaseError& e) {
       printf ("Database operation failed: %s\n", e.what());
@@ -227,14 +238,14 @@ int OfflineAppliance::_saveRunParameter(LogBook::Connection *conn, const char *i
     }
 
     try {
-        parmFound = conn->getParamInfo(paramBuf, instrument, experiment, parmName);
+      parmFound = conn->getParamInfo(paramBuf, instrument, experiment, parmName);
     } catch (const LogBook::WrongParams& e) {
       parmError = true;
-      printf ("_saveRunParameter: Problem with parameters %s:\n", e.what());
+      printf ("getParamInfo(): Problem with parameters: %s\n", e.what());
     
     } catch (const LogBook::DatabaseError& e) {
       dbError = true;
-      printf ("_saveRunParameter(): Database operation failed: %s\n", e.what());
+      printf ("getParamInfo(): Database operation failed: %s\n", e.what());
     } 
 
     if (!parmError && !dbError && !parmFound) {
@@ -245,7 +256,7 @@ int OfflineAppliance::_saveRunParameter(LogBook::Connection *conn, const char *i
                              parmDescription);
       } catch (const LogBook::WrongParams& e) {
         parmError = true;
-        printf ("createRunParam(): Problem with parameters %s:\n", e.what());
+        printf ("createRunParam(): Problem with parameters: %s\n", e.what());
 
       } catch (const LogBook::DatabaseError& e) {
         dbError = true;
@@ -259,17 +270,65 @@ int OfflineAppliance::_saveRunParameter(LogBook::Connection *conn, const char *i
                                parmValue, "run control", true);
       } catch (const LogBook::ValueTypeMismatch& e) {
         parmError = true;
-        printf ("setRunParam(): Parameter type mismatch %s:\n", e.what());
+        printf ("setRunParam(): Parameter type mismatch: %s\n", e.what());
 
       } catch (const LogBook::WrongParams& e) {
         parmError = true;
-        printf ("setRunParam(): Problem with parameters %s:\n", e.what());
+        printf ("setRunParam(): Problem with parameters: %s\n", e.what());
 
       } catch (const LogBook::DatabaseError& e) {
         dbError = true;
         printf ("setRunParam(): Database operation failed: %s\n", e.what());
       }
   }
+
+  return (dbError || parmError) ? 1 : 0;
+}
+
+//
+// _saveRunAttribute -
+//
+// RETURNS: 0 if successful, otherwise 1.
+//
+int OfflineAppliance::_saveRunAttribute(LogBook::Connection *conn, const char *instrument,
+                      const char *experiment, unsigned int run, const char *attrName,
+                      const char *attrValue, const char *attrDescription)
+{
+    LogBook::AttrInfo attrBuf;
+    bool dbError = false;
+    bool parmError = false;
+    bool parmFound = false;
+
+    if (!conn || !instrument || !experiment || !attrName || !attrValue || !attrDescription) {
+      return 1;   // invalid parameter
+    }
+
+    try {
+      parmFound = conn->getAttrInfo(attrBuf, instrument, experiment, run, EPICS_CLASS_NAME, attrName);
+    } catch (const LogBook::WrongParams& e) {
+      parmError = true;
+      printf ("getAttrInfo(): Problem with parameters: %s\n", e.what());
+    
+    } catch (const LogBook::DatabaseError& e) {
+      dbError = true;
+      printf ("getAttrInfo(): Database operation failed: %s\n", e.what());
+    } 
+
+    if (!parmError && !dbError && !parmFound) {
+      // create run attribute
+      parmError = false;
+      try {
+        conn->createRunAttr(instrument, experiment, run, EPICS_CLASS_NAME, attrName,
+                             attrDescription, attrValue);
+      } catch (const LogBook::WrongParams& e) {
+        parmError = true;
+        printf ("createRunAttr(): Problem with parameters: %s\n", e.what());
+
+      } catch (const LogBook::DatabaseError& e) {
+        dbError = true;
+        printf ("createRunAttr(): Database operation failed: %s\n", e.what());
+      }
+    }
 
   return (dbError || parmError) ? 1 : 0;
 }
