@@ -177,7 +177,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: epix [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-D <debug>] [-P <pgpcardNumb> -p <platform>\n"
+  printf( "Usage: epix [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-r <runTimeConfigName>] [-D <debug>] [-P <pgpcardNumb> -p <platform>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
@@ -185,6 +185,10 @@ void printUsage(char* s) {
       "    -P      Set pgpcard index number  [Default: 0]\n"
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
+      "    -r      set run time config file name\n"
+      "                The format of the file consists of lines: 'Dest Addr Data'\n"
+      "                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
+      "                four bit field where the bottom two bits are VC and The top two are Lane\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -210,11 +214,12 @@ int main( int argc, char** argv )
   unsigned            debug               = 0;
   unsigned            eventDepth          = 128;
   unsigned            resetOnEverConfig   = 0;
+  char                runTimeConfigname[256] = {""};
   ::signal( SIGINT, sigHandler );
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:D:P:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:r:D:P:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -254,6 +259,9 @@ int main( int argc, char** argv )
            break;
          case 'R':
            resetOnEverConfig = strtoul(optarg, NULL, 0);
+           break;
+         case 'r':
+           strcpy(runTimeConfigname, optarg);
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
@@ -297,6 +305,7 @@ int main( int argc, char** argv )
    epixServer = new EpixServer(detInfo, mask);
    printf("Epix will reset on %s configuration\n", resetOnEverConfig ? "every" : "only the first");
    epixServer->resetOnEveryConfig(resetOnEverConfig);
+   epixServer->runTimeConfigName(runTimeConfigname);
    printf("setting EpixServer debug level\n");
    epixServer->debug(debug);
 
