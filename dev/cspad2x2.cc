@@ -195,7 +195,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <nevents>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb> [-r <runTimeConfigName>] [-R <runTriggerFactor>] -p <platform>\n"
+  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <nevents>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb>] [-r <runTimeConfigName>] [-R <runTriggerFactor>] -p <platform>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XppGon]\n"
