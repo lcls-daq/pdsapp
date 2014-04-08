@@ -93,12 +93,14 @@ InDatagram* PlayFrame::events(InDatagram* dg)
 	  pq   = pxtc->payload()+sizeof(CsPad::ElementV1);
 	}
 	memcpy(q, pq, _quad_sz);
+#if 0
 	uint16_t* p = reinterpret_cast<uint16_t*>(q);
 	q  += _quad_sz;
-#if 0
 	while( p < (uint16_t*)q) {
 	  *p++ <<= 1;
 	}
+#else
+	q  += _quad_sz;
 #endif
 	pq += CsPad::ElementV1::_sizeof(_cfg);
       }

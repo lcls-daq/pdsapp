@@ -255,15 +255,54 @@ int BldClientTestSendInterface(int iDataSeed, char* sInterfaceIp, int iNumPacket
 int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort, 
       unsigned int uMaxDataSize, int iDataSeed, char* sInterfaceIp, int iNumPackets)
 {
-  const int iSleepInterval = 3;
-      
   EpicsBld::BldClientInterface* pBldClient = 
     EpicsBld::BldClientFactory::createBldClient(uAddr, uPort, 
       uMaxDataSize, ucDefaultTTL, sInterfaceIp);
 
-  unsigned int uIntDataSize = (uMaxDataSize/sizeof(int));
+  unsigned int contains=0;
+  
+  if (iDataSeed <= 0) {
+    switch(uAddr&0xff) {
+    case 1: // PhaseCavity
+      contains     = 0x00000010;
+      uMaxDataSize = 32;
+      break;
+    case 2: // FEEGasDet
+      contains     = 0x0000000e;
+      uMaxDataSize = 32;
+      break;
+    case 44:
+    case 46:
+    case 47:
+    case 48: // Spectrometer
+      contains     = 0x00000048;
+      uMaxDataSize = 1280*4;
+      break;
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 17:
+    case 18:
+    case 19:
+    case 45: // SharedIpimb
+    default:
+      contains     = 0x00010023;  // SharedIpimbV2
+      uMaxDataSize = 32+60+28;
+      break;
+    }
+  }
+
+  unsigned int uIntDataSize = uMaxDataSize/4+15;
+
   int* liData = new int[uIntDataSize];
   int iTestValue = iDataSeed * 1000;
+
 
   printf( "Beginning Multicast Client Testing\n"
           "Data Seed = %d  Interface = %s  Buffer Size = %u\n"
@@ -271,23 +310,65 @@ int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort,
           iDataSeed, 
           (sInterfaceIp ? sInterfaceIp: "NULL [Default Interface]"),
           uMaxDataSize );  
-  
+
+  timespec tv_begin;
+  clock_gettime(CLOCK_REALTIME,&tv_begin);
+
   int iPacketsSent = 0;
   while ( true )  
   {
-    for (unsigned int uIndex=0; uIndex<uIntDataSize; uIndex++)
-      liData[uIndex] = iTestValue;
+    unsigned int uIndex=0;
+    liData[uIndex++] = 0;  // clock hi
+    liData[uIndex++] = 0;  // clock lo
+    liData[uIndex++] = 0;  // stamp hi
+    liData[uIndex++] = iPacketsSent;  // stamp lo
+    liData[uIndex++] = 0;  // env
+
+    liData[uIndex++] = 0;  // damage
+    liData[uIndex++] = 0x06000000;  // src
+    liData[uIndex++] = uAddr&0xff;  // src
+    liData[uIndex++] = contains;    // contains
+    liData[uIndex++] = uMaxDataSize+20;  // extent
+
+    liData[uIndex++] = 0;  // damage
+    liData[uIndex++] = 0x06000000;  // src
+    liData[uIndex++] = uAddr&0xff;  // src
+    liData[uIndex++] = contains;    // contains
+    liData[uIndex++] = uMaxDataSize+20;  // extent
+
+    while (uIndex<uIntDataSize)
+      liData[uIndex++] = iTestValue;
       
-    printf("Bld send to %s port %d Value %d\n", EpicsBld::addressToStr(uAddr).c_str(), uPort, iTestValue);
+    //printf("Bld send to %s port %d Value %d\n", EpicsBld::addressToStr(uAddr).c_str(), uPort, iTestValue);
     
     pBldClient->sendRawData(uIntDataSize*sizeof(int), 
       reinterpret_cast<char*>(liData));
     iTestValue++;
+    iPacketsSent++;
 
-    if ( iNumPackets > 0 && ++iPacketsSent >= iNumPackets )
+    if ( iNumPackets > 0 && iPacketsSent >= iNumPackets )
       break;
-    
-    sleep(iSleepInterval);
+
+    timespec tv_end;
+    clock_gettime(CLOCK_REALTIME,&tv_end);
+
+    double t_rem = double(iPacketsSent)/120. -
+      double(tv_end.tv_sec-tv_begin.tv_sec) -
+      1.e-9*double(int(tv_end.tv_nsec-tv_begin.tv_nsec));
+
+    if (t_rem > 0) {
+      tv_end.tv_sec  = unsigned(t_rem);
+      tv_end.tv_nsec = unsigned(1.e9*(t_rem-double(tv_end.tv_sec)));
+
+      //printf("[%d] \trem %f s [%lu.%09ld]\n", iPacketsSent, t_rem, 
+      //tv_end.tv_sec, tv_end.tv_nsec);
+
+      nanosleep(&tv_end,0);
+    }
+    else
+      ; // printf("[%d] \trem %f s\n", iPacketsSent, t_rem);
+
+
     // Waiting for keyboard interrupt to break the infinite loop
   } 
   

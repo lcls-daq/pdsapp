@@ -114,3 +114,8 @@ tgtlibs_compressstat := pdsdata/xtcdata pdsdata/compressdata pdsdata/anadata pds
 #tgtslib_compressstat := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread 
 tgtincs_compressstat := pdsdata/include boost/include
 
+tgtsrcs_fccdmonserver := fccdmonserver.cc
+tgtlibs_fccdmonserver := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
+tgtlibs_fccdmonserver += pdsdata/xtcdata pdsdata/compressdata pdsdata/appdata pdsdata/psddl_pdsdata
+tgtslib_fccdmonserver := ${USRLIBDIR}/rt
+tgtincs_fccdmonserver := pdsdata/include boost/include ndarray/include

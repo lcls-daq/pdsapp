@@ -282,7 +282,6 @@ int main( int argc, char** argv )
     } else {
       unsigned myi = 0;
       unsigned dest, addr, data;
-      unsigned tid = 0x2dbeef;
       while (fscanf(f, "%x %x %x", &dest, &addr, &data) && !feof(f) && myi++ < maxCount) {
         _d.dest(dest);
         printf("\nConfig from file, dest %s, addr 0x%x, data 0x%x ", _d.name(), addr, data);

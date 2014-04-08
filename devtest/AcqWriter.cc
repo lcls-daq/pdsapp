@@ -176,7 +176,7 @@ public:
 private:
   int _convert(const Pds::Acqiris::VertV1& _vert,
                double v) 
-  { return int(v+_vert.offset())/_vert.slope(); }
+  { return int((v+_vert.offset())/_vert.slope()); }
 };
 
 class EbitAdcData : public Xtc {

@@ -5,7 +5,10 @@ libsrcs_devapp := CmdLineTools.cc
 libincs_devapp := pdsdata/include
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
+CPPFLAGS += -fno-strict-aliasing
 #CPPFLAGS += -DBLD_DELAY # for tolerating BLD delays up to 0.5 seconds
+#CPPFLAGS += -fopenmp
+#DEFINES += -fopenmp
 
 ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames := \
@@ -64,67 +67,43 @@ tgtsrcs_fexamp := fexamp.cc
 tgtlibs_fexamp := $(commonlibs) pds/fexamp pds/pgp
 tgtslib_fexamp := $(commonslib)
 tgtincs_fexamp := pdsdata/include
-CPPFLAGS += -fno-strict-aliasing
-#CPPFLAGS += -fopenmp
-#DEFINES += -fopenmp
 
 tgtsrcs_xamps := xamps.cc
 tgtlibs_xamps := $(commonlibs) pds/xamps pds/pgp
 tgtslib_xamps := $(commonslib)
 tgtincs_xamps := pdsdata/include
-CPPFLAGS += -fno-strict-aliasing
-#CPPFLAGS += -fopenmp
-#DEFINES += -fopenmp
 
 tgtsrcs_epixsampler := epixsampler.cc
 tgtlibs_epixsampler := $(commonlibs) pds/epixsampler pds/pgp pds/configdata
 tgtslib_epixsampler := $(commonslib)
 tgtincs_epixsampler := pdsdata/include ndarray/include boost/include 
-CPPFLAGS += -fno-strict-aliasing
-#CPPFLAGS += -fopenmp
-#DEFINES += -fopenmp
 
 tgtsrcs_epix := epix.cc
 tgtlibs_epix := $(commonlibs) pds/epix pds/pgp pds/configdata
 tgtslib_epix := $(commonslib)
 tgtincs_epix := pdsdata/include ndarray/include boost/include 
-CPPFLAGS += -fno-strict-aliasing
-CPPFLAGS += -fopenmp
-DEFINES += -fopenmp
 
 tgtsrcs_imp := imp.cc
 tgtlibs_imp := $(commonlibs) pds/imp pds/pgp pds/configdata
 tgtslib_imp := $(commonslib)
 tgtincs_imp := pdsdata/include ndarray/include boost/include 
-CPPFLAGS += -fno-strict-aliasing
-#CPPFLAGS += -fopenmp
-#DEFINES += -fopenmp
 
 tgtsrcs_pnccd := pnccd.cc
 tgtlibs_pnccd := $(commonlibs) pds/pnccd pds/pnccdFrameV0 pds/pgp pds/configdata
 tgtslib_pnccd := $(commonslib)
 tgtincs_pnccd := pdsdata/include ndarray/include boost/include 
-CPPFLAGS += -fno-strict-aliasing
-#CPPFLAGS += -fopenmp
-#DEFINES += -fopenmp
 
 tgtsrcs_cspad := cspad.cc
 tgtlibs_cspad := $(commonlibs) pds/cspad pds/pgp
 tgtlibs_cspad += pds/clientcompress pds/pnccdFrameV0 pdsdata/compressdata pds/configdata
 tgtslib_cspad := $(commonslib) $(USRLIBDIR)/dl
 tgtincs_cspad := pdsdata/include ndarray/include boost/include 
-CPPFLAGS += -fno-strict-aliasing
-#CPPFLAGS += -fopenmp
-#DEFINES += -fopenmp
 
 tgtsrcs_cspad2x2 := cspad2x2.cc
 tgtlibs_cspad2x2 := $(commonlibs) pds/cspad2x2 pds/pgp
 tgtlibs_cspad2x2 += pds/clientcompress pds/pnccdFrameV0 pds/configdata pdsdata/compressdata
 tgtslib_cspad2x2 := $(commonslib)
 tgtincs_cspad2x2 := pdsdata/include ndarray/include boost/include 
-CPPFLAGS += -fno-strict-aliasing
-#CPPFLAGS += -fopenmp
-#DEFINES += -fopenmp
 
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris pdsdata/include ndarray/include boost/include 
@@ -220,9 +199,6 @@ tgtincs_phasics += libdc1394/include pdsdata/include
 tgtlibs_phasics += libdc1394/raw1394
 tgtlibs_phasics += libdc1394/dc1394
 tgtslib_phasics := $(commonslib)/rt
-CPPFLAGS += -fno-strict-aliasing
-CPPFLAGS += -fopenmp
-DEFINES += -fopenmp
 
 tgtsrcs_epicsArch := epicsArch.cc
 tgtlibs_epicsArch := $(commonlibs) pds/epicsArch epics/ca epics/Com
