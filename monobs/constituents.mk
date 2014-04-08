@@ -47,7 +47,7 @@ tgtslib_sxrmon := $(USRLIBDIR)/rt
 tgtincs_sxrmon := epics/include epics/include/os/Linux
 tgtincs_sxrmon += pdsdata/include ndarray/include boost/include 
 
-tgtsrcs_xppmon := xppmon.cc CspadMon.cc BldIpm.cc XppIpm.cc XppPim.cc Encoder.cc $(tgtsrcs_common)
+tgtsrcs_xppmon := xppmon.cc EpicsToEpics.cc CspadMon.cc BldIpm.cc XppIpm.cc XppPim.cc Encoder.cc $(tgtsrcs_common)
 tgtlibs_xppmon := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/appdata
 tgtlibs_xppmon += pds/service
 tgtlibs_xppmon += $(tgtlibs_common)

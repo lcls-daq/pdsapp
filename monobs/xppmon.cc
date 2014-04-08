@@ -3,6 +3,7 @@
 #include "pdsapp/monobs/XppIpm.hh"
 #include "pdsapp/monobs/XppPim.hh"
 #include "pdsapp/monobs/CspadMon.hh"
+#include "pdsapp/monobs/EpicsToEpics.hh"
 #include "pdsapp/monobs/Encoder.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
@@ -72,6 +73,7 @@ int main(int argc, char* argv[])
         break;
 
       DetInfo info(args);
+      BldInfo binfo(args);
 
       char* pvbase = strtok(NULL,"\t ");
       if (!pvbase) {
@@ -107,26 +109,27 @@ int main(int argc, char* argv[])
             fprintf(stderr,"Error in lookup of detector name %s\n",args);
             break;
           }
+        case DetInfo::Opal1000:
+          { char* pvIn = strtok(NULL,"\t ");
+            client.insert(new EpicsToEpics(info, pvIn, pvbase));
+            break; }
+        }
+      }
+      else if (binfo.type()!=BldInfo::NumberOf) {
+        switch(binfo.type()) {
+        case BldInfo::Nh2Sb1Ipm01:
+          client.insert(new BldIpm(pvbase,binfo.type()));
+          break;
+        case BldInfo::Nh2Sb1Ipm02:
+          client.insert(new BldIpm(pvbase,binfo.type()));
+          break;
+        default:
+          fprintf(stderr,"Error in lookup of bld type %s\n",args);
+          break;
         }
       }
       else {
-        BldInfo binfo(args);
-        if (binfo.type()!=BldInfo::NumberOf) {
-          switch(binfo.type()) {
-          case BldInfo::Nh2Sb1Ipm01:
-            client.insert(new BldIpm(pvbase,binfo.type()));
-            break;
-          case BldInfo::Nh2Sb1Ipm02:
-            client.insert(new BldIpm(pvbase,binfo.type()));
-            break;
-          default:
-            fprintf(stderr,"Error in lookup of bld type %s\n",args);
-            break;
-          }
-        }
-        else {
-          fprintf(stderr,"Error in lookup of name %s\n",args);
-        }
+        fprintf(stderr,"Error in lookup of name %s\n",args);
       }
     }
     line_sz = 256;
