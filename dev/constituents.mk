@@ -237,13 +237,13 @@ tgtincs_bld := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_princeton := princeton.cc
 tgtlibs_princeton := $(commonlibs) pds/princeton pvcam/pvcam 
-tgtlibs_princeton += pdsapp/configdb pds/configdata $(qtlibdir) # for accessing configdb
+tgtlibs_princeton += pdsapp/configdb pds/configdata
 tgtslib_princeton := $(commonslib) dl pthread
 tgtincs_princeton := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_princetonsim := princeton.cc
 tgtlibs_princetonsim := $(commonlibs) pds/princeton pvcam/pvcamtest
-tgtlibs_princetonsim += pdsapp/configdb pds/configdata $(qtlibdir) # for accessing configdb
+tgtlibs_princetonsim += pdsapp/configdb pds/configdata
 tgtslib_princetonsim := $(commonslib) dl pthread
 tgtincs_princetonsim := pdsdata/include ndarray/include boost/include 
 
@@ -284,14 +284,14 @@ tgtincs_oceanoptics := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_fli := fli.cc
 tgtlibs_fli := $(commonlibs) 
-tgtlibs_fli += pdsapp/configdb $(qtlibdir) # for accessing configdb
+tgtlibs_fli += pdsapp/configdb
 tgtlibs_fli += pds/fli fli/flisdk pds/configdata
 tgtslib_fli := $(commonslib) ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 
 tgtincs_fli := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_andor := andor.cc
 tgtlibs_andor := $(commonlibs) 
-tgtlibs_andor += pdsapp/configdb $(qtlibdir) # for accessing configdb
+tgtlibs_andor += pdsapp/configdb
 tgtlibs_andor += pds/pdsandor pds/configdata andor/andor
 tgtslib_andor := $(commonslib) ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 
 tgtincs_andor := pdsdata/include ndarray/include boost/include 
@@ -303,7 +303,7 @@ libPicam += picam/PtConvertersLib picam/EbTransportLayerLib picam/log4cxx
 
 tgtsrcs_pimax := pimax.cc
 tgtlibs_pimax := $(commonlibs)
-tgtlibs_pimax += pdsapp/configdb $(qtlibdir) # for accessing configdb
+tgtlibs_pimax += pdsapp/configdb
 tgtlibs_pimax += pds/pdspimax pds/configdata
 tgtlibs_pimax +=  $(libPicam)
 tgtslib_pimax := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread

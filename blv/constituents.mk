@@ -70,55 +70,55 @@ datalibs := pdsdata/xtcdata pdsdata/psddl_pdsdata
 
 tgtsrcs_evrbld := evrbld.cc EvrBldManager.cc IdleStream.cc PipeApp.cc
 tgtlibs_evrbld := $(commonlibs) $(datalibs)
-tgtlibs_evrbld += pdsapp/configdb $(qtlibdir)
+tgtlibs_evrbld += pdsapp/configdb
 tgtlibs_evrbld += evgr/evr evgr/evg
 tgtlibs_evrbld += pds/evgr pds/configdata
-tgtslib_evrbld := $(commonslib) $(qtslibdir)
+tgtslib_evrbld := $(commonslib)
 tgtincs_evrbld := evgr pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_acqbld := acqbld.cc ToAcqBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtincs_acqbld := acqiris pdsdata/include ndarray/include boost/include  
 tgtlibs_acqbld := $(commonlibs) $(datalibs) pds/acqiris acqiris/AqDrv4
-tgtlibs_acqbld += pdsapp/configdb $(qtlibdir)
+tgtlibs_acqbld += pdsapp/configdb
 tgtlibs_acqbld += pds/ipimb 
-tgtslib_acqbld := $(commonslib) $(qtslibdir)
+tgtslib_acqbld := $(commonslib)
 
 tgtsrcs_ipmbld := ipmbld.cc ToIpmBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_ipmbld := $(commonlibs) $(datalibs)
-tgtlibs_ipmbld += pdsapp/configdb $(qtlibdir)
+tgtlibs_ipmbld += pdsapp/configdb
 tgtlibs_ipmbld += pds/ipimb 
-tgtslib_ipmbld := $(commonslib) $(qtslibdir)
+tgtslib_ipmbld := $(commonslib)
 tgtincs_ipmbld:= pdsdata/include ndarray/include boost/include  
 
 tgtsrcs_ipmbldsim := ipmbldsim.cc ToIpmBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_ipmbldsim := $(commonlibs) $(datalibs)
-tgtlibs_ipmbldsim += pdsapp/configdb $(qtlibdir)
+tgtlibs_ipmbldsim += pdsapp/configdb
 tgtlibs_ipmbldsim += pds/ipimb 
-tgtslib_ipmbldsim := $(commonslib) $(qtslibdir)
+tgtslib_ipmbldsim := $(commonslib)
 tgtincs_ipmbldsim := pdsdata/include ndarray/include boost/include  
 
 tgtsrcs_pimbld := pimbld.cc ToPimBldEventWire.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_pimbld := $(commonlibs) $(datalibs)
-tgtlibs_pimbld += pdsapp/configdb $(qtlibdir)
+tgtlibs_pimbld += pdsapp/configdb
 tgtlibs_pimbld += pds/camera pds/configdata
 tgtlibs_pimbld += $(leutron_libs)
-tgtslib_pimbld := $(commonslib) $(qtslibdir)
+tgtslib_pimbld := $(commonslib)
 tgtincs_pimbld := leutron/include pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_cambld := cambld.cc ToOpalBldEventWire.cc ToPimBldEventWire.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_cambld := $(commonlibs) $(datalibs)
-tgtlibs_cambld += pdsapp/configdb $(qtlibdir)
+tgtlibs_cambld += pdsapp/configdb
 tgtlibs_cambld += pds/camera pds/clientcompress pds/pnccdFrameV0 pds/configdata
 tgtlibs_cambld += $(leutron_libs)
-tgtslib_cambld := $(commonslib) $(qtslibdir)
+tgtslib_cambld := $(commonslib)
 tgtincs_cambld := leutron/include pdsdata/include ndarray/include boost/include  
 
 tgtsrcs_pimbldedt := pimbldedt.cc ToPimBldEventWire.cc ToBldEventWire.cc EvrBldServer.cc PipeStream.cc
 tgtlibs_pimbldedt := $(commonlibs) $(datalibs) pds/configdata
-tgtlibs_pimbldedt += pdsapp/configdb $(qtlibdir)
+tgtlibs_pimbldedt += pdsapp/configdb
 tgtlibs_pimbldedt += pds/camera
 tgtlibs_pimbldedt += $(edt_libs)
-tgtslib_pimbldedt := $(commonslib) $(qtslibdir)
+tgtslib_pimbldedt := $(commonslib)
 tgtincs_pimbldedt := edt/include pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_netfifo := netfifo.cc

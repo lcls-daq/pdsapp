@@ -1,4 +1,7 @@
-tgtnames := control_gui catest
+tgtnames := catest
+ifneq ($(findstring x86_64,$(tgt_arch)),)
+tgtnames += control_gui
+endif
 
 datalibs := pdsdata/xtcdata pdsdata/psddl_pdsdata
 

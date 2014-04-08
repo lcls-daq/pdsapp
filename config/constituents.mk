@@ -1,4 +1,8 @@
-libnames       := configdb configdbg
+libnames       := configdb
+ifneq ($(findstring x86_64,$(tgt_arch)),)
+libnames       += configdbg
+endif
+
 libsrcs_configdb := Table.cc
 libsrcs_configdb += Device.cc GlobalCfg.cc
 libsrcs_configdb += Experiment.cc
@@ -114,10 +118,12 @@ ifeq ($(build_extra),$(true))
 endif
 
 tgtnames       := configdb_cmd
+ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames       += configdb_gui
 tgtnames       += configdb_list
 tgtnames       += configdb_readxtc
 #tgtnames       += create_scan
+endif
 
 # executable python modules: configdb_gui.py
 
@@ -129,8 +135,8 @@ tgtlibs_configdb_cmd := $(datalibs)
 tgtlibs_configdb_cmd += pdsapp/configdb
 tgtlibs_configdb_cmd += pds/configdbc pds/confignfs pds/configsql
 tgtlibs_configdb_cmd += pds/config pds/utility pds/collection pds/service pds/vmon pds/mon pds/xtc
-tgtlibs_configdb_cmd += $(qtlibdir) offlinedb/mysqlclient
-tgtslib_configdb_cmd := $(USRLIBDIR)/rt $(qtslibdir) $(USRLIBDIR)/mysql/mysqlclient
+tgtlibs_configdb_cmd += offlinedb/mysqlclient
+tgtslib_configdb_cmd := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
 
 tgtsrcs_configdb_gui := configdb_gui.cc
 tgtsrcs_configdb_gui += Ui.cc
