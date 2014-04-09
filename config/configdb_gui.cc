@@ -25,7 +25,7 @@ int main(int argc, char** argv)
   }
   lusage |= !dbnamed;
   if (lusage) {
-    printf("%s --sql <path> [--edit]\n",argv[0]);
+    printf("%s --db <path> [--edit]\n",argv[0]);
     return 1;
   }
 
