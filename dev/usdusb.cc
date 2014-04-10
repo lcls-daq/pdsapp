@@ -78,6 +78,8 @@ namespace Pds {
 	wire.add_input(*it);
     }
     const std::list<Src>& sources() const { return _sources; }
+    unsigned max_event_size () const { return 1024; }
+    unsigned max_event_depth() const { return 256; }
   private:
     std::list<UsdUsb::Server*>& _servers;
     std::list<Src>              _sources;
