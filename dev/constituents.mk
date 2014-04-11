@@ -13,7 +13,12 @@ CPPFLAGS += -fno-strict-aliasing
 ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames := \
   oceanoptics fli andor usdusb camedt simcam \
-  bld evr cspad
+  bld evr cspad \
+    cspad2x2 \
+    imp \
+    pnccd \
+    epixsampler \
+    epix  
   ifeq ($(build_extra),$(true))
     tgtnames += phasics
   endif
