@@ -141,7 +141,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_ImpConfigType         ,new ImpConfig);
   enroll(_gsc16aiConfigType     ,new Gsc16aiConfig);
   enroll(_timepixConfigType     ,new TimepixConfig);
-  enroll(_rayonixConfigType     ,new RayonixConfig);
+  enroll(_rayonixConfigType     ,new RayonixConfig_V2);
   enroll(_CsPad2x2ConfigType    ,new Cspad2x2Config);
   enroll(_epixSamplerConfigType ,new EpixSamplerConfig);
   enroll(_epixConfigType        ,new EpixConfig);
