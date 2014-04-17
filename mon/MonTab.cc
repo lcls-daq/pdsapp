@@ -34,9 +34,9 @@ MonTab::MonTab(MonClient& client,
   for(_used = 0; _used < group.nentries(); _used++) {
     const MonEntry& entry = *group.entry(_used);
     MonCanvas* canvas = MonConsumerFactory::create(*this,
-               client.cds().desc(),
-               group.desc(),
-               entry);
+                                                   client.cds().desc(),
+                                                   group,
+                                                   entry);
 
     _canvases[_used] = canvas;
     _client.use(entry.desc().signature());

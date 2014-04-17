@@ -29,9 +29,10 @@ static QImage _qimage;
 
 MonConsumerWaveform::MonConsumerWaveform(QWidget& parent,
 					 const MonDesc& clientdesc,
-					 const MonDesc& groupdesc, 
+					 const MonGroup& group, 
 					 const MonEntryWaveform& entry) :
   MonCanvas(parent, entry),
+  _group(group),
   _desc(new MonDescWaveform(entry.desc())),
   _hist(0),
   _dialog(0),
@@ -40,7 +41,7 @@ MonConsumerWaveform::MonConsumerWaveform(QWidget& parent,
   // Initialize histograms
   const MonDescWaveform& desc = *_desc;
   const char* clientname = clientdesc.name();
-  const char* dirname = groupdesc.name();
+  const char* dirname = group.desc().name();
   const char* entryname = desc.name();
 
   char tmp[128];
@@ -50,6 +51,7 @@ MonConsumerWaveform::MonConsumerWaveform(QWidget& parent,
   _plot = new QwtPlot(this);
   connect( this, SIGNAL(redraw()), _plot, SLOT(replot()) );
   layout()->addWidget(_plot);
+  _plot->setAutoDelete(false);
 
   // Prepares menus
   _menu_service(Normal, true);
@@ -82,9 +84,9 @@ int MonConsumerWaveform::update()
   return 0;
 }
 
-int MonConsumerWaveform::reset(const MonGroup& group)
+int MonConsumerWaveform::reset()
 {
-  _entry = group.entry(_entry->desc().name());
+  _entry = _group.entry(_entry->desc().name());
   if (_entry && _entry->desc().type() == MonDescEntry::Waveform) {
     const MonEntryWaveform* entry = dynamic_cast<const MonEntryWaveform*>(_entry);
     *_desc = entry->desc();

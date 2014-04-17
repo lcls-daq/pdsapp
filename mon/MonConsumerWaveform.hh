@@ -19,7 +19,7 @@ namespace Pds {
   public:
     MonConsumerWaveform(QWidget& parent,
 		    const MonDesc& clientdesc,
-		    const MonDesc& groupdesc,
+		    const MonGroup& groupdesc,
 		    const MonEntryWaveform& entry);
     virtual ~MonConsumerWaveform();
 
@@ -27,13 +27,14 @@ namespace Pds {
     virtual void info();
     virtual void dialog();
     virtual int update();
-    virtual int reset(const MonGroup& group);
+    virtual int reset();
     virtual unsigned getplots(MonQtBase**, const char** names);
     virtual const MonQtBase* selected() const;
 
     void select(MonCanvas::Select);
-
+    void join  (MonCanvas&) {}
   private:
+    const MonGroup& _group;
     MonDescWaveform* _desc;
     MonQtWaveform* _hist;
     MonDialog*  _dialog;

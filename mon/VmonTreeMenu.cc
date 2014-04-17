@@ -30,6 +30,12 @@ namespace Pds {
   };
 };
 
+static bool clientButtonLessThan(const Pds::ClientButton* b1,
+                                 const Pds::ClientButton* b2) 
+{
+  return b1->text() < b2->text();
+}
+
 using namespace Pds;
 
 class VmonTreeEvent : public Routine {
@@ -90,7 +96,7 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
     sprintf(buff,"LastTr: %s",TransitionId::name(_last_transition));
     _transition_label   = new QLabel(buff,control);
     clayout->addWidget(_transition_label  );
-#if 0
+#if 1
     { QHBoxLayout* hlayout = new QHBoxLayout;
       QPushButton* startButton = new QPushButton("Start", control);
       QPushButton* stopButton  = new QPushButton("Stop", control);
@@ -275,8 +281,26 @@ void VmonTreeMenu::add_client(void* cptr)
   MonClient& client = *reinterpret_cast<MonClient*>(cptr);
   ClientButton* button = new ClientButton(client, _client_bg_box);
   button->setChecked( false );
-  _client_bg_box->layout()->addWidget(button);
-  _client_bg->addButton(button);
+
+  printf("add_client %s\n",qPrintable(button->text()));
+
+  //  Re-sort the buttons
+  QList<ClientButton*> nl;
+  QList<QAbstractButton*> l = _client_bg->buttons();
+  for(QList<QAbstractButton*>::iterator it=l.begin(); it!=l.end(); it++) {
+    nl.push_back(static_cast<ClientButton*>(*it));
+    _client_bg->removeButton(*it);
+    _client_bg_box->layout()->removeWidget(*it);
+  }
+  nl.push_back(button);
+
+  qSort(nl.begin(),nl.end(),clientButtonLessThan);
+
+  for(QList<ClientButton*>::iterator it=nl.begin(); it!=nl.end(); it++) {
+    printf("\t%s\n",qPrintable((*it)->text()));
+    _client_bg_box->layout()->addWidget(*it);
+    _client_bg->addButton(*it);
+  }
 
   MonTree* tree = new MonTree(_tabs, client, 0);
   _trees.push_back(tree);

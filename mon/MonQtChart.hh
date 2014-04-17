@@ -64,6 +64,7 @@ namespace Pds {
     const char** _names;
 
     float _ymin, _ymax;
+    int _color;
   };
 };
 

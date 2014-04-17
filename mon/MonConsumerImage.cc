@@ -25,9 +25,10 @@ enum { Image, Plots };
 
 MonConsumerImage::MonConsumerImage(QWidget& parent,
 				 const MonDesc& clientdesc,
-				 const MonDesc& groupdesc, 
+				 const MonGroup& group, 
 				 const MonEntryImage& entry) :
   MonCanvas(parent, entry),
+  _group(group),
   _desc(new MonDescImage(entry.desc())),
   _hist(0),
   _hist_x(0),
@@ -40,7 +41,7 @@ MonConsumerImage::MonConsumerImage(QWidget& parent,
   // Initialize histograms
   const MonDescImage& desc = *_desc;
   const char* clientname = clientdesc.name();
-  const char* dirname = groupdesc.name();
+  const char* dirname = group.desc().name();
   const char* entryname = desc.name();
 
   char tmp[128];
@@ -65,6 +66,7 @@ MonConsumerImage::MonConsumerImage(QWidget& parent,
   _plot  = new QwtPlot;
   connect( this, SIGNAL(redraw()), _frame , SLOT(display()) );
   connect( this, SIGNAL(redraw()), _plot  , SLOT(replot()) );
+  _plot->setAutoDelete(false);
 
   _stack = new QStackedWidget(this);
   _stack->addWidget(_frame);
@@ -121,9 +123,9 @@ int MonConsumerImage::update()
   return 0;
 }
 
-int MonConsumerImage::reset(const MonGroup& group)
+int MonConsumerImage::reset()
 {
-  _entry = group.entry(_entry->desc().name());
+  _entry = _group.entry(_entry->desc().name());
   if (_entry && _entry->desc().type() == MonDescEntry::Image) {
     const MonEntryImage* entry = dynamic_cast<const MonEntryImage*>(_entry);
     *_desc = entry->desc();

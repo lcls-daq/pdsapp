@@ -20,20 +20,21 @@ namespace Pds {
   public:
     MonConsumerTH2F(QWidget& parent,
 		    const MonDesc& clientdesc,
-		    const MonDesc& groupdesc,
+		    const MonGroup&,
 		    const MonEntryTH2F& entry);
     virtual ~MonConsumerTH2F();
 
     // Implements MonConsumer from MonCanvas
     virtual void dialog();
     virtual int update();
-    virtual int reset(const MonGroup& group);
+    virtual int reset();
     virtual unsigned getplots(MonQtBase**, const char** names);
     virtual const MonQtBase* selected() const;
 
     void select(MonCanvas::Select);
-
+    void join  (MonCanvas&);
   private:
+    const MonGroup& _group;
     MonEntryTH2F* _last;
 
   private:

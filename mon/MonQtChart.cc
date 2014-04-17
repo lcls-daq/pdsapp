@@ -28,7 +28,8 @@ MonQtChart::MonQtChart(const char* name,
   _current(0),
   _xl(0),
   _yl(0),
-  _curves(0)
+  _curves(0),
+  _color(0)
 {
   params(desc.nbins(),desc.names());
   settings(MonQtBase::Y, 0, 1, true, false);
@@ -43,7 +44,8 @@ MonQtChart::MonQtChart(const char* name,
   _current(0),
   _xl(new double[2*_npoints]),
   _yl(new double[2*_npoints]),
-  _curves(0)
+  _curves(0),
+  _color(0)
 {
   params(1,name);
   settings(MonQtBase::Y, 0, 1, true, false);
@@ -59,7 +61,8 @@ MonQtChart::MonQtChart(const char* name,
   _current(0),
   _xl(new double[2*_npoints]),
   _yl(new double[2*_npoints]),
-  _curves(0)
+  _curves(0),
+  _color (0)
 {
   params(1,name);
   settings(MonQtBase::Y, 0, 1, true, false);
@@ -75,7 +78,8 @@ MonQtChart::MonQtChart(const char* name,
   _current(0),
   _xl(new double[2*_npoints]),
   _yl(new double[2*_npoints]),
-  _curves(0)
+  _curves(0),
+  _color (0)
 {
   params(1,name);
   settings(MonQtBase::Y, 0, 1, true, false);
@@ -121,7 +125,10 @@ void MonQtChart::params(unsigned nl, const char* names)
     QwtPlotCurve* c = new QwtPlotCurve((nfound==_nlines) ? snames[k] : nameb);
     //  c->setStyle(QwtPlotCurve::Dots);
     c->setStyle(QwtPlotCurve::Steps);
-    c->setPen  (QPen(MonUtils::color(k,_nlines)));
+    if (_nlines>1)
+      c->setPen  (QPen(MonUtils::color(k,_nlines)));
+    else
+      c->setPen  (QPen(MonUtils::color(_color)));
     _curves[k] = c;
   }
   delete[] snames;
@@ -259,11 +266,15 @@ void MonQtChart::dump(FILE* f) const
 
 void MonQtChart::color(int color)
 {
+  _color = color;
+  if (_nlines==1) {
+    _curves[0]->setPen  (QPen(MonUtils::color(_color)));
+  }    
 }
 
 int  MonQtChart::color() const
 {
-  return 0;
+  return _color;
 }
 
 void MonQtChart::attach(QwtPlot* plot)

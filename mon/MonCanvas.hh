@@ -29,9 +29,11 @@ namespace Pds {
     virtual void dialog() = 0;
     virtual int update() = 0;
     virtual int replot() { return 0; }
-    virtual int reset(const MonGroup& group) = 0;
+    virtual int reset() = 0;
     virtual unsigned getplots(MonQtBase**, const char** names) = 0;
     virtual const MonQtBase* selected() const = 0;
+    virtual void join(MonCanvas&) = 0;
+    virtual void set_plot_color(unsigned icolor) {}
 
   signals:
     void redraw();

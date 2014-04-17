@@ -15,12 +15,12 @@ namespace Pds {
 
   class MyTab : public QWidget {
   public:
-    MyTab( const MonGroup& );
+    MyTab( const MonGroup&, unsigned icolor);
+    void insert(const MonGroup&, unsigned icolor);
     void update(bool redraw);
     void reset (unsigned);
   private:
-    const MonGroup& _group;
-    std::vector<MonCanvas*> _canvases;
+    std::vector< std::vector<MonCanvas*> > _canvases;
   };
 
   class VmonReaderTabs : public QTabWidget {
@@ -29,7 +29,8 @@ namespace Pds {
     virtual ~VmonReaderTabs();
 
     void reset(unsigned);
-    void reset(const MonCds&);
+    void clear();
+    void setup(const MonCds&, unsigned icolor);
     void update(bool redraw);
   };
 };

@@ -8,6 +8,7 @@ namespace Pds {
   public:
     static QColor color(int);
     static QColor color(int,int);
+    static void   ncolors(int);
   };
 };
 

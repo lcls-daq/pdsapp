@@ -29,9 +29,10 @@ static QImage _qimage;
 
 MonConsumerTH1F::MonConsumerTH1F(QWidget& parent,
 				 const MonDesc& clientdesc,
-				 const MonDesc& groupdesc, 
+				 const MonGroup& group, 
 				 const MonEntryTH1F& entry) :
   MonCanvas(parent, entry),
+  _group(group),
   _last(new MonEntryTH1F(entry.desc())),
   _prev(new MonEntryTH1F(entry.desc())),
   _hist(0),
@@ -51,7 +52,7 @@ MonConsumerTH1F::MonConsumerTH1F(QWidget& parent,
   // Initialize histograms
   const MonDescTH1F& desc = _last->desc();
   const char* clientname = clientdesc.name();
-  const char* dirname = groupdesc.name();
+  const char* dirname = group.desc().name();
   const char* entryname = desc.name();
 
   char tmp[128];
@@ -72,6 +73,7 @@ MonConsumerTH1F::MonConsumerTH1F(QWidget& parent,
   _plot = new QwtPlot(this);
   connect( this, SIGNAL(redraw()), _plot, SLOT(replot()) );
   layout()->addWidget(_plot);
+  _plot->setAutoDelete(false);
 
   select(Difference);
 }
@@ -129,10 +131,10 @@ int MonConsumerTH1F::replot()
   return 1;
 }
 
-int MonConsumerTH1F::reset(const MonGroup& group)
+int MonConsumerTH1F::reset()
 {
   _last_stats->reset();
-  _entry = group.entry(_entry->desc().name());
+  _entry = _group.entry(_entry->desc().name());
   if (_entry && _entry->desc().type() == MonDescEntry::TH1F) {
     const MonEntryTH1F* entry = dynamic_cast<const MonEntryTH1F*>(_entry);
     _last ->params(entry->desc());
@@ -187,7 +189,7 @@ void MonConsumerTH1F::select(Select selection)
   if (selection==Since) {
     _prev->setto(*_last);
   }
-  
+
   if (!_plot) return;
 
   switch(_selected) {
@@ -260,3 +262,13 @@ void MonConsumerTH1F::info()
   QMessageBox::information(this,"TH1F Info",msg_buffer);
 }
 
+void MonConsumerTH1F::join(MonCanvas& c)
+{
+  _plot = static_cast<MonConsumerTH1F&>(c)._plot;
+  setVisible(false);
+}
+
+void MonConsumerTH1F::set_plot_color(unsigned icolor)
+{
+  _chart->color(icolor);
+}

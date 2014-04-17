@@ -19,7 +19,7 @@ namespace Pds {
   public:
     MonConsumerTH1F(QWidget& parent,
 		    const MonDesc& clientdesc,
-		    const MonDesc& groupdesc,
+		    const MonGroup& group,
 		    const MonEntryTH1F& entry);
     virtual ~MonConsumerTH1F();
 
@@ -28,14 +28,18 @@ namespace Pds {
     virtual void dialog();
     virtual int update();
     virtual int replot();
-    virtual int reset(const MonGroup& group);
+    virtual int reset();
     virtual unsigned getplots(MonQtBase**, const char** names);
     virtual const MonQtBase* selected() const;
+    virtual void join(MonCanvas&);
+    virtual void set_plot_color(unsigned);
 
     void select(MonCanvas::Select);
 
     void archive_mode (unsigned);
+
   private:
+    const MonGroup& _group;
     MonEntryTH1F* _last;
     MonEntryTH1F* _prev;
 

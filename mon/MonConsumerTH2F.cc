@@ -20,9 +20,10 @@ using namespace Pds;
 
 MonConsumerTH2F::MonConsumerTH2F(QWidget& parent,
 				 const MonDesc& clientdesc,
-				 const MonDesc& groupdesc, 
+				 const MonGroup& group, 
 				 const MonEntryTH2F& entry) :
   MonCanvas(parent, entry),
+  _group(group),
   _last(new MonEntryTH2F(entry.desc())),
   _hist(0),
   _diff(0),
@@ -48,7 +49,7 @@ MonConsumerTH2F::MonConsumerTH2F(QWidget& parent,
   // Initialize histograms
   const MonDescTH2F& desc = _last->desc();
   const char* clientname = clientdesc.name();
-  const char* dirname = groupdesc.name();
+  const char* dirname = group.desc().name();
   const char* entryname = desc.name();
 
   char tmp[128];
@@ -79,6 +80,7 @@ MonConsumerTH2F::MonConsumerTH2F(QWidget& parent,
   _plot = new QwtPlot(this);
   connect( this, SIGNAL(redraw()), _plot, SLOT(replot()) );
   layout()->addWidget(_plot);
+  _plot->setAutoDelete(false);
 
   select(Difference);
 }
@@ -130,9 +132,9 @@ int MonConsumerTH2F::update()
   return 0;
 }
 
-int MonConsumerTH2F::reset(const MonGroup& group)
+int MonConsumerTH2F::reset()
 {
-  _entry = group.entry(_entry->desc().name());
+  _entry = _group.entry(_entry->desc().name());
   if (_entry && _entry->desc().type() == MonDescEntry::TH2F) {
     const MonEntryTH2F* entry = dynamic_cast<const MonEntryTH2F*>(_entry);
     const MonDescTH2F& desc = entry->desc();
@@ -260,4 +262,9 @@ void MonConsumerTH2F::select(Select selection)
 
   _plot->setAxisTitle(QwtPlot::xBottom,xtitle);
   _plot->setAxisTitle(QwtPlot::yLeft  ,ytitle);
+}
+
+void MonConsumerTH2F::join(MonCanvas& c)
+{
+  _plot = static_cast<MonConsumerTH2F&>(c)._plot;
 }

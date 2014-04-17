@@ -12,7 +12,7 @@ using namespace Pds;
 
 MonCanvas* MonConsumerFactory::create(QWidget& parent,
 				      const MonDesc& clientdesc,
-				      const MonDesc& groupdesc,
+				      const MonGroup& groupdesc,
 				      const MonEntry& entry)
 {
   MonCanvas* canvas = 0;

@@ -20,9 +20,10 @@ using namespace Pds;
 
 MonConsumerProf::MonConsumerProf(QWidget& parent,
 				 const MonDesc& clientdesc,
-				 const MonDesc& groupdesc, 
+				 const MonGroup& group, 
 				 const MonEntryProf& entry) :
   MonCanvas(parent, entry),
+  _group(group),
   _last(new MonEntryProf(entry.desc())),
   _prev(new MonEntryProf(entry.desc())),
   _hist(0),
@@ -40,7 +41,7 @@ MonConsumerProf::MonConsumerProf(QWidget& parent,
   // Initialize histograms
   const MonDescProf& desc = _last->desc();
   const char* clientname = clientdesc.name();
-  const char* dirname = groupdesc.name();
+  const char* dirname = group.desc().name();
   const char* entryname = desc.name();
 
   char tmp[128];
@@ -59,6 +60,7 @@ MonConsumerProf::MonConsumerProf(QWidget& parent,
   _plot = new QwtPlot(this);
   connect( this, SIGNAL(redraw()), _plot, SLOT(replot()) );
   layout()->addWidget(_plot);
+  _plot->setAutoDelete(false);
 
   select(Difference);
 }
@@ -159,9 +161,9 @@ int MonConsumerProf::update()
   return 0;
 }
 
-int MonConsumerProf::reset(const MonGroup& group)
+int MonConsumerProf::reset()
 {
-  _entry = group.entry(_entry->desc().name());
+  _entry = _group.entry(_entry->desc().name());
   if (_entry && _entry->desc().type() == MonDescEntry::Prof) {
     const MonEntryProf* entry = dynamic_cast<const MonEntryProf*>(_entry);
     const MonDescProf& desc = entry->desc();

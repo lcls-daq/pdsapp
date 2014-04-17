@@ -1,5 +1,6 @@
 #include "VmonReaderTreeMenu.hh"
 #include "VmonReaderTabs.hh"
+#include "MonUtils.hh"
 
 #include "pds/service/Task.hh"
 
@@ -25,14 +26,19 @@
 
 using namespace Pds;
 
+static bool buttonLessThan(const QAbstractButton* b1,
+                           const QAbstractButton* b2)
+{
+  return b1->text() < b2->text();
+}
+
 VmonReaderTreeMenu::VmonReaderTreeMenu(QWidget&        p, 
 				       VmonReaderTabs& tabs,
 				       const char*     path) :
   QGroupBox (&p),
   _tabs     (tabs),
   _path     (path),
-  _reader   (0),
-  _cds      (0)
+  _reader   (0)
 {
   QVBoxLayout* layout = new QVBoxLayout(this);
 
@@ -65,8 +71,13 @@ VmonReaderTreeMenu::VmonReaderTreeMenu(QWidget&        p,
 
   _client_bg     = new QButtonGroup(this);
   _client_bg_box = new QGroupBox("Display", this);
-  _client_bg_box->setLayout(new QVBoxLayout(_client_bg_box));
+  QRadioButton* summary_btn = new QRadioButton("Summary",0);
+  summary_btn->setChecked(false);
+  { QVBoxLayout* l = new QVBoxLayout;
+    l->addWidget(summary_btn);
+    _client_bg_box->setLayout(l); }
   layout->addWidget(_client_bg_box);
+  _client_bg->addButton(summary_btn);
 
   connect(_client_bg, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(set_tree(QAbstractButton*)));
   connect(_start_slider, SIGNAL(sliderMoved(int)), this, SLOT(set_start_time(int)));
@@ -81,20 +92,53 @@ VmonReaderTreeMenu::~VmonReaderTreeMenu()
 
 void VmonReaderTreeMenu::set_tree(QAbstractButton* b)
 {
-  int iselect = _client_bg->checkedId();
-  if (iselect<0) return;
-
-  const Src& src = _reader->sources()[iselect];
-  const MonCds& cds = *_reader->cds(src);
-  _tabs.reset(cds);
+  _tabs.clear();
+  const QString& name = _client_bg->checkedButton()->text();
+  for(unsigned i=0; i<_reader->sources().size(); i++) {
+    const Src& src = _reader->sources()[i];
+    const MonCds& cds = *_reader->cds(src);
+    if (QString(cds.desc().name())==name) {
+      _tabs.setup(cds,0);
+      return;
+    }
+  }
+  // Summary
+  for(unsigned i=0; i<_reader->sources().size(); i++) {
+    const Src& src = _reader->sources()[i];
+    const MonCds& cds = *_reader->cds(src);
+    _tabs.setup(cds,i+1);
+  }
 }
 
 void VmonReaderTreeMenu::add(const MonCds& cds)
 {
   QRadioButton* button = new QRadioButton(cds.desc().name(),0);
   button->setChecked( false );
-  _client_bg_box->layout()->addWidget(button);
-  _client_bg->addButton(button, _client_bg->buttons().size());
+
+  printf("Add %s\n",cds.desc().name());
+
+  //  Re-sort the buttons
+  QList<QAbstractButton*> l = _client_bg->buttons();
+  for(QList<QAbstractButton*>::iterator it=l.begin()+1; it!=l.end(); it++) {
+    _client_bg->removeButton(*it);
+    _client_bg_box->layout()->removeWidget(*it);
+  }
+  l.push_back(button);
+
+  qSort(l.begin()+1,l.end(),buttonLessThan);
+
+  unsigned i=1, n=l.size();
+  MonUtils::ncolors(n+1);
+  for(QList<QAbstractButton*>::iterator it=l.begin()+1; it!=l.end(); it++,i++) {
+    QColor c = MonUtils::color(i);
+    QPalette p;
+    p.setColor(QPalette::BrightText,c);
+    p.setColor(QPalette::ButtonText,c);
+    p.setColor(QPalette::WindowText,c);
+    (*it)->setPalette(p);
+    _client_bg_box->layout()->addWidget(*it);
+    _client_bg->addButton(*it);
+  }
 
   //  MonTree* tree = new MonTree(_tabs, client, 0);
   //  _trees.push_back(tree);
@@ -106,7 +150,7 @@ void VmonReaderTreeMenu::clear()
   //  _map.clear();
 
   QList<QAbstractButton*> buttons = _client_bg->buttons();
-  for(QList<QAbstractButton*>::iterator iter = buttons.begin();
+  for(QList<QAbstractButton*>::iterator iter = buttons.begin()+1;
       iter != buttons.end(); iter++) {
     _client_bg->removeButton(*iter);
     _client_bg_box->layout()->removeWidget(*iter);
@@ -177,25 +221,48 @@ void VmonReaderTreeMenu::preface()
 
 void VmonReaderTreeMenu::execute()
 {
-  int iselect = _client_bg->checkedId();
-  if (iselect<0) return;
-
-  MonUsage usage;
-  const Src& src = _reader->sources()[iselect];
-  const MonCds& cds = *_reader->cds(src);
-  for(int g=0; g<cds.ngroups(); g++) {
-    const MonGroup* gr = cds.group(g);
-    for(int k=0; k<gr->nentries(); k++)
-      usage.use((g<<16)|k);
+  const QString& name = _client_bg->checkedButton()->text();
+  for(unsigned i=0; i<_reader->sources().size(); i++) {
+    const Src& src = _reader->sources()[i];
+    const MonCds& cds = *_reader->cds(src);
+    if (QString(cds.desc().name())==name) {
+      MonUsage usage;
+      const Src& src = _reader->sources()[i];
+      const MonCds& cds = *_reader->cds(src);
+      for(int g=0; g<cds.ngroups(); g++) {
+        const MonGroup* gr = cds.group(g);
+        for(int k=0; k<gr->nentries(); k++)
+          usage.use((g<<16)|k);
+      }
+      _tabs.reset(_reader->nrecords(_start_time,_stop_time));
+      _reader->reset();
+      _reader->use(src,usage);
+      
+      _reader->process(*this, _start_time, _stop_time);
+      
+      _tabs.update(true);
+      return;
+    }
   }
+
   _tabs.reset(_reader->nrecords(_start_time,_stop_time));
   _reader->reset();
-  _reader->use(src,usage);
 
-  _cds = const_cast<MonCds*>(&cds);
+  MonUsage* vu = new MonUsage[_reader->sources().size()];
+  for(unsigned i=0; i<_reader->sources().size(); i++) {
+    const Src& src = _reader->sources()[i];
+    const MonCds& cds = *_reader->cds(src);
+    MonUsage& usage = vu[i];
+    for(int g=0; g<cds.ngroups(); g++) {
+      const MonGroup* gr = cds.group(g);
+      for(int k=0; k<gr->nentries(); k++)
+        usage.use((g<<16)|k);
+    }
+    _reader->use(src,usage);
+  }
   _reader->process(*this, _start_time, _stop_time);
-
   _tabs.update(true);
+  delete[] vu;
 }
 
 void VmonReaderTreeMenu::process(const ClockTime&  t,
@@ -203,7 +270,8 @@ void VmonReaderTreeMenu::process(const ClockTime&  t,
 				 int               signature,
 				 const MonStats1D& stats)
 {
-  MonEntry* entry = _cds->entry(signature);
+  MonCds& cds = *const_cast<MonCds*>(_reader->cds(src));
+  MonEntry* entry = cds.entry(signature);
   entry->time(t);
 #define SET_STATS(t)							\
   case MonDescEntry::t:							\
@@ -224,7 +292,8 @@ void VmonReaderTreeMenu::process(const ClockTime&  t,
 				 int               signature,
 				 const MonStats2D& stats)
 {
-  MonEntry* entry = _cds->entry(signature);
+  MonCds& cds = *const_cast<MonCds*>(_reader->cds(src));
+  MonEntry* entry = cds.entry(signature);
   entry->time(t);
 #define SET_STATS(t)							\
   case MonDescEntry::t:							\
