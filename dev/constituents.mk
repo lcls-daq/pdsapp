@@ -10,50 +10,27 @@ CPPFLAGS += -fno-strict-aliasing
 #CPPFLAGS += -fopenmp
 #DEFINES += -fopenmp
 
+tgtnames := evr evrstandalone evrsnoop
+tgtnames += epicsArch bld cspad cspad2x2
+tgtnames += imp pnccd epix epixsampler
+tgtnames += usdusb simcam
+tgtnames += ipimb lusidiag
+tgtnames += timepix rayonix udpcam
+tgtnames += oceanoptics fli andor
+
 ifneq ($(findstring x86_64,$(tgt_arch)),)
-tgtnames := \
-  oceanoptics fli andor usdusb camedt simcam \
-  bld evr cspad \
-    cspad2x2 \
-    imp \
-    pnccd \
-    epixsampler \
-    epix  
+tgtnames += camedt
   ifeq ($(build_extra),$(true))
-    tgtnames += phasics
+    tgtnames += phasics xamps fexamp
   endif
 else
-tgtnames :=  evr \
-    evrstandalone \
-    evrsnoop \
-    acq \
-    epicsArch \
+tgtnames +=  acq \
     encoder \
-    usdusb \
-    bld \
     princeton \
     princetonsim \
-    ipimb \
-    lusidiag \
     fccd     \
-    cspad    \
     gsc16ai  \
-    timepix  \
-    rayonix  \
-    udpcam   \
-    simcam   \
-    cspad2x2 \
-    oceanoptics \
-    fli \
-    andor \
-    cam \
-    imp \
-    pnccd \
-    epixsampler \
-    epix
-  ifeq ($(build_extra),$(true))
-    tgtnames += xamps fexamp
-  endif
+    cam
 endif
 
 ifneq ($(findstring x86_64-rhel6,$(tgt_arch)),)
