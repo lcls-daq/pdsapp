@@ -22,14 +22,15 @@
 
 static void usage(const char *p)
 {
-  printf("Usage: %s -i <detid> -p <platform> [-v]\n", p);
+  printf("Usage: %s -i <detid> -p <platform> [-u <alias>] [-v]\n", p);
 }
 
 static void help()
 {
   printf("Options:\n"
-         "  -i <detid>            detector ID\n"
-         "  -p <platform>         platform number\n"
+         "  -i <detid>            detector ID        [required]\n"
+         "  -p <platform>         platform number    [required]\n"
+         "  -u <alias>            set device alias\n"
          "  -v                    increase verbosity (may be repeated)\n");
 }
 
@@ -46,7 +47,7 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-    MySegWire(RayonixServer* rayonixServer);
+    MySegWire(RayonixServer* rayonixServer, const char *aliasName);
     virtual ~MySegWire() {}
 
     void connect( InletWire& wire,
@@ -55,9 +56,15 @@ class Pds::MySegWire
 
     const std::list<Src>& sources() const { return _sources; }
 
+    const std::list<SrcAlias>* pAliases() const
+    {
+      return (_aliases.size() > 0) ? &_aliases : NULL;
+    }
+
   private:
     RayonixServer* _rayonixServer;
     std::list<Src> _sources;
+    std::list<SrcAlias> _aliases;
 };
 
 //
@@ -89,10 +96,14 @@ class Pds::Seg : public EventCallback
 };
 
 
-Pds::MySegWire::MySegWire( RayonixServer* rayonixServer )
+Pds::MySegWire::MySegWire( RayonixServer* rayonixServer, const char *aliasName)
   : _rayonixServer(rayonixServer)
 {
   _sources.push_back(rayonixServer->client());
+  if (aliasName) {
+    SrcAlias tmpAlias(rayonixServer->client(), aliasName);
+    _aliases.push_back(tmpAlias);
+  }
 }
 
 void Pds::MySegWire::connect( InletWire& wire,
@@ -172,6 +183,7 @@ int main( int argc, char** argv )
   unsigned verbosity = 0;
   bool helpFlag = false;
   char *endPtr;
+  char* uniqueid = (char *)NULL;
 
   extern char* optarg;
   int c;
@@ -188,6 +200,11 @@ int main( int argc, char** argv )
         }
         break;
       case 'u':
+        if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
+          printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+        } else {
+          uniqueid = optarg;
+        }
         break;
       case 'h':
         helpFlag = true;
@@ -234,7 +251,7 @@ int main( int argc, char** argv )
 
   rayonixServer = new RayonixServer(detInfo, verbosity);
 
-  MySegWire settings(rayonixServer);
+  MySegWire settings(rayonixServer, uniqueid);
 
   Seg* seg = new Seg( task,
                        platform,
