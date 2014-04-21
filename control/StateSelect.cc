@@ -56,7 +56,7 @@ StateSelect::StateSelect(QWidget* parent,
     QList<QString> t;
     Preferences pref(qPrintable(title()), _control.header().platform(),"r");
     pref.read(t);
-    do_record = (t[0]==YES_STR);
+    do_record = (t.size()>0 && t[0]==YES_STR);
   }
   _record->setEnabled(true);
   _record->setChecked(do_record);

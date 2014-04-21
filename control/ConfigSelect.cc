@@ -318,12 +318,14 @@ void ConfigSelect::_readSettings()
   QList<QString> l;
   pref.read(l);
 
-  int index = _runType->findText(l[0]);
-  if (index >= 0)
-    _runType->setCurrentIndex(index);
-
-  if (l.size()>1 && l[1]=="scan")
-    _bScan->setChecked(true);
+  if (l.size()>0) {
+    int index = _runType->findText(l[0]);
+    if (index >= 0)
+      _runType->setCurrentIndex(index);
+    
+    if (l.size()>1 && l[1]=="scan")
+      _bScan->setChecked(true);
+  }
 }
 
 void ConfigSelect::attach()
