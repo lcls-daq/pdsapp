@@ -7,11 +7,12 @@
 
 class QTextEdit;
 class QPushButton;
+class QButtonGroup;
 
 namespace Pds {
 
   class Task;
-  class MonTabMenu;
+  class MonTabs;
   class MonTree;
   class MonClientManager;
 
@@ -21,7 +22,7 @@ namespace Pds {
   public:
     MonTreeMenu(QWidget& p, 
 		Task& task,
-		MonTabMenu& tabs,
+		MonTabs& tabs,
 		const char** hosts,
 		const char* config);
     virtual ~MonTreeMenu();
@@ -45,11 +46,12 @@ namespace Pds {
 
   private:
     Task& _task;
-    MonTabMenu& _tabs;
+    MonTabs& _tabs;
     MonClientManager* _clientmanager;
     MonTree** _trees; 
     int       _selected;
     QPushButton* _start_stop;
+    QButtonGroup* _client_bg;
   };
 };
 

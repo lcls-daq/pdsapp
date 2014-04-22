@@ -2,7 +2,7 @@
 
 #include "VmonMain.hh"
 #include "VmonTreeMenu.hh"
-#include "MonTabMenu.hh"
+#include "MonTabs.hh"
 
 #include <QtGui/QApplication>
 #include <QtGui/QWidget>
@@ -24,7 +24,7 @@ VmonMain::VmonMain(Task* workTask,
   QHBoxLayout* layout = new QHBoxLayout(top);
 
   // Tabs
-  _tabs = new MonTabMenu(*top);
+  _tabs = new MonTabs(*top);
 
   // Tree(s)
   _trees = new VmonTreeMenu(*top, *_task, *_tabs, platform, partition, path);

@@ -3,7 +3,7 @@
 #include <errno.h>
 
 #include "VmonReaderTreeMenu.hh"
-#include "VmonReaderTabs.hh"
+#include "MonTabs.hh"
 
 #include <QtGui/QApplication>
 #include <QtGui/QWidget>
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
   QHBoxLayout* layout = new QHBoxLayout(top);
 
   // Tabs
-  VmonReaderTabs*  _tabs = new VmonReaderTabs(*top);
+  MonTabs*  _tabs = new MonTabs(*top);
 
   // Tree(s)
   VmonReaderTreeMenu* _trees = new VmonReaderTreeMenu(*top, *_tabs, path);

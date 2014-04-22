@@ -107,7 +107,7 @@ void MonConsumerTH2F::dialog()
   _dialog->show();
 }
 
-int MonConsumerTH2F::update() 
+int MonConsumerTH2F::_update() 
 {
   const MonEntryTH2F* entry = dynamic_cast<const MonEntryTH2F*>(_entry);
   if (entry->time() > _last->time()) {
@@ -132,7 +132,7 @@ int MonConsumerTH2F::update()
   return 0;
 }
 
-int MonConsumerTH2F::reset()
+int MonConsumerTH2F::_reset()
 {
   _entry = _group.entry(_entry->desc().name());
   if (_entry && _entry->desc().type() == MonDescEntry::TH2F) {

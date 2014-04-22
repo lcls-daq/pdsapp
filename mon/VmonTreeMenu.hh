@@ -20,7 +20,7 @@ namespace Pds {
 
   class Task;
   class MonClient;
-  class MonTabMenu;
+  class MonTabs;
   class MonTree;
   class VmonRecorder;
 
@@ -31,7 +31,7 @@ namespace Pds {
   public:
     VmonTreeMenu(QWidget& p, 
 		 Task& task,
-		 MonTabMenu& tabs,
+		 MonTabs& tabs,
 		 unsigned char platform,
 		 const char*   partition,
 		 const char*   path);
@@ -74,7 +74,7 @@ namespace Pds {
     void clear();
   private:
     Task&        _task;
-    MonTabMenu&  _tabs;
+    MonTabs&     _tabs;
     list<MonTree*> _trees; 
     std::map<MonClient*,MonTree*> _map;
     int          _selected;

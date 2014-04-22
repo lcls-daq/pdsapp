@@ -51,6 +51,7 @@ namespace Pds {
     double _last;
     unsigned _options;
     QwtPlot* _plot;
+    int _color;
   };
 
   inline double MonQtBase::last() const {return _last;}

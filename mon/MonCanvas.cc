@@ -132,6 +132,8 @@ void MonCanvas::setChartY     () { select(ChartY); }
 void MonCanvas::select(Select selection)
 {
   _selected = selection;
+  for(unsigned i=0; i<_overlays.size(); i++)
+    _overlays[i]->select(selection);
 }
 
 //const char* MonCanvas::name() const {return _entryname;}
@@ -206,5 +208,36 @@ int MonCanvas::readconfig(FILE* fp,int color)
 void MonCanvas::settings()
 {
   dialog();
+}
+
+void MonCanvas::overlay(MonCanvas& c)
+{
+  _overlays.push_back(&c);
+  c.join(*this);
+  c.select(_selected);
+}
+
+int MonCanvas::update() {
+  for(unsigned i=0; i<_overlays.size(); i++)
+    _overlays[i]->_update();
+  return _update();
+}
+
+int MonCanvas::replot() {
+  for(unsigned i=0; i<_overlays.size(); i++)
+    _overlays[i]->_replot();
+  return _replot();
+}
+
+int MonCanvas::reset() {
+  for(unsigned i=0; i<_overlays.size(); i++)
+    _overlays[i]->_reset();
+  return _reset();
+}
+
+void MonCanvas::archive_mode(unsigned n) {
+  for(unsigned i=0; i<_overlays.size(); i++)
+    _overlays[i]->_archive_mode(n);
+  _archive_mode(n);
 }
 

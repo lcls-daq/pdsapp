@@ -1,6 +1,6 @@
 #include "MonTreeMenu.hh"
 #include "MonTree.hh"
-#include "MonTabMenu.hh"
+#include "MonTabs.hh"
 
 #include "pds/service/Task.hh"
 
@@ -45,7 +45,7 @@ protected:
 
 MonTreeMenu::MonTreeMenu(QWidget& p, 
 			 Task& task, 
-			 MonTabMenu& tabs,
+			 MonTabs& tabs,
 			 const char** hosts,
 			 const char* config) :
   QGroupBox(&p),
@@ -78,8 +78,13 @@ MonTreeMenu::MonTreeMenu(QWidget& p,
   cfg->setLayout(rw_layout);
   layout->addWidget(cfg);
 
+  _client_bg = new QButtonGroup(this);
+  { QRadioButton* summary = new QRadioButton("Summary",0);
+    summary->setChecked(false);
+    _client_bg->addButton(summary);
+    layout->addWidget(summary); }
+
   unsigned nclients = _clientmanager->nclients();
-  QButtonGroup* client_bg = new QButtonGroup(this);
   for (unsigned c=0; c<nclients; c++) {
     MonClient* client = _clientmanager->client(c);
     QRadioButton* button = 

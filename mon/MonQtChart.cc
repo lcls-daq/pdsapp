@@ -28,8 +28,7 @@ MonQtChart::MonQtChart(const char* name,
   _current(0),
   _xl(0),
   _yl(0),
-  _curves(0),
-  _color(0)
+  _curves(0)
 {
   params(desc.nbins(),desc.names());
   settings(MonQtBase::Y, 0, 1, true, false);
@@ -44,8 +43,7 @@ MonQtChart::MonQtChart(const char* name,
   _current(0),
   _xl(new double[2*_npoints]),
   _yl(new double[2*_npoints]),
-  _curves(0),
-  _color(0)
+  _curves(0)
 {
   params(1,name);
   settings(MonQtBase::Y, 0, 1, true, false);
@@ -61,8 +59,7 @@ MonQtChart::MonQtChart(const char* name,
   _current(0),
   _xl(new double[2*_npoints]),
   _yl(new double[2*_npoints]),
-  _curves(0),
-  _color (0)
+  _curves(0)
 {
   params(1,name);
   settings(MonQtBase::Y, 0, 1, true, false);
@@ -78,8 +75,7 @@ MonQtChart::MonQtChart(const char* name,
   _current(0),
   _xl(new double[2*_npoints]),
   _yl(new double[2*_npoints]),
-  _curves(0),
-  _color (0)
+  _curves(0)
 {
   params(1,name);
   settings(MonQtBase::Y, 0, 1, true, false);

@@ -146,7 +146,7 @@ void MonConsumerProf::dialog()
   _dialog->show();
 }
 
-int MonConsumerProf::update() 
+int MonConsumerProf::_update() 
 {
   const MonEntryProf* entry = dynamic_cast<const MonEntryProf*>(_entry);
   if (entry->time() > _last->time()) {
@@ -161,7 +161,7 @@ int MonConsumerProf::update()
   return 0;
 }
 
-int MonConsumerProf::reset()
+int MonConsumerProf::_reset()
 {
   _entry = _group.entry(_entry->desc().name());
   if (_entry && _entry->desc().type() == MonDescEntry::Prof) {

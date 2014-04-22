@@ -41,7 +41,7 @@ MonConsumerTH1F::MonConsumerTH1F(QWidget& parent,
   _chart(0),
   _last_stats(0),
   _dialog(0),
-  _archive_mode(false)
+  _barchive_mode(false)
 {
   // Prepares menus
   _menu_service(Integrated, false);
@@ -98,11 +98,11 @@ void MonConsumerTH1F::dialog()
   _dialog->show();
 }
 
-int MonConsumerTH1F::update() 
+int MonConsumerTH1F::_update() 
 {
   const MonEntryTH1F* entry = dynamic_cast<const MonEntryTH1F*>(_entry);
   if (entry->time() > _last->time()) {
-    if (_archive_mode) {
+    if (_barchive_mode) {
       MonStats1D diff;
       diff.setto(*entry, *_last_stats);
       if (diff.sum())
@@ -125,13 +125,13 @@ int MonConsumerTH1F::update()
   return 0;
 }
 
-int MonConsumerTH1F::replot()
+int MonConsumerTH1F::_replot()
 {
   emit redraw();
   return 1;
 }
 
-int MonConsumerTH1F::reset()
+int MonConsumerTH1F::_reset()
 {
   _last_stats->reset();
   _entry = _group.entry(_entry->desc().name());
@@ -149,9 +149,9 @@ int MonConsumerTH1F::reset()
   return 0;
 }
 
-void MonConsumerTH1F::archive_mode (unsigned n)
+void MonConsumerTH1F::_archive_mode (unsigned n)
 {
-  _archive_mode=true;
+  _barchive_mode=true;
   _chart->points(n);
   setChart();
   _select_group->setEnabled(false);
@@ -224,15 +224,15 @@ void MonConsumerTH1F::select(Select selection)
     _plot->setAxisScaleDraw(QwtPlot::xBottom, new MonTimeScale);
     _plot->setAxisLabelRotation (QwtPlot::xBottom, -50.0);
     _plot->setAxisLabelAlignment(QwtPlot::xBottom, Qt::AlignLeft | Qt::AlignBottom);
-//     QwtScaleWidget *scaleWidget = _plot->axisWidget(QwtPlot::xBottom);
-//     const int fmh = QFontMetrics(scaleWidget->font()).height();
-//     scaleWidget->setMinBorderDist(0, fmh / 2);
     xtitle.setText("Time");
-    ytitle.setText(_entry->desc().xtitle());
+    if (_entry)
+      ytitle.setText(_entry->desc().xtitle());
   }
   else {
-    xtitle.setText(_entry->desc().xtitle());
-    ytitle.setText(_entry->desc().ytitle());
+    if (_entry) {
+      xtitle.setText(_entry->desc().xtitle());
+      ytitle.setText(_entry->desc().ytitle());
+    }
   }
 
   _plot->setAxisTitle(QwtPlot::xBottom,xtitle);
@@ -270,5 +270,8 @@ void MonConsumerTH1F::join(MonCanvas& c)
 
 void MonConsumerTH1F::set_plot_color(unsigned icolor)
 {
+  _hist ->color(icolor);
+  _since->color(icolor);
+  _diff ->color(icolor);
   _chart->color(icolor);
 }

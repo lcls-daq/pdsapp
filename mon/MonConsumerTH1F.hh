@@ -26,9 +26,6 @@ namespace Pds {
     // Implements MonConsumer from MonCanvas
     virtual void info();
     virtual void dialog();
-    virtual int update();
-    virtual int replot();
-    virtual int reset();
     virtual unsigned getplots(MonQtBase**, const char** names);
     virtual const MonQtBase* selected() const;
     virtual void join(MonCanvas&);
@@ -36,7 +33,11 @@ namespace Pds {
 
     void select(MonCanvas::Select);
 
-    void archive_mode (unsigned);
+  private:
+    virtual int _update();
+    virtual int _replot();
+    virtual int _reset();
+    virtual void _archive_mode (unsigned);
 
   private:
     const MonGroup& _group;
@@ -51,7 +52,7 @@ namespace Pds {
     MonStats1D* _last_stats;
     MonDialog*  _dialog;
 
-    bool     _archive_mode;
+    bool     _barchive_mode;
 
     QwtPlot* _plot;
   };

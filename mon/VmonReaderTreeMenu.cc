@@ -1,5 +1,5 @@
 #include "VmonReaderTreeMenu.hh"
-#include "VmonReaderTabs.hh"
+#include "MonTabs.hh"
 #include "MonUtils.hh"
 
 #include "pds/service/Task.hh"
@@ -33,7 +33,7 @@ static bool buttonLessThan(const QAbstractButton* b1,
 }
 
 VmonReaderTreeMenu::VmonReaderTreeMenu(QWidget&        p, 
-				       VmonReaderTabs& tabs,
+				       MonTabs& tabs,
 				       const char*     path) :
   QGroupBox (&p),
   _tabs     (tabs),
@@ -77,7 +77,7 @@ VmonReaderTreeMenu::VmonReaderTreeMenu(QWidget&        p,
     l->addWidget(summary_btn);
     _client_bg_box->setLayout(l); }
   layout->addWidget(_client_bg_box);
-  _client_bg->addButton(summary_btn);
+  _client_bg->addButton(summary_btn,0);
 
   connect(_client_bg, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(set_tree(QAbstractButton*)));
   connect(_start_slider, SIGNAL(sliderMoved(int)), this, SLOT(set_start_time(int)));
@@ -115,8 +115,6 @@ void VmonReaderTreeMenu::add(const MonCds& cds)
   QRadioButton* button = new QRadioButton(cds.desc().name(),0);
   button->setChecked( false );
 
-  printf("Add %s\n",cds.desc().name());
-
   //  Re-sort the buttons
   QList<QAbstractButton*> l = _client_bg->buttons();
   for(QList<QAbstractButton*>::iterator it=l.begin()+1; it!=l.end(); it++) {
@@ -147,6 +145,7 @@ void VmonReaderTreeMenu::add(const MonCds& cds)
 
 void VmonReaderTreeMenu::clear()
 {
+  _tabs.clear();
   //  _map.clear();
 
   QList<QAbstractButton*> buttons = _client_bg->buttons();
@@ -194,6 +193,12 @@ void VmonReaderTreeMenu::select(int index)
 
 void VmonReaderTreeMenu::preface()
 {
+  QString sel;
+  { QAbstractButton* b = _client_bg->checkedButton();
+    if (b)
+      sel = b->text();
+  }
+
   _recent->setCurrentIndex(0);
 
   clear();
@@ -217,6 +222,13 @@ void VmonReaderTreeMenu::preface()
   _stop_slider ->setRange(0,dtime); _stop_slider ->setValue(dtime);
 
   update_times();
+
+  QList<QAbstractButton*> bl = _client_bg->buttons();
+  for(QList<QAbstractButton*>::iterator b=bl.begin(); b!=bl.end(); b++)
+    if ((*b)->text()==sel) {
+      set_tree(*b);
+      break;
+    }
 }
 
 void VmonReaderTreeMenu::execute()

@@ -6,7 +6,7 @@
 namespace Pds {
 
   class VmonTreeMenu;
-  class MonTabMenu;
+  class MonTabs;
 
   class VmonMain : public Timer {
   public:
@@ -26,7 +26,7 @@ namespace Pds {
 
   private:
     VmonTreeMenu* _trees;
-    MonTabMenu*  _tabs;
+    MonTabs*      _tabs;
   };
 };
 

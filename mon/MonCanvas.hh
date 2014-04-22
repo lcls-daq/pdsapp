@@ -27,14 +27,22 @@ namespace Pds {
 
     virtual void info();
     virtual void dialog() = 0;
-    virtual int update() = 0;
-    virtual int replot() { return 0; }
-    virtual int reset() = 0;
+    virtual int update();
+    virtual int replot();
+    virtual int reset();
+    virtual void archive_mode (unsigned);
+
     virtual unsigned getplots(MonQtBase**, const char** names) = 0;
     virtual const MonQtBase* selected() const = 0;
     virtual void join(MonCanvas&) = 0;
     virtual void set_plot_color(unsigned icolor) {}
 
+  private:
+    virtual int  _update() = 0;
+    virtual int  _replot() { return 0; }
+    virtual int  _reset() = 0;
+    virtual void _archive_mode(unsigned) {}
+    
   signals:
     void redraw();
 
@@ -84,7 +92,9 @@ namespace Pds {
     void setChartY     ();
 
   public:
-    virtual void archive_mode (unsigned) {}
+    void overlay(MonCanvas&);
+  protected:
+    std::vector<MonCanvas*> _overlays;
   };
 };
 

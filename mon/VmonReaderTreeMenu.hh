@@ -22,14 +22,14 @@ class QSlider;
 namespace Pds {
 
   class VmonReader;
-  class VmonReaderTabs;
+  class MonTabs;
 
   class VmonReaderTreeMenu : public QGroupBox,
 			     public VmonReaderCallback {
     Q_OBJECT
   public:
     VmonReaderTreeMenu(QWidget& p, 
-		       VmonReaderTabs& tabs,
+		       MonTabs& tabs,
 		       const char* path);
     virtual ~VmonReaderTreeMenu();
 
@@ -59,7 +59,7 @@ namespace Pds {
 		 const MonStats2D& stats);
     void end_record();
   private:
-    VmonReaderTabs&   _tabs;
+    MonTabs&      _tabs;
     const char*   _path;
 
     QGroupBox*    _client_bg_box;

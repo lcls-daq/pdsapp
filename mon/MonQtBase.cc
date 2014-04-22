@@ -21,7 +21,8 @@ MonQtBase::MonQtBase(Type type,
   _swapaxis(swapaxis),
   _last(Seconds_1970_to_1997),
   _options(0),
-  _plot(0)
+  _plot(0),
+  _color(0)
 {
   params(desc);
 }

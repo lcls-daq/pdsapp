@@ -26,13 +26,16 @@ namespace Pds {
     // Implements MonConsumer from MonCanvas
     virtual void info();
     virtual void dialog();
-    virtual int update();
-    virtual int reset();
     virtual unsigned getplots(MonQtBase**, const char** names);
     virtual const MonQtBase* selected() const;
 
     void select(MonCanvas::Select);
     void join  (MonCanvas&) {}
+
+  private:
+    virtual int _update();
+    virtual int _reset();
+
   private:
     const MonGroup& _group;
     MonDescWaveform* _desc;

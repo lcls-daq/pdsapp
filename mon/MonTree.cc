@@ -3,7 +3,7 @@
 #include "MonTree.hh"
 #include "MonPath.hh"
 //#include "MonLayoutHints.hh"
-#include "MonTabMenu.hh"
+#include "MonTabs.hh"
 
 #include "pds/mon/MonClientManager.hh"
 #include "pds/mon/MonClient.hh"
@@ -17,7 +17,7 @@ static const unsigned RetryRate=10;
 
 using namespace Pds;
 
-MonTree::MonTree(MonTabMenu& tabs, 
+MonTree::MonTree(MonTabs& tabs, 
 		 MonClient&  client,
 		 MonClientManager* clientmanager) :
   _status   (Disconnected),
@@ -112,7 +112,7 @@ void MonTree::event(MonConsumerClient::Type type, int result)
     break;
   case MonConsumerClient::Payload:
     _status = Ready;
-    _tabs.update(_client);
+    _tabs.update(true);
     break;
   default:
     printf("*** MonTree::event unable to handle event %d\n", type);
@@ -130,5 +130,6 @@ void MonTree::title(const char* name)
 
 void MonTree::reset()
 {
-  _tabs.reset(_client);
+  //  _tabs.clear();
+  //  _tabs.setup(_client.cds(),0);
 }

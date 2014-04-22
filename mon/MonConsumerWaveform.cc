@@ -72,7 +72,7 @@ void MonConsumerWaveform::dialog()
   _dialog->show();
 }
 
-int MonConsumerWaveform::update() 
+int MonConsumerWaveform::_update() 
 {
   const MonEntryWaveform* entry = dynamic_cast<const MonEntryWaveform*>(_entry);
   if (entry->time() > _time) {
@@ -84,7 +84,7 @@ int MonConsumerWaveform::update()
   return 0;
 }
 
-int MonConsumerWaveform::reset()
+int MonConsumerWaveform::_reset()
 {
   _entry = _group.entry(_entry->desc().name());
   if (_entry && _entry->desc().type() == MonDescEntry::Waveform) {

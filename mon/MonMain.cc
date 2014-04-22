@@ -3,7 +3,7 @@
 #include "MonMain.hh"
 //#include "MonLayoutHints.hh"
 #include "MonTreeMenu.hh"
-#include "MonTabMenu.hh"
+#include "MonTabs.hh"
 
 #include <QtGui/QApplication>
 #include <QtGui/QWidget>
@@ -24,7 +24,7 @@ MonMain::MonMain(Task* workTask,
   QHBoxLayout* layout = new QHBoxLayout(top);
 
   // Tabs
-  _tabs = new MonTabMenu(*top);
+  _tabs = new MonTabs(*top);
 
   // Tree(s)
   _trees = new MonTreeMenu(*top, *_task, *_tabs, hosts, config);

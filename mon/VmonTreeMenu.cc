@@ -1,6 +1,7 @@
 #include "VmonTreeMenu.hh"
 #include "MonTree.hh"
-#include "MonTabMenu.hh"
+#include "MonTabs.hh"
+#include "MonUtils.hh"
 
 #include "pds/service/Task.hh"
 
@@ -30,8 +31,8 @@ namespace Pds {
   };
 };
 
-static bool clientButtonLessThan(const Pds::ClientButton* b1,
-                                 const Pds::ClientButton* b2) 
+static bool buttonLessThan(const QAbstractButton* b1,
+			   const QAbstractButton* b2) 
 {
   return b1->text() < b2->text();
 }
@@ -67,7 +68,7 @@ protected:
 
 VmonTreeMenu::VmonTreeMenu(QWidget& p, 
 			   Task& task, 
-			   MonTabMenu& tabs,
+			   MonTabs& tabs,
 			   unsigned char platform,
 			   const char*   partition,
 			   const char*   path) :
@@ -134,6 +135,10 @@ VmonTreeMenu::VmonTreeMenu(QWidget& p,
   _client_bg     = new QButtonGroup(this);
   _client_bg_box = new QGroupBox("Display", this);
   _client_bg_box->setLayout(new QVBoxLayout(_client_bg_box));
+  { QRadioButton* summary_btn = new QRadioButton("Summary",0);
+    summary_btn->setChecked(false);
+    _client_bg_box->layout()->addWidget(summary_btn);
+    _client_bg->addButton(summary_btn); }
   layout->addWidget(_client_bg_box);
 
   QObject::connect(_client_bg, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(set_tree(QAbstractButton*)));
@@ -170,8 +175,23 @@ void VmonTreeMenu::expired()
 
 void VmonTreeMenu::set_tree(QAbstractButton* b)
 {
-  ClientButton* c = static_cast<ClientButton*>(b);
-  _tabs.reset(c->client);
+  _tabs.clear();
+  
+  if (_client_bg->id(b) == -2) {
+    QList<QAbstractButton*> l = _client_bg->buttons();
+    for(int i=1; i<l.size(); i++) {
+      ClientButton* c = static_cast<ClientButton*>(l[i]);
+      const MonCds& cds = c->client.cds();
+      _tabs.setup(cds,i);
+      //    c->client.use();
+    }
+  }
+  else {
+    ClientButton* c = static_cast<ClientButton*>(b);
+    const MonCds& cds = c->client.cds();
+    _tabs.setup(cds,0);
+    //    c->client.use();
+  }
 }
 
 void VmonTreeMenu::control_start()
@@ -227,8 +247,9 @@ void VmonTreeMenu::write_config()
     QFileDialog::getSaveFileName(this,
 				 "Write Configuration To File",
 				 "", "*.cnf");
-  if (!fname.isNull())
-    _tabs.writeconfig(qPrintable(fname));
+  if (!fname.isNull()) {
+    //    _tabs.writeconfig(qPrintable(fname));
+  }
 }
 
 void VmonTreeMenu::event(MonTree& tree,
@@ -282,22 +303,25 @@ void VmonTreeMenu::add_client(void* cptr)
   ClientButton* button = new ClientButton(client, _client_bg_box);
   button->setChecked( false );
 
-  printf("add_client %s\n",qPrintable(button->text()));
-
   //  Re-sort the buttons
-  QList<ClientButton*> nl;
   QList<QAbstractButton*> l = _client_bg->buttons();
-  for(QList<QAbstractButton*>::iterator it=l.begin(); it!=l.end(); it++) {
-    nl.push_back(static_cast<ClientButton*>(*it));
+  for(QList<QAbstractButton*>::iterator it=l.begin()+1; it!=l.end(); it++) {
     _client_bg->removeButton(*it);
     _client_bg_box->layout()->removeWidget(*it);
   }
-  nl.push_back(button);
+  l.push_back(button);
 
-  qSort(nl.begin(),nl.end(),clientButtonLessThan);
+  qSort(l.begin()+1,l.end(),buttonLessThan);
 
-  for(QList<ClientButton*>::iterator it=nl.begin(); it!=nl.end(); it++) {
-    printf("\t%s\n",qPrintable((*it)->text()));
+  unsigned i=1, n=l.size();
+  MonUtils::ncolors(n+1);
+  for(QList<QAbstractButton*>::iterator it=l.begin()+1; it!=l.end(); it++,i++) {
+    QColor c = MonUtils::color(i);
+    QPalette p;
+    p.setColor(QPalette::BrightText,c);
+    p.setColor(QPalette::ButtonText,c);
+    p.setColor(QPalette::WindowText,c);
+    (*it)->setPalette(p);
     _client_bg_box->layout()->addWidget(*it);
     _client_bg->addButton(*it);
   }
@@ -309,10 +333,10 @@ void VmonTreeMenu::add_client(void* cptr)
 
 void VmonTreeMenu::clear_tabs()
 {
-  _tabs.reset();
+  _tabs.clear();
 
   QList<QAbstractButton*> buttons = _client_bg->buttons();
-  for(QList<QAbstractButton*>::iterator iter = buttons.begin();
+  for(QList<QAbstractButton*>::iterator iter = buttons.begin()+1;
       iter != buttons.end(); iter++) {
     _client_bg->removeButton(*iter);
     _client_bg_box->layout()->removeWidget(*iter);

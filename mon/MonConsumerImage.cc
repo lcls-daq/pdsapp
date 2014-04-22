@@ -105,7 +105,7 @@ void MonConsumerImage::dialog()
   _dialog->show();
 }
 
-int MonConsumerImage::update() 
+int MonConsumerImage::_update() 
 {
   const MonEntryImage* entry = dynamic_cast<const MonEntryImage*>(_entry);
   if (entry->time() > _time) {
@@ -123,7 +123,7 @@ int MonConsumerImage::update()
   return 0;
 }
 
-int MonConsumerImage::reset()
+int MonConsumerImage::_reset()
 {
   _entry = _group.entry(_entry->desc().name());
   if (_entry && _entry->desc().type() == MonDescEntry::Image) {

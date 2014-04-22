@@ -202,13 +202,13 @@ void MonQtTH1F::dump(FILE* f) const
 
 void MonQtTH1F::color(int color)
 {
-  //  SetLineColor(color);
+  _color = color;
+  setPen(QPen(MonUtils::color(_color)));
 }
 
 int  MonQtTH1F::color() const
 {
-  //  return GetLineColor();
-  return 0;
+  return _color;
 }
 
 void MonQtTH1F::attach(QwtPlot* plot)

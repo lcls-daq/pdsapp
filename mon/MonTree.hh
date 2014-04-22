@@ -8,14 +8,14 @@
 
 namespace Pds {
 
-  class MonTabMenu;
+  class MonTabs;
   class MonClient;
   class MonClientManager;
   
   class MonTree : public QObject {
     Q_OBJECT
   public:
-    MonTree(MonTabMenu& tabs, 
+    MonTree(MonTabs& tabs, 
 	    MonClient& client,
 	    MonClientManager* clientmanager=0);
     virtual ~MonTree();
@@ -42,7 +42,7 @@ namespace Pds {
     unsigned    _update;
     unsigned    _retry;
     bool        _needretry;
-    MonTabMenu& _tabs;
+    MonTabs& _tabs;
     MonClient&  _client;
     MonClientManager* _clientmanager;
   };
