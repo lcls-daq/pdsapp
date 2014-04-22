@@ -1,3 +1,4 @@
+#error DO NOT COMPILE
 // $Id$
 
 #include "pdsapp/config/RayonixConfig_V2.hh"

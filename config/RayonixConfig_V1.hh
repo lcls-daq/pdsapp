@@ -1,6 +1,5 @@
-#error DO NOT COMPILE
-#ifndef Pds_RayonixConfig_V2_hh
-#define Pds_RayonixConfig_V2_hh
+#ifndef Pds_RayonixConfig_V1_hh
+#define Pds_RayonixConfig_V1_hh
 
 #include "pdsapp/config/Serializer.hh"
 
@@ -8,16 +7,16 @@ class QCheckBox;
 
 namespace Pds_ConfigDb
 {
-  class RayonixExpertConfig_V2;
-  class RayonixConfig_V2;
+  class RayonixExpertConfig_V1;
+  class RayonixConfig_V1;
 }
 
-class Pds_ConfigDb::RayonixExpertConfig_V2
+class Pds_ConfigDb::RayonixExpertConfig_V1
   : public Serializer
 {
   public:
-    RayonixExpertConfig_V2();
-    ~RayonixExpertConfig_V2() {}
+    RayonixExpertConfig_V1();
+    ~RayonixExpertConfig_V1() {}
 
     int  readParameters (void* from);
     int  writeParameters(void* to);
@@ -28,12 +27,12 @@ class Pds_ConfigDb::RayonixExpertConfig_V2
     Private_Data* _private_data;
 };
 
-class Pds_ConfigDb::RayonixConfig_V2
+class Pds_ConfigDb::RayonixConfig_V1
   : public Serializer
 {
   public:
-    RayonixConfig_V2();
-    ~RayonixConfig_V2() {}
+    RayonixConfig_V1();
+    ~RayonixConfig_V1() {}
 
     int  readParameters (void* from);
     int  writeParameters(void* to);
