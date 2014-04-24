@@ -14,7 +14,7 @@ namespace Pds_ConfigDb {
   public:
     EvsCode() : 
       Parameter(NULL),
-      _code  ("Code",0,0,255),
+      _code  ("Code",59,59,59),
       _rate  ("Rate [Hz]",120,0,119e6)
     {}
   public:

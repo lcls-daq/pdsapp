@@ -19,6 +19,7 @@
 
 static const unsigned MaxUserCodes      = Pds_ConfigDb::EvrEventCodeTable::MaxCodes;
 static const unsigned MaxGlobalCodes    = 4;
+static const unsigned MaxDefaults       = 64;
 
 static void showLayoutItem(QLayoutItem* item, bool show);
 
@@ -32,7 +33,7 @@ EvrEventCodeTable::EvrEventCodeTable(EvrPulseTables* pPulseTables) :
   _pLabelGroup1     (NULL),
   _pLabelGroup2     (NULL),
   _cbEnableReadGroup(NULL),
-  _code_buffer(new char[(MaxUserCodes+MaxGlobalCodes)
+  _code_buffer(new char[(MaxUserCodes+MaxGlobalCodes+MaxDefaults)
                         *sizeof(EventCodeType)])                        
 {
   _seq_code = new EvrSeqEventDesc[MaxUserCodes];
