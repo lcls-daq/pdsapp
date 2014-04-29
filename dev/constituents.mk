@@ -20,6 +20,7 @@ tgtnames += oceanoptics fli andor
 
 ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames += camedt
+tgtnames += timepix
   ifeq ($(build_extra),$(true))
     tgtnames += phasics xamps fexamp
   endif
@@ -30,7 +31,6 @@ tgtnames +=  acq \
     princetonsim \
     fccd     \
     gsc16ai  \
-    timepix  \
     cam
 endif
 

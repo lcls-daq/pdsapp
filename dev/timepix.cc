@@ -20,14 +20,14 @@
 #include <stdio.h>
 #include <signal.h>
 #include <errno.h>
+#include <climits>
 
 #include "mpxfilelogger.h"
 
 static void usage(const char *p)
 {
   printf("Usage: %s -i <detid> -p <platform> [-m <module id>] [-v]\n"
-         "                   [-d <debug flags>] [-T <threshold file>] [-o <logpath>]\n"
-         "                   [-a <cpu0>,<cpu1>] [-h]\n", p);
+         "                   [-d <debug flags>] [-T <threshold file>] [-o <logpath>] [-h]\n", p);
 }
 
 static void help()
@@ -40,7 +40,6 @@ static void help()
          "  -d <debug flags>      debug flags (default=0)\n"
          "  -T <threshold file>   binary pixel configuration (bpc) file (default=none)\n"
          "  -o <logpath>          Timepix logging path (default=/tmp)\n"
-         "  -a <cpu0>,<cpu1>      affinity cpu IDs (default=none)\n"
          "  -h                    help: print this message and exit\n");
   printf("Debug flags:\n"
          "  0x0010                ignore hardware frame counter\n");
@@ -191,8 +190,8 @@ void timepixSignalIntHandler( int iSignalNo )
 
 int main( int argc, char** argv )
 {
-   unsigned detid = -1UL;
-   unsigned platform = -1UL;
+   unsigned detid = UINT_MAX;
+   unsigned platform = UINT_MAX;
    Arp* arp = 0;
   unsigned moduleId = 0;
   unsigned verbosity = 0;
@@ -244,26 +243,7 @@ int main( int argc, char** argv )
             helpFlag = true;
             break;
          case 'a':
-            // cpu affinity
-            errno = 0;
-            endPtr = NULL;
-            cpu0  = strtol(optarg, &endPtr, 0);
-            if (errno || (endPtr == NULL) || (*endPtr != ',')) {
-              printf("Error: failed to parse affinity cpu IDs\n");
-              usage(argv[0]);
-              return -1;
-            }
-            pComma = strchr(optarg, ',');
-            if (pComma) {
-              errno = 0;
-              endPtr = NULL;
-              cpu1  = strtol(pComma+1, &endPtr, 0);
-              if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
-                printf("Error: failed to parse affinity cpu IDs\n");
-                usage(argv[0]);
-                return -1;
-              }
-            }
+            printf("Warning: option 'a' ignored\n");
             break;
          case 'v':
             ++verbosity;
@@ -295,7 +275,7 @@ int main( int argc, char** argv )
     usage(argv[0]);
     help();
     return 0;
-  } else if ((platform == -1UL) || (detid == -1UL)) {
+  } else if ((platform == UINT_MAX) || (detid == UINT_MAX)) {
     printf("Error: Platform and detid required\n");
     usage(argv[0]);
     return 0;
