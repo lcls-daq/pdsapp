@@ -26,6 +26,7 @@
 #include <stdio.h>
 
 #include <list>
+#include <climits>
 
 using Pds::Alias::SrcAlias;
 
@@ -201,9 +202,9 @@ static void usage(char *p)
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  unsigned detid = -1UL;
+  unsigned detid = UINT_MAX;
   unsigned devid = 0;
-  unsigned platform = -1UL;
+  unsigned platform = UINT_MAX;
   bool multi_instruments_only = true;
   bool lcalibrate = false;
   unsigned nbrConverters=0;
@@ -257,7 +258,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  if ((platform == -1UL) || (detid == -1UL)) {
+  if ((platform == UINT_MAX) || (detid == UINT_MAX)) {
     printf("Platform and detid required\n");
     printf("Usage: %s -i <detid> -p <platform> \n\n", argv[0]);
     usage(argv[0]);

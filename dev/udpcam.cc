@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <errno.h>
+#include <climits>
 
 #ifndef UDPCAM_DEFAULT_DATA_PORT
 #define UDPCAM_DEFAULT_DATA_PORT 49201
@@ -184,7 +185,7 @@ int main( int argc, char** argv )
 {
   DetInfo info;
   bool infoInitialized = false;
-  unsigned platform = -1UL;
+  unsigned platform = UINT_MAX;
   unsigned dataPort = UDPCAM_DEFAULT_DATA_PORT;
   unsigned debugFlags = 0;
   Arp* arp = 0;
@@ -260,7 +261,7 @@ int main( int argc, char** argv )
     usage(argv[0]);
     help();
     return 0;
-  } else if ((platform == -1UL) || (!infoInitialized)) {
+  } else if ((platform == UINT_MAX) || (!infoInitialized)) {
     printf("Error: Platform and device info required\n");
     usage(argv[0]);
     return 0;

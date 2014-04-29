@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <climits>
 
 static void usage(const char* p)
 {
@@ -163,8 +164,8 @@ using namespace Pds;
 
 int main( int argc, char** argv )
 {
-   unsigned detid = -1UL;
-   unsigned platform = -1UL;
+   unsigned detid = UINT_MAX;
+   unsigned platform = UINT_MAX;
    Arp* arp = 0;
    bool helpFlag = false;
    char *endPtr;
@@ -206,7 +207,7 @@ int main( int argc, char** argv )
     usage(argv[0]);
     help();
     return 0;
-  } else if ((platform == -1UL) || (detid == -1UL)) {
+  } else if ((platform == UINT_MAX) || (detid == UINT_MAX)) {
     printf("Error: Platform and detid required\n");
     usage(argv[0]);
     return 0;

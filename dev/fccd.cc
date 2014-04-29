@@ -138,7 +138,7 @@ using namespace Pds;
 int main(int argc, char** argv) {
 
   // parse the command line for our boot parameters
-  unsigned platform = -1UL;
+  unsigned platform = UINT_MAX;
   Arp* arp = 0;
 
   DetInfo::Detector det(DetInfo::NoDetector);
@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
     usage(argv[0]);
     help();
     return 0;
-  } else if (!infoFlag || (platform == -1UL)) {
+  } else if (!infoFlag || (platform == UINT_MAX)) {
     printf("Error: Platform and detinfo required\n");
     usage(argv[0]);
     return 0;
