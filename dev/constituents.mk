@@ -15,11 +15,12 @@ tgtnames += epicsArch bld cspad cspad2x2
 tgtnames += imp pnccd epix epixsampler epix10k
 tgtnames += usdusb simcam
 tgtnames += ipimb lusidiag
-tgtnames += timepix rayonix udpcam
+tgtnames += rayonix udpcam
 tgtnames += oceanoptics fli andor
 
 ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames += camedt
+tgtnames += timepix
   ifeq ($(build_extra),$(true))
     tgtnames += phasics xamps fexamp
   endif
