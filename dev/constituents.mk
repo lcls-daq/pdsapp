@@ -12,15 +12,14 @@ CPPFLAGS += -fno-strict-aliasing
 
 tgtnames := evr evrstandalone evrsnoop
 tgtnames += epicsArch bld cspad cspad2x2
-tgtnames += imp pnccd epix epixsampler
+tgtnames += imp pnccd epix epixsampler epix10k
 tgtnames += usdusb simcam
 tgtnames += ipimb lusidiag
-tgtnames += rayonix udpcam
+tgtnames += timepix rayonix udpcam
 tgtnames += oceanoptics fli andor
 
 ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames += camedt
-tgtnames += timepix
   ifeq ($(build_extra),$(true))
     tgtnames += phasics xamps fexamp
   endif
@@ -65,6 +64,11 @@ tgtsrcs_epix := epix.cc
 tgtlibs_epix := $(commonlibs) pds/epix pds/pgp pds/configdata
 tgtslib_epix := $(commonslib)
 tgtincs_epix := pdsdata/include ndarray/include boost/include 
+
+tgtsrcs_epix10k := epix10k.cc
+tgtlibs_epix10k := $(commonlibs) pds/epix10k pds/pgp pds/configdata
+tgtslib_epix10k := $(commonslib)
+tgtincs_epix10k := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_imp := imp.cc
 tgtlibs_imp := $(commonlibs) pds/imp pds/pgp pds/configdata

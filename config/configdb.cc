@@ -235,15 +235,10 @@ int branch_db(int argc, char** argv)
     }
   }
 
-  Experiment db(ipath);
+  Experiment db(ipath,Experiment::NoLock);
   std::list<ExptAlias>  alist = db.path().getExptAliases();    
   std::list<DeviceType> dlist = db.path().getDevices();
   
-  newdb->begin();
-  newdb->setExptAliases(alist);
-  newdb->setDevices    (dlist);
-  newdb->commit();
-
   for(std::list<DeviceType>::iterator it=dlist.begin();
       it!=dlist.end(); it++)
     for(std::list<DeviceEntries>::iterator eit=it->entries.begin();
@@ -252,6 +247,11 @@ int branch_db(int argc, char** argv)
           xit!=eit->entries.end(); xit++) 
         _copy_xtc(db.path(),*newdb,*xit);
   
+  newdb->begin();
+  newdb->setExptAliases(alist);
+  newdb->setDevices    (dlist);
+  newdb->commit();
+
   newdb->begin();
   newdb->updateKeys();
   newdb->commit();

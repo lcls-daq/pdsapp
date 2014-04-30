@@ -151,7 +151,9 @@ using namespace Pds_ConfigDb;
 Xtc_Ui::Xtc_Ui(QWidget* parent) :
   QWidget      (parent),
   _cfgdg_buffer(0),
-  _l1adg_buffer(0)
+  _l1adg_buffer(0),
+  _fiter       (0),
+  _icycle      (-1)
 {
   QVBoxLayout* l = new QVBoxLayout;
   l->addWidget(_runInfo = new QLabel);
@@ -177,10 +179,15 @@ Xtc_Ui::~Xtc_Ui()
     delete[] _cfgdg_buffer;
   if (_l1adg_buffer)
     delete[] _l1adg_buffer;
+  if (_fiter)
+    delete _fiter;
 }
 
 void Xtc_Ui::set_file(QString fname)
 {
+  _cycle.clear();
+  _icycle = 0;
+
   int fd = ::open(qPrintable(fname),O_LARGEFILE,O_RDONLY);
   if (fd == -1) {
     char buff[256];
@@ -189,12 +196,18 @@ void Xtc_Ui::set_file(QString fname)
     return;
   }
 
-  Pds::XtcFileIterator iter(fd,0x2000000);
+  _fiter = new Pds::XtcFileIterator(fd,0x2000000);
+
+  Pds::XtcFileIterator& iter = *_fiter;
   Pds::Dgram* dg;
   
   while((dg = iter.next())) {
     if (dg->seq.service()==Pds::TransitionId::Configure) {
       _copy_to_buffer(dg, _cfgdg_buffer);
+      _cycle.push_back(dg);
+    }
+    else if (dg->seq.service()==Pds::TransitionId::BeginCalibCycle) {
+      _cycle.push_back(dg);
     }
     else if (dg->seq.service()==Pds::TransitionId::L1Accept) {
       _copy_to_buffer(dg, _l1adg_buffer);
@@ -210,6 +223,37 @@ void Xtc_Ui::set_file(QString fname)
 
   _runInfo->setText(info);
 
+  update_device_list();
+}
+
+void Xtc_Ui::next_cycle()
+{
+  int icycle = _icycle+1;
+  if (icycle>=int(_cycle.size())) {
+    Pds::XtcFileIterator& iter = *_fiter;
+    Pds::Dgram* dg;
+    while((dg = iter.next())) {
+      if (dg->seq.service()==Pds::TransitionId::BeginCalibCycle) {
+	_cycle.push_back(dg);
+	if (icycle<int(_cycle.size())) break;
+      }
+    }
+  }
+
+  if (icycle>=int(_cycle.size())) return;
+
+  emit set_cycle(_icycle = icycle);
+  _copy_to_buffer(_cycle[icycle], _cfgdg_buffer);
+  update_device_list();
+}
+
+void Xtc_Ui::prev_cycle()
+{
+  int icycle = _icycle-1;
+  if (icycle<0) return;
+
+  emit set_cycle(_icycle = icycle);
+  _copy_to_buffer(_cycle[icycle], _cfgdg_buffer);
   update_device_list();
 }
 

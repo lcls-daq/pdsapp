@@ -50,6 +50,7 @@
 #include "pdsapp/config/Cspad2x2Config.hh"
 #include "pdsapp/config/EpixSamplerConfig.hh"
 #include "pdsapp/config/EpixConfig.hh"
+#include "pdsapp/config/Epix10kConfig.hh"
 #include "pdsapp/config/OceanOpticsConfig.hh"
 #include "pdsapp/config/FliConfig.hh"
 #include "pdsapp/config/AndorConfig.hh"
@@ -145,6 +146,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_CsPad2x2ConfigType    ,new Cspad2x2Config);
   enroll(_epixSamplerConfigType ,new EpixSamplerConfig);
   enroll(_epixConfigType        ,new EpixConfig);
+  enroll(_epix10kConfigType     ,new Epix10kConfig);
   enroll(_oceanOpticsConfigType ,new OceanOpticsConfig);  
   enroll(_fliConfigType         ,new FliConfig);  
   enroll(_andorConfigType       ,new AndorConfig);
@@ -168,7 +170,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_DiodeFexConfig,1), new DiodeFexConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,1),new ControlConfig_V1::ControlConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_TimepixConfig,2),new TimepixConfig_V2);
-  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
+//  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
 #undef enroll
   return 0;
 }

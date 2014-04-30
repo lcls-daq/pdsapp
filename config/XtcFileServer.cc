@@ -7,6 +7,7 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
+#include <QtGui/QToolButton>
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -73,8 +74,12 @@ XtcFileServer::XtcFileServer(const char* curdir) :
   _curdir(curdir),
   _dirSelect(new QPushButton("Change")),
   _dirLabel(new QLabel),
-  _runCombo(new QComboBox)
+  _runCombo(new QComboBox),
+  _cycle   (new QLabel)
 {
+  QToolButton* prev = new QToolButton; prev->setArrowType(::Qt::LeftArrow);
+  QToolButton* next = new QToolButton; next->setArrowType(::Qt::RightArrow);
+
   QVBoxLayout* l = new QVBoxLayout;
 
   QHBoxLayout* hboxA = new QHBoxLayout;
@@ -90,8 +95,11 @@ XtcFileServer::XtcFileServer(const char* curdir) :
   QHBoxLayout* hbox1 = new QHBoxLayout;
   hbox1->addStretch();
   hbox1->addWidget(new QLabel("Run:"));
-  hbox1->addStretch();
   hbox1->addWidget(_runCombo);
+  hbox1->addStretch();
+  hbox1->addWidget(prev);
+  hbox1->addWidget(_cycle);
+  hbox1->addWidget(next);
   hbox1->addStretch();
   l->addLayout(hbox1);
 
@@ -100,6 +108,8 @@ XtcFileServer::XtcFileServer(const char* curdir) :
 
   _connect(_dirSelect, SIGNAL(clicked()), this, SLOT(selectDir()));
   _connect(_runCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(selectRun(int)));
+  _connect(prev, SIGNAL(clicked()), this, SIGNAL(prev_cycle()));
+  _connect(next, SIGNAL(clicked()), this, SIGNAL(next_cycle()));
   _connect(this, SIGNAL(_updateDirLabel()), this, SLOT(updateDirLabel()));
   _connect(this, SIGNAL(_updateRunCombo()), this, SLOT(updateRunCombo()));
 
@@ -111,6 +121,8 @@ XtcFileServer::XtcFileServer(const char* curdir) :
 XtcFileServer::~XtcFileServer()
 {
 }
+
+void XtcFileServer::set_cycle(int i) { _cycle->setText(QString::number(i)); }
 
 void XtcFileServer::selectDir()
 {

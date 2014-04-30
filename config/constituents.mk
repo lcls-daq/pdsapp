@@ -96,6 +96,7 @@ libsrcs_configdbg += TimepixConfig.cc TimepixConfig_V2.cc
 libsrcs_configdbg += RayonixConfig.cc RayonixConfig_V1.cc
 libsrcs_configdbg += EpixSamplerConfig.cc
 libsrcs_configdbg += EpixConfig.cc EpixCopyAsicDialog.cc EpixCopyAsicDialog_moc.cc
+libsrcs_configdbg += Epix10kConfig.cc Epix10kCopyAsicDialog.cc Epix10kCopyAsicDialog_moc.cc
 libsrcs_configdbg += OceanOpticsConfig.cc
 libsrcs_configdbg += AcqChannelMask.cc AcqChannelMask_moc.cc
 libsrcs_configdbg += AcqConfig.cc

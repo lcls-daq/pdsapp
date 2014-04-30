@@ -20,6 +20,8 @@ namespace Pds_ConfigDb {
   public:
     XtcFileServer(const char* curdir);
     ~XtcFileServer();
+  public slots:
+    void set_cycle(int);
   private slots:
     void selectDir();
     void selectRun(int);
@@ -29,6 +31,8 @@ namespace Pds_ConfigDb {
     void _updateDirLabel();
     void _updateRunCombo();
     void file_selected(QString);  // connect to this!
+    void prev_cycle();
+    void next_cycle();
   private:
     void getPathsForRun(QStringList& list, QString run);
     void setDir(QString dir);
@@ -38,6 +42,7 @@ namespace Pds_ConfigDb {
     QLabel*      _dirLabel;
     QComboBox*   _runCombo;
     QStringList  _runList;
+    QLabel*      _cycle;
   };
 }
 

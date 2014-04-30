@@ -28,6 +28,9 @@ int main(int argc, char** argv)
   XtcFileServer* fs = new XtcFileServer(argv[1]);
   Xtc_Ui* ui = new Xtc_Ui((QWidget*)0);
   QObject::connect(fs, SIGNAL(file_selected(QString)), ui, SLOT(set_file(QString)));
+  QObject::connect(fs, SIGNAL(prev_cycle()), ui, SLOT(prev_cycle()));
+  QObject::connect(fs, SIGNAL(next_cycle()), ui, SLOT(next_cycle()));
+  QObject::connect(ui, SIGNAL(set_cycle(int)), fs, SLOT(set_cycle(int)));
 
   QVBoxLayout* l = new QVBoxLayout;
   l->addWidget(fs);

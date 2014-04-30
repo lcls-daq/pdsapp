@@ -12,7 +12,11 @@ class QLabel;
 class QListWidget;
 class QListWidgetItem;
 
-namespace Pds { class TypeId; }
+namespace Pds { 
+  class Dgram; 
+  class TypeId; 
+  class XtcFileIterator; 
+}
 
 namespace Pds_ConfigDb {
 
@@ -28,10 +32,13 @@ namespace Pds_ConfigDb {
     void update_component_list();
     void change_component     ();
     void set_file (QString);
+    void prev_cycle();
+    void next_cycle();
   public:
     Serializer& lookup(const Pds::TypeId&);
   signals:
     void changed();
+    void set_cycle(int);
   private:
     char*                _cfgdg_buffer;
     char*                _l1adg_buffer;
@@ -39,6 +46,9 @@ namespace Pds_ConfigDb {
     QLabel*      _runInfo;
     QListWidget* _devlist;
     QListWidget* _cmplist;
+    Pds::XtcFileIterator*          _fiter;
+    std::vector<const Pds::Dgram*> _cycle;
+    int                            _icycle;
   };
 };
 
