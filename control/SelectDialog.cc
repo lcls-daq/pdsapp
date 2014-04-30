@@ -90,11 +90,26 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg)
         //}        
       }
       const char *aliasName;
-      // TODO consider nsources() > 1
+
       if ((msg.nsources() > 0) && (aliasName = _pcontrol.lookup_src_alias(msg.source(0)))) {
-        char namebuf[SrcAlias::AliasNameMax+1];
-        strncpy(namebuf, aliasName, SrcAlias::AliasNameMax);
-        namebuf[SrcAlias::AliasNameMax] = '\0';
+        char namebuf[msg.nsources() * (SrcAlias::AliasNameMax + 5)];
+        char *pName = namebuf;
+
+        // if multiple aliases are present, display them in a vertical list
+        for (int ii=0; ii<(int)msg.nsources(); ii++) {
+          aliasName = _pcontrol.lookup_src_alias(msg.source(ii));
+          if (aliasName && (strlen(aliasName) <= SrcAlias::AliasNameMax)) {
+            if (ii > 0) {
+              strcpy(pName, "\r\n");
+              pName += 2;
+            }
+            strcpy(pName, aliasName);
+            pName += strlen(aliasName);
+          } else {
+            printf("%s:%d skipped alias #%d (len=%d) ...\n", __FILE__, __LINE__, ii,
+                   (int) (aliasName ? strlen(aliasName) : 0));
+          }
+        }
         _segbox->addNode(NodeSelect(hdr, msg.ready(), sources, QString(namebuf)));
       } else {
         _segbox->addNode(NodeSelect(hdr, msg.ready(), sources));
