@@ -138,7 +138,7 @@ class caconn {
 
         num = conns.size();
         conns.push_back(this);
-        xid = register_xtc(strict, name);
+        xid = register_xtc(strict, name, det != DetInfo::EpicsArch); // PVs -> not critical, cameras -> critical.
         if (det == DetInfo::EpicsArch) {
             caid = nxtcaid++;
             is_cam = 0;

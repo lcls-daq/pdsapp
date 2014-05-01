@@ -41,8 +41,9 @@ struct event;
 
 class xtcsrc {
  public:
-    xtcsrc(int _id, int _sync, string _name) : id(_id), sync(_sync), name(_name), cnt(0), val(NULL),
-                                 len(0), ref(NULL), sec(0), nsec(0), ev(NULL) {};
+    xtcsrc(int _id, int _sync, string _name, int _crit)
+        : id(_id), sync(_sync), name(_name), cnt(0), val(NULL),
+          len(0), ref(NULL), sec(0), nsec(0), ev(NULL), critical(_crit) {};
     int   id;
     int   sync;                   // Is this a synchronous source?
     string name;
@@ -52,6 +53,10 @@ class xtcsrc {
     int  *ref;                    // Reference count of this value (if asynchronous!)
     unsigned int sec, nsec;       // Timestamp of this value
     struct event *ev;             // Event for this value (if asynchronous!)
+    Src   src;
+    int   critical;               // If we have a critical source, then if anything else is missing,
+                                  // we declare damage.  If we don't have any critical sources, we just
+                                  // throw away partials.
 };
 
 #define CHUNK_SIZE 107374182400LL
@@ -65,6 +70,7 @@ static sigset_t blockset;
 static int started = 0;        // We are actually running.
 static int paused = 0;         // We are temporarily paused.
 static int numsrc = 0;         // Total number of sources.
+static int critsrc = 0;        // Number of critical sources.
 static int syncsrc = 0;        // Number of synchronous sources.
 static int asyncsrc = 0;       // Number of asynchronous sources.
 static unsigned int maxname = 0;// Maximum name length.
@@ -87,11 +93,13 @@ static Xtc   *seg = NULL;
 static ProcInfo *evtInfo = NULL;
 static ProcInfo *segInfo = NULL;
 static ProcInfo *ctrlInfo = NULL;
+static Xtc    damagextc(TypeId(TypeId::Any, 1));
 
 #define MAX_EVENTS    64
 static struct event {
     int    id;
     int    valid;
+    int    critcnt;               // How many critical sources do we have?
     int    synccnt;               // How many synchronous sources do we have?
     int    asynccnt;              // How many asynchronous sources do we have?
     unsigned int sec, nsec;       // Timestamp of this event.
@@ -311,9 +319,12 @@ void initialize_xtc(char *outfile)
 {
     int i;
 
+    damagextc.damage = Damage::DroppedContribution;
+
     for (i = 0; i < MAX_EVENTS; i++) {
         events[i].id = i;
         events[i].valid = 0;
+        events[i].critcnt = 0;
         events[i].synccnt = 0;
         events[i].asynccnt = 0;
         events[i].sec = 0;
@@ -363,7 +374,7 @@ void initialize_xtc(char *outfile)
 /*
  * Generate a unique id for this source.
  */
-int register_xtc(int sync, string name)
+int register_xtc(int sync, string name, int critical)
 {
     // Make all of the names equal length!
     if (name.length() > maxname) {
@@ -375,11 +386,13 @@ int register_xtc(int sync, string name)
     }
     while (name.length() != maxname)
         name.append(" ");
-    src.push_back(new xtcsrc(numsrc, sync, name));
+    src.push_back(new xtcsrc(numsrc, sync, name, critical));
     if (sync)
         syncsrc++;
     else
         asyncsrc++;
+    if (critical)
+        critsrc++;
     return numsrc++;
 }
 
@@ -399,6 +412,7 @@ void configure_xtc(int id, char *xtc, int size, unsigned int secs, unsigned int 
     src[id]->cnt++;
     src[id]->val = new unsigned char[size];
     src[id]->len = size;
+    src[id]->src = ((Xtc *)xtc)->src;
     totalcfglen += size;
     memcpy((void *)src[id]->val, (void *)xtc, size);
     cfgcnt++;
@@ -436,14 +450,20 @@ static void reset_event(struct event *ev)
             ev->data[i] = NULL;
         }
     }
+    ev->critcnt = 0;
     ev->synccnt = 0;
     ev->asynccnt = 0;
     ev->valid = 0;
 }
 
+/*
+ * OK, when we get here, dg is partially set up.  The outer xtcs (dg->xtc and seg) have their
+ * extent set to the total data size (totaldlen).
+ */
 void send_event(struct event *ev)
 {
     sigset_t oldsig;
+    int damagesize = 0;
 
     if (paused) {
 #ifdef TRACE
@@ -452,6 +472,31 @@ void send_event(struct event *ev)
         dsec = ev->sec;
         dnsec = ev->nsec;
         return;
+    }
+    // When do we *not* send an event?
+    // If we have any critical sources in the event, we always send it, even if damaged.
+    // But if nothing is critical, we send it if it is complete.  We know we have asynchronous
+    // values, so we only need to check the synchronous ones.
+    if (critsrc ? (!ev->critcnt) : (ev->synccnt != syncsrc))
+        return;
+
+    // Complete this as best as we can.
+    for (int i = 0; i < numsrc; i++) {
+        if (!ev->data[i] && !src[i]->sync) {
+            ev->data[i] = src[i]->val;
+            ev->ref[i]  = src[i]->ref;
+            (*ev->ref[i])++;
+        }
+        if (!ev->data[i])
+            damagesize += src[i]->len - sizeof(Xtc); // Instead of the full data, we're going to write
+                                                     // an empty Xtc!
+    }
+
+    if (damagesize) {
+        seg->extent    -= damagesize;
+        dg->xtc.extent -= damagesize;
+        seg->damage     = Damage::DroppedContribution;
+        dg->xtc.damage  = Damage::DroppedContribution;
     }
 
 #ifdef TRACE
@@ -464,34 +509,41 @@ void send_event(struct event *ev)
     dnsec = ev->nsec;
 
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
+
     if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
         printf("Write failed!\n");
         exit(1);
     }
     fsize += sizeof(Dgram) + sizeof(Xtc);
     for (int i = 0; i < numsrc; i++) {
-        if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
-            printf("Write failed!\n");
-            exit(1);
+        if (ev->data[i]) {
+            if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
+                printf("Write failed!\n");
+                exit(1);
+            }
+            fsize += src[i]->len;
+        } else {
+            damagextc.src = src[i]->src;
+            if (!fwrite(&damagextc, sizeof(Xtc), 1, fp)) {
+                printf("Write failed!\n");
+                exit(1);
+            }
+            fsize += sizeof(Xtc);
         }
-        fsize += src[i]->len;
     }
     fflush(fp);
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
     if (fsize >= CHUNK_SIZE) { /* Next chunk! */
-#if 0
         /*
          * MCB - OK, this is bad.
          *
          * We aren't generating index files until we are done recording.
          * Therefore, we need to hold on to this file descriptor so we
-         * keep the lock.  We'll let it dangle... it will get cleaned up
-         * when we exit.
+         * keep the lock.  So we won't close it and we'll just let it
+         * dangle... it will get cleaned up when we exit.
          *
          * Yeah, I know.
          */
-        fclose(fp);
-#endif
         sprintf(cpos, "-c%02d.xtc", ++chunk);
         if (!(fp = myfopen(fname, "w"))) {
             printf("Cannot open %s for output!\n", fname);
@@ -501,6 +553,27 @@ void send_event(struct event *ev)
         fsize = 0;
     }
     record_cnt++;
+
+    if (damagesize) {
+        seg->extent    += damagesize;
+        dg->xtc.extent += damagesize;
+        seg->damage     = 0;
+        dg->xtc.damage  = 0;
+    }
+}
+
+void send_prior_events(struct event *ev)
+{
+    struct event *cur = evlist;
+    while (cur != ev) {
+        if (cur->valid) {
+            send_event(cur);
+            reset_event(cur);
+        }
+        cur = cur->next;
+    }
+    send_event(ev);
+    reset_event(ev);
 }
 
 static struct event *find_event(unsigned int sec, unsigned int nsec)
@@ -529,20 +602,8 @@ static struct event *find_event(unsigned int sec, unsigned int nsec)
      * But first we want to see if we can complete it with asynchronous
      * events.
      */
-    if (evlist->synccnt == syncsrc && evlist->valid) {
-        for (int i = 0; i < numsrc; i++) {
-            if (!evlist->data[i]) {
-                evlist->data[i] = src[i]->val;
-                evlist->ref[i]  = src[i]->ref;
-                (*evlist->ref[i])++;
-            }
-        }
+    if (evlist->valid)
         send_event(evlist);
-    }
-#ifdef TRACE
-    else if (evlist->valid)
-        printf("%08x:%08x M %d\n", evlist->sec, evlist->nsec, evlist->id);
-#endif
     reset_event(evlist);
     /*
      * In the most common case, ev == evlist->prev and we don't have to
@@ -654,6 +715,8 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
         delete buf;
         return;
     }
+    if (s->critical)
+        ev->critcnt++;
     if (s->sync) {
         if (!ev->data[id]) {
             ev->data[id] = buf;
@@ -661,8 +724,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
             printf("%08x:%08x S%d -> event %d\n", sec, nsec, id, ev->id);
 #endif
             if (ev->valid && ++ev->synccnt == syncsrc && ev->asynccnt == asyncsrc) {
-                send_event(ev);
-                reset_event(ev);
+                send_prior_events(ev);
             }
         } else {
             /* This is *not* good! */
@@ -702,8 +764,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
             cur->ref[id]  = s->ref;
             (*s->ref)++;
             if (cur->valid && ++cur->asynccnt == asyncsrc && cur->synccnt == syncsrc) {
-                send_event(cur);
-                reset_event(cur);
+                send_prior_events(cur);
             }
             cur = cur->next;
         }
@@ -754,6 +815,8 @@ void cleanup_index(void)
     close(2); /* Let the client go right away! */
 
     base = rindex(fname, '/');
+    if (!base)
+        return; /* If the name doesn't look good, skip it. */
     *base++ = 0;
     /* So, fname = "USER/xtc" and base = "e...xtc" */
     for (i = 0; i <= chunk; i++) {
@@ -762,10 +825,6 @@ void cleanup_index(void)
                 MKIDX, fname, base, fname, base);
         system(buf);
     }
-#endif
-#if 0
-    if (fp)
-        fclose(fp);
 #endif
 }
 
