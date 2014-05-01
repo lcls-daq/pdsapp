@@ -206,7 +206,7 @@ void MonConsumerTH1F::select(Select selection)
 //     scaleWidget->setMinBorderDist(0, 0);
   }
 
-  _selected = selection;
+  MonCanvas::select(selection);
 
   switch(selection) {
   case MonCanvas::Difference: _diff ->attach(_plot); break;

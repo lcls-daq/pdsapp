@@ -75,7 +75,8 @@ void sigintHandler(int iSignal)
 {
   printf("vmonrecorder stopped by signal %d\n",iSignal);
   delete driver;
-  exit(0);
+  sigaction(iSignal,NULL,NULL);
+  raise(iSignal);
 }
 
 int main(int argc, char **argv) 

@@ -85,7 +85,7 @@ void exit_failure() {
 
 int main(int argc, char** argv) {
 
-  unsigned platform=-1UL;
+  unsigned platform=-1U;
   const char* partition = 0;
   const char* experiment_name = 0;
   const char* offlinerc = 0;
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
     switch (c) {
     case 'p':
       platform = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) platform = -1UL;
+      if (errno != 0 || endPtr == optarg) platform = -1U;
       break;
     case 'P':
       partition = optarg;
@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (platform == -1UL || !partition || !offlinerc) {
+  if (platform == -1U || !partition || !offlinerc) {
     fprintf(stderr, "Missing parameters!\n");
     usage(argv[0]);
     return 1;

@@ -454,6 +454,10 @@ void MainWindow::transition_damaged(const InDatagram& dg)
       require_shutdown();
     }
   }
+  else if (dg.datagram().seq.service() == TransitionId::Configure) {
+    emit message_received(msg,true);
+    require_shutdown();
+  }
   else
     emit message_received(msg,false);
 }
