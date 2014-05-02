@@ -29,7 +29,6 @@ tgtnames +=  acq \
     encoder \
     princeton \
     princetonsim \
-    fccd     \
     gsc16ai  \
     cam
 endif
@@ -173,13 +172,6 @@ tgtlibs_camedt += $(edt_libs)
 tgtslib_camedt := $(commonslib) $(USRLIBDIR)/dl
 tgtincs_camedt := edt/include pdsdata/include ndarray/include boost/include  
 tgtincs_camedt += epics/include epics/include/os/Linux
-
-tgtsrcs_fccd := fccd.cc
-tgtlibs_fccd := $(commonlibs) $(cam_libs)
-tgtlibs_fccd += pds/camera pds/configdata
-tgtlibs_fccd += $(leutron_libs)
-tgtslib_fccd := $(commonslib)
-tgtincs_fccd := leutron/include pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_phasics := phasics.cc
 tgtlibs_phasics := $(commonlibs) $(cam_libs) pds/phasics
