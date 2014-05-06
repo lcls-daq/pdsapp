@@ -95,13 +95,12 @@ static ProcInfo *segInfo = NULL;
 static ProcInfo *ctrlInfo = NULL;
 static Xtc    damagextc(TypeId(TypeId::Any, 1));
 
-#define MAX_EVENTS    64
+#define MAX_EVENTS    128
 static struct event {
     int    id;
     int    valid;
     int    critcnt;               // How many critical sources do we have?
     int    synccnt;               // How many synchronous sources do we have?
-    int    asynccnt;              // How many asynchronous sources do we have?
     unsigned int sec, nsec;       // Timestamp of this event.
     unsigned char **data;         // Array of numsrc data records.
     int  **ref;                   // An array of reference counts for asynchronous data.
@@ -326,7 +325,6 @@ void initialize_xtc(char *outfile)
         events[i].valid = 0;
         events[i].critcnt = 0;
         events[i].synccnt = 0;
-        events[i].asynccnt = 0;
         events[i].sec = 0;
         events[i].nsec = 0;
         events[i].data = (unsigned char **) calloc(numsrc, sizeof(char *));
@@ -452,7 +450,6 @@ static void reset_event(struct event *ev)
     }
     ev->critcnt = 0;
     ev->synccnt = 0;
-    ev->asynccnt = 0;
     ev->valid = 0;
 }
 
@@ -565,6 +562,9 @@ void send_event(struct event *ev)
 void send_prior_events(struct event *ev)
 {
     struct event *cur = evlist;
+#ifdef TRACE
+    printf("%08x:%08x PS event %d\n", ev->sec, ev->nsec, ev->id);
+#endif
     while (cur != ev) {
         if (cur->valid) {
             send_event(cur);
@@ -574,6 +574,9 @@ void send_prior_events(struct event *ev)
     }
     send_event(ev);
     reset_event(ev);
+#ifdef TRACE
+    printf("%08x:%08x PD event %d\n", ev->sec, ev->nsec, ev->id);
+#endif
 }
 
 static struct event *find_event(unsigned int sec, unsigned int nsec)
@@ -723,7 +726,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
 #ifdef TRACE
             printf("%08x:%08x S%d -> event %d\n", sec, nsec, id, ev->id);
 #endif
-            if (ev->valid && ++ev->synccnt == syncsrc && ev->asynccnt == asyncsrc) {
+            if (ev->valid && ++ev->synccnt == syncsrc) {
                 send_prior_events(ev);
             }
         } else {
@@ -760,11 +763,10 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
 #ifdef TRACE
             printf("                  event %d\n", cur->id);
 #endif
-            cur->data[id] = s->val;
-            cur->ref[id]  = s->ref;
-            (*s->ref)++;
-            if (cur->valid && ++cur->asynccnt == asyncsrc && cur->synccnt == syncsrc) {
-                send_prior_events(cur);
+            if (cur->valid) {
+                cur->data[id] = s->val;
+                cur->ref[id]  = s->ref;
+                (*s->ref)++;
             }
             cur = cur->next;
         }
