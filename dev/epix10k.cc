@@ -177,7 +177,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: epix10k [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-r <runTimeConfigName>] [-D <debug>] [-P <pgpcardNumb> -p <platform>\n"
+  printf( "Usage: epix10k [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-m <bool>] [-r <runTimeConfigName>] [-D <debug>] [-P <pgpcardNumb> -p <platform>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
@@ -185,6 +185,7 @@ void printUsage(char* s) {
       "    -P      Set pgpcard index number  [Default: 0]\n"
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
+      "    -m <B>  Set flag to maintain or not maintain lost run triggers (turn off for slow running\n"
       "    -r      set run time config file name\n"
       "                The format of the file consists of lines: 'Dest Addr Data'\n"
       "                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
@@ -209,11 +210,11 @@ int main( int argc, char** argv )
   int                 deviceId            = 0;
   unsigned            platform            = 0;
   bool                platformEntered     = false;
-  unsigned            mask                = 0;
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
   unsigned            eventDepth          = 128;
   unsigned            resetOnEverConfig   = 0;
+  bool                maintainRunTrig     = false;
   char                runTimeConfigname[256] = {""};
   ::signal( SIGINT, sigHandler );
 
@@ -247,9 +248,6 @@ int main( int argc, char** argv )
          case 'i':
            deviceId = strtoul(optarg, NULL, 0);
             break;
-         case 'm':
-           mask = strtoul(optarg, NULL, 0);
-           break;
          case 'P':
            pgpcard = strtoul(optarg, NULL, 0);
            break;
@@ -262,6 +260,10 @@ int main( int argc, char** argv )
            break;
          case 'r':
            strcpy(runTimeConfigname, optarg);
+           break;
+         case 'm':
+           maintainRunTrig = strtoul(optarg, NULL, 0);
+           printf("Setting maintain run trigger to %s\n", maintainRunTrig ? "true" : "false");
            break;
          case 'D':
            debug = strtoul(optarg, NULL, 0);
@@ -302,10 +304,11 @@ int main( int argc, char** argv )
    printf("making cfgService\n");
    cfgService = new CfgClientNfs(detInfo);
    printf("making Epix10kServer\n");
-   epix10kServer = new Epix10kServer(detInfo, mask);
+   epix10kServer = new Epix10kServer(detInfo, 0);
    printf("Epix10k will reset on %s configuration\n", resetOnEverConfig ? "every" : "only the first");
    epix10kServer->resetOnEveryConfig(resetOnEverConfig);
    epix10kServer->runTimeConfigName(runTimeConfigname);
+   epix10kServer->maintainLostRunTrigger(maintainRunTrig);
    printf("setting Epix10kServer debug level\n");
    epix10kServer->debug(debug);
 
