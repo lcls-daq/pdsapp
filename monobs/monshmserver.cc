@@ -6,7 +6,6 @@
 #include "pds/management/EventCallback.hh"
 #include "pds/management/ObserverLevel.hh"
 #include "pds/utility/SetOfStreams.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/service/GenericPool.hh"
 
 #include "pds/utility/InletWireServer.hh"
@@ -14,6 +13,7 @@
 #include "pds/utility/NetDgServer.hh"
 #include "pds/service/Ins.hh"
 #include "pds/service/Sockaddr.hh"
+#include "pds/xtc/CDatagram.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
@@ -117,13 +117,11 @@ public:
                     int numberofEvBuffers,
                     unsigned numberofEvQueues) :
     XtcMonitorServer(tag, sizeofBuffers, numberofEvBuffers, numberofEvQueues),
-    _pool           (new GenericPool(sizeof(ZcpDatagramIterator),2)),
     _upool          (new GenericPool(sizeof(CDatagram),1))
   {
   }
   ~LiveMonitorServer()
   {
-    delete _pool;
     delete _upool;
   }
 
@@ -159,7 +157,6 @@ private:
   void _copyDatagram(Dgram* dg, char* b)
   {
     Datagram& dgrm = *reinterpret_cast<Datagram*>(dg);
-    InDatagram* indg = static_cast<InDatagram*>(&dgrm);
 
     PnccdShuffle::shuffle(dgrm);
     CspadShuffle::shuffle(reinterpret_cast<Dgram&>(dgrm));
@@ -167,9 +164,7 @@ private:
     //  write the datagram
     memcpy(b, &dgrm, sizeof(Datagram));
     //  write the payload
-    InDatagramIterator& iter = *indg->iterator(_pool);
-    iter.copy(b+sizeof(Datagram), dgrm.xtc.sizeofPayload());
-    delete &iter;
+    memcpy(b+sizeof(Datagram), dgrm.xtc.payload(), dgrm.xtc.sizeofPayload());
   }
 
   void _deleteDatagram(Dgram* dg)
@@ -179,7 +174,6 @@ private:
     delete indg;
   }
 private:
-  Pool* _pool;
   Pool* _upool;
 };
 
