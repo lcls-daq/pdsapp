@@ -25,6 +25,10 @@ namespace PdsUser {
   public:
     //  360 Hz globally distributed counter
     unsigned fiducials() const { return high&0x1ffff; }
+    unsigned ticks    () const { return low &0xffffff; }
+    unsigned vector   () const { return (high &0xfffe0000) >> 17; }
+    unsigned control  () const { return (low &0xff000000)  >> 24; }
+    unsigned numcmds  () const { return ncmds; }
     bool     is_event () const { return ((low>>24)&0xf) == 0xc; }
   public:
     uint32_t    nanoseconds;  // event time
@@ -76,17 +80,19 @@ static unsigned parse_interface(const char* interfaceString) {
 
 static void showUsage(const char* s)
 {
-  printf( "Usage:  %s  -a <Multicast Address> -p <Port> -i <Interface Name/IP>\n",s);
+  printf( "Usage:  %s  -a <Multicast Address> -p <Port> -i <Interface Name/IP> -d <debug type>\n",s);
+  printf( "  Debug type:  0: No Debug, 1: Debug duplcated clocktime\n");
 }
 
 int main(int argc, char** argv)
 {
-  unsigned      mcast_addr=0;
-  unsigned      mcast_interface=0;
-  unsigned      mcast_port=0;
+  unsigned      mcast_addr      = 0;
+  unsigned      mcast_interface = 0;
+  unsigned      mcast_port      = 0;
+  int           debugType       = 0;
 
   char opt;
-  while ( (opt = getopt(argc, argv, "a:i:p:h"))!=-1 ) {
+  while ( (opt = getopt(argc, argv, "a:i:p:d:h"))!=-1 ) {
     switch(opt) {
     case 'a':
       mcast_addr = ntohl(inet_addr(optarg));
@@ -96,6 +102,9 @@ int main(int argc, char** argv)
       break;
     case 'p':
       mcast_port = strtoul(optarg, NULL, 0);
+      break;
+    case 'd':
+      debugType  = strtol(optarg, NULL, 0);
       break;
     case 'h':
       showUsage(argv[0]);
@@ -163,17 +172,63 @@ int main(int argc, char** argv)
   pfd[0].revents = 0;
   int nfds = 1;
 
-  printf("%6.6s  %6.6s  %9.9s.%9.9s %9.9s\n",
-   "count","fiduc","seconds","nseconds","is_event");
+  unsigned prevEvr     = 0;
+  unsigned prevSeconds = 0;
+  unsigned prevNanoSec = 0;
+  unsigned prevFid     = 0;
+  unsigned prevTicks   = 0;
+  unsigned prevVector  = 0;
+  unsigned prevCntl    = 0;
+  unsigned prevDupFid  = 0;
+  unsigned prevDupEvr  = 0;
+  unsigned prevDupEvrDiff = 0;
+  unsigned numDup      = 0;
+
+  if (debugType == 0)
+    printf("%6.6s  %6.6s  %6.6s  %9.9s.%9.9s   %6s   %3s %3s  %-9s\n",
+    "count","fiduc","ticks","seconds","nseconds","vector","ctl","cmd","is_event");
+  else if (debugType == 1) {
+  }
 
   while(1) {
     if (::poll(pfd, nfds, 1000) > 0) {
       if (pfd[0].revents & (POLLIN|POLLERR)) {
         while (recvfrom(pfd[0].fd, buff, len, MSG_DONTWAIT, (sockaddr*)&sa, &sa_len)>0) {
           const PdsUser::EvrDatagram& dg = *reinterpret_cast<const PdsUser::EvrDatagram*>(buff);
-    printf("%06d  %06d  %09d.%09d    %c\n",
-     dg.evr, dg.fiducials(), dg.seconds, dg.nanoseconds,
-                 dg.is_event()?'*':' ');
+
+          if (debugType == 0)
+            printf("%06x  %06x  %06x  %09d.%09d  %06x  %3x %3d   %c\n",
+              dg.evr, dg.fiducials(), dg.ticks(), dg.seconds, dg.nanoseconds, dg.vector(), dg.control(), dg.numcmds(), dg.is_event()?'*':' ');
+          else if (debugType == 1) {
+            if (dg.seconds == prevSeconds && dg.nanoseconds == prevNanoSec){
+              ++numDup;
+
+              if (prevEvr - prevDupEvr != prevDupEvrDiff)
+                printf("                                         \nDuplicated clocktime [%d]:\n"
+                  "    Diff from prev dup  evr %02d (prev %02d)  fiducial %02x\n"
+                  "    Prev evr %06x clocktime %09d.%09d fid %06x/%06x vector %06x ctl %02x\n"
+                  "    Cur  evr %06x clocktime %09d.%09d fid %06x/%06x vector %06x ctl %02x\n",
+                  numDup,
+                  prevEvr - prevDupEvr, prevDupEvrDiff, prevFid - prevDupFid,
+                  prevEvr, prevSeconds, prevNanoSec, prevFid, prevTicks, prevVector, prevCntl,
+                  dg.evr, dg.seconds, dg.nanoseconds, dg.fiducials(), dg.ticks(), dg.vector(), dg.control() );
+              else
+                printf("Duplicated clocktime [%d]\r", numDup);
+
+              prevDupEvrDiff = prevEvr - prevDupEvr;
+              prevDupFid     = prevFid;
+              prevDupEvr     = prevEvr;
+            }
+
+            prevEvr     = dg.evr;
+            prevSeconds = dg.seconds;
+            prevNanoSec = dg.nanoseconds;
+            prevFid     = dg.fiducials();
+            prevTicks   = dg.ticks();
+            prevVector  = dg.vector();
+            prevCntl    = dg.control();
+          }
+
         }
         pfd[0].revents = 0;
       }

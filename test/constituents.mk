@@ -3,7 +3,7 @@ libnames :=
 libsrcs_test :=
 
 
-tgtnames := andorStandAlone timestampReceiver sqlDbTest
+tgtnames := andorStandAlone timestampReceiver sqlDbTest timerResolution
 ifneq ($(findstring i386-linux,$(tgt_arch)),)
 tgtnames += princetonCameraTest
 endif
@@ -28,3 +28,7 @@ tgtlibs_sqlDbTest += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/uti
 tgtlibs_sqlDbTest += pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 tgtlibs_sqlDbTest += pdsapp/configdb
 tgtslib_sqlDbTest := rt
+
+tgtsrcs_timerResolution := timerResolution.cc
+tgtlibs_timerResolution :=
+tgtslib_timerResolution := dl pthread rt
