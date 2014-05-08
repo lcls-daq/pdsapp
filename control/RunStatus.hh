@@ -11,6 +11,7 @@ class QPushButton;
 class QPalette;
 
 namespace Pds {
+  class IocControl;
   class PartitionControl;
   class PartitionSelect;
   class QCounter;
@@ -23,7 +24,7 @@ namespace Pds {
                     public PdsClient::XtcIterator {
     Q_OBJECT
   public:
-    RunStatus(QWidget*, PartitionControl&, PartitionSelect&);
+    RunStatus(QWidget*, PartitionControl&, IocControl&, PartitionSelect&);
     ~RunStatus();
   public:
     virtual Transition* transitions(Transition*);
@@ -58,6 +59,7 @@ namespace Pds {
     QCounter* _bytes;
     L3TStats* _l3t;
     PartitionControl& _pcontrol;
+    IocControl&       _icontrol;
     PartitionSelect& _partition;
     QPushButton* _detailsB;
     DamageStats* _details;

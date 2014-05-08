@@ -71,7 +71,8 @@ using namespace Pds;
 
 RunStatus::RunStatus(QWidget* parent, 
                      PartitionControl& pcontrol,
-                     PartitionSelect& partition) :
+                     IocControl&       icontrol,
+                     PartitionSelect&  partition) :
   QGroupBox("Run Statistics",parent),
   _task    (new Task(TaskObject("runsta"))),
   _pool    (sizeof(CDatagramIterator),1),
@@ -80,6 +81,7 @@ RunStatus::RunStatus(QWidget* parent,
   _damaged (new QCounter),
   _bytes   (new QCounter),
   _pcontrol (pcontrol ),
+  _icontrol (icontrol ),
   _partition(partition),
   _details (0),
   _alarm   (false),
@@ -169,7 +171,7 @@ void RunStatus::reset()
   else {
     _detailsB->setEnabled(true);
   }
-  _details = new DamageStats(_partition,_pcontrol);
+  _details = new DamageStats(_partition,_pcontrol,_icontrol);
 
   QObject::connect(_detailsB, SIGNAL(clicked()), _details, SLOT(show()));
   QObject::connect(this, SIGNAL(changed()), _details, SLOT(update_stats()));

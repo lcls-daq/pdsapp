@@ -7,7 +7,7 @@ namespace Pds {
     QCounter() : _widget(new QLabel(0)), _count(0) {}
     ~QCounter() {}
   public:
-    QWidget* widget() const { return _widget; }
+    QLabel* widget() const { return _widget; }
   public:
     unsigned long long value() const { return _count; }
     void reset    () { _count=0; }
@@ -15,6 +15,7 @@ namespace Pds {
     void decrement() { _count--; }
     void increment(unsigned n) { _count+=n; }
     void insert   (unsigned n) { _count|=n; }
+    void insert   (unsigned n, unsigned d) { _count=n; _count<<=32; _count|=d; }
     void update_bytes() { 
       unsigned long long c = _count;
       QString unit;
@@ -27,6 +28,7 @@ namespace Pds {
     void update_count() { _widget->setText(QString::number(_count)); }
     void update_time () { _widget->setText(QString("%1:%2:%3").arg(_count/3600).arg((_count%3600)/60).arg(_count%60)); }
     void update_mask () { _widget->setText(QString::number(_count,0x10)); }
+    void update_frac () { _widget->setText(QString("%1/%2").arg(QString::number(_count>>32)).arg(QString::number(_count&0xffffffff))); }
     unsigned long long get_count() { return _count; }
   private:
     QLabel* _widget;

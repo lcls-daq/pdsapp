@@ -10,6 +10,7 @@ namespace Pds {
   class InDatagramIterator;
   class PartitionSelect;
   class PartitionControl;
+  class IocControl;
   class QCounter;
   namespace SummaryDg { class Xtc; }
 
@@ -17,7 +18,8 @@ namespace Pds {
     Q_OBJECT
   public:
     DamageStats(PartitionSelect&,
-                const PartitionControl&);
+                const PartitionControl&,
+                const IocControl&);
     ~DamageStats();
   public:
     void  increment(const SummaryDg::Xtc&);
@@ -27,6 +29,7 @@ namespace Pds {
   private:
     PartitionSelect& _partition;
     const PartitionControl& _pcontrol;
+    const IocControl&       _icontrol;
     QList<Src>       _segments;
     QList<QCounter*> _counts;
   };

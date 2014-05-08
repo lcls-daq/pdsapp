@@ -4,6 +4,8 @@
 #include "pdsapp/control/PartitionSelect.hh"
 #include "pds/xtc/SummaryDg.hh"
 #include "pds/management/PartitionControl.hh"
+#include "pds/ioc/IocControl.hh"
+#include "pds/ioc/IocNode.hh"
 #include "pdsdata/psddl/alias.ddl.h"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
@@ -25,10 +27,12 @@ static inline bool matches(const Src& a, const Src& b)
 }
 
 DamageStats::DamageStats(PartitionSelect& partition,
-                         const PartitionControl& pcontrol) :
+                         const PartitionControl& pcontrol,
+                         const IocControl&       icontrol) :
   QWidget(0),
   _partition(partition),
-  _pcontrol (pcontrol )
+  _pcontrol (pcontrol ),
+  _icontrol (icontrol )
 {
   setWindowTitle("Damage Stats");
 
@@ -80,6 +84,18 @@ DamageStats::DamageStats(PartitionSelect& partition,
     _segments << EBeamBPM;
     row++;
   }
+  for(std::list<IocNode*>::const_iterator it=icontrol.selected().begin();
+      it!=icontrol.selected().end(); it++) {
+    const IocNode* node = *it;
+    l->addWidget(new QLabel(node->alias() ? node->alias() :
+                            DetInfo::name(static_cast<const DetInfo&>(node->src()))),
+                 row, 0, Qt::AlignRight);
+    QCounter* cnt = new QCounter;
+    l->addWidget(cnt->widget(),row,1,Qt::AlignRight);
+    _counts   << cnt;
+    _segments << node->src();
+  }
+
   setLayout(l);
 
   update_stats();
@@ -122,8 +138,17 @@ void DamageStats::increment(const SummaryDg::Xtc& xtc)
 
 void DamageStats::update_stats()
 {
-  foreach(QCounter* cnt, _counts) {
-    cnt->update_count();
+  unsigned niocs = _icontrol.selected().size();
+  unsigned i=0;
+  while(i<_counts.size()-niocs)
+    _counts.at(i++)->update_count();
+
+  for(std::list<IocNode*>::const_iterator it=_icontrol.selected().begin();
+      it!=_icontrol.selected().end(); it++,i++) {
+    const IocNode* node = *it;
+    QCounter* cnt = _counts.at(i);
+    cnt->insert(node->damaged(), node->events());
+    cnt->update_frac ();
   }
 }
 
@@ -152,5 +177,13 @@ void DamageStats::dump() const
     //
     printf("%20.20s.%08x: %lld\n", "EBeam Low Curr", EBeamBPM.phy(), _counts.at(row)->value());
     row++;
+  }
+  for(std::list<IocNode*>::const_iterator it=_icontrol.selected().begin();
+      it!=_icontrol.selected().end(); it++,row++) {
+    const IocNode* node = *it;
+    printf("%32.32s.%08x: %s\n", 
+           node->alias() ? node->alias() : DetInfo::name(static_cast<const DetInfo&>(node->src())),
+           node->src().phy(),
+           qPrintable(_counts.at(row)->widget()->text()));
   }
 }
