@@ -86,9 +86,6 @@ tgtlibs_xtccompress += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/u
 tgtlibs_xtccompress += pds/clientcompress pds/pnccdFrameV0 pds/vmon pds/management
 tgtslib_xtccompress := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread 
 tgtincs_xtccompress := pdsdata/include ndarray/include boost/include 
-#CPPFLAGS += -fno-strict-aliasing
-CPPFLAGS += -fopenmp
-DEFINES += -fopenmp
 
 tgtsrcs_pgpwidget := pgpWidget.cc
 tgtlibs_pgpwidget := pds/pgp pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -111,7 +108,7 @@ tgtincs_xtccamfix := pdsdata/include
 
 tgtsrcs_compressstat := compressstat.cc
 tgtlibs_compressstat := pdsdata/xtcdata pdsdata/compressdata pdsdata/anadata pdsdata/indexdata
-#tgtslib_compressstat := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread 
+tgtslib_compressstat := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread 
 tgtincs_compressstat := pdsdata/include boost/include
 
 tgtsrcs_fccdmonserver := fccdmonserver.cc
@@ -119,3 +116,14 @@ tgtlibs_fccdmonserver := pds/service pds/collection pds/xtc pds/mon pds/vmon pds
 tgtlibs_fccdmonserver += pdsdata/xtcdata pdsdata/compressdata pdsdata/appdata pdsdata/psddl_pdsdata
 tgtslib_fccdmonserver := ${USRLIBDIR}/rt
 tgtincs_fccdmonserver := pdsdata/include boost/include ndarray/include
+
+tgtsrcs_epixbintoxtc := epixbintoxtc.cc
+tgtlibs_epixbintoxtc := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
+tgtlibs_epixbintoxtc += pdsdata/xtcdata pdsdata/compressdata pdsdata/psddl_pdsdata
+tgtslib_epixbintoxtc := ${USRLIBDIR}/rt
+tgtincs_epixbintoxtc := pdsdata/include boost/include ndarray/include
+
+tgtsrcs_netlink := netlink.cc
+tgtlibs_netlink := pds/collection pds/service pdsdata/xtcdata
+tgtslib_netlink := ${USRLIBDIR}/rt
+tgtincs_netlink := 
