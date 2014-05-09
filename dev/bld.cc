@@ -62,7 +62,7 @@
 
 typedef Pds::Bld::BldDataEBeamV5 BldDataEBeam;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
-typedef Pds::Bld::BldDataGMDV1 BldDataGMD;
+typedef Pds::Bld::BldDataGMDV2 BldDataGMD;
 typedef Pds::Bld::BldDataSpectrometerV0 BldDataSpectrometer;
 //    typedef BldDataAcqADCV1 BldDataAcqADC;
 using Pds::Bld::BldDataPhaseCavity;
@@ -77,7 +77,7 @@ static const unsigned eb_depth = 32;
 #endif
 static const unsigned net_buf_depth = 16;
 static const unsigned EvrBufferDepth = 32;
-static const unsigned AppBufferDepth = eb_depth + 16;  // Handle 
+static const unsigned AppBufferDepth = eb_depth + 16;  // Handle
 static const char _tc_init[] = { 0*1024 };
 static const FrameFexConfigType _frameFexConfig(FrameFexConfigType::FullFrame, 1,
                                                 FrameFexConfigType::NoProcessing,
@@ -114,7 +114,7 @@ namespace Pds {
       }
       return _map[key].payload;
     }
-    
+
     void update(const Xtc& tc, const char* payload, unsigned len) {
       uint64_t key = tc.contains.value();
       key = (key<<32) | tc.src.phy();
@@ -263,7 +263,7 @@ namespace Pds {
     case TypeId::Id_##id:                                               \
     if (_require(*xtc,*reinterpret_cast<const id##Type*>(xtc->payload()))) \
       _dg->insert(*xtc,xtc->payload());                                 \
-        break; 
+        break;
 
     int process(Xtc* xtc) {
       //  Change the Src process ID to this one
@@ -833,12 +833,12 @@ namespace Pds {
       for (unsigned n = 0; n < nnodes; n++) {
         const Node & node = *alloc.node(n);
         if (node.level() == Level::Segment &&
-	    node == _header) {
-	  _contains = node.transient()?_transientXtcType:_xtcType;  // transitions
-	  static_cast<EbBase&>(inlet).contains(_contains);  // l1accepts
-	}
+      node == _header) {
+    _contains = node.transient()?_transientXtcType:_xtcType;  // transitions
+    static_cast<EbBase&>(inlet).contains(_contains);  // l1accepts
+  }
       }
-	  
+
       for (unsigned n = 0; n < nnodes; n++) {
         const Node & node = *alloc.node(n);
         if (node.level() == Level::Segment) {
@@ -863,11 +863,11 @@ namespace Pds {
           Node node(Level::Reporter, 0);
           node.fixup(StreamPorts::bld(i).address(),Ether());
           Ins ins( node.ip(), StreamPorts::bld(0).portId());
-	  BldServer* srv;
-	  if (bldmaskt & (1ULL<<i))
-	    srv = new BldServerTransient(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
-	  else
-	    srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
+    BldServer* srv;
+    if (bldmaskt & (1ULL<<i))
+      srv = new BldServerTransient(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
+    else
+      srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
           inlet.add_input(srv);
           _inputs.push_back(srv);
           srv->server().join(ins, header().ip());
