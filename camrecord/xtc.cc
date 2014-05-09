@@ -1,6 +1,5 @@
 #define EXACT_TS_MATCH       0
 #define FIDUCIAL_MATCH       1
-#define APPROXIMATE_MATCH    2
 #define MATCH_TYPE           FIDUCIAL_MATCH
 //#define TRACE
 #include<stdio.h>
@@ -101,6 +100,7 @@ static struct event {
     int    valid;
     int    critcnt;               // How many critical sources do we have?
     int    synccnt;               // How many synchronous sources do we have?
+    int    damcnt;                // How many damaged synchronous sources do we have?
     unsigned int sec, nsec;       // Timestamp of this event.
     unsigned char **data;         // Array of numsrc data records.
     int  **ref;                   // An array of reference counts for asynchronous data.
@@ -155,8 +155,10 @@ void debug_list(struct event *ev)
 {
     struct event *e = ev;
 
+    printf("List starting with %d:\n", ev->id);
     do {
-        printf("%2d: %08x:%08x\n", e->id, e->sec, e->nsec);
+        if (e->valid)
+            printf("    %2d: %08x:%08x\n", e->id, e->sec, e->nsec);
         e = e->next;
     } while (e != ev);
 }
@@ -172,6 +174,9 @@ int length_list(struct event *ev)
     return i;
 }
 
+/*
+ * Return 0 if equal, > 0 if event time > given time, < 0 if event time < given time.
+ */
 static int ts_match(struct event *_ev, int _sec, int _nsec)
 {
 #if MATCH_TYPE == EXACT_TS_MATCH
@@ -186,12 +191,6 @@ static int ts_match(struct event *_ev, int _sec, int _nsec)
         return (0x1ffff & (int)_ev->nsec) - (0x1ffff & _nsec);
     else
         return diff;
-#endif
-
-#if MATCH_TYPE == APPROXIMATE_MATCH
-    /* Come within 6ms */
-    double diff = (double)((int)(_ev->sec - _sec)) + ((double)(int)(_ev->nsec - _nsec))*1.0e-9;
-    return (fabs(diff) < 6.0e-3) ? 0 : ((diff < 0) ? -1 : 0);
 #endif
 }
 
@@ -325,6 +324,7 @@ void initialize_xtc(char *outfile)
         events[i].valid = 0;
         events[i].critcnt = 0;
         events[i].synccnt = 0;
+        events[i].damcnt = 0;
         events[i].sec = 0;
         events[i].nsec = 0;
         events[i].data = (unsigned char **) calloc(numsrc, sizeof(char *));
@@ -407,6 +407,9 @@ void register_alias(std::string name, DetInfo &sourceInfo)
  */
 void configure_xtc(int id, char *xtc, int size, unsigned int secs, unsigned int nsecs)
 {
+#ifdef TRACE
+    printf("%08x:%08x C %d\n", secs, nsecs, id);
+#endif
     src[id]->cnt++;
     src[id]->val = new unsigned char[size];
     src[id]->len = size;
@@ -438,9 +441,9 @@ static void reset_event(struct event *ev)
 #endif
     for (i = 0; i < numsrc; i++) {
         if (ev->data[i]) {
-            if (!ev->ref[i])
+            if (!ev->ref[i])              // Synchronous!
                 delete ev->data[i];
-            else if (!--(*ev->ref[i])) {
+            else if (!--(*ev->ref[i])) {  // Asynchronous, and no more refs!
                 delete ev->ref[i];
                 ev->ref[i] = NULL;
                 delete ev->data[i];
@@ -450,6 +453,7 @@ static void reset_event(struct event *ev)
     }
     ev->critcnt = 0;
     ev->synccnt = 0;
+    ev->damcnt = 0;
     ev->valid = 0;
 }
 
@@ -559,26 +563,6 @@ void send_event(struct event *ev)
     }
 }
 
-void send_prior_events(struct event *ev)
-{
-    struct event *cur = evlist;
-#ifdef TRACE
-    printf("%08x:%08x PS event %d\n", ev->sec, ev->nsec, ev->id);
-#endif
-    while (cur != ev) {
-        if (cur->valid) {
-            send_event(cur);
-            reset_event(cur);
-        }
-        cur = cur->next;
-    }
-    send_event(ev);
-    reset_event(ev);
-#ifdef TRACE
-    printf("%08x:%08x PD event %d\n", ev->sec, ev->nsec, ev->id);
-#endif
-}
-
 static struct event *find_event(unsigned int sec, unsigned int nsec)
 {
     struct event *ev;
@@ -630,6 +614,14 @@ static struct event *find_event(unsigned int sec, unsigned int nsec)
         ev->next->prev = tmp;
         tmp->prev = ev;
         ev->next = tmp;
+#ifdef TRACE
+        printf("%08x:%08x event %d moved after %08x:%08x event %d\n",
+               sec, nsec, tmp->id, ev->sec, ev->nsec, ev->id);
+        tmp->sec = sec;
+        tmp->nsec = nsec;
+        tmp->valid = 1;
+        debug_list(evlist);
+#endif
 
         /* Let ev point to the new element. */
         ev = tmp;
@@ -637,6 +629,10 @@ static struct event *find_event(unsigned int sec, unsigned int nsec)
     ev->sec = sec;
     ev->nsec = nsec;
     ev->valid = 1;
+    for (int i = 0; i < numsrc; i++) {
+        if (src[i]->sync && src[i]->ev && ts_match(src[i]->ev, sec, nsec) > 0)
+            ev->damcnt++;
+    }
     if (length_list(evlist) != MAX_EVENTS) {
         printf("OOPS! length=%d\n", length_list(evlist));
         debug_list(evlist);
@@ -652,7 +648,7 @@ static struct event *find_event(unsigned int sec, unsigned int nsec)
 void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hdrlen, void *data)
 {
     xtcsrc *s = src[id];
-    struct event *ev;
+    struct event *ev, *cur;
 
     s->cnt++;
     /*
@@ -718,69 +714,83 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
         delete buf;
         return;
     }
+    if (ev->data[id]) {
+        /* Duplicate data.  This is *not* good. */
+#if 0
+        printf("%08x:%08x S%d -> DUPLICATE event %d\n", sec, nsec, id, ev->id);
+        printf("OLD: %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\n",
+               ev->data[id][0], ev->data[id][1], ev->data[id][2], ev->data[id][3], 
+               ev->data[id][4], ev->data[id][5], ev->data[id][6], ev->data[id][7],
+               ev->data[id][8], ev->data[id][9], ev->data[id][10], ev->data[id][11], 
+               ev->data[id][12], ev->data[id][13], ev->data[id][14], ev->data[id][15]);
+        printf("NEW: %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\n",
+               buf[0], buf[1], buf[2], buf[3], 
+               buf[4], buf[5], buf[6], buf[7],
+               buf[8], buf[9], buf[10], buf[11], 
+               buf[12], buf[13], buf[14], buf[15]);
+#endif
+        delete buf;
+        return;
+    }
+
     if (s->critical)
         ev->critcnt++;
-    if (s->sync) {
-        if (!ev->data[id]) {
-            ev->data[id] = buf;
-#ifdef TRACE
-            printf("%08x:%08x S%d -> event %d\n", sec, nsec, id, ev->id);
-#endif
-            if (ev->valid && ++ev->synccnt == syncsrc) {
-                send_prior_events(ev);
-            }
-        } else {
-            /* This is *not* good! */
-#if 0
-            printf("%08x:%08x S%d -> DUPLICATE event %d\n", sec, nsec, id, ev->id);
-            printf("OLD: %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\n",
-                   ev->data[id][0], ev->data[id][1], ev->data[id][2], ev->data[id][3], 
-                   ev->data[id][4], ev->data[id][5], ev->data[id][6], ev->data[id][7],
-                   ev->data[id][8], ev->data[id][9], ev->data[id][10], ev->data[id][11], 
-                   ev->data[id][12], ev->data[id][13], ev->data[id][14], ev->data[id][15]);
-            printf("NEW: %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\n",
-                   buf[0], buf[1], buf[2], buf[3], 
-                   buf[4], buf[5], buf[6], buf[7],
-                   buf[8], buf[9], buf[10], buf[11], 
-                   buf[12], buf[13], buf[14], buf[15]);
-#endif
-            delete buf;
-        }
-    } else {
-        struct event *cur = s->ev;
 
-        /*
-         * If the event associated with the data doesn't have the same timestamp, we must have
-         * reused it.  In this case, we can start with the oldest!
-         */
-        if (cur->sec != s->sec || cur->nsec != s->nsec)
-            cur = evlist;
+    /*
+     * If the event associated with the data doesn't have the same timestamp, we must have
+     * reused it.  In this case, we can start with the oldest!
+     */
+    cur = s->ev;
+    if (!cur || cur->sec != s->sec || cur->nsec != s->nsec)
+        cur = evlist;
+    else
+        cur = cur->next;
 #ifdef TRACE
-        printf("%08x:%08x A%d -> event %d\n", sec, nsec, id, ev->id);
+    printf("%08x:%08x %c%d -> event %d (%d, %d)\n", 
+           sec, nsec, s->sync ? 'S' : 'A', id, 
+           ev->id, ev->synccnt, ev->damcnt);
 #endif
 
-        while (cur != ev) {
+    /* Iterate over all events from the last time we received this source until now. */
+    while (cur != ev) {
+        if (cur->valid) {
 #ifdef TRACE
             printf("                  event %d\n", cur->id);
 #endif
-            if (cur->valid) {
+            if (s->sync) {  // Synchronous -> call anything missing damage!
+                if (++cur->damcnt + cur->synccnt == syncsrc) {
+                    send_event(cur);
+                    reset_event(cur);
+                }
+            } else {        // Asynchronous -> fill in with the previous data!
                 cur->data[id] = s->val;
                 cur->ref[id]  = s->ref;
                 (*s->ref)++;
             }
-            cur = cur->next;
         }
+        cur = cur->next;
+    }
+
+    ev->data[id] = buf;
+    if (s->sync) {          // Synchronous -> count one more piece of data.
+        if (ev->damcnt + ++ev->synccnt == syncsrc) {
+            send_event(ev);
+            reset_event(ev);
+        }
+    } else {                // Asynchronous -> save it to fill in set ref counts.
         if (!--(*s->ref)) {
             delete s->val;
             delete s->ref;
         }
         s->val = buf;
-        s->sec = sec;
-        s->nsec = nsec;
         s->ref = new int;
         *(s->ref) = 1;
-        s->ev = ev;
+        cur->ref[id] = s->ref;
+        (*s->ref)++;
     }
+    s->sec = sec;
+    s->nsec = nsec;
+    s->ev = ev;
 }
 
 void cleanup_xtc(void)
