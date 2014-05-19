@@ -60,6 +60,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+//#define DBUG
+
 typedef Pds::Bld::BldDataEBeamV5 BldDataEBeam;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV2 BldDataGMD;
@@ -675,9 +677,14 @@ namespace Pds {
     ~BldEvBuilder() {}
   public:
     int processIo(Server* s) { EbS::processIo(s); return 1; }
+    int processTmo() { 
+      EbBase::processTmo(); 
+      arm(managed()); 
+      return 1; 
+    }
     int poll() {
       if(!ServerManager::poll()) return 0;
-      if(active().isZero()) ServerManager::arm(managed());
+      ServerManager::arm(managed());
       return 1;
     }
   private:
@@ -920,6 +927,20 @@ namespace Pds {
 
       static_cast <InletWireServer*>(_streams->wire())->remove_outputs();
     }
+  private:
+#ifdef DBUG
+    void post(const Transition& tr) {
+      printf("Transition %s\n");
+      static_cast<InletWireServer*>(_streams->wire(StreamParams::FrameWork))->dump();
+
+      //      SegmentLevel::post(tr);
+      if (tr.id()!=TransitionId::L1Accept) {
+        _streams->wire(StreamParams::FrameWork)->flush_inputs();
+        _streams->wire(StreamParams::FrameWork)->flush_outputs();
+      }
+      _streams->wire(StreamParams::FrameWork)->post(tr);
+    }
+#endif
 
   private:
     std::list<Server*> _inputs;
