@@ -41,8 +41,6 @@ MyTab::MyTab( const MonGroup& group,
 void MyTab::insert(const MonGroup& group,
                    unsigned        icolor)
 {
-  printf("MyTab::insert %s %d\n",group.desc().name(),icolor);
-
   for(unsigned i = 0; i < group.nentries(); i++) {
     const MonEntry& entry = *group.entry(i);
     MonCanvas* canvas = MonConsumerFactory::create(*this,

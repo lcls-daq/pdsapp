@@ -106,7 +106,13 @@ void VmonReaderTreeMenu::set_tree(QAbstractButton* b)
   for(unsigned i=0; i<_reader->sources().size(); i++) {
     const Src& src = _reader->sources()[i];
     const MonCds& cds = *_reader->cds(src);
-    _tabs.setup(cds,i+1);
+    unsigned j=1;
+    QList<QAbstractButton*> l = _client_bg->buttons();
+    for(QList<QAbstractButton*>::iterator it=l.begin()+1; it!=l.end(); it++,j++)
+      if ((*it)->text() == QString(cds.desc().name())) {
+        _tabs.setup(cds,j);
+        break;
+      }
   }
 }
 
