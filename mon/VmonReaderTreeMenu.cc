@@ -93,7 +93,7 @@ VmonReaderTreeMenu::~VmonReaderTreeMenu()
 void VmonReaderTreeMenu::set_tree(QAbstractButton* b)
 {
   _tabs.clear();
-  const QString& name = _client_bg->checkedButton()->text();
+  const QString& name = b->text();
   for(unsigned i=0; i<_reader->sources().size(); i++) {
     const Src& src = _reader->sources()[i];
     const MonCds& cds = *_reader->cds(src);

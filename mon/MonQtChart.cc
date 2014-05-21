@@ -129,6 +129,7 @@ void MonQtChart::params(unsigned nl, const char* names)
   }
   delete[] snames;
   _nfill = 0;
+  _current = 0;
 }
 
 void MonQtChart::params(const MonDescProf& desc)
@@ -187,7 +188,10 @@ void MonQtChart::points(unsigned np)
 	}
       }
 
-    _current = (np < _npoints) ? 0 : _current;
+    if (np < _npoints) {
+      _current = 0;
+      _nfill = 0;
+    }
     _npoints = np;
 
     // Delete old arrays
