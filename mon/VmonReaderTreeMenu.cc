@@ -174,16 +174,17 @@ void VmonReaderTreeMenu::browse()
 {
   QString fname = QFileDialog::getOpenFileName(this,"Vmon Archive (.dat)",
 					       _path, "vmon_*.dat");
-
-  int index = _recent->findText(fname);
-  if (index >= 0) 
-    select(index);
-  else {
-    _recent->insertItem(0,fname);
-    int n = _recent->count();
-    while( n > 5 )
-      _recent->removeItem(--n);
-    preface();
+  if (!fname.isEmpty()) {
+    int index = _recent->findText(fname);
+    if (index >= 0) 
+      select(index);
+    else {
+      _recent->insertItem(0,fname);
+      int n = _recent->count();
+      while( n > 5 )
+        _recent->removeItem(--n);
+      preface();
+    }
   }
 }
 
