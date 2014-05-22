@@ -24,6 +24,7 @@ namespace Pds {
     void configure(const Pds::ProcInfo&  src,
                    const Pds::TypeId&    type,
                    void*                 payload) {}
+    void pre_event();
     void event    (const Pds::DetInfo&   src,
                    const Pds::TypeId&    type,
                    void*                 payload);
@@ -39,7 +40,7 @@ namespace Pds {
     bool complete ();
     bool accept ();
   private:
-    const EvrData::DataV3* _evr;
+    unsigned _evr;
   };
 };
 

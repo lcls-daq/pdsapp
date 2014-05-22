@@ -13,8 +13,10 @@ std::string L3TestModule::name() const
 
 std::string L3TestModule::configuration() const
 {
-  return std::string("Accepts eventcode 42");
+  return std::string("Accepts fiducial&0xf==0");
 }
+
+void L3TestModule::pre_event() { _evr=-1U; }
 
 void L3TestModule::event(const Pds::DetInfo& src,
                          const Pds::TypeId&  type,
@@ -24,32 +26,16 @@ void L3TestModule::event(const Pds::DetInfo& src,
   printf("L3TModule::event %08x.%08x %08x\n",
          src.log(),src.phy(),type.value());
 #endif
-  if (type.id()==TypeId::Id_EvrData && type.version()==3)
-    _evr = reinterpret_cast<const EvrData::DataV3*>(payload);
+  if (src.device()==DetInfo::Evr && type.id()==TypeId::Any)
+    _evr = *reinterpret_cast<unsigned*>(payload);
 }
 
 bool L3TestModule::complete()
-{ return _evr; }
+{ return _evr!=-1U; }
 
 bool L3TestModule::accept()
 {
-  if (_evr) {
-    ndarray<const EvrData::FIFOEvent,1> a = _evr->fifoEvents();
-    _evr = 0;
-    for(const EvrData::FIFOEvent* it=a.begin(); it!=a.end(); it++)
-      if ((*it).eventCode()==42) {
-#ifdef DBUG
-        printf("L3TModule::accept ec 42 ts %08x.%08x\n", 
-               (*it).timestampHigh(),
-               (*it).timestampLow ());
-#endif
-        return true;
-      }
-  }
-#ifdef DBUG
-  printf("L3TModule::accept ec 42 missing\n");
-#endif
-  return false;
+  return (_evr&0xf)==0;
 }
 
 extern "C" L3FilterModule* create() { return new L3TestModule; }

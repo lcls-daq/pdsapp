@@ -54,10 +54,17 @@ static void load_filter(char*       arg,
                         Appliance*& apps)
 {
   {
-    const char* p = arg;
-    printf("dlopen %s\n",p);
+    std::string p(arg);
+    bool lveto = (strncmp("VETO[",arg,5)==0 &&
+		  arg[strlen(arg)-1]==']');
+    if (lveto) {
+      printf("L3 VETO is enabled\n");
+      p = p.substr(5,p.size()-6);
+    }
 
-    void* handle = dlopen(p, RTLD_LAZY);
+    printf("dlopen %s\n",p.c_str());
+
+    void* handle = dlopen(p.c_str(), RTLD_LAZY);
     if (!handle) {
       printf("dlopen failed : %s\n",dlerror());
     }
@@ -72,11 +79,7 @@ static void load_filter(char*       arg,
         fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
       }
       else {
-#if 0
-        L3FilterDriver* driver = new L3FilterDriver(c_user());
-#else
-        L3FilterThreads* driver = new L3FilterThreads(c_user);
-#endif
+        L3FilterThreads* driver = new L3FilterThreads(c_user, 0, lveto);
         if (apps != NULL)
           driver->connect(apps);
         else
@@ -127,7 +130,7 @@ EventOptions::EventOptions(int argc, char** argv) :
 
 const char* EventOptions::opt_string()
 {
-  return "f:p:b:a:s:c:n:edDE:L:F:w:";
+  return "f:p:b:a:s:c:n:edDE:L:F:w:V";
 }
 
 bool        EventOptions::parse_opt (int c)
@@ -207,7 +210,8 @@ int EventOptions::validate(const char* arg0) const
      "         -E <experimentname>\n"
      "         -L <plugin>\n"
      "         -F <L3 filter plugin>\n"
-     "         -w <0/1> : enable slow readout support\n",
+     "         -w <0/1> : enable slow readout support\n"
+     " Use \'-F VETO[plugin]\' to enable veto\n",
      arg0);
     return 0;
   }
