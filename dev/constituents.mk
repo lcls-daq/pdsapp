@@ -13,7 +13,7 @@ CPPFLAGS += -fno-strict-aliasing
 tgtnames := evr evrstandalone evrsnoop
 tgtnames += epicsArch bld cspad cspad2x2
 tgtnames += imp pnccd epix epixsampler epix10k
-tgtnames += usdusb simcam
+tgtnames += simcam
 tgtnames += ipimb lusidiag
 tgtnames += rayonix udpcam
 tgtnames += oceanoptics fli andor
@@ -30,7 +30,8 @@ tgtnames +=  acq \
     princeton \
     princetonsim \
     gsc16ai  \
-    cam
+    cam \
+    usdusb
 endif
 
 ifneq ($(findstring x86_64-rhel6,$(tgt_arch)),)
