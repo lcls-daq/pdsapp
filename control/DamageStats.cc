@@ -94,6 +94,7 @@ DamageStats::DamageStats(PartitionSelect& partition,
     l->addWidget(cnt->widget(),row,1,Qt::AlignRight);
     _counts   << cnt;
     _segments << node->src();
+    row++;
   }
 
   setLayout(l);
