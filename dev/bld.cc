@@ -950,11 +950,13 @@ namespace Pds {
 using namespace Pds;
 
 static BldConfigCache* cache = 0;
+static struct sigaction old_actions[64];
 
 static void sigintHandler(int iSignal)
 {
   if (cache) cache->store();
-  exit(0);
+  sigaction(iSignal,&old_actions[iSignal],NULL);
+  raise(iSignal);
 }
 
 void usage(const char* p) {
@@ -1010,16 +1012,16 @@ int main(int argc, char** argv) {
   int_action.sa_flags = 0;
   int_action.sa_flags |= SA_RESTART;
 
-  if (sigaction(SIGINT, &int_action, 0) > 0)
-    printf("Couldn't set up SIGINT handler\n");
-  if (sigaction(SIGKILL, &int_action, 0) > 0)
-    printf("Couldn't set up SIGKILL handler\n");
-  if (sigaction(SIGSEGV, &int_action, 0) > 0)
-    printf("Couldn't set up SIGSEGV handler\n");
-  if (sigaction(SIGABRT, &int_action, 0) > 0)
-    printf("Couldn't set up SIGABRT handler\n");
-  if (sigaction(SIGTERM, &int_action, 0) > 0)
-    printf("Couldn't set up SIGTERM handler\n");
+#define REGISTER(t) {                                   \
+  if (sigaction(t, &int_action, &old_actions[t]) > 0)   \
+    printf("Couldn't set up #t handler\n"); \
+  }
+
+  REGISTER(SIGINT);
+  REGISTER(SIGKILL);
+  REGISTER(SIGSEGV);
+  REGISTER(SIGABRT);
+  REGISTER(SIGTERM);
 
   Task*               task = new Task(Task::MakeThisATask);
   BldCallback*          cb = new BldCallback(task, platform, mask, *cache, lCompress);

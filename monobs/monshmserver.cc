@@ -369,6 +369,8 @@ void usage(char* progname) {
 
 LiveMonitorServer* apps;
 
+static struct sigaction old_actions[64];
+
 void sigfunc(int sig_no) {
   static bool _handled=false;
   if (!_handled) {
@@ -382,7 +384,9 @@ void sigfunc(int sig_no) {
       printf("nothing to do\n");
 
     printf("done with signal %d\n",sig_no);
-    exit(EXIT_SUCCESS);
+    
+    sigaction(sig_no,&old_actions[sig_no],NULL);
+    raise(sig_no);
   }
 }
 
@@ -409,9 +413,9 @@ int main(int argc, char** argv) {
   int_action.sa_flags = 0;
   int_action.sa_flags |= SA_RESTART;
 
-#define REGISTER(t) {                                           \
-    if (sigaction(t, &int_action, 0) > 0)                       \
-      printf("Couldn't set up #t handler\n");                   \
+#define REGISTER(t) {                                               \
+    if (sigaction(t, &int_action, &old_actions[t]) > 0)             \
+      printf("Couldn't set up #t handler\n");                       \
   }
 
   REGISTER(SIGINT);
