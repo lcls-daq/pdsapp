@@ -412,7 +412,6 @@ static void process_command(char *buf)
 {
     struct timeval now;
 
-    printf("%s\n", buf);
     if (!strncmp(buf, "stop", 4)) {
         printf("Got stop!\n");
         if (buf[4]) {
@@ -431,6 +430,7 @@ static void process_command(char *buf)
     } else if (!strncmp(buf, "damage", 6)) {
         char *rpt = damage_report();
         fprintf(stderr, "%s\n", rpt);
+        fflush(stderr);
     } else if (buf[0] == 0 || !strcmp(buf, "stats")) {
         gettimeofday(&now, NULL);
         if (delay && (now.tv_sec > ka_finish.tv_sec || 
