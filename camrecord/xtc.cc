@@ -42,7 +42,8 @@ class xtcsrc {
  public:
     xtcsrc(int _id, int _sync, string _name, int _crit)
         : id(_id), sync(_sync), name(_name), cnt(0), val(NULL),
-          len(0), ref(NULL), sec(0), nsec(0), ev(NULL), critical(_crit) {};
+          len(0), ref(NULL), sec(0), nsec(0), ev(NULL), critical(_crit),
+          damagecnt(0) {};
     int   id;
     int   sync;                   // Is this a synchronous source?
     string name;
@@ -56,6 +57,7 @@ class xtcsrc {
     int   critical;               // If we have a critical source, then if anything else is missing,
                                   // we declare damage.  If we don't have any critical sources, we just
                                   // throw away partials.
+    int   damagecnt;
 };
 
 #define CHUNK_SIZE 107374182400LL
@@ -488,9 +490,11 @@ void send_event(struct event *ev)
             ev->ref[i]  = src[i]->ref;
             (*ev->ref[i])++;
         }
-        if (!ev->data[i])
+        if (!ev->data[i]) {
             damagesize += src[i]->len - sizeof(Xtc); // Instead of the full data, we're going to write
                                                      // an empty Xtc!
+            src[i]->damagecnt++;
+        }
     }
 
     if (damagesize) {
@@ -892,4 +896,21 @@ void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int f
         cleanup_ca();
         exit(0);
     }
+}
+
+char *damage_report(void)
+{
+    static char buf[1024];
+    char *s = buf;
+    int i;
+
+    sprintf(s, "dstat %d", record_cnt);
+    s += strlen(s);
+    for (i = 0; i < numsrc; i++) {
+        if (src[i]->critical) {
+            sprintf(s, " %d", src[i]->damagecnt);
+            s += strlen(s);
+        }
+    }
+    return buf;
 }

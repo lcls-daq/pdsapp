@@ -62,3 +62,5 @@ extern void cleanup_xtc(void);
 extern void cleanup_index(void);
 extern void xtc_stats(void);
 extern void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int fid);
+extern char *damage_report(void);
+

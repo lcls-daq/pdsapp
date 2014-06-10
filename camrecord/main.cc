@@ -428,6 +428,9 @@ static void process_command(char *buf)
         unsigned int sec, nsec, fid;
         if (sscanf(buf, "trans %d %d %d %d", &id, &sec, &nsec, &fid) == 4)
             do_transition(id, sec, nsec, fid);
+    } else if (!strncmp(buf, "damage", 6)) {
+        char *rpt = damage_report();
+        fprintf(stderr, "%s\n", rpt);
     } else if (buf[0] == 0 || !strcmp(buf, "stats")) {
         gettimeofday(&now, NULL);
         if (delay && (now.tv_sec > ka_finish.tv_sec || 
