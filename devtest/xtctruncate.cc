@@ -27,9 +27,6 @@ int main(int argc, char* argv[]) {
 
   while ((c = getopt(argc, argv, "hf:n:o:")) != -1) {
     switch (c) {
-    case 'h':
-      usage(argv[0]);
-      break;
     case 'f':
       xtcname = optarg;
       break;
@@ -39,6 +36,7 @@ int main(int argc, char* argv[]) {
     case 'o':
       outFilename = optarg;
       break;
+    case 'h':   // help
     default:
       usage(argv[0]);
       exit(1);
