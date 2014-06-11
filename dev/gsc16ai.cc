@@ -20,7 +20,7 @@
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detid> -p <platform> [-h]\n",p);
+  printf("Usage: %s -i <detid> -p <platform> [-u <alias>] [-h]\n",p);
 }
 
 static void help()
@@ -28,6 +28,7 @@ static void help()
   printf("Options:\n"
          "  -i <detid>            detector ID\n"
          "  -p <platform>         platform number\n"
+         "  -u <alias>            set device alias\n"
          "  -h                    help: print this message and exit\n");
 }
 
@@ -44,7 +45,7 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-   MySegWire(Gsc16aiServer* gsc16aiServer);
+   MySegWire(Gsc16aiServer* gsc16aiServer, const char *aliasName);
    virtual ~MySegWire() {}
 
    void connect( InletWire& wire,
@@ -53,9 +54,15 @@ class Pds::MySegWire
 
    const std::list<Src>& sources() const { return _sources; }
 
+   const std::list<SrcAlias>* pAliases() const
+   {
+      return (_aliases.size() > 0) ? &_aliases : NULL;
+   }
+
  private:
    Gsc16aiServer* _gsc16aiServer;
    std::list<Src> _sources;
+   std::list<SrcAlias>  _aliases;
 };
 
 //
@@ -88,10 +95,14 @@ class Pds::Seg
 };
 
 
-Pds::MySegWire::MySegWire( Gsc16aiServer* gsc16aiServer )
+Pds::MySegWire::MySegWire( Gsc16aiServer* gsc16aiServer, const char *aliasName )
    : _gsc16aiServer(gsc16aiServer)
 { 
    _sources.push_back(gsc16aiServer->client()); 
+   if (aliasName) {
+      SrcAlias tmpAlias(gsc16aiServer->client(), aliasName);
+      _aliases.push_back(tmpAlias);
+   }
 }
 
 void Pds::MySegWire::connect( InletWire& wire,
@@ -168,11 +179,12 @@ int main( int argc, char** argv )
    unsigned platform = UINT_MAX;
    Arp* arp = 0;
    bool helpFlag = false;
+   char* uniqueid = (char *)NULL;
    char *endPtr;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "a:i:p:h" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "a:i:p:u:h" ) ) != EOF ) {
       switch(c) {
          case 'a':
             arp = new Arp(optarg);
@@ -195,6 +207,13 @@ int main( int argc, char** argv )
               printf("Error: failed to parse platform number\n");
               usage(argv[0]);
               return -1;
+            }
+            break;
+        case 'u':
+            if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
+              printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+            } else {
+              uniqueid = optarg;
             }
             break;
          case 'h':
@@ -240,7 +259,7 @@ int main( int argc, char** argv )
    cfgService = new CfgClientNfs(detInfo);
    gsc16aiServer = new Gsc16aiServer(detInfo);
 
-   MySegWire settings(gsc16aiServer);
+   MySegWire settings(gsc16aiServer, uniqueid);
 
    Seg* seg = new Seg( task,
                        platform,
