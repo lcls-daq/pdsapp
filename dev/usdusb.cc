@@ -65,10 +65,16 @@ namespace Pds {
   //
   class MySegWire : public SegWireSettings {
   public:
-    MySegWire(std::list<UsdUsb::Server*>& servers) : _servers(servers) 
+    MySegWire(std::list<UsdUsb::Server*>& servers, const char *aliasName) : _servers(servers) 
     {
-      for(std::list<UsdUsb::Server*>::iterator it=servers.begin(); it!=servers.end(); it++)
+      for(std::list<UsdUsb::Server*>::iterator it=servers.begin(); it!=servers.end(); it++) {
 	_sources.push_back((*it)->client()); 
+        // only apply alias to the first server on the list
+        if (aliasName && (it==servers.begin())) {
+          SrcAlias tmpAlias((*it)->client(), aliasName);
+          _aliases.push_back(tmpAlias);
+        }
+      }
     }
     virtual ~MySegWire() {}
     void connect (InletWire& wire,
@@ -78,11 +84,16 @@ namespace Pds {
 	wire.add_input(*it);
     }
     const std::list<Src>& sources() const { return _sources; }
+    const std::list<SrcAlias>* pAliases() const
+    {
+      return (_aliases.size() > 0) ? &_aliases : NULL;
+    }
     unsigned max_event_size () const { return 1024; }
     unsigned max_event_depth() const { return 256; }
   private:
     std::list<UsdUsb::Server*>& _servers;
     std::list<Src>              _sources;
+    std::list<SrcAlias>         _aliases;
   };
 
   //
@@ -153,7 +164,7 @@ using namespace Pds;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> [-z]\n"
+  printf("Usage: %s -i <detinfo> -p <platform> [-z] [-u <alias>]\n"
 	 "  -z zeroes encoder counts\n", p);
   printf("<detinfo> = integer/integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/USDUSB/1 or 22/0/26/1)\n");
 }
@@ -166,10 +177,11 @@ int main(int argc, char** argv) {
   bool lzero = false;
   Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NoDetector, 0, DetInfo::USDUSB, 0);
+  char* uniqueid = (char *)NULL;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:z")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:u:zh")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,detInfo)) {
@@ -180,13 +192,27 @@ int main(int argc, char** argv) {
     case 'p':
       platform = strtoul(optarg, NULL, 0);
       break;
+    case 'u':
+      if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
+        printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+      } else {
+        uniqueid = optarg;
+      }
+      break;
     case 'z':
       lzero = true;
       break;
+    case 'h': // help
     default:
       usage(argv[0]);
       return 1;
     }
+  }
+
+  if ((platform == no_entry) || (detInfo.detector() == Pds::DetInfo::NoDetector)) {
+    printf("Platform and detid required\n");
+    usage(argv[0]);
+    return 0;
   }
 
   //
@@ -237,13 +263,6 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if ((platform == no_entry) || (detInfo.detector() == Pds::DetInfo::NoDetector)) {
-    printf("Platform and detid required\n");
-    printf("Usage: %s -i <detid> -p <platform> [-a <arp process id>]\n", argv[0]);
-    close_usb(0);
-    return 0;
-  }
-
   std::list<UsdUsb::Server*>  servers;
   std::list<UsdUsb::Manager*> managers;
 
@@ -252,7 +271,7 @@ int main(int argc, char** argv) {
   managers.push_back(new UsdUsb::Manager(0, *srv, *new CfgClientNfs(detInfo)));
 
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings(servers);
+  MySegWire settings(servers, uniqueid);
   Seg* seg = new Seg(task, platform, settings, 0, managers);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
   seglevel->attach();
