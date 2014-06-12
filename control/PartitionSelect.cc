@@ -265,6 +265,8 @@ bool PartitionSelect::_validate(uint64_t bld_mask)
 bool PartitionSelect::_checkReadGroupEnable()
 {
   unsigned int uRunKey = _pcontrol.get_transition_env(TransitionId::Configure);
+  if (!uRunKey)
+    return false;
   
   const DetInfo det(0,DetInfo::NoDetector,0,DetInfo::Evr,0);
 
