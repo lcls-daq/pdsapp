@@ -22,7 +22,7 @@ liblibs_epixsim := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata
 liblibs_epixsim += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
 libincs_epixsim := pdsdata/include ndarray/include boost/include 
 
-tgtnames    := evgr pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget xtccamfix compressstat epixwriter microspin xtcwriter mysumm ssdbenchmark
+tgtnames    := evgr pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget xtccamfix compressstat epixwriter microspin xtcwriter 
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
@@ -67,13 +67,6 @@ tgtincs_xtctruncate := pdsdata/include ndarray/include boost/include
 tgtsrcs_dsstest := dsstest.cc
 tgtlibs_dsstest := pds/service
 tgtslib_dsstest := $(USRLIB)/rt
-
-tgtsrcs_ssdbenchmark := ssdbenchmark.cc
-tgtlibs_ssdbenchmark := pds/service
-tgtslib_ssdbenchmark := $(USRLIB)/rt
-
-tgtsrcs_mysumm := mysumm.cc
-tgtslib_mysumm := $(USRLIB)/rt
 
 tgtsrcs_xcasttest := xcasttest.cc
 tgtslib_xcasttest := $(USRLIB)/rt
