@@ -63,6 +63,7 @@
 //#define DBUG
 
 typedef Pds::Bld::BldDataEBeamV5 BldDataEBeam;
+typedef Pds::Bld::BldDataFEEGasDetEnergy BldDataFEEGasDetEnergyV1;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV2 BldDataGMD;
 typedef Pds::Bld::BldDataSpectrometerV0 BldDataSpectrometer;
