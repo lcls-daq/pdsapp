@@ -33,7 +33,8 @@ namespace Pds {
                int               slowReadout,
                unsigned          partition_options,
                bool              verbose,
-               const char*       controlrc);
+               const char*       controlrc,
+               unsigned          experiment_number);
     ~MainWindow();
 
     // Unix signal handlers.

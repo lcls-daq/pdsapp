@@ -20,6 +20,7 @@ static void usage(char *argv0)
    "Options: -L <offlinerc>            : offline db access\n"
    "         -E <experiment_name>      : offline db experiment\n"
    "         -R <run_number_file>      : no offline db\n"
+   "         -e <experiment_number>    : no offline db experiment number\n"
    "         -N <seconds>              : log long NFS accesses\n"
    "         -C <controls_config_file> : configuration of controls recorder\n"
    "         -O                        : override errors\n"
@@ -45,6 +46,7 @@ int main(int argc, char** argv)
   const char* controlrc = (char *)NULL;
   double nfs_log_threshold = -1;
   unsigned    sequencer_id = 0;
+  unsigned    expnum = 0;
   int         slowReadout = 0;
   unsigned key=0;
   int verbose = 0;
@@ -53,7 +55,7 @@ int main(int argc, char** argv)
   bool autorun = false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:D:L:R:E:N:C:AOTS:w:o:hv")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:e:N:C:AOTS:w:o:hv")) != -1) {
     char* endPtr;
     switch (c) {
     case 'A':
@@ -84,6 +86,9 @@ int main(int argc, char** argv)
       break;
     case 'E':
       experiment = optarg;
+      break;
+    case 'e':
+      expnum = strtoul(optarg, &endPtr, 0);
       break;
     case 'N':
       nfs_log_threshold = strtod(optarg, NULL);
@@ -143,7 +148,8 @@ int main(int argc, char** argv)
                                       slowReadout,
                                       partition_options,
                                       (verbose > 0),
-                                      controlrc);
+                                      controlrc,
+                                      expnum);
   window->override_errors(override);
   window->show();
   if (autorun)

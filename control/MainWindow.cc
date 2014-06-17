@@ -232,7 +232,8 @@ MainWindow::MainWindow(unsigned          platform,
                        int               slowReadout,
                        unsigned          partition_options,
                        bool              verbose,
-                       const char*       controlrc) :
+                       const char*       controlrc,
+                       unsigned          experiment_number) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
   _control  (new QualifiedControl(platform, *_controlcb, slowReadout, new ControlTimeout(*this))),
@@ -246,7 +247,6 @@ MainWindow::MainWindow(unsigned          platform,
   StateSelect*      state ;
   PVDisplay*        pvs;
   RunStatus*        run;
-  unsigned int      experiment_number = 0;
   QLabel* experiment_label = 0;
 
 #ifdef DBUG
@@ -298,7 +298,6 @@ MainWindow::MainWindow(unsigned          platform,
       fprintf(stderr, "%s: partition '%s' is not valid\n",
               __FUNCTION__, partition);
     }
-    _control->set_experiment(experiment_number);
   } else if (runNumberFile) {
     // option B: run number maintained in a simple file
     _runallocator = new FileRunAllocator(runNumberFile);
@@ -310,6 +309,7 @@ MainWindow::MainWindow(unsigned          platform,
     // NULL offline database
     _offlineclient = (OfflineClient*)NULL;
   }
+  _control->set_experiment(experiment_number);
   _control->set_runAllocator(_runallocator);
 
   QVBoxLayout* layout = new QVBoxLayout(this);
