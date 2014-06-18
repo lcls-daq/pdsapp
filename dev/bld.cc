@@ -63,13 +63,12 @@
 //#define DBUG
 
 typedef Pds::Bld::BldDataEBeamV5 BldDataEBeam;
-typedef Pds::Bld::BldDataFEEGasDetEnergy BldDataFEEGasDetEnergyV1;
+typedef Pds::Bld::BldDataFEEGasDetEnergyV1 BldDataFEEGasDetEnergy;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV2 BldDataGMD;
 typedef Pds::Bld::BldDataSpectrometerV0 BldDataSpectrometer;
 //    typedef BldDataAcqADCV1 BldDataAcqADC;
 using Pds::Bld::BldDataPhaseCavity;
-using Pds::Bld::BldDataFEEGasDetEnergy;
 using Pds::Bld::BldDataPimV1;
 
 static const unsigned MAX_EVENT_SIZE = 8*1024*1024;
