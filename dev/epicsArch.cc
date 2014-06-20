@@ -136,13 +136,12 @@ using namespace Pds;
 
 static void showUsage()
 {
-    printf( "Usage:  epicsArch  [-v|--version] [-h|--help] [-i|--interval <min trigger interval>] "
+    printf( "Usage:  epicsArch  [-v|--version] [-h|--help] "
       "[-d|--debug <debug level>] [-u|--unit <unit #> -p|--platform <platform>  -f <config filename>\n" 
       "  Options:\n"
       "    -v|--version       Show file version\n"
       "    -h|--help          Show usage\n"
       "    -d|--debug         Set debug level\n"
-      "    -i|--interval      Set minimum trigger interval, in seconds (float number) [Default: 1.0]\n"
       "    -u|--unit          Set unit number [Default: 0]\n"
       "    -f|--file          [*required*] Set configuration filename\n"
       "    -p|--platform      [*required*] Set platform id\n"
@@ -186,7 +185,7 @@ int main(int argc, char** argv)
     };    
     
     int     iPlatform           = -1;
-    float   fMinTriggerInterval = 1.0f;
+    float   fMinTriggerInterval = 0.0f;
     string  sFnConfig;
     int     iDebugLevel         = 0;
     int     iUnit               = 0;
@@ -206,7 +205,8 @@ int main(int argc, char** argv)
             iDebugLevel = strtoul(optarg, NULL, 0);
             break;            
         case 'i':
-            fMinTriggerInterval = (float) strtod(optarg, NULL);
+            printf("interval recording of data no longer supported -\n"
+                   "\tnow recorded with every event.\n");
             break;            
         case 'p':
             errno = 0;
