@@ -70,6 +70,9 @@ SeqAppliance::~SeqAppliance()
 
 Transition* SeqAppliance::transitions(Transition* tr) 
 { 
+  if (!_manual.control_enabled())
+    return tr;
+
   switch(tr->id()) {
   case TransitionId::Map:
     { 
