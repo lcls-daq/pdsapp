@@ -425,7 +425,7 @@ static void event_handler(struct event_handler_args args)
 static void get_handler(struct event_handler_args args)
 {
     caconn *c = (caconn *)args.usr;
-    DetInfo sourceInfo(getpid(), DetInfo::EpicsArch, 0, DetInfo::NoDevice, 0);
+    DetInfo sourceInfo(getpid(), DetInfo::EpicsArch, 0, DetInfo::NoDevice, streamno);
     int hdrsize = sizeof(EpicsPvCtrlHeader);
     int ctrlsize = dbr_size_n(args.type, args.count);
 

@@ -98,6 +98,7 @@ static string lb_params[LCPARAMS] = { /* This is the order of parameters to LogB
 };
 int start_sec = 0, start_nsec = 0;
 int end_sec = 0, end_nsec = 0;
+int streamno = 0;
 
 static void int_handler(int signal)
 {
@@ -276,7 +277,12 @@ static void read_config_file(const char *name)
                               atoi(arrayTokens[4].c_str()));
             break;
         } else if (arrayTokens[0] == "output") {
+            char *s;
             outfile = strdup(arrayTokens[1].c_str());
+            s = rindex(outfile, '-');
+            if (s && s[1] == 's') {
+                streamno = atoi(s + 2);
+            }
         } else if (arrayTokens[0] == "hostname") {
             hostname = arrayTokens[1];
             if (!haveH)
@@ -382,6 +388,8 @@ static void initialize(char *config)
         sprintf(buf, "mkdir -p %s/index", outfile);
         *s = '/';
         system(buf);
+    } else {
+        system("mkdir index");
     }
     initialize_xtc(outfile);
 }
@@ -548,9 +556,14 @@ int main(int argc, char **argv)
         case 'c':
             config = optarg;
             break;
-        case 'o':
+        case 'o': {
             outfile = strdup(optarg);
+            char *s = rindex(outfile, '-');
+            if (s && s[1] == 's') {
+                streamno = atoi(s + 2);
+            }
             break;
+        }
         case 't':
             delay = atoi(optarg);
             break;

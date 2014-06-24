@@ -22,6 +22,7 @@
 #include"pdsdata/xtc/DetInfo.hh"
 #include"pdsdata/xtc/ProcInfo.hh"
 #include"pdsdata/xtc/TransitionId.hh"
+#include"pdsdata/index/IndexList.hh"
 #include"pdsdata/psddl/pulnix.ddl.h"
 #include"pdsdata/psddl/opal1k.ddl.h"
 #include"pdsdata/psddl/camera.ddl.h"
@@ -63,10 +64,13 @@ class xtcsrc {
 #define CHUNK_SIZE 107374182400LL
 // #define CHUNK_SIZE      100000000LL  // For debug!
 FILE *fp = NULL;
+Index::IndexList _indexList;
 static char *fname;            // The current output file name.
+static char *iname;            // The current index file name.
 static char *cpos;             // Where in the current file name to change the chunk number.
+static char *cipos;            // Where in the current index name to change the chunk number.
 static int chunk = 0;          // The current chunk number.
-static long long fsize = 0;    // The size of the current file, so far.
+static int64_t fsize = 0;      // The size of the current file, so far.
 static sigset_t blockset;
 static int started = 0;        // We are actually running.
 static int paused = 0;         // We are temporarily paused.
@@ -198,6 +202,8 @@ static int ts_match(struct event *_ev, int _sec, int _nsec)
 
 static void setup_datagram(TransitionId::Value val)
 {
+    if (val == TransitionId::BeginCalibCycle)
+        _indexList.addCalibCycle(fsize, csec, cnsec);
     new ((void *) &dg->seq) Sequence(Sequence::Event, val, ClockTime(csec, cnsec),
                                      TimeStamp(0, cfid, 0, 0));
     if ((cnsec += 0x20000) > 1000000000) {
@@ -296,6 +302,7 @@ static void write_xtc_config(void)
             printf("Cannot write to file!\n");
             exit(1);
         }
+        fsize += xtc1->extent;
         fflush(fp);
     }
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
@@ -318,6 +325,7 @@ static void write_xtc_config(void)
 void initialize_xtc(char *outfile)
 {
     int i;
+    char *base;
 
     damagextc.damage = Damage::DroppedContribution;
 
@@ -358,6 +366,18 @@ void initialize_xtc(char *outfile)
         exit(0);
     } else
         printf("Opened %s for writing.\n", fname);
+    iname = new char[i + 25];
+    base = rindex(fname, '/');
+    if (base) {
+        *base++ = 0;
+        sprintf(iname, "%s/index/%s.idx", fname, base);
+        *--base = '/';
+    } else {
+        sprintf(iname, "index/%s.idx", fname);
+    }
+    cipos = iname + strlen(iname) - 12; // "-c00.xtc.idx"
+    _indexList.reset();
+    _indexList.setXtcFilename(fname);
 
     sigemptyset(&blockset);
     sigaddset(&blockset, SIGALRM);
@@ -459,6 +479,14 @@ static void reset_event(struct event *ev)
     ev->valid = 0;
 }
 
+static void write_idx_file()
+{
+    _indexList.finishList();
+    int fd = open(iname, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    _indexList.writeToFile(fd);
+    close(fd);
+}
+
 /*
  * OK, when we get here, dg is partially set up.  The outer xtcs (dg->xtc and seg) have their
  * extent set to the total data size (totaldlen).
@@ -467,6 +495,8 @@ void send_event(struct event *ev)
 {
     sigset_t oldsig;
     int damagesize = 0;
+    bool bInvalidData = false;
+    bool bStopUpdate = false;
 
     if (paused) {
 #ifdef TRACE
@@ -514,14 +544,18 @@ void send_event(struct event *ev)
     dnsec = ev->nsec;
 
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
-
+    _indexList.startNewNode(*dg, fsize, bInvalidData);
     if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
         printf("Write failed!\n");
         exit(1);
     }
     fsize += sizeof(Dgram) + sizeof(Xtc);
+    if (!bInvalidData)
+        _indexList.updateSegment(*seg);
     for (int i = 0; i < numsrc; i++) {
         if (ev->data[i]) {
+            if (!bInvalidData && !bStopUpdate)
+                _indexList.updateSource(*(Xtc *)ev->data[i], bStopUpdate);
             if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
                 printf("Write failed!\n");
                 exit(1);
@@ -529,6 +563,8 @@ void send_event(struct event *ev)
             fsize += src[i]->len;
         } else {
             damagextc.src = src[i]->src;
+            if (!bInvalidData && !bStopUpdate)
+                _indexList.updateSource(damagextc, bStopUpdate);
             if (!fwrite(&damagextc, sizeof(Xtc), 1, fp)) {
                 printf("Write failed!\n");
                 exit(1);
@@ -536,25 +572,24 @@ void send_event(struct event *ev)
             fsize += sizeof(Xtc);
         }
     }
+    if (!bInvalidData) {
+        bool bPrintNode = false;
+        _indexList.finishNode(bPrintNode);
+    }
     fflush(fp);
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
     if (fsize >= CHUNK_SIZE) { /* Next chunk! */
-        /*
-         * MCB - OK, this is bad.
-         *
-         * We aren't generating index files until we are done recording.
-         * Therefore, we need to hold on to this file descriptor so we
-         * keep the lock.  So we won't close it and we'll just let it
-         * dangle... it will get cleaned up when we exit.
-         *
-         * Yeah, I know.
-         */
+        write_idx_file();
+        fclose(fp);
         sprintf(cpos, "-c%02d.xtc", ++chunk);
+        sprintf(cipos, "-c%02d.xtc.idx", chunk);
         if (!(fp = myfopen(fname, "w"))) {
             printf("Cannot open %s for output!\n", fname);
             exit(0);
         } else
             printf("Opened %s for writing.\n", fname);
+        _indexList.reset();
+        _indexList.setXtcFilename(fname);
         fsize = 0;
     }
     record_cnt++;
@@ -814,34 +849,15 @@ void cleanup_xtc(void)
         write_datagram(TransitionId::EndRun,        0);
         write_datagram(TransitionId::Unconfigure,   0);
     }
-    if (fp)
-        fflush(fp);
 }
 
 void cleanup_index(void)
 {
-#if 1
-    /*
-     * Temporary index generation code!!!
-     */
-#define MKIDX "/reg/common/package/pdsdata/7.2.16/x86_64-linux-opt/bin/xtcindex"
-    int i;
-    char buf[4096], *base;
-
-    close(2); /* Let the client go right away! */
-
-    base = rindex(fname, '/');
-    if (!base)
-        return; /* If the name doesn't look good, skip it. */
-    *base++ = 0;
-    /* So, fname = "USER/xtc" and base = "e...xtc" */
-    for (i = 0; i <= chunk; i++) {
-        sprintf(cpos, "-c%02d.xtc", i);
-        sprintf(buf, "%s -f %s/%s -o %s/index/%s.idx >/dev/null 2>&1",
-                MKIDX, fname, base, fname, base);
-        system(buf);
+    if (fp) {
+        fflush(fp);
+        write_idx_file();
+        fclose(fp);
     }
-#endif
 }
 
 void xtc_stats(void)

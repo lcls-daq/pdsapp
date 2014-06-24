@@ -1,6 +1,6 @@
 tgtnames := camrecord xtcmerge clockadjust
 
-commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata
+commonlibs := pdsdata/indexdata pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata
 tgtsrcs_camrecord := bld.cc ca.cc main.cc xtc.cc
 tgtlibs_camrecord := $(commonlibs) offlinedb/mysqlclient offlinedb/offlinedb epics/ca epics/Com
 tgtincs_camrecord := offlinedb/include epics/include epics/include/os/Linux pdsdata/include ndarray/include boost/include  
