@@ -62,7 +62,7 @@
 
 //#define DBUG
 
-typedef Pds::Bld::BldDataEBeamV5 BldDataEBeam;
+typedef Pds::Bld::BldDataEBeamV6 BldDataEBeam;
 typedef Pds::Bld::BldDataFEEGasDetEnergyV1 BldDataFEEGasDetEnergy;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV2 BldDataGMD;
@@ -167,13 +167,13 @@ namespace Pds {
   public:
     InDatagram* events     (InDatagram* dg) {
       if (dg->seq.isEvent()) {
-  _dg = new(&_pool) CDatagram(*dg);
-  iterate(&dg->xtc);
-  if (_reconfigure_requested) {
-    delete _dg;
-    return 0;
-  }
-  return _dg;
+        _dg = new(&_pool) CDatagram(*dg);
+        iterate(&dg->xtc);
+        if (_reconfigure_requested) {
+          delete _dg;
+          return 0;
+        }
+        return _dg;
       }
       else if (dg->seq.service()==TransitionId::Configure) {
   //  Reset flag
