@@ -32,7 +32,7 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-   MySegWire(pnCCDServer* pnccdServer);
+   MySegWire(pnCCDServer* pnccdServer, const char *aliasName);
    virtual ~MySegWire() {}
 
    void connect( InletWire& wire,
@@ -41,12 +41,18 @@ class Pds::MySegWire
 
    const std::list<Src>& sources() const { return _sources; }
 
+   const std::list<SrcAlias>* pAliases() const
+   {
+      return (_aliases.size() > 0) ? &_aliases : NULL;
+   }
+
    unsigned max_event_size () const { return 8*1024*1024; }
    unsigned max_event_depth() const { return _max_event_depth; }
    void max_event_depth(unsigned d) { _max_event_depth = d; }
  private:
    pnCCDServer* _pnccdServer;
    std::list<Src> _sources;
+   std::list<SrcAlias> _aliases;
    unsigned _max_event_depth;
 };
 
@@ -86,10 +92,14 @@ class Pds::Seg
 };
 
 
-Pds::MySegWire::MySegWire( pnCCDServer* pnccdServer )
+Pds::MySegWire::MySegWire( pnCCDServer* pnccdServer, const char *aliasName )
    : _pnccdServer(pnccdServer), _max_event_depth(64)
 { 
    _sources.push_back(pnccdServer->client());
+   if (aliasName) {
+      SrcAlias tmpAlias(pnccdServer->client(), aliasName);
+      _aliases.push_back(tmpAlias);
+   }
 }
 
 static Pds::InletWire* myWire = 0;
@@ -190,6 +200,7 @@ void printUsage(char* s) {
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
       "    -e <N>  Set the maximum event depth, default is 64\n"
+      "    -u      Set device alias          [Default: none]\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offset and count calls\n"
@@ -214,12 +225,13 @@ int main( int argc, char** argv )
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
   unsigned            eventDepth          = 64;
+  char*               uniqueid            = (char *)NULL;
   std::string         sConfigFile;
   ::signal( SIGINT, sigHandler );
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:e:D:P:f:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:u:m:e:D:P:f:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -244,6 +256,13 @@ int main( int argc, char** argv )
            platform = strtoul(optarg, NULL, 0);
            platformEntered = true;
            break;
+        case 'u':
+            if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
+              printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+            } else {
+              uniqueid = optarg;
+            }
+            break;
          case 'f':
            sConfigFile = optarg;
            break;
@@ -315,7 +334,7 @@ int main( int argc, char** argv )
    pnccdServer->debug(debug);
 
    printf("MySegWire settings\n");
-   MySegWire settings(pnccdServer);
+   MySegWire settings(pnccdServer, uniqueid);
    settings.max_event_depth(eventDepth);
 
    printf("making Seg\n");
