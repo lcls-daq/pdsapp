@@ -28,6 +28,7 @@
 #include"pdsdata/psddl/camera.ddl.h"
 #include"pdsdata/psddl/bld.ddl.h"
 #include"pdsdata/psddl/alias.ddl.h"
+#include"pdsdata/psddl/epics.ddl.h"
 #include"pds/service/NetServer.hh"
 #include"pds/service/Ins.hh"
 #include"LogBook/Connection.h"
@@ -92,6 +93,8 @@ static unsigned int dnsec = 0;
 static int havetransitions = 0;
 static vector<xtcsrc *> src;
 static vector<Alias::SrcAlias *> alias;
+static DetInfo pvinfo;
+static vector<Epics::PvConfigV1 *> pvalias;
 
 static Dgram *dg = NULL;
 static Xtc   *seg = NULL;
@@ -242,7 +245,7 @@ static void write_xtc_config(void)
 {
     int i;
     sigset_t oldsig;
-    Xtc *xtc1 = NULL, *xtc = NULL;
+    Xtc *xtcpv1 = NULL, *xtcpv = NULL, *xtc1 = NULL, *xtc = NULL;
 
     dg = (Dgram *) malloc(sizeof(Dgram) + sizeof(Xtc));
     
@@ -281,6 +284,17 @@ static void write_xtc_config(void)
         printf("Alias info = %d bytes\n", len);
     } else
         printf("No alias info!\n");
+    int pvcnt = pvalias.size();
+    if (pvcnt) {
+        int len = 2 * sizeof(Xtc) + sizeof(Epics::ConfigV1) + pvalias.size() * sizeof(Epics::PvConfigV1);
+        xtcpv1 = new ((char *) malloc(len)) Xtc(TypeId(TypeId::Id_Xtc, 1), *ctrlInfo);
+        xtcpv1->extent = len;
+        xtcpv = new ((char *) (xtcpv1+1)) Xtc(TypeId(TypeId::Id_EpicsConfig, 1), *ctrlInfo);
+        totalcfglen += len;
+        printf("PV Alias info = %d bytes\n", len);
+    } else
+        printf("No PV alias info!\n");
+
     write_datagram(TransitionId::Configure, totalcfglen);
     for (i = 0; i < numsrc; i++) {
         if (!fwrite(src[i]->val, src[i]->len, 1, fp)) {
@@ -303,6 +317,18 @@ static void write_xtc_config(void)
             exit(1);
         }
         fsize += xtc1->extent;
+        fflush(fp);
+    }
+    if (pvcnt) {
+        *reinterpret_cast<uint32_t *>(xtcpv->alloc(sizeof(uint32_t))) = pvcnt;
+        for (vector<Epics::PvConfigV1 *>::iterator it = pvalias.begin(); it != pvalias.end(); it++) {
+            new (xtcpv->alloc(sizeof(Epics::PvConfigV1))) Epics::PvConfigV1(**it);
+        }
+        if (!fwrite(xtcpv1, xtcpv1->extent, 1, fp)) {
+            printf("Cannot write to file!\n");
+            exit(1);
+        }
+        fsize += xtcpv1->extent;
         fflush(fp);
     }
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
@@ -422,6 +448,15 @@ int register_xtc(int sync, string name, int critical)
 void register_alias(std::string name, DetInfo &sourceInfo)
 {
     alias.push_back(new Alias::SrcAlias(sourceInfo, name.c_str()));
+}
+
+/*
+ * Create a PV alias.
+ */
+void register_pv_alias(std::string name, int idx, DetInfo &sourceInfo)
+{
+    pvinfo = sourceInfo;
+    pvalias.push_back(new Epics::PvConfigV1(idx, name.c_str(), 0.0));
 }
 
 /*

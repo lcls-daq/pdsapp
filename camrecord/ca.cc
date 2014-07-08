@@ -140,7 +140,10 @@ class caconn {
         conns.push_back(this);
         xid = register_xtc(strict, name, det != DetInfo::EpicsArch); // PVs -> not critical, cameras -> critical.
         if (det == DetInfo::EpicsArch) {
+            DetInfo sourceInfo(getpid(), DetInfo::EpicsArch, 0, DetInfo::NoDevice, streamno);
+            
             caid = nxtcaid++;
+            register_pv_alias(name, caid, sourceInfo);
             is_cam = 0;
             int result = ca_create_channel(pvname.c_str(),
                                            connection_handler,
