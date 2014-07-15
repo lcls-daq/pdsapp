@@ -297,6 +297,7 @@ void handle_bld(fd_set *rfds)
                     configure_xtc(c->xid, (char *) inner, dg2->xtc.extent,
                                   dg2->seq.clock().seconds() + POSIX_TIME_AT_EPICS_EPOCH,
                                   (dg2->seq.clock().nanoseconds() & ~0x1ffff) | dg2->seq.stamp().fiducials());
+                    break;
                 case REVTIME_OFFSET|REVTIME_WORD:
                     configure_xtc(c->xid, (char *) inner, dg2->xtc.extent,
                                   dg2->seq.clock().nanoseconds() + POSIX_TIME_AT_EPICS_EPOCH,
