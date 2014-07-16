@@ -59,6 +59,11 @@ namespace Pds
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
+
+    unsigned max_event_size () const { return 128*1024; }
+
+    unsigned max_event_depth() const { return 128; }
+
   private:
     std::list < Src >   _sources;
     OceanOpticsServer*  _pServer;
