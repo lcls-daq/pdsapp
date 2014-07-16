@@ -30,6 +30,7 @@ namespace Pds_ConfigDb {
     void new_device();
     void remove_device();
     void edit_device();
+    void view_device();
     void update_config_list();
     void update_component_list();
     void new_config();

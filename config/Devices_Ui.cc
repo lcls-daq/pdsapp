@@ -113,7 +113,8 @@ Devices_Ui::Devices_Ui(QWidget* parent,
   }
   else {
     connect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_config_list()));
-    _deveditbutton->setEnabled(false);
+    _deveditbutton->setText("View");
+    connect(_deveditbutton, SIGNAL(clicked()), this, SLOT(view_device()));
     _devnewbutton ->setEnabled(false);
     connect(_cfglist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
     _cfgnewbutton ->setEnabled(false);
@@ -170,6 +171,21 @@ void Devices_Ui::edit_device()
     iter!=dialog->src_list().end(); iter++)
   device->src_list().push_back(DeviceEntry(*iter));
     }
+    delete dialog;
+  }
+}
+
+void Devices_Ui::view_device()
+{
+  const Device* device(_device_c());
+  if (device) {
+    list<Pds::Src> dlist;
+    for(list<DeviceEntry>::const_iterator iter = device->src_list().begin();
+        iter!=device->src_list().end(); iter++) {
+      dlist.push_back(*iter);
+    }
+    DetInfoDialog_Ui* dialog=new DetInfoDialog_Ui(this, dlist, false);
+    dialog->exec();
     delete dialog;
   }
 }

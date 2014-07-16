@@ -17,7 +17,8 @@
 using namespace Pds_ConfigDb;
 
 DetInfoDialog_Ui::DetInfoDialog_Ui(QWidget* parent,
-				   const list<Pds::Src>& slist) :
+				   const list<Pds::Src>& slist,
+                                   bool edit) :
   QDialog(parent),
   _list(slist)
 {
@@ -93,10 +94,17 @@ DetInfoDialog_Ui::DetInfoDialog_Ui(QWidget* parent,
   for(unsigned i=0; i<Pds::Level::NumberOfLevels; i++)
     _proclist->addItem(Pds::Level::name(Pds::Level::Type(i)));
   
-  connect(_addbutton, SIGNAL(clicked()), this, SLOT(add()));
-  connect(_rembutton, SIGNAL(clicked()), this, SLOT(remove()));
+  if (edit) {
+    connect(_addbutton, SIGNAL(clicked()), this, SLOT(add()));
+    connect(_rembutton, SIGNAL(clicked()), this, SLOT(remove()));
 
-  connect(_addprocbutton, SIGNAL(clicked()), this, SLOT(addproc()));
+    connect(_addprocbutton, SIGNAL(clicked()), this, SLOT(addproc()));
+  }
+  else {
+    _addbutton->setEnabled(false);
+    _rembutton->setEnabled(false);
+    _addprocbutton->setEnabled(false);
+  }
 
   connect(buttons, SIGNAL(accepted()), this, SLOT(accept()));
   connect(buttons, SIGNAL(rejected()), this, SLOT(reject()));

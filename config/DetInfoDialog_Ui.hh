@@ -20,7 +20,7 @@ namespace Pds_ConfigDb {
   class DetInfoDialog_Ui : public QDialog {
     Q_OBJECT
   public:
-    DetInfoDialog_Ui(QWidget*, const list<Pds::Src>&);
+    DetInfoDialog_Ui(QWidget*, const list<Pds::Src>&, bool edit=true);
     ~DetInfoDialog_Ui();
   public:
     const list<Pds::Src>& src_list() const { return _list; }
