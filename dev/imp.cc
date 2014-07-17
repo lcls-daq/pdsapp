@@ -104,13 +104,16 @@ void sigHandler( int signal ) {
   Pds::ImpServer* server = Pds::ImpServer::instance();
   psignal( signal, "Signal received by ImpServer");
   if (server != 0) {
+    server->disable();
     if (myWire != 0) {
       myWire->remove_input(server);
     }
-    if (server != 0) server->disable();
-    if (server != 0) server->dumpFrontEnd();
-    if (server != 0) server->die();
+    if (server != 0) server->dumpFrontEnd(); else printf("\tsigHandler found nil server 2!\n");
+    if (server != 0) server->die(); else printf("\tsigHandler found nil server 3!\n");
+  } else {
+    printf("sigHandler found nil server 1!\n");
   }
+
   printf("Signal handler pulling the plug\n");
   ::exit(signal);
 }
@@ -208,7 +211,11 @@ int main( int argc, char** argv )
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
   unsigned            eventDepth          = 256;
-  ::signal( SIGINT, sigHandler );
+  ::signal( SIGINT,  sigHandler );
+  ::signal( SIGSEGV, sigHandler );
+  ::signal( SIGFPE,  sigHandler );
+  ::signal( SIGTERM, sigHandler );
+  ::signal( SIGQUIT, sigHandler );
 
    extern char* optarg;
    int c;

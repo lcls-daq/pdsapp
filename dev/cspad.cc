@@ -130,10 +130,12 @@ void sigHandler( int signal ) {
     if (myWire != 0) {
       myWire->remove_input(server);
     } else printf("\tmyWire is gone!\n");
-    if (server != 0) server->ignoreFetch(true); else printf("\tServer is gone!\n");
-    if (server != 0) server->dumpFrontEnd(); else printf("\tServer is gone!\n");
-    if (server != 0) server->die(); else printf("\tServer is gone!\n");
-  } else printf("\tServer is gone! Did nothing\n");
+    if (server != 0) server->dumpFrontEnd(); else printf("\tsigHandler found nil server 2!\n");
+    if (server != 0) server->die(); else printf("\tsigHandler found nil server 3!\n");
+  } else {
+    printf("sigHandler found nil server 1!\n");
+  }
+
   printf("Signal handler pulling the plug\n");
   ::exit(signal);
 }
