@@ -227,7 +227,11 @@ int main( int argc, char** argv )
   unsigned            eventDepth          = 64;
   char*               uniqueid            = (char *)NULL;
   std::string         sConfigFile;
-  ::signal( SIGINT, sigHandler );
+  ::signal( SIGINT,  sigHandler );
+  ::signal( SIGSEGV, sigHandler );
+  ::signal( SIGFPE,  sigHandler );
+  ::signal( SIGTERM, sigHandler );
+  ::signal( SIGQUIT, sigHandler );
 
    extern char* optarg;
    int c;
