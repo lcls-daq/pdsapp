@@ -1,11 +1,16 @@
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 
-libnames    := simframe playframe acqsim epixsim
+libnames    := simframe simmovie playframe acqsim epixsim
 
 libsrcs_simframe := SimFrame.cc
 liblibs_simframe := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata 
 liblibs_simframe += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
 libincs_simframe := pdsdata/include ndarray/include boost/include 
+
+libsrcs_simmovie := SimMovie.cc
+liblibs_simmovie := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata 
+liblibs_simmovie += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
+libincs_simmovie := pdsdata/include ndarray/include boost/include 
 
 libsrcs_playframe := PlayFrame.cc
 liblibs_playframe := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata 
