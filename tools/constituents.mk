@@ -1,4 +1,4 @@
-libnames := tools l3test l3sacla
+libnames := tools l3test l3sacla l3saclacompound
 
 #CPPFLAGS += -D_FILE_OFFSET_BITS=64 -fopenmp
 # 
@@ -14,6 +14,9 @@ libincs_l3test := pdsdata/include ndarray/include boost/include
 
 libsrcs_l3sacla := L3SACLAModule.cc
 libincs_l3sacla := pdsdata/include ndarray/include boost/include 
+
+libsrcs_l3saclacompound := L3SACLACompoundModule.cc
+libincs_l3saclacompound := pdsdata/include ndarray/include boost/include 
 
 tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump currentexp showPlatform
 #tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
