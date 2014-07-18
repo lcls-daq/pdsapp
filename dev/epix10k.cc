@@ -104,12 +104,14 @@ void sigHandler( int signal ) {
   Pds::Epix10kServer* server = Pds::Epix10kServer::instance();
   psignal( signal, "Signal received by Epix10kApplication");
   if (server != 0) {
+    server->disable();
     if (myWire != 0) {
       myWire->remove_input(server);
     }
-    if (server != 0) server->disable();
     if (server != 0) server->dumpFrontEnd();
     if (server != 0) server->die();
+  } else {
+    printf("sigHandler found nil server 1!\n");
   }
   printf("Signal handler pulling the plug\n");
   ::exit(signal);
@@ -216,7 +218,11 @@ int main( int argc, char** argv )
   unsigned            resetOnEverConfig   = 0;
   bool                maintainRunTrig     = false;
   char                runTimeConfigname[256] = {""};
-  ::signal( SIGINT, sigHandler );
+  ::signal( SIGINT,  sigHandler );
+  ::signal( SIGSEGV, sigHandler );
+  ::signal( SIGFPE,  sigHandler );
+  ::signal( SIGTERM, sigHandler );
+  ::signal( SIGQUIT, sigHandler );
 
    extern char* optarg;
    int c;
