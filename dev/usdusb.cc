@@ -175,13 +175,14 @@ int main(int argc, char** argv) {
   const unsigned no_entry = -1U;
   unsigned platform = no_entry;
   bool lzero = false;
+  bool tsc = true;
   Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NoDetector, 0, DetInfo::USDUSB, 0);
   char* uniqueid = (char *)NULL;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:u:zh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:u:zth")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,detInfo)) {
@@ -202,6 +203,9 @@ int main(int argc, char** argv) {
     case 'z':
       lzero = true;
       break;
+    case 't':
+      tsc = false;
+      break;
     case 'h': // help
     default:
       usage(argv[0]);
@@ -214,6 +218,8 @@ int main(int argc, char** argv) {
     usage(argv[0]);
     return 0;
   }
+
+   printf("UsdUsb is %sabling testing time step check\n", tsc ? "en" : "dis");
 
   //
   //  There must be a way to detect multiple instruments, but I don't know it yet
@@ -268,6 +274,8 @@ int main(int argc, char** argv) {
 
   UsdUsb::Server* srv = new UsdUsb::Server(detInfo);
   servers   .push_back(srv);
+  UsdUsb::Manager* mgr = new UsdUsb::Manager(0, *srv, *new CfgClientNfs(detInfo));
+  mgr->testTimeStep(tsc);
   managers.push_back(new UsdUsb::Manager(0, *srv, *new CfgClientNfs(detInfo)));
 
   Task* task = new Task(Task::MakeThisATask);
