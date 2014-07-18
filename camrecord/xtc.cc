@@ -245,7 +245,7 @@ static void write_xtc_config(void)
 {
     int i;
     sigset_t oldsig;
-    Xtc *xtcpv1 = NULL, *xtcpv = NULL, *xtc1 = NULL, *xtc = NULL;
+    Xtc *xtcpv = NULL, *xtc1 = NULL, *xtc = NULL;
 
     dg = (Dgram *) malloc(sizeof(Dgram) + sizeof(Xtc));
     
@@ -286,16 +286,26 @@ static void write_xtc_config(void)
         printf("No alias info!\n");
     int pvcnt = pvalias.size();
     if (pvcnt) {
-        int len = 2 * sizeof(Xtc) + sizeof(Epics::ConfigV1) + pvalias.size() * sizeof(Epics::PvConfigV1);
-        xtcpv1 = new ((char *) malloc(len)) Xtc(TypeId(TypeId::Id_Xtc, 1), *ctrlInfo);
-        xtcpv1->extent = len;
-        xtcpv = new ((char *) (xtcpv1+1)) Xtc(TypeId(TypeId::Id_EpicsConfig, 1), *ctrlInfo);
+        int len = sizeof(Xtc) + sizeof(Epics::ConfigV1) + pvalias.size() * sizeof(Epics::PvConfigV1);
+        xtcpv = new ((char *) malloc(len)) Xtc(TypeId(TypeId::Id_EpicsConfig, 1), pvinfo);
         totalcfglen += len;
         printf("PV Alias info = %d bytes\n", len);
     } else
         printf("No PV alias info!\n");
 
     write_datagram(TransitionId::Configure, totalcfglen);
+    if (pvcnt) {
+        *reinterpret_cast<uint32_t *>(xtcpv->alloc(sizeof(uint32_t))) = pvcnt;
+        for (vector<Epics::PvConfigV1 *>::iterator it = pvalias.begin(); it != pvalias.end(); it++) {
+            new (xtcpv->alloc(sizeof(Epics::PvConfigV1))) Epics::PvConfigV1(**it);
+        }
+        if (!fwrite(xtcpv, xtcpv->extent, 1, fp)) {
+            printf("Cannot write to file!\n");
+            exit(1);
+        }
+        fsize += xtcpv->extent;
+        fflush(fp);
+    }
     for (i = 0; i < numsrc; i++) {
         if (!fwrite(src[i]->val, src[i]->len, 1, fp)) {
             printf("Cannot write to file!\n");
@@ -317,18 +327,6 @@ static void write_xtc_config(void)
             exit(1);
         }
         fsize += xtc1->extent;
-        fflush(fp);
-    }
-    if (pvcnt) {
-        *reinterpret_cast<uint32_t *>(xtcpv->alloc(sizeof(uint32_t))) = pvcnt;
-        for (vector<Epics::PvConfigV1 *>::iterator it = pvalias.begin(); it != pvalias.end(); it++) {
-            new (xtcpv->alloc(sizeof(Epics::PvConfigV1))) Epics::PvConfigV1(**it);
-        }
-        if (!fwrite(xtcpv1, xtcpv1->extent, 1, fp)) {
-            printf("Cannot write to file!\n");
-            exit(1);
-        }
-        fsize += xtcpv1->extent;
         fflush(fp);
     }
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
