@@ -162,9 +162,9 @@ namespace Pds {
 
 using namespace Pds;
 
-static void usage(const char* p)
+static void usdUsbUsage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> [-z] [-u <alias>]\n"
+  printf("Usage: %s -i <detinfo> -p <platform> [-z] [-u <alias>] [-t]\n"
 	 "  -z zeroes encoder counts\n", p);
   printf("<detinfo> = integer/integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/USDUSB/1 or 22/0/26/1)\n");
 }
@@ -176,8 +176,8 @@ int main(int argc, char** argv) {
   unsigned platform = no_entry;
   bool lzero = false;
   bool tsc = true;
-  Node node(Level::Source,platform);
-  DetInfo detInfo(node.pid(), Pds::DetInfo::NoDetector, 0, DetInfo::USDUSB, 0);
+  Pds::Node node(Level::Source,platform);
+  DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::USDUSB, 0);
   char* uniqueid = (char *)NULL;
 
   extern char* optarg;
@@ -186,7 +186,8 @@ int main(int argc, char** argv) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,detInfo)) {
-        usage(argv[0]);
+        usdUsbUsage(argv[0]);
+        printf("Could not decode DetInfo\n");
         return -1;
       }
       break;
@@ -208,14 +209,16 @@ int main(int argc, char** argv) {
       break;
     case 'h': // help
     default:
-      usage(argv[0]);
+      usdUsbUsage(argv[0]);
+      printf("Could not decode parameter %c\n", c);
       return 1;
     }
   }
 
-  if ((platform == no_entry) || (detInfo.detector() == Pds::DetInfo::NoDetector)) {
+  if ((platform == no_entry) || (detInfo.detector() == Pds::DetInfo::NumDetector)) {
     printf("Platform and detid required\n");
-    usage(argv[0]);
+    usdUsbUsage(argv[0]);
+    printf("Did not see DetInfo\n");
     return 0;
   }
 
