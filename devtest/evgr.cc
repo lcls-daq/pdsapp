@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
       }
       break;
     case 'b':
-      fiducials_per_beam = strtoul(optarg,NULL,0); 
+      fiducials_per_beam = strtoul(optarg,NULL,0);
       printf("Using %d fiducials per beamcode\n",fiducials_per_beam);
       break;
     case 'x':
@@ -109,7 +109,8 @@ int main(int argc, char** argv) {
 
   EvgrBoardInfo<Evg>& egInfo = *new EvgrBoardInfo<Evg>(evgdev);
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
-  EvgMasterTiming timing(!external_sync, 3, 120., fiducials_per_beam);
+  //EvgMasterTiming timing(!external_sync, 3, 120., fiducials_per_beam);
+  EvgMasterTiming timing(!external_sync, 1, 360., fiducials_per_beam);
   new EvgrManager(egInfo,erInfo, timing, npulses, pulse);
   while (1) sleep(10);
   return 0;
