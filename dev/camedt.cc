@@ -248,6 +248,7 @@ int main(int argc, char** argv) {
   bool helpFlag = false;
 
   extern char* optarg;
+  extern int optind;
   char* endPtr;
   char* uniqueid = (char *)NULL;
   int c;
@@ -314,6 +315,9 @@ int main(int argc, char** argv) {
     case 'h':
       helpFlag = true;
       break;
+    case '?':
+      usage(argv[0]);
+      exit(1);
     }
   }
 
@@ -327,6 +331,12 @@ int main(int argc, char** argv) {
     printf("%s: platform required\n",argv[0]);
     usage(argv[0]);
     return 0;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    usage(argv[0]);
+    exit(1);
   }
 
   // launch the SegmentLevel
