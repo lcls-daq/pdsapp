@@ -32,19 +32,38 @@ namespace Pds {
 
 using namespace Pds;
 
+void usage(const char *cmd)
+{
+  printf("Usage: %s --db <path> --key <key> [-h]\n", cmd);
+}
+
 int main(int argc, char* argv[])
 {
   const char* dbpath=0;
   unsigned key = 0;
+  char *endptr;
   for(int iarg = 1; iarg < argc; iarg++) {
-    if (strcmp(argv[iarg],"--db")==0)
+    if (strcmp(argv[iarg],"--db")==0) {
       dbpath = argv[++iarg];
-    else if (strcmp(argv[iarg],"--key")==0)
-      key = strtoul(argv[++iarg],NULL,0);
+    } else if (strcmp(argv[iarg],"--key")==0) {
+      key = strtoul(argv[++iarg],&endptr,0);
+      if (endptr && *endptr) {
+        printf("invalid argument -- %s\n", argv[iarg]);
+        usage(argv[0]);
+        exit(1);
+      }
+    } else if (strcmp(argv[iarg],"-h")==0) {
+        usage(argv[0]);
+        exit(0);
+    } else {
+      printf("invalid argument -- %s\n", argv[iarg]);
+      usage(argv[0]);
+      exit(1);
+    }
   }
 
   if (dbpath==0 || key==0) {
-    printf("Usage: %s --db <path> --key <key>\n",argv[0]);
+    usage (argv[0]);
     return -1;
   }
   else
