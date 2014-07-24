@@ -533,6 +533,7 @@ void cleanup(void)
 
 int main(int argc, char **argv)
 {
+    extern int optind;
     int c;
     char *config = NULL;
     int idx = 0;
@@ -580,7 +581,16 @@ int main(int argc, char **argv)
         case 's':
             verbose = 0;
             break;
+        case '?':
+            usage();
+            exit(1);
         }
+    }
+
+    if (optind < argc) {
+      printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+      usage();
+      exit(1);
     }
 
     initialize(config);
