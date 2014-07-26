@@ -27,7 +27,6 @@
 #include <dlfcn.h>
 #include <errno.h>
 #include <unistd.h>
-#include <signal.h>
 #include <string.h>
 #include <sys/prctl.h>
 
@@ -367,29 +366,6 @@ void usage(char* progname) {
   printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c|-q <# event queues>] [-d] [-u <uniqueID>] [-g <max groups>] [-h]\n", progname);
 }
 
-LiveMonitorServer* apps;
-
-static struct sigaction old_actions[64];
-
-void sigfunc(int sig_no) {
-  static bool _handled=false;
-  if (!_handled) {
-    _handled = true;
-    printf("handling signal %d app %p\n",sig_no,apps);
-    if (apps) {
-      apps->unlink();
-      apps = 0;
-    }
-    else
-      printf("nothing to do\n");
-
-    printf("done with signal %d\n",sig_no);
-    
-    sigaction(sig_no,&old_actions[sig_no],NULL);
-    raise(sig_no);
-  }
-}
-
 int main(int argc, char** argv) {
 
   const unsigned NO_PLATFORM = unsigned(-1UL);
@@ -405,26 +381,6 @@ int main(int argc, char** argv) {
   bool ldist = false;
   Appliance* uapps = 0;
   int slowReadout = 0;
-
-  struct sigaction int_action;
-
-  int_action.sa_handler = sigfunc;
-  sigemptyset(&int_action.sa_mask);
-  int_action.sa_flags = 0;
-  int_action.sa_flags |= SA_RESTART;
-
-#define REGISTER(t) {                                               \
-    if (sigaction(t, &int_action, &old_actions[t]) > 0)             \
-      printf("Couldn't set up #t handler\n");                       \
-  }
-
-  REGISTER(SIGINT);
-  REGISTER(SIGSEGV);
-  REGISTER(SIGABRT);
-  REGISTER(SIGTERM);
-  REGISTER(SIGPIPE);
-
-#undef REGISTER
 
   int c;
   while ((c = getopt(argc, argv, "p:i:g:n:P:s:c:q:u:L:w:dh")) != -1) {
@@ -523,7 +479,7 @@ int main(int argc, char** argv) {
 
   Stats* stats = new Stats;
 
-  apps = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nevqueues);
+  LiveMonitorServer* apps = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nevqueues);
   apps->distribute(ldist);
 
   apps->connect(stats);
