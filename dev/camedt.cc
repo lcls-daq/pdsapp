@@ -136,9 +136,14 @@ namespace Pds {
       }
 
       if (lCompress) {
-        _user_apps.push_front(new FrameCompApp(max_size));
+        //
+        //  Add extra buffer size for rare cases of compression enlargement
+        //
+        size_t msize = max_size*2;
+        _user_apps.push_front(new FrameCompApp(msize));
         if (lCopy)
-          max_size *= 2;
+          msize += max_size;
+        max_size = msize;
       }
 
       _sources.push_back(_camman->server().client());

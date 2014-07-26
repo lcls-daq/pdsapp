@@ -410,7 +410,7 @@ namespace Pds {
       exit(1);
     }
   private:
-    GenericPool _pool;
+    GenericPoolW _pool;
     GenericPool _occ;
     BldConfigCache& _cache;
     CDatagram*  _dg;
