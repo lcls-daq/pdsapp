@@ -422,6 +422,7 @@ int main(int argc, char** argv) {
   REGISTER(SIGSEGV);
   REGISTER(SIGABRT);
   REGISTER(SIGTERM);
+  REGISTER(SIGPIPE);
 
 #undef REGISTER
 
