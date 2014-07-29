@@ -12,6 +12,8 @@
 #include <glob.h>
 #include <getopt.h>
 
+extern int optind;
+
 using namespace Pds_ConfigDb;
 
 // Commands
@@ -70,11 +72,13 @@ static void _copy_xtc(DbClient&,DbClient&,const XtcEntry&);
 
 int main(int argc, char** argv)
 {
-  string cmd(argv[1]);
-  for(unsigned i=0; _commands[i].options; i++) {
-    if (cmd == std::string(_commands[i].key)) {
-      int v = _commands[i].fcn(argc-1,&argv[1]);
-      if (v>=0) return v;
+  if (argc >= 4) {
+    string cmd(argv[1]);
+    for(unsigned i=0; _commands[i].options; i++) {
+      if (cmd == std::string(_commands[i].key)) {
+        int v = _commands[i].fcn(argc-1,&argv[1]);
+        if (v>=0) return v;
+      }
     }
   }
   print_help(argv[0]);
@@ -97,6 +101,11 @@ int create_db(int argc, char** argv)
     case 0: path = optarg; break;
     default: return -1;
     }
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    return -1;
   }
 
   if (!path) return -1;
@@ -134,6 +143,11 @@ int copy_db(int argc, char** argv)
     case 1: opath = optarg; break;
     default: return -1;
     }
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    return -1;
   }
 
   if (!ipath || !opath) return -1;
@@ -215,6 +229,11 @@ int branch_db(int argc, char** argv)
     }
   }
 
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    return -1;
+  }
+
   if (!ipath || !opath) return -1;
 
   DbClient* newdb = 0;
@@ -278,6 +297,11 @@ int update_db(int argc, char** argv)
     }
   }
 
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    return -1;
+  }
+
   if (!path) return -1;
 
   DbClient* newdb = DbClient::open(path);
@@ -315,6 +339,11 @@ int fetch_xtc(int argc, char** argv)
     case 3: runkey  = strtoul (optarg, NULL, 0); break;
     default: return -1;
     }
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    return -1;
   }
 
   printf("fetch_xtc path [%s] source [%016llx] typeid [%08x] key [%08x]\n",
@@ -373,6 +402,11 @@ int truncate_db(int argc, char** argv)
       } break;
     default: return -1;
     }
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    return -1;
   }
 
   printf("truncate_db path [%s] key [%d-%d] time [%s-%s]\n",
