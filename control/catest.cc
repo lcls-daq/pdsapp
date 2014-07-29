@@ -10,6 +10,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
+
+#include "pdsapp/dev/CmdLineTools.hh"
 
 namespace Pds {
   class MyMonitor : public PVRunnable {
@@ -41,25 +44,51 @@ int main(int argc, char* argv[])
 {
   const char* dbpath=0;
   unsigned key = 0;
-  char *endptr;
-  for(int iarg = 1; iarg < argc; iarg++) {
-    if (strcmp(argv[iarg],"--db")==0) {
-      dbpath = argv[++iarg];
-    } else if (strcmp(argv[iarg],"--key")==0) {
-      key = strtoul(argv[++iarg],&endptr,0);
-      if (endptr && *endptr) {
-        printf("invalid argument -- %s\n", argv[iarg]);
-        usage(argv[0]);
-        exit(1);
+  extern int optind;
+  static struct option long_options[] = {
+    {"help", 0, 0, 'h'},
+    {"key",  1, 0, 'k'},
+    {"db",   1, 0, 'd'},
+    {NULL,   0, NULL, 0}
+  };
+  bool helpFlag = false;
+  bool parseErr = false;
+  int c;
+  int idx = 0;
+  while ((c = getopt_long(argc, argv, "hd:k:", long_options, &idx)) != -1) {
+    switch (c) {
+    case 'h':
+      helpFlag = true;
+      break;
+    case 'd':
+      dbpath = optarg;
+      break;
+    case 'k':
+      if (!Pds::CmdLineTools::parseUInt(optarg, key)) {
+        parseErr = true;
       }
-    } else if (strcmp(argv[iarg],"-h")==0) {
-        usage(argv[0]);
-        exit(0);
-    } else {
-      printf("invalid argument -- %s\n", argv[iarg]);
-      usage(argv[0]);
-      exit(1);
+      break;
+    case '?':
+    default:
+      parseErr = true;
     }
+  }
+
+  if (helpFlag) {
+    usage(argv[0]);
+    exit(0);
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    usage(argv[0]);
+    exit(1);
+  }
+
+  if (parseErr) {
+    printf("%s: argument parsing error\n", argv[0]);
+    usage(argv[0]);
+    exit(1);
   }
 
   if (dbpath==0 || key==0) {
