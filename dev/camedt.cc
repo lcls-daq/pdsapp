@@ -254,9 +254,9 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   extern int optind;
-  char* endPtr;
   char* uniqueid = (char *)NULL;
   int c;
+  bool parseErr = false;
   while ( (c=getopt( argc, argv, "a:i:p:g:c:L:C:vu:h")) != EOF ) {
     switch(c) {
     case 'a':
@@ -269,16 +269,25 @@ int main(int argc, char** argv) {
       }
       break;
     case 'p':
-      platform = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseUInt(optarg, platform)) {
+        parseErr = true;
+      }
       break;
     case 'g':
-      grabberId = strtoul(optarg, &endPtr, 0);
+      if (!CmdLineTools::parseUInt(optarg, grabberId)) {
+        parseErr = true;
+      }
       break;
     case 'c':
-      channel = strtoul(optarg, &endPtr, 0);
+      if (!CmdLineTools::parseUInt(optarg, channel)) {
+        parseErr = true;
+      }
       break;
     case 'C':
-      { unsigned ncopy = strtoul(optarg, NULL, 0);
+      { unsigned ncopy;
+        if (!CmdLineTools::parseUInt(optarg, ncopy)) {
+          parseErr = true;
+        }
         lCompress = true;
         lCopy = ncopy!=0;
         FrameCompApp::setCopyPresample(ncopy);
@@ -309,7 +318,8 @@ int main(int argc, char** argv) {
       }
     case 'u':
       if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
-        printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+        printf("Error: Device alias '%s' exceeds %d chars\n", optarg, SrcAlias::AliasNameMax-1);
+        parseErr = true;
       } else {
         uniqueid = optarg;
       }
@@ -321,8 +331,7 @@ int main(int argc, char** argv) {
       helpFlag = true;
       break;
     case '?':
-      usage(argv[0]);
-      exit(1);
+      parseErr = true;
     }
   }
 
@@ -330,6 +339,12 @@ int main(int argc, char** argv) {
     usage(argv[0]);
     help();
     return 0;
+  }
+
+  if (parseErr) {
+    printf("%s: argument parsing error\n",argv[0]);
+    usage(argv[0]);
+    exit(1);
   }
 
   if (platform == NO_PLATFORM) {
