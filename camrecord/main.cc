@@ -15,6 +15,8 @@
 #include<iostream>
 #include"yagxtc.hh"
 
+#include "pdsapp/dev/CmdLineTools.hh"
+
 using namespace std;
 
 class symbol {
@@ -549,10 +551,13 @@ int main(int argc, char **argv)
         {NULL, 0, NULL, 0}
     };
 
+    int ii;
+    bool helpFlag = false;
+    bool parseErr = false;
     while ((c = getopt_long(argc, argv, "hc:o:t:d:sk:H:", long_options, &idx)) != -1) {
         switch (c) {
         case 'h':
-            usage();
+            helpFlag = true;
             break;
         case 'c':
             config = optarg;
@@ -561,15 +566,21 @@ int main(int argc, char **argv)
             outfile = strdup(optarg);
             char *s = rindex(outfile, '-');
             if (s && s[1] == 's') {
-                streamno = atoi(s + 2);
+                if (!Pds::CmdLineTools::parseInt(s+2, streamno)) {
+                    parseErr= true;
+                }
             }
             break;
         }
         case 't':
-            delay = atoi(optarg);
+            if (!Pds::CmdLineTools::parseInt(optarg, delay)) {
+                parseErr= true;
+            }
             break;
         case 'k':
-            keepalive = atoi(optarg);
+            if (!Pds::CmdLineTools::parseInt(optarg, keepalive)) {
+                parseErr= true;
+            }
             break;
         case 'd':
             chdir(optarg);
@@ -582,15 +593,26 @@ int main(int argc, char **argv)
             verbose = 0;
             break;
         case '?':
-            usage();
-            exit(1);
+            parseErr = true;
         }
     }
+
+    if (helpFlag) {
+        usage();
+        /* No return! */
+    }
+
+    if (parseErr) {
+        printf("%s: argument parsing error\n",argv[0]);
+        usage();
+        /* No return! */
+    }
+
 
     if (optind < argc) {
       printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
       usage();
-      exit(1);
+      /* No return! */
     }
 
     initialize(config);
