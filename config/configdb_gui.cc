@@ -11,6 +11,7 @@ using namespace Pds_ConfigDb;
 
 int main(int argc, char** argv)
 {
+  extern int optind;
   bool edit=false;
   bool dbnamed=false;
   string path;
@@ -50,8 +51,13 @@ int main(int argc, char** argv)
       default:
       case '?':
         // error
-        exit(1);
+        lusage = true;
      }
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    lusage = true;
   }
 
   if (lusage || !dbnamed) {
