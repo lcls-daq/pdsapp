@@ -34,6 +34,11 @@ tgtincs_evrobs := evgr
 tgtlibs_evrobs := pdsdata/xtcdata evgr/evr evgr/evg pds/service pds/collection pds/xtc pds/utility pds/management pds/client pds/evgr 
 tgtslib_evrobs := $(USRLIB)/rt
 
+tgtsrcs_evg := evg.cc
+tgtincs_evg := evg
+tgtlibs_evg := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata pds/configdbc pds/confignfs pds/configsql
+tgtslib_evg := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
+
 tgtsrcs_evgr := evgr.cc
 tgtincs_evgr := evgr
 tgtlibs_evgr := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata pds/configdbc pds/confignfs pds/configsql
