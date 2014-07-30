@@ -27,7 +27,7 @@ using namespace Pds;
 
 PartitionSelect::PartitionSelect(QWidget*          parent,
                                  PartitionControl& control,
-				 IocControl&       icontrol,
+         IocControl&       icontrol,
                                  const char*       pt_name,
                                  const char*       db_path,
                                  unsigned          options) :
@@ -52,7 +52,7 @@ PartitionSelect::PartitionSelect(QWidget*          parent,
   connect( display, SIGNAL(clicked()), this, SLOT(display()));
 }
 
-PartitionSelect::~PartitionSelect() 
+PartitionSelect::~PartitionSelect()
 {
 }
 
@@ -80,7 +80,7 @@ void PartitionSelect::select_dialog()
   }
 
   bool bReadGroupEnable = _checkReadGroupEnable();
-  
+
   SelectDialog* dialog = new SelectDialog(this, _pcontrol, _icontrol, bReadGroupEnable, _autorun);
   bool ok = dialog->exec();
   if (ok) {
@@ -94,7 +94,7 @@ void PartitionSelect::select_dialog()
     _deviceNames = dialog->deviceNames();
     _segments  = dialog->segments ();
     _reporters = dialog->reporters();
-    
+
     QList<DetInfo> iocs = dialog->iocs();
     std::list<DetInfo> inodes;
     for(int i=0; i<iocs.size(); i++)
@@ -154,13 +154,13 @@ void PartitionSelect::select_dialog()
 
       unsigned sz = sizeof(Partition::ConfigV1)+isrc*sizeof(Partition::Source);
       char* buff = new char[sz];
-      
-      PartitionConfigType* cfg = new(buff) 
+
+      PartitionConfigType* cfg = new(buff)
         PartitionConfigType(bld_mask&~bld_mask_mon,isrc,sources);
 
       _icontrol.set_partition(inodes);
-      _pcontrol.set_partition(_pt_name, _db_path, 
-                              _nodes  , _nnodes, 
+      _pcontrol.set_partition(_pt_name, _db_path,
+                              _nodes  , _nnodes,
                               bld_mask, bld_mask_mon,
                               _options, cfg);
       _pcontrol.set_target_state(PartitionControl::Configured);
@@ -169,8 +169,8 @@ void PartitionSelect::select_dialog()
       delete[] sources;
 #else
       _icontrol.set_partition(inodes);
-      _pcontrol.set_partition(_pt_name, _db_path, 
-                              _nodes  , _nnodes, 
+      _pcontrol.set_partition(_pt_name, _db_path,
+                              _nodes  , _nnodes,
                               bld_mask, bld_mask_mon,
                               _options);
       _pcontrol.set_target_state(PartitionControl::Configured);
@@ -204,7 +204,7 @@ const QList<ProcInfo>& PartitionSelect::segments () const { return _segments ; }
 
 const QList<BldInfo >& PartitionSelect::reporters() const { return _reporters ; }
 
-bool PartitionSelect::_validate(uint64_t bld_mask) 
+bool PartitionSelect::_validate(uint64_t bld_mask)
 {
   bool lEvent  =false;
   bool lError  =false;
@@ -267,7 +267,7 @@ bool PartitionSelect::_checkReadGroupEnable()
   unsigned int uRunKey = _pcontrol.get_transition_env(TransitionId::Configure);
   if (!uRunKey)
     return false;
-  
+
   const DetInfo det(0,DetInfo::NoDetector,0,DetInfo::Evr,0);
 
   Pds_ConfigDb::XtcClient* cl = Pds_ConfigDb::XtcClient::open(_db_path);
@@ -275,40 +275,40 @@ bool PartitionSelect::_checkReadGroupEnable()
     printf("PartitionSelect::_checkReadGroupEnable(): failed to get configuration data\n");
     return false;
   }
-  
+
   static const unsigned MaxUserCodes      = 16;
-  static const unsigned MaxGlobalCodes    = 4;  
+  static const unsigned MaxGlobalCodes    = 4;
   int iMaxEvrDataSize = sizeof(EvrConfigType) + (MaxUserCodes+MaxGlobalCodes) * sizeof(EventCodeType);
   char* lcConfigBuffer = (char*) malloc( iMaxEvrDataSize );
   if ( lcConfigBuffer == NULL )
   {
-    printf("PartitionSelect::_checkReadGroupEnable(): malloc(%d) failed. Error: %s\n", iMaxEvrDataSize, strerror(errno));      
+    printf("PartitionSelect::_checkReadGroupEnable(): malloc(%d) failed. Error: %s\n", iMaxEvrDataSize, strerror(errno));
     return false;
   }
 
   int iSizeRead = cl->getXTC(uRunKey, det, _evrConfigType, lcConfigBuffer, iMaxEvrDataSize);
-  if (iSizeRead == -1 )
+  if (iSizeRead <= 0 )
   {
-    printf("PartitionSelect::_checkReadGroupEnable():: Read failed. Error: %s\n", strerror(errno));      
+    printf("PartitionSelect::_checkReadGroupEnable():: Read failed. Error: %s\n", strerror(errno));
     free(lcConfigBuffer);
     return false;
   }
-    
-  EvrConfigType& evrConfig  = (EvrConfigType&) *(EvrConfigType*) lcConfigBuffer;    
-    
-  printf("Evr config event %d pulse %d output %d\n", 
+
+  EvrConfigType& evrConfig  = (EvrConfigType&) *(EvrConfigType*) lcConfigBuffer;
+
+  printf("Evr config event %d pulse %d output %d\n",
     evrConfig.neventcodes(), evrConfig.npulses(), evrConfig.noutputs() );
 
   bool bEneableReadoutGroup = false;
-  for(unsigned i=0; i<evrConfig.neventcodes(); i++) 
+  for(unsigned i=0; i<evrConfig.neventcodes(); i++)
   {
     const EventCodeType& e = evrConfig.eventcodes()[i];
     if (e.readoutGroup() > 1)
       bEneableReadoutGroup = true;
   }
-  
+
   free(lcConfigBuffer);
-    
+
   return bEneableReadoutGroup;
 }
 
