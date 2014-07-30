@@ -551,7 +551,6 @@ int main(int argc, char **argv)
         {NULL, 0, NULL, 0}
     };
 
-    int ii;
     bool helpFlag = false;
     bool parseErr = false;
     while ((c = getopt_long(argc, argv, "hc:o:t:d:sk:H:", long_options, &idx)) != -1) {
