@@ -394,10 +394,11 @@ int truncate_db(int argc, char** argv)
       kto     = strtoul(endPtr+1,&endPtr,0);
       break;
     case 2:
-      { struct tm tm_v;
+      { struct tm tm_v; 
+        memset(&tm_v,0,sizeof(tm_v));
         strptime(strtok(optarg,"-"),"%Y%m%d",&tm_v);
         tfrom   = mktime(&tm_v);
-        strptime(strtok(optarg,"-"),"%Y%m%d",&tm_v);
+        strptime(strtok(NULL,"-"),"%Y%m%d",&tm_v);
         tto     = mktime(&tm_v);
       } break;
     default: return -1;
@@ -409,8 +410,11 @@ int truncate_db(int argc, char** argv)
     return -1;
   }
 
-  printf("truncate_db path [%s] key [%d-%d] time [%s-%s]\n",
-         path,kfrom,kto,ctime(&tfrom),ctime(&tto));
+  char buf1[256],buf2[256];
+  ctime_r(&tfrom,buf1); *strchr(buf1,'\n')=0;
+  ctime_r(&tto  ,buf2); *strchr(buf2,'\n')=0;
+  printf("truncate_db path [%s] key [%d-%d] time [%s]-[%s]\n",
+         path,kfrom,kto,buf1,buf2);
 
   if (!path) return -1;
 
