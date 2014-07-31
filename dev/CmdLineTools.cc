@@ -68,24 +68,24 @@ bool CmdLineTools::parseDetInfo(const char* args, DetInfo& info)
 }
 
 
-bool CmdLineTools::parseInt   (const char* arg, int& v)
+bool CmdLineTools::parseInt   (const char* arg, int& v, int base)
 {
   char* endptr;
-  v = strtol(arg,&endptr,0);
+  v = strtol(arg,&endptr,base);
   return *endptr==0;
 }
 
-bool CmdLineTools::parseUInt  (const char* arg, unsigned& v)
+bool CmdLineTools::parseUInt  (const char* arg, unsigned& v, int base)
 {
   char* endptr;
-  v = strtoul(arg,&endptr,0);
+  v = strtoul(arg,&endptr,base);
   return *endptr==0;
 }
 
-bool CmdLineTools::parseUInt64(const char* arg, uint64_t& v)
+bool CmdLineTools::parseUInt64(const char* arg, uint64_t& v, int base)
 {
   char* endptr;
-  v = strtoull(arg,&endptr,0);
+  v = strtoull(arg,&endptr,base);
   return *endptr==0;
 }
 
