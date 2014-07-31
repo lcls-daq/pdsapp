@@ -500,10 +500,11 @@ int main(int argc, char** argv) {
 			  slowReadout,
 			  sizeOfBuffers);
 
-    if (!uniqueID)
-      new Comm(*event, *stats, nodes);
-
     if (event->attach()) {
+
+      if (!uniqueID)
+        new Comm(*event, *stats, nodes);
+
       task->mainLoop();
       event->detach();
       delete stats;
