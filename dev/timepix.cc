@@ -45,6 +45,8 @@ static void help()
          "  0x0010                ignore hardware frame counter\n");
 }
 
+extern int optind;
+
 namespace Pds
 {
    class MySegWire;
@@ -196,13 +198,13 @@ int main( int argc, char** argv )
   unsigned moduleId = 0;
   unsigned verbosity = 0;
   unsigned debug = 0;
+  bool lusage = false;
   bool helpFlag = false;
   char *threshFileName = NULL;
   char *imageFileName = NULL;
   int cpu0 = -1;
   int cpu1 = -1;
   char *logpath = NULL;
-  char *pComma = NULL;
   char *endPtr;
 
    extern char* optarg;
@@ -268,15 +270,30 @@ int main( int argc, char** argv )
          case 'o':
             logpath = optarg;
             break;
+         case '?':
+            // error
+            lusage = true;
+            break;
       }
    }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    lusage = true;
+  }
+
+  if ((platform == UINT_MAX) || (detid == UINT_MAX)) {
+    printf("Error: Platform and detid required\n");
+    lusage = true;
+  }
 
   if (helpFlag) {
     usage(argv[0]);
     help();
     return 0;
-  } else if ((platform == UINT_MAX) || (detid == UINT_MAX)) {
-    printf("Error: Platform and detid required\n");
+  }
+
+  if (lusage) {
     usage(argv[0]);
     return 0;
   }
