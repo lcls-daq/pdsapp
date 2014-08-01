@@ -5,6 +5,7 @@
 #include "pds/confignfs/Path.hh"
 #include "pds/configsql/DbClient.hh"
 #include "pds/utility/Transition.hh"
+#include "pdsapp/dev/CmdLineTools.hh"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +56,7 @@ static struct command _commands[] =
       "Fetch the xtc",
       fetch_xtc },
     { "--truncate-db",
-      "--db <path> [--keys <from-to>] [--time <from-to>]",
+      "--db <path> [--key <from-to>] [--time <from-to>]",
       "Truncate/delete the history",
       truncate_db },
     { NULL, NULL, NULL, NULL }
@@ -384,21 +385,41 @@ int truncate_db(int argc, char** argv)
   time_t      tfrom=0,tto=0;
   uint32_t    kfrom=0,kto=0;
 
-  char* endPtr;
+  char* pDash;
   char c;
+  bool bb1, bb2;
   while( (c=getopt_long(argc, argv, "", _options, NULL)) != -1 ) {
     switch(c) {
     case 0: path    = optarg; break;
     case 1: 
-      kfrom   = strtoul(optarg,&endPtr,0);
-      kto     = strtoul(endPtr+1,&endPtr,0);
+      pDash = strchr(optarg, '-');
+      if ((pDash == NULL) || (pDash != strrchr(optarg, '-'))) {
+        printf("%s: option `--key' parsing error\n", argv[0]);
+        return -1;
+      }
+      *pDash = '\0';
+      bb1 = Pds::CmdLineTools::parseUInt(optarg, kfrom);
+      bb2 = Pds::CmdLineTools::parseUInt(pDash+1, kto);
+      if (!bb1 || !bb2) {
+        printf("%s: option `--key' parsing error\n", argv[0]);
+        return -1;
+      }
       break;
     case 2:
+      pDash = strchr(optarg, '-');
+      if ((pDash == NULL) || (pDash != strrchr(optarg, '-'))) {
+        printf("%s: option `--time' parsing error\n", argv[0]);
+        return -1;
+      }
       { struct tm tm_v; 
         memset(&tm_v,0,sizeof(tm_v));
-        strptime(strtok(optarg,"-"),"%Y%m%d",&tm_v);
+        char *cc1 = strptime(strtok(optarg,"-"),"%Y%m%d",&tm_v);
         tfrom   = mktime(&tm_v);
-        strptime(strtok(NULL,"-"),"%Y%m%d",&tm_v);
+        char *cc2 = strptime(strtok(NULL,"-"),"%Y%m%d",&tm_v);
+        if (!cc1 || !cc2 || *cc1 || *cc2) {
+          printf("%s: option `--time' parsing error\n", argv[0]);
+          return -1;
+        }
         tto     = mktime(&tm_v);
       } break;
     default: return -1;
