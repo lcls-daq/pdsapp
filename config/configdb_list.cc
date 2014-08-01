@@ -5,6 +5,7 @@
 #include <QtGui/QApplication>
 
 #include <stdio.h>
+#include <getopt.h>
 
 using namespace Pds_ConfigDb;
 
@@ -15,16 +16,45 @@ int main(int argc, char** argv)
   string dbname;
   bool lusage=false;
 
-  for(int i=1; i<argc; i++) {
-    if (strcmp(argv[i],"--db")==0) {
-      dbname = string(argv[++i]);
-      dbnamed = true;
+  int c;
+  while (1) {
+    static struct option long_options[] = {
+      {"db", 1, 0, 'd'},
+      {"help", 0, 0, 'h'},
+      {0, 0, 0, 0}
+    };
+    c = getopt_long(argc, argv, "h", long_options, NULL);
+    if (c == -1) {
+      break;
     }
-    else lusage=true;
+    switch (c) {
+      case 'd':
+        if (optarg) {
+          if (*optarg == '-') {
+            lusage = true;  // error: --db followed by another option
+          } else {
+            dbname = optarg;
+            dbnamed = true;
+          }
+        }
+        break;
+      case 'h':
+        lusage = true;
+        break;
+      default:
+      case '?':
+        // error
+        lusage = true;
+     }
   }
-  lusage |= !dbnamed;
-  if (lusage) {
-    printf("%s --db <dbname>\n",argv[0]);
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    lusage = true;
+  }
+
+  if (lusage || !dbnamed) {
+    printf("Usage: %s --db <path> [-h]\n",argv[0]);
     return 1;
   }
 
