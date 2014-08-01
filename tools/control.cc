@@ -5,12 +5,16 @@
 #include "pds/client/Decoder.hh"
 #include "pds/collection/PingReply.hh"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsapp/dev/CmdLineTools.hh"
 
 #include <time.h> // Required for timespec struct and nanosleep()
 #include <stdlib.h> // Required for timespec struct and nanosleep()
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <climits>
+
+extern int optind;
 
 namespace Pds {
 
@@ -74,25 +78,33 @@ using namespace Pds;
 
 int main(int argc, char** argv)
 {
-  unsigned platform = 0;
+  unsigned platform = UINT_MAX;
   unsigned bldList[32];
   unsigned nbld = 0;
   const char* partition = "partition";
   const char* dbpath    = "none";
-  const unsigned NO_KEY = (unsigned)-1;
+  const unsigned NO_KEY = UINT_MAX;
   unsigned key = NO_KEY;
   int      slowReadout = 0;
+  bool     lusage = false;
+  unsigned uu;
 
   int c;
-  while ((c = getopt(argc, argv, "p:b:P:D:k:w:")) != -1) {
-    char* endPtr;
+  while ((c = getopt(argc, argv, "p:b:P:D:k:w:h")) != -1) {
     switch (c) {
     case 'b':
-      bldList[nbld++] = strtoul(optarg, &endPtr, 0);
+      if (Pds::CmdLineTools::parseUInt(optarg, uu)) {
+        bldList[nbld++] = uu;
+      } else {
+        printf("%s: option `-b' parsing error\n", argv[0]);
+        lusage = true;
+      }
       break;
     case 'p':
-      platform = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) platform = 0;
+      if (!Pds::CmdLineTools::parseUInt(optarg, platform)) {
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        lusage = true;
+      }
       break;
     case 'P':
       partition = optarg;
@@ -101,15 +113,34 @@ int main(int argc, char** argv)
       dbpath = optarg;
       break;
     case 'k':
-      key = strtoul(optarg, &endPtr, 0);
+      if (!Pds::CmdLineTools::parseUInt(optarg, key)) {
+        printf("%s: option `-k' parsing error\n", argv[0]);
+        lusage = true;
+      }
       break;
     case 'w':
-      slowReadout = strtoul(optarg, &endPtr, 0);
+      if (!Pds::CmdLineTools::parseInt(optarg, slowReadout)) {
+        printf("%s: option `-w' parsing error\n", argv[0]);
+        lusage = true;
+      }
       break;
+    case 'h':
+      lusage = true;
+      break;
+    default:
+    case '?':
+      // error
+      lusage = true;
     }
   }
-  if (!platform || !partition || !dbpath || (key==NO_KEY)) {
-    printf("usage: %s -p <platform> -P <partition_description> -D <db name> -k <key> [-b <bld>]\n", argv[0]);
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    lusage = true;
+  }
+
+  if (lusage || (platform==UINT_MAX) || !partition || !dbpath || (key==NO_KEY)) {
+    printf("Usage: %s -p <platform> -P <partition_description> -D <db name> -k <key> [-b <bld>]\n", argv[0]);
     return 0;
   }
 

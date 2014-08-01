@@ -45,6 +45,7 @@ tgtincs_segtest := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_control := control.cc
 tgtlibs_control := $(commonlibs)
+tgtlibs_control += pdsapp/devapp
 tgtslib_control := $(USRLIBDIR)/rt
 tgtincs_control := pdsdata/include ndarray/include boost/include  
 
