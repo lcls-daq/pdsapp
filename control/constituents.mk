@@ -37,6 +37,7 @@ tgtlibs_control_gui += pds/configdbc pds/confignfs pds/configsql
 tgtlibs_control_gui += pdsapp/configdb
 tgtlibs_control_gui += pdsapp/configdbg
 tgtlibs_control_gui += $(qtlibdir)
+tgtlibs_control_gui += pdsapp/devapp
 tgtlibs_control_gui += epics/ca epics/Com
 tgtlibs_control_gui += offlinedb/mysqlclient offlinedb/offlinedb
 tgtslib_control_gui := $(USRLIBDIR)/rt $(qtslibdir) $(USRLIBDIR)/mysql/mysqlclient

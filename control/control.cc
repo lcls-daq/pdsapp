@@ -2,6 +2,7 @@
 #include "pdsapp/control/SelectDialog.hh"
 #include "pdsapp/control/EventcodeQuery.hh"
 #include "pdsapp/config/Experiment.hh"
+#include "pdsapp/dev/CmdLineTools.hh"
 
 #include <QtGui/QApplication>
 
@@ -10,13 +11,16 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <climits>
+
+extern int optind;
 
 using namespace Pds;
 using Pds_ConfigDb::Experiment;
 
 static void usage(char *argv0)
 {
-  printf("usage: %s -p <platform> -P <partition_description> -D <db name> [options]\n"
+  printf("Usage: %s -p <platform> -P <partition_description> -D <db name> [options]\n"
    "Options: -L <offlinerc>            : offline db access\n"
    "         -E <experiment_name>      : offline db experiment\n"
    "         -R <run_number_file>      : no offline db\n"
@@ -36,7 +40,7 @@ static void usage(char *argv0)
 
 int main(int argc, char** argv)
 {
-  const unsigned NO_PLATFORM = (unsigned)-1;
+  const unsigned NO_PLATFORM = UINT_MAX;
   unsigned platform = NO_PLATFORM;
   const char* partition = "partition";
   const char* dbpath    = "none";
@@ -53,6 +57,7 @@ int main(int argc, char** argv)
   bool override = false;
   unsigned partition_options = 0;
   bool autorun = false;
+  bool lusage = false;
 
   int c;
   while ((c = getopt(argc, argv, "p:P:D:L:R:E:e:N:C:AOTS:w:o:hv")) != -1) {
@@ -62,9 +67,7 @@ int main(int argc, char** argv)
       autorun = true;
       break;
     case 'p':
-      errno = 0;
-      platform = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) {
+      if (!Pds::CmdLineTools::parseUInt(optarg, platform)) {
         printf("platform [%s] not parsed\n",optarg);
         exit(1);
       }
@@ -112,17 +115,25 @@ int main(int argc, char** argv)
       partition_options = strtoul(optarg, &endPtr, 0);
       break;
     case 'h':
-      usage(argv[0]);
-      return 0;
+      lusage = true;
+      break;
     case 'v':
       ++verbose;
       break;
     default:
-      usage(argv[0]);
-      return 0;
+      // error
+      lusage = true;
+      break;
     }
   }
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    lusage = true;
+  }
   if ((platform==NO_PLATFORM || !partition || !dbpath) || (!offlinerc && experiment) || (offlinerc && runNumberFile)) {
+    lusage = true;
+  }
+  if (lusage) {
     usage(argv[0]);
     return 0;
   }
