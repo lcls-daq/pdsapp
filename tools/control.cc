@@ -5,7 +5,6 @@
 #include "pds/client/Decoder.hh"
 #include "pds/collection/PingReply.hh"
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pdsapp/dev/CmdLineTools.hh"
 
 #include <time.h> // Required for timespec struct and nanosleep()
 #include <stdlib.h> // Required for timespec struct and nanosleep()
@@ -74,7 +73,19 @@ namespace Pds {
 
 using namespace Pds;
 
+static bool parseInt   (const char* arg, int& v, int base=0)
+{
+  char* endptr;
+  v = strtol(arg,&endptr,base);
+  return *endptr==0;
+}
 
+static bool parseUInt  (const char* arg, unsigned& v, int base=0)
+{
+  char* endptr;
+  v = strtoul(arg,&endptr,base);
+  return *endptr==0;
+}
 
 int main(int argc, char** argv)
 {
@@ -93,7 +104,7 @@ int main(int argc, char** argv)
   while ((c = getopt(argc, argv, "p:b:P:D:k:w:h")) != -1) {
     switch (c) {
     case 'b':
-      if (Pds::CmdLineTools::parseUInt(optarg, uu)) {
+      if (parseUInt(optarg, uu)) {
         bldList[nbld++] = uu;
       } else {
         printf("%s: option `-b' parsing error\n", argv[0]);
@@ -101,7 +112,7 @@ int main(int argc, char** argv)
       }
       break;
     case 'p':
-      if (!Pds::CmdLineTools::parseUInt(optarg, platform)) {
+      if (!parseUInt(optarg, platform)) {
         printf("%s: option `-p' parsing error\n", argv[0]);
         lusage = true;
       }
@@ -113,13 +124,13 @@ int main(int argc, char** argv)
       dbpath = optarg;
       break;
     case 'k':
-      if (!Pds::CmdLineTools::parseUInt(optarg, key)) {
+      if (!parseUInt(optarg, key)) {
         printf("%s: option `-k' parsing error\n", argv[0]);
         lusage = true;
       }
       break;
     case 'w':
-      if (!Pds::CmdLineTools::parseInt(optarg, slowReadout)) {
+      if (!parseInt(optarg, slowReadout)) {
         printf("%s: option `-w' parsing error\n", argv[0]);
         lusage = true;
       }

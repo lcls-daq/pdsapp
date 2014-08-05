@@ -5,7 +5,6 @@
 #include "pds/confignfs/Path.hh"
 #include "pds/configsql/DbClient.hh"
 #include "pds/utility/Transition.hh"
-#include "pdsapp/dev/CmdLineTools.hh"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,6 +69,13 @@ void print_help(const char* p)
 }
 
 static void _copy_xtc(DbClient&,DbClient&,const XtcEntry&);
+
+static bool parseUInt  (const char* arg, unsigned& v, int base=0)
+{
+  char* endptr;
+  v = strtoul(arg,&endptr,base);
+  return *endptr==0;
+}
 
 int main(int argc, char** argv)
 {
@@ -398,8 +404,8 @@ int truncate_db(int argc, char** argv)
         return -1;
       }
       *pDash = '\0';
-      bb1 = Pds::CmdLineTools::parseUInt(optarg, kfrom);
-      bb2 = Pds::CmdLineTools::parseUInt(pDash+1, kto);
+      bb1 = parseUInt(optarg, kfrom);
+      bb2 = parseUInt(pDash+1, kto);
       if (!bb1 || !bb2) {
         printf("%s: option `--key' parsing error\n", argv[0]);
         return -1;

@@ -137,7 +137,6 @@ tgtlibs_configdb_cmd += pdsapp/configdb
 tgtlibs_configdb_cmd += pds/configdbc pds/confignfs pds/configsql
 tgtlibs_configdb_cmd += pds/config pds/utility pds/collection pds/service pds/vmon pds/mon pds/xtc
 tgtlibs_configdb_cmd += offlinedb/mysqlclient
-tgtlibs_configdb_cmd += pdsapp/devapp
 tgtslib_configdb_cmd := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
 
 tgtsrcs_configdb_gui := configdb_gui.cc
