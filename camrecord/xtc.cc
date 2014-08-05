@@ -531,7 +531,8 @@ void send_event(struct event *ev)
     bool bInvalidData = false;
     bool bStopUpdate = false;
 
-    if (paused) {
+    if (paused || (ev->nsec & 0x1ffff) == 0x1ffff) {
+        /* Do nothing if we are paused or if the fiducial is bad! */
 #ifdef TRACE
         printf("%08x:%08x D event %d\n", ev->sec, ev->nsec, ev->id);
 #endif
