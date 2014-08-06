@@ -122,7 +122,7 @@ tgtslib_pimbldedt := $(commonslib)
 tgtincs_pimbldedt := edt/include pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_netfifo := netfifo.cc
-tgtlibs_netfifo := pds/service
+tgtlibs_netfifo := pds/service pdsdata/xtcdata
 tgtslib_netfifo := $(USRLIBDIR)/rt
 
 tgtsrcs_netfwd := netfwd.cc
