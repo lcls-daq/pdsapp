@@ -1,3 +1,4 @@
+#include "pds/service/CmdLineTools.hh"
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -17,12 +18,13 @@ int main(int argc, char **argv)
   unsigned platform = NO_PLATFORM;
   const char* partition = 0;
   const char* path = "./";
+  bool        parseValid = true;
 
   int c;
   while ((c = getopt(argc, argv, "p:P:o:")) != -1) {
     switch (c) {
     case 'p':
-      platform = strtoul(optarg, NULL, 0);
+      parseValid &= CmdLineTools::parseUInt(optarg,platform);
       break;
     case 'P':
       partition = optarg;
@@ -36,7 +38,9 @@ int main(int argc, char **argv)
     }
   }
 
-  if (partition==0 || platform==NO_PLATFORM) {
+  parseValid &= (optind==argc);
+
+  if (!parseValid || partition==0 || platform==NO_PLATFORM) {
     printHelp(argv[0]);
     return -1;
   }

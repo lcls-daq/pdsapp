@@ -173,13 +173,41 @@ private:
   Task* _thread;
 };
 
+static void usage(const char* p)
+{
+  printf("Usage: %s [-h]\n",p);
+}
+
 int main(int argc, char **argv) 
 {
   unsigned interface = 0;
-  in_addr inp;
-  if (inet_aton(argv[1], &inp))
-    interface = ntohl(inp.s_addr);
+  bool     parseValid = true;
 
+  int c;
+  while ((c = getopt(argc, argv, "h")) != -1) {
+    switch (c) {
+    case 'h':
+    default:
+      usage(argv[0]);
+      return 0;
+    }
+  }
+
+  parseValid &= (optind==argc-1);
+  if (!parseValid) {
+    usage(argv[0]);
+    return -1;
+  }
+
+  in_addr inp;
+  if (inet_aton(argv[optind], &inp))
+    interface = ntohl(inp.s_addr);
+  else {
+    printf("Error parsing interface [%s]\n",argv[optind]);
+    usage(argv[0]);
+    return -1;
+  }
+    
   RouteTable table;
   Route::set(table,interface);
   

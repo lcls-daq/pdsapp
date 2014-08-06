@@ -13,7 +13,8 @@ tgtnames := vmondisplay vmonservertest vmonreader vmonrecorder
 tgtsrcs_vmondisplay += VmonTreeMenu.cc VmonTreeMenu_moc.cc 
 tgtsrcs_vmondisplay += VmonMain.cc
 tgtsrcs_vmondisplay += vmondisplay.cc
-tgtlibs_vmondisplay := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pdsapp/monapp
+tgtlibs_vmondisplay := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management 
+tgtlibs_vmondisplay += pdsapp/monapp
 tgtlibs_vmondisplay += $(qtlibdir)
 tgtlibs_vmondisplay += qwt/qwt
 tgtincs_vmondisplay := $(qtincdir)
@@ -26,14 +27,14 @@ tgtslib_vmonservertest := $(USRLIBDIR)/rt
 tgtincs_vmonservertest := pdsdata/include
 
 tgtsrcs_vmonreader += vmonreader.cc VmonReaderTreeMenu.cc VmonReaderTreeMenu_moc.cc 
-tgtlibs_vmonreader := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
+tgtlibs_vmonreader := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management 
 tgtlibs_vmonreader += pdsapp/monapp
 tgtlibs_vmonreader += $(qtlibdir)  qwt/qwt
 tgtslib_vmonreader := $(USRLIBDIR)/rt
 tgtincs_vmonreader := pdsdata/include $(qtincdir)
 
 tgtsrcs_vmonrecorder += vmonrecorder.cc
-tgtlibs_vmonrecorder := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management
+tgtlibs_vmonrecorder := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/management 
 tgtslib_vmonrecorder := $(USRLIBDIR)/rt
 tgtincs_vmonrecorder := pdsdata/include
 

@@ -11,8 +11,9 @@
 #include "pds/utility/InletWireServer.hh"
 #include "pds/utility/EvrServer.hh"
 #include "pds/utility/EbCountSrv.hh"
-#include "pds/service/Task.hh"
 #include "pds/utility/Transition.hh"
+#include "pds/service/Task.hh"
+#include "pds/service/CmdLineTools.hh"
 
 #include "pds/xtc/InDatagramIterator.hh"
 #include "pds/xtc/CDatagramIterator.hh"
@@ -517,8 +518,9 @@ int main(int argc, char** argv) {
   int      size2    = 1024;
   unsigned detid = 0;
   unsigned platform = 0;
-  bool noPlatform = true;
+  bool     noPlatform = true;
   int      slowReadout = 0;
+  bool     parseValid = true;
 
   extern char* optarg;
   int c;
@@ -527,29 +529,27 @@ int main(int argc, char** argv) {
       case 'T':
         resTest();
         return 0;
-        break;
       case 'L':
         listAll();
         return 0;
-        break;
       case 'i':
-        detid  = strtoul(optarg, NULL, 0);
+        parseValid &= CmdLineTools::parseUInt(optarg,detid);
         break;
       case 's':
-        sscanf(optarg,"%d",&seconds);
+        parseValid &= CmdLineTools::parseUInt(optarg,seconds);
         break;
       case 'p':
-        platform = strtoul(optarg, NULL, 0);
+        parseValid &= CmdLineTools::parseUInt(optarg,platform);
         noPlatform = false;
         break;
       case 'r':
-        rateInCPS = strtoul(optarg, NULL, 0);
+        parseValid &= CmdLineTools::parseUInt(optarg,rateInCPS);
         break;
       case 'v':
         verbose = true;
         break;
       case 'w':
-        slowReadout = strtoul(optarg, NULL, 0);
+        parseValid &= CmdLineTools::parseInt(optarg,slowReadout);
         break;
       case '?':
         printf("Unrecognized option %c\n",c);
@@ -561,6 +561,12 @@ int main(int argc, char** argv) {
         _print_help(argv[0]);
         exit(1);
     }
+  }
+
+  parseValid &= (optind==argc);
+  if (!parseValid) {
+    _print_help(argv[0]);
+    return 0;
   }
 
   if (noPlatform) {

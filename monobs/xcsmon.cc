@@ -1,7 +1,7 @@
 #include "pdsapp/monobs/ShmClient.hh"
 #include "pdsapp/monobs/CspadMon.hh"
 #include "pdsapp/monobs/PrincetonMon.hh"
-#include "pdsapp/dev/CmdLineTools.hh"
+#include "pds/service/CmdLineTools.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 
 #include <stdio.h>

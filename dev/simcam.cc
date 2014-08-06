@@ -1,4 +1,4 @@
-#include "pdsapp/dev/CmdLineTools.hh"
+#include "pds/service/CmdLineTools.hh"
 
 #include "pds/client/FrameCompApp.hh"
 

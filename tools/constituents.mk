@@ -85,7 +85,7 @@ tgtincs_showPlatform := pdsdata/include ndarray/include boost/include
 
 
 tgtsrcs_bldClientTest := bldClientTest.cc bldClientTest.hh
-tgtlibs_bldClientTest := pds/service
+tgtlibs_bldClientTest := pds/service pdsdata/xtcdata
 tgtslib_bldClientTest := $(USRLIBDIR)/rt
 
 tgtsrcs_bldServerTest := bldServerTest.cpp bldServerTest.h

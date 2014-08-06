@@ -75,7 +75,7 @@ tgtslib_xtctruncate := $(USRLIB)/rt
 tgtincs_xtctruncate := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_dsstest := dsstest.cc
-tgtlibs_dsstest := pds/service
+tgtlibs_dsstest := pds/service pdsdata/xtcdata
 tgtslib_dsstest := $(USRLIB)/rt
 
 tgtsrcs_xcasttest := xcasttest.cc
@@ -117,7 +117,7 @@ tgtslib_xtccamfix := ${USRLIBDIR}/rt
 tgtincs_xtccamfix := pdsdata/include
 
 tgtsrcs_compressstat := compressstat.cc
-tgtlibs_compressstat := pdsdata/xtcdata pdsdata/compressdata pdsdata/anadata pdsdata/indexdata
+tgtlibs_compressstat := pds/service pdsdata/xtcdata pdsdata/compressdata pdsdata/anadata pdsdata/indexdata
 tgtslib_compressstat := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread 
 tgtincs_compressstat := pdsdata/include boost/include
 

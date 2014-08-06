@@ -1,6 +1,6 @@
 // $Id$
 
-#include "pdsapp/dev/CmdLineTools.hh"
+#include "pds/service/CmdLineTools.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 
 #include "pds/management/SegmentLevel.hh"

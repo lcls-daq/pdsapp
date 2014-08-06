@@ -1,3 +1,4 @@
+#include "pds/service/CmdLineTools.hh"
 #include "pdsdata/xtc/XtcFileIterator.hh"
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -167,8 +168,8 @@ int main(int argc, char* argv[]) {
   int c;
   const char* path = 0;
   unsigned run = 0;
-  unsigned parseErr = 0;
   unsigned nupdate = 100;
+  bool parseValid=true;
 
   while ((c = getopt(argc, argv, "dhn:p:r:")) != -1) {
     switch (c) {
@@ -177,20 +178,22 @@ int main(int argc, char* argv[]) {
       usage(argv[0]);
       exit(0);
     case 'n':
-      nupdate = atoi(optarg);
+      parseValid &= CmdLineTools::parseUInt(optarg,nupdate);
       break;
     case 'r':
-      run = atoi(optarg);
+      parseValid &= CmdLineTools::parseUInt(optarg,run);
       break;
     case 'p':
       path = optarg;
       break;
     default:
-      parseErr++;
+      parseValid=false;
     }
   }
   
-  if (!(parseErr==0 && run && path)) {
+  parseValid &= (optind==argc);
+
+  if (!(parseValid && run && path)) {
     usage(argv[0]);
     exit(2);
   }

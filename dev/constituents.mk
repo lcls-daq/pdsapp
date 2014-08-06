@@ -1,9 +1,5 @@
 # constituents for the segment level device production code ONLY
 
-libnames := devapp
-libsrcs_devapp := CmdLineTools.cc
-libincs_devapp := pdsdata/include
-
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 CPPFLAGS += -fno-strict-aliasing
 #CPPFLAGS += -DBLD_DELAY # for tolerating BLD delays up to 0.5 seconds
@@ -41,7 +37,7 @@ endif
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs  += pds/config pds/configdbc pds/confignfs pds/configsql
-commonlibs  += pdsapp/devapp offlinedb/mysqlclient
+commonlibs  += offlinedb/mysqlclient
 
 #commonslib  := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
 commonslib  := $(USRLIBDIR)/rt
@@ -159,6 +155,7 @@ tgtsrcs_cam := cam.cc
 tgtlibs_cam := $(commonlibs) $(cam_libs)
 tgtlibs_cam += pds/camera pds/epicstools epics/ca epics/Com
 tgtlibs_cam += pds/clientcompress pds/pnccdFrameV0 pdsdata/compressdata pds/configdata
+tgtlibs_cam += pds/service pdsdata/xtcdata
 tgtlibs_cam += $(leutron_libs)
 tgtslib_cam := $(commonslib)
 tgtincs_cam := leutron/include pdsdata/include ndarray/include boost/include  
@@ -168,7 +165,6 @@ tgtsrcs_camedt := camedt.cc
 tgtlibs_camedt := $(commonlibs) $(cam_libs)
 tgtlibs_camedt += pds/camera pds/epicstools epics/ca epics/Com
 tgtlibs_camedt += pds/clientcompress pds/pnccdFrameV0 pdsdata/compressdata pds/configdata
-tgtlibs_camedt += pdsapp/devapp
 tgtlibs_camedt += $(edt_libs)
 tgtslib_camedt := $(commonslib) $(USRLIBDIR)/dl
 tgtincs_camedt := edt/include pdsdata/include ndarray/include boost/include  

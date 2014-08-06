@@ -1,3 +1,5 @@
+#include "pds/service/CmdLineTools.hh"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -16,6 +18,8 @@ using namespace Pds;
 int main(int argc, char **argv) 
 {
   const char* path = ".";
+  bool        parseValid = true;
+
   int c;
   while ((c = getopt(argc, argv, "p:")) != -1) {
     switch (c) {
@@ -26,6 +30,12 @@ int main(int argc, char **argv)
       printHelp(argv[0]);
       return 0;
     }
+  }
+
+  parseValid = (optind==argc);
+  if (!parseValid) {
+    printHelp(argv[0]);
+    return -1;
   }
 
   QApplication app(argc, argv);

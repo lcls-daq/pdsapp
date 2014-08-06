@@ -62,6 +62,8 @@ namespace Pds {
     MonTabs&      _tabs;
     const char*   _path;
 
+    QPushButton*  _execB;
+
     QGroupBox*    _client_bg_box;
     QButtonGroup* _client_bg;
 

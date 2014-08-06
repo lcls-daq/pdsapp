@@ -45,7 +45,7 @@ VmonReaderTreeMenu::VmonReaderTreeMenu(QWidget&        p,
   QGroupBox* control = new QGroupBox("Control", this);
   { QVBoxLayout* clayout = new QVBoxLayout(control);
     QPushButton* browB = new QPushButton("Browse");
-    QPushButton* execB = new QPushButton("Execute");
+    QPushButton* execB = _execB = new QPushButton("Execute");
     clayout->addWidget(browB);
     clayout->addWidget(_recent = new QComboBox);
     clayout->addWidget(execB);
@@ -240,6 +240,7 @@ void VmonReaderTreeMenu::preface()
 
 void VmonReaderTreeMenu::execute()
 {
+  _execB->setEnabled(false);
   const QString& name = _client_bg->checkedButton()->text();
   for(unsigned i=0; i<_reader->sources().size(); i++) {
     const Src& src = _reader->sources()[i];
@@ -260,6 +261,8 @@ void VmonReaderTreeMenu::execute()
       _reader->process(*this, _start_time, _stop_time);
       
       _tabs.update(true);
+
+      _execB->setEnabled(true);
       return;
     }
   }
@@ -282,6 +285,8 @@ void VmonReaderTreeMenu::execute()
   _reader->process(*this, _start_time, _stop_time);
   _tabs.update(true);
   delete[] vu;
+
+  _execB->setEnabled(true);
 }
 
 void VmonReaderTreeMenu::process(const ClockTime&  t,

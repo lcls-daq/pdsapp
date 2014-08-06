@@ -15,7 +15,7 @@ static const unsigned ConnectTimeOut = 250; // 1/4 second
 class Observer : public CollectionManager {
 public:
   Observer() :
-    CollectionManager(Level::Observer, 0, MaxPayload, ConnectTimeOut, NULL),
+    CollectionManager(Level::Observer, 0, MaxPayload, ConnectTimeOut, 0),
     _sem(Semaphore::EMPTY),
     _allocations(new Allocation[SourceLevel::MaxPartitions()])
   {}

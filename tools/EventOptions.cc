@@ -62,6 +62,13 @@ static void load_filter(char*       arg,
       p = p.substr(5,p.size()-6);
     }
 
+    unsigned n=0;
+    size_t posn = p.find("[");
+    if (posn!=std::string::npos) {
+      n = strtoul(p.substr(posn+1).c_str(),NULL,0);
+      p = p.substr(0,posn);
+    }
+        
     printf("dlopen %s\n",p.c_str());
 
     void* handle = dlopen(p.c_str(), RTLD_LAZY);
