@@ -3,6 +3,7 @@
 #include "pds/utility/Transition.hh"
 #include "pdsdata/xtc/TransitionId.hh"
 #include "pds/config/CfgCache.hh"
+#include "pds/service/CmdLineTools.hh"
 
 #include "cadef.h"
 
@@ -11,8 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
-
-#include "pdsapp/dev/CmdLineTools.hh"
 
 namespace Pds {
   class MyMonitor : public PVRunnable {

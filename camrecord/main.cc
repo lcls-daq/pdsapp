@@ -15,7 +15,7 @@
 #include<iostream>
 #include"yagxtc.hh"
 
-#include "pdsapp/dev/CmdLineTools.hh"
+#include "pds/service/CmdLineTools.hh"
 
 using namespace std;
 

@@ -2,7 +2,7 @@
 #include "pdsapp/control/SelectDialog.hh"
 #include "pdsapp/control/EventcodeQuery.hh"
 #include "pdsapp/config/Experiment.hh"
-#include "pdsapp/dev/CmdLineTools.hh"
+#include "pds/service/CmdLineTools.hh"
 
 #include <QtGui/QApplication>
 
@@ -27,6 +27,7 @@ static void usage(char *argv0)
    "         -e <experiment_number>    : no offline db experiment number\n"
    "         -N <seconds>              : log long NFS accesses\n"
    "         -C <controls_config_file> : configuration of controls recorder\n"
+   "         -A                        : auto run\n"
    "         -O                        : override errors\n"
    "         -T                        : collect transient data\n"
    "         -w <0/1>                  : slow readout\n"

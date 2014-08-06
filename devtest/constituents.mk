@@ -127,11 +127,23 @@ tgtlibs_fccdmonserver += pdsdata/xtcdata pdsdata/compressdata pdsdata/appdata pd
 tgtslib_fccdmonserver := ${USRLIBDIR}/rt
 tgtincs_fccdmonserver := pdsdata/include boost/include ndarray/include
 
+tgtnames := buffer
+tgtsrcs_buffer := buffer.cc
+tgtslib_buffer := ${USRLIBDIR}/rt
+
+tgtnames := epixbintoxtc
 tgtsrcs_epixbintoxtc := epixbintoxtc.cc
 tgtlibs_epixbintoxtc := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
 tgtlibs_epixbintoxtc += pdsdata/xtcdata pdsdata/compressdata pdsdata/psddl_pdsdata
 tgtslib_epixbintoxtc := ${USRLIBDIR}/rt
 tgtincs_epixbintoxtc := pdsdata/include boost/include ndarray/include
+
+tgtnames := epix10kbintoxtc
+tgtsrcs_epix10kbintoxtc := epix10kbintoxtc.cc
+tgtlibs_epix10kbintoxtc := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
+tgtlibs_epix10kbintoxtc += pdsdata/xtcdata pdsdata/compressdata pdsdata/psddl_pdsdata
+tgtslib_epix10kbintoxtc := ${USRLIBDIR}/rt
+tgtincs_epix10kbintoxtc := pdsdata/include boost/include ndarray/include
 
 tgtsrcs_netlink := netlink.cc
 tgtlibs_netlink := pds/collection pds/service pdsdata/xtcdata

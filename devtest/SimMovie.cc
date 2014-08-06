@@ -5,6 +5,8 @@
 #include "pdsdata/xtc/TypeId.hh"
 #include "pdsdata/psddl/camera.ddl.h"
 
+static const unsigned scale=4;
+
 namespace Pds {
   class SimMovie : public Appliance,
 		   public XtcIterator {
@@ -46,9 +48,19 @@ int SimMovie::process(Xtc* xtc)
     { 
       Camera::FrameV1& frame = *reinterpret_cast<Camera::FrameV1*>(xtc->payload());
       ndarray<const uint16_t,2> f = frame.data16();
-      if (_next >= f.size())
-        _next = 0;
-      const_cast<uint16_t*>(f.begin())[_next++] = 0x1ff;
+      unsigned row = (_next / (f.shape()[1]/scale))*scale;
+      if (row+scale > f.shape()[0]) {
+	_next=0;
+	row=0;
+      }
+      unsigned col = (_next % (f.shape()[1]/scale))*scale;
+      for(unsigned j=0; j<scale; j++) {
+	uint16_t* p = const_cast<uint16_t*>(&f[row+j][col]);
+	for(unsigned k=0; k<scale; k++)
+	  p[k] = 0x1ff;
+      }
+      *const_cast<uint16_t*>(&f[row][col]) = 0x3ff;
+      _next++;
     }
     break;
   default:
