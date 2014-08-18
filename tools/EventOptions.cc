@@ -55,15 +55,9 @@ static void load_filter(char*       arg,
 {
   {
     std::string p(arg);
-    bool lveto = (strncmp("VETO[",arg,5)==0 &&
-		  arg[strlen(arg)-1]==']');
-    if (lveto) {
-      printf("L3 VETO is enabled\n");
-      p = p.substr(5,p.size()-6);
-    }
 
     unsigned n=0;
-    size_t posn = p.find("[");
+    size_t posn = p.find(",");
     if (posn!=std::string::npos) {
       n = strtoul(p.substr(posn+1).c_str(),NULL,0);
       p = p.substr(0,posn);
@@ -86,7 +80,7 @@ static void load_filter(char*       arg,
         fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
       }
       else {
-        L3FilterThreads* driver = new L3FilterThreads(c_user, 0, lveto);
+        L3FilterThreads* driver = new L3FilterThreads(c_user, n);
         if (apps != NULL)
           driver->connect(apps);
         else

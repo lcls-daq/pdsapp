@@ -31,7 +31,8 @@ int main(int argc, char** argv) {
                                      options.slowReadout,
                                      arp,
                                      options.buffersize,
-                                     options.nbuffers);
+                                     options.nbuffers,
+				     options.apps!=0);
 
   if (test->attach(event)) {
     task->mainLoop();

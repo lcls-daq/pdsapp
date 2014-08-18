@@ -198,6 +198,7 @@ int main(int argc, char** argv)
         platformcb.select(env);
         control.set_partition(partition,
 			      dbpath,
+			      "",
 			      platformcb.nodes(),
 			      platformcb.nnodes(),
 			      0, 0);

@@ -27,7 +27,7 @@ using namespace Pds;
 
 PartitionSelect::PartitionSelect(QWidget*          parent,
                                  PartitionControl& control,
-         IocControl&       icontrol,
+				 IocControl&       icontrol,
                                  const char*       pt_name,
                                  const char*       db_path,
                                  unsigned          options) :
@@ -90,10 +90,15 @@ void PartitionSelect::select_dialog()
       _nodes[_nnodes++] = node;
     }
 
-    _detectors = dialog->detectors();
+    _detectors   = dialog->detectors();
     _deviceNames = dialog->deviceNames();
-    _segments  = dialog->segments ();
-    _reporters = dialog->reporters();
+    _segments    = dialog->segments ();
+    _reporters   = dialog->reporters();
+
+    unsigned options(_options);
+    if (dialog->l3_tag ()) options |= Allocation::L3Tag;
+    if (dialog->l3_veto()) options |= Allocation::L3Veto;
+    std::string l3_path(dialog->l3_path());
 
     QList<DetInfo> iocs = dialog->iocs();
     std::list<DetInfo> inodes;
@@ -112,7 +117,6 @@ void PartitionSelect::select_dialog()
     }
 
     if (_validate(bld_mask)) {
-#if 1
       unsigned nsrc=0;
       const std::list<NodeMap>& map = dialog->segment_map();
       for(std::list<NodeMap>::const_iterator it=map.begin();
@@ -160,21 +164,14 @@ void PartitionSelect::select_dialog()
 
       _icontrol.set_partition(inodes);
       _pcontrol.set_partition(_pt_name, _db_path,
+			      l3_path.c_str(),
                               _nodes  , _nnodes,
                               bld_mask, bld_mask_mon,
-                              _options, cfg);
+                              options, cfg);
       _pcontrol.set_target_state(PartitionControl::Configured);
 
       delete[] buff;
       delete[] sources;
-#else
-      _icontrol.set_partition(inodes);
-      _pcontrol.set_partition(_pt_name, _db_path,
-                              _nodes  , _nnodes,
-                              bld_mask, bld_mask_mon,
-                              _options);
-      _pcontrol.set_target_state(PartitionControl::Configured);
-#endif
     }
 
     _display = dialog->display();

@@ -842,10 +842,16 @@ public:
           const AppList&        user_apps,
           bool                  lCompress,
 	  unsigned              nCompressThreads,
+	  bool                  lTriggered,
+	  unsigned              module,
+	  unsigned              channel,
           const char *          aliasName = NULL) :
     _task     (task),
     _platform (platform),
-    _user_apps(user_apps)
+    _user_apps(user_apps),
+    _triggered(lTriggered),
+    _module   (module),
+    _channel  (channel)
   {
     if (SimFrameV1::handles(src))
       _app = new SimFrameV1(src);
@@ -898,6 +904,9 @@ public:
   {
     return (_aliases.size() > 0) ? &_aliases : NULL;
   }
+  bool     is_triggered() const { return _triggered; }
+  unsigned evr_module  () const { return _module; }
+  unsigned evr_channel () const { return _channel; }
 private:
   // Implements EventCallback
   void attached(SetOfStreams& streams)
@@ -929,6 +938,9 @@ private:
   std::list<SrcAlias> _aliases;
   SimApp*        _app;
   AppList        _user_apps;
+  bool           _triggered;
+  unsigned       _module;
+  unsigned       _channel;
 };
 
 void printUsage(char* s) {
@@ -945,7 +957,8 @@ void printUsage(char* s) {
 	  "    -O          Use OpenMP\n"
 	  "    -D <F>[,<N>] Drop N events (default 1) out of every F events\n"
 	  "    -T <S>,<N>  Delay S seconds every N events\n"
-	  "    -P <N>      Only forward payload every N events\n",
+	  "    -P <N>      Only forward payload every N events\n"
+	  "    -e <Mod,Ch> Trigger by EVR Mod/Ch\n",
 	  s
 	  );
 }
@@ -957,6 +970,9 @@ int main(int argc, char** argv) {
   unsigned platform = NO_PLATFORM;
   bool lCompress = false;
   unsigned            compressThreads     = 0;
+  bool lTriggered = false;
+  unsigned module=0, channel=0;
+  bool parseValid=true;
 
   DetInfo info;
   AppList user_apps;
@@ -965,16 +981,20 @@ int main(int argc, char** argv) {
   char* endPtr;
   char* uniqueid = (char *)NULL;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:vtC:OD:T:L:P:S:u:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:vtC:OD:T:L:P:S:u:e:h")) != EOF ) {
     switch(c) {
     case 'i':
-      if (!CmdLineTools::parseDetInfo(optarg,info)) {
-        printUsage(argv[0]);
-        return -1;
-      }
+      parseValid &= CmdLineTools::parseDetInfo(optarg,info);
       break;
+    case 'e':
+      { lTriggered=true;
+	const char* arg1 = strtok(optarg,",");
+	const char* arg2 = strtok(NULL,"\0");
+	parseValid &= CmdLineTools::parseUInt(arg1,module);
+	parseValid &= CmdLineTools::parseUInt(arg2,channel);
+      } break;
     case 'p':
-      platform = strtoul(optarg, NULL, 0);
+      parseValid &= CmdLineTools::parseUInt(optarg,platform);
       break;
     case 'v':
       verbose = !verbose;
@@ -985,7 +1005,7 @@ int main(int argc, char** argv) {
       lCompress = true;
       FrameCompApp::setCopyPresample(strtoul(optarg, &endPtr, 0));
       if (*endPtr)
-	compressThreads = strtoul(endPtr+1,NULL,0);
+	parseValid &= CmdLineTools::parseUInt(endPtr+1,compressThreads);
       break;
     case 'O':
       FrameCompApp::useOMP(true);
@@ -1054,6 +1074,11 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+  if (!parseValid) {
+    printUsage(argv[0]);
+    return 1;
+  }
+
   if (triggerEnable) {
     if (verbose) {
       printf(" *** calling triggerInit() from %s ***\n", __PRETTY_FUNCTION__);
@@ -1070,7 +1095,8 @@ int main(int argc, char** argv) {
                                  user_apps,
                                  lCompress,
 				 compressThreads,
-                                uniqueid);
+				 lTriggered, module, channel,
+				 uniqueid);
 
   SegmentLevel* segment = new SegmentLevel(platform, 
              *segtest,

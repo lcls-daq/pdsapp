@@ -1,5 +1,8 @@
 #include "SelectDialog.hh"
 
+#include "pdsapp/control/DetNodeGroup.hh"
+#include "pdsapp/control/BldNodeGroup.hh"
+#include "pdsapp/control/ProcNodeGroup.hh"
 #include "pdsapp/control/NodeSelect.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/ioc/IocControl.hh"
@@ -26,15 +29,15 @@ SelectDialog::SelectDialog(QWidget* parent,
 
   unsigned platform = _pcontrol.header().platform();
   QGridLayout* layout = new QGridLayout(this);
-  layout->addWidget(_segbox = new NodeGroup("Readout Nodes",this, platform, 
-                                            (_bReadGroupEnable? 1:2), _useTransient ), 
+  layout->addWidget(_segbox = new DetNodeGroup("Readout Nodes",this, platform, 
+					       (_bReadGroupEnable? 1:2), _useTransient ), 
                     0, 0);
-  layout->addWidget(_evtbox = new NodeGroup("Processing Nodes",this, platform), 
+  layout->addWidget(_evtbox = new ProcNodeGroup("Processing Nodes",this, platform), 
                     1, 0);
-  layout->addWidget(_rptbox = new NodeGroup("Beamline Data",this, platform,
-					    0, _useTransient ),
+  layout->addWidget(_rptbox = new BldNodeGroup("Beamline Data",this, platform,
+					       0, _useTransient ),
                     2, 0);
-  layout->addWidget(_iocbox = new NodeGroup("Camera IOCs",this, platform),
+  layout->addWidget(_iocbox = new DetNodeGroup("Camera IOCs",this, platform),
 		    3, 0);
 
   _acceptb = new QPushButton("Ok",this);
@@ -241,6 +244,21 @@ const QList<BldInfo >& SelectDialog::transients() const { return _trninfo; }
 const QList<DetInfo >& SelectDialog::iocs      () const { return _iocinfo; }
 
 const std::list<NodeMap>& SelectDialog::segment_map() const { return _segment_map; }
+
+bool        SelectDialog::l3_tag () const 
+{
+  return _evtbox->useL3F ()&&~_evtbox->useVeto(); 
+}
+
+bool        SelectDialog::l3_veto() const 
+{
+  return _evtbox->useL3F ()&& _evtbox->useVeto(); 
+}
+
+const char* SelectDialog::l3_path() const 
+{
+  return qPrintable(_evtbox->inputData()); 
+}
 
 QWidget* SelectDialog::display() {
   QWidget* d = new QWidget((QWidget*)0);

@@ -22,7 +22,9 @@
 namespace Pds {
   class PartitionControl;
   class IocControl;
-  class NodeGroup;
+  class BldNodeGroup;
+  class DetNodeGroup;
+  class ProcNodeGroup;
 
   class NodeMap {
   public:
@@ -57,6 +59,9 @@ namespace Pds {
     const QList<BldInfo >& transients() const;
     const QList<DetInfo >& iocs      () const;
     const std::list<NodeMap>& segment_map() const;
+    bool                   l3_tag () const;
+    bool                   l3_veto() const;
+    const char*            l3_path() const;
     QWidget*               display ();
   public:
     static void useTransient(bool);
@@ -74,10 +79,10 @@ namespace Pds {
     bool              _bReadGroupEnable;
     bool              _autorun;
     Node _control;
-    NodeGroup* _segbox;
-    NodeGroup* _evtbox;
-    NodeGroup* _rptbox;
-    NodeGroup* _iocbox;
+    DetNodeGroup* _segbox;
+    ProcNodeGroup* _evtbox;
+    BldNodeGroup* _rptbox;
+    DetNodeGroup* _iocbox;
     QList<Node>     _selected;
     QList<DetInfo > _detinfo;
     std::set<std::string> _deviceNames;
