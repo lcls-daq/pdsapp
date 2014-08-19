@@ -905,8 +905,8 @@ public:
     return (_aliases.size() > 0) ? &_aliases : NULL;
   }
   bool     is_triggered() const { return _triggered; }
-  unsigned evr_module  () const { return _module; }
-  unsigned evr_channel () const { return _channel; }
+  unsigned module      () const { return _module; }
+  unsigned channel     () const { return _channel; }
 private:
   // Implements EventCallback
   void attached(SetOfStreams& streams)

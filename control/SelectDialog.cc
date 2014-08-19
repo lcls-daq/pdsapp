@@ -30,7 +30,7 @@ SelectDialog::SelectDialog(QWidget* parent,
   unsigned platform = _pcontrol.header().platform();
   QGridLayout* layout = new QGridLayout(this);
   layout->addWidget(_segbox = new DetNodeGroup("Readout Nodes",this, platform, 
-					       (_bReadGroupEnable? 1:2), _useTransient ), 
+					       (_bReadGroupEnable? 2:1), _useTransient ), 
                     0, 0);
   layout->addWidget(_evtbox = new ProcNodeGroup("Processing Nodes",this, platform), 
                     1, 0);

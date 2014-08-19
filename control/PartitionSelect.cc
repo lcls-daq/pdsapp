@@ -21,7 +21,7 @@
 #include <QtGui/QDialog>
 #include <QtGui/QMessageBox>
 
-#define DBUG
+//#define DBUG
 
 using namespace Pds;
 
