@@ -216,5 +216,5 @@ void ShmClient::update()
 bool ShmClient::valid() const { return _partitionTag!=0; }
 
 const char* ShmClient::opts   () { return "p:i:e:r:"; }
-const char* ShmClient::options() { return "[-p <partitionTag>] [-i clientID] [-r <rate, Hz>]"; }
+const char* ShmClient::options() { return "-p <partitionTag> [-i clientID] [-r <rate, Hz>]"; }
 
