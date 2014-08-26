@@ -8,11 +8,30 @@
 
 using namespace Pds;
 
+void usage(const char* p)
+{
+  printf("Usage: %s <interface> [-h]\n", p);
+}
+
 int main(int argc, char** argv)
 {
-  if (argc != 2) {
-    printf("usage: %s <interface>\n", argv[0]);
-    return 0;
+  bool parseErr = false;
+  int c;
+  while ((c = getopt(argc, argv, "h")) != -1) {
+    switch (c) {
+    case 'h':
+      usage(argv[0]);
+      exit(0);
+    case '?':
+    default:
+      parseErr = true;
+      break;
+    }
+  }
+
+  if (parseErr || (argc != 2)) {
+    usage(argv[0]);
+    exit(1);
   }
 
   unsigned interface = 0;
@@ -23,7 +42,7 @@ int main(int argc, char** argv)
 
   if (!interface) {
     printf("Invalid <interface> argument %s\n", argv[1]);
-    return 0;    
+    exit(1);
   }
 
   Task* task = new Task(Task::MakeThisATask);
