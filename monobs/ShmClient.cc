@@ -1,6 +1,7 @@
 #include "pdsapp/monobs/ShmClient.hh"
 #include "pdsapp/monobs/Handler.hh"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/service/Task.hh"
 #include "pds/service/Timer.hh"
 
@@ -94,16 +95,22 @@ bool ShmClient::arg(char c, const char* o)
 {
   switch (c) {
   case 'i':
-    _index = strtoul(o,NULL,0);
+    if (!CmdLineTools::parseUInt(o, _index)) {
+      return false;
+    }
     break;
   case 'e':
-    _evindex = strtol(o,NULL,0);
+    if (!CmdLineTools::parseInt(o, _evindex)) {
+      return false;
+    }
     break;
   case 'p':
     _partitionTag = o;
     break;
   case 'r':
-    _rate = strtod(o,NULL);
+    if (!CmdLineTools::parseDouble(o, _rate)) {
+      return false;
+    }
     break;
   default:
     return false;
@@ -213,7 +220,7 @@ void ShmClient::update()
   ca_flush_io();
 }
 
-bool ShmClient::valid() const { return _partitionTag!=0; }
+bool ShmClient::valid() const { return ((_partitionTag) && (_rate > .999)); }
 
 const char* ShmClient::opts   () { return "p:i:e:r:"; }
 const char* ShmClient::options() { return "-p <partitionTag> [-i clientID] [-r <rate, Hz>]"; }

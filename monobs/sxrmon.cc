@@ -1,3 +1,4 @@
+#include "pds/service/CmdLineTools.hh"
 #include "pdsapp/monobs/ShmClient.hh"
 #include "pdsapp/monobs/SxrSpectrum.hh"
 #include "pdsapp/monobs/IpimbHandler.hh"
@@ -12,7 +13,7 @@ using namespace PdsCas;
 void usage(const char* p)
 {
   printf("Usage: %s -n <PV (SXR:EXS)> -d <DetInfo (0x0b000300)> %s\n",
-	 p, ShmClient::options());
+         p, ShmClient::options());
 }
 
 int main(int argc, char* argv[])
@@ -24,7 +25,8 @@ int main(int argc, char* argv[])
   unsigned detinfo   = NONE;
 
   int c;
-  char* endPtr;
+  extern char* optarg;
+  extern int optind;
   char opts[128];
   sprintf(opts,"?hi:n:d:%s",client.opts());
   while ((c = getopt(argc, argv, opts)) != -1) {
@@ -37,17 +39,26 @@ int main(int argc, char* argv[])
       pvName = optarg;
       break;
     case 'd':
-      detinfo = strtoul(optarg,&endPtr,0);
+      if (!CmdLineTools::parseUInt(optarg, detinfo)) {
+        usage(argv[0]);
+        exit(1);
+      }
       break;
     default:
       if (!client.arg(c,optarg)) {
-	usage(argv[0]);
-	exit(1);
+        usage(argv[0]);
+        exit(1);
       }
       break;
     }
   }
-  
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    usage(argv[0]);
+    exit(1);
+  }
+
   if (pvName==0 || detinfo==NONE || !client.valid()) {
     usage(argv[0]);
     exit(1);
