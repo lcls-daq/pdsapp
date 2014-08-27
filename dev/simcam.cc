@@ -36,14 +36,12 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <strings.h>
 #include <math.h>
 #include <dlfcn.h>
 #include <new>
 
-#include "rnxtrigger.hh"
-
 static bool verbose = false;
-static bool triggerEnable = false;
 static int fdrop = 0;
 static int ndrop = 1;
 static int ntime = 0;
@@ -106,29 +104,23 @@ public:
     {
       static int itime=0;
       if ((++itime)==ntime) {
-	itime = 0;
-	timeval ts = { int(ftime), int(drem(ftime,1)*1000000) };
-	select( 0, NULL, NULL, NULL, &ts);
+        itime = 0;
+        timeval ts = { int(ftime), int(drem(ftime,1)*1000000) };
+        select( 0, NULL, NULL, NULL, &ts);
       }
 
       static int idrop=0;
       if (++idrop==fdrop) {
-	idrop=0;
-	return 0;
+        idrop=0;
+        return 0;
       }
       else if (idrop<fdrop && idrop>fdrop-ndrop)
-	return 0;
+        return 0;
       
       static int iforward=0;
       if (++iforward==nforward) {
-	iforward=0;
-	_insert_event(dg);
-        if (triggerEnable) {
-          if (verbose) {
-            printf(" *** calling trigger() from %s ***\n", __PRETTY_FUNCTION__);
-          }
-          trigger();
-        }
+        iforward=0;
+        _insert_event(dg);
       }
 
       break;
@@ -181,11 +173,11 @@ public:
     case DetInfo::Opal8000:
       _cfgtc = new(_cfgpayload) Xtc(_opal1kConfigType,src);
       _cfgtc->extent += (new (_cfgtc->next()) Opal1kConfigType(32, 100, 
-							       Opal1kConfigType::Twelve_bit,
-							       Opal1kConfigType::x1,
-							       Opal1kConfigType::None,
-							       true,
-							       false, 
+                                                               Opal1kConfigType::Twelve_bit,
+                                                               Opal1kConfigType::x1,
+                                                               Opal1kConfigType::None,
+                                                               true,
+                                                               false, 
                                                                false, 0, 0, 0))->_sizeof();
       width  = Pds::Opal1k::max_column_pixels(info);
       height = Pds::Opal1k::max_row_pixels(info);
@@ -195,10 +187,10 @@ public:
     case DetInfo::TM6740:
       _cfgtc = new(_cfgpayload) Xtc(_tm6740ConfigType,src);
       _cfgtc->extent += (new (_cfgtc->next()) TM6740ConfigType(32, 32, 100, 100, false,
-							       TM6740ConfigType::Ten_bit,
-							       TM6740ConfigType::x1,
-							       TM6740ConfigType::x1,
-							       TM6740ConfigType::Linear))->_sizeof();
+                                                               TM6740ConfigType::Ten_bit,
+                                                               TM6740ConfigType::x1,
+                                                               TM6740ConfigType::x1,
+                                                               TM6740ConfigType::Linear))->_sizeof();
       width  = TM6740ConfigType::Column_Pixels;
       height = TM6740ConfigType::Row_Pixels;
       depth  = 10;
@@ -221,7 +213,7 @@ public:
     case DetInfo::Fccd:
       _cfgtc = new(_cfgpayload) Xtc(_fccdConfigType,src);
       _cfgtc->extent += (new (_cfgtc->next()) FccdConfigType(0, true, false, 0,
-							     fdummy, usdummy))->_sizeof();
+                                                             fdummy, usdummy))->_sizeof();
       width  = FccdConfigType::Trimmed_Column_Pixels;
       height = FccdConfigType::Trimmed_Row_Pixels;
       depth  = 16;
@@ -230,7 +222,7 @@ public:
     case DetInfo::Fccd960:
       _cfgtc = new(_cfgpayload) Xtc(_fccdConfigType,src);
       _cfgtc->extent += (new (_cfgtc->next()) FccdConfigType(0, true, false, 0,
-							     fdummy, usdummy))->_sizeof();
+                                                             fdummy, usdummy))->_sizeof();
       width  = 960;
       height = 960;
       depth  = 16;      // depth=16: corrected frame; depth=13: raw frame
@@ -253,70 +245,70 @@ public:
       if (depth<=8) {
         ndarray<const uint8_t, 2> idata = f->data8();
         ndarray<uint8_t, 2> fdata = make_ndarray(const_cast<uint8_t*>(idata.data()), idata.shape()[0], idata.shape()[1]);
-	unsigned i;
-	for(i=0; i<f->height()/2; i++) {
-	  unsigned j;
-	  { const int mean   = offset/2;
-	    const int spread = offset/2;
-	    for(j=0; j<f->width()/2; j++)
+        unsigned i;
+        for(i=0; i<f->height()/2; i++) {
+          unsigned j;
+          { const int mean   = offset/2;
+            const int spread = offset/2;
+            for(j=0; j<f->width()/2; j++)
               fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
-	  { const int mean   = offset;
-	    const int spread = offset;
-	    for(; j<f->width(); j++)
+          { const int mean   = offset;
+            const int spread = offset;
+            for(; j<f->width(); j++)
               fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
-	}
-	for(; i<f->height(); i++) {
-	  unsigned j;
-	  { const int mean   = offset;
-	    const int spread = offset;
-	    for(j=0; j<f->width()/2; j++)
+        }
+        for(; i<f->height(); i++) {
+          unsigned j;
+          { const int mean   = offset;
+            const int spread = offset;
+            for(j=0; j<f->width()/2; j++)
               fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
-	  { const int mean   = offset/2;
-	    const int spread = offset/2;
-	    for(; j<f->width(); j++)
+          { const int mean   = offset/2;
+            const int spread = offset/2;
+            for(; j<f->width(); j++)
               fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
-	}
+        }
       }
       else if (depth<=16) {
         ndarray<const uint16_t, 2> idata = f->data16();
         ndarray<uint16_t, 2> fdata = make_ndarray(const_cast<uint16_t*>(idata.data()), idata.shape()[0], idata.shape()[1]);
-	unsigned i;
-	for(i=0; i<f->height()/2; i++) {
-	  unsigned j;
-	  { const int mean   = offset/2;
-	    const int spread = offset/2;
-	    for(j=0; j<f->width()/2; j++)
+        unsigned i;
+        for(i=0; i<f->height()/2; i++) {
+          unsigned j;
+          { const int mean   = offset/2;
+            const int spread = offset/2;
+            for(j=0; j<f->width()/2; j++)
               fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
-	  { const int mean   = offset;
-	    const int spread = offset;
-	    for(; j<f->width(); j++)
+          { const int mean   = offset;
+            const int spread = offset;
+            for(; j<f->width(); j++)
               fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
-	}
-	for(; i<f->height(); i++) {
-	  unsigned j;
-	  { const int mean   = offset;
-	    const int spread = offset;
-	    for(j=0; j<f->width()/2; j++)
+        }
+        for(; i<f->height(); i++) {
+          unsigned j;
+          { const int mean   = offset;
+            const int spread = offset;
+            for(j=0; j<f->width()/2; j++)
               fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
-	  { const int mean   = offset/2;
-	    const int spread = offset/2;
-	    for(; j<f->width(); j++)
+          { const int mean   = offset/2;
+            const int spread = offset/2;
+            for(; j<f->width(); j++)
               fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
-	}
+        }
       }
       else
-	;
+        ;
       _evttc[i]->extent += (f->_sizeof()+3)&~3;
     }
 
     _fexpayload = new char[FexSize];
     _fextc = new(_fexpayload) Xtc(_frameFexConfigType,src);
     new(_fextc->next()) FrameFexConfigType(FrameFexConfigType::FullFrame,
-					   1,
-					   FrameFexConfigType::NoProcessing,
-					   Pds::Camera::FrameCoord(0,0),
-					   Pds::Camera::FrameCoord(0,0),
-					   0, 0, 0);
+                                           1,
+                                           FrameFexConfigType::NoProcessing,
+                                           Pds::Camera::FrameCoord(0,0),
+                                           Pds::Camera::FrameCoord(0,0),
+                                           0, 0, 0);
     _fextc->extent += sizeof(FrameFexConfigType);
   }
   ~SimFrameV1() 
@@ -381,7 +373,7 @@ public:
       CsPadConfigType(0, 0, 40, 
                       pt, 0,
                       0, 1, 0, 0, 8*sizeof_Section,
-		      0, 0, 0xffffffff, 0xf, 0xffffffff,
+                      0, 0, 0xffffffff, 0xf, 0xffffffff,
                       quads);
     
     const size_t sz = sizeof(CsPad::ElementV1)+8*sizeof_Section+sizeof(uint32_t);
@@ -393,29 +385,29 @@ public:
     for(unsigned b=0; b<NBuffers; b++) {
       _evttc[b] = new(_evtpayload+b*evtst) Xtc(TypeId(TypeId::Id_CspadElement,1),src);
       for(unsigned i=0; i<4; i++) {
-	CsPad::ElementV1* q = new (_evttc[b]->alloc(sz)) CsPad::ElementV1;
-	//  Initialize the header
-	memset(q, 0, sizeof(*q));
-	//  Set the quad number
-	reinterpret_cast<uint32_t*>(q)[1] = i<<24;
-	//  Set the payload
-	uint16_t* p = reinterpret_cast<uint16_t*>(q+1);
+        CsPad::ElementV1* q = new (_evttc[b]->alloc(sz)) CsPad::ElementV1;
+        //  Initialize the header
+        memset(q, 0, sizeof(*q));
+        //  Set the quad number
+        reinterpret_cast<uint32_t*>(q)[1] = i<<24;
+        //  Set the payload
+        uint16_t* p = reinterpret_cast<uint16_t*>(q+1);
 #ifdef TESTPATTERN
-	for(unsigned j=0; j<8; j++)
-	  for(unsigned k=0; k<Pds::CsPad::ColumnsPerASIC; k++)
-	    for(unsigned m=0; m<Pds::CsPad::MaxRowsPerASIC*2; m++)
-	      *p++ = 0x150 + i*0x40 + k*b/5 + m;
+        for(unsigned j=0; j<8; j++)
+          for(unsigned k=0; k<Pds::CsPad::ColumnsPerASIC; k++)
+            for(unsigned m=0; m<Pds::CsPad::MaxRowsPerASIC*2; m++)
+              *p++ = 0x150 + i*0x40 + k*b/5 + m;
 #else
-	uint16_t off = rand()&0x2fff;
-	for(unsigned j=0; j<8; j++)
-	  for(unsigned k=0; k<Pds::CsPad::ColumnsPerASIC; k++)
-	    for(unsigned m=0; m<Pds::CsPad::MaxRowsPerASIC*2; m++)
-	      *p++ = (rand()&0x03ff)+off;
-	      //*p++ = ((m<<8) + (k<<0))&0x3fff;
+        uint16_t off = rand()&0x2fff;
+        for(unsigned j=0; j<8; j++)
+          for(unsigned k=0; k<Pds::CsPad::ColumnsPerASIC; k++)
+            for(unsigned m=0; m<Pds::CsPad::MaxRowsPerASIC*2; m++)
+              *p++ = (rand()&0x03ff)+off;
+              //*p++ = ((m<<8) + (k<<0))&0x3fff;
 #endif
         // trailer word
-	*p++ = 0;
-	*p++ = 0;
+        *p++ = 0;
+        *p++ = 0;
       }
     }
   }
@@ -471,25 +463,25 @@ public:
     Pds::CsPad2x2::CsPad2x2DigitalPotsCfg    dpots;
 
     unsigned shape[2] = { Pds::CsPad2x2::ColumnsPerASIC, 
-			  Pds::CsPad2x2::MaxRowsPerASIC };
+                          Pds::CsPad2x2::MaxRowsPerASIC };
     ndarray<uint16_t,2> gm(shape);
     for(unsigned x=32; x<40; x++)
       for(unsigned y=32; y<40; y++)
-	gm[x][y] = 0x3;
+        gm[x][y] = 0x3;
     Pds::CsPad2x2::CsPad2x2GainMapCfg        gainmap(gm.data());
 
     Pds::CsPad2x2::ConfigV2QuadReg quad(0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0,
-					0, 0, 0, ro,
-					dpots, gainmap);
+                                        0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0,
+                                        0, 0, 0, ro,
+                                        dpots, gainmap);
 
     new (_cfgtc->alloc(sizeof(CsPad2x2ConfigType)))
       CsPad2x2ConfigType(0, pt, 0,
                          0, 0, 0, 0,
                          2*sizeof_Section,
-			 0, 0xf, 0xf,
+                         0, 0xf, 0xf,
                          quad);
     
     const size_t sz = CsPad2x2DataType::_sizeof()+sizeof(uint32_t);
@@ -508,7 +500,7 @@ public:
       uint16_t* e = p+a.size();
       unsigned o = 0x150 + ((rand()>>8)&0x7f);
       while(p < e)
-	*p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
+        *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
     }
   }
   ~SimCspad140k() 
@@ -559,15 +551,15 @@ public:
     _cfgtc = new(_cfgpayload) Xtc(_ImpConfigType,src);
     ImpConfigType* cfg = new (_cfgtc->alloc(sizeof(ImpConfigType)))
       ImpConfigType(Pds::ImpConfig::defaultValue(ImpConfigType::Range),
-		    Pds::ImpConfig::defaultValue(ImpConfigType::Cal_range),
-		    Pds::ImpConfig::defaultValue(ImpConfigType::Reset),
-		    Pds::ImpConfig::defaultValue(ImpConfigType::Bias_data),
-		    Pds::ImpConfig::defaultValue(ImpConfigType::Cal_data),
-		    Pds::ImpConfig::defaultValue(ImpConfigType::BiasDac_data),
-		    Pds::ImpConfig::defaultValue(ImpConfigType::Cal_strobe),
-		    Pds::ImpConfig::defaultValue(ImpConfigType::NumberOfSamples),
-		    Pds::ImpConfig::defaultValue(ImpConfigType::TrigDelay),
-		    Pds::ImpConfig::defaultValue(ImpConfigType::Adc_delay));
+                    Pds::ImpConfig::defaultValue(ImpConfigType::Cal_range),
+                    Pds::ImpConfig::defaultValue(ImpConfigType::Reset),
+                    Pds::ImpConfig::defaultValue(ImpConfigType::Bias_data),
+                    Pds::ImpConfig::defaultValue(ImpConfigType::Cal_data),
+                    Pds::ImpConfig::defaultValue(ImpConfigType::BiasDac_data),
+                    Pds::ImpConfig::defaultValue(ImpConfigType::Cal_strobe),
+                    Pds::ImpConfig::defaultValue(ImpConfigType::NumberOfSamples),
+                    Pds::ImpConfig::defaultValue(ImpConfigType::TrigDelay),
+                    Pds::ImpConfig::defaultValue(ImpConfigType::Adc_delay));
     
     const size_t sz = sizeof(ImpDataType)+Pds::ImpConfig::get(*cfg,ImpConfigType::NumberOfSamples)*sizeof(Pds::Imp::Sample)+sizeof(uint32_t);
     unsigned evtsz = sz + sizeof(Xtc);
@@ -583,7 +575,7 @@ public:
       unsigned o = 0x150 + ((rand()>>8)&0x7f);
       printf("SimImp buffer %d offset %d\n",b,o);
       while(p < e)
-	*p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
+        *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
     }
   }
   ~SimImp() 
@@ -637,32 +629,32 @@ public:
 
     EpixConfigType* cfg = 
       new (_cfgtc->next()) EpixConfigType( 0, 1, 0, 1, 0, // version
-					   0, 0, 0, 0, 0, // asicAcq
-					   0, 0, 0, 0, 0, // asicGRControl
-					   0, 0, 0, 0, 0, // asicR0Control
-					   0, 0, 0, 0, 0, // asicR0ToAsicAcq
-					   1, 0, 0, 0, 0, // adcClkHalfT
-					   0, 0, 0, 0, 0, // digitalCardId0
-					   AsicsPerRow, AsicsPerColumn, 
-					   Rows, Columns, 
-					   0x200000, // 200MHz
-					   asicMask,
-					   asics, testarray, maskarray );
-					 
+                                           0, 0, 0, 0, 0, // asicAcq
+                                           0, 0, 0, 0, 0, // asicGRControl
+                                           0, 0, 0, 0, 0, // asicR0Control
+                                           0, 0, 0, 0, 0, // asicR0ToAsicAcq
+                                           1, 0, 0, 0, 0, // adcClkHalfT
+                                           0, 0, 0, 0, 0, // digitalCardId0
+                                           AsicsPerRow, AsicsPerColumn, 
+                                           Rows, Columns, 
+                                           0x200000, // 200MHz
+                                           asicMask,
+                                           asics, testarray, maskarray );
+                                         
     _cfgtc->alloc(cfg->_sizeof());
     if (_cfgtc->extent != CfgSize) {
       printf("EpixConfigType size mismatch [%d/%d]\n",
-	     _cfgtc->extent, CfgSize);
-							
+             _cfgtc->extent, CfgSize);
+                                                        
       printf("  Asics %d  Rows %d  Columns %d\n",Asics,Rows,Columns);
       printf("  sizeof(ConfigV1)\t%zd\n", sizeof(Epix::ConfigV1));
       printf("  sizeof(AsicConfigV1)\t%d\n", Epix::AsicConfigV1::_sizeof());
       printf("  sizeof(PixelArray)\t%zd\n", Rows*(Columns+31)/32*sizeof(uint32_t));
       printf("  AsicsPerRow %d  AsicsPerCol %d  RowsPerAsic %d  PixelsPerAsicRow %d\n",
-	     cfg->numberOfAsicsPerRow(),
-	     cfg->numberOfAsicsPerColumn(),
-	     cfg->numberOfRowsPerAsic(),
-	     cfg->numberOfPixelsPerAsicRow());
+             cfg->numberOfAsicsPerRow(),
+             cfg->numberOfAsicsPerColumn(),
+             cfg->numberOfRowsPerAsic(),
+             cfg->numberOfPixelsPerAsicRow());
       abort();
     }
 
@@ -682,7 +674,7 @@ public:
       uint16_t* e = p+a.size();
       unsigned o = 0x150 + ((rand()>>8)&0x7f);
       while(p < e)
-	*p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
+        *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
     }
   }
   ~SimEpixBase() 
@@ -762,14 +754,14 @@ public:
 
     EpixSamplerConfigType* cfg = 
       new (_cfgtc->next()) EpixSamplerConfigType( 0, 0, 0, 0, 1,
-						  0, 0, 0, 0, 0, 
-						  Channels, Samples, 
-						  BaseClkFreq, 0 );
-					 
+                                                  0, 0, 0, 0, 0, 
+                                                  Channels, Samples, 
+                                                  BaseClkFreq, 0 );
+                                         
     _cfgtc->alloc(cfg->_sizeof());
     if (_cfgtc->extent != CfgSize) {
       printf("EpixSamplerConfigType size overrun [%d/%d]\n",
-	     _cfgtc->extent, CfgSize);
+             _cfgtc->extent, CfgSize);
       abort();
     }
 
@@ -789,7 +781,7 @@ public:
       uint16_t* e = p+a.size();
       unsigned o = 0x150 + ((rand()>>8)&0x7f);
       while(p < e)
-	*p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
+        *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
     }
   }
   ~SimEpixSampler() 
@@ -841,10 +833,10 @@ public:
           const Src&            src,
           const AppList&        user_apps,
           bool                  lCompress,
-	  unsigned              nCompressThreads,
-	  bool                  lTriggered,
-	  unsigned              module,
-	  unsigned              channel,
+          unsigned              nCompressThreads,
+          bool                  lTriggered,
+          unsigned              module,
+          unsigned              channel,
           const char *          aliasName = NULL) :
     _task     (task),
     _platform (platform),
@@ -944,23 +936,21 @@ private:
 };
 
 void printUsage(char* s) {
-  printf( "Usage: %s [-h] -i <detinfo> -p <platform>\n"
-	  "    -h          Show usage\n"
-	  "    -p          Set platform id           [required]\n"
-	  "    -i          Set device info           [required]\n"
-	  "                    integer/integer/integer/integer or string/integer/string/integer\n"
-	  "                    (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
-	  "    -u <alias>  Set device alias\n"
-	  "    -v          Toggle verbose mode\n"
-	  "    -t          Trigger simulator (Rayonix)\n"
-	  "    -C <N> or \"<N>,<T>\" Compress frames and add uncompressed frame every N events (using T threads)\n"
-	  "    -O          Use OpenMP\n"
-	  "    -D <F>[,<N>] Drop N events (default 1) out of every F events\n"
-	  "    -T <S>,<N>  Delay S seconds every N events\n"
-	  "    -P <N>      Only forward payload every N events\n"
-	  "    -e <Mod,Ch> Trigger by EVR Mod/Ch\n",
-	  s
-	  );
+  printf( "Usage: %s [-h] -i <detinfo> -p <platform>[,<Mod>,<Ch>]\n"
+          "    -h          Show usage\n"
+          "    -p          Set platform id [required], EVR Mod/Ch\n"
+          "    -i          Set device info [required]\n"
+          "                    integer/integer/integer/integer or string/integer/string/integer\n"
+          "                    (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
+          "    -u <alias>  Set device alias\n"
+          "    -v          Toggle verbose mode\n"
+          "    -C <N>[,<T>] Compress frames and add uncompressed frame every N events (using T threads)\n"
+          "    -O          Use OpenMP\n"
+          "    -D <F>[,<N>] Drop N events (default 1) out of every F events\n"
+          "    -T <S>,<N>  Delay S seconds every N events\n"
+          "    -P <N>      Only forward payload every N events\n",
+          s
+          );
 }
 
 int main(int argc, char** argv) {
@@ -971,29 +961,49 @@ int main(int argc, char** argv) {
   bool lCompress = false;
   unsigned            compressThreads     = 0;
   bool lTriggered = false;
+  bool lDetInfoSet = false;
   unsigned module=0, channel=0;
+  unsigned int uuu;
+  char* trigarg;
   bool parseValid=true;
 
   DetInfo info;
   AppList user_apps;
 
   extern char* optarg;
+  extern int optind;
   char* endPtr;
   char* uniqueid = (char *)NULL;
   int c;
-  while ( (c=getopt( argc, argv, "i:p:vtC:OD:T:L:P:S:u:e:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:vC:OD:T:L:P:S:u:h")) != EOF ) {
     switch(c) {
     case 'i':
+      lDetInfoSet = true;
       parseValid &= CmdLineTools::parseDetInfo(optarg,info);
       break;
     case 'e':
       { lTriggered=true;
-	const char* arg1 = strtok(optarg,",");
-	const char* arg2 = strtok(NULL,"\0");
-	parseValid &= CmdLineTools::parseUInt(arg1,module);
-	parseValid &= CmdLineTools::parseUInt(arg2,channel);
+        const char* arg1 = strtok(optarg,",");
+        const char* arg2 = strtok(NULL,"\0");
+        parseValid &= CmdLineTools::parseUInt(arg1,module);
+        parseValid &= CmdLineTools::parseUInt(arg2,channel);
       } break;
     case 'p':
+      endPtr = index(optarg, ',');
+      if (endPtr) {
+        *endPtr = '\0';
+        // parse <module>,<channel>
+        lTriggered = true;
+        trigarg = endPtr+1;
+        endPtr = index(trigarg, ',');
+        if (endPtr) {
+          *endPtr = '\0';
+          parseValid &= CmdLineTools::parseUInt(trigarg,module);
+          parseValid &= CmdLineTools::parseUInt(endPtr+1,channel);
+        } else {
+          parseValid = false; // error: missing comma
+        }
+      }
       parseValid &= CmdLineTools::parseUInt(optarg,platform);
       break;
     case 'v':
@@ -1003,21 +1013,34 @@ int main(int argc, char** argv) {
       break;
     case 'C':
       lCompress = true;
-      FrameCompApp::setCopyPresample(strtoul(optarg, &endPtr, 0));
-      if (*endPtr)
-	parseValid &= CmdLineTools::parseUInt(endPtr+1,compressThreads);
+      endPtr = index(optarg, ',');
+      if (endPtr)
+        *endPtr = '\0';
+      parseValid &= CmdLineTools::parseUInt(optarg, uuu);
+      FrameCompApp::setCopyPresample(uuu);
+      if (endPtr)
+        parseValid &= CmdLineTools::parseUInt(endPtr+1,compressThreads);
       break;
     case 'O':
       FrameCompApp::useOMP(true);
       break;
     case 'D':
-      fdrop = strtoul(optarg, &endPtr, 0);
-      if (*endPtr)
-	ndrop = strtoul(endPtr+1, &endPtr, 0);
+      endPtr = index(optarg, ',');
+      if (endPtr)
+        *endPtr = '\0';
+      parseValid &= CmdLineTools::parseInt(optarg, fdrop);
+      if (endPtr)
+        parseValid &= CmdLineTools::parseInt(endPtr+1, ndrop);
       break;
     case 'T':
-      ntime = strtoul(optarg, &endPtr, 0);
-      ftime = strtod (endPtr+1, &endPtr);
+      endPtr = index(optarg, ',');
+      if (endPtr) {
+        *endPtr = '\0';
+        parseValid &= CmdLineTools::parseInt(optarg, ntime);
+        parseValid &= CmdLineTools::parseDouble(endPtr+1, ftime);
+      } else {
+        parseValid = false; // error: missing comma
+      }
       break;
     case 'L':
       { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
@@ -1044,13 +1067,11 @@ int main(int argc, char** argv) {
         break;
       }
     case 'P':
-      nforward = strtoul(optarg,NULL,0);
-      break;
-    case 't':
-      triggerEnable = true;
+      parseValid &= CmdLineTools::parseInt(optarg, nforward);
       break;
     case 'S':
-      ToEventWireScheduler::setMaximum(strtoul(optarg,NULL,0));
+      parseValid &= CmdLineTools::parseUInt(optarg, uuu);
+      ToEventWireScheduler::setMaximum(uuu);
       break;
     case 'u':
       if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
@@ -1063,7 +1084,7 @@ int main(int argc, char** argv) {
       printUsage(argv[0]);
       return 0;
     default:
-      printf("Option %c not understood\n", (char) c&0xff);
+    case '?':
       printUsage(argv[0]);
       return 1;
     }
@@ -1071,19 +1092,22 @@ int main(int argc, char** argv) {
 
   if (platform == NO_PLATFORM) {
     printf("%s: platform required\n",argv[0]);
-    return 0;
+    parseValid = false;
+  }
+
+  if (!lDetInfoSet) {
+    printf("%s: detinfo required\n",argv[0]);
+    parseValid = false;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    parseValid = false;
   }
 
   if (!parseValid) {
     printUsage(argv[0]);
     return 1;
-  }
-
-  if (triggerEnable) {
-    if (verbose) {
-      printf(" *** calling triggerInit() from %s ***\n", __PRETTY_FUNCTION__);
-    }
-    triggerInit();
   }
 
   Task* task = new Task(Task::MakeThisATask);
@@ -1094,9 +1118,9 @@ int main(int argc, char** argv) {
                                  info,
                                  user_apps,
                                  lCompress,
-				 compressThreads,
-				 lTriggered, module, channel,
-				 uniqueid);
+                                 compressThreads,
+                                 lTriggered, module, channel,
+                                 uniqueid);
 
   SegmentLevel* segment = new SegmentLevel(platform, 
              *segtest,

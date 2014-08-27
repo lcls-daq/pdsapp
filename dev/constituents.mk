@@ -202,7 +202,6 @@ tgtincs_princetonsim := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_simcam := simcam.cc 
 tgtsrcs_simcam += SimCam.cc
-tgtsrcs_simcam += rnxtrigger.cc
 tgtlibs_simcam := $(commonlibs) $(cam_libs)
 tgtlibs_simcam += pds/clientcompress pds/pnccdFrameV0 pdsdata/compressdata pds/configdata
 tgtlibs_simcam += pds/camera pds/epicstools epics/ca epics/Com
