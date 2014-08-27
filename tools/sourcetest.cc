@@ -1,3 +1,4 @@
+#include "pds/service/CmdLineTools.hh"
 #include "pds/collection/CollectionManager.hh"
 #include "pds/collection/CollectionServer.hh"
 #include "pds/utility/Transition.hh"
@@ -13,6 +14,11 @@
 #include <string.h>
 
 using namespace Pds;
+
+void usage(const char* p)
+{
+  printf("Usage: %s <platform> [-h]\n", p);
+}
 
 class EvrService: public CollectionManager {
 public:
@@ -70,13 +76,26 @@ void EvrService::message(const Node& hdr, const Message& msg)
 
 int main(int argc, char** argv)
 {
-  if (argc != 2) {
-    printf("usage: %s <platform>\n", argv[0]);
-    return 0;
+  unsigned platform;
+  bool parseErr = false;
+  int c;
+  while ((c = getopt(argc, argv, "h")) != -1) {
+    switch (c) {
+    case 'h':
+      usage(argv[0]);
+      exit(0);
+    case '?':
+    default:
+      parseErr = true;
+      break;
+    }
   }
 
-  char* end;
-  unsigned platform = strtoul(argv[1], &end, 0);
+  if (parseErr || (argc != 2) || !CmdLineTools::parseUInt(argv[1], platform)) {
+    usage(argv[0]);
+    exit(1);
+  }
+
   platform &= 0xff;
   EvrService evr(platform);
 
