@@ -981,13 +981,6 @@ int main(int argc, char** argv) {
       lDetInfoSet = true;
       parseValid &= CmdLineTools::parseDetInfo(optarg,info);
       break;
-    case 'e':
-      { lTriggered=true;
-        const char* arg1 = strtok(optarg,",");
-        const char* arg2 = strtok(NULL,"\0");
-        parseValid &= CmdLineTools::parseUInt(arg1,module);
-        parseValid &= CmdLineTools::parseUInt(arg2,channel);
-      } break;
     case 'p':
       endPtr = index(optarg, ',');
       if (endPtr) {
