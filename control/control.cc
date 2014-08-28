@@ -62,15 +62,14 @@ int main(int argc, char** argv)
 
   int c;
   while ((c = getopt(argc, argv, "p:P:D:L:R:E:e:N:C:AOTS:w:o:hv")) != -1) {
-    char* endPtr;
     switch (c) {
     case 'A':
       autorun = true;
       break;
     case 'p':
       if (!Pds::CmdLineTools::parseUInt(optarg, platform)) {
-        printf("platform [%s] not parsed\n",optarg);
-        exit(1);
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        lusage = true;
       }
       break;
     case 'P':
@@ -80,7 +79,10 @@ int main(int argc, char** argv)
       dbpath = optarg;
       break;
     case 'k':
-      key = strtoul(optarg, &endPtr, 0);
+      if (!Pds::CmdLineTools::parseUInt(optarg, key)) {
+        printf("%s: option `-k' parsing error\n", argv[0]);
+        lusage = true;
+      }
       break;
     case 'L':
       offlinerc = optarg;
@@ -92,10 +94,16 @@ int main(int argc, char** argv)
       experiment = optarg;
       break;
     case 'e':
-      expnum = strtoul(optarg, &endPtr, 0);
+      if (!Pds::CmdLineTools::parseUInt(optarg, expnum)) {
+        printf("%s: option `-e' parsing error\n", argv[0]);
+        lusage = true;
+      }
       break;
     case 'N':
-      nfs_log_threshold = strtod(optarg, NULL);
+      if (!Pds::CmdLineTools::parseDouble(optarg, nfs_log_threshold)) {
+        printf("%s: option `-N' parsing error\n", argv[0]);
+        lusage = true;
+      }
       break;
     case 'C':
       controlrc = optarg;
@@ -104,16 +112,28 @@ int main(int argc, char** argv)
       override = true;
       break;
     case 'S':
-      sequencer_id = strtoul(optarg, &endPtr, 0);
+      if (!Pds::CmdLineTools::parseUInt(optarg, sequencer_id)) {
+        printf("%s: option `-S' parsing error\n", argv[0]);
+        lusage = true;
+      }
       break;
     case 'T':
       SelectDialog::useTransient(true);
       break;
     case 'w':
-      slowReadout = strtoul(optarg, &endPtr, 0);
+      if (!Pds::CmdLineTools::parseInt(optarg, slowReadout)) {
+        printf("%s: option `-w' parsing error\n", argv[0]);
+        lusage = true;
+      } else if ((slowReadout != 0) && (slowReadout != 1)) {
+        printf("%s: option `-w' out of range\n", argv[0]);
+        lusage = true;
+      }
       break;
     case 'o':
-      partition_options = strtoul(optarg, &endPtr, 0);
+      if (!Pds::CmdLineTools::parseUInt(optarg, partition_options)) {
+        printf("%s: option `-o' parsing error\n", argv[0]);
+        lusage = true;
+      }
       break;
     case 'h':
       lusage = true;
@@ -121,6 +141,7 @@ int main(int argc, char** argv)
     case 'v':
       ++verbose;
       break;
+    case '?':
     default:
       // error
       lusage = true;
@@ -131,7 +152,24 @@ int main(int argc, char** argv)
     printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
     lusage = true;
   }
-  if ((platform==NO_PLATFORM || !partition || !dbpath) || (!offlinerc && experiment) || (offlinerc && runNumberFile)) {
+  if (platform==NO_PLATFORM) {
+    printf("%s: platform is required\n", argv[0]);
+    lusage = true;
+  }
+  if (!partition) {
+    printf("%s: partition is required\n", argv[0]);
+    lusage = true;
+  }
+  if (!dbpath) {
+    printf("%s: db path is required\n", argv[0]);
+    lusage = true;
+  }
+  if (!offlinerc && experiment) {
+    printf("%s: offlinerc is required with experiment name\n", argv[0]);
+    lusage = true;
+  }
+  if (offlinerc && runNumberFile) {
+    printf("%s: offlinerc and run number file are mutually exclusive\n", argv[0]);
     lusage = true;
   }
   if (lusage) {
