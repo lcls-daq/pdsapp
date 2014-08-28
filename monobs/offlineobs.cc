@@ -1,3 +1,4 @@
+#include "pds/service/CmdLineTools.hh"
 #include "pds/service/Task.hh"
 #include "pds/collection/Arp.hh"
 #include "pds/management/EventCallback.hh"
@@ -94,14 +95,17 @@ int main(int argc, char** argv) {
   int      slowReadout = 0;
   int verbose = 0;
   (void) signal(SIGINT, sigfunc);
+  bool parseErr = false;
+  extern int optind;
   int c;
   while ((c = getopt(argc, argv, "p:P:E:L:V:w:vh")) != -1) {
     errno = 0;
-    char* endPtr;
     switch (c) {
     case 'p':
-      platform = strtoul(optarg, &endPtr, 0);
-      if (errno != 0 || endPtr == optarg) platform = -1U;
+      if (!CmdLineTools::parseUInt(optarg, platform)) {
+        printf("%s: failed to parse platform '%s'\n", argv[0], optarg);
+        parseErr = true;
+      }
       break;
     case 'P':
       partition = optarg;
@@ -123,15 +127,41 @@ int main(int argc, char** argv) {
       printf("\n%s", helpText);
       return 0;
     case 'w':
-      slowReadout = strtoul(optarg, &endPtr, 0);
+      if (!CmdLineTools::parseInt(optarg, slowReadout)) {
+        parseErr = true;
+      }
+      if ((slowReadout != 0) && (slowReadout != 1)) {
+        parseErr = true;
+      }
       break;
+    case '?':
     default:
+      parseErr = true;
       break;
     }
   }
 
-  if (platform == -1U || !partition || !offlinerc) {
-    fprintf(stderr, "Missing parameters!\n");
+  if (platform == -1U) {
+    printf("%s: platform is required\n", argv[0]);
+    parseErr = true;
+  }
+
+  if (!offlinerc) {
+    printf("%s: offlinerc is required\n", argv[0]);
+    parseErr = true;
+  }
+
+  if (!partition) {
+    printf("%s: partition is required\n", argv[0]);
+    parseErr = true;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    parseErr = true;
+  }
+
+  if (parseErr) {
     usage(argv[0]);
     return 1;
   }
