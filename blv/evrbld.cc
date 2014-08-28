@@ -1,3 +1,4 @@
+#include "pds/service/CmdLineTools.hh"
 #include "pdsapp/blv/IdleStream.hh"
 #include "pdsapp/blv/ToBldEventWire.hh"
 #include "pdsapp/blv/EvrBldManager.hh"
@@ -23,8 +24,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <strings.h>
 
 #include <list>
+
+#define EVRBLD_DEFAULT_PORT     1100
+
+extern int optind;
 
 static EvrBldManager* evrBldMgr = NULL; 
 
@@ -51,7 +57,12 @@ static void signalHandler(int sigNo)
 using namespace Pds;
 
 void usage(const char* p) {
-  printf("Usage: %s -r <evr a/b> -d <configdb path> -p <control port> -c <det,det_id,device_id> -n <number of clients>\n",p);
+  printf("Usage: %s -r <evr a/b> -d <configdb path> [OPTIONS]\n", p);
+  printf("\nOptions:\n");
+  printf("    -h                           Show usage\n");
+  printf("    -p <control port>            Control port (default=%d)\n", EVRBLD_DEFAULT_PORT);
+  printf("    -c <det,det_id,device_id>    Detector info (default=0,0,0)\n");
+  printf("    -n <number of clients>       Number of clients (default=1)\n");
 }
 
 int main(int argc, char** argv) {
@@ -59,39 +70,101 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   const char* evrid(0);
   const char* dbpath(0);
-  unsigned controlPort=1100;
+  unsigned controlPort=EVRBLD_DEFAULT_PORT;
   unsigned clients=1;
   unsigned detector(0), detector_id(0), device_id(0);
+  bool lUsage = false;
 
   extern char* optarg;
+  char* nextarg;
   char* endPtr;
   int c;
-  while ( (c=getopt( argc, argv, "r:p:c:d:n:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "r:p:c:d:n:h")) != EOF ) {
     switch(c) {
+    case 'h':
+      usage(argv[0]);
+      exit(0);
+      break;
     case 'r':
       evrid = optarg;
+      if (strlen(evrid) != 1) {
+        printf("%s: option `-r' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'p':
-      controlPort = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseUInt(optarg, controlPort)) {
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'c':
-      detector    = strtoul(optarg, &endPtr, 0);
-      detector_id = strtoul(endPtr+1, &endPtr, 0);
-      device_id   = strtoul(endPtr+1, &endPtr, 0);
+      // parse det,det_id,device_id
+      endPtr = index(optarg, ',');
+      if (endPtr) {
+        *endPtr = '\0';
+        nextarg = endPtr+1;
+        endPtr = index(nextarg, ',');
+        if (endPtr) {
+          *endPtr = '\0';
+          if (!CmdLineTools::parseUInt(nextarg, detector_id)) {
+            printf("%s: option `-c' parsing error\n", argv[0]);
+            lUsage = true;
+          }
+          if (!CmdLineTools::parseUInt(endPtr+1, device_id)) {
+            printf("%s: option `-c' parsing error\n", argv[0]);
+            lUsage = true;
+          }
+        } else {
+          printf("%s: option `-c' parsing error\n", argv[0]);
+          lUsage = true;
+        }
+        if (!CmdLineTools::parseUInt(optarg, detector)) {
+          printf("%s: option `-c' parsing error\n", argv[0]);
+          lUsage = true;
+        }
+      } else {
+        printf("%s: option `-c' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'd':
       dbpath = optarg;
       break;
     case 'n':
-      clients = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseUInt(optarg, clients)) {
+        printf("%s: option `-n' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
+    case '?':
     default:
-      usage(argv[0]);
-      exit(1);
+      lUsage = true;
+      break;
     }
   }
 
-  if (evrid==0 || controlPort==0) {
+  if (evrid==0) {
+    printf("%s: evr a/b is required\n", argv[0]);
+    lUsage = true;
+  }
+
+  if (dbpath==0) {
+    printf("%s: configdb path is required\n", argv[0]);
+    lUsage = true;
+  }
+
+  if (controlPort==0) {
+    printf("%s: control port must be nonzero\n", argv[0]);
+    lUsage = true;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    lUsage = true;
+  }
+
+  if (lUsage) {
     usage(argv[0]);
     exit(1);
   }
