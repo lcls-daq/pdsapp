@@ -1,3 +1,4 @@
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/management/PlatformCallback.hh"
 #include "pds/management/ControlCallback.hh"
@@ -8,7 +9,7 @@
 
 void showUsage(const char* p)
 {
-  printf("Usage: %s -p <platform>\n",p);
+  printf("Usage: %s -p <platform> [-h]\n",p);
 }
 
 namespace Pds {
@@ -54,21 +55,41 @@ using namespace Pds;
 
 int main(int argc, char* argv [])
 {
+  bool parseErr = false;
+  bool platformSet = false;
   unsigned platform=0;
+  extern int optind;
 
   int c;
   while ((c = getopt(argc, argv, "p:h")) != -1) {
-    char* endPtr;
     switch (c) {
     case 'p':
-      platform = strtoul(optarg, &endPtr, 0);
+      platformSet = true;
+      if (!CmdLineTools::parseUInt(optarg, platform)) {
+        parseErr = true;
+      }
       break;
     case 'h':
     case '?':
     default:
-      showUsage(argv[0]);
-      return 1;
+      parseErr = true;
+      break;
     }
+  }
+
+  if (!platformSet) {
+    printf("%s: platform is required\n", argv[0]);
+    parseErr = true;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    parseErr = true;
+  }
+
+  if (parseErr) {
+    showUsage(argv[0]);
+    exit(1);
   }
 
   Callback cb;
