@@ -43,8 +43,8 @@ int main(int argc, char** argv)
 {
   const unsigned NO_PLATFORM = UINT_MAX;
   unsigned platform = NO_PLATFORM;
-  const char* partition = "partition";
-  const char* dbpath    = "none";
+  const char* partition = (char *)NULL;
+  const char* dbpath    = (char *)NULL;
   const char* offlinerc = (char *)NULL;
   const char* runNumberFile = (char *)NULL;
   const char* experiment = (char *)NULL;
