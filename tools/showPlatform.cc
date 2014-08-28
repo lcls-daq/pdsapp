@@ -94,7 +94,10 @@ int main(int argc, char* argv [])
 
   Callback cb;
   PartitionControl control(platform, cb, 0);
-  control.attach();
+
+  if (!control.attach()) {
+    exit(1);
+  }
 
   Observer o;
   control.platform_rollcall(&o);
