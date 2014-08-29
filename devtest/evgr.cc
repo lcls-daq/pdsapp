@@ -1,3 +1,4 @@
+#include "pds/service/CmdLineTools.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
 #include "pds/evgr/EvgrManager.hh"
 #include "pds/evgr/EvgrPulseParams.hh"
@@ -8,6 +9,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+
+extern int optind;
 
 using namespace Pds;
 
@@ -32,6 +36,7 @@ int main(int argc, char** argv) {
   unsigned udelta;
   unsigned fiducials_per_beam = 3;
   bool external_sync=false;
+  bool lUsage=false;
 
   extern char* optarg;
   char* endptr;
@@ -45,6 +50,10 @@ int main(int argc, char** argv) {
       break;
     case 'r':
       evrid  = optarg;
+      if (strlen(evrid) != 1) {
+        printf("%s: option `-r' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'p':
       if (npulses < MAX_PULSES) {
@@ -82,8 +91,12 @@ int main(int argc, char** argv) {
       }
       break;
     case 'b':
-      fiducials_per_beam = strtoul(optarg,NULL,0);
-      printf("Using %d fiducials per beamcode\n",fiducials_per_beam);
+      if (!Pds::CmdLineTools::parseUInt(optarg, fiducials_per_beam)) {
+        printf("%s: option `-b' parsing error\n", argv[0]);
+        lUsage = true;
+      } else {
+        printf("Using %u fiducials per beamcode\n", fiducials_per_beam);
+      }
       break;
     case 'x':
       external_sync = true;
@@ -91,11 +104,26 @@ int main(int argc, char** argv) {
     case 'h':
       usage(argv[0]);
       exit(0);
+    case '?':
     default:
-      printf("Option not understood!\n");
-      usage(argv[0]);
-      exit(1);
+      lUsage = true;
+      break;
     }
+  }
+
+  if (!npulses) {
+    printf("%s: at least one pulse must be defined\n", argv[0]);
+    lUsage = true;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    lUsage = true;
+  }
+
+  if (lUsage) {
+    usage(argv[0]);
+    exit(1);
   }
 
   char defaultdev='a';
