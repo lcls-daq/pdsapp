@@ -7,6 +7,9 @@
 
 #include "evgr/evr/evr.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
+#include "pds/service/CmdLineTools.hh"
+
+extern int optind;
 
 using namespace Pds;
 
@@ -252,10 +255,10 @@ void selectOpcodes( char opcodes[256], char* strSelection )
   return;
 }
 
-void showUsage()
+void showUsage(const char *cc)
 {
-  printf( "Usage:  evrsnoop  [-h] [-r <a/b/c/d>] [-n <max event num>] [-o <event list>]"
-    "  Options:\n"
+  printf( "Usage: %s [-h] [-r <a/b/c/d>] [-n <max event num>] [-o <event list>]\n\n"
+    "Options:\n"
     "    -h                   Show usage\n"
     "    -r <a/b/c/d>         Use evr device a/b/c/d\n"
     "    -n <max event num>   Force evr to pause for every N events. -1 = Unlimited\n"
@@ -264,7 +267,7 @@ void showUsage()
     " Event List Examples:\n"
     "   -o 1,2,3,4    ->  Select opcodes 1,2,3 and 4\n"
     "   -o 1-4        ->  Select opcodes from 1 to 4\n"
-    "   -o 1,2-4,6-8  ->  Select opcodes 1, from 2 to 4, and from 6-8\n"
+    "   -o 1,2-4,6-8  ->  Select opcodes 1, from 2 to 4, and from 6-8\n", cc
   );
 }
 
@@ -276,6 +279,7 @@ int main(int argc, char** argv) {
 
   char  opcodes[256];
   memset( opcodes, 0, 256 );
+  bool lUsage = false;
    
   int c;
   while ( (c=getopt( argc, argv, "r:n:o:h")) != EOF ) {
@@ -284,15 +288,32 @@ int main(int argc, char** argv) {
       evrid  = optarg;
       break;
     case 'n':
-      iMaxEvents = strtol(optarg, NULL, 0);
+      if (!Pds::CmdLineTools::parseInt(optarg, iMaxEvents)) {
+        printf("%s: option `-n' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'o':
       selectOpcodes( opcodes, optarg );
       break;
     case 'h':
-      showUsage();
+      showUsage(argv[0]);
       return 0;
+    case '?':
+    default:
+      lUsage = true;
+      break;
     }
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    lUsage = true;
+  }
+
+  if (lUsage) {
+    showUsage(argv[0]);
+    exit(1);
   }
 
   char defaultdev='a';
