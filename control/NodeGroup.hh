@@ -19,7 +19,7 @@ class QComboBox;
 namespace Pds {
   class NodeTransientCb;
   class Preference;
-
+  
   class NodeGroup : public QWidget {
     Q_OBJECT
   public:
@@ -74,7 +74,27 @@ namespace Pds {
 
     bool              _useTransient;
     QList<QComboBox*> _transients;
+    QList<NodeTransientCb*> _lTransientCb;
+
+    friend class CallbackNodeGroup;
+    friend class NodeTransientCb;
   };
+
+  class NodeTransientCb : public QObject
+  {
+    Q_OBJECT
+  public:
+    NodeTransientCb(NodeGroup& nodeGroup, int iNodeIndex, QWidget& button, bool selected);
+  public slots:    
+    void selectChanged(bool);
+    void stateChanged(int);
+  private:
+    NodeGroup& _nodeGroup;
+    int        _iNodeIndex;
+    QWidget&   _button;
+    bool       _selected;
+  };
+
 }; // namespace Pds
 
 #endif

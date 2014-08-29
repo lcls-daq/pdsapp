@@ -121,7 +121,8 @@ void PartitionSelect::select_dialog()
       const std::list<NodeMap>& map = dialog->segment_map();
       for(std::list<NodeMap>::const_iterator it=map.begin();
           it!=map.end(); it++)
-        nsrc += it->sources.size();
+	if (!it->node.transient())
+	  nsrc += it->sources.size();
 
       Partition::Source* sources = new Partition::Source[nsrc];
       unsigned isrc=0;
@@ -132,24 +133,26 @@ void PartitionSelect::select_dialog()
                it->node.procInfo().log(),
                it->node.procInfo().phy());
 #endif
-        for(std::vector<Pds::Src>::const_iterator sit=it->sources.begin();
-            sit!=it->sources.end(); sit++) {
+	if (!it->node.transient()) {
+	  for(std::vector<Pds::Src>::const_iterator sit=it->sources.begin();
+	      sit!=it->sources.end(); sit++) {
 #ifdef DBUG
-          printf(" [%08x.%08x]",sit->log(),sit->phy());
+	    printf(" [%08x.%08x]",sit->log(),sit->phy());
 #endif
-          if (sit->level()==Pds::Level::Source &&
-              static_cast<const Pds::DetInfo&>(*sit).detector()==Pds::DetInfo::BldEb)
-            continue;
+	    if (sit->level()==Pds::Level::Source &&
+		static_cast<const Pds::DetInfo&>(*sit).detector()==Pds::DetInfo::BldEb)
+	      continue;
 
-          foreach(Node node, nodes) {
-            if (node == it->node) {
-              sources[isrc++] = Partition::Source(*sit, node.group());
+	    foreach(Node node, nodes) {
+	      if (node == it->node) {
+		sources[isrc++] = Partition::Source(*sit, node.group());
 #ifdef DBUG
-              printf("*");
+		printf("*");
 #endif
-              break;
-            }
-          }
+		break;
+	      }
+	    }
+	  }
         }
 #ifdef DBUG
         printf("\n");

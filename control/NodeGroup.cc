@@ -72,6 +72,10 @@ NodeGroup::~NodeGroup()
   delete _buttons; 
   delete _ready;
   delete _notready;
+
+  { NodeTransientCb* pCallback;
+    foreach (pCallback, _lTransientCb)
+      delete pCallback; }
 }
 
 void NodeGroup::addNode(const NodeSelect& node)
@@ -137,14 +141,21 @@ void NodeGroup::add_node(int index)
     layoutButton->addStretch(1);
     layoutButton->addWidget(transientBox);
 
+    _lTransientCb.append(new NodeTransientCb(*this, iNodeIndex, *transientBox, button->checkState()==Qt::Checked));
+
     if (bEvrNode) {
       transientBox->setCurrentIndex(0);
+      _lTransientCb.last()->stateChanged(0);
       transientBox->setEnabled(false);
     }
     else {
+      connect(button,       SIGNAL(toggled(bool)),            _lTransientCb.last(), SLOT(selectChanged(bool)));
+      connect(transientBox, SIGNAL(currentIndexChanged(int)), _lTransientCb.last(), SLOT(stateChanged(int)));    
+
       bool lTr = (indexPersist>=0) ? _persistTrans[indexPersist] : false;
       int cIndex = lTr ? 1:0;
       transientBox->setCurrentIndex(cIndex);
+      _lTransientCb.last()->stateChanged(cIndex);
       transientBox->setEnabled(true);
     }
     while (_transients.size()<=iNodeIndex)
@@ -367,4 +378,26 @@ int NodeGroup::order(const NodeSelect& node, const QString& text)
       return index;
   }
   return l->count();
+}
+
+NodeTransientCb::NodeTransientCb(NodeGroup& nodeGroup, int iNodeIndex, QWidget& 
+button, bool sel) :
+  _nodeGroup(nodeGroup), _iNodeIndex(iNodeIndex), _button(button), _selected(sel)
+{
+}
+
+void NodeTransientCb::selectChanged(bool v)
+{
+  _selected = v;
+  if (v)
+    _button.setPalette(_nodeGroup.node(_iNodeIndex).transient() ? QPalette(Qt::yellow) : QPalette(Qt::green));
+  else
+    _button.setPalette(QPalette());
+}
+
+void NodeTransientCb::stateChanged(int i)
+{
+ _nodeGroup.node(_iNodeIndex).setTransient(i!=0);
+  if (_selected)
+    _button.setPalette(i!=0 ? QPalette(Qt::yellow) : QPalette(Qt::green));
 }

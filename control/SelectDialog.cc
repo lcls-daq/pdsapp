@@ -283,12 +283,33 @@ void SelectDialog::select() {
 
   _detinfo << _segbox->detectors();
   _deviceNames = _segbox->deviceNames();
-  foreach(Node n, _segbox->selected()) {
-    _seginfo  << n.procInfo();
-  }
 
   _rptinfo = _rptbox->reporters();
   _trninfo = _rptbox->transients();
+
+  std::list<NodeMap> new_segment_map;
+  foreach(Node n, _segbox->selected()) {
+    _seginfo  << n.procInfo();
+    for(std::list<NodeMap>::const_iterator it=_segment_map.begin();
+	it!=_segment_map.end(); it++) {
+      if (it->node==n) {
+	std::vector<Src> sources;
+	for(std::vector<Src>::const_iterator sit=it->sources.begin();
+	    sit!=it->sources.end(); sit++) {
+	  if (sit->level()==Level::Reporter) {
+	    const BldInfo& bit = static_cast<const BldInfo&>(*sit);
+	    if (!_rptinfo.contains(bit) ||
+		_trninfo.contains(bit))
+	      continue;
+	  }
+	  sources.push_back(*sit);
+	}
+	new_segment_map.push_back(NodeMap(n,sources));
+      }
+    }
+  }
+  _segment_map = new_segment_map;
+
   _iocinfo = _iocbox->detectors();
 
   accept();
