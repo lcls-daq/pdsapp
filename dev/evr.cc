@@ -1,5 +1,6 @@
 #include "pdsdata/xtc/DetInfo.hh"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -20,6 +21,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+extern int optind;
 
 namespace Pds {
 
@@ -159,6 +162,10 @@ int main(int argc, char** argv) {
   char*     evrid     = 0;
   const char* evtcodelist = 0;
   bool      simulate  = false;
+  bool      lUsage    = false;
+  bool      parseOK;
+  char*     nextarg;
+  unsigned int uu;
   
   DetInfo::Detector det(DetInfo::NoDetector);
   unsigned detid(0), devid(0);
@@ -175,20 +182,50 @@ int main(int argc, char** argv) {
       arp = new Arp(optarg);
       break;
     case 'i':
-      det    = (DetInfo::Detector)strtoul(optarg, &endPtr, 0); endPtr++;
-      if ( *endPtr == 0 ) break;
-      detid  = strtoul(endPtr, &endPtr, 0); endPtr++;
-      if ( *endPtr == 0 ) break;
-      devid  = strtoul(endPtr, &endPtr, 0);
+      parseOK = false;
+      endPtr = index(optarg, '/');
+      if (endPtr) {
+        // found first slash
+        *endPtr = '\0';
+        nextarg = endPtr+1;
+        // parse det
+        if (CmdLineTools::parseUInt(optarg, uu)) {
+          det = (DetInfo::Detector)uu;
+          endPtr = index(nextarg, '/');
+          if (endPtr) {
+            // found second slash
+            *endPtr = '\0';
+            // parse detid
+            if (CmdLineTools::parseUInt(nextarg, detid)) {
+              // parse devid
+              if (CmdLineTools::parseUInt(endPtr+1, devid)) {
+                parseOK = true;
+              }
+            }
+          }
+        }
+      }
+      if (!parseOK) {
+        printf("%s: option `-i' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'p':
-      platform = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseUInt(optarg,platform)) {
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'r':
       evrid = optarg;
+      if (strlen(evrid) != 1) {
+        printf("%s: option `-r' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'd':
       //      EvrManager::drop_pulses(strtoul(optarg, NULL, 0));
+      printf("%s: option `-d' ignored\n", argv[0]);
       break;
     case 'u':
       if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
@@ -215,13 +252,25 @@ int main(int argc, char** argv) {
     case 'h':
       usage(argv[0]);
       return 0;
+    case '?':
+    default:
+      lUsage = true;
     }
   }
 
   if (platform==NO_PLATFORM) {
     printf("%s: platform required\n",argv[0]);
+    lUsage = true;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    lUsage = true;
+  }
+
+  if (lUsage) {
     usage(argv[0]);
-    return 0;
+    exit(1);
   }
 
   char defaultdev='a';
