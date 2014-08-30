@@ -3,11 +3,15 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "evgr/evr/evr.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
+#include "pds/service/CmdLineTools.hh"
 #include "pdsapp/config/EventcodeTiming.hh"
 #include "pdsapp/config/EventcodeTiming.cc"
+
+extern int optind;
 
 using namespace Pds;
 
@@ -140,6 +144,9 @@ int main(int argc, char** argv) {
   bool keepAlive = false;
   int c;
   unsigned ticks;
+  unsigned eventcode, rate;
+  bool lUsage = false;
+  bool parseOK;
   int delta;
   unsigned udelta;
   while ( (c=getopt( argc, argv, "r:p:s:khT")) != EOF ) {
@@ -149,11 +156,31 @@ int main(int argc, char** argv) {
       break;
     case 'r':
       evrid  = optarg;
+      if (strlen(evrid) != 1) {
+        printf("%s: option `-r' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 's':
-      src.eventcode = strtoul(optarg,&endptr,0);
-      src.period    = 119000000/strtoul(endptr+1,&endptr,0);
-      nsrc++;
+      parseOK = false;
+      endptr = index(optarg, ','); 
+      if (endptr) {
+        // found comma
+        *endptr = '\0';
+        // parse eventcode
+        if (CmdLineTools::parseUInt(optarg, eventcode)) {
+          // parse rate
+          if (CmdLineTools::parseUInt(endptr+1, rate) && (rate > 0)) {
+            parseOK = true;
+            src.eventcode = eventcode;
+            src.period    = 119000000/rate;
+          }
+        }
+      }
+      if (!parseOK) {
+        printf("%s: option `-s' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'p':
       pulse[npulses].eventcode = strtoul(optarg  ,&endptr,0);
@@ -188,7 +215,21 @@ int main(int argc, char** argv) {
     case 'h':
       usage(argv[0]);
       exit(0);
+    case '?':
+    default:
+      lUsage = true;
+      break;
     }
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    lUsage = true;
+  }
+
+  if (lUsage) {
+    usage(argv[0]);
+    exit(1);
   }
 
   char defaultdev='a';
