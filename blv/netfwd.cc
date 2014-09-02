@@ -6,16 +6,26 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/service/NetServer.hh"
 #include "pds/service/Client.hh"
 #include "pds/utility/Mtu.hh"
 
 #include "pdsdata/xtc/Dgram.hh"
 
+#define NETFWD_DEFAULT_MCADDR   0xefff1800
+#define NETFWD_DEFAULT_PORT     10148
+
+extern int optind;
+
 using namespace Pds;
 
 void usage(const char* p) {
-  printf("Usage: %s -i <input interface> -o <output interface> -a <address> -p <port>>\n",p);
+  printf("Usage: %s -i <input interface> -o <output interface> [OPTIONS]\n\n",p);
+  printf("Options:\n");
+  printf("  -a <address>     Address (default=0x%x)\n", NETFWD_DEFAULT_MCADDR);
+  printf("  -p <port>        Port (default=%d)\n", NETFWD_DEFAULT_PORT);
+  printf("  -h               Help: print this message and exit\n");
 }
 
 static unsigned parse_network(const char* arg)
@@ -55,12 +65,14 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   unsigned input(0);
   unsigned output(0);
-  unsigned mcaddr = 0xefff1800;
-  unsigned short port = 10148;
+  unsigned mcaddr = NETFWD_DEFAULT_MCADDR;
+  unsigned short port = NETFWD_DEFAULT_PORT;
+  unsigned int uu;
+  bool lUsage = false;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:o:a:p:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:o:a:p:h")) != EOF ) {
     switch(c) {
     case 'i':
       input = parse_network(optarg);
@@ -72,15 +84,33 @@ int main(int argc, char** argv) {
       mcaddr = parse_network(optarg);
       break;
     case 'p':
-      port = strtoul(optarg,NULL,0);
+      if (CmdLineTools::parseUInt(optarg, uu)) {
+        port = (unsigned short)uu;
+      } else {
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
-    default:
+    case 'h':
       usage(argv[0]);
-      exit(1);
+      exit(0);
+    case '?':
+    default:
+      lUsage = true;
+      break;
     }
   }
 
   if (input==0 || output==0) {
+    lUsage = true;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    lUsage = true;
+  }
+
+  if (lUsage) {
     usage(argv[0]);
     exit(1);
   }
