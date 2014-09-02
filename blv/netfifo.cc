@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
+#include <strings.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 
@@ -13,6 +14,7 @@
 #include "pds/service/Task.hh"
 #include "pds/service/Routine.hh"
 
+extern int  optind;
 static bool lVerbose=false;
 
 namespace Pds {
@@ -157,7 +159,7 @@ using namespace Pds;
 
 
 void usage(const char* p) {
-  printf("Usage: %s -c <input,output> [-c <input,output>]\n",p);
+  printf("Usage: %s [-h] -c <input,output> [-c <input,output>]\n",p);
   printf("\t <input/output> is <host>:<port> or <FIFO name>\n");
 }
 
@@ -166,11 +168,19 @@ int main(int argc, char** argv) {
   extern char* optarg;
   int c;
   unsigned nconnect=0;
+  bool lUsage = false;
+  bool lCalled = false;
 
-  while ( (c=getopt( argc, argv, "c:v")) != EOF ) {
+  while ( (c=getopt( argc, argv, "c:vh")) != EOF ) {
     switch(c) {
     case 'c':
-      { char* input  = strtok(optarg,",");
+      {
+        if (!index(optarg, ',')) {
+          printf("%s: option `-c' parsing error\n", argv[0]);
+          lUsage = true;
+          break;
+        }
+        char* input  = strtok(optarg,",");
         char* output = strtok(NULL,",");
         ConnectRoutine* routine;
         if (strchr(input,':')==NULL) // input is a FIFO
@@ -182,14 +192,33 @@ int main(int argc, char** argv) {
         sprintf(taskname,"nfifo%d",nconnect++);
         Task* task = new Task(TaskObject(taskname));
         task->call(routine);
+        lCalled = true;
         break; }
     case 'v':
       lVerbose = true;
       break;
-    default:
+    case 'h':
       usage(argv[0]);
-      exit(1);
+      exit(0);
+    case '?':
+    default:
+      lUsage = true;
+      break;
     }
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    lUsage = true;
+  }
+
+  if (!lCalled) {
+    lUsage = true;
+  }
+
+  if (lUsage) {
+    usage(argv[0]);
+    exit(1);
   }
 
   Task* task = new Task(Task::MakeThisATask);
