@@ -18,7 +18,7 @@ libincs_l3sacla := pdsdata/include ndarray/include boost/include
 libsrcs_l3saclacompound := L3SACLACompoundModule.cc
 libincs_l3saclacompound := pdsdata/include ndarray/include boost/include 
 
-tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor eventp xtcdump currentexp showPlatform
+tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor xtcdump currentexp showPlatform
 #tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
 
 commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
@@ -31,12 +31,6 @@ tgtsrcs_event := event.cc
 tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata
 tgtslib_event := $(USRLIBDIR)/rt
 tgtincs_event := offlinedb/include pdsdata/include
-
-tgtsrcs_eventp := eventp.cc ParasiticRecorder.cc
-tgtlibs_eventp := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata pds/offlineclient
-tgtlibs_eventp += offlinedb/mysqlclient offlinedb/offlinedb
-tgtslib_eventp := $(USRLIBDIR)/rt
-tgtincs_eventp := offlinedb/include pdsdata/include
 
 tgtsrcs_segtest := segtest.cc
 tgtlibs_segtest := $(commonlibs)
