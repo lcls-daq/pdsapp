@@ -138,18 +138,19 @@ using namespace Pds;
 
 static void usage(const char *p)
 {
-  printf("Usage: %s -i <detid> -p <platform> -r <evrid> \n"
-         "           [-a <arp>] [-R] [-n] [-u <alias>] [-h]\n\n"
+  printf("Usage: %s -i <detid> -p <platform> [OPTIONS]\n"
+         "\n"
          "Options:\n"
          "\t -i <detid>        detector ID (e.g. 0/0/0)\n"
          "\t -p <platform>     platform number\n"
-         "\t -r <evrid>        evr ID (e.g., a, b, c, or d)\n"
+         "\t -r <evrid>        evr ID (e.g., a, b, c, or d) (default: a)\n"
          "\t -a <arp>          arp\n"
          "\t -d                NOT USED\n"
          "\t -E <eventcode list> default record eventcodes (e.g. \"40-46,140-146\")\n"
          "\t -R                randomize nodes\n"
          "\t -n                turn off beam codes\n"
          "\t -u <alias>        set device alias\n"
+         "\t -I                internal sequence\n"
          "\t -h                print this message and exit\n", p);
 }
 
