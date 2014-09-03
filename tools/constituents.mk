@@ -18,7 +18,7 @@ libincs_l3sacla := pdsdata/include ndarray/include boost/include
 libsrcs_l3saclacompound := L3SACLACompoundModule.cc
 libincs_l3saclacompound := pdsdata/include ndarray/include boost/include 
 
-tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest observertest bldMonitor xtcdump currentexp showPlatform
+tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest bldMonitor xtcdump currentexp showPlatform
 #tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
 
 commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
@@ -92,11 +92,6 @@ tgtsrcs_bldMonitor := bldMonitor.cc bldMonitor.hh
 tgtlibs_bldMonitor := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata 
 tgtslib_bldMonitor := $(USRLIBDIR)/rt
 tgtincs_bldMonitor := pdsdata/include
-
-tgtsrcs_observertest := observertest.cc
-tgtlibs_observertest := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata 
-tgtslib_observertest := $(USRLIBDIR)/rt
-tgtincs_observertest := pdsdata/include
 
 tgtsrcs_xtcdump := xtcdump.cc
 tgtlibs_xtcdump := $(commonlibs)
