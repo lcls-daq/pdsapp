@@ -164,14 +164,11 @@ int main(int argc, char** argv) {
   const char* evtcodelist = 0;
   bool      simulate  = false;
   bool      lUsage    = false;
-  bool      parseOK;
-  char*     nextarg;
   unsigned int uu;
   
   DetInfo::Detector det(DetInfo::NoDetector);
   unsigned detid(0), devid(0);
 
-  char* endPtr;
   char* uniqueid = (char *)NULL;
   bool  bTurnOffBeamCodes = false;
   bool  internalSequence  = false;
@@ -183,30 +180,9 @@ int main(int argc, char** argv) {
       arp = new Arp(optarg);
       break;
     case 'i':
-      parseOK = false;
-      endPtr = index(optarg, '/');
-      if (endPtr) {
-        // found first slash
-        *endPtr = '\0';
-        nextarg = endPtr+1;
-        // parse det
-        if (CmdLineTools::parseUInt(optarg, uu)) {
-          det = (DetInfo::Detector)uu;
-          endPtr = index(nextarg, '/');
-          if (endPtr) {
-            // found second slash
-            *endPtr = '\0';
-            // parse detid
-            if (CmdLineTools::parseUInt(nextarg, detid)) {
-              // parse devid
-              if (CmdLineTools::parseUInt(endPtr+1, devid)) {
-                parseOK = true;
-              }
-            }
-          }
-        }
-      }
-      if (!parseOK) {
+      if (CmdLineTools::parseUInt(optarg,uu,detid,devid,0,'/') == 3) {
+        det = (DetInfo::Detector)uu;
+      } else {
         printf("%s: option `-i' parsing error\n", argv[0]);
         lUsage = true;
       }

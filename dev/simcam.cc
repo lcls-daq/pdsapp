@@ -964,7 +964,6 @@ int main(int argc, char** argv) {
   bool lDetInfoSet = false;
   unsigned module=0, channel=0;
   unsigned int uuu;
-  char* trigarg;
   bool parseValid=true;
 
   DetInfo info;
@@ -982,22 +981,14 @@ int main(int argc, char** argv) {
       parseValid &= CmdLineTools::parseDetInfo(optarg,info);
       break;
     case 'p':
-      endPtr = index(optarg, ',');
-      if (endPtr) {
-        *endPtr = '\0';
-        // parse <module>,<channel>
-        lTriggered = true;
-        trigarg = endPtr+1;
-        endPtr = index(trigarg, ',');
-        if (endPtr) {
-          *endPtr = '\0';
-          parseValid &= CmdLineTools::parseUInt(trigarg,module);
-          parseValid &= CmdLineTools::parseUInt(endPtr+1,channel);
-        } else {
-          parseValid = false; // error: missing comma
-        }
+      switch (CmdLineTools::parseUInt(optarg,platform,module,channel)) {
+      case 1:  lTriggered = false;  break;
+      case 3:  lTriggered = true;   break;
+      default:
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        parseValid = false;
+        break;
       }
-      parseValid &= CmdLineTools::parseUInt(optarg,platform);
       break;
     case 'v':
       verbose = !verbose;
