@@ -1,5 +1,6 @@
 #include "pdsdata/xtc/DetInfo.hh"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -17,6 +18,8 @@
 #include <stdio.h>
 #include <climits>
 
+extern int optind;
+
 namespace Pds
 {
    class MySegWire;
@@ -30,7 +33,10 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-   MySegWire(EncoderServer* encoderServer);
+   MySegWire(EncoderServer* encoderServer,
+             unsigned       module,
+             unsigned       channel,
+             const char*    aliasName = NULL);
    virtual ~MySegWire() {}
 
    void connect( InletWire& wire,
@@ -38,10 +44,20 @@ class Pds::MySegWire
                  int interface );
 
    const std::list<Src>& sources() const { return _sources; }
+   const std::list<SrcAlias>* pAliases() const
+   {
+     return (_aliases.size() > 0) ? &_aliases : NULL;
+   }
+   bool     is_triggered() const { return true; }
+   unsigned module      () const { return _module; }
+   unsigned channel     () const { return _channel; }
 
  private:
    EncoderServer* _encoderServer;
    std::list<Src> _sources;
+   std::list<SrcAlias> _aliases;
+   unsigned       _module;
+   unsigned       _channel;
 };
 
 //
@@ -74,10 +90,22 @@ class Pds::Seg
 };
 
 
-Pds::MySegWire::MySegWire( EncoderServer* encoderServer )
-   : _encoderServer(encoderServer)
+Pds::MySegWire::MySegWire( EncoderServer* encoderServer,
+                           unsigned module,
+                           unsigned channel,
+                           const char* aliasName) :
+     _encoderServer(encoderServer),
+     _module   (module),
+     _channel  (channel)
+
 { 
    _sources.push_back(encoderServer->client()); 
+
+   if (aliasName) {
+     SrcAlias tmpAlias(encoderServer->client(), aliasName);
+     _aliases.push_back(tmpAlias);
+   }
+
 }
 
 void Pds::MySegWire::connect( InletWire& wire,
@@ -148,33 +176,82 @@ void Pds::Seg::dissolved( const Node& who )
 
 using namespace Pds;
 
+static void usage(const char *p)
+{
+  printf("Usage: %s -i <detid> -p <platform>,<mod>,<chan> [OPTIONS]\n"
+         "\n"
+         "Options:\n"
+         "    -i <detid>                  detector ID (e.g. 11 for SxrBeamline)\n"
+         "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
+         "    -a <arp>                    arp\n"
+         "    -u <alias>                  set device alias\n"
+         "    -h                          print this message and exit\n", p);
+}
+
 int main( int argc, char** argv )
 {
+   bool lUsage = false;
    unsigned detid = UINT_MAX;
    unsigned platform = UINT_MAX;
+   unsigned module = 0;
+   unsigned channel = 0;
+   char* uniqueid = (char *)NULL;
    Arp* arp = 0;
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "a:i:p:C" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "a:i:p:u:h" ) ) != EOF ) {
       switch(c) {
          case 'a':
             arp = new Arp(optarg);
             break;
          case 'i':
-            detid  = strtoul(optarg, NULL, 0);
+            if (!CmdLineTools::parseUInt(optarg,detid)) {
+              printf("%s: option `-i' parsing error\n", argv[0]);
+              lUsage = true;
+            }
             break;
          case 'p':
-            platform = strtoul(optarg, NULL, 0);
+            if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
+              printf("%s: option `-p' parsing error\n", argv[0]);
+              lUsage = true;
+            }
+            break;
+         case 'u':
+            if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
+              printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+            } else {
+              uniqueid = optarg;
+            }
+            break;
+         case 'h':
+            usage(argv[0]);
+            exit(0);
+         case '?':
+         default:
+            lUsage = true;
             break;
       }
    }
 
-   if( (platform==UINT_MAX) || ( detid == UINT_MAX ) ) {
-      printf( "Error: Platform and detid required\n" );
-      printf( "Usage: %s -i <detid> -p <platform> [-a <arp process id>]\n",
-              argv[0] );
-      return 0;
+   if (platform==UINT_MAX) {
+      printf("%s: platform required\n", argv[0]);
+      lUsage = true;
+   }
+
+   if (detid == UINT_MAX) {
+      printf("%s: detid required\n", argv[0]);
+      lUsage = true;
+   }
+
+   if (optind < argc) {
+      printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+      lUsage = true;
+   }
+
+   if (lUsage) {
+      usage(argv[0]);
+      exit(1);
    }
 
    if( arp )
@@ -204,7 +281,7 @@ int main( int argc, char** argv )
    cfgService = new CfgClientNfs(detInfo);
    encoderServer = new EncoderServer(detInfo);
 
-   MySegWire settings(encoderServer);
+   MySegWire settings(encoderServer, module, channel, uniqueid);
 
    Seg* seg = new Seg( task,
                        platform,
