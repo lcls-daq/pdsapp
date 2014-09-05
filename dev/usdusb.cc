@@ -181,7 +181,7 @@ static void usdUsbUsage(const char* p)
          "\n"
          "Options:\n"
          "    -i <detinfo>                int/int/int/int or string/int/string/int\n"
-         "                                (e.g. XppEndStation/0/USDUSB/1 or 22/0/26/1)\n"
+         "                                  (e.g. XppEndStation/0/USDUSB/1 or 22/0/26/1)\n"
          "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
          "    -z                          zeroes encoder counts\n"
          "    -u <alias>                  set device alias\n"
