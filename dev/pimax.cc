@@ -19,6 +19,7 @@
 #include "pds/client/Fsm.hh"
 #include "pds/client/Action.hh"
 #include "pds/config/CfgClientNfs.hh"
+#include "pds/service/CmdLineTools.hh"
 #include "pds/pimax/PimaxManager.hh"
 #include "pds/pimax/PimaxServer.hh"
 
@@ -219,8 +220,9 @@ int main(int argc, char** argv)
     int               iPlatform     = -1;
     string            sConfigDb;
     int               iSleepInt     = 0; // 0 ms
-
     int               iOptionIndex  = 0;
+    bool              bShowUsage    = false;
+
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
     {
         if ( opt == -1 ) break;
@@ -231,17 +233,21 @@ int main(int argc, char** argv)
             showVersion();
             return 0;
         case 'p':
-            iPlatform = strtoul(optarg, NULL, 0);
+            if (!Pds::CmdLineTools::parseInt(optarg, iPlatform))
+              bShowUsage = true;
             break;
         case 'c':
-            iCamera = strtoul(optarg, NULL, 0);
+            if (!Pds::CmdLineTools::parseInt(optarg, iCamera))
+              bShowUsage = true;
             break;
         case 'i':
             char* pNextToken;
-            detector    = (DetInfo::Detector) strtoul(optarg, &pNextToken, 0); ++pNextToken;
+            detector    = (DetInfo::Detector) strtoul(optarg, &pNextToken, 0);
             if ( *pNextToken == 0 ) break;
-            iDetectorId = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;
+            ++pNextToken;
+            iDetectorId = strtoul(pNextToken, &pNextToken, 0);
             if ( *pNextToken == 0 ) break;
+            ++pNextToken;
             iDeviceId   = strtoul(pNextToken, &pNextToken, 0);
             break;
        case 'u':
@@ -254,27 +260,31 @@ int main(int argc, char** argv)
             bInitTest = true;
             break;
         case 'l':
-            iDebugLevel = strtoul(optarg, NULL, 0);
+            if (!Pds::CmdLineTools::parseInt(optarg, iDebugLevel))
+              bShowUsage = true;
             break;
         case 'g':
             sConfigDb = optarg;
             break;
         case 's':
-            iSleepInt = strtoul(optarg, NULL, 0);
+            if (!Pds::CmdLineTools::parseInt(optarg, iSleepInt))
+              bShowUsage = true;
             break;
         case '?':               /* Terse output mode */
-          if (optopt)
-            printf( "pimax:main(): Unknown option: %c\n", optopt );
-          else
-            printf( "pimax:main(): Unknown option: %s\n", argv[optind-1] );
+            if (optopt)
+              printf( "pimax:main(): Unknown option: %c\n", optopt );
+            else
+              printf( "pimax:main(): Unknown option: %s\n", argv[optind-1] );
+            bShowUsage = true;
             break;
         case ':':               /* Terse output mode */
             printf( "pimax:main(): Missing argument for %c\n", optopt );
+            bShowUsage = true;
             break;
         default:
         case 'h':               /* Print usage */
-            showUsage();
-            return 0;
+            bShowUsage = true;
+            break;
         }
     }
 
@@ -283,9 +293,19 @@ int main(int argc, char** argv)
 
     if ( iPlatform == -1 )
     {
-        printf( "pimax:main(): Please specify platform in command line options\n" );
-        showUsage();
-        return 1;
+      printf( "pimax:main(): Please specify platform in command line options\n" );
+      bShowUsage = true;
+    }
+    if (argc != 0)
+    {
+      printf( "pimax:main(): Some command line options are not processed.\n" );
+      bShowUsage = true;
+    }
+
+    if (bShowUsage)
+    {
+      showUsage();
+      return 1;
     }
 
     /*
