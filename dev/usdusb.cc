@@ -23,6 +23,8 @@
 
 #include <list>
 
+extern int optind;
+
 static int reset_usb()
 {
   int n = 0;
@@ -65,7 +67,13 @@ namespace Pds {
   //
   class MySegWire : public SegWireSettings {
   public:
-    MySegWire(std::list<UsdUsb::Server*>& servers, const char *aliasName) : _servers(servers) 
+    MySegWire(std::list<UsdUsb::Server*>& servers,
+              unsigned module,
+              unsigned channel,
+              const char *aliasName) :
+        _servers(servers),
+        _module   (module),
+        _channel  (channel)
     {
       for(std::list<UsdUsb::Server*>::iterator it=servers.begin(); it!=servers.end(); it++) {
 	_sources.push_back((*it)->client()); 
@@ -88,12 +96,17 @@ namespace Pds {
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
+    bool     is_triggered   () const { return true; }
+    unsigned module         () const { return _module; }
+    unsigned channel        () const { return _channel; }
     unsigned max_event_size () const { return 1024; }
     unsigned max_event_depth() const { return 256; }
   private:
     std::list<UsdUsb::Server*>& _servers;
     std::list<Src>              _sources;
     std::list<SrcAlias>         _aliases;
+    unsigned                    _module;
+    unsigned                    _channel;
   };
 
   //
@@ -164,9 +177,16 @@ using namespace Pds;
 
 static void usdUsbUsage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> [-z] [-u <alias>] [-t]\n"
-	 "  -z zeroes encoder counts\n", p);
-  printf("<detinfo> = integer/integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/USDUSB/1 or 22/0/26/1)\n");
+  printf("Usage: %s -i <detinfo> -p <platform>,<mod>,<chan> [OPTIONS]\n"
+         "\n"
+         "Options:\n"
+         "    -i <detinfo>                int/int/int/int or string/int/string/int\n"
+         "                                (e.g. XppEndStation/0/USDUSB/1 or 22/0/26/1)\n"
+         "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
+         "    -z                          zeroes encoder counts\n"
+         "    -u <alias>                  set device alias\n"
+         "    -t                          disable testing time step check\n"
+         "    -h                          print this message and exit\n", p);
 }
 
 int main(int argc, char** argv) {
@@ -174,7 +194,10 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   const unsigned no_entry = -1U;
   unsigned platform = no_entry;
+  unsigned module = 0;
+  unsigned channel = 0;
   bool lzero = false;
+  bool lUsage = false;
   bool tsc = true;
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::USDUSB, 0);
@@ -186,13 +209,15 @@ int main(int argc, char** argv) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,detInfo)) {
-        usdUsbUsage(argv[0]);
-        printf("Could not decode DetInfo\n");
-        return -1;
+        printf("%s: option `-i' parsing error\n", argv[0]);
+        lUsage = true;
       }
       break;
     case 'p':
-      platform = strtoul(optarg, NULL, 0);
+      if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'u':
       if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
@@ -208,18 +233,33 @@ int main(int argc, char** argv) {
       tsc = false;
       break;
     case 'h': // help
-    default:
       usdUsbUsage(argv[0]);
-      printf("Could not decode parameter %c\n", c);
-      return 1;
+      return 0;
+    case '?':
+    default:
+      lUsage = true;
+      break;
     }
   }
 
-  if ((platform == no_entry) || (detInfo.detector() == Pds::DetInfo::NumDetector)) {
-    printf("Platform and detid required\n");
+  if (platform == no_entry) {
+    printf("%s: platform is required\n", argv[0]);
+    lUsage = true;
+  }
+
+  if (detInfo.detector() == Pds::DetInfo::NumDetector) {
+    printf("%s: detinfo is required\n", argv[0]);
+    lUsage = true;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    lUsage = true;
+  }
+
+  if (lUsage) {
     usdUsbUsage(argv[0]);
-    printf("Did not see DetInfo\n");
-    return 0;
+    return 1;
   }
 
    printf("UsdUsb is %sabling testing time step check\n", tsc ? "en" : "dis");
@@ -282,7 +322,7 @@ int main(int argc, char** argv) {
   managers.push_back(new UsdUsb::Manager(0, *srv, *new CfgClientNfs(detInfo)));
 
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings(servers, uniqueid);
+  MySegWire settings(servers, module, channel, uniqueid);
   Seg* seg = new Seg(task, platform, settings, 0, managers);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
   seglevel->attach();
