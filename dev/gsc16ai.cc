@@ -1,5 +1,6 @@
 #include "pdsdata/xtc/DetInfo.hh"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -15,21 +16,19 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
 #include <climits>
 
-static void usage(const char* p)
-{
-  printf("Usage: %s -i <detid> -p <platform> [-u <alias>] [-h]\n",p);
-}
+extern int optind;
 
-static void help()
+static void printUsage(const char* p)
 {
-  printf("Options:\n"
-         "  -i <detid>            detector ID\n"
-         "  -p <platform>         platform number\n"
-         "  -u <alias>            set device alias\n"
-         "  -h                    help: print this message and exit\n");
+  printf("Usage: %s -i <detid> -p <platform>,<mod>,<chan> [OPTIONS]\n",p);
+  printf("\n"
+         "Options:\n"
+         "    -i <detid>                  detector ID (e.g. 22 for XppEndstation)\n"
+         "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
+         "    -u <alias>                  set device alias\n"
+         "    -h                          print this message and exit\n");
 }
 
 namespace Pds
@@ -45,7 +44,10 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-   MySegWire(Gsc16aiServer* gsc16aiServer, const char *aliasName);
+   MySegWire(Gsc16aiServer* gsc16aiServer,
+             unsigned       module,
+             unsigned       channel,
+             const char*    aliasName);
    virtual ~MySegWire() {}
 
    void connect( InletWire& wire,
@@ -58,11 +60,16 @@ class Pds::MySegWire
    {
       return (_aliases.size() > 0) ? &_aliases : NULL;
    }
+   bool     is_triggered() const { return true; }
+   unsigned module      () const { return _module; }
+   unsigned channel     () const { return _channel; }
 
  private:
    Gsc16aiServer* _gsc16aiServer;
    std::list<Src> _sources;
    std::list<SrcAlias>  _aliases;
+   unsigned       _module;
+   unsigned       _channel;
 };
 
 //
@@ -95,8 +102,13 @@ class Pds::Seg
 };
 
 
-Pds::MySegWire::MySegWire( Gsc16aiServer* gsc16aiServer, const char *aliasName )
-   : _gsc16aiServer(gsc16aiServer)
+Pds::MySegWire::MySegWire( Gsc16aiServer* gsc16aiServer,
+                           unsigned module,
+                           unsigned channel,
+                           const char* aliasName) :
+     _gsc16aiServer(gsc16aiServer),
+     _module   (module),
+     _channel  (channel)
 { 
    _sources.push_back(gsc16aiServer->client()); 
    if (aliasName) {
@@ -177,10 +189,11 @@ int main( int argc, char** argv )
 {
    unsigned detid = UINT_MAX;
    unsigned platform = UINT_MAX;
+   unsigned module = 0;
+   unsigned channel = 0;
    Arp* arp = 0;
    bool helpFlag = false;
    char* uniqueid = (char *)NULL;
-   char *endPtr;
 
    extern char* optarg;
    int c;
@@ -190,23 +203,15 @@ int main( int argc, char** argv )
             arp = new Arp(optarg);
             break;
          case 'i':
-            errno = 0;
-            endPtr = NULL;
-            detid = strtoul(optarg, &endPtr, 0);
-            if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
-              printf("Error: failed to parse detector ID\n");
-              usage(argv[0]);
-              return -1;
+            if (!CmdLineTools::parseUInt(optarg,detid)) {
+              printf("%s: option `-i' parsing error\n", argv[0]);
+              helpFlag = true;
             }
             break;
          case 'p':
-            errno = 0;
-            endPtr = NULL;
-            platform = strtoul(optarg, &endPtr, 0);
-            if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
-              printf("Error: failed to parse platform number\n");
-              usage(argv[0]);
-              return -1;
+            if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
+              printf("%s: option `-p' parsing error\n", argv[0]);
+              helpFlag = true;
             }
             break;
         case 'u':
@@ -217,19 +222,33 @@ int main( int argc, char** argv )
             }
             break;
          case 'h':
+            printUsage(argv[0]);
+            return 0;
+         case '?':
+         default:
             helpFlag = true;
             break;
       }
    }
 
+  if (platform == UINT_MAX) {
+    printf("%s: platform required\n", argv[0]);
+    helpFlag = true;
+  }
+
+  if (detid == UINT_MAX) {
+    printf("%s: detid required\n", argv[0]);
+    helpFlag = true;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    helpFlag = true;
+  }
+
   if (helpFlag) {
-    usage(argv[0]);
-    help();
-    return 0;
-  } else if ((platform == UINT_MAX) || (detid == UINT_MAX)) {
-    printf("Error: Platform and detid required\n");
-    usage(argv[0]);
-    return 0;
+    printUsage(argv[0]);
+    return 1;
   }
 
    if( arp )
@@ -259,7 +278,7 @@ int main( int argc, char** argv )
    cfgService = new CfgClientNfs(detInfo);
    gsc16aiServer = new Gsc16aiServer(detInfo);
 
-   MySegWire settings(gsc16aiServer, uniqueid);
+   MySegWire settings(gsc16aiServer, module, channel, uniqueid);
 
    Seg* seg = new Seg( task,
                        platform,
