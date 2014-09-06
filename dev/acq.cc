@@ -1,6 +1,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/psddl/alias.ddl.h"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -38,7 +39,14 @@ namespace Pds {
   //
   class MySegWire : public SegWireSettings {
   public:
-    MySegWire(std::list<AcqServer*>& servers, const char *aliasName) : _servers(servers) 
+    MySegWire(std::list<AcqServer*>& servers,
+              unsigned               module,
+              unsigned               channel,
+              const char*            aliasName) :
+      _servers(servers),
+      _module (module),
+      _channel(channel)
+
     {
       for(std::list<AcqServer*>::iterator it=servers.begin(); it!=servers.end(); it++) {
         _sources.push_back((*it)->client()); 
@@ -60,11 +68,16 @@ namespace Pds {
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
+    bool     is_triggered() const { return true; }
+    unsigned module      () const { return _module; }
+    unsigned channel     () const { return _channel; }
 
   private:
     std::list<AcqServer*>& _servers;
     std::list<Src>         _sources;
     std::list<SrcAlias>    _aliases;
+    unsigned       _module;
+    unsigned       _channel;
   };
 
   //
@@ -185,17 +198,17 @@ static void calibrate(AcqFinder& acqFinder,
 
 static void usage(char *p)
 {
-  printf("Usage: %s -i <detid> -p <platform> \n"
-         "           [-d <devid>] [-t] [-u <alias>] [-C] [-c <nConverters>] [-m <mask>]\n\n"
+  printf("Usage: %s -i <detid> -p <platform>,<mod>,<chan> [OPTIONS]\n", p);
+  printf("\n"
          "Options:\n"
-         "\t -i <detid>        detector ID (e.g. 12 for SxrEndstation)\n"
-         "\t -d <devid>        device ID \n"
-         "\t -p <platform>     platform number\n"
-         "\t -t                multi-instrument (look for more than one module, ADC or TDC, in crate)\n"
-         "\t -u <alias>        set device alias\n"
-         "\t -C                calibrate\n"
-         "\t -c <nConverters>  number of converters (used by calibrate function only)\n"
-         "\t -m <mask>         calibration channel mask (used by calibrate function only)\n", p);
+         "    -i <detid>                  detector ID (e.g. 12 for SxrEndstation)\n"
+         "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
+         "    -d <devid>                  device ID \n"
+         "    -t                          multi-instrument (look for more than one module, ADC or TDC, in crate)\n"
+         "    -u <alias>                  set device alias\n"
+         "    -C                          calibrate\n"
+         "    -c <nConverters>            number of converters (used by calibrate function only)\n"
+         "    -m <mask>                   calibration channel mask (used by calibrate function only)\n");
 }
 
 
@@ -205,24 +218,36 @@ int main(int argc, char** argv) {
   unsigned detid = UINT_MAX;
   unsigned devid = 0;
   unsigned platform = UINT_MAX;
+  unsigned module = 0;
+  unsigned channel = 0;
   bool multi_instruments_only = true;
   bool lcalibrate = false;
   unsigned nbrConverters=0;
   unsigned calChannelMask=0;
   char* uniqueid = (char *)NULL;
+  bool helpFlag = false;
 
   extern char* optarg;
   int c;
   while ( (c=getopt( argc, argv, "i:d:p:tCc:m:u:h")) != EOF ) {
     switch(c) {
     case 'i':
-      detid  = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseUInt(optarg,detid)) {
+        printf("%s: option `-i' parsing error\n", argv[0]);
+        helpFlag = true;
+      }
       break;
     case 'd':
-      devid  = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseUInt(optarg,devid)) {
+        printf("%s: option `-d' parsing error\n", argv[0]);
+        helpFlag = true;
+      }
       break;
     case 'p':
-      platform = strtoul(optarg, NULL, 0);
+      if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        helpFlag = true;
+      }
       break;
     case 't':
       multi_instruments_only = false;
@@ -238,15 +263,45 @@ int main(int argc, char** argv) {
       lcalibrate = true;
       break;
     case 'c':
-      nbrConverters = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseUInt(optarg,nbrConverters)) {
+        printf("%s: option `-c' parsing error\n", argv[0]);
+        helpFlag = true;
+      }
       break;
     case 'm':
-      calChannelMask = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseUInt(optarg,calChannelMask)) {
+        printf("%s: option `-m' parsing error\n", argv[0]);
+        helpFlag = true;
+      }
       break;
     case 'h':
       usage(argv[0]);
       return 0;
+    case '?':
+    default:
+      helpFlag = true;
+      break;
     }
+  }
+
+  if (detid == UINT_MAX) {
+    printf("%s: detid is required\n", argv[0]);
+    helpFlag = true;
+  }
+
+  if (platform == UINT_MAX) {
+    printf("%s: platform is required\n", argv[0]);
+    helpFlag = true;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    helpFlag = true;
+  }
+
+  if (helpFlag) {
+    usage(argv[0]);
+    return 1;
   }
 
   AcqFinder acqFinder(multi_instruments_only ? 
@@ -255,13 +310,6 @@ int main(int argc, char** argv) {
 
   if (lcalibrate) {
     calibrate(acqFinder,nbrConverters,calChannelMask);
-    return 0;
-  }
-
-  if ((platform == UINT_MAX) || (detid == UINT_MAX)) {
-    printf("Platform and detid required\n");
-    printf("Usage: %s -i <detid> -p <platform> \n\n", argv[0]);
-    usage(argv[0]);
     return 0;
   }
 
@@ -286,7 +334,7 @@ int main(int argc, char** argv) {
   }
   
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings(servers, uniqueid);
+  MySegWire settings(servers, module, channel, uniqueid);
   Seg* seg = new Seg(task, platform, settings, 0, D1Managers, T3Managers);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
   seglevel->attach();
