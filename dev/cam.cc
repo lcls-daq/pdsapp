@@ -34,25 +34,23 @@
 #include <dlfcn.h>
 #include <errno.h>
 
+extern int optind;
+
 static bool verbose = false;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> [-g <grabberId>] [-C <N>] [-u <alias>] [-v] [-h]\n"
-         "       -C <N> : compress data and copy every N\n", p);
-}
-
-static void help()
-{
-  printf("Options:\n"
-         "  -i <detinfo>          integer/integer/integer/integer or string/integer/string/integer\n"
-         "                          (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
-         "  -p <platform>         platform number\n"
-         "  -g <grabberId>        grabber ID (default=0)\n"
-         "  -C <N>                compress and copy every Nth event\n"
-         "  -v                    be verbose (default=false)\n"
-         "  -u <alias>            set device alias\n"
-         "  -h                    help: print this message and exit\n");
+  printf("Usage: %s -i <detinfo> -p <platform>,<mod>,<chan> [OPTIONS]\n", p);
+  printf("\n"
+         "Options:\n"
+         "    -i <detinfo>                int/int/int/int or string/int/string/int\n"
+         "                                  (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
+         "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
+         "    -g <grabberId>              grabber ID (default=0)\n"
+         "    -C <N>                      compress and copy every Nth event\n"
+         "    -v                          be verbose (default=false)\n"
+         "    -u <alias>                  set device alias\n"
+         "    -h                          print this message and exit\n");
 }
 
 static Pds::CameraDriver* _driver(int id, const Pds::Src& src)
@@ -94,17 +92,21 @@ namespace Pds {
   class SegTest : public EventCallback, public SegWireSettings {
   public:
     SegTest(Task*                 task,
-	    unsigned              platform,
-	    const Src&            src,
-	    unsigned              grabberId,
+            unsigned              platform,
+            const Src&            src,
+            unsigned              grabberId,
             const AppList&        user_apps,
             bool                  lCompress,
             bool                  lCopy,
+            unsigned              module,
+            unsigned              channel,
             const char *aliasName) :
       _task     (task),
       _platform (platform),
       _grabberId(grabberId),
-      _user_apps(user_apps)
+      _user_apps(user_apps),
+      _module   (module),
+      _channel  (channel)
     {
       size_t max_size;      
       const Pds::DetInfo info = static_cast<const Pds::DetInfo&>(src);
@@ -161,8 +163,8 @@ namespace Pds {
   public:    
     // Implements SegWireSettings
     void connect (InletWire& wire,
-		  StreamParams::StreamType s,
-		  int interface)
+                  StreamParams::StreamType s,
+                  int interface)
     {
       wire.add_input(&_camman->server());
     }
@@ -171,12 +173,15 @@ namespace Pds {
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
+    bool     is_triggered() const { return true; }
+    unsigned module      () const { return _module; }
+    unsigned channel     () const { return _channel; }
   private:
     // Implements EventCallback
     void attached(SetOfStreams& streams)
     {
       printf("SegTest connected to platform 0x%x\n", 
-	     _platform);
+             _platform);
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
 
@@ -189,10 +194,10 @@ namespace Pds {
     void failed(Reason reason)
     {
       static const char* reasonname[] = { "platform unavailable", 
-					  "crates unavailable", 
-					  "fcpm unavailable" };
+                                          "crates unavailable", 
+                                          "fcpm unavailable" };
       printf("SegTest: unable to allocate crates on platform 0x%x : %s\n", 
-	     _platform, reasonname[reason]);
+             _platform, reasonname[reason]);
       delete this;
     }
     void dissolved(const Node& who)
@@ -206,7 +211,7 @@ namespace Pds {
       Node::ip_name(who.ip(),ipname, iplen);
       
       printf("SegTest: platform 0x%x dissolved by user %s, pid %d, on node %s", 
-	     who.platform(), username, who.pid(), ipname);
+             who.platform(), username, who.pid(), ipname);
       
       _camman->detach();
 
@@ -222,6 +227,8 @@ namespace Pds {
     std::list<SrcAlias> _aliases;
     AppList        _user_apps;
     unsigned       _max_size;
+    unsigned       _module;
+    unsigned       _channel;
   };
 }
 
@@ -232,6 +239,8 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   const unsigned NO_PLATFORM = ~0;
   unsigned platform = NO_PLATFORM;
+  unsigned module = 0;
+  unsigned channel = 0;
   bool lCompress = false;
   bool lCopy = false;
   Arp* arp = 0;
@@ -244,7 +253,6 @@ int main(int argc, char** argv) {
   bool helpFlag = false;
 
   extern char* optarg;
-  char* endPtr;
   char* uniqueid = (char *)NULL;
   int c;
   while ( (c=getopt( argc, argv, "a:i:p:g:L:C:u:vh")) != EOF ) {
@@ -254,30 +262,22 @@ int main(int argc, char** argv) {
       break;
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
-        usage(argv[0]);
-        return -1;
+        printf("%s: option `-i' parsing error\n", argv[0]);
+        helpFlag = true;
       } else {
         infoFlag = true;
       }
       break;
     case 'p':
-      errno = 0;
-      endPtr = NULL;
-      platform = strtoul(optarg, &endPtr, 0);
-      if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
-        printf("Error: failed to parse platform number\n");
-        usage(argv[0]);
-        return -1;
+      if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        helpFlag = true;
       }
       break;
     case 'g':
-      errno = 0;
-      endPtr = NULL;
-      grabberId = strtoul(optarg, &endPtr, 0);
-      if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
-        printf("Error: failed to parse grabber ID\n");
-        usage(argv[0]);
-        return -1;
+      if (!CmdLineTools::parseUInt(optarg,grabberId)) {
+        printf("%s: option `-g' parsing error\n", argv[0]);
+        helpFlag = true;
       }
       break;
     case 'C':
@@ -321,19 +321,33 @@ int main(int argc, char** argv) {
       verbose = true;
       break;
     case 'h':
+      usage(argv[0]);
+      return 0;
+    case '?':
+    default:
       helpFlag = true;
       break;
     }
   }
 
+  if (!infoFlag) {
+    printf("%s: detinfo is required\n", argv[0]);
+    helpFlag = true;
+  }
+
+  if (platform == NO_PLATFORM) {
+    printf("%s: platform is required\n", argv[0]);
+    helpFlag = true;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    helpFlag = true;
+  }
+
   if (helpFlag) {
     usage(argv[0]);
-    help();
-    return 0;
-  } else if (!infoFlag || (platform == NO_PLATFORM)) {
-    printf("Error: Platform and detinfo required\n");
-    usage(argv[0]);
-    return 0;
+    return 1;
   }
 
   // launch the SegmentLevel
@@ -341,7 +355,7 @@ int main(int argc, char** argv) {
     if (arp->error()) {
       char message[128];
       sprintf(message, "failed to create Arp : %s", 
-	      strerror(arp->error()));
+              strerror(arp->error()));
       printf("%s %s\n",argv[0], message);
       delete arp;
       return 0;
@@ -367,19 +381,21 @@ int main(int argc, char** argv) {
   printf("Compression is %s.\n", lCompress ? "enabled" : "disabled");
 
   SegTest* segtest = new SegTest(task, 
-				 platform, 
+                                 platform, 
                                  info,
-				 grabberId,
+                                 grabberId,
                                  user_apps,
                                  lCompress,
                                  lCopy,
+                                 module,
+                                 channel,
                                  uniqueid);
 
   printf("Creating segment level ...\n");
   SegmentLevel* segment = new SegmentLevel(platform, 
-					   *segtest,
-					   *segtest, 
-					   arp);
+                                           *segtest,
+                                           *segtest, 
+                                           arp);
   if (segment->attach()) {
     task->mainLoop();
   }
