@@ -2,6 +2,7 @@
 #include "pds/service/Task.hh"
 
 #include <stdlib.h>
+#include <getopt.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -49,7 +50,7 @@ int main(int argc, char** argv)
 
   SourceLevel source;
   source.start();
-  if (source.connect(interface)) 
+  if (source.connect(interface))
     task->mainLoop();
 
   return 0;

@@ -347,10 +347,10 @@ PyObject* pdsdaq_connect(PyObject* self)
     for(unsigned j=0; j<daq->partition->nodes(); j++) {
       const RemoteNode& node = *daq->partition->node(j);
       printf("\t%s : %x : %s : %s\n",
-	     node.name(),
-	     node.phy(),
-	     node.readout() ? "Readout":"NoReadout",
-	     node.record () ? "Record":"NoRecord");
+       node.name(),
+       node.phy(),
+       node.readout() ? "Readout":"NoReadout",
+       node.record () ? "Record":"NoRecord");
     }
 #endif
 
@@ -542,15 +542,15 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
     // Translate partition dict to Allocation and write
     if (PyList_Size(partition)!=daq->partition->nodes()) {
       printf("partition list size (%zd) does not match original size (%d).\nPartition unchanged.\n",
-	     PyList_Size(partition),daq->partition->nodes());
+       PyList_Size(partition),daq->partition->nodes());
       PyErr_SetString(PyExc_RuntimeError,"Partition size changed.");
       return NULL;
     }
     else {
       for(unsigned j=0; j<daq->partition->nodes(); j++) {
-	PyObject* n = PyList_GetItem(partition,j);
-	daq->partition->node(j)->readout( PyDict_GetItemString(n,"readout")==Py_True );
-	daq->partition->node(j)->record ( PyDict_GetItemString(n,"record" )==Py_True );
+  PyObject* n = PyList_GetItem(partition,j);
+  daq->partition->node(j)->readout( PyDict_GetItemString(n,"readout")==Py_True );
+  daq->partition->node(j)->record ( PyDict_GetItemString(n,"record" )==Py_True );
       }
       ::write(daq->socket, daq->partition, sizeof(*daq->partition));
     }
@@ -714,7 +714,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
           break;
         }
         ++it;
-      } 
+      }
       if (it == mlist.end()) {
         ostringstream o;
         o << "Monitor " << name << " not present in Configure";

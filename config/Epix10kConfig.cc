@@ -8,6 +8,7 @@
 #include "pds/config/Epix10kASICConfigV1.hh"
 #include "pds/config/Epix10kConfigV1.hh"
 
+#include <stdio.h>
 #include <QtGui/QPushButton>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QHBoxLayout>
@@ -192,7 +193,7 @@ namespace Pds_ConfigDb {
         }
       }
       layout->addLayout(l); }
-      
+
       for(unsigned i=0; i<Epix10kConfigShadow::NumberOfRegisters; i++)
         _reg[i]->enable(!(Epix10kConfigShadow::readOnly(Epix10kConfigShadow::Registers(i)) == Epix10kConfigShadow::ReadOnly));
       _mask_gr->button(_mask ? On:Off)->setChecked(true);
@@ -340,7 +341,7 @@ int Epix10kASICdata::push(void* to) {
   for (uint32_t i=0; i<Epix10kASIC_ConfigShadow::NumberOfRegisters; i++) {
     epixASIC_ConfigShadow.set((Epix10kASIC_ConfigShadow::Registers) i, _reg[i]->value);
   }
-  
+
   return sizeof(Epix10kASIC_ConfigShadow);
 }
 

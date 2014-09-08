@@ -12,6 +12,7 @@
 #include <time.h> // Required for timespec struct and nanosleep()
 #include <stdlib.h> // Required for timespec struct and nanosleep()
 #include <string.h>
+#include <getopt.h>
 
 using namespace Pds;
 
@@ -39,36 +40,36 @@ static const unsigned MaxPayload = sizeof(Allocate);
 static const unsigned ConnectTimeOut = 500; // 1/2 second
 
 EvrService::EvrService(unsigned platform) :
-  CollectionManager(Level::Observer, platform, 
+  CollectionManager(Level::Observer, platform,
                     MaxPayload, ConnectTimeOut, NULL),
   _outlet(sizeof(EvrDatagram),0),
   _evr   (0)
 {}
 
-EvrService::~EvrService() 
+EvrService::~EvrService()
 {
 }
 
-void EvrService::message(const Node& hdr, const Message& msg) 
+void EvrService::message(const Node& hdr, const Message& msg)
 {
   if (hdr.level() == Level::Control) {
     if (msg.type() == Message::Transition) {
       const Transition& tr = reinterpret_cast<const Transition&>(msg);
       if (tr.id() == TransitionId::L1Accept &&
-	  tr.phase() == Transition::Record) {
-	EvrDatagram datagram(tr.sequence(), _evr++);
-	Ins dst(StreamPorts::event(hdr.platform(),
-				      Level::Segment));
-	_outlet.send((char*)&datagram,(char*)0,0,dst);
-	if (_evr%1000 == 0)
-	  printf("EvrService::out %x:%08x/%08x to %x/%d\n",
-		 datagram.evr,
-		 datagram.seq.stamp().fiducials(),datagram.seq.stamp().ticks(),
-		 dst.address(),dst.portId());
+    tr.phase() == Transition::Record) {
+  EvrDatagram datagram(tr.sequence(), _evr++);
+  Ins dst(StreamPorts::event(hdr.platform(),
+              Level::Segment));
+  _outlet.send((char*)&datagram,(char*)0,0,dst);
+  if (_evr%1000 == 0)
+    printf("EvrService::out %x:%08x/%08x to %x/%d\n",
+     datagram.evr,
+     datagram.seq.stamp().fiducials(),datagram.seq.stamp().ticks(),
+     dst.address(),dst.portId());
       }
       else {
-	printf("Resetting evr count @ 0x%x (%d)\n",_evr,_evr);
-	_evr = 0;  // reset the sequence on any transition
+  printf("Resetting evr count @ 0x%x (%d)\n",_evr,_evr);
+  _evr = 0;  // reset the sequence on any transition
       }
     }
   }

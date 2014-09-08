@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -149,7 +150,7 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
 
     } catch (const LogBook::WrongParams& e) {
       printf ("Problem with parameters: %s\n", e.what());
-    
+
     } catch (const LogBook::DatabaseError& e) {
       printf ("Database operation failed: %s\n", e.what());
     }
@@ -193,7 +194,7 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
 
     } catch (const LogBook::WrongParams& e) {
       printf ("Problem with parameters: %s\n", e.what());
-    
+
     } catch (const LogBook::DatabaseError& e) {
       printf ("Database operation failed: %s\n", e.what());
     }
@@ -242,11 +243,11 @@ int OfflineAppliance::_saveRunParameter(LogBook::Connection *conn, const char *i
     } catch (const LogBook::WrongParams& e) {
       parmError = true;
       printf ("getParamInfo(): Problem with parameters: %s\n", e.what());
-    
+
     } catch (const LogBook::DatabaseError& e) {
       dbError = true;
       printf ("getParamInfo(): Database operation failed: %s\n", e.what());
-    } 
+    }
 
     if (!parmError && !dbError && !parmFound) {
       // create run parameter
@@ -307,11 +308,11 @@ int OfflineAppliance::_saveRunAttribute(LogBook::Connection *conn, const char *i
     } catch (const LogBook::WrongParams& e) {
       parmError = true;
       printf ("getAttrInfo(): Problem with parameters: %s\n", e.what());
-    
+
     } catch (const LogBook::DatabaseError& e) {
       dbError = true;
       printf ("getAttrInfo(): Database operation failed: %s\n", e.what());
-    } 
+    }
 
     if (!parmError && !dbError && !parmFound) {
       // create run attribute
