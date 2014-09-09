@@ -215,8 +215,9 @@ int main( int argc, char** argv )
             }
             break;
         case 'u':
-            if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
-              printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+            if (!CmdLineTools::parseSrcAlias(optarg)) {
+              printf("%s: option `-u' parsing error\n", argv[0]);
+              helpFlag = true;
             } else {
               uniqueid = optarg;
             }
@@ -232,12 +233,12 @@ int main( int argc, char** argv )
    }
 
   if (platform == UINT_MAX) {
-    printf("%s: platform required\n", argv[0]);
+    printf("%s: platform is required\n", argv[0]);
     helpFlag = true;
   }
 
   if (detid == UINT_MAX) {
-    printf("%s: detid required\n", argv[0]);
+    printf("%s: detid is required\n", argv[0]);
     helpFlag = true;
   }
 
