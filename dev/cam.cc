@@ -311,8 +311,9 @@ int main(int argc, char** argv) {
         break;
       }
     case 'u':
-      if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
-        printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+      if (!CmdLineTools::parseSrcAlias(optarg)) {
+        printf("%s: option `-u' parsing error\n", argv[0]);
+        helpFlag = true;
       } else {
         uniqueid = optarg;
       }
