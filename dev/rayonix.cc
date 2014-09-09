@@ -2,6 +2,7 @@
 
 #include "pdsdata/xtc/DetInfo.hh"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -21,18 +22,18 @@
 #include <errno.h>
 #include <climits>
 
+extern int optind;
+
 static void usage(const char *p)
 {
-  printf("Usage: %s -i <detid> -p <platform> [-u <alias>] [-v]\n", p);
-}
-
-static void help()
-{
-  printf("Options:\n"
-         "  -i <detid>            detector ID        [required]\n"
-         "  -p <platform>         platform number    [required]\n"
-         "  -u <alias>            set device alias\n"
-         "  -v                    increase verbosity (may be repeated)\n");
+  printf("Usage: %s -i <detid> -p <platform>,<mod>,<chan> [OPTIONS]\n", p);
+  printf("\n"
+         "Options:\n"
+         "    -i <detid>                  detector ID (e.g. 22 for XppEndstation)\n"
+         "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
+         "    -u <alias>                  set device alias\n"
+         "    -v                          increase verbosity (may be repeated)\n"
+         "    -h                          print this message and exit\n");
 }
 
 namespace Pds
@@ -48,7 +49,10 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-    MySegWire(RayonixServer* rayonixServer, const char *aliasName);
+    MySegWire(RayonixServer* rayonixServer,
+              unsigned       module,
+              unsigned       channel,
+              const char*    aliasName);
     virtual ~MySegWire() {}
 
     void connect( InletWire& wire,
@@ -61,11 +65,16 @@ class Pds::MySegWire
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
+    bool     is_triggered() const { return true; }
+    unsigned module      () const { return _module; }
+    unsigned channel     () const { return _channel; }
 
   private:
     RayonixServer* _rayonixServer;
     std::list<Src> _sources;
     std::list<SrcAlias> _aliases;
+    unsigned       _module;
+    unsigned       _channel;
 };
 
 //
@@ -97,8 +106,13 @@ class Pds::Seg : public EventCallback
 };
 
 
-Pds::MySegWire::MySegWire( RayonixServer* rayonixServer, const char *aliasName)
-  : _rayonixServer(rayonixServer)
+Pds::MySegWire::MySegWire( RayonixServer* rayonixServer,
+                           unsigned module,
+                           unsigned channel,
+                           const char* aliasName) :
+     _rayonixServer(rayonixServer),
+     _module   (module),
+     _channel  (channel)
 {
   _sources.push_back(rayonixServer->client());
   if (aliasName) {
@@ -180,10 +194,11 @@ int main( int argc, char** argv )
 {
   unsigned detid = UINT_MAX;
   unsigned platform = UINT_MAX;
+  unsigned module = 0;
+  unsigned channel = 0;
   Arp* arp = 0;
   unsigned verbosity = 0;
   bool helpFlag = false;
-  char *endPtr;
   char* uniqueid = (char *)NULL;
 
   extern char* optarg;
@@ -191,49 +206,56 @@ int main( int argc, char** argv )
   while( ( c = getopt( argc, argv, "i:p:vhu:" ) ) != EOF ) {
     switch(c) {
       case 'i':
-        errno = 0;
-        endPtr = NULL;
-        detid  = strtoul(optarg, &endPtr, 0);
-        if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
-          printf("Error: failed to parse detector ID\n");
-          usage(argv[0]);
-          return -1;
+        if (!CmdLineTools::parseUInt(optarg,detid)) {
+          printf("%s: option `-i' parsing error\n", argv[0]);
+          helpFlag = true;
         }
         break;
       case 'u':
-        if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
-          printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+        if (!CmdLineTools::parseSrcAlias(optarg)) {
+          printf("%s: option `-u' parsing error\n", argv[0]);
+          helpFlag = true;
         } else {
           uniqueid = optarg;
         }
         break;
       case 'h':
-        helpFlag = true;
-        break;
+        usage(argv[0]);
+        return 0;
       case 'v':
         ++verbosity;
         break;
       case 'p':
-        errno = 0;
-        endPtr = NULL;
-        platform = strtoul(optarg, &endPtr, 0);
-        if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
-          printf("Error: failed to parse platform number\n");
-          usage(argv[0]);
-          return -1;
+        if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
+          printf("%s: option `-p' parsing error\n", argv[0]);
+          helpFlag = true;
         }
+        break;
+      case '?':
+      default:
+        helpFlag = true;
         break;
       }
    }
 
+   if (platform == UINT_MAX) {
+      printf("%s: platform is required\n", argv[0]);
+      helpFlag = true;
+   }
+
+   if (detid == UINT_MAX) {
+      printf("%s: detid is required\n", argv[0]);
+      helpFlag = true;
+   }
+
+   if (optind < argc) {
+      printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+      helpFlag = true;
+   }
+
   if (helpFlag) {
     usage(argv[0]);
-    help();
-    return 0;
-  } else if ((platform == UINT_MAX) || (detid == UINT_MAX)) {
-    printf("Error: Platform and detid required\n");
-    usage(argv[0]);
-    return 0;
+    return 1;
   }
 
   Node node( Level::Source, platform );
@@ -252,7 +274,7 @@ int main( int argc, char** argv )
 
   rayonixServer = new RayonixServer(detInfo, verbosity);
 
-  MySegWire settings(rayonixServer, uniqueid);
+  MySegWire settings(rayonixServer, module, channel, uniqueid);
 
   Seg* seg = new Seg( task,
                        platform,
