@@ -40,24 +40,18 @@ static bool verbose = false;
 
 static void usage(const char* p)
 {
-  printf("Usage: %s -i <detinfo> -p <platform> -g <grabberId> -c <channel> -C <N> [-u <alias>] [-v] [-h]\n",p);
-  printf("<detinfo> = integer/integer/integer/integer or string/integer/string/integer (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n");
-  printf("-C <N> = compress data and copy every Nth event\n");
-}
-
-
-static void help()
-{
-  printf("Options:\n"
-         "  -i <detinfo>          integer/integer/integer/integer or string/integer/string/integer\n"
-         "                          (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
-         "  -p <platform>         platform number\n"
-         "  -g <grabberId>        grabber ID (default=0)\n"
-         "  -c <channel>          channel number (default=0)\n"
-         "  -C <N>                compress and copy every Nth event\n"
-         "  -v                    be verbose (default=false)\n"
-         "  -u <alias>            set device alias\n"
-         "  -h                    help: print this message and exit\n");
+  printf("Usage: %s -i <detinfo> -p <platform>,<mod>,<chan> [OPTIONS]\n", p);
+  printf("\n"
+         "Options:\n"
+         "    -i <detinfo>                int/int/int/int or string/int/string/int\n"
+         "                                  (e.g. XppEndStation/0/Opal1000/1 or 22/0/3/1)\n"
+         "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
+         "    -g <grabberId>              grabber ID (default=0)\n"
+         "    -c <channel>                EDT channel number (default=0)\n"
+         "    -C <N>                      compress and copy every Nth event\n"
+         "    -v                          be verbose (default=false)\n"
+         "    -u <alias>                  set device alias\n"
+         "    -h                          print this message and exit\n");
 }
 
 static Pds::CameraDriver* _driver(int id, int channel, const Pds::Src& src)
@@ -103,12 +97,16 @@ namespace Pds {
             const AppList&        user_apps,
             bool                  lCompress,
             bool                  lCopy,
+            unsigned              evrmod,
+            unsigned              evrchan,
             const char*           aliasName) :
       _task     (task),
       _platform (platform),
       _grabberId(grabberId),
       _channel  (channel),
-      _user_apps(user_apps)
+      _user_apps(user_apps),
+      _evrmod   (evrmod),
+      _evrchan  (evrchan)
     {
       size_t max_size;
       const Pds::DetInfo info = static_cast<const Pds::DetInfo&>(src);
@@ -178,6 +176,9 @@ namespace Pds {
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
+    bool     is_triggered() const { return true; }
+    unsigned module      () const { return _evrmod; }
+    unsigned channel     () const { return _evrchan; }
   private:
     // Implements EventCallback
     void attached(SetOfStreams& streams)
@@ -231,6 +232,8 @@ namespace Pds {
     std::list<SrcAlias> _aliases;
     AppList        _user_apps;
     unsigned       _max_size;
+    unsigned       _evrmod;
+    unsigned       _evrchan;
   };
 }
 
@@ -250,13 +253,15 @@ int main(int argc, char** argv) {
 
   unsigned grabberId(0);
   unsigned channel  (0);
+  unsigned evrmod  (0);
+  unsigned evrchan (0);
+  bool infoFlag = false;
   bool helpFlag = false;
 
   extern char* optarg;
   extern int optind;
   char* uniqueid = (char *)NULL;
   int c;
-  bool parseErr = false;
   while ( (c=getopt( argc, argv, "a:i:p:g:c:L:C:vu:h")) != EOF ) {
     switch(c) {
     case 'a':
@@ -264,29 +269,35 @@ int main(int argc, char** argv) {
       break;
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
-        usage(argv[0]);
-        return -1;
+        printf("%s: option `-i' parsing error\n", argv[0]);
+        helpFlag = true;
+      } else {
+        infoFlag = true;
       }
       break;
     case 'p':
-      if (!CmdLineTools::parseUInt(optarg, platform)) {
-        parseErr = true;
+      if (CmdLineTools::parseUInt(optarg,platform,evrmod,evrchan) != 3) {
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        helpFlag = true;
       }
       break;
     case 'g':
       if (!CmdLineTools::parseUInt(optarg, grabberId)) {
-        parseErr = true;
+        printf("%s: option `-g' parsing error\n", argv[0]);
+        helpFlag = true;
       }
       break;
     case 'c':
       if (!CmdLineTools::parseUInt(optarg, channel)) {
-        parseErr = true;
+        printf("%s: option `-c' parsing error\n", argv[0]);
+        helpFlag = true;
       }
       break;
     case 'C':
       { unsigned ncopy;
         if (!CmdLineTools::parseUInt(optarg, ncopy)) {
-          parseErr = true;
+          printf("%s: option `-C' parsing error\n", argv[0]);
+          helpFlag = true;
         }
         lCompress = true;
         lCopy = ncopy!=0;
@@ -317,9 +328,9 @@ int main(int argc, char** argv) {
         break;
       }
     case 'u':
-      if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
-        printf("Error: Device alias '%s' exceeds %d chars\n", optarg, SrcAlias::AliasNameMax-1);
-        parseErr = true;
+      if (!CmdLineTools::parseSrcAlias(optarg)) {
+        printf("%s: option `-u' parsing error\n", argv[0]);
+        helpFlag = true;
       } else {
         uniqueid = optarg;
       }
@@ -328,35 +339,32 @@ int main(int argc, char** argv) {
       verbose = true;
       break;
     case 'h':
-      helpFlag = true;
-      break;
+      usage(argv[0]);
+      return 0;
     case '?':
-      parseErr = true;
+    default:
+      helpFlag = true;
     }
   }
 
-  if (helpFlag) {
-    usage(argv[0]);
-    help();
-    return 0;
-  }
-
-  if (parseErr) {
-    printf("%s: argument parsing error\n",argv[0]);
-    usage(argv[0]);
-    exit(1);
+  if (!infoFlag) {
+    printf("%s: detinfo is required\n", argv[0]);
+    helpFlag = true;
   }
 
   if (platform == NO_PLATFORM) {
-    printf("%s: platform required\n",argv[0]);
-    usage(argv[0]);
-    return 0;
+    printf("%s: platform is required\n", argv[0]);
+    helpFlag = true;
   }
 
   if (optind < argc) {
     printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    helpFlag = true;
+  }
+
+  if (helpFlag) {
     usage(argv[0]);
-    exit(1);
+    return 1;
   }
 
   // launch the SegmentLevel
@@ -385,6 +393,8 @@ int main(int argc, char** argv) {
                                  user_apps,
                                  lCompress,
                                  lCopy,
+                                 evrmod,
+                                 evrchan,
                                  uniqueid);
 
   if (info.device()==DetInfo::Opal4000)
