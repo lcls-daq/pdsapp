@@ -16,7 +16,6 @@ tgtnames += oceanoptics fli andor
 
 ifneq ($(findstring x86_64,$(tgt_arch)),)
 tgtnames += camedt
-tgtnames += timepix
   ifeq ($(build_extra),$(true))
     tgtnames += phasics xamps fexamp
   endif
@@ -213,11 +212,6 @@ tgtsrcs_gsc16ai := gsc16ai.cc
 tgtlibs_gsc16ai := $(commonlibs) pds/gsc16ai
 tgtslib_gsc16ai := $(commonslib)
 tgtincs_gsc16ai := pdsdata/include ndarray/include boost/include 
-
-tgtsrcs_timepix := timepix.cc
-tgtlibs_timepix := $(commonlibs) pds/timepix relaxd/mpxhwrelaxd pds/configdata
-tgtslib_timepix := $(commonslib)
-tgtincs_timepix := relaxd/include/common relaxd/include/src pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_rayonix := rayonix.cc
 tgtlibs_rayonix := $(commonlibs) pds/rayonix
