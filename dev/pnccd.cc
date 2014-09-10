@@ -1,5 +1,6 @@
 #include "pdsdata/xtc/DetInfo.hh"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -32,7 +33,10 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-   MySegWire(pnCCDServer* pnccdServer, const char *aliasName);
+   MySegWire(pnCCDServer* pnccdServer,
+             unsigned       module,
+             unsigned       channel,
+             const char *aliasName);
    virtual ~MySegWire() {}
 
    void connect( InletWire& wire,
@@ -46,6 +50,10 @@ class Pds::MySegWire
       return (_aliases.size() > 0) ? &_aliases : NULL;
    }
 
+   bool     is_triggered() const    { return true; }
+   unsigned module      () const    { return _module; }
+   unsigned channel     () const    { return _channel; }
+
    unsigned max_event_size () const { return 8*1024*1024; }
    unsigned max_event_depth() const { return _max_event_depth; }
    void max_event_depth(unsigned d) { _max_event_depth = d; }
@@ -53,6 +61,8 @@ class Pds::MySegWire
    pnCCDServer* _pnccdServer;
    std::list<Src> _sources;
    std::list<SrcAlias> _aliases;
+   unsigned _module;
+   unsigned _channel;
    unsigned _max_event_depth;
 };
 
@@ -92,8 +102,14 @@ class Pds::Seg
 };
 
 
-Pds::MySegWire::MySegWire( pnCCDServer* pnccdServer, const char *aliasName )
-   : _pnccdServer(pnccdServer), _max_event_depth(64)
+Pds::MySegWire::MySegWire( pnCCDServer* pnccdServer,
+                           unsigned module,
+                           unsigned channel,
+                           const char *aliasName ) :
+     _pnccdServer(pnccdServer),
+     _module   (module),
+     _channel  (channel),
+     _max_event_depth(64)
 { 
    _sources.push_back(pnccdServer->client());
    if (aliasName) {
@@ -192,16 +208,18 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: pnccd [-h] -p <platform> -f <cnfgFileName> -P <pgpcardNumb> [-d <detector>] [-i <deviceID>] [-e <numb>] [-D <debug>]\n"
+  printf( "Usage: %s -p <platform>,<mod>,<chan> -f <cnfgFileName> -P <pgpcardNumb> [OPTIONS]\n", s);
+  printf("\n"
+      "Options:\n"
       "    -h      Show usage\n"
-      "    -p      Set platform id           [required]\n"
-      "    -f      Set the config file name  [required]\n"
-      "    -P      Set pgpcard index number  [required]\n"
-      "    -d      Set detector type by name [Default: XcsEndstation]\n"
-      "    -i      Set device id             [Default: 0]\n"
-      "    -e <N>  Set the maximum event depth, default is 64\n"
-      "    -u      Set device alias          [Default: none]\n"
-      "    -D      Set debug value           [Default: 0]\n"
+      "    -p      Set platform number, EVR module, EVR channel [required]\n"
+      "    -f      Set the config file name                     [required]\n"
+      "    -P      Set pgpcard index number                     [required]\n"
+      "    -d      Set detector type by name                    [Default: XcsEndstation]\n"
+      "    -i      Set device id                                [Default: 0]\n"
+      "    -e      Set the maximum event depth                  [Default: 64]\n"
+      "    -u      Set device alias                             [Default: none]\n"
+      "    -D      Set debug value                              [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offset and count calls\n"
       "                bit 02          fill in fetch details\n"
@@ -219,8 +237,11 @@ int main( int argc, char** argv )
   DetInfo::Detector   detector            = DetInfo::XppEndstation;
   int                 deviceId            = 0;
   unsigned            platform            = 0;
+  unsigned            channel             = 0;
+  unsigned            module              = 0;
   bool                platformEntered     = false;
   bool                pgpcardEntered      = false;
+  bool                lUsage              = false;
   unsigned            mask                = 0;
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
@@ -257,63 +278,83 @@ int main( int argc, char** argv )
            }
            break;
          case 'p':
-           platform = strtoul(optarg, NULL, 0);
-           platformEntered = true;
+           if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
+             printf("%s: option `-p' parsing error\n", argv[0]);
+             lUsage = true;
+           } else {
+             platformEntered = true;
+           }
            break;
         case 'u':
-            if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
-              printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
-            } else {
-              uniqueid = optarg;
-            }
-            break;
+           if (!CmdLineTools::parseSrcAlias(optarg)) {
+             printf("%s: option `-u' parsing error\n", argv[0]);
+             lUsage = true;
+           } else {
+             uniqueid = optarg;
+           }
+           break;
          case 'f':
            sConfigFile = optarg;
            break;
          case 'i':
-           deviceId = strtoul(optarg, NULL, 0);
+           if (!CmdLineTools::parseInt(optarg, deviceId)) {
+             printf("%s: option `-i' parsing error\n", argv[0]);
+             lUsage = true;
+           }
             break;
          case 'P':
-           pgpcard = strtoul(optarg, NULL, 0);
-           pgpcardEntered = true;
+           if (!CmdLineTools::parseUInt(optarg, pgpcard)) {
+             printf("%s: option `-P' parsing error\n", argv[0]);
+             lUsage = true;
+           } else {
+             pgpcardEntered = true;
+           }
            break;
          case 'e':
-           eventDepth = strtoul(optarg, NULL, 0);
-           printf("pnCCD using event depth of  %u\n", eventDepth);
+           if (!CmdLineTools::parseUInt(optarg, eventDepth)) {
+             printf("%s: option `-e' parsing error\n", argv[0]);
+             lUsage = true;
+           } else {
+             printf("pnCCD using event depth of  %u\n", eventDepth);
+           }
            break;
          case 'D':
-           debug = strtoul(optarg, NULL, 0);
+           if (!CmdLineTools::parseUInt(optarg, debug)) {
+             printf("%s: option `-D' parsing error\n", argv[0]);
+             lUsage = true;
+           }
            break;
          case 'h':
            printUsage(argv[0]);
            return 0;
            break;
+         case '?':
          default:
-           printf("Error: Option could not be parsed!\n");
-           printUsage(argv[0]);
-           return 0;
+           lUsage = true;
            break;
       }
    }
 
    if( !platformEntered ) {
       printf( "Error: Platform required\n" );
-      printUsage(argv[0]);
-      return 0;
+     lUsage = true;
    }
 
    if ( sConfigFile.empty() )
    {
      printf( "Error: pnCCD Config File is required\n" );
-     printUsage(argv[0]);
-     return 0;
+     lUsage = true;
    }
 
    if ( !pgpcardEntered )
    {
      printf("Error: pgpcard parameter required\n");
+     lUsage = true;
+   }
+
+   if (lUsage) {
      printUsage(argv[0]);
-     return 0;
+     return 1;
    }
    printf("Node node\n");
    Node node( Level::Source, platform );
@@ -338,7 +379,7 @@ int main( int argc, char** argv )
    pnccdServer->debug(debug);
 
    printf("MySegWire settings\n");
-   MySegWire settings(pnccdServer, uniqueid);
+   MySegWire settings(pnccdServer, module, channel, uniqueid);
    settings.max_event_depth(eventDepth);
 
    printf("making Seg\n");
