@@ -7,6 +7,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/psddl/epics.ddl.h"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -31,8 +32,14 @@ namespace Pds
   class SegWireSettingsOceanOptics:public SegWireSettings
   {
   public:
-    SegWireSettingsOceanOptics(const Src & src, OceanOpticsServer* pServer, string sAliasName) :
-      _pServer(pServer)
+    SegWireSettingsOceanOptics(const Src &        src,
+                               OceanOpticsServer* pServer,
+                               unsigned           uModule,
+                               unsigned           uChannel,
+                               string             sAliasName) :
+      _pServer  (pServer),
+      _uModule  (uModule),
+      _uChannel (uChannel)
     {
       _sources.push_back(src);
       if (sAliasName.length())
@@ -60,6 +67,10 @@ namespace Pds
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
 
+    bool     is_triggered() const { return true; }
+    unsigned module      () const { return _uModule; }
+    unsigned channel     () const { return _uChannel; }
+
     unsigned max_event_size () const { return 128*1024; }
 
     unsigned max_event_depth() const { return 128; }
@@ -68,6 +79,8 @@ namespace Pds
     std::list < Src >   _sources;
     OceanOpticsServer*  _pServer;
     std::list<SrcAlias> _aliases;
+    unsigned            _uModule;
+    unsigned            _uChannel;
   };
 
 //
@@ -151,6 +164,8 @@ namespace Pds
     OceanOpticsServer*  _pServer;
     OceanOpticsManager* _pManager;
     int                 _iPlatform;
+    unsigned            _uModule;
+    unsigned            _uChannel;
     CfgClientNfs &      _cfg;
     int                 _iDevice;
     int                 _iDebugLevel;
@@ -169,14 +184,14 @@ static void showUsage()
   printf
     ("Usage:  oceanoptics  [-v|--version] [-h|--help] [-d|--device <0-9> ]\n"
      "                     [-i|--id <id>] [-l|--debug <level>] [-u|--uniqueid <alias>]\n"
-     "                     -p|--platform <platform id>\n"
-     "  Options:\n" "    -v|--version                 Show file version.\n"
-     "    -h|--help                    Show usage.\n"
-     "    -d|--device   [0-9]          Select the oceanOptics device. (Default: 0)\n"
-     "    -i|--id       <id>           Set ID. Format: Detector/DetectorId/DeviceId. (Default: NoDetector/0/0)\n"
-     "    -u|--uniqueid <alias>        Set device alias.\n"
-     "    -l|--debug    <level>        Set debug level. (Default: 0)\n"
-     "    -p|--platform <platform id>  [*required*] Set platform id.\n");
+     "                     -p|--platform <platform>,<mod>,<chan>\n"
+     "  Options:\n" "    -v|--version                           Show file version.\n"
+     "    -h|--help                              Show usage.\n"
+     "    -d|--device   [0-9]                    Select the oceanOptics device. (Default: 0)\n"
+     "    -i|--id       <id>                     Set ID. Format: Detector/DetectorId/DeviceId. (Default: NoDetector/0/0)\n"
+     "    -u|--uniqueid <alias>                  Set device alias.\n"
+     "    -l|--debug    <level>                  Set debug level. (Default: 0)\n"
+     "    -p|--platform <platform>,<mod>,<chan>  [*required*] Set platform number, EVR module, EVR channel\n");
 }
 
 static void showVersion()
@@ -219,6 +234,10 @@ int main(int argc, char **argv)
   string            sUniqueId;
   int               iDebugLevel = 0;
   int               iPlatform   = -1;
+  unsigned          uModule     = 0;
+  unsigned          uChannel    = 0;
+  bool              bUsage      = false;
+  unsigned          uu1, uu2, uu3;
 
   int iOptionIndex = 0;
   while (int opt =
@@ -229,43 +248,65 @@ int main(int argc, char **argv)
 
     switch (opt)
     {
-    case 'v':     /* Print usage */
+    case 'v':     /* Print version */
       showVersion();
       return 0;
     case 'p':
-      iPlatform = strtoul(optarg, NULL, 0);
+      if (CmdLineTools::parseUInt(optarg,uu1,uModule,uChannel) != 3) {
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        bUsage = true;
+      } else {
+        iPlatform = (int)uu1;
+      }
       break;
     case 'd':
-      iDevice = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseInt(optarg,iDevice))
+      {
+        printf("%s: option `-d' parsing error\n", argv[0]);
+        bUsage = true;
+      }
       break;
     case 'i':
-      char *pNextToken;
-      detector = (DetInfo::Detector) strtoul(optarg, &pNextToken, 0);
-      ++pNextToken;
-      if (*pNextToken == 0)
-        break;
-
-      iDetectorId = strtoul(pNextToken, &pNextToken, 0);
-      ++pNextToken;
-      if (*pNextToken == 0)
-        break;
-
-      iDeviceId = strtoul(pNextToken, &pNextToken, 0);
+      if (CmdLineTools::parseUInt(optarg,uu1,uu2,uu3,0,'/') != 3)
+      {
+        printf("%s: option `-i' parsing error\n", argv[0]);
+        bUsage = true;
+      }
+      else
+      {
+        detector = (DetInfo::Detector) uu1;
+        iDetectorId = (int) uu2;
+        iDeviceId = (int) uu3;
+      }
       break;
     case 'u':
-      sUniqueId = optarg;
+      if (!CmdLineTools::parseSrcAlias(optarg))
+      {
+        printf("%s: option `-u' parsing error\n", argv[0]);
+        bUsage = true;
+      }
+      else
+      {
+        sUniqueId = optarg;
+      }
       break;
     case 'l':
-      iDebugLevel = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseInt(optarg,iDebugLevel))
+      {
+        printf("%s: option `-l' parsing error\n", argv[0]);
+        bUsage = true;
+      }
       break;
     case '?':               /* Terse output mode */
       if (optopt)
         printf( "oceanOptics:main(): Unknown option: %c\n", optopt );
       else
         printf( "oceanOptics:main(): Unknown option: %s\n", argv[optind-1] );
+      bUsage = true;
       break;
     case ':':     /* Terse output mode */
       printf("oceanOptics:main(): Missing argument for %c\n", optopt);
+      bUsage = true;
       break;
     default:
     case 'h':     /* Print usage */
@@ -281,6 +322,11 @@ int main(int argc, char **argv)
   {
     printf
       ("oceanOptics:main(): Please specify platform in command line options\n");
+    bUsage = true;
+  }
+
+  if (bUsage)
+  {
     showUsage();
     return 1;
   }
@@ -302,7 +348,7 @@ int main(int argc, char **argv)
   {
     printf("Settings:\n");
 
-    printf("  Platform: %d  Device: %d\n", iPlatform, iDevice);
+    printf("  Platform: %d  EVR module: %u  EVR channel: %u  Device: %d\n", iPlatform, uModule, uChannel, iDevice);
 
     const DetInfo detInfo(getpid(), detector, iDetectorId,
         DetInfo::OceanOptics, iDeviceId);
@@ -320,7 +366,7 @@ int main(int argc, char **argv)
 
     EventCallBackOceanOptics eventCallBackOceanOptics(pServer, iPlatform, cfgService, iDevice, iDebugLevel);
 
-    SegWireSettingsOceanOptics settings(detInfo, pServer, sUniqueId);
+    SegWireSettingsOceanOptics settings(detInfo, pServer, uModule, uChannel, sUniqueId);
     SegmentLevel segmentLevel(iPlatform, settings, eventCallBackOceanOptics, NULL);
 
     segmentLevel.attach();
