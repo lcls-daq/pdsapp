@@ -164,8 +164,6 @@ namespace Pds
     OceanOpticsServer*  _pServer;
     OceanOpticsManager* _pManager;
     int                 _iPlatform;
-    unsigned            _uModule;
-    unsigned            _uChannel;
     CfgClientNfs &      _cfg;
     int                 _iDevice;
     int                 _iDebugLevel;
@@ -253,7 +251,7 @@ int main(int argc, char **argv)
       return 0;
     case 'p':
       if (CmdLineTools::parseUInt(optarg,uu1,uModule,uChannel) != 3) {
-        printf("%s: option `-p' parsing error\n", argv[0]);
+        printf("oceanOptics:main(): option `-p' parsing error\n");
         bUsage = true;
       } else {
         iPlatform = (int)uu1;
@@ -262,14 +260,14 @@ int main(int argc, char **argv)
     case 'd':
       if (!CmdLineTools::parseInt(optarg,iDevice))
       {
-        printf("%s: option `-d' parsing error\n", argv[0]);
+        printf("oceanOptics:main(): option `-d' parsing error\n");
         bUsage = true;
       }
       break;
     case 'i':
       if (CmdLineTools::parseUInt(optarg,uu1,uu2,uu3,0,'/') != 3)
       {
-        printf("%s: option `-i' parsing error\n", argv[0]);
+        printf("oceanOptics:main(): option `-i' parsing error\n");
         bUsage = true;
       }
       else
@@ -282,7 +280,7 @@ int main(int argc, char **argv)
     case 'u':
       if (!CmdLineTools::parseSrcAlias(optarg))
       {
-        printf("%s: option `-u' parsing error\n", argv[0]);
+        printf("oceanOptics:main(): option `-u' parsing error\n");
         bUsage = true;
       }
       else
@@ -293,7 +291,7 @@ int main(int argc, char **argv)
     case 'l':
       if (!CmdLineTools::parseInt(optarg,iDebugLevel))
       {
-        printf("%s: option `-l' parsing error\n", argv[0]);
+        printf("oceanOptics:main(): option `-l' parsing error\n");
         bUsage = true;
       }
       break;
@@ -315,13 +313,15 @@ int main(int argc, char **argv)
     }
   }
 
-  argc -= optind;
-  argv += optind;
-
   if (iPlatform == -1)
   {
     printf
       ("oceanOptics:main(): Please specify platform in command line options\n");
+    bUsage = true;
+  }
+
+  if (optind < argc) {
+    printf( "oceanOptics:main(): Unknown argument: %s\n", argv[optind] );
     bUsage = true;
   }
 
