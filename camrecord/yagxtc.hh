@@ -51,6 +51,7 @@ extern void initialize_ca(void);
 extern void create_ca(std::string name, std::string detector, std::string camtype,
                       std::string pvname, int binned, int strict);
 extern void handle_ca(fd_set *rfds);
+extern void begin_run_ca(void);
 extern void cleanup_ca(void);
 
 /* xtc.cc */

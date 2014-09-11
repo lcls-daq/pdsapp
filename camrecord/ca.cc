@@ -113,9 +113,9 @@ static int get_image_size(const char *image, char *xname, char *yname, unsigned 
 class caconn {
  public:
     caconn(string _name, string _det, string _camtype, string _pvname,
-           int _binned, int strict)
+           int _binned, int _strict)
         : name(_name), detector(_det), camtype(_camtype), pvname(_pvname),
-          connected(0), nelem(-1), event(0), binned(_binned) {
+          connected(0), nelem(-1), event(0), binned(_binned), strict(_strict) {
         const char       *ds  = detector.c_str();
         int               bld = !strncmp(ds, "BLD-", 4);
         int               detversion = 0;
@@ -391,6 +391,7 @@ class caconn {
     Xtc   *hdr;
     int    hdrlen;
     int    binned;
+    int    strict;
     int    is_cam;
     int    caid;
     chid   chan;
@@ -518,6 +519,22 @@ void create_ca(string name, string detector, string camtype, string pvname, int 
 void handle_ca(fd_set *rfds)
 {
     ca_poll();
+}
+
+void begin_run_ca(void)
+{
+    int i;
+    caconn *c;
+
+    for (i = 0, c = caconn::index(i); c; c = caconn::index(++i)) {
+        if (!c->is_cam && !c->strict) {
+            int status = ca_array_get_callback(c->dbrtype, c->nelem, c->chan, event_handler, (void *) c);
+            if (status != ECA_NORMAL) {
+                printf("Get failed! error %d!\n", status);
+                exit(0);
+            }
+        }
+    }
 }
 
 void cleanup_ca(void)

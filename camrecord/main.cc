@@ -127,6 +127,7 @@ void remove_socket(int s)
 
 void begin_run(void)
 {
+    begin_run_ca();
     if (!quiet) {
         fprintf(stderr, "%sinitialized, recording...\n", prefix.c_str());
         fflush(stderr);
