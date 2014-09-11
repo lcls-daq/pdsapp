@@ -1,5 +1,6 @@
 #include "pdsdata/xtc/DetInfo.hh"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -19,6 +20,7 @@
 #include <climits>
 #include <string.h>
 
+extern int optind;
 
 namespace Pds {
 
@@ -27,7 +29,16 @@ namespace Pds {
   //
   class MySegWire : public SegWireSettings {
   public:
-    MySegWire(IpimbServer** ipimbServer, int nServers, char **aliases) : _ipimbServer(ipimbServer), _nServers(nServers) { 
+    MySegWire( IpimbServer** ipimbServer,
+               int           nServers,
+               unsigned      module,
+               unsigned      channel,
+               char**        aliases ) :
+        _ipimbServer(ipimbServer),
+        _module   (module),
+        _channel  (channel),
+        _nServers(nServers)
+    {
       for (int i=0; i< _nServers; i++) {
         _sources.push_back(ipimbServer[i]->client()); 
         if (aliases[i] && strlen(aliases[i])) {
@@ -50,9 +61,14 @@ namespace Pds {
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
+    bool     is_triggered() const { return true; }
+    unsigned module      () const { return _module; }
+    unsigned channel     () const { return _channel; }
   private:
     IpimbServer** _ipimbServer;
     std::list<Src> _sources;
+    unsigned       _module;
+    unsigned       _channel;
     std::list<SrcAlias> _aliases;
     const int _nServers;
   };
@@ -144,7 +160,15 @@ using namespace Pds;
 enum { MaxBoards = 16 };
 
 void printUsage(char* s) {
-  printf("Usage: %s { -i <detid> [-u <alias>] | -f <fileName> } -p <platform> [-a <arp process id>] [-h]\n", s);
+  printf("Usage: %s { -i <detid> [-u <alias>] | -f <fileName> } -p <platform>,<mod>,<chan> [OPTIONS]\n"
+         "\n"
+         "Options:\n"
+         "    -i <detid>                  detector ID (e.g. 11 for SxrBeamline)\n"
+         "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
+         "    -f <fileName>               configuration file\n"
+         "    -a <arp>                    arp process id\n"
+         "    -u <alias>                  set device alias\n"
+         "    -h                          print this message and exit\n", s);
 }
 
 int main(int argc, char** argv) {
@@ -153,8 +177,11 @@ int main(int argc, char** argv) {
   unsigned detid = UINT_MAX;
   unsigned cpuid = UINT_MAX;
   unsigned platform = UINT_MAX;
+  unsigned module = 0;
+  unsigned channel = 0;
   unsigned nboards = 1;
   bool c01 = false;
+  bool lUsage = false;
   int baselineSubtraction = 1;
   FILE *fp = NULL;
   Arp* arp = 0;
@@ -171,19 +198,34 @@ int main(int argc, char** argv) {
       c01 = true;
       break;
     case 'i':
-      detid  = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseUInt(optarg,detid)) {
+        printf("%s: option `-i' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'c':
-      cpuid  = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseUInt(optarg,cpuid)) {
+        printf("%s: option `-c' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'p':
-      platform = strtoul(optarg, NULL, 0);
+      if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'n':
-      nboards = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseUInt(optarg,nboards)) {
+        printf("%s: option `-n' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'b':
-      baselineSubtraction = strtoul(optarg, NULL, 0);
+      if (!CmdLineTools::parseInt(optarg,baselineSubtraction)) {
+        printf("%s: option `-b' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'f':
       fp = fopen(optarg,"r");
@@ -200,13 +242,38 @@ int main(int argc, char** argv) {
       printUsage(argv[0]);
       return 0;
     case 'u':
-      if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
-        printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+      if (!CmdLineTools::parseSrcAlias(optarg)) {
+        printf("%s: option `-u' parsing error\n", argv[0]);
+        lUsage = true;
       } else {
         uniqueid = optarg;
       }
       break;
+    case '?':
+    default:
+      lUsage = true;
+      break;
     }
+  }
+
+  if (platform==UINT_MAX) {
+    printf("%s: platform is required\n", argv[0]);
+    lUsage = true;
+  }
+
+  if ((detid == UINT_MAX) && (!fp)) {
+    printf("%s: detid or configuration file is required\n", argv[0]);
+    lUsage = true;
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
+    lUsage = true;
+  }
+
+  if (lUsage) {
+    printUsage(argv[0]);
+    exit(1);
   }
 
   int detector, detectorId, deviceId;
@@ -300,7 +367,7 @@ int main(int argc, char** argv) {
     fclose(fp);
   }
 
-  MySegWire settings(ipimbServer, nServers, aliasName);
+  MySegWire settings(ipimbServer, nServers, module, channel, aliasName);
   Seg* seg = new Seg(task, platform, cfgService, settings, arp, ipimbServer, nServers, portName, baselineSubtraction, polarities);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
   seglevel->attach();
