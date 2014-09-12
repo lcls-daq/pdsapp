@@ -1,5 +1,6 @@
 #include "pdsdata/xtc/DetInfo.hh"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -38,7 +39,10 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-   MySegWire(CspadServer* cspadServer, const char *aliasName);
+   MySegWire(CspadServer* cspadServer,
+             unsigned     module,
+             unsigned     channel,
+             const char*  aliasName);
    virtual ~MySegWire() {}
 
    void connect( InletWire& wire,
@@ -50,6 +54,9 @@ class Pds::MySegWire
    {
      return (_aliases.size() > 0) ? &_aliases : NULL;
    }
+   bool     is_triggered() const { return true; }
+   unsigned module      () const { return _module; }
+   unsigned channel     () const { return _channel; }
 
    unsigned max_event_size () const { return 8*1024*1024; }
    unsigned max_event_depth() const { return _max_event_depth; }
@@ -58,6 +65,8 @@ class Pds::MySegWire
    CspadServer* _cspadServer;
    std::list<Src> _sources;
    std::list<SrcAlias> _aliases;
+   unsigned _module;
+   unsigned _channel;
    unsigned _max_event_depth;
 };
 
@@ -101,8 +110,8 @@ class Pds::Seg
 };
 
 
-Pds::MySegWire::MySegWire( CspadServer* cspadServer, const char *aliasName )
-   : _cspadServer(cspadServer), _max_event_depth(64)
+Pds::MySegWire::MySegWire( CspadServer* cspadServer, unsigned module, unsigned channel, const char *aliasName )
+   : _cspadServer(cspadServer), _module(module), _channel(channel), _max_event_depth(64)
 { 
    _sources.push_back(cspadServer->client());
    if (aliasName) {
@@ -218,23 +227,23 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: %s [-h] -p <platform> [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <compressFlag>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb> [-L <plugin>] [-r <runTimeConfigName>]\n"
+  printf( "Usage: %s [-h] -p <platform>,<mod>,<chan> [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <compressFlag>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb> [-L <plugin>] [-r <runTimeConfigName>]\n"
       "    -h      Show usage\n"
-      "    -p      Set platform id           [required]\n"
-      "    -d      Set detector type by name [Default: XppGon]\n"
+      "    -p      Set platform id, EVR module, EVR channel [required]\n"
+      "    -d      Set detector type by name                [Default: XppGon]\n"
       "            NB, if you can't remember the detector names\n"
       "            just make up something and it'll list them\n"
-      "    -i      Set device id             [Default: 0]\n"
-      "    -m      Set config mask           [Default: 0]\n"
-      "    -P      Set pgpcard index number  [Default: 0]\n"
+      "    -i      Set device id                            [Default: 0]\n"
+      "    -m      Set config mask                          [Default: 0]\n"
+      "    -P      Set pgpcard index number                 [Default: 0]\n"
       "                The format of the index number is a one byte number with the bottom nybble being\n"
       "                the index of the card and the top nybble being a port mask where one bit is for\n"
       "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
       "                applications that use the whole card\n"
       "    -e <N>  Set the maximum event depth, default is 64\n"
       "    -C <N> or \"<N>,<T>\"  Compress and copy every Nth event (and use <T> threads)\n"
-      "    -u      Set device alias          [Default: none]\n"
-      "    -D      Set debug value           [Default: 0]\n"
+      "    -u      Set device alias                         [Default: none]\n"
+      "    -D      Set debug value                          [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
       "                bit 02          fill in fetch details\n"
@@ -263,6 +272,8 @@ int main( int argc, char** argv )
   TypeId::Type        type                = TypeId::Id_CspadElement;
   int                 deviceId            = 0;
   unsigned            platform            = 0;
+  unsigned            module              = 0;
+  unsigned            channel             = 0;
   unsigned            mask                = 0;
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
@@ -271,11 +282,12 @@ int main( int argc, char** argv )
   char                runTimeConfigname[256] = {""};
   bool                platformMissing     = true;
   bool                compressFlag        = false;
+  bool                bUsage              = false;
   unsigned            compressThreads     = 0;
+  unsigned            uu1, uu2, uu3;
   AppList user_apps;
 
    extern char* optarg;
-   char* endPtr;
    char* uniqueid = (char *)NULL;
    int c;
    while( ( c = getopt( argc, argv, "hd:i:p:m:e:C:D:xL:P:r:u:" ) ) != EOF ) {
@@ -300,32 +312,64 @@ int main( int argc, char** argv )
            }
            break;
          case 'p':
-           platform = strtoul(optarg, NULL, 0);
-           platformMissing = false;
+           if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
+             printf("%s: option `-p' parsing error\n", argv[0]);
+             bUsage = true;
+           } else {
+             platformMissing = false;
+           }
            break;
          case 'i':
-           deviceId = strtoul(optarg, NULL, 0);
-            break;
+           if (!CmdLineTools::parseInt(optarg,deviceId)) {
+             printf("%s: option `-i' parsing error\n", argv[0]);
+             bUsage = true;
+           }
+           break;
          case 'm':
-           mask = strtoul(optarg, NULL, 0);
+           if (!CmdLineTools::parseUInt(optarg,mask)) {
+             printf("%s: option `-m' parsing error\n", argv[0]);
+             bUsage = true;
+           }
            break;
          case 'P':
-           pgpcard = strtoul(optarg, NULL, 0);
-           printf("Cspad using pgpcard 0x%x\n", pgpcard);
+           if (!CmdLineTools::parseUInt(optarg,pgpcard)) {
+             printf("%s: option `-P' parsing error\n", argv[0]);
+             bUsage = true;
+           } else {
+             printf("Cspad using pgpcard 0x%x\n", pgpcard);
+           }
            break;
          case 'e':
-           eventDepth = strtoul(optarg, NULL, 0);
-           printf("Cspad using event depth of  %u\n", eventDepth);
+           if (!CmdLineTools::parseUInt(optarg,eventDepth)) {
+             printf("%s: option `-e' parsing error\n", argv[0]);
+             bUsage = true;
+           } else {
+             printf("Cspad using event depth of  %u\n", eventDepth);
+           }
            break;
          case 'C':
            compressFlag = 1;
-	   FrameCompApp::setCopyPresample(strtoul(optarg, &endPtr, 0));
-           if (*endPtr)
-             compressThreads = strtoul(endPtr+1,NULL,0);
+           switch (CmdLineTools::parseUInt(optarg,uu1,uu2,uu3)) {
+             case 1:
+               FrameCompApp::setCopyPresample(uu1);
+               break;
+             case 2:
+               FrameCompApp::setCopyPresample(uu1);
+               compressThreads = uu2;
+               break;
+             default:
+               printf("%s: option `-C' parsing error\n", argv[0]);
+               bUsage = true;
+               break;
+           }
            break;
          case 'D':
-           debug = strtoul(optarg, NULL, 0);
-           printf("Cspad using debug value of 0x%x\n", debug);
+           if (!CmdLineTools::parseUInt(optarg,debug)) {
+             printf("%s: option `-D' parsing error\n", argv[0]);
+             bUsage = true;
+           } else {
+             printf("Cspad using debug value of 0x%x\n", debug);
+           }
            break;
          case 'L':
 	   { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
@@ -352,31 +396,45 @@ int main( int argc, char** argv )
 	     break;
 	   }
          case 'r':
-           strcpy(runTimeConfigname, optarg);
+           if (strlen(optarg) > sizeof(runTimeConfigname)-1) {
+             printf("%s: option `-r' parsing error\n", argv[0]);
+             bUsage = true;
+           } else {
+             strcpy(runTimeConfigname, optarg);
+           }
            break;
          case 'h':
            printUsage(argv[0]);
            return 0;
            break;
          case 'u':
-           if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
-             printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+           if (!CmdLineTools::parseSrcAlias(optarg)) {
+             printf("%s: option `-u' parsing error\n", argv[0]);
+             bUsage = true;
            } else {
              uniqueid = optarg;
            }
            break;
+         case '?':
          default:
-           printf("Error: Option could not be parsed!\n");
-           printUsage(argv[0]);
-           return 0;
+           bUsage = true;
            break;
       }
    }
 
    if( platformMissing ) {
       printf( "Error: Platform required\n" );
+      bUsage = true;
+   }
+
+   if (optind < argc) {
+      printf( "Error: invalid argument -- %s\n", argv[optind] );
+      bUsage = true;
+   }
+
+   if (bUsage) {
       printUsage(argv[0]);
-      return 0;
+      return 1;
    }
 
    Node node( Level::Source, platform );
@@ -401,7 +459,7 @@ int main( int argc, char** argv )
    cspadServer->debug(debug);
    cspadServer->runTimeConfigName(runTimeConfigname);
 
-   MySegWire settings(cspadServer, uniqueid);
+   MySegWire settings(cspadServer, module, channel, uniqueid);
    settings.max_event_depth(eventDepth);
 
    Seg* seg = new Seg( task,
