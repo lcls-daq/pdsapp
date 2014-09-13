@@ -31,7 +31,14 @@ static const char sPrincetonVersion[] = "1.21";
 class SegWireSettingsPrinceton : public SegWireSettings
 {
 public:
-    SegWireSettingsPrinceton(const Src& src, string sAliasName)
+    SegWireSettingsPrinceton(const Src& src,
+                             bool               bTriggered,
+                             unsigned           uModule,
+                             unsigned           uChannel,
+                             string sAliasName) :
+      _bTriggered (bTriggered),
+      _uModule    (uModule),
+      _uChannel   (uChannel)
     {
       _sources.push_back(src);
       if (sAliasName.length())
@@ -47,9 +54,15 @@ public:
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
+    bool     is_triggered() const { return _bTriggered; }
+    unsigned module      () const { return _uModule; }
+    unsigned channel     () const { return _uChannel; }
 private:
     std::list<Src> _sources;
     std::list<SrcAlias> _aliases;
+    bool           _bTriggered;
+    unsigned       _uModule;
+    unsigned       _uChannel;
 };
 
 //
@@ -160,22 +173,22 @@ static void showUsage()
 {
     printf( "Usage:  princeton  [-v|--version] [-h|--help] [-c|--camera <0-9> ] "
       "[-i|--id <id>] [-d|--delay] [-n|--init] [-g|--config <db_path>] [-s|--sleep <ms>] "
-      "[-l|--debug <level>] [-u|--uniqueid <alias>] [--custw <width>] [--custh <heighth>]"
-      "-p|--platform <platform id>\n"
+      "[-l|--debug <level>] [-u|--uniqueid <alias>] [--custw <width>] [--custh <heighth>] "
+      "-p|--platform <platform>[,<mod>,<chan>]\n"
       "  Options:\n"
-      "    -v|--version                 Show file version.\n"
-      "    -h|--help                    Show usage.\n"
-      "    -c|--camera   [0-9]          Select the princeton device. (Default: 0)\n"
-      "    -i|--id       <id>           Set ID. Format: Detector/DetectorId/DeviceId. (Default: NoDetector/0/0)\n"
-      "    -u|--uniqueid <alias>        Set device alias.\n"
-      "    -d|--delay                   Use delay mode.\n"
-      "    -n|--init                    Run a testing capture to avoid the initial delay.\n"
-      "    -g|--config   <db_path>      Intial princeton camera based on the config db at <db_path>\n"
-      "    -s|--sleep    <sleep_ms>     Sleep inteval between multiple perinceton camera. (Default: 0 ms)\n"
-      "    -l|--debug    <level>        Set debug level. (Default: 0)\n"
-      "    -p|--platform <platform id>  [*required*] Set platform id\n"
-      "    --custw       <width>        Set custom width\n"
-      "    --custh       <width>        Set custom height\n"
+      "    -v|--version                             Show file version.\n"
+      "    -h|--help                                Show usage.\n"
+      "    -c|--camera   [0-9]                      Select the princeton device. (Default: 0)\n"
+      "    -i|--id       <id>                       Set ID. Format: Detector/DetectorId/DeviceId. (Default: NoDetector/0/0)\n"
+      "    -u|--uniqueid <alias>                    Set device alias.\n"
+      "    -d|--delay                               Use delay mode.\n"
+      "    -n|--init                                Run a testing capture to avoid the initial delay.\n"
+      "    -g|--config   <db_path>                  Initialize princeton camera based on the config db at <db_path>\n"
+      "    -s|--sleep    <sleep_ms>                 Sleep interval between multiple princeton cameras. (Default: 0 ms)\n"
+      "    -l|--debug    <level>                    Set debug level. (Default: 0)\n"
+      "    -p|--platform <platform>[,<mod>,<chan>]  Set platform id [*required*], EVR module, EVR channel\n"
+      "    --custw       <width>                    Set custom width\n"
+      "    --custh       <width>                    Set custom height\n"
     );
 }
 
@@ -232,12 +245,16 @@ int main(int argc, char** argv)
     bool              bInitTest     = false;
     int               iDebugLevel   = 0;
     int               iPlatform     = -1;
+    unsigned          uModule       = 0;
+    unsigned          uChannel      = 0;
     string            sConfigDb;
     int               iSleepInt     = 0; // 0 ms
     int               iCustW        = -1;
     int               iCustH        = -1;
     int               iOptionIndex  = 0;
     bool              bShowUsage    = false;
+    bool              bTriggered    = false;
+    unsigned          uu1, uu2, uu3;
 
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
     {
@@ -249,22 +266,40 @@ int main(int argc, char** argv)
             showVersion();
             return 0;
         case 'p':
-            if (!Pds::CmdLineTools::parseInt(optarg, iPlatform))
+            switch (CmdLineTools::parseUInt(optarg,uu1,uModule,uChannel))
+            {
+            case 1:
+              bTriggered = false;
+              break;
+            case 3:
+              bTriggered = true;
+              break;
+            default:
+              printf("princeton:main(): option `-p' parsing error\n");
               bShowUsage = true;
+              break;
+            }
+            iPlatform = (int) uu1;
             break;
         case 'c':
-            if (!Pds::CmdLineTools::parseInt(optarg, iCamera))
+            if (!CmdLineTools::parseInt(optarg, iCamera))
+            {
+              printf("princeton:main(): option `-c' parsing error\n");
               bShowUsage = true;
+            }
             break;
         case 'i':
-            char* pNextToken;
-            detector    = (DetInfo::Detector) strtoul(optarg, &pNextToken, 0);
-            if ( *pNextToken == 0 ) break;
-            ++pNextToken;
-            iDetectorId = strtoul(pNextToken, &pNextToken, 0);
-            if ( *pNextToken == 0 ) break;
-            ++pNextToken;
-            iDeviceId   = strtoul(pNextToken, &pNextToken, 0);
+            if (CmdLineTools::parseUInt(optarg,uu1,uu2,uu3,0,'/') != 3)
+            {
+              printf("princeton:main(): option `-i' parsing error\n");
+              bShowUsage = true;
+            }
+            else
+            {
+              detector = (DetInfo::Detector) uu1;
+              iDetectorId = (int) uu2;
+              iDeviceId = (int) uu3;
+            }
             break;
         case 'u':
             sUniqueId = optarg;
@@ -276,23 +311,35 @@ int main(int argc, char** argv)
             bInitTest = true;
             break;
         case 'l':
-            if (!Pds::CmdLineTools::parseInt(optarg, iDebugLevel))
+            if (!CmdLineTools::parseInt(optarg,iDebugLevel))
+            {
+              printf("princeton:main(): option `-l' parsing error\n");
               bShowUsage = true;
+            }
             break;
         case 'g':
             sConfigDb = optarg;
             break;
         case 's':
-            if (!Pds::CmdLineTools::parseInt(optarg, iSleepInt))
+            if (!CmdLineTools::parseInt(optarg,iSleepInt))
+            {
+              printf("princeton:main(): option `-s' parsing error\n");
               bShowUsage = true;
+            }
             break;
         case 101:
-            if (!Pds::CmdLineTools::parseInt(optarg, iCustW))
+            if (!CmdLineTools::parseInt(optarg,iCustW))
+            {
+              printf("princeton:main(): option `--custw' parsing error\n");
               bShowUsage = true;
+            }
             break;
         case 102:
-            if (!Pds::CmdLineTools::parseInt(optarg, iCustH))
+            if (!CmdLineTools::parseInt(optarg,iCustH))
+            {
+              printf("princeton:main(): option `--custh' parsing error\n");
               bShowUsage = true;
+            }
             break;
         case '?':               /* Terse output mode */
             if (optopt)
@@ -349,7 +396,10 @@ int main(int argc, char** argv)
     {
     printf("Settings:\n");
 
-    printf("  Platform: %d  Camera: %d\n", iPlatform, iCamera);
+    if (bTriggered)
+      printf("  Platform: %d  EVR module: %u  EVR channel: %u  Camera: %d\n", iPlatform, uModule, uChannel, iCamera);
+    else
+      printf("  Platform: %d  Camera: %d\n", iPlatform, iCamera);
 
     const DetInfo detInfo( getpid(), detector, iDetectorId, DetInfo::Princeton, iDeviceId);
     printf("  DetInfo: %s  ConfigDb: %s  Sleep: %d ms\n", DetInfo::name(detInfo), sConfigDb.c_str(), iSleepInt );
@@ -364,7 +414,7 @@ int main(int argc, char** argv)
     taskMainThread = task;
 
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
-    SegWireSettingsPrinceton settings(detInfo, sUniqueId);
+    SegWireSettingsPrinceton settings(detInfo, bTriggered, uModule, uChannel, sUniqueId);
 
     EventCallBackPrinceton  eventCallBackPrinceton(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iCustW, iCustH, iDebugLevel);
 
