@@ -466,9 +466,9 @@ void Devices_Ui::add_component(const QString& type)
 
   bool ok;
   QString choice = QInputDialog::getItem(_devlist,
-           "Component Data",
-           "Select File",
-           choices, current, 0, &ok);
+					 "Component Data",
+					 "Select File",
+					 choices, current, 0, &ok);
   if (ok) {
     Dialog*        d = 0;
     char*    payload = 0;
@@ -523,19 +523,18 @@ void Devices_Ui::add_component(const QString& type)
     }
 
     if (d) {
-      if (d->exec()==QDialog::Accepted) {
-        bool ok;
-        QString file = QInputDialog::getText(this,"Configuration:","Name:",
-                                             QLineEdit::Normal,d->name(),&ok);
-        if (ok && !file.isEmpty()) {
-          x.name = qPrintable(file);
-          db.begin();
-          db.setXTC(x, d->payload(), d->payload_size());
-          db.commit();
+      QString file = d->name();
+      if (d->exec()==QDialog::Accepted)
+	file = QInputDialog::getText(this,"Configuration:","Name:",
+				     QLineEdit::Normal,d->name(),&ok);
+      if (ok && !file.isEmpty()) {
+	x.name = qPrintable(file);
+	db.begin();
+	db.setXTC(x, d->payload(), d->payload_size());
+	db.commit();
           
-          FileEntry entry(stype,qPrintable(d->name()));
-          _expt.device(det)->table().set_entry(cfg,entry);
-        }
+	FileEntry entry(stype,x.name);
+	_expt.device(det)->table().set_entry(cfg,entry);
       }
       delete d;
     }

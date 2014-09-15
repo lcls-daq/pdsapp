@@ -3,6 +3,8 @@
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QLabel>
 #include <QtGui/QLineEdit>
+#include <QtGui/QFileDialog>
+#include <QtGui/QCheckBox>
 
 #include <string.h>
 
@@ -79,4 +81,46 @@ QWidget* TextParameter::widget()
   return allowEdit() ? 
     static_cast<QWidget*>(_input) : 
     static_cast<QWidget*>(_display); 
+}
+
+ParameterFile::ParameterFile(const char* p) :
+  Parameter(p) {}
+
+PolyDialog::PolyDialog(ParameterFile& p) :
+  _p(p),
+  _d(new QFileDialog)
+{
+}
+
+CheckValue::CheckValue(const char* label,
+		       bool checked) :
+  Parameter(label),
+  value    (checked)
+{
+}
+
+CheckValue::~CheckValue()
+{}
+
+QLayout* CheckValue::initialize(QWidget*)
+{
+  QHBoxLayout* h = new QHBoxLayout;
+  h->addWidget(_input = new QCheckBox(_label));
+  flush();
+  return h;
+}
+
+void CheckValue::update()
+{
+  value = _input->isChecked();
+}
+
+void CheckValue::flush()
+{
+  _input->setChecked(value);
+}
+
+void CheckValue::enable(bool v)
+{
+  _input->setEnabled(v);
 }

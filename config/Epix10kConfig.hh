@@ -4,6 +4,7 @@
 #include "pdsapp/config/Serializer.hh"
 
 namespace Pds_ConfigDb {
+  class Epix10kConfigP;
 
   class Epix10kConfig : public Serializer {
   public:
@@ -14,8 +15,7 @@ namespace Pds_ConfigDb {
     int  writeParameters(void* to);
     int  dataSize       () const;
   private:
-    class PrivateData;
-    PrivateData* _private;
+    Epix10kConfigP* _private;
   };
 
 };

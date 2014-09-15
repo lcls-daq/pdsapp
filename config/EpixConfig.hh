@@ -5,6 +5,8 @@
 
 namespace Pds_ConfigDb {
 
+  class EpixConfigP;
+
   class EpixConfig : public Serializer {
   public:
     EpixConfig();
@@ -14,8 +16,7 @@ namespace Pds_ConfigDb {
     int  writeParameters(void* to);
     int  dataSize       () const;
   private:
-    class PrivateData;
-    PrivateData* _private;
+    EpixConfigP* _private;
   };
 
 };

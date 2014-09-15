@@ -4,14 +4,22 @@
 #include "pds/service/LinkedList.hh"
 
 #include "pdsapp/config/ParameterCount.hh"
+#include "pdsapp/config/PolyDialog.hh"
+
+#include <vector>
 
 class QWidget;
 class QLayout;
 class QLineEdit;
 class QComboBox;
 class QLabel;
+class QFileDialog;
+class QPushButton;
+class QString;
+class QCheckBox;
 
 namespace Pds_ConfigDb {
+  class PolyDialog;
 
   class Enums {
   public:
@@ -108,6 +116,34 @@ namespace Pds_ConfigDb {
     QLabel*    _display;
   };
 
+  class ParameterFile : public Parameter {
+  public:
+    ParameterFile(const char* p);
+    virtual ~ParameterFile() {}
+    virtual void mport(const QString&) = 0;
+    virtual void xport(const QString&) const = 0;
+  };
+
+  template <class T>
+  class Poly : public ParameterFile {
+  public:
+    Poly(const char* label);
+    ~Poly();
+    QLayout* initialize(QWidget*);
+    void     update();
+    void     flush ();
+    void     enable(bool);
+
+    void     mport(const QString&);
+    void     xport(const QString&) const;
+  public:
+    std::vector<T> value;
+    QLabel*        _display;
+    PolyDialog*    _dialog;
+    QPushButton*   _import;
+    QPushButton*   _export;
+  };
+
   template <class T>
   class Enumerated : public Parameter {
   public:
@@ -167,6 +203,19 @@ namespace Pds_ConfigDb {
     QLabel*    _display[N];
   };
 
+  class CheckValue : public Parameter {
+  public:
+    CheckValue(const char* label, bool checked);
+    ~CheckValue();
+
+    QLayout* initialize(QWidget*);
+    void     update();
+    void     flush ();
+    void     enable(bool);
+  public:
+    bool       value;
+    QCheckBox* _input;
+  };
 };
 
 #endif

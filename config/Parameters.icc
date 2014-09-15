@@ -4,9 +4,14 @@
 #include "pdsapp/config/Validators.hh"
 
 #include <QtGui/QHBoxLayout>
+#include <QtGui/QGridLayout>
 #include <QtGui/QLabel>
 #include <QtGui/QLineEdit>
 #include <QtGui/QComboBox>
+#include <QtGui/QPushButton>
+#include <QtGui/QDialog>
+
+#include <fstream>
 
 using namespace Pds_ConfigDb;
 
@@ -387,4 +392,73 @@ void NumericIntArray<T,N>::setWidth(unsigned w)
   }
 }
 
+template <class T>
+Poly<T>::Poly(const char* label) : ParameterFile(label) {}
 
+template <class T>
+Poly<T>::~Poly() { delete _dialog; }
+
+template <class T>
+QLayout* Poly<T>::initialize(QWidget*)
+{
+  QGridLayout* l = new QGridLayout;
+  l->addWidget(_display = new QLabel(QString("%1 (%2)")
+				     .arg(_label)
+				     .arg(value.size())),
+	       0,0,1,2,Qt::AlignHCenter);
+  l->addWidget(_import = new QPushButton("Import"),1,0);
+  l->addWidget(_export = new QPushButton("Export"),1,1);
+
+  _dialog = new PolyDialog(*this);
+
+  QObject::connect(_import, SIGNAL(clicked()), _dialog, SLOT(mport()));
+  QObject::connect(_export, SIGNAL(clicked()), _dialog, SLOT(xport()));
+
+  return l;
+}
+
+template <class T>
+void Poly<T>::update() {}
+
+template <class T>
+void Poly<T>::flush() 
+{
+  _display->setText(QString("%1 (%2)")
+                    .arg(_label)
+                    .arg(value.size()));
+}
+
+template <class T>
+void Poly<T>::enable(bool v)
+{
+  _import->setEnabled(v);
+  _export->setEnabled(v);
+}
+
+template <class T>
+void Poly<T>::mport(const QString& fname)
+{
+  std::ifstream f(qPrintable(fname));
+  if (f.good()) {
+    std::vector<T> a;
+    T v;
+    while(1) {
+      f >> v; 
+      if (!f.good()) break;
+      a.push_back(v); }
+    value = a;
+    _display->setText(QString("%1 (%2)")
+                      .arg(_label)
+                      .arg(value.size()));
+  }
+}
+
+template <class T>
+void Poly<T>::xport(const QString& fname) const
+{
+  std::ofstream f(qPrintable(fname));
+  if (f.good()) {
+    for(unsigned i=0; i<value.size(); i++)
+      f << value[i] << ' ';
+  }
+}

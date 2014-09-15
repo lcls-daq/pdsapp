@@ -26,7 +26,9 @@ ParameterSet::ParameterSet(const char* label,
 }
 
 ParameterSet::~ParameterSet()
-{}
+{
+  delete _qset;
+}
 
 QLayout* ParameterSet::initialize(QWidget* parent)
 {
