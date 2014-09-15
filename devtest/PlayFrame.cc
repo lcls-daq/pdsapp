@@ -88,7 +88,7 @@ InDatagram* PlayFrame::events(InDatagram* dg)
 
       char* q = _quad_payload;
       for(unsigned b=0; b<NBuffers; b++) {
-	if (pq-pxtc->payload() >= pxtc->extent) {
+	if (pq-pxtc->payload() >= int(pxtc->extent)) {
 	  pxtc = play.next();
 	  pq   = pxtc->payload()+sizeof(CsPad::ElementV1);
 	}

@@ -12,79 +12,95 @@
 #include "pds/genericpgp/Manager.hh"
 #include "pds/genericpgp/Server.hh"
 
+#include "pdsdata/psddl/alias.ddl.h"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
 #include <new>
 
-namespace Pds
-{
-   class MySegWire;
-   class Seg;
-}
-
-//
-//  This class creates the server when the streams are connected.
-//
-class Pds::MySegWire
-   : public SegWireSettings
-{
+namespace Pds {
+  //
+  //  This class creates the server when the streams are connected.
+  //
+  class MySegWire : public SegWireSettings {
   public:
-  MySegWire(GenericPgp::Server* server);
-   virtual ~MySegWire() {}
+    MySegWire(GenericPgp::Server* server,
+	      const char*         unique_id,
+	      unsigned            evr_module,
+	      unsigned            evr_channel);
 
-   void connect( InletWire& wire,
-                 StreamParams::StreamType s,
-                 int interface );
+    virtual ~MySegWire() {}
 
-   const std::list<Src>& sources() const { return _sources; }
+    void connect( InletWire& wire,
+		  StreamParams::StreamType s,
+		  int interface );
 
-   unsigned max_event_size () const { return 4*1024*1024; }
-   unsigned max_event_depth() const { return _max_event_depth; }
-   void max_event_depth(unsigned d) { _max_event_depth = d; }
- private:
-  GenericPgp::Server* _server;
-   std::list<Src> _sources;
-   unsigned _max_event_depth;
-};
+    const std::list<Src>& sources() const { return _sources; }
+    const std::list<Alias::SrcAlias>* pAliases() const 
+    { return _aliases.size() ? &_aliases : 0; }
 
-//
-//  Implements the callbacks for attaching/dissolving.
-//  Appliances can be added to the stream here.
-//
-class Pds::Seg
-   : public EventCallback
-{
- public:
-   Seg( Task* task,
-        unsigned platform,
-        SegWireSettings& settings,
-        Arp* arp,
-        GenericPgp::Server* server,
-        unsigned pgpcard );
+    unsigned max_event_size () const { return 4*1024*1024; }
+    unsigned max_event_depth() const { return _max_event_depth; }
+    void max_event_depth(unsigned d) { _max_event_depth = d; }
+  
+    bool     is_triggered() const { return true; }
+    unsigned module      () const { return _evr_module; }
+    unsigned channel     () const { return _evr_channel; }
 
-   virtual ~Seg();
-   bool didYouFail() { return _failed; }
+  private:
+    GenericPgp::Server* _server;
+    std::list<Src>      _sources;
+    std::list<Alias::SrcAlias> _aliases;
+    unsigned            _max_event_depth;
+    unsigned            _evr_module;
+    unsigned            _evr_channel;
+  };
+
+  //
+  //  Implements the callbacks for attaching/dissolving.
+  //  Appliances can be added to the stream here.
+  //
+  class Seg : public EventCallback {
+  public:
+    Seg( Task* task,
+	 unsigned platform,
+	 SegWireSettings& settings,
+	 Arp* arp,
+	 GenericPgp::Server* server,
+	 unsigned pgpcard );
+
+    virtual ~Seg();
+    bool didYouFail() { return _failed; }
     
- private:
-   // Implements EventCallback
-   void attached( SetOfStreams& streams );
-   void failed( Reason reason );
-   void dissolved( const Node& who );
+  private:
+    // Implements EventCallback
+    void attached( SetOfStreams& streams );
+    void failed( Reason reason );
+    void dissolved( const Node& who );
 
-   Task* _task;
-   unsigned _platform;
-  GenericPgp::Server* _server;
-   unsigned     _pgpcard;
-   bool         _failed;
+    Task* _task;
+    unsigned _platform;
+    GenericPgp::Server* _server;
+    unsigned     _pgpcard;
+    bool         _failed;
+  };
 };
 
-
-Pds::MySegWire::MySegWire( GenericPgp::Server* server )
-   : _server(server), _max_event_depth(128)
+Pds::MySegWire::MySegWire( GenericPgp::Server* server,
+			   const char*         unique_id,
+			   unsigned            evr_module,
+			   unsigned            evr_channel) :
+  _server         (server), 
+  _max_event_depth(128),
+  _evr_module     (evr_module),
+  _evr_channel    (evr_channel)
 { 
    _sources.push_back(server->client());
+
+   if (unique_id)
+     _aliases.push_back(Pds::Alias::SrcAlias(server->client(), unique_id));
 }
 
 static Pds::InletWire* myWire = 0;
@@ -176,21 +192,22 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: %s [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-r <runTimeConfigName>] [-D <debug>] [-P <pgpcardNumb> -p <platform>\n"
-      "    -h      Show usage\n"
-      "    -p      Set platform id           [required]\n"
-      "    -i      Set device info           [required]\n"
+  printf( "Usage: %s [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-r <runTimeConfigName>] [-D <debug>] [-P <pgpcardNumb> -p <platform,evrmod,evrchan> -u <alias>\n"
+      "    -h        Show usage\n"
+      "    -p        Set platform id, evr module, and channel [required]\n"
+      "    -i        Set device info           [required]\n"
       "                integer/integer/integer/integer or string/integer/string/integer\n"
       "                    (e.g. XppEndStation/0/Epix/1 or 22/0/29/1)\n"
-      "    -i      Set device id             [Default: 0]\n"
-      "    -P      Set pgpcard index number  [Default: 0]\n"
-      "    -e <N>  Set the maximum event depth, default is 128\n"
-      "    -R <B>  Set flag to reset on every config or just the first if false\n"
-      "    -r      set run time config file name\n"
+      "    -i        Set device id             [Default: 0]\n"
+      "    -P        Set pgpcard index number  [Default: 0]\n"
+      "    -u <name> Set alias name\n"
+      "    -e <N>    Set the maximum event depth, default is 128\n"
+      "    -R <B>    Set flag to reset on every config or just the first if false\n"
+      "    -r        set run time config file name\n"
       "                The format of the file consists of lines: 'Dest Addr Data'\n"
       "                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
       "                four bit field where the bottom two bits are VC and The top two are Lane\n"
-      "    -D      Set debug value           [Default: 0]\n"
+      "    -D        Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
       "                bit 02          fill in fetch details\n"
@@ -199,8 +216,8 @@ void printUsage(char* s) {
       "                bit 05          label enable and disable\n"
       "                bit 08          turn on printing of FE Internal status on\n"
       "                "
-      "            NB, if you can't remember the detector names\n"
-      "            just make up something and it'll list them\n", s
+      "              NB, if you can't remember the detector names\n"
+      "              just make up something and it'll list them\n", s
   );
 }
 
@@ -209,7 +226,9 @@ int main( int argc, char** argv )
   bool                parseValid=true;
   DetInfo             info;
   unsigned            platform            = 0;
+  unsigned            module = 0, channel = 0;
   bool                platformEntered     = false;
+  const char*         unique_id           = 0;
   unsigned            mask                = 0;
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
@@ -224,12 +243,19 @@ int main( int argc, char** argv )
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hi:p:m:e:R:r:D:P:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hi:p:m:e:R:r:D:P:u:" ) ) != EOF ) {
      switch(c) {
          case 'p':
-	   parseValid &= CmdLineTools::parseUInt(optarg,platform);
+	   parseValid &= CmdLineTools::parseUInt(optarg,platform,module,channel)==3;
            platformEntered = true;
            break;
+         case 'u':
+	   if (strlen(optarg) > SrcAlias::AliasNameMax-1) {
+	     printf("Device alias '%s' exceeds %d chars, ignored\n", optarg, SrcAlias::AliasNameMax-1);
+	   } else {
+	     unique_id = optarg;
+	   }
+	   break;
          case 'i':
 	   parseValid &= CmdLineTools::parseDetInfo(optarg,info);
            break;
@@ -291,7 +317,7 @@ int main( int argc, char** argv )
    server->debug(debug);
 
    printf("MySetWire settings\n");
-   MySegWire settings(server);
+   MySegWire settings(server, unique_id, module, channel);
    settings.max_event_depth(eventDepth);
 
    printf("making Seg\n");

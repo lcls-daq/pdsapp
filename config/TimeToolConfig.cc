@@ -125,7 +125,10 @@ namespace Pds_ConfigDb
   public:
     void flush () { for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->flush(); }
     void update() { for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->update(); }
-    void enable(bool l) { for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->enable(l); }
+    void enable(bool l) { 
+      for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->enable(l); 
+      _record_proj.enable(false);
+    }
   public:
     QLayout* initialize(QWidget* p) {
       QVBoxLayout* layout = new QVBoxLayout;
@@ -156,6 +159,7 @@ namespace Pds_ConfigDb
       QObject::connect(_use_sb._input, SIGNAL(toggled(bool)), &_concealer, SLOT(show(bool)));
 
       _use_sb.value=false;
+      _record_proj.enable(false);
 
       return layout;
     }

@@ -459,7 +459,7 @@ public:
     _cfgtc = new(_cfgpayload) Xtc(_CsPad2x2ConfigType,src);
 
     Pds::CsPad2x2::ProtectionSystemThreshold pt(-1U,-1U);
-    Pds::CsPad2x2::CsPad2x2ReadOnlyCfg       ro;
+    Pds::CsPad2x2::CsPad2x2ReadOnlyCfg       ro(-1U,-1U);
     Pds::CsPad2x2::CsPad2x2DigitalPotsCfg    dpots;
 
     unsigned shape[2] = { Pds::CsPad2x2::ColumnsPerASIC, 

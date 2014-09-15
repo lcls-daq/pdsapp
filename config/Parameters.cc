@@ -107,6 +107,7 @@ QLayout* CheckValue::initialize(QWidget*)
   QHBoxLayout* h = new QHBoxLayout;
   h->addWidget(_input = new QCheckBox(_label));
   flush();
+  _input->setEnabled(allowEdit());
   return h;
 }
 
@@ -122,5 +123,5 @@ void CheckValue::flush()
 
 void CheckValue::enable(bool v)
 {
-  _input->setEnabled(v);
+  _input->setEnabled(allowEdit()&v);
 }
