@@ -260,6 +260,11 @@ const char* SelectDialog::l3_path() const
   return qPrintable(_evtbox->inputData()); 
 }
 
+float SelectDialog::l3_unbias() const
+{
+  return _evtbox->unbiased_fraction();
+}
+
 QWidget* SelectDialog::display() {
   QWidget* d = new QWidget((QWidget*)0);
   d->setAttribute(Qt::WA_DeleteOnClose,false);

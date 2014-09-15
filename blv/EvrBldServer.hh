@@ -9,7 +9,7 @@ namespace Pds {
 
   class EvrBldServer : public EvrServer {
   public:
-    EvrBldServer(const Src& client, int read_fd, InletWire& inlet);
+    EvrBldServer(const Src& client, int read_fd, Inlet& inlet);
     ~EvrBldServer() {}    
   public:
     //  Eb interface

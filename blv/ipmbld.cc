@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
     iwire->add_input(ipimbServer[i]);
 
   DetInfo evr_info(0,DetInfo::NoDetector,0,DetInfo::Evr,0);
-  iwire->add_input(new EvrBldServer(evr_info, evr_read_fd, *iwire));
+  iwire->add_input(new EvrBldServer(evr_info, evr_read_fd, *stream->inlet()));
   
   stream->set_inlet_wire(iwire);
   stream->start();

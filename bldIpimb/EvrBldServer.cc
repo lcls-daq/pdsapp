@@ -10,7 +10,7 @@
 
 using namespace Pds;
 
-EvrBldServer::EvrBldServer(const Src& client, InletWire& inlet) :
+EvrBldServer::EvrBldServer(const Src& client, Inlet& inlet) :
   EvrServer(Ins(), 
             client, 
             inlet, 

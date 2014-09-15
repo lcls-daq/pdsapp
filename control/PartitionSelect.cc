@@ -96,8 +96,12 @@ void PartitionSelect::select_dialog()
     _reporters   = dialog->reporters();
 
     unsigned options(_options);
+    float    l3_unbias(0.);
     if (dialog->l3_tag ()) options |= Allocation::L3Tag;
-    if (dialog->l3_veto()) options |= Allocation::L3Veto;
+    if (dialog->l3_veto()) { 
+      options |= Allocation::L3Veto;
+      l3_unbias = dialog->l3_unbias();
+    }
     std::string l3_path(dialog->l3_path());
 
     QList<DetInfo> iocs = dialog->iocs();
@@ -170,7 +174,9 @@ void PartitionSelect::select_dialog()
 			      l3_path.c_str(),
                               _nodes  , _nnodes,
                               bld_mask, bld_mask_mon,
-                              options, cfg);
+                              options, 
+			      l3_unbias,
+			      cfg);
       _pcontrol.set_target_state(PartitionControl::Configured);
 
       delete[] buff;

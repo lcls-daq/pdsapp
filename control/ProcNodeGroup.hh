@@ -7,8 +7,10 @@ class QCheckBox;
 class QComboBox;
 class QPushButton;
 class QFileDialog;
+class QLabel;
+class QLineEdit;
 class QPalette;
-class QHBoxLayout;
+class QGridLayout;
 
 namespace Pds {
 
@@ -24,6 +26,7 @@ namespace Pds {
   public:
     bool    useL3F   () const;
     bool    useVeto  () const;
+    float   unbiased_fraction() const;
     QString inputData() const;
   protected:
     int order(const NodeSelect& node, const QString& text);
@@ -33,14 +36,18 @@ namespace Pds {
   public slots:
     void select_file();
     void action_change(int);
+    void unbias_change();
   private:
-    QHBoxLayout* _l3f_layout;
+    QGridLayout* _l3f_layout;
     QCheckBox*   _l3f_box;
     QPushButton* _l3f_data;
     QComboBox*   _l3f_action;
+    QLabel*      _l3f_unbiasl;
+    QLineEdit*   _l3f_unbias;
     QFileDialog* _input_data;
     QPalette*    _palette[3];
     bool         _triggered;
+    float        _l3f_unbiasv;
   };
 }; // namespace Pds
 

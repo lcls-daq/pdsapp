@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  iwire->add_input(new EvrBldServer(det, evr_read_fd, *iwire));
+  iwire->add_input(new EvrBldServer(det, evr_read_fd, *stream->inlet()));
   
   stream->set_inlet_wire(iwire);
   stream->start();

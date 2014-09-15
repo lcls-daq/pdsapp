@@ -7,7 +7,7 @@ namespace Pds {
 
   class EvrBldServer : public EvrServer {
   public:
-    EvrBldServer(const Src& client, InletWire&);
+    EvrBldServer(const Src& client, Inlet&);
     ~EvrBldServer() {}    
     int  sendEvrEvent(EvrDatagram* evrDatagram);
   public:

@@ -72,7 +72,7 @@ namespace Pds {
     public:
     MySeqServer(unsigned   platform,
                 int        fd,
-                InletWire& inlet) :
+                Inlet&     inlet) :
           EvrServer(StreamPorts::event(platform,Level::Segment),
                     DetInfo(uint32_t(-1UL),DetInfo::NoDetector,0,DetInfo::Evr,0),
                     inlet, 4),
@@ -424,7 +424,7 @@ namespace Pds {
         fsm->callback(TransitionId::EndRun     , new EndRunAction);
         fsm->callback(TransitionId::Disable    , new DisableAction);
         fsm->connect(frmk->inlet());
-        mySeqServerGlobal  = new MySeqServer(_platform, pipefd[1], *_inlet);
+        mySeqServerGlobal  = new MySeqServer(_platform, pipefd[1], *frmk->inlet());
       }
       void failed(Reason reason)
       {

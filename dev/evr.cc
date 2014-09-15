@@ -219,6 +219,7 @@ int main(int argc, char** argv) {
       break;
     case 'R':
       EvrManager::randomize_nodes(true);
+      EvsManager::randomize_nodes(true);
       break;
     case 'S':
       simulate = true;

@@ -308,7 +308,7 @@ int main(int argc, char** argv) {
   
   // EVR Server 
   DetInfo evrDetInfo(getpid(), DetInfo::NoDetector, 0, DetInfo::Evr, 0);
-  EvrBldServer& evrBldServer = *new EvrBldServer(evrDetInfo, *iwire);    
+  EvrBldServer& evrBldServer = *new EvrBldServer(evrDetInfo, *bldIpimbStream->inlet());    
   
   // EVR & IPIMB Mgr Appliances and Stream Connections
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);

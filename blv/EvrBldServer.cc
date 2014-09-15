@@ -16,7 +16,7 @@ static int nPrint = 20;
 
 EvrBldServer::EvrBldServer(const Src& client,
                            int        read_fd,
-                           InletWire& inlet) :
+                           Inlet&     inlet) :
   EvrServer(Ins(),
             client,
             inlet,
