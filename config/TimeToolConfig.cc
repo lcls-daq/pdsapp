@@ -127,7 +127,7 @@ namespace Pds_ConfigDb
     void update() { for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->update(); }
     void enable(bool l) { 
       for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->enable(l); 
-      _record_proj.enable(false);
+      //      _record_proj.enable(false);
     }
   public:
     QLayout* initialize(QWidget* p) {
@@ -159,7 +159,7 @@ namespace Pds_ConfigDb
       QObject::connect(_use_sb._input, SIGNAL(toggled(bool)), &_concealer, SLOT(show(bool)));
 
       _use_sb.value=false;
-      _record_proj.enable(false);
+      //      _record_proj.enable(false);
 
       return layout;
     }
@@ -192,7 +192,7 @@ namespace Pds_ConfigDb
       _record_image.value = c.write_image();
       _record_proj .value = c.write_projections();
 
-      std::string base_name((const char*)c.base_name().data(),
+      std::string base_name(c.base_name(),
 			    c.base_name_length());
       strcpy(_base_name.value,base_name.c_str());
 
@@ -245,7 +245,7 @@ namespace Pds_ConfigDb
 			  laser_logic.data(),
 			  _weights.value.data(),
 			  _cal_poly.value.data(),
-			  (const uint8_t*)_base_name.value);
+			  _base_name.value);
       return c._sizeof();
     }
 
