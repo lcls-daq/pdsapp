@@ -34,7 +34,15 @@ static const char sFliVersion[] = "0.9";
 class SegWireSettingsFli : public SegWireSettings
 {
 public:
-    SegWireSettingsFli(const Src& src, string sAliasName)
+    SegWireSettingsFli(const Src& src,
+                       bool       bTriggered,
+                       unsigned   uModule,
+                       unsigned   uChannel,
+                       string     sAliasName) :
+      _bTriggered (bTriggered),
+      _uModule    (uModule),
+      _uChannel   (uChannel)
+
     {
       _sources.push_back(src);
       if (sAliasName.length())
@@ -50,9 +58,16 @@ public:
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
+    bool     is_triggered() const { return _bTriggered; }
+    unsigned module      () const { return _uModule; }
+    unsigned channel     () const { return _uChannel; }
+
 private:
     std::list<Src> _sources;
     std::list<SrcAlias> _aliases;
+    bool           _bTriggered;
+    unsigned       _uModule;
+    unsigned       _uChannel;
 };
 
 //
@@ -376,7 +391,7 @@ int main(int argc, char** argv)
     taskMainThread = task;
 
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
-    SegWireSettingsFli settings(detInfo, sUniqueId);
+    SegWireSettingsFli settings(detInfo, bTriggered, uModule, uChannel, sUniqueId);
 
     EventCallBackFli  eventCallBackFli(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iDebugLevel);
     SegmentLevel segmentLevel(iPlatform, settings, eventCallBackFli, NULL);
