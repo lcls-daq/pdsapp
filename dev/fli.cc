@@ -7,6 +7,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/psddl/epics.ddl.h"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -21,6 +22,8 @@
 #include "pds/config/CfgClientNfs.hh"
 #include "pds/fli/FliManager.hh"
 #include "pds/fli/FliServer.hh"
+
+extern int optind;
 
 using std::string;
 
@@ -156,19 +159,19 @@ static void showUsage()
 {
     printf( "Usage:  fli  [-v|--version] [-h|--help] [-c|--camera <0-9> ] "
       "[-i|--id <id>] [-d|--delay] [-n|--init] [-g|--config <db_path>] [-s|--sleep <ms>] "
-      "[-l|--debug <level>] [-u|--uniqueid <alias>] -p|--platform <platform id>\n"
+      "[-l|--debug <level>] [-u|--uniqueid <alias>] -p|--platform <platform>[,<mod>,<chan>]\n"
       "  Options:\n"
-      "    -v|--version                 Show file version.\n"
-      "    -h|--help                    Show usage.\n"
-      "    -c|--camera   [0-9]          Select the fli device. (Default: 0)\n"
-      "    -i|--id       <id>           Set ID. Format: Detector/DetectorId/DeviceId. (Default: NoDetector/0/0)\n"
-      "    -u|--uniqueid <alias>        Set device alias.\n"
-      "    -d|--delay                   Use delay mode.\n"
-      "    -n|--init                    Run a testing capture to avoid the initial delay.\n"
-      "    -g|--config   <db_path>      Intial fli camera based on the config db at <db_path>\n"
-      "    -s|--sleep    <sleep_ms>     Sleep inteval between multiple perinceton camera. (Default: 0 ms)\n"
-      "    -l|--debug    <level>        Set debug level. (Default: 0)\n"
-      "    -p|--platform <platform id>  [*required*] Set platform id.\n"
+      "    -v|--version                             Show file version.\n"
+      "    -h|--help                                Show usage.\n"
+      "    -c|--camera   [0-9]                      Select the fli device. (Default: 0)\n"
+      "    -i|--id       <id>                       Set ID. Format: Detector/DetectorId/DeviceId. (Default: NoDetector/0/0)\n"
+      "    -u|--uniqueid <alias>                    Set device alias.\n"
+      "    -d|--delay                               Use delay mode.\n"
+      "    -n|--init                                Run a testing capture to avoid the initial delay.\n"
+      "    -g|--config   <db_path>                  Initialize fli camera based on the config db at <db_path>\n"
+      "    -s|--sleep    <sleep_ms>                 Sleep interval between multiple fli cameras. (Default: 0 ms)\n"
+      "    -l|--debug    <level>                    Set debug level. (Default: 0)\n"
+      "    -p|--platform <platform>[,<mod>,<chan>]  Set platform id [*required*], EVR module, EVR channel\n"
     );
 }
 
@@ -217,8 +220,13 @@ int main(int argc, char** argv)
     bool              bInitTest     = false;
     int               iDebugLevel   = 0;
     int               iPlatform     = -1;
+    unsigned          uModule       = 0;
+    unsigned          uChannel      = 0;
     string            sConfigDb;
     int               iSleepInt     = 0; // 0 ms
+    bool              bShowUsage    = false;
+    bool              bTriggered    = false;
+    unsigned          uu1, uu2, uu3;
 
     int               iOptionIndex  = 0;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
@@ -231,21 +239,51 @@ int main(int argc, char** argv)
             showVersion();
             return 0;
         case 'p':
-            iPlatform = strtoul(optarg, NULL, 0);
+            switch (CmdLineTools::parseUInt(optarg,uu1,uModule,uChannel))
+            {
+            case 1:
+              bTriggered = false;
+              break;
+            case 3:
+              bTriggered = true;
+              break;
+            default:
+              printf( "fli:main(): option `-p' parsing error\n" );
+              bShowUsage = true;
+              break;
+            }
+            iPlatform = (int) uu1;
             break;
         case 'c':
-            iCamera = strtoul(optarg, NULL, 0);
+            if (!CmdLineTools::parseInt(optarg, iCamera))
+            {
+              printf( "fli:main(): option `-c' parsing error\n" );
+              bShowUsage = true;
+            }
             break;
         case 'i':
-            char* pNextToken;
-            detector    = (DetInfo::Detector) strtoul(optarg, &pNextToken, 0); ++pNextToken;
-            if ( *pNextToken == 0 ) break;
-            iDetectorId = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;
-            if ( *pNextToken == 0 ) break;
-            iDeviceId   = strtoul(pNextToken, &pNextToken, 0);
+            if (CmdLineTools::parseUInt(optarg,uu1,uu2,uu3,0,'/') != 3)
+            {
+              printf( "fli:main(): option `-i' parsing error\n" );
+              bShowUsage = true;
+            }
+            else
+            {
+              detector = (DetInfo::Detector) uu1;
+              iDetectorId = (int) uu2;
+              iDeviceId = (int) uu3;
+            }
             break;
           case 'u':
-            sUniqueId = optarg;
+            if (!CmdLineTools::parseSrcAlias(optarg))
+            {
+              printf( "fli:main(): option `-u' parsing error\n" );
+              bShowUsage = true;
+            }
+            else
+            {
+              sUniqueId = optarg;
+            }
             break;
           case 'd':
             bDelayMode = true;
@@ -254,19 +292,28 @@ int main(int argc, char** argv)
             bInitTest = true;
             break;
         case 'l':
-            iDebugLevel = strtoul(optarg, NULL, 0);
+            if (!CmdLineTools::parseInt(optarg,iDebugLevel))
+            {
+              printf( "fli:main(): option `-l' parsing error\n" );
+              bShowUsage = true;
+            }
             break;
         case 'g':
             sConfigDb = optarg;
             break;
         case 's':
-            iSleepInt = strtoul(optarg, NULL, 0);
+            if (!CmdLineTools::parseInt(optarg,iSleepInt))
+            {
+              printf( "fli:main(): option `-s' parsing error\n" );
+              bShowUsage = true;
+            }
             break;
         case '?':               /* Terse output mode */
             if (optopt)
               printf( "fli:main(): Unknown option: %c\n", optopt );
             else
               printf( "fli:main(): Unknown option: %s\n", argv[optind-1] );
+            bShowUsage = true;
             break;
         case ':':               /* Terse output mode */
             printf( "fli:main(): Missing argument for %c\n", optopt );
@@ -278,12 +325,20 @@ int main(int argc, char** argv)
         }
     }
 
-    argc -= optind;
-    argv += optind;
-
     if ( iPlatform == -1 )
     {
         printf( "fli:main(): Please specify platform in command line options\n" );
+        bShowUsage = true;
+    }
+
+    if (optind < argc)
+    {
+        printf(" fli:main(): invalid argument -- %s\n", argv[optind] );
+        bShowUsage = true;
+    }
+
+    if (bShowUsage)
+    {
         showUsage();
         return 1;
     }
@@ -305,7 +360,10 @@ int main(int argc, char** argv)
     {
     printf("Settings:\n");
 
-    printf("  Platform: %d  Camera: %d\n", iPlatform, iCamera);
+    if (bTriggered)
+      printf("  Platform: %d  EVR module: %u  EVR channel: %u  Camera: %d\n", iPlatform, uModule, uChannel, iCamera);
+    else
+      printf("  Platform: %d  Camera: %d\n", iPlatform, iCamera);
 
     const DetInfo detInfo( getpid(), detector, iDetectorId, DetInfo::Fli, iDeviceId);
     printf("  DetInfo: %s  ConfigDb: %s  Sleep: %d ms\n", DetInfo::name(detInfo), sConfigDb.c_str(), iSleepInt );
