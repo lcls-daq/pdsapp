@@ -42,7 +42,6 @@ public:
       _bTriggered (bTriggered),
       _uModule    (uModule),
       _uChannel   (uChannel)
-
     {
       _sources.push_back(src);
       if (sAliasName.length())
@@ -332,6 +331,7 @@ int main(int argc, char** argv)
             break;
         case ':':               /* Terse output mode */
             printf( "fli:main(): Missing argument for %c\n", optopt );
+            bShowUsage = true;
             break;
         default:
         case 'h':               /* Print usage */
