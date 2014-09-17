@@ -42,7 +42,7 @@ static void load_appliance(char*       arg,
       }
       else {
         if (apps != NULL)
-          c_user()->connect(apps);
+          c_user()->connect(apps->backward());
         else
           apps = c_user();
       }
