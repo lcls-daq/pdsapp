@@ -75,13 +75,13 @@ int main(int argc, char* argv[]) {
   }
 
   const unsigned AsicsPerColumn=2, AsicsPerRow=2;
-  const unsigned Rows=51, Columns=192;
+  const unsigned Rows=51, Columns=192, Excluded=2;
   const unsigned asicMask=5;
   
   const unsigned Asics = AsicsPerRow*AsicsPerColumn;
   Epix10kConfigType* cfgt = new Epix10kConfigType(AsicsPerRow,
 						  AsicsPerColumn,
-						  Rows, Columns);
+						  Rows, Columns, Excluded);
 
 #define FILL_ROW(v) {						\
     uint16_t* p = const_cast<uint16_t*>(&array[i][j][0]);	\
