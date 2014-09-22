@@ -312,7 +312,8 @@ int Epix10kConfigP::dataSize() const {
                                                  _reg[Epix10kConfigShadow::NumberOfAsicsPerRow]->value,
                                                  _reg[Epix10kConfigShadow::NumberOfAsicsPerColumn]->value,
                                                  _reg[Epix10kConfigShadow::NumberOfRowsPerAsic]->value,
-                                                 _reg[Epix10kConfigShadow::NumberOfPixelsPerAsicRow]->value);
+                                                 _reg[Epix10kConfigShadow::NumberOfPixelsPerAsicRow]->value,
+						 _reg[Epix10kConfigShadow::LastRowExclusions]->value);
   int size = (int) foo->_sizeof();
   //    printf("Epix10kConfig::dataSize apr(%u) apc(%u) rpa(%u) ppar(%u) size(%u)\n",
   //        _reg[Epix10kConfigShadow::NumberOfAsicsPerRow]->value,
