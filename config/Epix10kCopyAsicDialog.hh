@@ -1,5 +1,5 @@
-#ifndef EPIXCOPYASICDIALOG_H
-#define EPIXCOPYASICDIALOG_H
+#ifndef EPIX10kCOPYASICDIALOG_H
+#define EPIX10kCOPYASICDIALOG_H
 
 #include <QtGui/QDialog>
 #include "pds/config/EpixConfigType.hh"

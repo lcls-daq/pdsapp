@@ -129,7 +129,8 @@ PyObject* pds_Epix10kConfig_set    (PyObject*   self, PyObject* args)
       PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerRow")), 
       PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerColumn")), 
       PyLong_AsLong(PyDict_GetItemString(o, "NumberOfRowsPerAsic")), 
-      PyLong_AsLong(PyDict_GetItemString(o, "NumberOfPixelsPerAsicRow")));
+      PyLong_AsLong(PyDict_GetItemString(o, "NumberOfPixelsPerAsicRow")),
+      PyLong_AsLong(PyDict_GetItemString(o, "LastRowExclusions")));
 
   unsigned isize = myConfig->_sizeof();
   unsigned usize = isize*(icycle+1);
