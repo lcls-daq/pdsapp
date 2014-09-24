@@ -36,7 +36,12 @@ namespace Pds_ConfigDb
       _conn("IO Module", Pds::EvrData::OutputMap::UnivIO, connTypes)
     {
       for(int i=0; i<MaxOutputs; i++)
-  _channel[i] = new EvrIOChannel(i);
+	_channel[i] = new EvrIOChannel(i);
+    }
+    ~Panel()
+    {
+      for(int i=0; i<MaxOutputs; i++)
+	delete _channel[i];
     }
   public:
     void insert(Pds::LinkedList<Parameter>& pList)
@@ -83,16 +88,18 @@ namespace Pds_ConfigDb
       l->addWidget( new QLabel("Conn")    , row, column++, Qt::AlignCenter);
       l->addWidget( new QLabel("Label")   , row, column++, Qt::AlignCenter);
       l->addWidget( new QLabel("Devices") , row, column++, Qt::AlignCenter);
-      column++;
-      column++;
-      l->addWidget( new QLabel("Detector"), row, column++, Qt::AlignCenter);
-      l->addWidget( new QLabel("DetIndex"), row, column++, Qt::AlignCenter);
-      l->addWidget( new QLabel("Device")  , row, column++, Qt::AlignCenter);
-      l->addWidget( new QLabel("DevIndex"), row, column++, Qt::AlignCenter);
+      if (allowEdit()) {
+	column++;
+	column++;
+	l->addWidget( new QLabel("Detector"), row, column++, Qt::AlignCenter);
+	l->addWidget( new QLabel("DetIndex"), row, column++, Qt::AlignCenter);
+	l->addWidget( new QLabel("Device")  , row, column++, Qt::AlignCenter);
+	l->addWidget( new QLabel("DevIndex"), row, column++, Qt::AlignCenter);
+      }
       row++;
       column = 0;
       for(int i=0; i<MaxOutputs; i++, row++)
-  _channel[i]->layout(l,row);
+	_channel[i]->layout(l,row);
       layout->addLayout(l);
 
       return layout;
@@ -199,7 +206,8 @@ namespace Pds_ConfigDb
 
       QVBoxLayout* l = new QVBoxLayout;
       l->addStretch();
-      { QHBoxLayout* h = new QHBoxLayout;
+      if (allowEdit()) {
+	QHBoxLayout* h = new QHBoxLayout;
         QPushButton* addB = new QPushButton("Add EVR");
         QObject::connect(addB, SIGNAL(pressed()), _qlink, SLOT(addEvr()));
         QPushButton* remB = new QPushButton("Remove EVR");
@@ -209,7 +217,8 @@ namespace Pds_ConfigDb
         h->addStretch();
         h->addWidget(remB);
         h->addStretch();
-        l->addLayout(h); }
+        l->addLayout(h); 
+      }
       l->addStretch();
       { _tab = new QTabWidget;
         for(unsigned i=0; i<MaxEVRs; i++) {

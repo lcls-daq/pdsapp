@@ -12,6 +12,10 @@ namespace Pds_ConfigDb {
   public:
     static const char* name() { return PdsDefs::GlobalCfg_name(); }
     static void  cache(DbClient&,const Device*);
+    static void  cache(const UTypeName&,char*,bool force=false);
+    static void  cache(Pds::TypeId,char*,bool force=false);
+    static void  flush(const UTypeName&,bool force=false);
+    static void  flush(Pds::TypeId,bool force=false);
     static void* fetch(Pds::TypeId);    // if data for that type is cached
     static bool  contains(const UTypeName&); // if the type is global
   };

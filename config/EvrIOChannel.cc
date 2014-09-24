@@ -47,22 +47,30 @@ void EvrIOChannel::layout(QGridLayout* l, unsigned row) {
   for(unsigned i=0; i<_ninfo; i++)
     _detnames->addItem(Pds::DetInfo::name(_detinfo[i]));
 
-  _add      = new QPushButton("Add");
-  _remove   = new QPushButton("Remove");
+  if (_label.allowEdit()) {
+    _add      = new QPushButton("Add");
+    _remove   = new QPushButton("Remove");
 
-  l->addWidget(_channel              , row, column++, Qt::AlignCenter);
-  l->addLayout(_label  .initialize(0), row, column++, Qt::AlignCenter);
-  l->addWidget(_detnames             , row, column++, Qt::AlignCenter);
-  l->addWidget(_remove               , row, column++, Qt::AlignCenter);
-  l->addWidget(new QLabel("  ")      , row, column++, Qt::AlignCenter);
-  l->addLayout(_dettype.initialize(0), row, column++, Qt::AlignCenter);
-  l->addLayout(_detid  .initialize(0), row, column++, Qt::AlignCenter);  _detid.widget()->setMaximumWidth(60);
-  l->addLayout(_devtype.initialize(0), row, column++, Qt::AlignCenter);
-  l->addLayout(_devid  .initialize(0), row, column++, Qt::AlignCenter);  _devid.widget()->setMaximumWidth(60);
-  l->addWidget(_add                  , row, column++, Qt::AlignCenter);
-
-  connect(_add   , SIGNAL(clicked()), this, SLOT(add_info()));
-  connect(_remove, SIGNAL(clicked()), this, SLOT(remove_info()));
+    l->addWidget(_channel              , row, column++, Qt::AlignCenter);
+    l->addLayout(_label  .initialize(0), row, column++, Qt::AlignCenter);
+    l->addWidget(_detnames             , row, column++, Qt::AlignCenter);
+    
+    l->addWidget(_remove               , row, column++, Qt::AlignCenter);
+    l->addWidget(new QLabel("  ")      , row, column++, Qt::AlignCenter);
+    l->addLayout(_dettype.initialize(0), row, column++, Qt::AlignCenter);
+    l->addLayout(_detid  .initialize(0), row, column++, Qt::AlignCenter);  _detid.widget()->setMaximumWidth(60);
+    l->addLayout(_devtype.initialize(0), row, column++, Qt::AlignCenter);
+    l->addLayout(_devid  .initialize(0), row, column++, Qt::AlignCenter);  _devid.widget()->setMaximumWidth(60);
+    l->addWidget(_add                  , row, column++, Qt::AlignCenter);
+    
+    connect(_add   , SIGNAL(clicked()), this, SLOT(add_info()));
+    connect(_remove, SIGNAL(clicked()), this, SLOT(remove_info()));
+  }
+  else {
+    l->addWidget(_channel              , row, column++, Qt::AlignCenter);
+    l->addLayout(_label  .initialize(0), row, column++, Qt::AlignCenter);
+    l->addWidget(_detnames             , row, column++, Qt::AlignCenter);
+  }
 }
 
 void EvrIOChannel::add_info() {
@@ -93,10 +101,12 @@ void EvrIOChannel::remove_info() {
 
 void EvrIOChannel::insert(Pds::LinkedList<Parameter>& pList) {
   pList.insert(&_label);
-  pList.insert(&_dettype);
-  pList.insert(&_detid);
-  pList.insert(&_devtype);
-  pList.insert(&_devid);
+  if (_label.allowEdit()) {
+    pList.insert(&_dettype);
+    pList.insert(&_detid);
+    pList.insert(&_devtype);
+    pList.insert(&_devid);
+  }
 }
 void EvrIOChannel::pull(const Pds::EvrData::IOChannel& c) {
   strncpy(_label.value, c.name(), Pds::EvrData::IOChannel::NameLength);

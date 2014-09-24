@@ -61,7 +61,7 @@ namespace Pds {
     const std::list<NodeMap>& segment_map() const;
     bool                   l3_tag () const;
     bool                   l3_veto() const;
-    const char*            l3_path() const;
+    std::string            l3_path() const;
     float                  l3_unbias() const;
     QWidget*               display ();
   public:

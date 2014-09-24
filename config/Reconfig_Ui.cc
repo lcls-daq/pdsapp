@@ -206,6 +206,12 @@ void Reconfig_Ui::change_component()
           db.setXTC(x, d->payload(), d->payload_size());
           db.commit();
           
+	  if (GlobalCfg::contains(stype)) {
+	    char* b = new char[d->payload_size()];
+	    memcpy(b, d->payload(), d->payload_size());
+	    GlobalCfg::cache(stype,b);
+	  }
+
           delete d;
           delete[] payload;
         }

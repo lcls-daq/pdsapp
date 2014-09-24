@@ -5,12 +5,15 @@
 #include <errno.h>
 #include <set>
 #include "pdsapp/control/SelectDialog.hh"
+#include "pdsapp/config/GlobalCfg.hh"
 #include "pds/management/PlatformCallback.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/ioc/IocControl.hh"
 #include "pds/collection/Node.hh"
 #include "pds/config/XtcClient.hh"
 #include "pds/config/EvrConfigType.hh"
+#include "pds/config/EvrIOConfigType.hh"
+#include "pds/xtc/XtcType.hh"
 
 #include <QtGui/QLabel>
 #include <QtGui/QHBoxLayout>
@@ -21,7 +24,135 @@
 #include <QtGui/QDialog>
 #include <QtGui/QMessageBox>
 
+#include <new>
+#include <list>
+#include <vector>
+using std::list;
+using std::vector;
+
 //#define DBUG
+
+namespace Pds {
+  class EvrIOFactory {
+    class FType {
+    public:
+      FType(unsigned _id) : id(_id) {}
+      ~FType() {}
+    public:
+      unsigned id;
+      vector<DetInfo> chan[16];
+    };
+  public:
+    EvrIOFactory() : _buff(0) {}
+    ~EvrIOFactory() 
+    { 
+      if (_buff) delete[] _buff; 
+      for(list<FType*>::iterator it=_mod.begin(); it!=_mod.end(); it++)
+	delete (*it);
+    }
+  public:
+    void insert(unsigned mod_id, unsigned chan, const DetInfo& info)
+    {
+#ifdef DBUG
+      printf("EvrIOFactory::insert %d/%d [%s]\n",
+	     mod_id,chan,DetInfo::name(info));
+#endif
+      for(list<FType*>::iterator it=_mod.begin(); it!=_mod.end(); it++)
+	if ((*it)->id==mod_id) {
+	  (*it)->chan[chan].push_back(info);
+	  return;
+	}
+      FType* mod = new FType(mod_id);
+      _mod.push_back(mod);
+      mod->chan[chan].push_back(info);
+    }
+    Xtc* xtc(const DetInfo* evrs,
+	     const PartitionControl& control)
+    {
+      if (_buff) delete _buff;
+
+      unsigned iosz = _mod.size()*(sizeof(Xtc)+sizeof(EvrIOConfigType)+16*sizeof(EvrData::IOChannel));
+      _buff = new char[iosz+sizeof(Xtc)];
+      Xtc* iocfg = new (_buff) Xtc(_xtcType);
+
+      char* gbuff  = new char[iosz];  // GlobalCfg cache
+      char* gbuffp = gbuff;
+      char notitle[EvrData::IOChannel::NameLength];
+      memset(notitle, 0, sizeof(notitle));
+
+#ifdef DBUG
+      printf("EvrIOFactory::xtc  iocfg %p  iosz %u\n",iocfg,iosz);
+#endif
+
+      for(list<FType*>::iterator it=_mod.begin(); it!=_mod.end(); it++) {
+	unsigned nchan=0;
+	for(unsigned j=0; j<16; j++)
+	  if ((*it)->chan[j].size()) nchan=j+1;
+	if (nchan) {
+	  Xtc* exio = new (iocfg->next()) Xtc(_evrIOConfigType, evrs[(*it)->id]);
+	  EvrIOConfigType t(EvrData::OutputMap::UnivIO,nchan);
+	  EvrIOConfigType& e = *new(exio->alloc(t._sizeof())) 
+	    EvrIOConfigType(EvrData::OutputMap::UnivIO,nchan);
+
+#ifdef DBUG
+	  printf("EvrIOFactory::xtc[%p]  mod %u  src %08x.%08x  nchan %u\n",
+		 &e, (*it)->id, exio->src.log(),exio->src.phy(), nchan);
+#endif
+
+	  for(unsigned j=0; j<nchan; j++) {
+	    vector<DetInfo>& infos = (*it)->chan[j];
+	    std::string title;
+	    if (infos.size()) {
+	      for(unsigned i=0; i<infos.size(); i++) {
+		const char* n = control.lookup_src_alias(infos[i]);
+		if (n) {
+		  title = std::string(n);
+		  break;
+		}
+		else if (title.size()==0)
+		  title = std::string(DetInfo::name(infos[i]));
+	      }
+	      title = title.substr(0,EvrData::IOChannel::NameLength-1);
+	      new (const_cast<EvrData::IOChannel*>(&e.channels()[j]))
+		EvrData::IOChannel(title.c_str(), infos.size(), infos.data());
+	    }
+	    else 
+	      new (const_cast<EvrData::IOChannel*>(&e.channels()[j]))
+		EvrData::IOChannel(notitle, 0, 0);
+	  }
+	  iocfg->alloc(exio->extent);
+
+	  memcpy(gbuffp, exio->payload(), exio->sizeofPayload());
+	  gbuffp += exio->sizeofPayload();
+	}
+      }
+
+      memset(gbuffp, 0, sizeof(EvrIOConfigType));
+      Pds_ConfigDb::GlobalCfg::cache(_evrIOConfigType, gbuff, true);
+
+#ifdef DBUG
+      { 
+	printf("EvrIOFactory::xtc  src %08x.%08x  contains %s_v%u  extent %u\n",
+	       iocfg->src.log(), iocfg->src.phy(),
+	       TypeId::name(iocfg->contains.id()),iocfg->contains.version(),
+	       iocfg->extent);
+	Xtc* x = reinterpret_cast<Xtc*>(iocfg->payload());
+	while( x < iocfg->next() ) {
+	  printf("  xtc src %08x.%08x  contains %s_v%u  extent %u\n",
+		 x->src.log(), x->src.phy(),
+		 TypeId::name(x->contains.id()),x->contains.version(),
+		 x->extent);
+	  x = x->next();
+	}
+      }
+#endif
+      return iocfg;
+    }
+  private:
+    char*        _buff;
+    list<FType*> _mod;
+  };
+};
 
 using namespace Pds;
 
@@ -54,6 +185,8 @@ PartitionSelect::PartitionSelect(QWidget*          parent,
 
 PartitionSelect::~PartitionSelect()
 {
+  if (_display)
+    _display->close();
 }
 
 void PartitionSelect::select_dialog()
@@ -62,8 +195,7 @@ void PartitionSelect::select_dialog()
     if (QMessageBox::question(this,
             "Select Partition",
             "Partition currently allocated. Deallocate partition?\n [This will stop the current run]",
-            QMessageBox::Ok | QMessageBox::Cancel)
-  == QMessageBox::Ok) {
+            QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
       _pcontrol.set_target_state(PartitionControl::Unmapped);
       // wait for completion
       sleep(1);
@@ -130,6 +262,10 @@ void PartitionSelect::select_dialog()
 
       Partition::Source* sources = new Partition::Source[nsrc];
       unsigned isrc=0;
+
+      EvrIOFactory evrIO;
+      DetInfo evrs[8];
+
       for(std::list<NodeMap>::const_iterator it=map.begin();
           it!=map.end(); it++) {
 #ifdef DBUG
@@ -143,9 +279,15 @@ void PartitionSelect::select_dialog()
 #ifdef DBUG
 	    printf(" [%08x.%08x]",sit->log(),sit->phy());
 #endif
+	    const DetInfo info = static_cast<const DetInfo&>(*sit);
+
 	    if (sit->level()==Pds::Level::Source &&
-		static_cast<const Pds::DetInfo&>(*sit).detector()==Pds::DetInfo::BldEb)
+		info.detector()==DetInfo::BldEb)
 	      continue;
+
+	    if (sit->level()==Pds::Level::Source &&
+		info.device()==DetInfo::Evr)
+	      evrs[info.devId()] = info;
 
 	    foreach(Node node, nodes) {
 	      if (node == it->node) {
@@ -153,6 +295,11 @@ void PartitionSelect::select_dialog()
 #ifdef DBUG
 		printf("*");
 #endif
+		if (node.triggered()) {
+		  evrIO.insert(node.evr_module(),
+			       node.evr_channel(),
+			       info);
+		}
 		break;
 	      }
 	    }
@@ -176,7 +323,8 @@ void PartitionSelect::select_dialog()
                               bld_mask, bld_mask_mon,
                               options, 
 			      l3_unbias,
-			      cfg);
+			      cfg,
+			      evrIO.xtc(evrs,_pcontrol));
       _pcontrol.set_target_state(PartitionControl::Configured);
 
       delete[] buff;
@@ -289,6 +437,7 @@ bool PartitionSelect::_checkReadGroupEnable()
   if ( lcConfigBuffer == NULL )
   {
     printf("PartitionSelect::_checkReadGroupEnable(): malloc(%d) failed. Error: %s\n", iMaxEvrDataSize, strerror(errno));
+    delete cl;
     return false;
   }
 
@@ -297,6 +446,7 @@ bool PartitionSelect::_checkReadGroupEnable()
   {
     printf("PartitionSelect::_checkReadGroupEnable():: Read failed. Error: %s\n", strerror(errno));
     free(lcConfigBuffer);
+    delete cl;
     return false;
   }
 
@@ -314,6 +464,7 @@ bool PartitionSelect::_checkReadGroupEnable()
   }
 
   free(lcConfigBuffer);
+  delete cl;
 
   return bEneableReadoutGroup;
 }

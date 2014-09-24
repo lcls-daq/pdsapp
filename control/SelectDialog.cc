@@ -255,9 +255,9 @@ bool        SelectDialog::l3_veto() const
   return _evtbox->useL3F ()&& _evtbox->useVeto(); 
 }
 
-const char* SelectDialog::l3_path() const 
+std::string SelectDialog::l3_path() const 
 {
-  return qPrintable(_evtbox->inputData()); 
+  return std::string(qPrintable(_evtbox->inputData()));
 }
 
 float SelectDialog::l3_unbias() const
