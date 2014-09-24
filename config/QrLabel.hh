@@ -9,11 +9,12 @@ namespace Pds_ConfigDb {
   public:
     QrLabel();
     QrLabel(const QString& s);
-  public:
+  protected:
+    QSize minimumSizeHint() const;
     QSize sizeHint() const;
     void  paintEvent(QPaintEvent*);
   public slots:
-    void setText(const QString&);
+    void  setText(const QString&);
   };
 };
 
