@@ -11,7 +11,11 @@ PVManager::PVManager(PVRunnable& runnable) :
 {
 }
 
-PVManager::~PVManager() {}
+PVManager::~PVManager() 
+{
+  delete _pvmonitor;
+  delete _pvcontrol;
+}
 
 void PVManager::runnable_change(bool r)
 {

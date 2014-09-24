@@ -47,7 +47,7 @@ namespace Pds_ConfigDb
     QrLabel*                   _outputs[MaxOutputs];
     Pulse*                     _pulses [MaxPulses];
     QButtonGroup*              _enable_group;
-    QButtonGroup*              _outputs_group;    
+    QButtonGroup*              _output_group;    
     Pds::LinkedList<Parameter> _pList;
     EvrPulseTableQ*            _qlink;    
     unsigned                   _npulses;

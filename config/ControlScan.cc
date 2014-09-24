@@ -122,6 +122,7 @@ ControlScan::~ControlScan()
 {
   delete[] _buf_control;
   delete[] _buf_evr;
+  delete _acqB;
 }
 
 void ControlScan::apply()

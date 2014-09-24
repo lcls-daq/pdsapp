@@ -60,6 +60,9 @@ ProcNodeGroup::ProcNodeGroup(const QString& label,
 ProcNodeGroup::~ProcNodeGroup() 
 {
   delete _input_data;
+  delete _palette[0];
+  delete _palette[1];
+  delete _palette[2];
 }
 
 void ProcNodeGroup::_read_pref()

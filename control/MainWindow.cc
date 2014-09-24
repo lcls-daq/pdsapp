@@ -373,7 +373,9 @@ MainWindow::~MainWindow()
   delete _config;
   delete _control;
   delete _controlcb;
+  delete _icontrol;
   delete _pvmanager;
+  delete _runallocator;
   if (_offlineclient) {
     delete _offlineclient;
   }

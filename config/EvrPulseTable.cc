@@ -124,6 +124,8 @@ using namespace Pds_ConfigDb;
 EvrPulseTable::EvrPulseTable(unsigned id) :
   Parameter(NULL),
   _id      (id),
+  _enable_group(0),
+  _output_group(0),
   _npulses (0),
   _bEnableReadGroup(false),
   _pLabelGroup(NULL)
@@ -135,6 +137,10 @@ EvrPulseTable::EvrPulseTable(unsigned id) :
 EvrPulseTable::~EvrPulseTable()
 {
   delete _qlink;
+  for(unsigned i=0; i<MaxPulses; i++)
+    delete _pulses[i];
+  if (_enable_group) delete _enable_group;
+  if (_output_group) delete _output_group;
 }
 
 bool EvrPulseTable::pull(const EvrConfigType& tc) {  
@@ -356,9 +362,13 @@ QLayout* EvrPulseTable::initialize(QWidget*)
       do {
         const EvrIOConfigType& iocfg = *reinterpret_cast<const EvrIOConfigType*>(p);
         if (iocfg.nchannels()==0) break;
-        for(unsigned i=0; i<iocfg.nchannels(); i++)
-          if (id == _id)
-            _outputs[j++] = new QrLabel(iocfg.channels()[i].name());
+	if (id == _id) {
+	  for(unsigned i=0; i<iocfg.nchannels(); i++)
+	    if (strlen(iocfg.channels()[i].name()))
+	      _outputs[j++] = new QrLabel(iocfg.channels()[i].name());
+	    else
+	      _outputs[j++] = new QrLabel(QString::number(i));
+	}
         p += iocfg._sizeof();
         id++;
       } while(1);
@@ -384,15 +394,15 @@ QLayout* EvrPulseTable::initialize(QWidget*)
     layout->addWidget( _outputs[i], row, column++, align);
 
   _enable_group     = new QButtonGroup; _enable_group    ->setExclusive(false);
-  _outputs_group    = new QButtonGroup; _outputs_group   ->setExclusive(false);
+  _output_group     = new QButtonGroup; _output_group    ->setExclusive(false);
 
   for(unsigned i=0; i<MaxPulses; i++) {
-    _pulses[i]->initialize(0,layout,++row,i,_enable_group,_outputs_group);
+    _pulses[i]->initialize(0,layout,++row,i,_enable_group,_output_group);
     _pulses[i]->insert(_pList);
   }
 
   ::QObject::connect(_enable_group    , SIGNAL(buttonClicked(int)), _qlink, SLOT(update_enable(int)));
-  ::QObject::connect(_outputs_group   , SIGNAL(buttonClicked(int)), _qlink, SLOT(update_output(int)));
+  ::QObject::connect(_output_group    , SIGNAL(buttonClicked(int)), _qlink, SLOT(update_output(int)));
 
   vl->addStretch();
   { QGridLayout* hl = new QGridLayout;

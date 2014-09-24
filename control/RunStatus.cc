@@ -35,6 +35,8 @@ namespace Pds {
       row++;
     }
     ~L3TStats() {
+      delete _pass;
+      delete _fail;
     }
   public:
     void show(bool v) 

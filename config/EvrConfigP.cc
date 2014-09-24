@@ -26,6 +26,10 @@ namespace Pds_ConfigDb {
       _code_table  (new EvrEventCodeTable(_pulse_table)),
       _seq_config  (new SequencerConfig(*_code_table))
     {}
+    ~Private_Data()
+    { delete _pulse_table;
+      delete _code_table;
+      delete _seq_config; }
   public:
     QLayout* initialize(QWidget*) {
       QHBoxLayout* layout = new QHBoxLayout;

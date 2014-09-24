@@ -120,6 +120,7 @@ SequencerConfig::~SequencerConfig()
 {
   if (_config_buffer)
     delete[] _config_buffer;
+  delete _mode;
 }
 
 QLayout* SequencerConfig::initialize(QWidget*) {

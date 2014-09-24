@@ -54,6 +54,7 @@ Experiment::~Experiment()
 {
   if (_lock==Lock)
     _db->abort();
+  delete _db;
 }
 
 void Experiment::load()
