@@ -363,7 +363,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c|-q <# event queues>] [-d] [-u <uniqueID>] [-g <max groups>] [-h]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c|-q <# event queues>] [-d] [-g <max groups>] [-h]\n", progname);
 }
 
 int main(int argc, char** argv) {
@@ -376,14 +376,12 @@ int main(int argc, char** argv) {
   unsigned nevqueues = 1;
   unsigned node =  0xffff0;
   unsigned nodes = 6;
-  char partitionTag[80] = "";
-  const char* uniqueID = 0;
   bool ldist = false;
   Appliance* uapps = 0;
   int slowReadout = 0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:i:g:n:P:s:c:q:u:L:w:dh")) != -1) {
+  while ((c = getopt(argc, argv, "p:i:g:n:P:s:c:q:L:w:dh")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -396,9 +394,6 @@ int main(int argc, char** argv) {
       break;
     case 'g':
       nodes = strtoul(optarg, &endPtr, 0);
-      break;
-    case 'u':
-      uniqueID = optarg;
       break;
     case 'n':
       sscanf(optarg, "%d", &numberOfBuffers);
@@ -466,20 +461,11 @@ int main(int argc, char** argv) {
 
   if (numberOfBuffers<8) numberOfBuffers=8;
 
-  sprintf(partitionTag, "%d_", platform);
-  char temp[100];
-  sprintf(temp, "%d_", node);
-  strcat(partitionTag, temp);
-  if (uniqueID) {
-    strcat(partitionTag, uniqueID);
-    strcat(partitionTag, "_");
-  }
-  strcat(partitionTag, partition);
-  printf("\nPartition Tag:%s\n", partitionTag);
+  printf("\nPartition Tag:%s\n", partition);
 
   Stats* stats = new Stats;
 
-  LiveMonitorServer* apps = new LiveMonitorServer(partitionTag,sizeOfBuffers, numberOfBuffers, nevqueues);
+  LiveMonitorServer* apps = new LiveMonitorServer(partition,sizeOfBuffers, numberOfBuffers, nevqueues);
   apps->distribute(ldist);
 
   apps->connect(stats);
@@ -502,8 +488,7 @@ int main(int argc, char** argv) {
 
     if (event->attach()) {
 
-      if (!uniqueID)
-        new Comm(*event, *stats, nodes);
+      new Comm(*event, *stats, nodes);
 
       task->mainLoop();
       event->detach();
