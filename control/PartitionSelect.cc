@@ -89,7 +89,8 @@ namespace Pds {
 	for(unsigned j=0; j<16; j++)
 	  if ((*it)->chan[j].size()) nchan=j+1;
 	if (nchan) {
-	  Xtc* exio = new (iocfg->next()) Xtc(_evrIOConfigType, evrs[(*it)->id]);
+	  Xtc* exio = new (reinterpret_cast<char*>(iocfg->next()))
+	    Xtc(_evrIOConfigType, evrs[(*it)->id]);
 	  EvrIOConfigType t(EvrData::OutputMap::UnivIO,nchan);
 	  EvrIOConfigType& e = *new(exio->alloc(t._sizeof())) 
 	    EvrIOConfigType(EvrData::OutputMap::UnivIO,nchan);
@@ -113,8 +114,12 @@ namespace Pds {
 		  title = std::string(DetInfo::name(infos[i]));
 	      }
 	      title = title.substr(0,EvrData::IOChannel::NameLength-1);
+	      // make valgrind happy by initializing to length of copies in IOChannel ctor
+	      title.resize(EvrData::IOChannel::NameLength);
+	      unsigned ninfo = infos.size();
+	      infos.resize(EvrData::IOChannel::MaxInfos);
 	      new (const_cast<EvrData::IOChannel*>(&e.channels()[j]))
-		EvrData::IOChannel(title.c_str(), infos.size(), infos.data());
+		EvrData::IOChannel(title.c_str(), ninfo, infos.data());
 	    }
 	    else 
 	      new (const_cast<EvrData::IOChannel*>(&e.channels()[j]))
