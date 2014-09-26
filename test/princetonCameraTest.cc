@@ -168,7 +168,7 @@ int main(int argc, char **argv)
      {0,          0, 0,  0 }
   };
 
-  int   iCamera        = 0;
+  int   iCamera       = 0;
   char  sFnPrefix[32] = "";
   int   iNumImages    = 1;
   int   iExposureTime = 1;

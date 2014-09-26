@@ -16,8 +16,8 @@ namespace Pds_ConfigDb {
       _uOrgY                ("Orgin Y",             0,    0,    4127),
       _uBinX                ("Binning X",           1,    1,    2048),
       _uBinY                ("Binning Y",           1,    1,    2048),
-      // Note: Here the min exposure time need to set 9.99e-4 to allow user to input 1e-3, due to floating points imprecision
-      _f32ExposureTime      ("Exposure time (sec)", 1e-3, 9.99e-4, 3600),
+      // Note: Here the min exposure time need to set 9.99e-7 to allow user to input 1e-6, due to floating points imprecision
+      _f32ExposureTime      ("Exposure time (sec)", 1e-3, 9.99e-7, 3600),
       _f32CoolingTemp       ("Cooling Temp (C)",    25,   -300,  25),
       _enumFanMode          ("Fan Mode",            AndorConfigType::ENUM_FAN_FULL, lsEnumFanMode),
       _enumBaselineClamp    ("Baseline Clamp",      Enums::Disabled_Disable, Enums::Disabled_Names ),
