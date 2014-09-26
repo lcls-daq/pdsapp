@@ -21,14 +21,16 @@ namespace Pds_ConfigDb
   public:
     enum { MaxPulses  = 12 };
     enum { MaxOutputs = 13 };
-    EvsPulseTable();
+    EvsPulseTable(unsigned);
     ~EvsPulseTable();
   public:
     bool     pull  (const EvrConfigType& cfg);
     bool     pull  (const EvsConfigType& cfg);
     //  validate() updates pulses, outputs accessors
     bool validate(unsigned ncodes, 
-                  const EvsCodeType* codes);
+                  const EvsCodeType* codes,
+                  unsigned, PulseType*,
+                  unsigned, OutputMapType*);
 
     unsigned                            npulses () const { return _npulses; }
     const PulseType*     pulses () const 
@@ -48,6 +50,7 @@ namespace Pds_ConfigDb
     void     update_enable    (int);
     void     update_output    (int);
   public:
+    unsigned                   _id;
     QrLabel*                   _outputs[MaxOutputs];
     EvsPulse*                  _pulses [MaxPulses];
     QButtonGroup*              _enable_group;
@@ -74,6 +77,39 @@ namespace Pds_ConfigDb
   private:
     EvsPulseTable& _table;
   };
+
+  class EvsPulseTables : public Parameter {
+  public:
+    static const unsigned MaxEVRs = 8;
+    EvsPulseTables();
+    ~EvsPulseTables();    
+  public:
+    QLayout* initialize(QWidget*);    
+    void     flush     () { for(unsigned i=0; i<MaxEVRs; i++) _evr[i]->flush (); }
+    void     update    () { for(unsigned i=0; i<MaxEVRs; i++) _evr[i]->update(); }
+    void     enable    (bool) {}
+    void     setReadGroupEnable(bool bEnableReadGroup);
+  public:
+    void     pull    (const EvsConfigType& tc);
+    bool     validate(unsigned ncodes,
+                      const EvsCodeType* codes);
+    unsigned                            npulses () const { return _npulses; }
+    const PulseType*     pulses () const 
+    { return reinterpret_cast<const PulseType*>(_pulse_buffer); }
+
+    unsigned                            noutputs() const { return _noutputs; }
+    const OutputMapType* outputs () const 
+    { return reinterpret_cast<const OutputMapType*>(_output_buffer); }
+
+  private:
+    EvsPulseTable* _evr[MaxEVRs];
+    char*          _pulse_buffer;
+    char*          _output_buffer;
+    unsigned       _npulses;
+    unsigned       _noutputs;
+    QTabWidget*    _tab;
+  };
+  
 } // namespace Pds_ConfigDb
 
 #endif

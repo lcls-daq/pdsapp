@@ -4,7 +4,8 @@
 #include "pdsapp/config/SequencerConfig.hh"
 #include "pdsapp/config/EventcodeTiming.hh"
 #include "pdsapp/config/GlobalCfg.hh"
-#include "pds/config/EvrIOConfigType.hh"
+
+#include "pdsdata/psddl/evr.ddl.h"
 
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QTabWidget>
@@ -15,6 +16,10 @@
 
 static const unsigned MaxEVRs = 8;
 static const double EvrPeriod = 1./119e6;
+
+typedef Pds::EvrData::IOConfigV1  EvrIOConfigType;
+static Pds::TypeId _evrIOConfigType(Pds::TypeId::Id_EvrIOConfig,
+				    EvrIOConfigType::Version);
 
 #define ADDTAB(p,title) {                       \
     QWidget* w = new QWidget;                   \

@@ -3,7 +3,6 @@
 #include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
-#include "pds/collection/Arp.hh"
 
 #include "pds/management/SegStreams.hh"
 #include "pds/utility/SegWireSettings.hh"
@@ -78,8 +77,7 @@ namespace Pds {
     Seg(Task*                 task,
         unsigned              platform,
         SegWireSettings&      settings,
-        Appliance&            app,
-        Arp*                  arp) :
+        Appliance&            app) :
       _task             (task),
       _platform         (platform),
       _app              (app)
@@ -144,13 +142,13 @@ static void usage(const char *p)
          "\t -i <detid>        detector ID (e.g. 0/0/0)\n"
          "\t -p <platform>     platform number\n"
          "\t -r <evrid>        evr ID (e.g., a, b, c, or d) (default: a)\n"
-         "\t -a <arp>          arp\n"
          "\t -d                NOT USED\n"
          "\t -E <eventcode list> default record eventcodes (e.g. \"40-46,140-146\")\n"
          "\t -R                randomize nodes\n"
          "\t -n                turn off beam codes\n"
          "\t -u <alias>        set device alias\n"
          "\t -I                internal sequence\n"
+         "\t -S                simulate internal sequence (w/o hw)\n"
          "\t -h                print this message and exit\n", p);
 }
 
@@ -159,7 +157,6 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   const uint32_t NO_PLATFORM = uint32_t(-1UL);
   uint32_t  platform  = NO_PLATFORM;
-  Arp*      arp       = 0;
   char*     evrid     = 0;
   const char* evtcodelist = 0;
   bool      simulate  = false;
@@ -174,11 +171,8 @@ int main(int argc, char** argv) {
   bool  internalSequence  = false;
 
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:r:d:u:nE:IRSh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:p:r:d:u:nE:IRSh")) != EOF ) {
     switch(c) {
-    case 'a':
-      arp = new Arp(optarg);
-      break;
     case 'i':
       if (CmdLineTools::parseUInt(optarg,uu,detid,devid,0,'/') == 3) {
         det = (DetInfo::Detector)uu;
@@ -254,19 +248,6 @@ int main(int argc, char** argv) {
   char defaultdev='a';
   if (!evrid) evrid = &defaultdev;
 
-  // launch the SegmentLevel
-  if (arp) {
-    if (arp->error()) {
-      char message[128];
-      sprintf(message, "failed to create odfArp : %s", 
-        strerror(arp->error()));
-      printf("%s %s\n",argv[0], message);
-      delete arp;
-      return 0;
-    }
-  }
-  
-
   Node node(Level::Source, platform);
   printf("Using src %x/%x/%x/%x\n",det,detid,DetInfo::Evr,devid);
   DetInfo detInfo(node.pid(),det,detid,DetInfo::Evr,devid);
@@ -311,11 +292,10 @@ int main(int argc, char** argv) {
   }
 
   MySegWire settings(detInfo, uniqueid, *srv);
-  Seg* seg = new Seg(task, platform, settings, *app, arp);
-  SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, arp);
+  Seg* seg = new Seg(task, platform, settings, *app);
+  SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
   seglevel->attach();
 
   task->mainLoop();
-  if (arp) delete arp;
   return 0;
 }

@@ -3,7 +3,7 @@
 #include "pdsapp/config/QrLabel.hh"
 #include "pdsapp/config/GlobalCfg.hh"
 #include "pdsapp/config/PolarityButton.hh"
-#include "pds/config/EvrIOConfigType.hh"
+#include "pdsdata/psddl/evr.ddl.h"
 
 #include <QtGui/QButtonGroup>
 #include <QtGui/QCheckBox>
@@ -15,6 +15,10 @@
 static const int PolarityGroup = 100;
 
 #include "pdsdata/psddl/evr.ddl.h"
+
+typedef Pds::EvrData::IOConfigV1  EvrIOConfigType;
+static Pds::TypeId _evrIOConfigType(Pds::TypeId::Id_EvrIOConfig,
+				    EvrIOConfigType::Version);
 
 namespace Pds_ConfigDb
 {

@@ -57,7 +57,7 @@ namespace Pds_ConfigDb {
   public:
     Private_Data() :
       Parameter(NULL),
-      _pulse_table (new EvsPulseTable),
+      _pulse_table (new EvsPulseTables),
       _code_table  (new EvsCode)
     {}
   public:
@@ -103,7 +103,7 @@ namespace Pds_ConfigDb {
       return result;
     }
   private:
-    EvsPulseTable*    _pulse_table;
+    EvsPulseTables*   _pulse_table;
     EvsCode*          _code_table;
   };
 

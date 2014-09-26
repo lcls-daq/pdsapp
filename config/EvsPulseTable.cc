@@ -118,8 +118,9 @@ namespace Pds_ConfigDb
 
 using namespace Pds_ConfigDb;
 
-EvsPulseTable::EvsPulseTable() :
+EvsPulseTable::EvsPulseTable(unsigned id) :
   Parameter(NULL),
+  _id           (id),
   _pulse_buffer (new char[EvrConfigType::MaxPulses *sizeof(PulseType)]),
   _output_buffer(new char[EvrConfigType::MaxOutputs*sizeof(OutputMapType)]),
   _npulses      (0),
@@ -149,7 +150,8 @@ bool EvsPulseTable::pull(const EvsConfigType& tc)
       const OutputMapType& om = tc.output_maps()[k];
       if ( om.source()==OutputMapType::Pulse &&
            om.source_id()==j )
-	p._outputs[om.conn_id()]->setChecked(lUsed=true);      
+        if ((om.module()) == _id)
+	  p._outputs[om.conn_id()]->setChecked(lUsed=true);      
     }
     if (!lUsed) continue;
 
@@ -190,17 +192,14 @@ bool EvsPulseTable::pull(const EvsConfigType& tc)
 }
 
 bool EvsPulseTable::validate(unsigned ncodes, 
-                             const EvsCodeType* codes)
-{  
+                             const EvsCodeType* codes,
+			     unsigned p0, PulseType* pt,
+                             unsigned o0, OutputMapType* om)
+{
   bool result = true;
 
   unsigned npt = 0;
-  PulseType*     pt = 
-    reinterpret_cast<PulseType*>(_pulse_buffer);
-
   unsigned nom = 0;
-  OutputMapType* om = 
-    reinterpret_cast<OutputMapType*>(_output_buffer);
 
   for(unsigned i=0; i<MaxPulses; i++) {
     const EvsPulse& p = *_pulses[i];
@@ -212,15 +211,15 @@ bool EvsPulseTable::validate(unsigned ncodes,
 
     for(unsigned j=0; j<MaxOutputs; j++) {
       if (p._outputs[j]->isChecked())
-        *new(&om[nom++]) OutputMapType( OutputMapType::Pulse, npt,
-                                        OutputMapType::UnivIO, j, 0 );
+        *new(&om[nom++]) OutputMapType( OutputMapType::Pulse, npt+p0,
+                                        OutputMapType::UnivIO, j, _id );
     }    
     
     uint32_t pm=0, rm=0;
     if (p._group->currentIndex())
-      rm = 1<<npt;
+      rm = 1<<(npt+p0);
     else
-      pm = 1<<npt;
+      pm = 1<<(npt+p0);
 
     for(unsigned i=0; i<ncodes; i++)
       *new(const_cast<EvsCodeType*>(&codes[i]))
@@ -232,7 +231,7 @@ bool EvsPulseTable::validate(unsigned ncodes,
 		    codes[i].readoutGroup());
                                           
                                         
-    *new(&pt[npt]) PulseType(npt, 
+    *new(&pt[npt]) PulseType(npt+p0, 
                              p._polarity->state() == PolarityButton::Pos ? 0 : 1,
                              1,
                              p._delay.value,
@@ -253,28 +252,24 @@ QLayout* EvsPulseTable::initialize(QWidget*)
 
   _qlink = new EvsPulseTableQ(*this,0);
 
+  for(unsigned i=0; i<MaxOutputs; i++)
+    _outputs[i] = new QrLabel(QString::number(i));
+
   //
   //  Read EvrIOConfig
   //
-  unsigned j=0;
-  { const char* p = reinterpret_cast<const char*>(GlobalCfg::fetch(_evrIOConfigType));
+  { 
+    const char* p = reinterpret_cast<const char*>(GlobalCfg::fetch(_evrIOConfigType));
     if (p) {
-      unsigned id=0;
-      do {
-        const EvrIOConfigType& iocfg = *reinterpret_cast<const EvrIOConfigType*>(p);
-        if (iocfg.nchannels()==0) break;
-        for(unsigned i=0; i<iocfg.nchannels(); i++)
-          if (id == 0)
-            _outputs[j++] = new QrLabel(iocfg.channels()[i].name());
-        p += iocfg._sizeof();
-        id++;
-      } while(1);
+      const EvrIOConfigType& iocfg = *reinterpret_cast<const EvrIOConfigType*>(p);
+      for(unsigned i=0; i<iocfg.nchannels(); i++) {
+	const EvrIOChannelType& ch = iocfg.channels()[i];
+	if (ch.output().module()==_id &&
+	    strlen(iocfg.channels()[i].name()))
+	  _outputs[ch.output().conn_id()] = new QrLabel(ch.name());
+      }
     }
   }  
-  while(j < MaxOutputs) {
-    _outputs[j] = new QrLabel(QString::number(j));
-    j++;
-  }
 
   //  QString period = QString("%1%2%3%4 sec").arg(QChar(0x215F)).arg(QChar(0x2081)).arg(QChar(0x2082)).arg(QChar(0x2080));
   QString period("events");
@@ -363,5 +358,103 @@ EvsPulseTableQ::EvsPulseTableQ(EvsPulseTable& table,QWidget* parent) : QObject(p
 
 void EvsPulseTableQ::update_enable    (int i) { _table.update_enable(i); }
 void EvsPulseTableQ::update_output    (int i) { _table.update_output(i); }
+
+EvsPulseTables::EvsPulseTables() : 
+  Parameter(NULL), 
+  _pulse_buffer (new char[EvsConfigType::MaxPulses *sizeof(PulseType)]),
+  _output_buffer(new char[EvsConfigType::MaxOutputs*sizeof(OutputMapType)]),
+  _npulses      (0),
+  _noutputs     (0)
+{
+  for(unsigned i=0; i<MaxEVRs; i++)
+    _evr[i] = new EvsPulseTable(i);
+}
+
+EvsPulseTables::~EvsPulseTables() {
+  delete[] _pulse_buffer;
+  delete[] _output_buffer;
+  for(unsigned i=0; i<MaxEVRs; i++)
+    delete _evr[i];
+}
+
+QLayout* EvsPulseTables::initialize(QWidget*) 
+{
+  QVBoxLayout* vl = new QVBoxLayout;
+  vl->addStretch();
+  { _tab = new QTabWidget;
+    for(unsigned i=0; i<MaxEVRs; i++) {
+      QWidget* w = new QWidget;
+      w->setLayout(_evr[i]->initialize(0));
+      _tab->addTab(w,QString("EVR %1").arg(i));
+      _tab->setTabEnabled(i,false);
+    }
+    vl->addWidget(_tab); }
+  vl->addStretch();
+
+  _tab->setTabEnabled(0,true);
+
+  return vl;
+}
+
+void EvsPulseTables::pull    (const EvsConfigType& tc)
+{ 
+  unsigned mask=0;
+  for(unsigned i=0; i<MaxEVRs; i++) 
+    if (_evr[i]->pull(tc))
+      mask |= (1<<i);
+
+  //
+  //  Read EvrIOConfig
+  //
+  { 
+    const char* p = reinterpret_cast<const char*>(GlobalCfg::fetch(_evrIOConfigType));
+    if (p) {
+      const EvrIOConfigType& iocfg = *reinterpret_cast<const EvrIOConfigType*>(p);
+      for(unsigned i=0; i<iocfg.nchannels(); i++) {
+	const EvrIOChannelType& ch = iocfg.channels()[i];
+	mask |= (1<<ch.output().module());
+      }
+    }
+  }  
+
+  for(unsigned i=0; i<MaxEVRs; i++)
+    _tab->setTabEnabled(i,mask&(1<<i));
+}
+
+bool EvsPulseTables::validate(unsigned ncodes,
+                              const EvsCodeType* codes)
+{
+  bool result  = true;
+
+  unsigned npt = 0;
+  PulseType*     pt = 
+    reinterpret_cast<PulseType*>(_pulse_buffer);
+
+  unsigned nom = 0;
+  OutputMapType* om = 
+    reinterpret_cast<OutputMapType*>(_output_buffer);
+  
+  for(unsigned i=0; i<MaxEVRs; i++) {
+    if (!_tab->isTabEnabled(i)) continue;
+
+    //printf("Pds_ConfigDb::EvsPulseTables::validate() evr %d\n", i);//!!!debug
+    result &= _evr[i]->validate(ncodes, codes, 
+                                //delay_offset, 
+                                npt, pt,
+                                nom, om
+                                );
+    npt += _evr[i]->npulses();
+    //printf("Pds_ConfigDb::EvsPulseTables:: evr %d pulse %d \n", i, _evr[i]->npulses());//!!!debug
+    pt  += _evr[i]->npulses();
+    nom += _evr[i]->noutputs();
+    om  += _evr[i]->noutputs();
+  }
+  _npulses  = npt;
+  _noutputs = nom;
+
+  //printf("Pds_ConfigDb::EvsPulseTables:: pulses %d\n", _npulses);//!!!debug
+  return result;
+}
+
 
 #include "Parameters.icc"

@@ -1,7 +1,7 @@
-#include "pdsapp/config/EvrIOChannel.hh"
+#include "pdsapp/config/EvrIOChannel_V1.hh"
 
-#include "pds/config/EvrIOConfigType.hh"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/psddl/evr.ddl.h"
 
 #include <QtGui/QGridLayout>
 #include <QtGui/QComboBox>
@@ -12,8 +12,11 @@
 static const char* detTypes[Pds::DetInfo::NumDetector+1];
 static const char* devTypes[Pds::DetInfo::NumDevice  +1];
 
-using Pds::EvrData::OutputMapV2;
-using namespace Pds_ConfigDb;
+typedef Pds::EvrData::IOConfigV1  EvrIOConfigType;
+static Pds::TypeId _evrIOConfigType(Pds::TypeId::Id_EvrIOConfig,
+				    EvrIOConfigType::Version);
+
+using namespace Pds_ConfigDb::EvrIOConfig_V1;
 
 void EvrIOChannel::initialize()
 {
@@ -109,9 +112,9 @@ void EvrIOChannel::insert(Pds::LinkedList<Parameter>& pList) {
     pList.insert(&_devid);
   }
 }
-void EvrIOChannel::pull(const EvrIOChannelType& c) {
-  strncpy(_label.value, c.name(), EvrIOChannelType::NameLength);
-  _label.value[EvrIOChannelType::NameLength] = 0;
+void EvrIOChannel::pull(const Pds::EvrData::IOChannel& c) {
+  strncpy(_label.value, c.name(), Pds::EvrData::IOChannel::NameLength);
+  _label.value[Pds::EvrData::IOChannel::NameLength] = 0;
   _ninfo = c.ninfo();
   _detnames->clear();
   for(unsigned i=0; i<c.ninfo(); i++) {
@@ -119,12 +122,8 @@ void EvrIOChannel::pull(const EvrIOChannelType& c) {
     _detinfo[i] = c.infos()[i];
   }
 }
-void EvrIOChannel::push(EvrIOChannelType& c, unsigned modid) const {
-  std::string label(_label.value);
-  label.resize(EvrIOChannelType::NameLength);
-  *new(&c) EvrIOChannelType(OutputMapV2(OutputMapV2::Pulse,-1,
-					OutputMapV2::UnivIO,_id,modid),
-			    label.c_str(), _ninfo, _detinfo);
+void EvrIOChannel::push(Pds::EvrData::IOChannel& c) const {
+  *new(&c) Pds::EvrData::IOChannel(_label.value, _ninfo, _detinfo);
 }
 
 #include "Parameters.icc"

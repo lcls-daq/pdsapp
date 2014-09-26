@@ -49,29 +49,28 @@ namespace Pds_ConfigDb
       pList.insert(this);
       
       for(int i=0; i<MaxOutputs; i++)
-  _channel[i]->insert(_pList);
+	_channel[i]->insert(_pList);
     }
 
-    int pull(const EvrIOConfigType& tc) {
-      _conn.value = tc.conn();
-      for(unsigned i=0; i<tc.nchannels(); i++)
-        _channel[i]->pull(tc.channels()[i]);
+    void clear() {
+    }
+
+    int pull(const EvrIOChannelType& tc) {
+      _channel[tc.output().conn_id()]->pull(tc);
       return tc._sizeof();
     }
 
-    int push(void* to) const {
-      EvrIOConfigType& tc = *reinterpret_cast<EvrIOConfigType*>(to);
-      *new(&tc) EvrIOConfigType(_conn.value, MaxOutputs);
-
-      Pds::EvrData::IOChannel* ch = reinterpret_cast<Pds::EvrData::IOChannel*>(&tc+1);
-      for(int i=0; i<MaxOutputs; i++)
-        _channel[i]->push(ch[i]);
-        
-      return tc._sizeof();
+    int push(std::vector<EvrIOChannelType>& ch) const {
+      for(int i=0; i<MaxOutputs; i++) {
+	EvrIOChannelType chan;
+        _channel[i]->push(chan,_id);
+	ch.push_back(chan);
+      }
+      return MaxOutputs*sizeof(EvrIOChannelType);
     }
 
     int dataSize() const {
-      return sizeof(EvrIOConfigType) + MaxOutputs*sizeof(Pds::EvrData::IOChannel);
+      return MaxOutputs*sizeof(EvrIOChannelType);
     }
 
   public:
@@ -138,8 +137,7 @@ namespace Pds_ConfigDb
 
   class EvrIOConfig::Private_Data : public Parameter {
   public:
-    Private_Data() : Parameter(NULL),
-                     _nevr(0)
+    Private_Data() : Parameter(NULL)
     {
       EvrIOChannel::initialize();
       for(unsigned i=0; i<MaxEVRs; i++)
@@ -159,49 +157,47 @@ namespace Pds_ConfigDb
     }
 
     int pull(const void* from) {
-      const char* p = reinterpret_cast<const char*>(from);
-      unsigned ievr = 0;
-      do {
-        const EvrIOConfigType& tc = *reinterpret_cast<const EvrIOConfigType*>(p);
-        p += tc._sizeof();
-        printf("ievr[%d]  nch %d\n",ievr,tc.nchannels());
-        if (tc.nchannels()==0) break;
-        _evr[ievr++]->pull(tc);
-      } while(1);
+      const EvrIOConfigType& tc = *reinterpret_cast<const EvrIOConfigType*>(from);
 
-      for(unsigned i=ievr; i<_nevr; i++)
-        _tab->setTabEnabled(i,false);
+      for(unsigned i=0; i<MaxEVRs; i++)
+	_evr[i]->clear();
 
-      for(unsigned i=_nevr; i<ievr; i++)
-        _tab->setTabEnabled(i,true);
+      unsigned mask=0;
+      for(unsigned i=0; i<tc.nchannels(); i++) {
+	const EvrIOChannelType& ch = tc.channels()[i];
+	_evr[ch.output().module()]->pull(ch);
+	mask |= (1<<ch.output().module());
+      }
 
-      _nevr = ievr;
+      for(unsigned i=0; i<MaxEVRs; i++)
+	_tab->setTabEnabled(i,(mask&(1<<i)));
 
-      return p - reinterpret_cast<const char*>(from);
+      return tc._sizeof();
     }
 
     int push(void* to) const {
-      char* p = reinterpret_cast<char*>(to);
-      for(unsigned i=0; i<_nevr; i++) {
-        p += _evr[i]->push(p);
-      }
-      p += (new(p) EvrIOConfigType(Pds::EvrData::OutputMap::UnivIO, 0))->_sizeof();
-      printf("EvrIOConfig push %d bytes\n", (int)(p - reinterpret_cast<char*>(to)));
-      return p - reinterpret_cast<char*>(to);
+      std::vector<EvrIOChannelType> ch;
+      for(unsigned i=0; i<MaxEVRs; i++)
+	if (_tab->isTabEnabled(i))
+	  _evr[i]->push(ch);
+
+      EvrIOConfigType& tc = *new (to) EvrIOConfigType(ch.size(),ch.data());
+      return tc._sizeof();
     }
 
     int dataSize() const {
-      unsigned size = 0;
-      for(unsigned i=0; i<_nevr; i++)
-        size += _evr[i]->dataSize();
-      size += EvrIOConfigType(Pds::EvrData::OutputMap::UnivIO,0)._sizeof();
-      return size;
+      std::vector<EvrIOChannelType> ch;
+      for(unsigned i=0; i<MaxEVRs; i++)
+	if (_tab->isTabEnabled(i))
+	  _evr[i]->push(ch);
+      
+      EvrIOConfigType tc(ch.size());
+      return tc._sizeof();
     }
 
   public:
     QLayout* initialize(QWidget* parent) 
     {
-      _nevr  = 0;
       _qlink = new EvrIOConfigQ(*this, parent);
 
       QVBoxLayout* l = new QVBoxLayout;
@@ -238,16 +234,16 @@ namespace Pds_ConfigDb
     void update() {
       Parameter* p = _pList.forward();
       while( p != _pList.empty() ) {
-  p->update();
-  p = p->forward();
+	p->update();
+	p = p->forward();
       }
     }
 
     void flush() {
       Parameter* p = _pList.forward();
       while( p != _pList.empty() ) {
-  p->flush();
-  p = p->forward();
+	p->flush();
+	p = p->forward();
       }
     } 
 
@@ -255,24 +251,23 @@ namespace Pds_ConfigDb
     }
 
     void addEvr() {
-      if (_nevr < MaxEVRs) {
-        _tab->setTabEnabled(_nevr,true);
-        _nevr++;
-      }
+      for(unsigned i=0; i<MaxEVRs; i++)
+	if (!_tab->isTabEnabled(i)) {
+	  _tab->setTabEnabled(i,true);
+	  break;
+	}
     }
 
     void remEvr() {
-      if (_nevr > 1) {
-        _nevr--;
-        if (_tab->currentIndex() == (int) _nevr)
-          _tab->setCurrentIndex(_nevr-1);
-        _tab->setTabEnabled(_nevr,false);
-      }
+      for(unsigned i=MaxEVRs-1; i!=0; i--)
+	if (_tab->isTabEnabled(i)) {
+	  _tab->setTabEnabled(i,false);
+	  break;
+	}
     }
 
   public:
     EvrIOConfig::Panel*                       _evr[MaxEVRs];
-    unsigned                                  _nevr;
     Pds::LinkedList<Parameter>                _pList;
     QTabWidget*                               _tab;
     EvrIOConfigQ*                             _qlink;

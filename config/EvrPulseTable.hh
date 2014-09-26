@@ -77,8 +77,8 @@ namespace Pds_ConfigDb
     ~EvrPulseTables();    
   public:
     QLayout* initialize(QWidget*);    
-    void     flush     () { for(unsigned i=0; i<_nevr; i++) _evr[i]->flush (); }
-    void     update    () { for(unsigned i=0; i<_nevr; i++) _evr[i]->update(); }
+    void     flush     () { for(unsigned i=0; i<MaxEVRs; i++) _evr[i]->flush (); }
+    void     update    () { for(unsigned i=0; i<MaxEVRs; i++) _evr[i]->update(); }
     void     enable    (bool) {}
     void     setReadGroupEnable(bool bEnableReadGroup);
   public:
@@ -95,7 +95,6 @@ namespace Pds_ConfigDb
 
   private:
     EvrPulseTable* _evr[MaxEVRs];
-    unsigned       _nevr;
     char*          _pulse_buffer;
     char*          _output_buffer;
     unsigned       _npulses;

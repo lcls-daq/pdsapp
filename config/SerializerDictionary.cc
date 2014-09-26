@@ -4,6 +4,7 @@
 
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/EvrIOConfig.hh"
+#include "pdsapp/config/EvrIOConfig_V1.hh"
 #include "pdsapp/config/EvsConfig.hh"
 #include "pdsapp/config/EvrConfigP.hh"
 #include "pdsapp/config/EvrConfigP_V6.hh"
@@ -172,6 +173,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,3)   , new EvrConfig_V3::EvrConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,2)   , new EvrConfig_V2::EvrConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_EvrConfig,1)   , new EvrConfig_V1::EvrConfig);
+  enroll(Pds::TypeId(Pds::TypeId::Id_EvrIOConfig,1) , new EvrIOConfig_V1::EvrIOConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_TM6740Config,1), new TM6740ConfigV1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_IpimbConfig,1) , new IpimbConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_IpmFexConfig,1), new IpmFexConfig_V1);

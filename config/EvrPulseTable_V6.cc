@@ -5,7 +5,7 @@
 #include "pdsapp/config/PolarityButton.hh"
 #include "pdsapp/config/EvrEventCodeTable_V6.hh"
 #include "pdsapp/config/EventcodeTiming.hh"
-#include "pds/config/EvrIOConfigType.hh"
+#include "pdsdata/psddl/evr.ddl.h"
 
 #include <QtGui/QButtonGroup>
 #include <QtGui/QCheckBox>
@@ -17,6 +17,10 @@
 static const unsigned MaxOutputs = 13;
 static const int PolarityGroup = 100;
 static const double EvrPeriod = 1./119e6;
+
+typedef Pds::EvrData::IOConfigV1  EvrIOConfigType;
+static Pds::TypeId _evrIOConfigType(Pds::TypeId::Id_EvrIOConfig,
+				    EvrIOConfigType::Version);
 
 namespace Pds_ConfigDb {
   namespace EvrConfig_V6 {

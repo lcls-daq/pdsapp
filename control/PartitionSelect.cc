@@ -27,28 +27,21 @@
 #include <new>
 #include <list>
 #include <vector>
+#include <map>
 using std::list;
 using std::vector;
+
+using Pds::EvrData::OutputMapV2;
 
 //#define DBUG
 
 namespace Pds {
   class EvrIOFactory {
-    class FType {
-    public:
-      FType(unsigned _id) : id(_id) {}
-      ~FType() {}
-    public:
-      unsigned id;
-      vector<DetInfo> chan[16];
-    };
   public:
     EvrIOFactory() : _buff(0) {}
     ~EvrIOFactory() 
     { 
       if (_buff) delete[] _buff; 
-      for(list<FType*>::iterator it=_mod.begin(); it!=_mod.end(); it++)
-	delete (*it);
     }
   public:
     void insert(unsigned mod_id, unsigned chan, const DetInfo& info)
@@ -57,105 +50,60 @@ namespace Pds {
       printf("EvrIOFactory::insert %d/%d [%s]\n",
 	     mod_id,chan,DetInfo::name(info));
 #endif
-      for(list<FType*>::iterator it=_mod.begin(); it!=_mod.end(); it++)
-	if ((*it)->id==mod_id) {
-	  (*it)->chan[chan].push_back(info);
-	  return;
-	}
-      FType* mod = new FType(mod_id);
-      _mod.push_back(mod);
-      mod->chan[chan].push_back(info);
+      OutputMapV2 output(OutputMapV2::Pulse,-1,
+			 OutputMapV2::UnivIO,chan,mod_id);
+      
+      MapType::iterator it = _map.find(output.value());
+      if (it == _map.end())
+	(_map[output.value()] = vector<DetInfo>()).push_back(info);
+      else
+	it->second.push_back(info);
     }
-    Xtc* xtc(const DetInfo* evrs,
-	     const PartitionControl& control)
+    EvrIOConfigType* config(const PartitionControl& control)
     {
       if (_buff) delete _buff;
 
-      unsigned iosz = _mod.size()*(sizeof(Xtc)+sizeof(EvrIOConfigType)+16*sizeof(EvrData::IOChannel));
-      _buff = new char[iosz+sizeof(Xtc)];
-      Xtc* iocfg = new (_buff) Xtc(_xtcType);
-
-      char* gbuff  = new char[iosz];  // GlobalCfg cache
-      char* gbuffp = gbuff;
-      char notitle[EvrData::IOChannel::NameLength];
-      memset(notitle, 0, sizeof(notitle));
-
-#ifdef DBUG
-      printf("EvrIOFactory::xtc  iocfg %p  iosz %u\n",iocfg,iosz);
-#endif
-
-      for(list<FType*>::iterator it=_mod.begin(); it!=_mod.end(); it++) {
-	unsigned nchan=0;
-	for(unsigned j=0; j<16; j++)
-	  if ((*it)->chan[j].size()) nchan=j+1;
-	if (nchan) {
-	  Xtc* exio = new (reinterpret_cast<char*>(iocfg->next()))
-	    Xtc(_evrIOConfigType, evrs[(*it)->id]);
-	  EvrIOConfigType t(EvrData::OutputMap::UnivIO,nchan);
-	  EvrIOConfigType& e = *new(exio->alloc(t._sizeof())) 
-	    EvrIOConfigType(EvrData::OutputMap::UnivIO,nchan);
-
-#ifdef DBUG
-	  printf("EvrIOFactory::xtc[%p]  mod %u  src %08x.%08x  nchan %u\n",
-		 &e, (*it)->id, exio->src.log(),exio->src.phy(), nchan);
-#endif
-
-	  for(unsigned j=0; j<nchan; j++) {
-	    vector<DetInfo>& infos = (*it)->chan[j];
-	    std::string title;
-	    if (infos.size()) {
-	      for(unsigned i=0; i<infos.size(); i++) {
-		const char* n = control.lookup_src_alias(infos[i]);
-		if (n) {
-		  title = std::string(n);
-		  break;
-		}
-		else if (title.size()==0)
-		  title = std::string(DetInfo::name(infos[i]));
-	      }
-	      title = title.substr(0,EvrData::IOChannel::NameLength-1);
-	      // make valgrind happy by initializing to length of copies in IOChannel ctor
-	      title.resize(EvrData::IOChannel::NameLength);
-	      unsigned ninfo = infos.size();
-	      infos.resize(EvrData::IOChannel::MaxInfos);
-	      new (const_cast<EvrData::IOChannel*>(&e.channels()[j]))
-		EvrData::IOChannel(title.c_str(), ninfo, infos.data());
-	    }
-	    else 
-	      new (const_cast<EvrData::IOChannel*>(&e.channels()[j]))
-		EvrData::IOChannel(notitle, 0, 0);
+      vector<EvrIOChannelType> ch;
+      for(MapType::iterator it=_map.begin(); it!=_map.end(); it++) {
+	std::string name;
+	unsigned ninfo = it->second.size();
+	for(unsigned i=0; i<ninfo; i++) {
+	  const char* p;
+	  if ((p=control.lookup_src_alias(it->second[i])) &&
+	      name.size()+strlen(p)<EvrIOChannelType::NameLength) {
+	    if (name.size()) name += std::string(",");
+	    name += std::string(p);
 	  }
-	  iocfg->alloc(exio->extent);
-
-	  memcpy(gbuffp, exio->payload(), exio->sizeofPayload());
-	  gbuffp += exio->sizeofPayload();
 	}
+	name.resize(EvrIOChannelType::NameLength);
+	ch.push_back(EvrIOChannelType(reinterpret_cast<const OutputMapV2&>(it->first),
+				      name.c_str(),
+				      ninfo,
+				      it->second.data()));
       }
 
-      memset(gbuffp, 0, sizeof(EvrIOConfigType));
+      EvrIOConfigType t(ch.size());
+      _buff = new char[t._sizeof()];
+      EvrIOConfigType* c = new (_buff) EvrIOConfigType(ch.size(),ch.data());
+
+      char* gbuff = new char[t._sizeof()];
+      memcpy(gbuff, c, t._sizeof());
       Pds_ConfigDb::GlobalCfg::cache(_evrIOConfigType, gbuff, true);
 
 #ifdef DBUG
       { 
 	printf("EvrIOFactory::xtc  src %08x.%08x  contains %s_v%u  extent %u\n",
-	       iocfg->src.log(), iocfg->src.phy(),
-	       TypeId::name(iocfg->contains.id()),iocfg->contains.version(),
-	       iocfg->extent);
-	Xtc* x = reinterpret_cast<Xtc*>(iocfg->payload());
-	while( x < iocfg->next() ) {
-	  printf("  xtc src %08x.%08x  contains %s_v%u  extent %u\n",
-		 x->src.log(), x->src.phy(),
-		 TypeId::name(x->contains.id()),x->contains.version(),
-		 x->extent);
-	  x = x->next();
-	}
+	       xtc->src.log(), xtc->src.phy(),
+	       TypeId::name(xtc->contains.id()),xtc->contains.version(),
+	       xtc->extent);
       }
 #endif
-      return iocfg;
+      return c;
     }
   private:
     char*        _buff;
-    list<FType*> _mod;
+    typedef std::map< unsigned,vector<DetInfo> > MapType;
+    MapType _map;
   };
 };
 
@@ -269,7 +217,6 @@ void PartitionSelect::select_dialog()
       unsigned isrc=0;
 
       EvrIOFactory evrIO;
-      DetInfo evrs[8];
 
       for(std::list<NodeMap>::const_iterator it=map.begin();
           it!=map.end(); it++) {
@@ -289,10 +236,6 @@ void PartitionSelect::select_dialog()
 	    if (sit->level()==Pds::Level::Source &&
 		info.detector()==DetInfo::BldEb)
 	      continue;
-
-	    if (sit->level()==Pds::Level::Source &&
-		info.device()==DetInfo::Evr)
-	      evrs[info.devId()] = info;
 
 	    foreach(Node node, nodes) {
 	      if (node == it->node) {
@@ -329,7 +272,7 @@ void PartitionSelect::select_dialog()
                               options, 
 			      l3_unbias,
 			      cfg,
-			      evrIO.xtc(evrs,_pcontrol));
+			      evrIO.config(_pcontrol));
       _pcontrol.set_target_state(PartitionControl::Configured);
 
       delete[] buff;
