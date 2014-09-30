@@ -16,6 +16,7 @@
 #include <QtCore/QObject>
 
 #include <new>
+#include <stdio.h>
 
 namespace Pds_ConfigDb {
 
