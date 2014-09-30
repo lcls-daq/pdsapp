@@ -18,6 +18,8 @@
 #include <new>
 #include <stdio.h>
 
+#include <stdio.h>
+
 namespace Pds_ConfigDb {
 
   class Epix10kSimpleCount : public ParameterCount {

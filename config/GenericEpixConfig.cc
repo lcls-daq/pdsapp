@@ -8,6 +8,7 @@
 #include "pds/config/EpixConfigV1.hh"
 #include "pds/epix/EpixConfigurator.hh"
 
+#include <stdio.h>
 #include <new>
 #include <stdio.h>
 

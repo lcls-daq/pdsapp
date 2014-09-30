@@ -21,6 +21,7 @@
 #include <QtGui/QDialog>
 #include <QtCore/QObject>
 
+#include <stdio.h>
 #include <new>
 #include <stdio.h>
 
