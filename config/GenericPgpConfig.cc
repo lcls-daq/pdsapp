@@ -7,6 +7,8 @@
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QComboBox>
 
+#include <stdio.h>
+
 enum GenericTypes { Epix100, Epix10k, NumGenericTypes };
 static const char* key_names[] = { "Epix100",
                                    "Epix10k",

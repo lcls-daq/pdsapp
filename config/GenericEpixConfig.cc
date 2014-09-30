@@ -9,6 +9,7 @@
 #include "pds/epix/EpixConfigurator.hh"
 
 #include <new>
+#include <stdio.h>
 
 using Pds_ConfigDb::GenericPgp::SequenceFactory;
 using Pds::Epix::EpixConfigurator;

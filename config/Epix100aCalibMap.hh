@@ -9,6 +9,8 @@
 #include <QtGui/QDialog>
 #include <QtCore/QObject>
 
+#include <stdint.h>
+
 class QWidget;
 class QVBoxLayout;
 
