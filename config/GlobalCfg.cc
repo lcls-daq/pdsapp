@@ -82,13 +82,18 @@ static void _loadType(DbClient&          db,
 
 bool GlobalCfg::contains(const UTypeName& utype)
 {
-  const unsigned _types = 
-    (1<<PdsDefs::EvrIO);
-
   const Pds::TypeId* id = PdsDefs::typeId(utype);
   if (!id) return false;
 
-  PdsDefs::ConfigType t = PdsDefs::configType(*id);
+  return contains(*id);
+}
+
+bool GlobalCfg::contains(Pds::TypeId id)
+{
+  const unsigned _types = 
+    (1<<PdsDefs::EvrIO);
+
+  PdsDefs::ConfigType t = PdsDefs::configType(id);
   return (_types & (1<<t));
 }
 

@@ -13,6 +13,7 @@ libsrcs_configdbg := ControlScan.cc ControlScan_moc.cc
 libsrcs_configdbg += PvScan.cc PvScan_moc.cc
 libsrcs_configdbg += EvrScan.cc EvrScan_moc.cc
 libsrcs_configdbg += Reconfig_Ui.cc Reconfig_Ui_moc.cc
+libsrcs_configdbg += Restore_Ui.cc Restore_Ui_moc.cc
 libsrcs_configdbg += Dialog.cc     Dialog_moc.cc 
 libsrcs_configdbg += SubDialog.cc    SubDialog_moc.cc 
 libsrcs_configdbg += Validators.cc     Validators_moc.cc 

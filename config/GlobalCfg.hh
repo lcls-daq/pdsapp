@@ -18,6 +18,7 @@ namespace Pds_ConfigDb {
     static void  flush(Pds::TypeId,bool force=false);
     static void* fetch(Pds::TypeId);    // if data for that type is cached
     static bool  contains(const UTypeName&); // if the type is global
+    static bool  contains(Pds::TypeId);      // if the type is global
   };
 };
 

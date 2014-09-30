@@ -12,6 +12,7 @@ using std::string;
 class QListWidget;
 class QListWidgetItem;
 class QPushButton;
+class QButtonGroup;
 
 namespace Pds_ConfigDb {
 
@@ -35,6 +36,7 @@ namespace Pds_ConfigDb {
     void change_component     ();
     void expert_mode();
     void user_mode();
+    void reset();
   private:
     Device* _device() const;
     const TableEntry* _device_entry() const;
@@ -49,6 +51,7 @@ namespace Pds_ConfigDb {
     QListWidget* _devlist;
     QListWidget* _cmplist;
     QPushButton* _applyB;
+    QButtonGroup* _modeG;
     bool _expert_mode;
   };
 };

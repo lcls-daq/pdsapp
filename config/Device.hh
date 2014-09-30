@@ -10,9 +10,6 @@
 #include <list>
 #include <string>
 
-using std::list;
-using std::string;
-
 namespace Pds_ConfigDb {
 
   class UTypeName;
@@ -20,25 +17,25 @@ namespace Pds_ConfigDb {
   class Device {
   public:
     Device();
-    Device( const string& name,
+    Device( const std::string& name,
             const Table& table, 
-	    const list<DeviceEntry>& src_list );
+	    const std::list<DeviceEntry>& src_list );
   public:
     bool operator==(const Device&) const;
   public:
-    const string& name() const { return _name; }
+    const std::string& name() const { return _name; }
 
     //  Table of {device alias, key, {config_type,filename}}
     const Table&  table() const { return _table; }
     Table& table() { return _table; }
 
     //  List of Pds::Src entries
-    const list<DeviceEntry>& src_list() const { return _src_list; }
-    list<DeviceEntry>& src_list() { return _src_list; }
+    const std::list<DeviceEntry>& src_list() const { return _src_list; }
+    std::list<DeviceEntry>& src_list() { return _src_list; }
   private:
-    string _name;
+    std::string _name;
     Table  _table;
-    list<DeviceEntry> _src_list;
+    std::list<DeviceEntry> _src_list;
   };
 
 };

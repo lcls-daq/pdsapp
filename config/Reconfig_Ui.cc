@@ -7,6 +7,7 @@
 #include "pdsapp/config/Serializer.hh"
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/GlobalCfg.hh"
+#include "pdsapp/config/Restore_Ui.hh"
 
 #include "pds/config/DbClient.hh"
 
@@ -15,6 +16,8 @@
 #include <QtGui/QListWidget>
 #include <QtGui/QLabel>
 #include <QtGui/QPushButton>
+#include <QtGui/QRadioButton>
+#include <QtGui/QButtonGroup>
 #include <QtGui/QMenu>
 #include <QtGui/QMenuBar>
 
@@ -24,6 +27,8 @@ using std::list;
 #include <stdio.h>
 
 using namespace Pds_ConfigDb;
+
+enum { EditMode, RestoreMode };
 
 Reconfig_Ui::Reconfig_Ui(QWidget* parent,
 			 Experiment& expt) :
@@ -35,6 +40,13 @@ Reconfig_Ui::Reconfig_Ui(QWidget* parent,
   setWindowTitle("Reconfigure");
   setAttribute(::Qt::WA_DeleteOnClose, false);
   setModal(false);
+
+  QRadioButton* editB = new QRadioButton("Edit");
+  QRadioButton* restB = new QRadioButton("Restore");
+
+  _modeG  = new QButtonGroup;
+  _modeG->addButton(editB,EditMode);
+  _modeG->addButton(restB,RestoreMode);
 
   _applyB = new QPushButton("Apply");
   QPushButton* closeB = new QPushButton("Close");
@@ -58,6 +70,12 @@ Reconfig_Ui::Reconfig_Ui(QWidget* parent,
     l->addLayout(layout); }
   { QHBoxLayout* layout = new QHBoxLayout;
     layout->addStretch();
+    layout->addWidget(editB);
+    layout->addWidget(restB);
+    layout->addStretch();
+    l->addLayout(layout); }
+  { QHBoxLayout* layout = new QHBoxLayout;
+    layout->addStretch();
     layout->addWidget(_applyB);
     layout->addWidget(closeB);
     layout->addStretch();
@@ -68,8 +86,16 @@ Reconfig_Ui::Reconfig_Ui(QWidget* parent,
   connect(_cmplist, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(change_component()));
   connect(_applyB , SIGNAL(clicked()), this, SLOT(apply()));
   connect(closeB  , SIGNAL(clicked()), this, SLOT(hide()));
+  connect(_applyB , SIGNAL(clicked()), this, SLOT(reset()));
+  connect(closeB  , SIGNAL(clicked()), this, SLOT(reset()));
 
+  reset();
   update_device_list();
+}
+
+void Reconfig_Ui::reset()
+{
+  _modeG->button(EditMode)->setChecked(true);
 }
 
 void Reconfig_Ui::enable(bool v)
@@ -178,43 +204,54 @@ void Reconfig_Ui::change_component()
     for(list<FileEntry>::const_iterator iter=entry->entries().begin();
 	iter!=entry->entries().end(); iter++)
       if (iter->name()==t) {
-        XtcEntry x;
-        x.type_id = *PdsDefs::typeId(stype);
-        x.name    = iter->entry();
+	qchoice = iter->entry().c_str();
 
-        db.begin();
-        if ((payload_sz = db.getXTC(x))<=0)
-          db.abort();
-        else {
-          db.commit();
+	if (_modeG->checkedId()==EditMode) {
 
-          payload = new char[payload_sz];
-          db.begin();
-          db.getXTC(x,payload,payload_sz);
-          db.commit();
-          
-          qchoice = iter->entry().c_str();
+	  XtcEntry x;
+	  x.type_id = *PdsDefs::typeId(stype);
+	  x.name    = iter->entry();
+	  
+	  db.begin();
+	  if ((payload_sz = db.getXTC(x))<=0)
+	    db.abort();
+	  else {
+	    db.commit();
 
-          //  edit the contents of the file	
-          Parameter::allowEdit(true);
-          Dialog* d = new Dialog(this, lookup(stype), qchoice,
-                                 payload, payload_sz, true);
-          d->exec();
+	    payload = new char[payload_sz];
+	    db.begin();
+	    db.getXTC(x,payload,payload_sz);
+	    db.commit();
+
+	    //  edit the contents of the file	
+	    Parameter::allowEdit(true);
+	    Dialog* d = new Dialog(this, lookup(stype), qchoice,
+				   payload, payload_sz, true);
+	    if (d->exec()==QDialog::Accepted) {
           
-          x.name = qPrintable(d->name());
-          db.begin();
-          db.setXTC(x, d->payload(), d->payload_size());
-          db.commit();
+	      x.name = qPrintable(d->name());
+	      db.begin();
+	      db.setXTC(x, d->payload(), d->payload_size());
+	      db.commit();
           
-	  if (GlobalCfg::contains(stype)) {
-	    char* b = new char[d->payload_size()];
-	    memcpy(b, d->payload(), d->payload_size());
-	    GlobalCfg::cache(stype,b);
+	      if (GlobalCfg::contains(stype)) {
+		char* b = new char[d->payload_size()];
+		memcpy(b, d->payload(), d->payload_size());
+		GlobalCfg::cache(stype,b);
+	      }
+	    }
+	    delete d;
+	    delete[] payload;
 	  }
-
-          delete d;
-          delete[] payload;
-        }
+	}
+	else { // RestoreMode
+	  Restore_Ui* d = new Restore_Ui(this, db, 
+					 *_device(), 
+					 *PdsDefs::typeId(stype), 
+					 iter->entry());
+	  d->exec();
+	  delete d;
+	}
 	break;
       }
   }
