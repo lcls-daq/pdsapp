@@ -3,8 +3,9 @@
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QLabel>
-#include "pdsapp/config/Epix100aCopyAsicDialog.hh"
 #include "pdsapp/config/Epix100aConfig.hh"
+#include "pdsapp/config/Epix100aCopyAsicDialog.hh"
+#include "pds/config/Epix100aConfigV1.hh"
 
 #include <stdio.h>
 
@@ -17,7 +18,7 @@ namespace Pds_ConfigDb {
   {
     char foo[80];
     unsigned u = 0;
-    for (int i=0; i<numberOfASICs; i++) {        
+    for (int i=0; i<Epix100aConfigShadow::NumberOfAsics; i++) {
       if (i != index) {
         sprintf(foo, "ASIC: %d", i);
         asicCheckBox[u] = new QCheckBox(QString(foo));
@@ -45,7 +46,7 @@ namespace Pds_ConfigDb {
 
     QVBoxLayout *leftLayout = new QVBoxLayout;
     leftLayout->addWidget(new QLabel("Destination ASICs"));
-    for (int i=0; i<numberOfASICs-1; i++) {        
+    for (int i=0; i<(Epix100aConfigShadow::NumberOfAsics-1); i++) {
       leftLayout->addWidget(asicCheckBox[i]);
     }
 
@@ -71,7 +72,7 @@ namespace Pds_ConfigDb {
   {
     const Epix100aCopyTarget& src = *_targets[index];
     unsigned cb = 0;
-    for (int i=0; i<numberOfASICs; i++) {        
+    for (int i=0; i<Epix100aConfigShadow::NumberOfAsics; i++) {
       if (i != index) {
         if (asicCheckBox[cb]->checkState() == Qt::Checked) {
           _targets[i]->copy(src);
@@ -86,7 +87,7 @@ namespace Pds_ConfigDb {
   void Epix100aCopyAsicDialog::selectAllClicked()
   {
     unsigned cb = 0;
-    for (int i=0; i<numberOfASICs; i++)
+    for (int i=0; i<Epix100aConfigShadow::NumberOfAsics; i++)
     {
       if (i!=index)
       {
@@ -98,7 +99,7 @@ namespace Pds_ConfigDb {
   void Epix100aCopyAsicDialog::selectNoneClicked()
   {
     unsigned cb = 0;
-    for (int i=0; i<numberOfASICs; i++)
+    for (int i=0; i<Epix100aConfigShadow::NumberOfAsics; i++)
     {
       if (i!=index)
       {

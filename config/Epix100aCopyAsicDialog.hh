@@ -25,7 +25,6 @@ namespace Pds_ConfigDb {
     Q_OBJECT
 
     public:
-    enum {numberOfASICs=Epix100aConfigShadow::NumberOfAsics};
     Epix100aCopyAsicDialog(int, std::vector<Epix100aCopyTarget*>, QWidget* parent=0);
     virtual ~Epix100aCopyAsicDialog() {}
 
@@ -36,7 +35,7 @@ namespace Pds_ConfigDb {
 
     private:
     int       index;
-    QCheckBox *asicCheckBox[numberOfASICs-1];
+    QCheckBox* asicCheckBox[3];
     QPushButton* copyButton;
     QPushButton* selectAllButton;
     QPushButton* selectNoneButton;

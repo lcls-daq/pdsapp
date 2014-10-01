@@ -30,7 +30,7 @@ namespace Pds_ConfigDb {
       Epix100aCalibDisplay(ndarray<uint8_t, 2>& m) : _map(m)
     {
         setFrameStyle(QFrame::NoFrame);
-        _rows = Epix100aConfigType::CalibrationRowCountPerASIC * Epix100aConfigShadow::ASICsPerCol / 2;
+        _rows = Epix100aConfigShadow::CalibrationRowCountPerAsic * Epix100aConfigShadow::ASICsPerCol / 2;
         _cols = Epix100aConfigShadow::ColsPerAsic * Epix100aConfigShadow::ASICsPerRow;
         pixmap = new QPixmap(_cols, _rows);
     }
