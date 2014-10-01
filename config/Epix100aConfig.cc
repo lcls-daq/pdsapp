@@ -85,8 +85,10 @@ namespace Pds_ConfigDb {
 
   static std::vector<Epix100aCopyTarget*> targets(Epix100aASICdata* a)
   {
-    std::vector<Epix100aCopyTarget*> v(Epix100aConfigShadow::NumberOfAsics);
-    for(unsigned i=0; i<Epix100aConfigShadow::NumberOfAsics; i++)
+    std::vector<Epix100aCopyTarget*> v(Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerRow) *
+        Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerColumn));
+    for(unsigned i=0; i<Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerRow) *
+    Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerColumn); i++)
       v[i] = &a[i];
     return v;
   }
@@ -94,15 +96,19 @@ namespace Pds_ConfigDb {
   class Epix100aConfig::PrivateData : public Parameter {
   public:
     PrivateData() :
-      _count(Epix100aConfigShadow::NumberOfAsics),
+      _count(Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerRow) *
+          Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerColumn)),
       _asicSet("ASICs", _asicArgs, _count, targets(_asic)),
       _pixelArray(make_ndarray<uint16_t>(
-          Epix100aConfigShadow::RowsPerAsic * Epix100aConfigShadow::ASICsPerCol,
-          Epix100aConfigShadow::ColsPerAsic * Epix100aConfigShadow::ASICsPerRow)),
+          Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfRowsPerAsic) *
+          Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerColumn),
+          Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfPixelsPerAsicRow) *
+          Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerRow))),
       _calibArray(make_ndarray<uint8_t>(
-          Pds::Epix::Config100aV1::CalibrationRowCountPerASIC,  // one calibration row per two actuals
-                                                                // assumes two asics
-          Epix100aConfigShadow::ColsPerAsic * Epix100aConfigShadow::ASICsPerRow)),
+          Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::CalibrationRowCountPerASIC)  ,
+          // one calibration row per two actuals, assumes two ASICs per column AND tow calibration rows per ASIC !!!!
+          Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfPixelsPerAsicRow) *
+          Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerRow))),
       _dialog(_pixelArray), _calibdialog(_calibArray) {
       Epix100aConfigShadow::initNames();
       for (unsigned i=0; i<Epix100aConfigShadow::NumberOfRegisters; i++) {
@@ -114,7 +120,8 @@ namespace Pds_ConfigDb {
                                            Hex
                                            );
       }
-      for (uint32_t i=0; i<Epix100aConfigShadow::NumberOfAsics; i++) {
+      for (uint32_t i=0; i<Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerRow) *
+      Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerColumn); i++) {
         _asicArgs[i].insert(&_asic[i]);
       }
       _asicSet.name("ASIC:");
@@ -208,7 +215,7 @@ namespace Pds_ConfigDb {
         _reg[i]->value = epixConfShadow.get((Epix100aConfigShadow::Registers) i);
         //      printf("%s0x%x",  i%16==0 ? "\n\t" : " ", epixConfShadow.get((Epix100aConfigShadow::Registers) i));
       }
-      for (uint32_t i=0; i<Epix100aConfigShadow::NumberOfAsics; i++) {
+      for (uint32_t i=0; i<epixConf.numberOfAsics(); i++) {
         _asic[i].pull(reinterpret_cast<const Epix100aASIC_ConfigShadow&>(epixConf.asics(i)));
       }
       printf("pull() pixel array [%u][%u]\n",
@@ -236,7 +243,7 @@ namespace Pds_ConfigDb {
       for (uint32_t i=0; i<Epix100aConfigShadow::NumberOfRegisters; i++) {
         epixConfShadow.set((Epix100aConfigShadow::Registers) i, _reg[i]->value);
       }
-      for (uint32_t i=0; i<Epix100aConfigShadow::NumberOfAsics; i++) {
+      for (uint32_t i=0; i<epixConf.numberOfAsics(); i++) {
         _asic[i].push((void*)(&(epixConf.asics(i))));
       }
       printf("push() pixel array [%u][%u]\n",
@@ -258,16 +265,18 @@ namespace Pds_ConfigDb {
     }
     int dataSize() const {
       Epix100aConfigType* foo = new Epix100aConfigType(
-                                               _reg[Epix100aConfigShadow::NumberOfAsicsPerRow]->value,
-                                               _reg[Epix100aConfigShadow::NumberOfAsicsPerColumn]->value,
-                                               _reg[Epix100aConfigShadow::NumberOfRowsPerAsic]->value,
-                                               _reg[Epix100aConfigShadow::NumberOfPixelsPerAsicRow]->value);
+                                             _reg[Epix100aConfigShadow::NumberOfAsicsPerRow]->value,
+                                             _reg[Epix100aConfigShadow::NumberOfAsicsPerColumn]->value,
+                                             _reg[Epix100aConfigShadow::NumberOfRowsPerAsic]->value,
+                                             _reg[Epix100aConfigShadow::NumberOfPixelsPerAsicRow]->value,
+                                             _reg[Epix100aConfigShadow::CalibrationRowCountPerASIC]->value);
       int size = (int) foo->_sizeof();
-          printf("Epix100aConfig::dataSize apr(%u) apc(%u) rpa(%u) ppar(%u) size(%u)\n",
+          printf("Epix100aConfig::dataSize apr(%u) apc(%u) rpa(%u) ppar(%u) crcpa(%u) size(%u)\n",
               _reg[Epix100aConfigShadow::NumberOfAsicsPerRow]->value,
               _reg[Epix100aConfigShadow::NumberOfAsicsPerColumn]->value,
               _reg[Epix100aConfigShadow::NumberOfRowsPerAsic]->value,
               _reg[Epix100aConfigShadow::NumberOfPixelsPerAsicRow]->value,
+              _reg[Epix100aConfigShadow::CalibrationRowCountPerASIC]->value,
               size);
       delete foo;
       return size;
