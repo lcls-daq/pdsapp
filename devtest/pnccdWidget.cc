@@ -624,8 +624,8 @@ int main( int argc, char** argv )
         if (writing) {
           for (idx=0; idx<4; idx++) {
             i = 0;
-            while (idx != f->q[i].lane() && i<4) {i++;}
-            if (i!=4) fwrite(&f->q[i], sizeof(pnCCDQuad), 1, writeFile);
+            while (i<4 && idx != f->q[i].lane()) {i++;}
+            if (i<4) fwrite(&f->q[i], sizeof(pnCCDQuad), 1, writeFile);
             else {
               printf("loopRead writing failure to find lanes which are: ");
               for (i=0; i<4; i++) printf("%u ", f->q[i].lane());
@@ -677,7 +677,7 @@ int main( int argc, char** argv )
           for (idx=0; idx<4; idx++) {
             if (laneMask & (1<<idx)) {
               i = 0;
-              while (idx != f->q[i].lane() && i<4) {i++;}
+              while (i<4 && idx != f->q[i].lane()) {i++;}
               if (i!=4) fwrite(&f->q[i], sizeof(pnCCDQuad), 1, writeFile);
               else {
                 printf("loopRead writing failure to find lanes which are: ");

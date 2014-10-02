@@ -134,8 +134,6 @@ void usage(const char* p) {
   printf("\t-k makes the program immortal\n");
 }
 
-class Pds_ConfigDb::EventcodeTiming;
-
 int main(int argc, char** argv) {
 
   extern char* optarg;

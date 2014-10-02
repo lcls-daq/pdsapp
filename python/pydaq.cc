@@ -176,13 +176,13 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
 
 int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
 {
-  char* kwlist[] = {"host","platform",NULL};
+  const char* kwlist[] = {"host","platform",NULL};
   unsigned    addr  = 0;
   const char* host  = 0;
   unsigned    platform = 0;
 
   while(1) {
-    if (PyArg_ParseTupleAndKeywords(args,kwds,"s|I",kwlist,
+    if (PyArg_ParseTupleAndKeywords(args,kwds,"s|I",const_cast<char**>(kwlist),
                                     &host,&platform)) {
 
       hostent* entries = gethostbyname(host);
@@ -191,7 +191,7 @@ int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
         break;
       }
     }
-    if (PyArg_ParseTupleAndKeywords(args,kwds,"I|i",kwlist,
+    if (PyArg_ParseTupleAndKeywords(args,kwds,"I|i",const_cast<char**>(kwlist),
                                     &addr,&platform)) {
       break;
     }

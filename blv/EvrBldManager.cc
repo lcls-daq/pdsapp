@@ -83,15 +83,13 @@ private:
 };
 
 
-static char* _eclist = "";
-
 EvrBldManager::EvrBldManager(const DetInfo&        src, 
                              const char*           evr_id,
                              const std::list<int>& write_fd) :
   _erInfo      ((std::string("/dev/er")+evr_id[0]+'3').c_str()),
   _er          (_erInfo.board()), 
   _write_fd    (write_fd),
-  _cfg         (*new EvrCfgClient(src,_eclist)),
+  _cfg         (*new EvrCfgClient(src)),
   _evtCounter  (0),
   _configBuffer(new char[0x10000]),
   _hsignal     ("EvrSignal")

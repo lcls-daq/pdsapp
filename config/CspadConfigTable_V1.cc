@@ -189,8 +189,8 @@ namespace Pds_ConfigDb
       {
         Pds::CsPad::CsPadReadOnlyCfg dummy(-1U,-1U);
 
-        uint8_t potscfg[Pds::CsPad::PotsPerQuad];
-	uint8_t* pots = potscfg;
+        uint32_t potscfg[(Pds::CsPad::PotsPerQuad+3)>>2];
+	uint8_t* pots = reinterpret_cast<uint8_t*>(potscfg);
 	*pots++ = _vref.value;
 	*pots++ = _vref.value;
 	*pots++ = _rampCurrR1.value;
