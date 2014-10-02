@@ -23,6 +23,7 @@ int branch_db  (int argc, char** argv);
 int update_db  (int argc, char** argv);
 int fetch_xtc  (int argc, char** argv);
 int truncate_db(int argc, char** argv);
+int dump_db    (int argc, char** argv);
 
 typedef int command_fcn(int,char**);
 
@@ -58,6 +59,10 @@ static struct command _commands[] =
       "--db <path> [--key <from-to>] [--time <from-to>]",
       "Truncate/delete the history",
       truncate_db },
+    { "--dump-db",
+      "--db <path>",
+      "Dump the keys",
+      dump_db },
     { NULL, NULL, NULL, NULL }
   };
 
@@ -378,7 +383,7 @@ int fetch_xtc(int argc, char** argv)
 }
 
 //
-//  Fetch the xtc
+//  Remove keys
 //
 int truncate_db(int argc, char** argv)
 {
@@ -446,7 +451,10 @@ int truncate_db(int argc, char** argv)
   if (!path) return -1;
 
   DbClient* db = DbClient::open(path);
-  
+
+  //
+  //  Remove the top-level keys
+  //
   std::list<KeyEntry> none;
   std::list<Key> klist = db->getKeys();
   for(std::list<Key>::iterator it=klist.begin();
@@ -456,6 +464,54 @@ int truncate_db(int argc, char** argv)
       printf("Removing key %d\n",it->key);
       db->setKey(*it,none);
     }
+  }
+  db->purge();
+
+  return 0; 
+}
+
+//
+//  Remove keys
+//
+int dump_db(int argc, char** argv)
+{
+  static struct option _options[] = { { "db"  , 1, 0, 0},
+                                      { 0, 0, 0, 0 } };
+
+  const char* path = 0;
+
+  char c;
+  while( (c=getopt_long(argc, argv, "", _options, NULL)) != -1 ) {
+    switch(c) {
+    case 0: path    = optarg; break;
+    default: return -1;
+    }
+  }
+
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    return -1;
+  }
+
+  DbClient* db = DbClient::open(path);
+
+  std::list<Key> keys = db->getKeys();
+  for(std::list<Key>::iterator it=keys.begin(); it!=keys.end(); it++) {
+    std::string c(ctime(&it->time)); c.erase(c.size()-1);
+    printf("Key %x  [%s] [%s]\n",it->key,it->name.c_str(),c.c_str());
+    std::list<KeyEntry> entries = db->getKey(it->key);
+    for(std::list<KeyEntry>::iterator kit=entries.begin(); kit!=entries.end(); kit++) {
+      DeviceEntry e(kit->source);
+      switch(e.level()) {
+      case Pds::Level::Source:
+	printf("\t[%s] ",Pds::DetInfo::name(reinterpret_cast<const Pds::DetInfo&>(e)));
+	break;
+      default:
+	printf("\t[%s] ",Pds::Level::name(e.level()));
+	break;
+      }
+      printf("[%s] [%s]\n",Pds::TypeId::name(kit->xtc.type_id.id()),kit->xtc.name.c_str());
+    }	     
   }
 
   return 0; 
