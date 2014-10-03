@@ -189,7 +189,8 @@ namespace Pds {
     ((1ULL<<(BldInfo::MecHxmIpm01+1)) - (1ULL<<BldInfo::HfxMonImb01)) |
     ((1ULL<<(BldInfo::CxiDg4Imb01+1)) - (1ULL<<BldInfo::CxiDg1Imb01)) |
     ((1ULL<<(BldInfo::MecXt2Pim03+1)) - (1ULL<<BldInfo::XppMonPim0))  |
-    ((1ULL<<(BldInfo::Nh2Sb1Ipm02+1)) - (1ULL<<BldInfo::Nh2Sb1Ipm02));
+    ((1ULL<<(BldInfo::Nh2Sb1Ipm02+1)) - (1ULL<<BldInfo::Nh2Sb1Ipm02)) |
+    ((1ULL<<(BldInfo::XcsLamIpm01+1)) - (1ULL<<BldInfo::XcsUsrIpm01));
   uint64_t PimMask =
     ((1ULL<<(BldInfo::HfxMonCam+1)) - (1ULL<<BldInfo::HxxDg1Cam)) |
     ((1ULL<<(BldInfo::CxiDg4Pim+1)) - (1ULL<<BldInfo::CxiDg1Pim));
@@ -502,6 +503,12 @@ namespace Pds {
   if (CheckType(XppEndstation1))  extent += SizeType(BldDataIpimb);
   if (CheckType(MecXt2Pim02))     extent += SizeType(BldDataIpimb);
   if (CheckType(MecXt2Pim03))     extent += SizeType(BldDataIpimb);
+  if (CheckType(XcsSb1Ipm01))     extent += SizeType(BldDataIpimb);
+  if (CheckType(XcsSb1Ipm02))     extent += SizeType(BldDataIpimb);
+  if (CheckType(XcsSb2Ipm01))     extent += SizeType(BldDataIpimb);
+  if (CheckType(XcsSb2Ipm02))     extent += SizeType(BldDataIpimb);
+  if (CheckType(XcsGonIpm01))     extent += SizeType(BldDataIpimb);
+  if (CheckType(XcsLamIpm01))     extent += SizeType(BldDataIpimb);
 
   _configtc.extent = sizeof(Xtc)+extent;
   if (extent) {
@@ -552,6 +559,13 @@ namespace Pds {
     if (CheckType(XppEndstation1))  AddType(XppEndstation1,  Id_SharedIpimb,     BldDataIpimb);
     if (CheckType(MecXt2Pim02))     AddType(MecXt2Pim02,     Id_SharedIpimb,     BldDataIpimb);
     if (CheckType(MecXt2Pim03))     AddType(MecXt2Pim03,     Id_SharedIpimb,     BldDataIpimb);
+    if (CheckType(XcsSb1Ipm01))     AddType(XcsSb1Ipm01,     Id_SharedIpimb,     BldDataIpimb);
+    if (CheckType(XcsSb1Ipm02))     AddType(XcsSb1Ipm02,     Id_SharedIpimb,     BldDataIpimb);
+    if (CheckType(XcsSb2Ipm01))     AddType(XcsSb2Ipm01,     Id_SharedIpimb,     BldDataIpimb);
+    if (CheckType(XcsSb2Ipm02))     AddType(XcsSb2Ipm02,     Id_SharedIpimb,     BldDataIpimb);
+    if (CheckType(XcsGonIpm01))     AddType(XcsGonIpm01,     Id_SharedIpimb,     BldDataIpimb);
+    if (CheckType(XcsLamIpm01))     AddType(XcsLamIpm01,     Id_SharedIpimb,     BldDataIpimb);
+
   }
 #undef CheckType
 #undef SizeType
