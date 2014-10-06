@@ -424,7 +424,7 @@ QLayout* EvrPulseTable_V4::initialize(QWidget* parent)
     }
     else
   */
-  const EvrIOConfigType* iocfg = reinterpret_cast<const EvrIOConfigType*>(GlobalCfg::fetch(_evrIOConfigType));
+  const EvrIOConfigType* iocfg = reinterpret_cast<const EvrIOConfigType*>(GlobalCfg::instance().fetch(_evrIOConfigType));
   if (iocfg)
     for(unsigned i=0; i<iocfg->nchannels(); i++)
       _outputs[i] = new QrLabel(iocfg->channels()[i].name());

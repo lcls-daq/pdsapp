@@ -266,7 +266,7 @@ QLayout* EvrPulseTable_V5::initialize(QWidget*)
   //  Read EvrIOConfig
   //
   unsigned j=0;
-  { const char* p = reinterpret_cast<const char*>(GlobalCfg::fetch(_evrIOConfigType));
+  { const char* p = reinterpret_cast<const char*>(GlobalCfg::instance().fetch(_evrIOConfigType));
     if (p) {
       unsigned id=0;
       do {

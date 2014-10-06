@@ -203,7 +203,7 @@ void Experiment_Ui::change_device(const string& device)
   QStringList choices;
   const list<TableEntry>& te = _expt.device(device)->table().entries();
   for(list<TableEntry>::const_iterator iter=te.begin(); iter!=te.end(); iter++)
-    if (iter->name() != string(GlobalCfg::name()))
+    if (iter->name() != string(GlobalCfg::instance().name()))
       choices << iter->name().c_str();
   bool ok;
   QString choice = QInputDialog::getItem(_devlist,

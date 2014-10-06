@@ -359,7 +359,7 @@ QLayout* EvrPulseTable::initialize(QWidget*)
   //  Read EvrIOConfig
   //
   { 
-    const char* p = reinterpret_cast<const char*>(GlobalCfg::fetch(_evrIOConfigType));
+    const char* p = reinterpret_cast<const char*>(GlobalCfg::instance().fetch(_evrIOConfigType));
     if (p) {
       const EvrIOConfigType& iocfg = *reinterpret_cast<const EvrIOConfigType*>(p);
       for(unsigned i=0; i<iocfg.nchannels(); i++) {
@@ -533,7 +533,7 @@ void EvrPulseTables::pull    (const EvrConfigType& tc)
   //  Read EvrIOConfig
   //
   { 
-    const char* p = reinterpret_cast<const char*>(GlobalCfg::fetch(_evrIOConfigType));
+    const char* p = reinterpret_cast<const char*>(GlobalCfg::instance().fetch(_evrIOConfigType));
     if (p) {
       const EvrIOConfigType& iocfg = *reinterpret_cast<const EvrIOConfigType*>(p);
       for(unsigned i=0; i<iocfg.nchannels(); i++) {

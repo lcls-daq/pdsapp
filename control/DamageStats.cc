@@ -46,7 +46,7 @@ DamageStats::DamageStats(PartitionSelect& partition,
     const DetInfo&  det  = _partition.detectors().at(i);
     const ProcInfo& proc = _partition.segments ().at(i);
     if (det.detector() != DetInfo::BldEb) {
-      const char* alias = _pcontrol.lookup_src_alias(det);
+      const char* alias = _partition.aliases().lookup(det);
       if (alias) {
         QLabel* label = new QLabel(alias);
         label->setToolTip(DetInfo::name(det));

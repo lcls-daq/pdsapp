@@ -10,6 +10,7 @@
 
 #include <QtGui/QDialog>
 
+#include "pds/config/AliasFactory.hh"
 #include "pds/collection/Node.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
@@ -59,6 +60,7 @@ namespace Pds {
     const QList<BldInfo >& transients() const;
     const QList<DetInfo >& iocs      () const;
     const std::list<NodeMap>& segment_map() const;
+    const AliasFactory&    aliases() const;
     bool                   l3_tag () const;
     bool                   l3_veto() const;
     std::string            l3_path() const;
@@ -84,6 +86,7 @@ namespace Pds {
     ProcNodeGroup* _evtbox;
     BldNodeGroup* _rptbox;
     DetNodeGroup* _iocbox;
+    AliasFactory  _aliases;
     QList<Node>     _selected;
     QList<DetInfo > _detinfo;
     std::set<std::string> _deviceNames;

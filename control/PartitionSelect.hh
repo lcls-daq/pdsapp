@@ -5,6 +5,7 @@
 #include <QtGui/QGroupBox>
 #include <QtCore/QList>
 
+#include "pds/config/AliasFactory.hh"
 #include "pds/collection/Node.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -32,6 +33,7 @@ namespace Pds {
     const std::set<std::string>& deviceNames() const;
     const QList<ProcInfo>& segments () const;
     const QList<BldInfo >& reporters() const;
+    const AliasFactory&    aliases  () const;
   public slots:
     void select_dialog();
     void display      ();
@@ -46,6 +48,7 @@ namespace Pds {
     const char*        _pt_name;
     char               _db_path[128];
     QWidget*           _display;
+    AliasFactory       _aliases;
     unsigned           _options;
     enum { MAX_NODES=64 };
     unsigned _nnodes;

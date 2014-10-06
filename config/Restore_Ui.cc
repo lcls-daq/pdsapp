@@ -112,10 +112,10 @@ void Restore_Ui::view_xtc()
     _db.setXTC(t.xtc, d->payload(), d->payload_size());
     _db.commit();
     
-    if (GlobalCfg::contains(t.xtc.type_id)) {
+    if (GlobalCfg::instance().contains(t.xtc.type_id)) {
       char* b = new char[d->payload_size()];
       memcpy(b, d->payload(), d->payload_size());
-      GlobalCfg::cache(t.xtc.type_id,b);
+      GlobalCfg::instance().cache(t.xtc.type_id,b);
     }
     delete d;
     accept();

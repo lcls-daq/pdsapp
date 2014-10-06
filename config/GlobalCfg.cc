@@ -16,10 +16,10 @@ namespace Pds_ConfigDb {
     ~GlobalCfgCache() { clear(true); }
   public:
     void  clear (bool force) { 
-      for(unsigned i=0; i<PdsDefs::NumberOf+1; i++)
-	insert((PdsDefs::ConfigType)i,0,force);
+      for(unsigned i=0; i<Pds::TypeId::NumberOf+1; i++)
+	insert((Pds::TypeId::Type)i,0,force);
     }
-    void  insert(PdsDefs::ConfigType q, char* p, bool force) 
+    void  insert(Pds::TypeId::Type q, char* p, bool force) 
     {
       if (force) {
 	if (_btype[q]) delete[] _btype[q];
@@ -37,24 +37,24 @@ namespace Pds_ConfigDb {
 	_btype[q] = p;
       }
     }
-    void  remove(PdsDefs::ConfigType q, bool force)
+    void  remove(Pds::TypeId::Type q, bool force)
     { insert(q,0,force); }
-    char* fetch (PdsDefs::ConfigType q) const { return q==PdsDefs::NumberOf ? 0:_btype[q]; }
+    char* fetch (Pds::TypeId::Type q) const { return q==Pds::TypeId::NumberOf ? 0:_btype[q]; }
   private:
     uint64_t _forced;
-    char* _btype[PdsDefs::NumberOf+1];
+    char* _btype[Pds::TypeId::NumberOf+1];
   };
 };
 
 using namespace Pds_ConfigDb;
 
-GlobalCfgCache _cache;
+static GlobalCfg* _instance = 0;
 
-static void _loadType(DbClient&          db,
-                      const Pds::TypeId& id,
-                      const std::string& name)
+void GlobalCfg::_loadType(DbClient&          db,
+			  const Pds::TypeId& id,
+			  const std::string& name)
 {
-  PdsDefs::ConfigType i = PdsDefs::configType(id);
+  Pds::TypeId::Type i = id.id();
 
   //  Already cached?
   if (_cache.fetch(i)) return;
@@ -90,11 +90,13 @@ bool GlobalCfg::contains(const UTypeName& utype)
 
 bool GlobalCfg::contains(Pds::TypeId id)
 {
-  const unsigned _types = 
-    (1<<PdsDefs::EvrIO);
-
-  PdsDefs::ConfigType t = PdsDefs::configType(id);
-  return (_types & (1<<t));
+  switch(id.id()) {
+  case Pds::TypeId::Id_EvrIOConfig:
+  case Pds::TypeId::Id_AliasConfig:
+    return true;
+  default:
+    return false;
+  }
 }
 
 void GlobalCfg::cache(DbClient& path, const Device* device)
@@ -119,7 +121,7 @@ void GlobalCfg::flush(const UTypeName& utype,bool force)
 
 void GlobalCfg::flush(Pds::TypeId id,bool force)
 {
-  _cache.remove(PdsDefs::configType(id),force);
+  _cache.remove(id.id(),force);
 }
 
 void GlobalCfg::cache(const UTypeName& utype, char* p, bool force) 
@@ -129,10 +131,35 @@ void GlobalCfg::cache(const UTypeName& utype, char* p, bool force)
 
 void GlobalCfg::cache(Pds::TypeId id, char* p, bool force) 
 {
-  _cache.insert(PdsDefs::configType(id),p,force); 
+  _cache.insert(id.id(),p,force); 
+
+  std::list<Pds::Routine*>& l = _clients[id.value()];
+  for(std::list<Pds::Routine*>::iterator it=l.begin(); it!=l.end(); it++)
+    (*it)->routine();
 }
 
 void* GlobalCfg::fetch(Pds::TypeId id)
 {
-  return _cache.fetch(PdsDefs::configType(id));
+  return _cache.fetch(id.id());
 }
+
+void  GlobalCfg::enroll(Pds::Routine* r, Pds::TypeId id)
+{
+  _clients[id.value()].push_back(r);
+}
+
+void  GlobalCfg::resign(Pds::Routine* r)
+{
+  for(MapType::iterator it=_clients.begin(); it!=_clients.end(); it++)
+    it->second.remove(r);
+}
+
+GlobalCfg& GlobalCfg::instance()
+{
+  if (!_instance) _instance = new GlobalCfg;
+  return *_instance;
+}
+
+GlobalCfg::GlobalCfg() : _cache(*new GlobalCfgCache) {}
+
+GlobalCfg::~GlobalCfg() { delete &_cache; }

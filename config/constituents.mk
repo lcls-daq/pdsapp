@@ -4,9 +4,10 @@ libnames       += configdbg
 endif
 
 libsrcs_configdb := Table.cc
-libsrcs_configdb += Device.cc GlobalCfg.cc
+libsrcs_configdb += Device.cc
 libsrcs_configdb += Experiment.cc
 libsrcs_configdb += EventcodeTiming.cc
+libsrcs_configdb += GlobalCfg.cc
 libincs_configdb := pdsdata/include ndarray/include boost/include  
 
 libsrcs_configdbg := ControlScan.cc ControlScan_moc.cc

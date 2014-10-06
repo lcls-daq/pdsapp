@@ -94,13 +94,13 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg)
       }
       const char *aliasName;
 
-      if ((msg.nsources() > 0) && (aliasName = _pcontrol.lookup_src_alias(msg.source(0)))) {
+      if ((msg.nsources() > 0) && (aliasName = _aliases.lookup(msg.source(0)))) {
         char namebuf[msg.nsources() * (SrcAlias::AliasNameMax + 5)];
         char *pName = namebuf;
 
         // if multiple aliases are present, display them in a vertical list
         for (int ii=0; ii<(int)msg.nsources(); ii++) {
-          aliasName = _pcontrol.lookup_src_alias(msg.source(ii));
+          aliasName = _aliases.lookup(msg.source(ii));
           if (aliasName && (strlen(aliasName) <= SrcAlias::AliasNameMax)) {
             if (ii > 0) {
               strcpy(pName, "\r\n");
@@ -136,7 +136,7 @@ void        SelectDialog::aliasCollect(const Node& hdr, const AliasReply& msg)
   if (hdr.level() == Level::Segment) {
     int count = (int)msg.naliases();
     for (int ix=0; ix < count; ix++) {
-      _pcontrol.add_src_alias(msg.alias(ix));
+      _aliases.insert(msg.alias(ix));
     }
   }
 }
@@ -228,6 +228,8 @@ void SelectDialog::update_layout()
   }
   updateGeometry();
 }
+
+const AliasFactory&    SelectDialog::aliases  () const { return _aliases; }
 
 const QList<Node    >& SelectDialog::selected () const { return _selected; }
 

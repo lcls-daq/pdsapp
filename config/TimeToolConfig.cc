@@ -192,8 +192,8 @@ namespace Pds_ConfigDb
       _record_image.value = c.write_image();
       _record_proj .value = c.write_projections();
 
-      std::string base_name(c.base_name(),
-			    c.base_name_length());
+      std::string base_name(c.base_name());
+
       strcpy(_base_name.value,base_name.c_str());
 
       return c._sizeof();
@@ -231,7 +231,7 @@ namespace Pds_ConfigDb
 			  _use_sb      .value,
 			  _weights.value.size(), 
 			  _cal_poly.value.size(),
-			  strlen(_base_name.value),
+			  strlen(_base_name.value)+1,
 			  beam_logic.size(),
 			  laser_logic.size(),
 			  _sig_cut.value,
@@ -255,7 +255,7 @@ namespace Pds_ConfigDb
 	   _laser_logic.get().size(),
 	   _weights .value.size(),
 	   _cal_poly.value.size(),
-	   strlen(_base_name.value));
+	   strlen(_base_name.value)+1);
       return c._sizeof();
     }
 

@@ -87,11 +87,11 @@ namespace Pds_ConfigDb {
         QString name = sname(xtc->src);
         if (name == _name) {
           UTypeName          u = PdsDefs::utypeName(xtc->contains);
-	  if (GlobalCfg::contains(u)) {
-	    GlobalCfg::flush(u);
+	  if (GlobalCfg::instance().contains(u)) {
+	    GlobalCfg::instance().flush(u);
 	    char* p = new char[xtc->sizeofPayload()];
 	    memcpy(p, xtc->payload(), xtc->sizeofPayload());
-	    GlobalCfg::cache(u,p);
+	    GlobalCfg::instance().cache(u,p);
 	  }
           if (PdsDefs::typeId(u)) {
             QTypeName          q = PdsDefs::qtypeName(u);

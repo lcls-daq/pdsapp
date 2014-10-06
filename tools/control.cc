@@ -201,7 +201,7 @@ int main(int argc, char** argv)
 			      "",
 			      platformcb.nodes(),
 			      platformcb.nnodes(),
-			      0, 0);
+			      0, 0, 0);
       }
       else
         printf(" partition already mapped\n");

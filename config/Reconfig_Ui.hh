@@ -3,6 +3,7 @@
 
 #include "pdsapp/config/SerializerDictionary.hh"
 #include "pdsapp/config/ExpertDictionary.hh"
+#include "pds/service/Routine.hh"
 
 #include <QtGui/QDialog>
 
@@ -22,12 +23,14 @@ namespace Pds_ConfigDb {
   class TableEntry;
   class UTypeName;
 
-  class Reconfig_Ui : public QDialog {
+  class Reconfig_Ui : public QDialog, public Pds::Routine {
     Q_OBJECT
   public:
     Reconfig_Ui(QWidget*, Experiment&);
+    ~Reconfig_Ui();
   public:
     void enable(bool);
+    void routine();
   public slots:
     void apply();
     void set_run_type(const QString&);
@@ -43,6 +46,7 @@ namespace Pds_ConfigDb {
     Serializer& lookup(const UTypeName&);
   signals:
     void changed();
+    void gchanged();
   private:
     Experiment&  _expt;
     const TableEntry* _entry;

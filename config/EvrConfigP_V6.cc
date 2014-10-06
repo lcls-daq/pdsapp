@@ -88,7 +88,7 @@ namespace Pds_ConfigDb {
         //  Read EvrIOConfig
         //
         unsigned nevr = 1;
-        { const char* p = reinterpret_cast<const char*>(GlobalCfg::fetch(_evrIOConfigType));
+        { const char* p = reinterpret_cast<const char*>(GlobalCfg::instance().fetch(_evrIOConfigType));
           if (p) {
             nevr = 0;
             do {

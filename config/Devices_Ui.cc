@@ -237,7 +237,7 @@ void Devices_Ui::update_config_list()
     for(list<TableEntry>::const_iterator iter=entries.begin();
 	iter!=entries.end(); iter++) {
       // exclude global configuration from direct editing
-      if (iter->name() != string(GlobalCfg::name()))
+      if (iter->name() != string(GlobalCfg::instance().name()))
 	*new QListWidgetItem(iter->name().c_str(),_cfglist);
     }
   }
@@ -273,8 +273,8 @@ void Devices_Ui::update_component_list()
       }
     }
     //  List global entries here
-    if ((entry = device->table().get_top_entry(string(GlobalCfg::name())))) {
-      GlobalCfg::cache(_expt.path(),_device_c());
+    if ((entry = device->table().get_top_entry(string(GlobalCfg::instance().name())))) {
+      GlobalCfg::instance().cache(_expt.path(),_device_c());
       for(list<FileEntry>::const_iterator iter=entry->entries().begin();
 	  iter!=entry->entries().end(); iter++) {
 	string label = iter->name() + " [" + iter->entry() + "](G)";
@@ -436,8 +436,8 @@ void Devices_Ui::add_component(const QString& type)
   string det(qPrintable(item->text()));
 
   string cfg;
-  if (GlobalCfg::contains(stype)) {  // create the global alias
-    cfg = string(GlobalCfg::name());
+  if (GlobalCfg::instance().contains(stype)) {  // create the global alias
+    cfg = string(GlobalCfg::instance().name());
     if (_expt.device(det)->table().get_top_entry(cfg) == 0)
       _expt.device(det)->table().new_top_entry(cfg);
   }
@@ -556,8 +556,8 @@ void Devices_Ui::remove_component(const QString& type)
   string det(qPrintable(item->text()));
 
   string cfg;
-  if (GlobalCfg::contains(stype)) {  // create the global alias
-    cfg = string(GlobalCfg::name());
+  if (GlobalCfg::instance().contains(stype)) {  // create the global alias
+    cfg = string(GlobalCfg::instance().name());
     if (_expt.device(det)->table().get_top_entry(cfg) == 0)
       _expt.device(det)->table().new_top_entry(cfg);
   }

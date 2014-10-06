@@ -12,7 +12,7 @@
 #include "pds/collection/Node.hh"
 #include "pds/config/XtcClient.hh"
 #include "pds/config/EvrConfigType.hh"
-#include "pds/config/EvrIOConfigType.hh"
+#include "pds/config/EvrIOFactory.hh"
 #include "pds/xtc/XtcType.hh"
 
 #include <QtGui/QLabel>
@@ -31,81 +31,7 @@
 using std::list;
 using std::vector;
 
-using Pds::EvrData::OutputMapV2;
-
 //#define DBUG
-
-namespace Pds {
-  class EvrIOFactory {
-  public:
-    EvrIOFactory() : _buff(0) {}
-    ~EvrIOFactory() 
-    { 
-      if (_buff) delete[] _buff; 
-    }
-  public:
-    void insert(unsigned mod_id, unsigned chan, const DetInfo& info)
-    {
-#ifdef DBUG
-      printf("EvrIOFactory::insert %d/%d [%s]\n",
-	     mod_id,chan,DetInfo::name(info));
-#endif
-      OutputMapV2 output(OutputMapV2::Pulse,-1,
-			 OutputMapV2::UnivIO,chan,mod_id);
-      
-      MapType::iterator it = _map.find(output.value());
-      if (it == _map.end())
-	(_map[output.value()] = vector<DetInfo>()).push_back(info);
-      else
-	it->second.push_back(info);
-    }
-    EvrIOConfigType* config(const PartitionControl& control)
-    {
-      if (_buff) delete _buff;
-
-      vector<EvrIOChannelType> ch;
-      for(MapType::iterator it=_map.begin(); it!=_map.end(); it++) {
-	std::string name;
-	unsigned ninfo = it->second.size();
-	for(unsigned i=0; i<ninfo; i++) {
-	  const char* p;
-	  if ((p=control.lookup_src_alias(it->second[i])) &&
-	      name.size()+strlen(p)<EvrIOChannelType::NameLength) {
-	    if (name.size()) name += std::string(",");
-	    name += std::string(p);
-	  }
-	}
-	name.resize(EvrIOChannelType::NameLength);
-	ch.push_back(EvrIOChannelType(reinterpret_cast<const OutputMapV2&>(it->first),
-				      name.c_str(),
-				      ninfo,
-				      it->second.data()));
-      }
-
-      EvrIOConfigType t(ch.size());
-      _buff = new char[t._sizeof()];
-      EvrIOConfigType* c = new (_buff) EvrIOConfigType(ch.size(),ch.data());
-
-      char* gbuff = new char[t._sizeof()];
-      memcpy(gbuff, c, t._sizeof());
-      Pds_ConfigDb::GlobalCfg::cache(_evrIOConfigType, gbuff, true);
-
-#ifdef DBUG
-      { 
-	printf("EvrIOFactory::xtc  src %08x.%08x  contains %s_v%u  extent %u\n",
-	       xtc->src.log(), xtc->src.phy(),
-	       TypeId::name(xtc->contains.id()),xtc->contains.version(),
-	       xtc->extent);
-      }
-#endif
-      return c;
-    }
-  private:
-    char*        _buff;
-    typedef std::map< unsigned,vector<DetInfo> > MapType;
-    MapType _map;
-  };
-};
 
 using namespace Pds;
 
@@ -213,6 +139,21 @@ void PartitionSelect::select_dialog()
 	if (!it->node.transient())
 	  nsrc += it->sources.size();
 
+      //  Find the master
+      unsigned masterid=0;
+      foreach(Node node, nodes) {
+	if (node.level()==Level::Segment) {
+	  for(std::list<NodeMap>::const_iterator it=map.begin();
+	      it!=map.end(); it++)
+	    if (it->node == node) {
+	      const DetInfo info = static_cast<const DetInfo&>(it->sources[0]);
+	      masterid = info.devId();
+	      break;
+	    }
+	  break;
+	}
+      }
+
       Partition::Source* sources = new Partition::Source[nsrc];
       unsigned isrc=0;
 
@@ -268,14 +209,24 @@ void PartitionSelect::select_dialog()
       _pcontrol.set_partition(_pt_name, _db_path,
 			      l3_path.c_str(),
                               _nodes  , _nnodes,
+			      masterid,
                               bld_mask, bld_mask_mon,
                               options, 
 			      l3_unbias,
 			      cfg,
-			      evrIO.config(_pcontrol));
+			      evrIO.config(dialog->aliases()),
+			      dialog->aliases().config());
       _pcontrol.set_target_state(PartitionControl::Configured);
+      
+      _aliases = dialog->aliases();
 
-      delete[] buff;
+      Pds_ConfigDb::GlobalCfg::instance().cache(_evrIOConfigType, 
+				     reinterpret_cast<char*>(evrIO.config(dialog->aliases())), 
+				     true);
+      Pds_ConfigDb::GlobalCfg::instance().cache(_aliasConfigType, 
+				     reinterpret_cast<char*>(dialog->aliases().config()),
+				     true);
+
       delete[] sources;
     }
 
@@ -297,6 +248,8 @@ void PartitionSelect::change_state(QString s)
   if (s == QString(TransitionId::name(TransitionId::Unmap))) _selectb->setEnabled(true);
   if (s == QString(TransitionId::name(TransitionId::Map  ))) _selectb->setEnabled(false);
 }
+
+const AliasFactory&    PartitionSelect::aliases  () const { return _aliases; }
 
 const QList<DetInfo >& PartitionSelect::detectors() const { return _detectors; }
 
@@ -403,18 +356,18 @@ bool PartitionSelect::_checkReadGroupEnable()
   printf("Evr config event %d pulse %d output %d\n",
     evrConfig.neventcodes(), evrConfig.npulses(), evrConfig.noutputs() );
 
-  bool bEneableReadoutGroup = false;
+  bool bEnableReadoutGroup = false;
   for(unsigned i=0; i<evrConfig.neventcodes(); i++)
   {
     const EventCodeType& e = evrConfig.eventcodes()[i];
     if (e.readoutGroup() > 1)
-      bEneableReadoutGroup = true;
+      bEnableReadoutGroup = true;
   }
 
   free(lcConfigBuffer);
   delete cl;
 
-  return bEneableReadoutGroup;
+  return bEnableReadoutGroup;
 }
 
 void PartitionSelect::autorun()
