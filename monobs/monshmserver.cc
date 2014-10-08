@@ -363,7 +363,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c|-q <# event queues>] [-d] [-g <max groups>] [-h]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c|-q <# event queues>] [-d] [-o] [-g <max groups>] [-h]\n", progname);
 }
 
 int main(int argc, char** argv) {
@@ -377,11 +377,12 @@ int main(int argc, char** argv) {
   unsigned node =  0xffff0;
   unsigned nodes = 6;
   bool ldist = false;
+  bool lcomm = true;
   Appliance* uapps = 0;
   int slowReadout = 0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:i:g:n:P:s:c:q:L:w:dh")) != -1) {
+  while ((c = getopt(argc, argv, "p:i:g:n:P:s:c:q:L:w:doh")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -410,6 +411,9 @@ int main(int argc, char** argv) {
       break;
     case 'd':
       ldist = true;
+      break;
+    case 'o':
+      lcomm = false;
       break;
     case 'w':
       slowReadout = strtoul(optarg, NULL, 0);
@@ -488,7 +492,8 @@ int main(int argc, char** argv) {
 
     if (event->attach()) {
 
-      new Comm(*event, *stats, nodes);
+      if (lcomm)
+        new Comm(*event, *stats, nodes);
 
       task->mainLoop();
       event->detach();
