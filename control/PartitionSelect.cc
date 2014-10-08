@@ -204,6 +204,11 @@ void PartitionSelect::select_dialog()
 
       PartitionConfigType* cfg = new(buff)
         PartitionConfigType(bld_mask&~bld_mask_mon,isrc,sources);
+      {
+	char* partn = new char[cfg->_sizeof()];
+	new (partn) PartitionConfigType(*cfg);
+	Pds_ConfigDb::GlobalCfg::instance().cache(_partitionConfigType,partn,true);
+      }
 
       _icontrol.set_partition(inodes);
       _pcontrol.set_partition(_pt_name, _db_path,
@@ -221,11 +226,11 @@ void PartitionSelect::select_dialog()
       _aliases = dialog->aliases();
 
       Pds_ConfigDb::GlobalCfg::instance().cache(_evrIOConfigType, 
-				     reinterpret_cast<char*>(evrIO.config(dialog->aliases())), 
-				     true);
+						reinterpret_cast<char*>(evrIO.config(dialog->aliases())), 
+						true);
       Pds_ConfigDb::GlobalCfg::instance().cache(_aliasConfigType, 
-				     reinterpret_cast<char*>(dialog->aliases().config()),
-				     true);
+						reinterpret_cast<char*>(dialog->aliases().config()),
+						true);
 
       delete[] sources;
     }

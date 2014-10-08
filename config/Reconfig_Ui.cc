@@ -4,6 +4,7 @@
 #include "pdsapp/config/Device.hh"
 #include "pds/config/PdsDefs.hh"
 #include "pds/config/AliasConfigType.hh"
+#include "pds/config/PartitionConfigType.hh"
 #include "pdsapp/config/Dialog.hh"
 #include "pdsapp/config/Serializer.hh"
 #include "pdsapp/config/Parameters.hh"
@@ -169,25 +170,34 @@ void Reconfig_Ui::update_device_list()
   bool ok = disconnect(_devlist, SIGNAL(itemSelectionChanged()), this, SLOT(update_component_list()));
   _devlist->clear();
   if (_entry) {
-    const AliasConfigType* alias = (const AliasConfigType*)GlobalCfg::instance().fetch(_aliasConfigType);
+    const AliasConfigType* alias     = (const AliasConfigType*)GlobalCfg::instance().fetch(_aliasConfigType);
+    const PartitionConfigType* partn = (const PartitionConfigType*)GlobalCfg::instance().fetch(_partitionConfigType);
     for(list<FileEntry>::const_iterator iter=_entry->entries().begin();
 	iter!=_entry->entries().end(); iter++) { 
       QString name = QString(iter->name().c_str());
-      if (alias) {
+      if (alias && partn) {
 	const std::list<DeviceEntry>& sources = _expt.device(iter->name())->src_list();
 	ndarray<const Pds::Alias::SrcAlias,1> aliases = alias->srcAlias();
 	std::list<std::string> names;
 	for(std::list<DeviceEntry>::const_iterator it=sources.begin(); 
 	    it!=sources.end(); it++) {
-	  bool lalias=false;
-	  for(unsigned j=0; j<aliases.size(); j++)
-	    if (DeviceEntry(aliases[j].src().phy())==*it) {
-	      names.push_back(aliases[j].aliasName());
-	      lalias=true;
+	  const Pds::DetInfo* info = 0;
+	  for(unsigned j=0; j<partn->numSources(); j++)
+	    if (DeviceEntry(partn->sources()[j].src().phy())==*it) {
+	      info = &static_cast<const Pds::DetInfo&>(partn->sources()[j].src());
 	      break;
 	    }
-	  if (!lalias && it->level()==Pds::Level::Source)
-	    names.push_back(Pds::DetInfo::name(reinterpret_cast<const Pds::DetInfo&>(*it)));
+	  if (info) {
+	    bool lalias=false;
+	    for(unsigned j=0; j<aliases.size(); j++)
+	      if (DeviceEntry(aliases[j].src().phy())==*it) {
+		names.push_back(aliases[j].aliasName());
+		lalias=true;
+		break;
+	      }
+	    if (!lalias)
+	      names.push_back(Pds::DetInfo::name(*info));
+	  }
 	}
 	names.sort();
 	names.unique();
