@@ -17,6 +17,7 @@
 #include "pdsapp/python/Cspad2x2Config.icc"
 #include "pdsapp/python/EpixConfig.icc"
 #include "pdsapp/python/Epix10kConfig.icc"
+#include "pdsapp/python/Epix100aConfig.icc"
 #include "pdsapp/python/IpmFexConfig.icc"
 #include "pdsapp/python/IpimbConfig.icc"
 #include "pdsapp/python/PrincetonConfig.icc"
@@ -65,6 +66,9 @@ initpycdb(void)
   if (PyType_Ready(&pds_Epix10kConfig_type) < 0)
     return;
 
+  if (PyType_Ready(&pds_Epix100aConfig_type) < 0)
+    return;
+
  if (PyType_Ready(&pds_IpmFexConfig_type) < 0)
     return; 
 
@@ -110,6 +114,9 @@ initpycdb(void)
 
   Py_INCREF(&pds_Epix10kConfig_type);
   PyModule_AddObject(m, "Epix10kConfig", (PyObject*)&pds_Epix10kConfig_type);
+
+  Py_INCREF(&pds_Epix100aConfig_type);
+  PyModule_AddObject(m, "Epix100aConfig", (PyObject*)&pds_Epix100aConfig_type);
 
   Py_INCREF(&pds_IpmFexConfig_type);
   PyModule_AddObject(m, "IpmFexConfig", (PyObject*)&pds_IpmFexConfig_type);

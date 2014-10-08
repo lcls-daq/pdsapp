@@ -127,6 +127,9 @@ static PyObject* _new_xtc(Pds::TypeId& contains)
           case Pds::TypeId::Id_Epix10kConfig:
             o = _PyObject_New(&pds_Epix10kConfig_type);
             break;
+          case Pds::TypeId::Id_Epix100aConfig:
+            o = _PyObject_New(&pds_Epix100aConfig_type);
+            break;
           case Pds::TypeId::Id_PrincetonConfig:
             o = _PyObject_New(&pds_PrincetonConfig_type);
             break;
