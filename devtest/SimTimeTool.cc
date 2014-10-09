@@ -208,7 +208,7 @@ InDatagram* SimTimeTool::events(InDatagram* dg)
     break;
   }
 
-  if (_configH.cache()) {
+  if (_configH.cache() && _configH.cache()->current()) {
     const TimeTool::ConfigV1& cfg =
       *reinterpret_cast<const TimeTool::ConfigV1*>(_configH.cache()->current());
     switch (dg->seq.service()) {
@@ -262,7 +262,7 @@ int SimTimeTool::process(Xtc* xtc)
     iterate(xtc);
     break;
   case TypeId::Id_Frame:
-    if (_configH.cache()) {
+    if (_configH.cache() && _configH.cache()->current()) {
       const TimeTool::ConfigV1& cfg =
 	*reinterpret_cast<const TimeTool::ConfigV1*>(_configH.cache()->current());
 
