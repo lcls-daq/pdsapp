@@ -85,7 +85,8 @@ namespace Pds {
 
       process(&dg->xtc);
     }
-    const TimeToolCfgCache* cache() const { return _cache; }
+    const TimeToolConfigType* cache() const { return _cache && _cache->current() ? 
+	reinterpret_cast<const TimeToolConfigType*>(_cache->current()) : 0; }
   private:
     TimeToolCfgCache* _cache;
     const Allocation* _allocation;
@@ -208,14 +209,13 @@ InDatagram* SimTimeTool::events(InDatagram* dg)
     break;
   }
 
-  if (_configH.cache() && _configH.cache()->current()) {
-    const TimeTool::ConfigV1& cfg =
-      *reinterpret_cast<const TimeTool::ConfigV1*>(_configH.cache()->current());
+  const TimeTool::ConfigV1* cfg = _configH.cache();
+  if (cfg) {
     switch (dg->seq.service()) {
     case TransitionId::Configure:
-      _beam  = make_ndarray<uint32_t>(cfg.number_of_beam_event_codes());
+      _beam  = make_ndarray<uint32_t>(cfg->number_of_beam_event_codes());
       memset(_beam.data(), 0, _beam.size()*sizeof(uint32_t));
-      _laser = make_ndarray<uint32_t>(cfg.number_of_laser_event_codes());
+      _laser = make_ndarray<uint32_t>(cfg->number_of_laser_event_codes());
       memset(_laser.data(), 0, _laser.size()*sizeof(uint32_t));
       break;
     case TransitionId::L1Accept:
@@ -237,16 +237,14 @@ Occurrence* SimTimeTool::occurrences(Occurrence* occ)
   if (occ->id() == OccurrenceId::EvrCommand) {
     const EvrCommand& cmd = *reinterpret_cast<const EvrCommand*>(occ);
     unsigned vector = 1<<(cmd.seq.stamp().vector()&0x1f);
-    if (_configH.cache()) {
-      const TimeTool::ConfigV1& cfg =
-	*reinterpret_cast<const TimeTool::ConfigV1*>(_configH.cache()->current());
-
-      ndarray<const TimeTool::EventLogic,1> beam = cfg.beam_logic();
+    const TimeTool::ConfigV1* cfg = _configH.cache();
+    if (cfg) {
+      ndarray<const TimeTool::EventLogic,1> beam = cfg->beam_logic();
       for(unsigned i=0; i<beam.size(); i++)
 	if (beam[i].event_code() == cmd.code)
 	  _beam[i] |= vector;
 
-      ndarray<const TimeTool::EventLogic,1> laser = cfg.laser_logic();
+      ndarray<const TimeTool::EventLogic,1> laser = cfg->laser_logic();
       for(unsigned i=0; i<laser.size(); i++)
 	if (laser[i].event_code() == cmd.code)
 	  _laser[i] |= vector;
@@ -262,34 +260,33 @@ int SimTimeTool::process(Xtc* xtc)
     iterate(xtc);
     break;
   case TypeId::Id_Frame:
-    if (_configH.cache() && _configH.cache()->current()) {
-      const TimeTool::ConfigV1& cfg =
-	*reinterpret_cast<const TimeTool::ConfigV1*>(_configH.cache()->current());
+    { const TimeTool::ConfigV1* cfg = _configH.cache();
+      if (cfg) {
+	bool beamOn  = _calculate_logic(cfg->beam_logic(),
+					_beam, _vector);
 
-      bool beamOn  = _calculate_logic(cfg.beam_logic(),
-				      _beam, _vector);
-
-      bool laserOn = _calculate_logic(cfg.laser_logic(),
-				      _laser, _vector);
+	bool laserOn = _calculate_logic(cfg->laser_logic(),
+					_laser, _vector);
 
 #ifdef DBUG
-      printf("vector %08x  beam %c  laser %c\n", _vector, beamOn ? 'T':'F', laserOn ? 'T':'F');
+	printf("vector %08x  beam %c  laser %c\n", _vector, beamOn ? 'T':'F', laserOn ? 'T':'F');
 #endif
 
-      Camera::FrameV1& d = *reinterpret_cast<Camera::FrameV1*>(xtc->payload());
-      unsigned seed = rand()%NBuffers;
-      if (!laserOn)
-	memcpy(const_cast<uint16_t*>(d.data16().data()),
-	       &_laseroff[seed][0][0],
-	       d.data16().size()*sizeof(uint16_t));
-      else if (!beamOn)
-	memcpy(const_cast<uint16_t*>(d.data16().data()),
-	       &_beamoff[seed][0][0],
-	       d.data16().size()*sizeof(uint16_t));
-      else
-	memcpy(const_cast<uint16_t*>(d.data16().data()),
-	       &_beamon[seed][0][0],
-	       d.data16().size()*sizeof(uint16_t));
+	Camera::FrameV1& d = *reinterpret_cast<Camera::FrameV1*>(xtc->payload());
+	unsigned seed = rand()%NBuffers;
+	if (!laserOn)
+	  memcpy(const_cast<uint16_t*>(d.data16().data()),
+		 &_laseroff[seed][0][0],
+		 d.data16().size()*sizeof(uint16_t));
+	else if (!beamOn)
+	  memcpy(const_cast<uint16_t*>(d.data16().data()),
+		 &_beamoff[seed][0][0],
+		 d.data16().size()*sizeof(uint16_t));
+	else
+	  memcpy(const_cast<uint16_t*>(d.data16().data()),
+		 &_beamon[seed][0][0],
+		 d.data16().size()*sizeof(uint16_t));
+      }
     }
     break;
   default:

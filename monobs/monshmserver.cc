@@ -363,7 +363,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-c|-q <# event queues>] [-d] [-o] [-g <max groups>] [-h]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-q <# event queues>] [-t <tag name>] [-d] [-c] [-g <max groups>] [-h]\n", progname);
 }
 
 int main(int argc, char** argv) {
@@ -371,18 +371,19 @@ int main(int argc, char** argv) {
   const unsigned NO_PLATFORM = unsigned(-1UL);
   unsigned platform=NO_PLATFORM;
   const char* partition = 0;
+  const char* tag = 0;
   int numberOfBuffers = 0;
   unsigned sizeOfBuffers = 0;
   unsigned nevqueues = 1;
-  unsigned node =  0xffff0;
+  unsigned node =  0xffff;
   unsigned nodes = 6;
   bool ldist = false;
-  bool lcomm = true;
+  bool lcomm = false;
   Appliance* uapps = 0;
   int slowReadout = 0;
 
   int c;
-  while ((c = getopt(argc, argv, "p:i:g:n:P:s:c:q:L:w:doh")) != -1) {
+  while ((c = getopt(argc, argv, "p:i:g:n:P:s:q:L:w:t:dch")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -402,7 +403,9 @@ int main(int argc, char** argv) {
     case 'P':
       partition = optarg;
       break;
-    case 'c':
+    case 't':
+      tag = optarg;
+      break;
     case 'q':
       nevqueues = strtoul(optarg, NULL, 0);
       break;
@@ -412,8 +415,8 @@ int main(int argc, char** argv) {
     case 'd':
       ldist = true;
       break;
-    case 'o':
-      lcomm = false;
+    case 'c':
+      lcomm = true;
       break;
     case 'w':
       slowReadout = strtoul(optarg, NULL, 0);
@@ -465,11 +468,13 @@ int main(int argc, char** argv) {
 
   if (numberOfBuffers<8) numberOfBuffers=8;
 
-  printf("\nPartition Tag:%s\n", partition);
+  if (!tag) tag=partition;
+
+  printf("\nPartition Tag:%s\n", tag);
 
   Stats* stats = new Stats;
 
-  LiveMonitorServer* apps = new LiveMonitorServer(partition,sizeOfBuffers, numberOfBuffers, nevqueues);
+  LiveMonitorServer* apps = new LiveMonitorServer(tag, sizeOfBuffers, numberOfBuffers, nevqueues);
   apps->distribute(ldist);
 
   apps->connect(stats);

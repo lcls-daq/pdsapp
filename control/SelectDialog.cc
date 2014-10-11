@@ -84,13 +84,10 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg)
           h.fixup(StreamPorts::bld(bld.type()).address(),h.ether());
           _rptbox->addNode(NodeSelect(h,bld));
         }
-        ////!!! kludge for adding group
-        //else if (msg.source(i).level()==Level::Source) 
-        //{
-        //   const DetInfo& detInfo = static_cast<const DetInfo&>(msg.source(i));
-        //   if (detInfo.devId() >= 100)
-        //    ((Node&)hdr).setGroup((int)(detInfo.devId() / 100));
-        //}        
+	else if (hdr.triggered())
+	  _evrio.insert(hdr.evr_module(),
+			hdr.evr_channel(),
+			static_cast<const DetInfo&>(msg.source(i)));
       }
       const char *aliasName;
 
@@ -230,6 +227,8 @@ void SelectDialog::update_layout()
 }
 
 const AliasFactory&    SelectDialog::aliases  () const { return _aliases; }
+
+const EvrIOFactory&    SelectDialog::evrio    () const { return _evrio; }
 
 const QList<Node    >& SelectDialog::selected () const { return _selected; }
 

@@ -12,7 +12,6 @@
 #include "pds/collection/Node.hh"
 #include "pds/config/XtcClient.hh"
 #include "pds/config/EvrConfigType.hh"
-#include "pds/config/EvrIOFactory.hh"
 #include "pds/xtc/XtcType.hh"
 
 #include <QtGui/QLabel>
@@ -157,8 +156,6 @@ void PartitionSelect::select_dialog()
       Partition::Source* sources = new Partition::Source[nsrc];
       unsigned isrc=0;
 
-      EvrIOFactory evrIO;
-
       for(std::list<NodeMap>::const_iterator it=map.begin();
           it!=map.end(); it++) {
 #ifdef DBUG
@@ -184,11 +181,6 @@ void PartitionSelect::select_dialog()
 #ifdef DBUG
 		printf("*");
 #endif
-		if (node.triggered()) {
-		  evrIO.insert(node.evr_module(),
-			       node.evr_channel(),
-			       info);
-		}
 		break;
 	      }
 	    }
@@ -219,14 +211,14 @@ void PartitionSelect::select_dialog()
                               options, 
 			      l3_unbias,
 			      cfg,
-			      evrIO.config(dialog->aliases()),
-			      dialog->aliases().config());
+			      dialog->evrio  ().config(dialog->aliases(),cfg),
+			      dialog->aliases().config(cfg));
       _pcontrol.set_target_state(PartitionControl::Configured);
       
       _aliases = dialog->aliases();
 
       Pds_ConfigDb::GlobalCfg::instance().cache(_evrIOConfigType, 
-						reinterpret_cast<char*>(evrIO.config(dialog->aliases())), 
+						reinterpret_cast<char*>(dialog->evrio  ().config(dialog->aliases())), 
 						true);
       Pds_ConfigDb::GlobalCfg::instance().cache(_aliasConfigType, 
 						reinterpret_cast<char*>(dialog->aliases().config()),
