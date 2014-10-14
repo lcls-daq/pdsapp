@@ -212,7 +212,6 @@ static void *getstdin(char *buf, int n)
 
 static void read_logbook_file()
 {
-    char buf[1024];
     int lineno = 0;
     istream *in = NULL;
     string line;
@@ -412,6 +411,11 @@ static void initialize(char *config)
         printf("No output file specified!\n\n");
         usage();
         /* No return! */
+    }
+    if (expid == -1) {
+        /* No dbinfo --> running as a non-authorized user, put it in tmp! */
+        system("mkdir -p tmp"); /* This should exist, but just in case! */
+        chdir("tmp");
     }
     if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
         char buf[1024];
