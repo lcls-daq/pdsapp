@@ -25,6 +25,7 @@ libsrcs_configdbg += EventLogic.cc EventLogic_moc.cc
 libsrcs_configdbg += SerializerDictionary.cc
 libsrcs_configdbg += ExpertDictionary.cc
 libsrcs_configdbg += Serializer.cc
+libsrcs_configdbg += AliasConfig.cc
 libsrcs_configdbg += Opal1kConfig.cc
 libsrcs_configdbg += QuartzConfig.cc
 libsrcs_configdbg += OrcaConfig.cc

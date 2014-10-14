@@ -3,6 +3,7 @@
 #include "pdsapp/config/Serializer.hh"
 
 #include "pdsapp/config/Dialog.hh"
+#include "pdsapp/config/AliasConfig.hh"
 #include "pdsapp/config/EvrIOConfig.hh"
 #include "pdsapp/config/EvrIOConfig_V1.hh"
 #include "pdsapp/config/EvsConfig.hh"
@@ -60,6 +61,7 @@
 #include "pdsapp/config/PimaxConfig.hh"
 #include "pdsapp/config/TimeToolConfig.hh"
 
+#include "pds/config/AliasConfigType.hh"
 #include "pds/config/EvsConfigType.hh"
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/EvrIOConfigType.hh"
@@ -181,6 +183,10 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,1),new ControlConfig_V1::ControlConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_TimepixConfig,2),new TimepixConfig_V2);
 //  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
+
+  if (Parameter::readFromData())
+    enroll(_aliasConfigType, new AliasConfig);
+
 #undef enroll
   return 0;
 }
