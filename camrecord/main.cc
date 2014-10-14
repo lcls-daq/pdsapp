@@ -414,17 +414,17 @@ static void initialize(char *config)
     }
     if (expid == -1) {
         /* No dbinfo --> running as a non-authorized user, put it in tmp! */
-        system("mkdir -p tmp"); /* This should exist, but just in case! */
+        system("umask 0; mkdir -p tmp"); /* This should exist, but just in case! */
         chdir("tmp");
     }
     if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
         char buf[1024];
         *s = 0;
-        sprintf(buf, "mkdir -p %s/index", outfile);
+        sprintf(buf, "umask %s; mkdir -p %s/index", expid == -1 ? "0" : "2", outfile);
         *s = '/';
         system(buf);
     } else {
-        system("mkdir index");
+        system(expid == -1 ? "umask 0; mkdir index" : "umask 2; mkdir index");
     }
     initialize_xtc(outfile);
 }
