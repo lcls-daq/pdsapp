@@ -163,10 +163,6 @@ static istream *open_config_file(char *name)
         res->open(buf);
         if (res->good())
             return res;
-        sprintf(buf, "%s/%s", DEFAULT_DIR, name);
-        res->open(buf);
-        if (res->good())
-            return res;
     }
     delete res;
     return NULL;
@@ -213,6 +209,37 @@ static void *getstdin(char *buf, int n)
     buf[i] = 0;
     return buf;
 }
+
+static void read_logbook_file()
+{
+    char buf[1024];
+    int lineno = 0;
+    istream *in = NULL;
+    string line;
+
+    in = open_config_file(DEFAULT_CRED);
+    if (!in)
+        return;
+
+    while(getline(*in, line)) {
+        istringstream ss(line);
+        istream_iterator<std::string> begin(ss), end;
+        vector<string> arrayTokens(begin, end); 
+        lineno++;
+
+        if (arrayTokens.size() == 0 || arrayTokens[0][0] == '#')
+            continue;
+        for (int idx = 0; idx < LCPARAMS; idx++) {
+            if (!arrayTokens[0].compare(0, lb_params[idx].length(), lb_params[idx])) {
+                logbook[idx] = arrayTokens[0].substr(lb_params[idx].length(), string::npos);
+                break;
+            }
+        }
+    }
+    if (in)
+        delete in;
+}
+
 
 static void read_config_file(const char *name)
 {
@@ -379,6 +406,7 @@ static void initialize(char *config)
     add_socket(0);
     initialize_bld();
     initialize_ca();
+    read_logbook_file();
     read_config_file(config);
     if (!outfile) {
         printf("No output file specified!\n\n");

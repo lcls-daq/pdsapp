@@ -3,8 +3,8 @@
 #include<string>
 #include<iostream>
 
-#define DEFAULT_DIR "/reg/neh/home1/mcbrowne/lib"
-#define DEFAULT_CFG ".camrecord"
+#define DEFAULT_CRED "/reg/g/pcds/controls/camrecord/CONFIG/DEFAULT"
+#define DEFAULT_CFG  ".camrecord"
 #define POSIX_TIME_AT_EPICS_EPOCH 631152000u
 #define NFSBASE     "/reg/d/cameras/"
 
