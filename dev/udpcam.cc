@@ -28,20 +28,21 @@
 
 static void usage(const char *p)
 {
-  printf("Usage: %s -i <device info> -p <platform> [-D <port>] [-v] [-h] [-d <flags>]\n", p);
+  printf("Usage: %s -i <device info> -p <platform>,<mod>,<chan> [-D <port>] [-u <alias>] [-v] [-h] [-d <flags>]\n", p);
 }
 
 static void help()
 {
   printf("Options:\n"
-         "  -i              Device info           [required]\n"
-         "                    integer/integer/integer/integer or string/integer/string/integer\n"
-         "                    (e.g. XcsEndStation/0/Fccd960/0 or 25/0/33/0)\n"
-         "  -p <platform>   Platform number       [required]\n"
-         "  -D <port>       Data port             (default: %d)\n"
-         "  -v              Increase verbosity    (may be repeated)\n"
-         "  -d <flags>      Debug flags\n"
-         "  -h              Help: print this message and exit\n"
+         "  -i    Device info                               [required]\n"
+         "          integer/integer/integer/integer or string/integer/string/integer\n"
+         "          (e.g. XcsEndStation/0/Fccd960/0 or 25/0/33/0)\n"
+         "  -p    Platform number, EVR module, EVR channel  [required]\n"
+         "  -D    Data port                                 (default: %d)\n"
+         "  -u    Device alias                              [Default: none]\n"
+         "  -v    Increase verbosity                        (may be repeated)\n"
+         "  -h    Help: print this message and exit\n"
+         "  -d    Debug flags\n"
          "Debug flags:\n"
          "  0x0010          Ignore frame count errors\n"
          "  0x0020          Ignore packet count errors\n"
@@ -63,7 +64,10 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-    MySegWire(UdpCamServer* udpCamServer);
+    MySegWire(UdpCamServer* udpCamServer,
+              unsigned      module,
+              unsigned      channel,
+              const char*   aliasName);
     virtual ~MySegWire() {}
 
     void connect( InletWire& wire,
@@ -71,10 +75,20 @@ class Pds::MySegWire
                   int interface );
 
     const std::list<Src>& sources() const { return _sources; }
+    const std::list<SrcAlias>* pAliases() const
+    {
+      return (_aliases.size() > 0) ? &_aliases : NULL;
+    }
+    bool     is_triggered() const { return true; }
+    unsigned module      () const { return _module; }
+    unsigned channel     () const { return _channel; }
 
   private:
     UdpCamServer* _udpCamServer;
     std::list<Src> _sources;
+    std::list<SrcAlias> _aliases;
+    unsigned _module;
+    unsigned _channel;
 };
 
 //
@@ -106,10 +120,14 @@ class Pds::Seg : public EventCallback
 };
 
 
-Pds::MySegWire::MySegWire( UdpCamServer* udpCamServer )
-  : _udpCamServer(udpCamServer)
+Pds::MySegWire::MySegWire( UdpCamServer* udpCamServer, unsigned module, unsigned channel, const char *aliasName )
+  : _udpCamServer(udpCamServer), _module(module), _channel(channel)
 {
   _sources.push_back(udpCamServer->client());
+  if (aliasName) {
+    SrcAlias tmpAlias(udpCamServer->client(), aliasName);
+    _aliases.push_back(tmpAlias);
+  }
 }
 
 void Pds::MySegWire::connect( InletWire& wire,
@@ -186,6 +204,9 @@ int main( int argc, char** argv )
   DetInfo info;
   bool infoInitialized = false;
   unsigned platform = UINT_MAX;
+  unsigned module   = 0;
+  unsigned channel  = 0;
+  char* uniqueid    = (char *)NULL;
   unsigned dataPort = UDPCAM_DEFAULT_DATA_PORT;
   unsigned debugFlags = 0;
   Arp* arp = 0;
@@ -206,7 +227,13 @@ int main( int argc, char** argv )
         infoInitialized = true;
         break;
       case 'u':
-        printf("Warning: -u flag ignored\n");
+        if (!CmdLineTools::parseSrcAlias(optarg)) {
+          printf("%s: option `-u' parsing error\n", argv[0]);
+          usage(argv[0]);
+          return -1;
+        } else {
+          uniqueid = optarg;
+        }
         break;
       case 'h':
         helpFlag = true;
@@ -215,11 +242,8 @@ int main( int argc, char** argv )
         ++verbosity;
         break;
       case 'p':
-        errno = 0;
-        endPtr = NULL;
-        platform = strtoul(optarg, &endPtr, 0);
-        if (errno || (endPtr == NULL) || (*endPtr != '\0')) {
-          printf("Error: failed to parse platform number\n");
+        if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
+          printf("%s: option `-p' parsing error\n", argv[0]);
           usage(argv[0]);
           return -1;
         }
@@ -277,7 +301,7 @@ int main( int argc, char** argv )
 
   udpCamServer = new UdpCamServer(info, verbosity, dataPort, debugFlags, cpu0);
 
-  MySegWire settings(udpCamServer);
+  MySegWire settings(udpCamServer, module, channel, uniqueid);
 
   Seg* seg = new Seg( task,
                        platform,
