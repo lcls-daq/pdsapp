@@ -414,8 +414,7 @@ static void initialize(char *config)
     }
     if (expid == -1) {
         /* No dbinfo --> running as a non-authorized user, put it in tmp! */
-        system("umask 0; mkdir -p tmp"); /* This should exist, but just in case! */
-        chdir("tmp");
+        chdir("../tmp");
     }
     if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
         char buf[1024];
