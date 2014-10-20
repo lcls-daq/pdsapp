@@ -39,10 +39,11 @@ namespace Pds {
   //
   class MySegWire : public SegWireSettings {
   public:
-    MySegWire(const Src& src, 
+    MySegWire(const Src& src,
               const char *aliasName,
-              Server&    srv) :
-      _srv(srv)
+              Server&    srv,
+              EvrManager* pEvrmgr) :
+      _srv(srv), _pEvrmgr(pEvrmgr)
     {
       _sources.push_back(src);
       if (aliasName) {
@@ -53,9 +54,11 @@ namespace Pds {
     virtual ~MySegWire() {}
     void connect (InletWire& wire,
       StreamParams::StreamType s,
-      int interface) 
+      int interface)
     {
       wire.add_input(&_srv);
+      if (_pEvrmgr)
+        _pEvrmgr->setWire(&wire);
     }
     const std::list<Src>& sources() const { return _sources; }
     const std::list<SrcAlias>* pAliases() const
@@ -63,9 +66,10 @@ namespace Pds {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
   private:
-    Server& _srv;
-    std::list<Src> _sources;
+    Server&             _srv;
+    std::list<Src>      _sources;
     std::list<SrcAlias> _aliases;
+    EvrManager*         _pEvrmgr;
   };
 
   //
@@ -88,12 +92,12 @@ namespace Pds {
     {
       _task->destroy();
     }
-    
+
   private:
     // Implements EventCallback
     void attached(SetOfStreams& streams)
     {
-      printf("Seg connected to platform 0x%x\n", 
+      printf("Seg connected to platform 0x%x\n",
        _platform);
 
       Stream* frmk = streams.stream(StreamParams::FrameWork);
@@ -102,10 +106,10 @@ namespace Pds {
     }
     void failed(Reason reason)
     {
-      static const char* reasonname[] = { "platform unavailable", 
-            "crates unavailable", 
+      static const char* reasonname[] = { "platform unavailable",
+            "crates unavailable",
             "fcpm unavailable" };
-      printf("Seg: unable to allocate crates on platform 0x%x : %s\n", 
+      printf("Seg: unable to allocate crates on platform 0x%x : %s\n",
        _platform, reasonname[reason]);
       delete this;
     }
@@ -114,17 +118,17 @@ namespace Pds {
       const unsigned userlen = 12;
       char username[userlen];
       Node::user_name(who.uid(),username,userlen);
-      
+
       const unsigned iplen = 64;
       char ipname[iplen];
       Node::ip_name(who.ip(),ipname, iplen);
-      
-      printf("Seg: platform 0x%x dissolved by user %s, pid %d, on node %s", 
+
+      printf("Seg: platform 0x%x dissolved by user %s, pid %d, on node %s",
        who.platform(), username, who.pid(), ipname);
-      
+
       delete this;
     }
-    
+
   private:
     Task*           _task;
     unsigned        _platform;
@@ -139,17 +143,17 @@ static void usage(const char *p)
   printf("Usage: %s -i <detid> -p <platform> [OPTIONS]\n"
          "\n"
          "Options:\n"
-         "\t -i <detid>        detector ID (e.g. 0/0/0)\n"
-         "\t -p <platform>     platform number\n"
-         "\t -r <evrid>        evr ID (e.g., a, b, c, or d) (default: a)\n"
-         "\t -d                NOT USED\n"
-         "\t -E <eventcode list> default record eventcodes (e.g. \"40-46,140-146\")\n"
-         "\t -R                randomize nodes\n"
-         "\t -n                turn off beam codes\n"
-         "\t -u <alias>        set device alias\n"
-         "\t -I                internal sequence\n"
+         "\t -i <detid>             detector ID (e.g. 0/0/0)\n"
+         "\t -p <platform>          platform number\n"
+         "\t -r <evrid>             evr ID (e.g., a, b, c, or d) (default: a)\n"
+         "\t -d                     NOT USED\n"
+         "\t -E <eventcode list>    default record eventcodes (e.g. \"40-46,140-146\")\n"
+         "\t -R                     randomize nodes\n"
+         "\t -n                     turn off beam codes\n"
+         "\t -u <alias>             set device alias\n"
+         "\t -I                     internal sequence\n"
          "\t -S                simulate internal sequence (w/o hw)\n"
-         "\t -h                print this message and exit\n", p);
+         "\t -h                     print this message and exit\n", p);
 }
 
 int main(int argc, char** argv) {
@@ -159,10 +163,10 @@ int main(int argc, char** argv) {
   uint32_t  platform  = NO_PLATFORM;
   char*     evrid     = 0;
   const char* evtcodelist = 0;
-  bool      simulate  = false;
-  bool      lUsage    = false;
-  unsigned int uu;
-  
+  bool        simulate  = false;
+  bool        lUsage    = false;
+  unsigned    uu;
+
   DetInfo::Detector det(DetInfo::NoDetector);
   unsigned detid(0), devid(0);
 
@@ -251,11 +255,12 @@ int main(int argc, char** argv) {
   Node node(Level::Source, platform);
   printf("Using src %x/%x/%x/%x\n",det,detid,DetInfo::Evr,devid);
   DetInfo detInfo(node.pid(),det,detid,DetInfo::Evr,devid);
-  
+
   Task* task = new Task(Task::MakeThisATask);
-  
-  Appliance* app;
-  Server*    srv;
+
+  Appliance*  app;
+  Server*     srv;
+  EvrManager* pEvrmgr = NULL;
 
   if (simulate) {
     CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
@@ -277,21 +282,23 @@ int main(int argc, char** argv) {
     if (internalSequence) {
       CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
       EvsManager& evrmgr = *new EvsManager(erInfo,
-					   *cfgService);
+             *cfgService);
       srv = &evrmgr.server();
       app = &evrmgr.appliance();
     }
     else {
       EvrCfgClient* cfgService = new EvrCfgClient(detInfo,const_cast<char*>(evtcodelist));
       EvrManager& evrmgr = *new EvrManager(erInfo,
-					   *cfgService,
-					   bTurnOffBeamCodes);
-      srv = &evrmgr.server();
-      app = &evrmgr.appliance();
+             *cfgService,
+             bTurnOffBeamCodes,
+             devid);
+      srv     = &evrmgr.server();
+      app     = &evrmgr.appliance();
+      pEvrmgr = &evrmgr;
     }
   }
 
-  MySegWire settings(detInfo, uniqueid, *srv);
+  MySegWire settings(detInfo, uniqueid, *srv, pEvrmgr);
   Seg* seg = new Seg(task, platform, settings, *app);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
   seglevel->attach();

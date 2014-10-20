@@ -80,21 +80,30 @@ private:
   virtual void _execute_configure() = 0;
   virtual void _insert_configure (InDatagram*) = 0;
   virtual void _insert_event     (InDatagram*) = 0;
+  unsigned numTriggerSinceConfig;
+  unsigned numTriggerSinceEnable;
 public:
-  Transition* transitions(Transition* tr) 
-  { 
+  Transition* transitions(Transition* tr)
+  {
     switch(tr->id()) {
     case TransitionId::Configure:
       _execute_configure();
+      numTriggerSinceConfig = 0;
+      numTriggerSinceEnable = 0;
       break;
-    case TransitionId::L1Accept:
+    case TransitionId::Enable:
+      numTriggerSinceEnable = 0;
+      printf("Enable: Trigger since Config %d  Enable %d\n", numTriggerSinceConfig, numTriggerSinceEnable);
+      break;
+    case TransitionId::Disable:
+      printf("Disable: Trigger since Config %d  Enable %d\n", numTriggerSinceConfig, numTriggerSinceEnable);
       break;
     default:
       break;
     }
-    return tr; 
+    return tr;
   }
-  InDatagram* events     (InDatagram* dg) 
+  InDatagram* events     (InDatagram* dg)
   {
     switch(dg->seq.service()) {
     case TransitionId::Configure:
@@ -102,6 +111,8 @@ public:
       break;
     case TransitionId::L1Accept:
     {
+      ++numTriggerSinceConfig;
+      ++numTriggerSinceEnable;
       static int itime=0;
       if ((++itime)==ntime) {
         itime = 0;
@@ -116,7 +127,7 @@ public:
       }
       else if (idrop<fdrop && idrop>fdrop-ndrop)
         return 0;
-      
+
       static int iforward=0;
       if (++iforward==nforward) {
         iforward=0;
@@ -128,7 +139,7 @@ public:
     default:
       break;
     }
-    return dg; 
+    return dg;
   }
 };
 
@@ -156,14 +167,14 @@ public:
     return false;
   }
 public:
-  SimFrameV1(const Src& src) 
+  SimFrameV1(const Src& src)
   {
     _cfgpayload = new char[CfgSize];
 
     unsigned width,height,depth,offset;
     float    fdummy [32]; memset( fdummy,0,32*sizeof(float));
     uint16_t usdummy[32]; memset(usdummy,0,32*sizeof(uint16_t));
- 
+
     const DetInfo& info = static_cast<const DetInfo&>(src);
     switch(info.device()) {
     case DetInfo::Opal1000:
@@ -172,12 +183,12 @@ public:
     case DetInfo::Opal1600:
     case DetInfo::Opal8000:
       _cfgtc = new(_cfgpayload) Xtc(_opal1kConfigType,src);
-      _cfgtc->extent += (new (_cfgtc->next()) Opal1kConfigType(32, 100, 
+      _cfgtc->extent += (new (_cfgtc->next()) Opal1kConfigType(32, 100,
                                                                Opal1kConfigType::Twelve_bit,
                                                                Opal1kConfigType::x1,
                                                                Opal1kConfigType::None,
                                                                true,
-                                                               false, 
+                                                               false,
                                                                false, 0, 0, 0))->_sizeof();
       width  = Pds::Opal1k::max_column_pixels(info);
       height = Pds::Opal1k::max_row_pixels(info);
@@ -198,7 +209,7 @@ public:
       break;
     case DetInfo::Quartz4A150:
       _cfgtc = new(_cfgpayload) Xtc(_quartzConfigType,src);
-      _cfgtc->extent += (new (_cfgtc->next()) QuartzConfigType(32, 100, 
+      _cfgtc->extent += (new (_cfgtc->next()) QuartzConfigType(32, 100,
                                                                QuartzConfigType::Eight_bit,
                                                                QuartzConfigType::x1,
                                                                QuartzConfigType::x1,
@@ -311,7 +322,7 @@ public:
                                            0, 0, 0);
     _fextc->extent += sizeof(FrameFexConfigType);
   }
-  ~SimFrameV1() 
+  ~SimFrameV1()
   {
     delete[] _cfgpayload;
     delete[] _fexpayload;
@@ -361,7 +372,7 @@ public:
     return false;
   }
 public:
-  SimCspad(const Src& src) 
+  SimCspad(const Src& src)
   {
     _cfgpayload = new char[CfgSize];
     _cfgtc = new(_cfgpayload) Xtc(_CsPadConfigType,src);
@@ -370,12 +381,12 @@ public:
     Pds::CsPad::ConfigV3QuadReg quads[4];
 
     new (_cfgtc->alloc(sizeof(CsPadConfigType)))
-      CsPadConfigType(0, 0, 40, 
+      CsPadConfigType(0, 0, 40,
                       pt, 0,
                       0, 1, 0, 0, 8*sizeof_Section,
                       0, 0, 0xffffffff, 0xf, 0xffffffff,
                       quads);
-    
+
     const size_t sz = sizeof(CsPad::ElementV1)+8*sizeof_Section+sizeof(uint32_t);
     unsigned evtsz = 4*sz + sizeof(Xtc);
     unsigned evtst = (evtsz+3)&~3;
@@ -411,7 +422,7 @@ public:
       }
     }
   }
-  ~SimCspad() 
+  ~SimCspad()
   {
     delete[] _cfgpayload;
     delete[] _evtpayload;
@@ -453,7 +464,7 @@ public:
     return false;
   }
 public:
-  SimCspad140k(const Src& src) 
+  SimCspad140k(const Src& src)
   {
     _cfgpayload = new char[CfgSize];
     _cfgtc = new(_cfgpayload) Xtc(_CsPad2x2ConfigType,src);
@@ -462,7 +473,7 @@ public:
     Pds::CsPad2x2::CsPad2x2ReadOnlyCfg       ro(-1U,-1U);
     Pds::CsPad2x2::CsPad2x2DigitalPotsCfg    dpots;
 
-    unsigned shape[2] = { Pds::CsPad2x2::ColumnsPerASIC, 
+    unsigned shape[2] = { Pds::CsPad2x2::ColumnsPerASIC,
                           Pds::CsPad2x2::MaxRowsPerASIC };
     ndarray<uint16_t,2> gm(shape);
     for(unsigned x=32; x<40; x++)
@@ -483,7 +494,7 @@ public:
                          2*sizeof_Section,
                          0, 0xf, 0xf,
                          quad);
-    
+
     const size_t sz = CsPad2x2DataType::_sizeof()+sizeof(uint32_t);
     unsigned evtsz = sz + sizeof(Xtc);
     unsigned evtst = (evtsz+3)&~3;
@@ -503,7 +514,7 @@ public:
         *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
     }
   }
-  ~SimCspad140k() 
+  ~SimCspad140k()
   {
     delete[] _cfgpayload;
     delete[] _evtpayload;
@@ -545,7 +556,7 @@ public:
     return false;
   }
 public:
-  SimImp(const Src& src) 
+  SimImp(const Src& src)
   {
     _cfgpayload = new char[CfgSize];
     _cfgtc = new(_cfgpayload) Xtc(_ImpConfigType,src);
@@ -560,7 +571,7 @@ public:
                     Pds::ImpConfig::defaultValue(ImpConfigType::NumberOfSamples),
                     Pds::ImpConfig::defaultValue(ImpConfigType::TrigDelay),
                     Pds::ImpConfig::defaultValue(ImpConfigType::Adc_delay));
-    
+
     const size_t sz = sizeof(ImpDataType)+Pds::ImpConfig::get(*cfg,ImpConfigType::NumberOfSamples)*sizeof(Pds::Imp::Sample)+sizeof(uint32_t);
     unsigned evtsz = sz + sizeof(Xtc);
     unsigned evtst = (evtsz+3)&~3;
@@ -578,7 +589,7 @@ public:
         *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
     }
   }
-  ~SimImp() 
+  ~SimImp()
   {
     delete[] _cfgpayload;
     delete[] _evtpayload;
@@ -609,7 +620,7 @@ private:
 #if 1
 class SimEpixBase : public SimApp {
 public:
-  SimEpixBase(const Src& src, unsigned AsicsPerColumn, unsigned AsicsPerRow, unsigned Rows, unsigned Columns) 
+  SimEpixBase(const Src& src, unsigned AsicsPerColumn, unsigned AsicsPerRow, unsigned Rows, unsigned Columns)
   {
     const unsigned Asics = AsicsPerRow*AsicsPerColumn;
     const unsigned CfgSize = sizeof(Epix::ConfigV1)
@@ -627,7 +638,7 @@ public:
     memset(maskarray, 0, Asics*Rows*(Columns+31)/32*sizeof(uint32_t));
     unsigned asicMask = src.phy()&0xf;
 
-    EpixConfigType* cfg = 
+    EpixConfigType* cfg =
       new (_cfgtc->next()) EpixConfigType( 0, 1, 0, 1, 0, // version
                                            0, 0, 0, 0, 0, // asicAcq
                                            0, 0, 0, 0, 0, // asicGRControl
@@ -635,17 +646,17 @@ public:
                                            0, 0, 0, 0, 0, // asicR0ToAsicAcq
                                            1, 0, 0, 0, 0, // adcClkHalfT
                                            0, 0, 0, 0, 0, // digitalCardId0
-                                           AsicsPerRow, AsicsPerColumn, 
-                                           Rows, Columns, 
+                                           AsicsPerRow, AsicsPerColumn,
+                                           Rows, Columns,
                                            0x200000, // 200MHz
                                            asicMask,
                                            asics, testarray, maskarray );
-                                         
+
     _cfgtc->alloc(cfg->_sizeof());
     if (_cfgtc->extent != CfgSize) {
       printf("EpixConfigType size mismatch [%d/%d]\n",
              _cfgtc->extent, CfgSize);
-                                                        
+
       printf("  Asics %d  Rows %d  Columns %d\n",Asics,Rows,Columns);
       printf("  sizeof(ConfigV1)\t%zd\n", sizeof(Epix::ConfigV1));
       printf("  sizeof(AsicConfigV1)\t%d\n", Epix::AsicConfigV1::_sizeof());
@@ -677,7 +688,7 @@ public:
         *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
     }
   }
-  ~SimEpixBase() 
+  ~SimEpixBase()
   {
     delete[] _cfgpayload;
     delete[] _evtpayload;
@@ -752,12 +763,12 @@ public:
     _cfgpayload = new char[CfgSize];
     _cfgtc = new(_cfgpayload) Xtc(_EpixSamplerConfigType,src);
 
-    EpixSamplerConfigType* cfg = 
+    EpixSamplerConfigType* cfg =
       new (_cfgtc->next()) EpixSamplerConfigType( 0, 0, 0, 0, 1,
-                                                  0, 0, 0, 0, 0, 
-                                                  Channels, Samples, 
+                                                  0, 0, 0, 0, 0,
+                                                  Channels, Samples,
                                                   BaseClkFreq, 0 );
-                                         
+
     _cfgtc->alloc(cfg->_sizeof());
     if (_cfgtc->extent != CfgSize) {
       printf("EpixSamplerConfigType size overrun [%d/%d]\n",
@@ -784,7 +795,7 @@ public:
         *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
     }
   }
-  ~SimEpixSampler() 
+  ~SimEpixSampler()
   {
     delete[] _cfgpayload;
     delete[] _evtpayload;
@@ -888,7 +899,7 @@ public:
     _task->destroy();
   }
 
-public:    
+public:
   // Implements SegWireSettings
   void connect (InletWire&, StreamParams::StreamType, int) {}
   const std::list<Src>& sources() const { return _sources; }
@@ -914,15 +925,15 @@ private:
   }
   void failed(Reason reason)
   {
-    static const char* reasonname[] = { "platform unavailable", 
-                                        "crates unavailable", 
+    static const char* reasonname[] = { "platform unavailable",
+                                        "crates unavailable",
                                         "fcpm unavailable" };
-    printf("SegTest: unable to allocate crates on platform 0x%x : %s\n", 
+    printf("SegTest: unable to allocate crates on platform 0x%x : %s\n",
            _platform, reasonname[reason]);
     delete this;
   }
   void dissolved(const Node& who) { delete this; }
-    
+
 private:
   Task*          _task;
   unsigned       _platform;
@@ -1097,8 +1108,8 @@ int main(int argc, char** argv) {
   Task* task = new Task(Task::MakeThisATask);
   Node node(Level::Source,platform);
   info = DetInfo(node.pid(), info.detector(), info.detId(), info.device(), info.devId());
-  SegTest* segtest = new SegTest(task, 
-                                 platform, 
+  SegTest* segtest = new SegTest(task,
+                                 platform,
                                  info,
                                  user_apps,
                                  lCompress,
@@ -1106,9 +1117,9 @@ int main(int argc, char** argv) {
                                  lTriggered, module, channel,
                                  uniqueid);
 
-  SegmentLevel* segment = new SegmentLevel(platform, 
+  SegmentLevel* segment = new SegmentLevel(platform,
              *segtest,
-             *segtest, 
+             *segtest,
              NULL);
   if (segment->attach()) {
     task->mainLoop();

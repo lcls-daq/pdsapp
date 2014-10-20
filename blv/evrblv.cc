@@ -30,12 +30,12 @@ int main(int argc, char** argv) {
   unsigned detid(0), devid(0);
 
   char* endPtr;
-  
+
   unsigned controlPort = 1100;
 
   struct option loOptions[] = { { "info"       , 1, 0, 'i'},
-				{ "evrid"      , 1, 0, 'r'},
-				{ "controlport", 1, 0, 'c'} };
+        { "evrid"      , 1, 0, 'r'},
+        { "controlport", 1, 0, 'c'} };
 
   int c;
   while ( (c=getopt_long( argc, argv, "i:p:r:c:D:", loOptions, NULL)) != EOF ) {
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
   IdleStream*   idleStream = new IdleStream(controlPort, idleSrc);
   new OpenOutlet(*idleStream->outlet());
   //  attach the server
-  EvrManager& ievrmgr = *new EvrManager(erInfo, *cfgService, true);
+  EvrManager& ievrmgr = *new EvrManager(erInfo, *cfgService, true, 0 /* evr module 0*/);
   ievrmgr.appliance().connect(idleStream->inlet());
   idleStream->start();
 
