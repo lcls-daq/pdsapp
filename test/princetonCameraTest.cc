@@ -36,7 +36,7 @@ public:
 private:
   // private functions
   int testImageCaptureStandard(const char* sFnPrefix, int iNumFrame, int16 modeExposure, uns32 uExposureTime, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY);
-  int testImageCaptureContinous(int iNumFrame, int16 modeExposure, uns32 uExposureTime);
+  int testImageCaptureContinous(int iNumFrame, int16 modeExposure, uns32 uExposureTime, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY);
   int testImageCaptureFirstTime();
   int setupROI(rgn_type& region);
   int setupROI(rgn_type& region, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY);
@@ -848,14 +848,14 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
         }
         case '1':
         {
-          cout << endl << "Enter new Trigger Mode > ";
+          cout << endl << "Enter new Trigger Mode, 0: Timed 1: Strobed 2: Bulb 3: Trg_First> ";
           cin >> iTrgMode;
           printf("New Trigger Mode: %d\n", iTrgMode);
           break;
         }
         case '2':
         {
-          cout << endl << "Enter new Trigger Edge > ";
+          cout << endl << "Enter new Trigger Edge, 0:+ 1:- > ";
           cin >> iTrgEdge;
           printf("New Trigger Edge: %d\n", iTrgEdge);
           bReConfig = true;
@@ -949,15 +949,16 @@ int ImageCapture::start(int iCamera, char* sFnPrefix, int iNumImages, int iExpos
     //const int16 modeExposure = STROBED_MODE;
     const uns32 u32ExposureTime = iExposureTime;
 
-    testImageCaptureStandard(strFnPrefix.c_str(), iNumFrame, modeExposure, u32ExposureTime, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
+    if (modeExposure == 0)
+      testImageCaptureStandard(strFnPrefix.c_str(), iNumFrame, modeExposure, u32ExposureTime, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
+    else
+      testImageCaptureContinous(iNumFrame, modeExposure, u32ExposureTime, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
 
     if (iMenu == 0)
       break;
   }
 
   printStatus();
-
-  //testImageCaptureContinous(hCam, iNumFrame, modeExposure, u32ExposureTime);
 
   bStatus = pl_cam_close(_hCam);
   if (!bStatus)
@@ -1270,16 +1271,20 @@ int ImageCapture::testImageCaptureStandard(const char* sFnPrefix, int iNumFrame,
 
 /* Circ Buff and App Buff
    to be able to store more frames than the circular buffer can hold */
-int ImageCapture::testImageCaptureContinous(int iNumFrame, int16 modeExposure, uns32 uExposureTime)
+int ImageCapture::testImageCaptureContinous(int iNumFrame, int16 modeExposure, uns32 uExposureTime,
+    int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY)
 {
   printf( "Starting continuous image capture for %d frames, exposure mode = %d, exposure time = %d ms\n",
     iNumFrame, (int) modeExposure, (int) uExposureTime );
 
-  const int16 iCircularBufferSize = 5;
   const timeval timeSleepMicroOrg = {0, 1000}; // 1 milliseconds
 
   rgn_type region;
-  setupROI(region);
+  if (iRoiW < 0 || iRoiH < 0 )
+    setupROI(region);
+  else
+    setupROI(region, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY);
+
   PICAM::printROI(1, &region);
 
   /* Init a sequence set the region, exposure mode and exposure time */
@@ -1298,23 +1303,15 @@ int ImageCapture::testImageCaptureContinous(int iNumFrame, int16 modeExposure, u
   }
   printf( "frame size for continous capture = %lu\n", uFrameSize );
 
-  /* set up a circular buffer */
-  const int iHeaderSize = 1024 * 2; // Default to use 2k header size
-  if ( (int) uFrameSize < iHeaderSize )
-  {
-    printf("ImageCapture::testImageCaptureContinous(): Frame(ROI) size (%lu bytes) is too small to fit in a DAQ packet header (%d bytes)\n",
-     uFrameSize, iHeaderSize );
-    return 4;
-  }
 
+  const int16 iCircularBufferSize = (uFrameSize <= 65536? 128 : 8);
   int iBufferSize = uFrameSize * iCircularBufferSize;
-  unsigned char* pBufferWithHeader = (unsigned char *) malloc(iHeaderSize + iBufferSize);
-  if (!pBufferWithHeader)
+  uns16 * pFrameBuffer = (uns16 *) malloc(iBufferSize);
+  if (!pFrameBuffer)
   {
     printf("ImageCapture::testImageCaptureContinous(): Memory allocation error!\n");
     return PV_FAIL;
   }
-  uns16 *pFrameBuffer = (uns16*) (pBufferWithHeader + iHeaderSize);
   printf( "Continuous Frame Buffer starting from %p...\n", pFrameBuffer );
 
   /* Start the acquisition */
@@ -1322,7 +1319,7 @@ int ImageCapture::testImageCaptureContinous(int iNumFrame, int16 modeExposure, u
   if (!pl_exp_start_cont(_hCam, pFrameBuffer, iBufferSize))
   {
     printPvError("ImageCapture::testImageCaptureContinous():pl_exp_start_cont() failed");
-    free(pBufferWithHeader);
+    free(pFrameBuffer);
     return PV_FAIL;
   }
 
@@ -1388,11 +1385,6 @@ int ImageCapture::testImageCaptureContinous(int iNumFrame, int16 modeExposure, u
 
     printf( "Current frame = %p\n", pFrameCurrent );
 
-    for ( int iCopy = 0; iCopy < 1; iCopy++ )
-    {
-      memcpy( pBufferWithHeader+iHeaderSize/2, pBufferWithHeader, iHeaderSize/2 );
-    }
-
     if ( !pl_exp_unlock_oldest_frame(_hCam) )
     {
       printPvError("ImageCapture::testImageCaptureContinous():pl_exp_unlock_oldest_frame() failed");
@@ -1409,7 +1401,7 @@ int ImageCapture::testImageCaptureContinous(int iNumFrame, int16 modeExposure, u
     double fPollingTime = (timeVal2.tv_nsec - timeVal1.tv_nsec) * 1.e-6 + ( timeVal2.tv_sec - timeVal1.tv_sec ) * 1.e3;
     double fFrameProcessingTime = (timeVal3.tv_nsec - timeVal2.tv_nsec) * 1.e-6 + ( timeVal3.tv_sec - timeVal2.tv_sec ) * 1.e3;
     double fSingleFrameTime = fPollingTime + fFrameProcessingTime ;
-    printf(" Polling Time = %7.1lf Frame Processing Time = %.1lf Readout Time = %.1lf Frame Time = %.1lf\n",
+    printf(" Polling Time = %7.1lf Frame Unlock Time = %.1lf Readout Time = %.1lf Frame Time = %.1lf\n",
       fPollingTime, fFrameProcessingTime, fReadoutTime, fSingleFrameTime );
 
     fAvgPollingTime += fPollingTime; fAvgFrameProcessingTime += fFrameProcessingTime; fAvgReadoutTime += fReadoutTime; fAvgSingleFrameTime += fSingleFrameTime;
@@ -1423,7 +1415,7 @@ int ImageCapture::testImageCaptureContinous(int iNumFrame, int16 modeExposure, u
   /* Uninit the sequence */
   if (!pl_exp_uninit_seq()) printPvError("ImageCapture::testImageCaptureContinous():pl_exp_uninit_seq() failed");
 
-  free(pBufferWithHeader);
+  free(pFrameBuffer);
 
   if ( iNumFrame > 0 )
   {

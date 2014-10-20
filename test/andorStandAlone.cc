@@ -370,6 +370,12 @@ int AndorCameraTest::init()
   //Initialize Shutter
   SetShutter(1,0,0,0);
 
+  iError = SetDMAParameters(1, 0.003);
+  if (!isAndorFuncOk(iError))
+    printf("SetDMAParameters(): %s\n", AndorErrorCodes::name(iError));
+  else
+    printf("SetDMAParameters() successfully.\n");
+
   printf("Initialization okay\n");
 
   timespec timeVal2;
@@ -1137,11 +1143,11 @@ int closeCamera()
 
   while (true)
   {
-    int iTemperature = -999;
-    iError = GetTemperature(&iTemperature);
-    printf("Temperature %d C  Status %s\n", iTemperature, AndorErrorCodes::name(iError));
+    float fTemperature = -999;
+    iError = GetTemperatureF(&fTemperature);
+    printf("Temperature %f C  Status %s\n", fTemperature, AndorErrorCodes::name(iError));
 
-    if(iTemperature==-999 || iTemperature>5)
+    if(fTemperature==-999 || fTemperature>5)
       break;
 
     cout << "Wait until temperature rises above 5C, before exiting" << endl;
