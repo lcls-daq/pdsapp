@@ -4,6 +4,7 @@
 #include"pdsdata/xtc/ProcInfo.hh"
 #include"pdsdata/psddl/pulnix.ddl.h"
 #include"pdsdata/psddl/opal1k.ddl.h"
+#include"pdsdata/psddl/orca.ddl.h"
 #include"pdsdata/psddl/camera.ddl.h"
 #include"pdsdata/psddl/lusi.ddl.h"
 #include"pdsdata/psddl/epics.ddl.h"
@@ -128,7 +129,7 @@ class caconn {
         Xtc              *cfg = NULL;
         Xtc              *frm = NULL;
         Camera::FrameV1  *f   = NULL;
-        unsigned int     w, h;
+        unsigned int     w = 0, h = 0, d = 0;
 
         if (det == DetInfo::NumDetector || (det != DetInfo::EpicsArch && dev == DetInfo::NumDevice)) {
             printf("Cannot find (%s, %s) values!\n", detector.c_str(), camtype.c_str());
@@ -160,6 +161,81 @@ class caconn {
         } else
             is_cam = 1;
 
+        /* Set default camera size */
+        switch (ctp) {
+        case DetInfo::TM6740:
+            w = 640;
+            h = 480;
+            d = 10;
+            break;
+        case DetInfo::Opal1000:
+            w = 1024;
+            h = 1024;
+            d = 12;
+            break;
+        case DetInfo::OrcaFl40:
+            w = 2048;
+            h = 2048;
+            d = 16;
+            break;
+        default:
+            /* This is bad. We should probably print something. */
+            exit(0);
+            break;
+        }
+
+        /* Now find the real camera size. */
+        unsigned int hh, ww;
+        switch (binned) {
+        case CAMERA_NONE:
+            break;
+        case CAMERA_BINNED:
+            switch (ctp) {
+            case DetInfo::TM6740:
+                w = 320;
+                h = 240;
+                d = 8;
+                break;
+            case DetInfo::Opal1000:
+                w = 1024;
+                h = 256;
+                break;
+            case DetInfo::OrcaFl40:
+                /* MCB ??? */
+                w = 2048;
+                h = 2048;
+                break;
+            default:
+                break;
+            }
+            break;
+        case CAMERA_ROI:
+            if (!get_image_size(pvname.c_str(), ":ROI_XNP", ":ROI_YNP", &ww, &hh)) {
+                w = ww;
+                h = hh;
+            } else {
+                /* Print an error? */
+            }
+            break;
+        case CAMERA_SIZE:
+            if (!get_image_size(pvname.c_str(), ":N_OF_COL", ":N_OF_ROW", &ww, &hh)) {
+                w = ww;
+                h = hh;
+            } else {
+                /* Print an error? */
+            }
+            break;
+        case CAMERA_ADET:
+            if (!get_image_size(pvname.c_str(), ":ArraySize0_RBV", ":ArraySize1_RBV", &ww, &hh)) {
+                w = ww;
+                h = hh;
+            } else {
+                /* Print an error? */
+            }
+            break;
+        }
+        nelem = w * h;
+
         int               pid = getpid(), size;
         DetInfo sourceInfo(pid, det, detversion, dev, devversion);
         ProcInfo bldInfo(Level::Reporter, pid, bld);
@@ -183,30 +259,23 @@ class caconn {
             // Fake a configuration!
             // black_level_a = black_level_b = 32, gaina = gainb = 0x1e8 (max, min is 0x42),
             // gain_balance = false, Depth = 10 bit, hbinning = vbinning = x1, LookupTable = linear.
-            switch (binned) {
-            case CAMERA_ROI:
-            case CAMERA_SIZE:
-            case CAMERA_ADET:
-            case CAMERA_NONE:
-                new ((void *)cfg->alloc(sizeof(Pulnix::TM6740ConfigV2)))
-                    Pulnix::TM6740ConfigV2(32, 32, 0x1e8, 0x1e8, false,
-                                           Pulnix::TM6740ConfigV2::Ten_bit,
-                                           Pulnix::TM6740ConfigV2::x1,
-                                           Pulnix::TM6740ConfigV2::x1,
-                                           Pulnix::TM6740ConfigV2::Linear);
-                break;
-            case CAMERA_BINNED:
+            if (binned == CAMERA_BINNED)
                 new ((void *)cfg->alloc(sizeof(Pulnix::TM6740ConfigV2)))
                     Pulnix::TM6740ConfigV2(32, 32, 0x1e8, 0x1e8, false,
                                            Pulnix::TM6740ConfigV2::Eight_bit,
                                            Pulnix::TM6740ConfigV2::x2,
                                            Pulnix::TM6740ConfigV2::x2,
                                            Pulnix::TM6740ConfigV2::Linear);
-                break;
-            }
+            else
+                new ((void *)cfg->alloc(sizeof(Pulnix::TM6740ConfigV2)))
+                    Pulnix::TM6740ConfigV2(32, 32, 0x1e8, 0x1e8, false,
+                                           Pulnix::TM6740ConfigV2::Ten_bit,
+                                           Pulnix::TM6740ConfigV2::x1,
+                                           Pulnix::TM6740ConfigV2::x1,
+                                           Pulnix::TM6740ConfigV2::Linear);
             break;
         case DetInfo::Opal1000:
-            size = ((bld < 0) ? 2 : 3) * sizeof(Xtc) + sizeof(Pulnix::TM6740ConfigV2) +
+            size = ((bld < 0) ? 2 : 3) * sizeof(Xtc) + sizeof(Opal1k::ConfigV1) +
                 sizeof(Camera::FrameFexConfigV1);
             buf = (char *) calloc(1, size);
             if (bld < 0) {
@@ -219,21 +288,25 @@ class caconn {
             // Fake a configuration!
             // black = 32, gain = 100, Depth = 12 bit, binning = x1, mirroring = None,
             // vertical_remap = true, enable_pixel_creation = false.
-            switch (binned) {
-            case CAMERA_ROI:
-            case CAMERA_SIZE:
-            case CAMERA_ADET:
-            case CAMERA_NONE:
-                new ((void *)cfg->alloc(sizeof(Opal1k::ConfigV1)))
-                    Opal1k::ConfigV1(32, 100, Opal1k::ConfigV1::Twelve_bit, Opal1k::ConfigV1::x1,
-                                     Opal1k::ConfigV1::None, true, false, false, 0, 0, 0);
-                break;
-            case CAMERA_BINNED:
-                new ((void *)cfg->alloc(sizeof(Opal1k::ConfigV1)))
-                    Opal1k::ConfigV1(32, 100, Opal1k::ConfigV1::Twelve_bit, Opal1k::ConfigV1::x1,
-                                     Opal1k::ConfigV1::None, true, false, false, 0, 0, 0);
-                break;
+            new ((void *)cfg->alloc(sizeof(Opal1k::ConfigV1)))
+                Opal1k::ConfigV1(32, 100, Opal1k::ConfigV1::Twelve_bit, Opal1k::ConfigV1::x1,
+                                 Opal1k::ConfigV1::None, true, false, false, 0, 0, 0);
+            break;
+        case DetInfo::OrcaFl40:
+            size = ((bld < 0) ? 2 : 3) * sizeof(Xtc) + sizeof(Orca::ConfigV1) +
+                sizeof(Camera::FrameFexConfigV1);
+            buf = (char *) calloc(1, size);
+            if (bld < 0) {
+                cfg = new (buf) Xtc(TypeId(TypeId::Id_OrcaConfig, 1), sourceInfo);
+            } else {
+                cfg = new (buf) Xtc(TypeId(TypeId::Id_Xtc, 1), sourceInfo);
+                cfg = new ((char *)cfg->alloc(size - sizeof(Xtc)))
+                          Xtc(TypeId(TypeId::Id_OrcaConfig, 1), bldInfo);
             }
+            // Fake a configuration!
+            // readoutmode = Subarray, cooling = off, defect pixel correction = on, and rows = h.
+            new ((void *)cfg->alloc(sizeof(Orca::ConfigV1)))
+                Orca::ConfigV1(Orca::ConfigV1::Subarray, Orca::ConfigV1::Off, 1, h);
             break;
         default:
             printf("Unknown device: %s!\n", DetInfo::name(ctp));
@@ -254,84 +327,8 @@ class caconn {
         bf2 = (char *) calloc(1, hdrlen);
         frm = hdr = new (bf2) Xtc(TypeId(TypeId::Id_Frame, 1), sourceInfo);
 
-        switch (ctp) {
-        case DetInfo::TM6740:
-            switch (binned) {
-            case CAMERA_NONE:
-                f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(640, 480, 10, 32);
-                break;
-            case CAMERA_BINNED:
-                f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(320, 240, 8, 32);
-                break;
-            case CAMERA_ROI:
-                if (get_image_size(pvname.c_str(), ":ROI_XNP", ":ROI_YNP", &w, &h)) {
-                    /* Print an error! */
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(640, 480, 10, 32);
-                } else {
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, 10, 32);
-                    nelem = w * h;
-                }
-                break;
-            case CAMERA_SIZE:
-                if (get_image_size(pvname.c_str(), ":N_OF_COL", ":N_OF_ROW", &w, &h)) {
-                    /* Print an error! */
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(640, 480, 10, 32);
-                } else {
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, 10, 32);
-                    nelem = w * h;
-                }
-            case CAMERA_ADET:
-                if (get_image_size(pvname.c_str(), ":ArraySize0_RBV", ":ArraySize1_RBV", &w, &h)) {
-                    /* Print an error! */
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(640, 480, 10, 32);
-                } else {
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, 10, 32);
-                    nelem = w * h;
-                }
-                break;
-            }
-            break;
-        case DetInfo::Opal1000:
-            switch (binned) {
-            case CAMERA_NONE:
-                f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 1024, 12, 32);
-                break;
-            case CAMERA_BINNED:
-                f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 256, 12, 32);
-                break;
-            case CAMERA_ROI:
-                if (get_image_size(pvname.c_str(), ":ROI_XNP", ":ROI_YNP", &w, &h)) {
-                    /* Print an error! */
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 1024, 12, 32);
-                } else {
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, 12, 32);
-                    nelem = w * h;
-                }
-                break;
-            case CAMERA_SIZE:
-                if (get_image_size(pvname.c_str(), ":N_OF_COL", ":N_OF_ROW", &w, &h)) {
-                    /* Print an error! */
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 1024, 12, 32);
-                } else {
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, 12, 32);
-                    nelem = w * h;
-                }
-                break;
-            case CAMERA_ADET:
-                if (get_image_size(pvname.c_str(), ":ArraySize0_RBV", ":ArraySize1_RBV", &w, &h)) {
-                    /* Print an error! */
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(1024, 1024, 12, 32);
-                } else {
-                    f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, 12, 32);
-                    nelem = w * h;
-                }
-                break;
-            }
-            break;
-        default:
-            /* This is to keep the compiler happy.  We never get here! */
-            exit(1);
-        }
+        f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, d, 32);
+
         frm->alloc(f->_sizeof()-sizeof(*f));
         if (bld >= 0)
           hdr->alloc(f->_sizeof()-sizeof(*f));
