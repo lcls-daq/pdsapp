@@ -27,7 +27,7 @@ int dump_db    (int argc, char** argv);
 
 typedef int command_fcn(int,char**);
 
-struct command { 
+struct command {
   const char* key;
   const char* options;
   const char* descr;
@@ -68,7 +68,7 @@ static struct command _commands[] =
 
 void print_help(const char* p)
 {
-  printf("Usage: %s [options]\n",p); 
+  printf("Usage: %s [options]\n",p);
   for(unsigned i=0; _commands[i].options; i++)
     printf("%s %s: %s\n",_commands[i].key,_commands[i].options,_commands[i].descr);
 }
@@ -106,7 +106,7 @@ int create_db(int argc, char** argv)
                                       { 0, 0, 0, 0 } };
 
   const char* path = 0;
-  
+
   char c;
   while( (c=getopt_long(argc, argv, "", _options, NULL)) != -1 ) {
     switch(c) {
@@ -183,9 +183,9 @@ int copy_db(int argc, char** argv)
   }
 
   Experiment db(ipath, Pds_ConfigDb::Experiment::NoLock);
-  std::list<ExptAlias>  alist = db.path().getExptAliases();    
+  std::list<ExptAlias>  alist = db.path().getExptAliases();
   std::list<DeviceType> dlist = db.path().getDevices();
-  
+
   newdb->begin();
   newdb->setExptAliases(alist);
   newdb->setDevices    (dlist);
@@ -216,9 +216,9 @@ int copy_db(int argc, char** argv)
   newdb->begin();
   newdb->updateKeys();
   newdb->commit();
-  
+
   delete newdb;
-  return 0; 
+  return 0;
 }
 
 //
@@ -267,17 +267,17 @@ int branch_db(int argc, char** argv)
   }
 
   Experiment db(ipath,Experiment::NoLock);
-  std::list<ExptAlias>  alist = db.path().getExptAliases();    
+  std::list<ExptAlias>  alist = db.path().getExptAliases();
   std::list<DeviceType> dlist = db.path().getDevices();
-  
+
   for(std::list<DeviceType>::iterator it=dlist.begin();
       it!=dlist.end(); it++)
     for(std::list<DeviceEntries>::iterator eit=it->entries.begin();
         eit!=it->entries.end(); eit++)
       for(std::list<XtcEntry>::iterator xit=eit->entries.begin();
-          xit!=eit->entries.end(); xit++) 
+          xit!=eit->entries.end(); xit++)
         _copy_xtc(db.path(),*newdb,*xit);
-  
+
   newdb->begin();
   newdb->setExptAliases(alist);
   newdb->setDevices    (dlist);
@@ -286,9 +286,9 @@ int branch_db(int argc, char** argv)
   newdb->begin();
   newdb->updateKeys();
   newdb->commit();
-  
+
   delete newdb;
-  return 0; 
+  return 0;
 }
 
 //
@@ -300,7 +300,7 @@ int update_db(int argc, char** argv)
                                       { 0, 0, 0, 0 } };
 
   const char* path = 0;
-  
+
   char c;
   while( (c=getopt_long(argc, argv, "", _options, NULL)) != -1 ) {
     switch(c) {
@@ -321,9 +321,9 @@ int update_db(int argc, char** argv)
   newdb->begin();
   newdb->updateKeys();
   newdb->commit();
-  
+
   delete newdb;
-  return 0; 
+  return 0;
 }
 
 //
@@ -373,13 +373,13 @@ int fetch_xtc(int argc, char** argv)
   cl.initialize(alloc);
 
   Pds::Transition tr(Pds::TransitionId::Configure, Pds::Env(runkey));
-  int sz = cl.fetch(tr, 
+  int sz = cl.fetch(tr,
                     reinterpret_cast<const Pds::TypeId&>(type_id),
                     p, maxSize);
   printf("XTC size is %d\n",sz);
 
   delete[] p;
-  return 0; 
+  return 0;
 }
 
 //
@@ -402,7 +402,7 @@ int truncate_db(int argc, char** argv)
   while( (c=getopt_long(argc, argv, "", _options, NULL)) != -1 ) {
     switch(c) {
     case 0: path    = optarg; break;
-    case 1: 
+    case 1:
       pDash = strchr(optarg, '-');
       if ((pDash == NULL) || (pDash != strrchr(optarg, '-'))) {
         printf("%s: option `--key' parsing error\n", argv[0]);
@@ -422,7 +422,7 @@ int truncate_db(int argc, char** argv)
         printf("%s: option `--time' parsing error\n", argv[0]);
         return -1;
       }
-      { struct tm tm_v; 
+      { struct tm tm_v;
         memset(&tm_v,0,sizeof(tm_v));
         char *cc1 = strptime(strtok(optarg,"-"),"%Y%m%d",&tm_v);
         tfrom   = mktime(&tm_v);
@@ -467,7 +467,7 @@ int truncate_db(int argc, char** argv)
   }
   db->purge();
 
-  return 0; 
+  return 0;
 }
 
 //
@@ -502,19 +502,21 @@ int dump_db(int argc, char** argv)
     std::list<KeyEntry> entries = db->getKey(it->key);
     for(std::list<KeyEntry>::iterator kit=entries.begin(); kit!=entries.end(); kit++) {
       DeviceEntry e(kit->source);
+      char* buffer;
       switch(e.level()) {
       case Pds::Level::Source:
-	printf("\t[%s] ",Pds::DetInfo::name(reinterpret_cast<const Pds::DetInfo&>(e)));
-	break;
+        buffer = (char*) &e;
+        printf("\t[%s] ",Pds::DetInfo::name(*(const Pds::DetInfo*)buffer));
+        break;
       default:
-	printf("\t[%s] ",Pds::Level::name(e.level()));
-	break;
+        printf("\t[%s] ",Pds::Level::name(e.level()));
+        break;
       }
       printf("[%s] [%s]\n",Pds::TypeId::name(kit->xtc.type_id.id()),kit->xtc.name.c_str());
-    }	     
+    }
   }
 
-  return 0; 
+  return 0;
 }
 
 static void _copy_xtc(DbClient& idb, DbClient& odb, const XtcEntry& x)
@@ -523,11 +525,11 @@ static void _copy_xtc(DbClient& idb, DbClient& odb, const XtcEntry& x)
   if (sz > 0) {
     char* payload = new char[sz];
     idb.getXTC(x,payload,sz);
-    
+
     odb.begin();
     odb.setXTC(x,payload,sz);
     odb.commit();
-  
+
     delete[] payload;
   }
   else
