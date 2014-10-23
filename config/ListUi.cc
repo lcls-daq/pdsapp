@@ -124,20 +124,19 @@ void ListUi::view_xtc()
   int len=0;
   bool ok;
   unsigned key     = _keylist->currentItem()->text().split(' ')[0].toUInt(&ok,16);
-  std::list<KeyEntry> entry = _db.getKey(key);
-  for(std::list<KeyEntry>::iterator it=entry.begin();
+  std::list<KeyEntryT> entry = _db.getKeyT(key);
+  for(std::list<KeyEntryT>::iterator it=entry.begin();
       it!=entry.end(); it++)
-    if (it->source              == _devices[_devlist->currentRow()] &&
-        it->xtc.type_id.value() == _types  [_xtclist->currentRow()].value()) {
-      while(1) {
-        len = _db.getXTC(it->xtc,_xtcbuff,_lenbuff);
-        if (len<0)
-          return;
-        if (len<int(_lenbuff))
-          break;
-        delete _xtcbuff;
-        _xtcbuff = new char[_lenbuff*=2];
+    if (it->source                  == _devices[_devlist->currentRow()] &&
+        it->xtc.xtc.type_id.value() == _types  [_xtclist->currentRow()].value()) {
+      len = _db.getXTC(it->xtc);
+      if (len<0)
+        return;
+      if (int(_lenbuff) < len) {
+        delete[] _xtcbuff;
+        _xtcbuff = new char[_lenbuff=len];
       }
+      len = _db.getXTC(it->xtc,_xtcbuff,_lenbuff);
     }
 
   Parameter::allowEdit(false);
