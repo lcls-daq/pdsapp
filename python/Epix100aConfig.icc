@@ -200,7 +200,7 @@ PyObject* pds_Epix100aConfig_set    (PyObject*   self, PyObject* args)
       }
     }
 
-    printf("Writing asic pixel config array\n");
+//    printf("Writing asic pixel config array\n");
     PyObject* l = PyDict_GetItemString(o,"asicPixelConfigArray");
     if (l) {
       for (unsigned j=0; j<PyList_Size(l); j++) {
@@ -214,7 +214,7 @@ PyObject* pds_Epix100aConfig_set    (PyObject*   self, PyObject* args)
       return NULL;
     }
 
-    printf("Writing calib pixel config array\n");
+//    printf("Writing calib pixel config array\n");
     PyObject* li = PyDict_GetItemString(o,"calibPixelConfigArray");
     if (li) {
       for (unsigned j=0; j<PyList_Size(li); j++) {
