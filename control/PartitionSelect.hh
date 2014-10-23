@@ -17,6 +17,7 @@ namespace Pds {
 
   class PartitionControl;
   class IocControl;
+  class AliasPoll;
 
   class PartitionSelect : public QGroupBox {
     Q_OBJECT
@@ -39,6 +40,7 @@ namespace Pds {
     void display      ();
     void change_state(QString);
     void autorun      ();
+    void latch_aliases();
   private:
     bool _validate(uint64_t);
     bool _checkReadGroupEnable();
@@ -59,6 +61,7 @@ namespace Pds {
     QList<BldInfo > _reporters;
     QPushButton*    _selectb;
     bool            _autorun;
+    AliasPoll*      _alias_poll;
   };
 };
 

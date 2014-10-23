@@ -351,6 +351,7 @@ MainWindow::MainWindow(unsigned          platform,
        this  , SLOT(handle_override(const QString&)));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));
   QObject::connect(this  , SIGNAL(auto_run_started()), _partition, SLOT(autorun()));
+  QObject::connect(config, SIGNAL(aliases_required()), _partition, SLOT(latch_aliases()));
 
   // Unix signal support
   if (setup_unix_signal_handlers() ||

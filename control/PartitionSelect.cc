@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <set>
+#include "pdsapp/control/AliasPoll.hh"
 #include "pdsapp/control/SelectDialog.hh"
 #include "pdsapp/config/GlobalCfg.hh"
 #include "pds/management/PlatformCallback.hh"
@@ -46,7 +47,8 @@ PartitionSelect::PartitionSelect(QWidget*          parent,
   _pt_name  (pt_name),
   _display  (0),
   _options  (options),
-  _autorun  (false)
+  _autorun  (false),
+  _alias_poll(new AliasPoll(control))
 {
   strncpy(_db_path,db_path, sizeof(_db_path));
 
@@ -65,10 +67,17 @@ PartitionSelect::~PartitionSelect()
 {
   if (_display)
     _display->close();
+  if (_alias_poll)
+    delete _alias_poll;
 }
 
 void PartitionSelect::select_dialog()
 {
+  if (_alias_poll) {
+    delete _alias_poll;
+    _alias_poll = 0;
+  }
+
   if (_pcontrol.current_state()!=PartitionControl::Unmapped) {
     if (QMessageBox::question(this,
             "Select Partition",
@@ -212,7 +221,9 @@ void PartitionSelect::select_dialog()
 			      l3_unbias,
 			      cfg,
 			      dialog->evrio  ().config(dialog->aliases(),cfg),
-			      dialog->aliases().config(cfg));
+                              //  Monitoring needs the aliases for Monitor-only data
+			      //dialog->aliases().config(cfg));
+			      dialog->aliases().config());
       _pcontrol.set_target_state(PartitionControl::Configured);
       
       _aliases = dialog->aliases();
@@ -371,4 +382,15 @@ void PartitionSelect::autorun()
 {
   _autorun=true;
   select_dialog();
+}
+
+void PartitionSelect::latch_aliases()
+{
+  if (_alias_poll) {
+    Pds_ConfigDb::GlobalCfg::instance().cache(_aliasConfigType, 
+                                              reinterpret_cast<char*>(_alias_poll->aliases().config()),
+                                              true);
+    delete _alias_poll;
+    _alias_poll=0;
+  }
 }

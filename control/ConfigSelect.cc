@@ -107,6 +107,7 @@ ConfigSelect::~ConfigSelect()
 void ConfigSelect::edit_config()
 {
   if (_expt) {
+    emit aliases_required();
     _reconfig->show();
   }
 }

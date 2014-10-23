@@ -14,6 +14,7 @@ tgtsrcs_control_gui += BldNodeGroup.cc
 tgtsrcs_control_gui += DetNodeGroup.cc
 tgtsrcs_control_gui += ProcNodeGroup.cc   ProcNodeGroup_moc.cc
 tgtsrcs_control_gui += SelectDialog.cc    SelectDialog_moc.cc
+tgtsrcs_control_gui += AliasPoll.cc
 tgtsrcs_control_gui += PartitionSelect.cc PartitionSelect_moc.cc
 tgtsrcs_control_gui += StateSelect.cc     StateSelect_moc.cc
 tgtsrcs_control_gui += PVDisplay.cc       PVDisplay_moc.cc

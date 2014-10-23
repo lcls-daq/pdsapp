@@ -50,6 +50,7 @@ namespace Pds {
     void _attached     ();
     void control_enabled(bool);
     void assert_message(const QString&,bool);
+    void aliases_required();
   private:
     PartitionControl&          _pcontrol;
     const char*                _db_path;
