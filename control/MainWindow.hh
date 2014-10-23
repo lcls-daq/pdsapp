@@ -61,6 +61,7 @@ namespace Pds {
     void require_shutdown();
     void override_errors(bool);
     void autorun();
+    void attached();
   private:
     friend class ControlTimeout;
     CCallback*        _controlcb;

@@ -283,7 +283,7 @@ int main(int argc, char** argv) {
     if (internalSequence) {
       CfgClientNfs* cfgService = new CfgClientNfs(detInfo);
       EvsManager& evrmgr = *new EvsManager(erInfo,
-             *cfgService);
+					   *cfgService);
       srv = &evrmgr.server();
       app = &evrmgr.appliance();
     }

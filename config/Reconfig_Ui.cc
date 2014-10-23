@@ -134,7 +134,6 @@ Device* Reconfig_Ui::_device() const
   size_t alias_ext = s.find('[');
   if (alias_ext>=0)
     s = s.substr(0,alias_ext-1);
-  printf("lookup device %s\n",s.c_str());
   return item ? _expt.device(s) : 0;
 }
 

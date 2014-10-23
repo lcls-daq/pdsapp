@@ -30,6 +30,8 @@ namespace Pds {
                     unsigned          options);
     ~PartitionSelect();
   public:
+    void attached();
+  public:
     const QList<DetInfo >& detectors() const;
     const std::set<std::string>& deviceNames() const;
     const QList<ProcInfo>& segments () const;

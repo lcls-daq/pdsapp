@@ -49,6 +49,7 @@ namespace Pds {
   public:
     void attached(SetOfStreams& streams) {
       if (_apps) _apps->connect(streams.stream(StreamParams::FrameWork)->inlet());
+      _w.attached();
       _w.log().appendText("Connected to platform.\n");
     }
     void failed   (Reason reason   ) { _w.platform_error(); }
@@ -383,6 +384,8 @@ MainWindow::~MainWindow()
 }
 
 ControlLog& MainWindow::log() { return *_log; }
+
+void MainWindow::attached() { _partition->attached(); }
 
 void MainWindow::controleb_tmo()
 {

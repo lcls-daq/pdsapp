@@ -47,8 +47,7 @@ PartitionSelect::PartitionSelect(QWidget*          parent,
   _pt_name  (pt_name),
   _display  (0),
   _options  (options),
-  _autorun  (false),
-  _alias_poll(new AliasPoll(control))
+  _autorun  (false)
 {
   strncpy(_db_path,db_path, sizeof(_db_path));
 
@@ -61,6 +60,8 @@ PartitionSelect::PartitionSelect(QWidget*          parent,
 
   connect(_selectb, SIGNAL(clicked()), this, SLOT(select_dialog()));
   connect( display, SIGNAL(clicked()), this, SLOT(display()));
+
+  _selectb->setEnabled(false);
 }
 
 PartitionSelect::~PartitionSelect()
@@ -69,6 +70,12 @@ PartitionSelect::~PartitionSelect()
     _display->close();
   if (_alias_poll)
     delete _alias_poll;
+}
+
+void PartitionSelect::attached()
+{
+  _alias_poll = new AliasPoll(_pcontrol);
+  _selectb->setEnabled(true);
 }
 
 void PartitionSelect::select_dialog()
@@ -387,6 +394,10 @@ void PartitionSelect::autorun()
 void PartitionSelect::latch_aliases()
 {
   if (_alias_poll) {
+    Pds_ConfigDb::GlobalCfg::instance().cache(_evrIOConfigType, 
+					      reinterpret_cast<char*>(_alias_poll->evrio  ().config(_alias_poll->aliases())), 
+					      true);
+    
     Pds_ConfigDb::GlobalCfg::instance().cache(_aliasConfigType, 
                                               reinterpret_cast<char*>(_alias_poll->aliases().config()),
                                               true);

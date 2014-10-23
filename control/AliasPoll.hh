@@ -3,6 +3,7 @@
 
 #include "pds/management/PlatformCallback.hh"
 #include "pds/config/AliasFactory.hh"
+#include "pds/config/EvrIOFactory.hh"
 
 namespace Pds {
   class PartitionControl;
@@ -14,9 +15,11 @@ namespace Pds {
     void        available   (const Node& hdr, const PingReply& msg);
     void        aliasCollect(const Node& hdr, const AliasReply& msg);
     const AliasFactory&    aliases() const;
+    const EvrIOFactory&    evrio  () const;
   private:
     PartitionControl& _control;
     AliasFactory      _aliases;
+    EvrIOFactory      _evrio;
   };
 };
 
