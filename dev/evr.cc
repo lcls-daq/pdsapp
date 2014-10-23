@@ -276,7 +276,8 @@ int main(int argc, char** argv) {
     EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
     {
       uint32_t* p = reinterpret_cast<uint32_t*>(&erInfo.board());
-      printf("Found EVR FPGA Version %x\n",p[11]);
+      printf("Found EVR (MRF ) FPGA Version %x\n",p[11]);
+      printf("Found EVR (SLAC) FPGA Version %x\n",p[12]);
     }
 
     if (internalSequence) {
