@@ -139,6 +139,7 @@ tgtnames       += configdb_gui
 tgtnames       += configdb_list
 tgtnames       += configdb_readxtc
 #tgtnames       += create_scan
+tgtnames       += dbtest
 endif
 
 # executable python modules: configdb_gui.py
@@ -215,3 +216,13 @@ tgtlibs_nfs_to_sql += pds/configdbc
 tgtlibs_nfs_to_sql += pds/confignfs pds/configsql
 tgtlibs_nfs_to_sql += offlinedb/mysqlclient
 tgtslib_nfs_to_sql := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
+
+tgtsrcs_dbtest := dbtest.cc
+tgtincs_dbtest := pdsdata/include
+tgtlibs_dbtest += pds/configdata
+tgtlibs_dbtest += pds/configdbc
+tgtlibs_dbtest += pds/confignfs pds/configsql
+tgtlibs_dbtest += pds/service
+tgtlibs_dbtest += pdsdata/xtcdata pdsdata/psddl_pdsdata
+tgtslib_dbtest := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
+
