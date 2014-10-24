@@ -334,8 +334,10 @@ public:
 	      if (pfd[0].revents & (POLLIN|POLLERR)) {
 		MonShmComm::Set set;
 		int r = ::read(s, &set, sizeof(set));
-		if (r<0)
+		if (r<0) {
 		  perror("MonShmComm socket read error");
+                  break;
+                }
 		else if (unsigned(r)<sizeof(set)) {
 		  printf("MonShmComm socket closed [%d/%zu]\n",r,sizeof(set));
 		  break;
