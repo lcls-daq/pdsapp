@@ -139,7 +139,7 @@ tgtnames       += configdb_gui
 tgtnames       += configdb_list
 tgtnames       += configdb_readxtc
 #tgtnames       += create_scan
-tgtnames       += dbtest
+#tgtnames       += dbtest
 endif
 
 # executable python modules: configdb_gui.py
