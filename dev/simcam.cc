@@ -20,6 +20,10 @@
 #include "pds/config/CsPadDataType.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
 #include "pds/config/CsPad2x2DataType.hh"
+#include "pds/config/EpixConfigType.hh"
+#include "pds/config/EpixDataType.hh"
+#include "pds/config/EpixSamplerConfigType.hh"
+#include "pds/config/EpixSamplerDataType.hh"
 #include "pdsdata/psddl/cspad.ddl.h"
 #include "pds/config/ImpConfigType.hh"
 #include "pds/config/ImpDataType.hh"
@@ -29,9 +33,6 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/psddl/camera.ddl.h"
 #include "pdsdata/psddl/alias.ddl.h"
-
-#include "pdsdata/psddl/epix.ddl.h"
-#include "pdsdata/psddl/epixsampler.ddl.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -48,6 +49,27 @@ static int ntime = 0;
 static int nforward = 1;
 static double ftime = 0;
 
+static double rangss()
+{
+  static bool lcache=false;
+  static double vcache=0;
+  if (lcache) {
+    lcache=false;
+    return vcache;
+  }
+  double r2 = -2*log(double(rand())/double(RAND_MAX));
+  double ph = 2*M_PI*double(rand())/double(RAND_MAX);
+  lcache=true;
+  vcache = sqrt(r2)*cos(ph);
+  return sqrt(r2)*sin(ph);
+}
+
+static unsigned rangss(double mean, double sigm, unsigned mask)
+{
+  double v = mean + sigm*rangss();
+  return unsigned(v+0.5)&mask;
+}
+
 static const unsigned sizeof_Section = 2*Pds::CsPad::ColumnsPerASIC*Pds::CsPad::MaxRowsPerASIC*sizeof(int16_t);
 
 typedef std::list<Pds::Appliance*> AppList;
@@ -55,22 +77,6 @@ typedef std::list<Pds::Appliance*> AppList;
 using namespace Pds;
 using Pds::Camera::FrameV1;
 using Pds::Alias::SrcAlias;
-
-//
-//#include "pds/config/EpixConfigType.hh"
-//
-static TypeId _EpixConfigType(TypeId::Id_EpixConfig,1);
-typedef Epix::ConfigV1 EpixConfigType;
-
-static TypeId _EpixDataType  (TypeId::Id_EpixElement,1);
-typedef Epix::ElementV1 EpixDataType;
-
-static TypeId _EpixSamplerConfigType(TypeId::Id_EpixSamplerConfig,1);
-typedef EpixSampler::ConfigV1 EpixSamplerConfigType;
-
-static TypeId _EpixSamplerDataType  (TypeId::Id_EpixSamplerElement,1);
-typedef EpixSampler::ElementV1 EpixSamplerDataType;
-
 
 class SimApp : public Appliance {
 public:
@@ -259,26 +265,22 @@ public:
         unsigned i;
         for(i=0; i<f->height()/2; i++) {
           unsigned j;
-          { const int mean   = offset/2;
-            const int spread = offset/2;
+          { double sigm = double(offset/8);
             for(j=0; j<f->width()/2; j++)
-              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
-          { const int mean   = offset;
-            const int spread = offset;
+              fdata[i][j] = rangss(offset,sigm,0xff); }
+          { double sigm = double(offset/6);
             for(; j<f->width(); j++)
-              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
+              fdata[i][j] = rangss(offset,sigm,0xff); }
         }
         for(; i<f->height(); i++) {
           unsigned j;
-          { const int mean   = offset;
-            const int spread = offset;
+          { double sigm = double(offset/6);
             for(j=0; j<f->width()/2; j++)
-              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
-          { const int mean   = offset/2;
-            const int spread = offset/2;
+              fdata[i][j] = rangss(offset,sigm,0xff); }
+          { double sigm = double(offset/8);
             for(; j<f->width(); j++)
-              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xff; }
-        }
+              fdata[i][j] = rangss(offset,sigm,0xff); }
+	}
       }
       else if (depth<=16) {
         ndarray<const uint16_t, 2> idata = f->data16();
@@ -286,25 +288,21 @@ public:
         unsigned i;
         for(i=0; i<f->height()/2; i++) {
           unsigned j;
-          { const int mean   = offset/2;
-            const int spread = offset/2;
+          { double sigm = double(offset/8);
             for(j=0; j<f->width()/2; j++)
-              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
-          { const int mean   = offset;
-            const int spread = offset;
+              fdata[i][j] = rangss(offset,sigm,0xff); }
+          { double sigm = double(offset/6);
             for(; j<f->width(); j++)
-              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
+              fdata[i][j] = rangss(offset,sigm,0xff); }
         }
         for(; i<f->height(); i++) {
           unsigned j;
-          { const int mean   = offset;
-            const int spread = offset;
+          { double sigm = double(offset/6);
             for(j=0; j<f->width()/2; j++)
-              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
-          { const int mean   = offset/2;
-            const int spread = offset/2;
+              fdata[i][j] = rangss(offset,sigm,0xff); }
+          { double sigm = double(offset/8);
             for(; j<f->width(); j++)
-              fdata[i][j] = (offset + (rand()%spread) + (mean-spread/2))&0xffff; }
+              fdata[i][j] = rangss(offset,sigm,0xff); }
         }
       }
       else
@@ -410,10 +408,11 @@ public:
               *p++ = 0x150 + i*0x40 + k*b/5 + m;
 #else
         uint16_t off = rand()&0x2fff;
+	double sigm  = 8;
         for(unsigned j=0; j<8; j++)
           for(unsigned k=0; k<Pds::CsPad::ColumnsPerASIC; k++)
             for(unsigned m=0; m<Pds::CsPad::MaxRowsPerASIC*2; m++)
-              *p++ = (rand()&0x03ff)+off;
+              *p++ = rangss(off,sigm,0x3fff);
               //*p++ = ((m<<8) + (k<<0))&0x3fff;
 #endif
         // trailer word
@@ -510,8 +509,9 @@ public:
       uint16_t* p = const_cast<uint16_t*>(reinterpret_cast<const uint16_t*>(a.data()));
       uint16_t* e = p+a.size();
       unsigned o = 0x150 + ((rand()>>8)&0x7f);
+      double sigm = 8;
       while(p < e)
-        *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
+        *p++ = rangss(o,sigm,0x3fff);
     }
   }
   ~SimCspad140k()
@@ -617,66 +617,34 @@ private:
 };
 
 
-#if 1
+template<class C, class E>
 class SimEpixBase : public SimApp {
 public:
-  SimEpixBase(const Src& src, unsigned AsicsPerColumn, unsigned AsicsPerRow, unsigned Rows, unsigned Columns)
+  SimEpixBase() {}
+  ~SimEpixBase()
   {
-    const unsigned Asics = AsicsPerRow*AsicsPerColumn;
-    const unsigned CfgSize = sizeof(Epix::ConfigV1)
-      +Asics*Epix::AsicConfigV1::_sizeof()          // AsicsConfigV1
-      +2*Asics*Rows*((Columns+31)/32)*sizeof(uint32_t) // PixelArrays [Test,Mask]
-      +sizeof(Xtc);
-
-    _cfgpayload = new char[CfgSize];
-    _cfgtc = new(_cfgpayload) Xtc(_EpixConfigType,src);
-
-    Epix::AsicConfigV1 asics[Asics];
-    uint32_t* testarray = new uint32_t[Asics*Rows*(Columns+31)/32];
-    memset(testarray, 0, Asics*Rows*(Columns+31)/32*sizeof(uint32_t));
-    uint32_t* maskarray = new uint32_t[Asics*Rows*(Columns+31)/32];
-    memset(maskarray, 0, Asics*Rows*(Columns+31)/32*sizeof(uint32_t));
-    unsigned asicMask = src.phy()&0xf;
-
-    EpixConfigType* cfg =
-      new (_cfgtc->next()) EpixConfigType( 0, 1, 0, 1, 0, // version
-                                           0, 0, 0, 0, 0, // asicAcq
-                                           0, 0, 0, 0, 0, // asicGRControl
-                                           0, 0, 0, 0, 0, // asicR0Control
-                                           0, 0, 0, 0, 0, // asicR0ToAsicAcq
-                                           1, 0, 0, 0, 0, // adcClkHalfT
-                                           0, 0, 0, 0, 0, // digitalCardId0
-                                           AsicsPerRow, AsicsPerColumn,
-                                           Rows, Columns,
-                                           0x200000, // 200MHz
-                                           asicMask,
-                                           asics, testarray, maskarray );
-
-    _cfgtc->alloc(cfg->_sizeof());
-    if (_cfgtc->extent != CfgSize) {
-      printf("EpixConfigType size mismatch [%d/%d]\n",
-             _cfgtc->extent, CfgSize);
-
-      printf("  Asics %d  Rows %d  Columns %d\n",Asics,Rows,Columns);
-      printf("  sizeof(ConfigV1)\t%zd\n", sizeof(Epix::ConfigV1));
-      printf("  sizeof(AsicConfigV1)\t%d\n", Epix::AsicConfigV1::_sizeof());
-      printf("  sizeof(PixelArray)\t%zd\n", Rows*(Columns+31)/32*sizeof(uint32_t));
-      printf("  AsicsPerRow %d  AsicsPerCol %d  RowsPerAsic %d  PixelsPerAsicRow %d\n",
-             cfg->numberOfAsicsPerRow(),
-             cfg->numberOfAsicsPerColumn(),
-             cfg->numberOfRowsPerAsic(),
-             cfg->numberOfPixelsPerAsicRow());
-      abort();
-    }
-
-    const size_t sz = EpixDataType::_sizeof(*cfg);
+    delete[] _cfgpayload;
+    delete[] _evtpayload;
+  }
+protected:
+  Xtc* config(const Src& src, unsigned sz)
+  {
+    _cfgpayload = new char[sz];
+    return (_cfgtc = new(_cfgpayload) 
+	    Xtc(TypeId(TypeId::Type(C::TypeId),unsigned(C::Version)),src));
+  }
+  void event(const Src& src) 
+  {
+    const C* cfg = reinterpret_cast<const C*>(_cfgtc->payload());
+    const size_t sz = E::_sizeof(*cfg);
     unsigned evtsz = sz + sizeof(Xtc);
     unsigned evtst = (evtsz+3)&~3;
     _evtpayload = new char[NBuffers*evtst];
 
     for(unsigned b=0; b<NBuffers; b++) {
-      _evttc[b] = new(_evtpayload+b*evtst) Xtc(_EpixDataType,src);
-      EpixDataType* q = new (_evttc[b]->alloc(sz)) EpixDataType;
+      _evttc[b] = new(_evtpayload+b*evtst) 
+	Xtc(TypeId(TypeId::Type(E::TypeId),unsigned(E::Version)),src);
+      E* q = new (_evttc[b]->alloc(sz)) E;
       //  Set the quad number
       reinterpret_cast<uint32_t*>(q)[1] = 0;
       //  Set the payload
@@ -684,14 +652,10 @@ public:
       uint16_t* p = const_cast<uint16_t*>(a.data());
       uint16_t* e = p+a.size();
       unsigned o = 0x150 + ((rand()>>8)&0x7f);
+      double sigm = 4;
       while(p < e)
-        *p++ = (o + ((rand()>>8)&0x3f))&0x3fff;
+        *p++ = rangss(o,sigm,0x3fff);
     }
-  }
-  ~SimEpixBase()
-  {
-    delete[] _cfgpayload;
-    delete[] _evtpayload;
   }
 private:
   void _execute_configure() { _ibuffer=0; }
@@ -706,49 +670,160 @@ private:
   }
 public:
   size_t max_size() const { return _evttc[0]->sizeofPayload(); }
-private:
+protected:
   char* _cfgpayload;
   char* _evtpayload;
   Xtc*  _cfgtc;
-  enum { NBuffers=16 };
+  enum { NBuffers=64 };
   Xtc*  _evttc[NBuffers];
   unsigned _ibuffer;
 };
 
-class SimEpix100 : public SimEpixBase {
+class SimEpix100 : public SimEpixBase<Epix::ConfigV1,Epix::ElementV1> {
   enum { Columns = 2*96, Rows = 2*88 };
 public:
-  SimEpix100(const Src& src) : SimEpixBase(src, 2, 2, Rows, Columns) {}
+  SimEpix100(const Src& src) {
+    const unsigned AsicsPerColumn=2;
+    const unsigned AsicsPerRow=2;
+    const unsigned Asics = AsicsPerRow*AsicsPerColumn;
+
+    Epix::ConfigV1 c(AsicsPerRow,AsicsPerColumn,Rows,Columns);
+    unsigned CfgSize = c._sizeof()+sizeof(Xtc);
+
+    Xtc* cfgtc = config(src,CfgSize);
+
+    Epix::AsicConfigV1 asics[Asics];
+    uint32_t* testarray = new uint32_t[Asics*Rows*(Columns+31)/32];
+    memset(testarray, 0, Asics*Rows*(Columns+31)/32*sizeof(uint32_t));
+    uint32_t* maskarray = new uint32_t[Asics*Rows*(Columns+31)/32];
+    memset(maskarray, 0, Asics*Rows*(Columns+31)/32*sizeof(uint32_t));
+    unsigned asicMask = src.phy()&0xf;
+
+    Epix::ConfigV1* cfg =
+      new (cfgtc->next())  Epix::ConfigV1( 0, 1, 0, 1, 0, // version
+                                           0, 0, 0, 0, 0, // asicAcq
+                                           0, 0, 0, 0, 0, // asicGRControl
+                                           0, 0, 0, 0, 0, // asicR0Control
+                                           0, 0, 0, 0, 0, // asicR0ToAsicAcq
+                                           1, 0, 0, 0, 0, // adcClkHalfT
+                                           0, 0, 0, 0, 0, // digitalCardId0
+                                           AsicsPerRow, AsicsPerColumn,
+                                           Rows, Columns,
+                                           0x200000, // 200MHz
+                                           asicMask,
+                                           asics, testarray, maskarray );
+
+    cfgtc->alloc(cfg->_sizeof());
+
+    event(src);
+  }
 public:
   static bool handles(const Src& src) {
     const DetInfo& info = static_cast<const DetInfo&>(src);
-    switch(info.device()) {
-    case DetInfo::Epix:
-      return (info.detId()%2)==0;
-    default:
-      break;
-    }
-    return false;
+    return (info.device()==DetInfo::Epix);
   }
 };
 
-class SimEpix10k : public SimEpixBase {
+class SimEpix10k : public SimEpixBase<Epix::Config10KV1,Epix::ElementV1> {
   enum { Columns = 96, Rows = 88 };
 public:
-  SimEpix10k(const Src& src) : SimEpixBase(src, 2, 2, Rows, Columns) {}
+  SimEpix10k(const Src& src) {
+    const unsigned AsicsPerColumn=2;
+    const unsigned AsicsPerRow=2;
+    const unsigned Asics = AsicsPerRow*AsicsPerColumn;
+
+    Epix::Config10KV1 c(AsicsPerRow,AsicsPerColumn,Rows,Columns,0);
+    unsigned CfgSize = c._sizeof()+sizeof(Xtc);
+
+    Xtc* cfgtc = config(src,CfgSize);
+
+    Epix::Asic10kConfigV1 asics[Asics];
+    uint16_t* maskarray = new uint16_t[c.numberOfRows()*c.numberOfColumns()];
+    memset(maskarray, 0, c.numberOfRows()*c.numberOfColumns()*sizeof(uint16_t));
+    unsigned asicMask = src.phy()&0xf;
+
+    Epix::Config10KV1* cfg =
+      new (cfgtc->next()) Epix::Config10KV1( 0, 1, 0, 1, 0, // version
+					     0, 0, 0, 0, 0, // asicAcq
+					     0, 0, 0, 0, 0, // asicGRControl
+					     0, 0, 0, 0, 0, // asicR0ClkControl
+					     0, 0, 0, 0, 0, // R0Mode
+					     1, 0, 0, 0, 0, // asicAcqLToPPmatL
+					     0, 0, 0, 0, 0, // adcPipelineDelay
+					     0, 0, 0, 0, 0, // digitalCardId0
+					     AsicsPerRow, AsicsPerColumn,
+					     Rows, Columns,
+					     0x200000, // 200MHz
+					     asicMask, 
+					     0, 0, 0, 0, 0, // scopeEnable
+					     0, 0, 0, 0, 0, 0,
+					     asics, maskarray );
+
+    cfgtc->alloc(cfg->_sizeof());
+
+    event(src);
+  }
 public:
   static bool handles(const Src& src) {
     const DetInfo& info = static_cast<const DetInfo&>(src);
-    switch(info.device()) {
-    case DetInfo::Epix:
-      return (info.detId()%2)==1;
-    default:
-      break;
-    }
-    return false;
+    return (info.device()==DetInfo::Epix10k);
   }
 };
-#endif
+
+class SimEpix100a : public SimEpixBase<Epix::Config100aV1,Epix::ElementV2> {
+  enum { Columns = 2*96, Rows = 2*88 };
+public:
+  SimEpix100a(const Src& src) {
+    const unsigned AsicsPerColumn=2;
+    const unsigned AsicsPerRow=2;
+    const unsigned Asics = AsicsPerRow*AsicsPerColumn;
+
+    Epix::Config100aV1 c(AsicsPerRow,AsicsPerColumn,Rows,Columns,0);
+    unsigned CfgSize = c._sizeof()+sizeof(Xtc);
+
+    Xtc* cfgtc = config(src,CfgSize);
+
+    Epix::Asic100aConfigV1 asics[Asics];
+    uint16_t* asicarray = new uint16_t[c.numberOfRows()*c.numberOfColumns()];
+    memset(asicarray, 0, c.numberOfRows()*c.numberOfColumns()*sizeof(uint16_t));
+    uint8_t* calibarray = new uint8_t[c.numberOfCalibrationRows()/2*
+				      c.numberOfPixelsPerAsicRow()*
+				      c.numberOfAsicsPerRow()];
+    memset(calibarray, 0, 
+	   c.numberOfCalibrationRows()/2*
+	   c.numberOfPixelsPerAsicRow()*
+	   c.numberOfAsicsPerRow());
+
+    unsigned asicMask = src.phy()&0xf;
+
+    Epix::Config100aV1* cfg = new (cfgtc->next())  
+      Epix::Config100aV1( 0, 1, 0, 1, 0, // version
+			  0, 0, 0, 0, 0, // asicAcq
+			  0, 0, 0, 0, 0, // asicGRControl
+			  0, 0, 0, 0, 0, // asicR0Control
+			  0, 0, 0, 0, 0, // asicR0ToAsicAcq
+			  1, 0, 0, 0, 0, // adcClkHalfT
+			  0, 0, 0, 0, 0, // digitalCardId0
+			  0, 0, 0, 0,
+			  AsicsPerRow, AsicsPerColumn,
+			  Rows, Rows, Columns,
+			  0, 0, 
+			  0x200000, // 200MHz
+			  asicMask,
+			  0, 0, 0, 0, 0,
+			  0, 0, 0, 0, 0, 0,
+			  asics, asicarray, calibarray );
+
+    cfgtc->alloc(cfg->_sizeof());
+
+    event(src);
+  }
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    return (info.device()==DetInfo::Epix100a);
+  }
+};
 
 class SimEpixSampler : public SimApp {
 public:
@@ -761,7 +836,7 @@ public:
     const unsigned CfgSize = sizeof(EpixSamplerConfigType)+sizeof(Xtc);
 
     _cfgpayload = new char[CfgSize];
-    _cfgtc = new(_cfgpayload) Xtc(_EpixSamplerConfigType,src);
+    _cfgtc = new(_cfgpayload) Xtc(_epixSamplerConfigType,src);
 
     EpixSamplerConfigType* cfg =
       new (_cfgtc->next()) EpixSamplerConfigType( 0, 0, 0, 0, 1,
@@ -782,7 +857,7 @@ public:
     _evtpayload = new char[NBuffers*evtst];
 
     for(unsigned b=0; b<NBuffers; b++) {
-      _evttc[b] = new(_evtpayload+b*evtst) Xtc(_EpixSamplerDataType,src);
+      _evttc[b] = new(_evtpayload+b*evtst) Xtc(_epixSamplerDataType,src);
       EpixSamplerDataType* q = new (_evttc[b]->alloc(sz)) EpixSamplerDataType;
       //  Set the quad number
       reinterpret_cast<uint32_t*>(q)[1] = 0;
@@ -864,12 +939,12 @@ public:
       _app = new SimCspad140k(src);
     else if (SimImp::handles(src))
       _app = new SimImp(src);
-#if 1
     else if (SimEpix100::handles(src))
       _app = new SimEpix100(src);
     else if (SimEpix10k::handles(src))
       _app = new SimEpix10k(src);
-#endif
+    else if (SimEpix100a::handles(src))
+      _app = new SimEpix100a(src);
     else if (SimEpixSampler::handles(src))
       _app = new SimEpixSampler(src);
     else {
