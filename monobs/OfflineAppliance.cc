@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -11,6 +10,9 @@
 #include "LogBook/Connection.h"
 #include "OfflineAppliance.hh"
 
+#define ca_dget(chan, pValue) \
+ca_array_get(DBR_DOUBLE, 1u, chan, (dbr_double_t *)(pValue))
+
 namespace Pds
 {
 
@@ -21,13 +23,14 @@ using std::string;
 //
 // OfflineAppliance
 //
-OfflineAppliance::OfflineAppliance(OfflineClient* offlineclient, const char *parm_list_file, int maxParms, bool verbose) :
+OfflineAppliance::OfflineAppliance(OfflineClient* offlineclient, const char *parm_list_file, int maxParms, bool verbose, bool gFormat) :
     _run_number (0),
     _parm_list_file (parm_list_file),
     _parm_list_initialized (false),
     _parm_list_size (0),
     _maxParms (maxParms),
-    _verbose (verbose)
+    _verbose (verbose),
+    _gFormat (gFormat)
 {
   _path = offlineclient->GetPath();
   _instrument_name = offlineclient->GetInstrumentName();
@@ -150,7 +153,7 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
 
     } catch (const LogBook::WrongParams& e) {
       printf ("Problem with parameters: %s\n", e.what());
-
+    
     } catch (const LogBook::DatabaseError& e) {
       printf ("Database operation failed: %s\n", e.what());
     }
@@ -194,7 +197,7 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
 
     } catch (const LogBook::WrongParams& e) {
       printf ("Problem with parameters: %s\n", e.what());
-
+    
     } catch (const LogBook::DatabaseError& e) {
       printf ("Database operation failed: %s\n", e.what());
     }
@@ -243,11 +246,11 @@ int OfflineAppliance::_saveRunParameter(LogBook::Connection *conn, const char *i
     } catch (const LogBook::WrongParams& e) {
       parmError = true;
       printf ("getParamInfo(): Problem with parameters: %s\n", e.what());
-
+    
     } catch (const LogBook::DatabaseError& e) {
       dbError = true;
       printf ("getParamInfo(): Database operation failed: %s\n", e.what());
-    }
+    } 
 
     if (!parmError && !dbError && !parmFound) {
       // create run parameter
@@ -308,11 +311,11 @@ int OfflineAppliance::_saveRunAttribute(LogBook::Connection *conn, const char *i
     } catch (const LogBook::WrongParams& e) {
       parmError = true;
       printf ("getAttrInfo(): Problem with parameters: %s\n", e.what());
-
+    
     } catch (const LogBook::DatabaseError& e) {
       dbError = true;
       printf ("getAttrInfo(): Database operation failed: %s\n", e.what());
-    }
+    } 
 
     if (!parmError && !dbError && !parmFound) {
       // create run attribute
@@ -370,21 +373,36 @@ int OfflineAppliance::_readEpicsPv(PvConfigFile::TPvList in, std::vector < std::
   }
 
   if (ca_current_context() != NULL) {
+    chtype ttt;
     // Make get requests
     for (ix = 0; ix < (int)in.size(); ix ++) {
       if ((_channels[ix].created) && (cs_conn == ca_state(_channels[ix].value_channel))) {
         // channel is connected
-        status = ca_bget(_channels[ix].value_channel, _channels[ix].value);
-        if (ECA_NORMAL == status){
-          ++read_count;   // increment count of PVs successfully read
+        ttt = ca_field_type(_channels[ix].value_channel);
+        _channels[ix].isDouble = _gFormat && ((ttt == DBF_FLOAT) || (ttt == DBF_DOUBLE));
+        if (_channels[ix].isDouble) {
+          status = ca_dget(_channels[ix].value_channel, &_channels[ix].dValue);
+          if (ECA_NORMAL == status) {
+            ++read_count;   // increment count of PVs successfully read
+          } else {
+            SEVCHK(status, NULL);
+            printf("Error in call to ca_dget()\n");
+            _channels[ix].dValue = 0.0;     // zero is default
+          }
         } else {
-          SEVCHK(status, NULL);
-          printf("Error in call to ca_bget()\n");
-          _channels[ix].value[0] = '\0';  // empty string is default
+          status = ca_bget(_channels[ix].value_channel, _channels[ix].value);
+          if (ECA_NORMAL == status){
+            ++read_count;   // increment count of PVs successfully read
+          } else {
+            SEVCHK(status, NULL);
+            printf("Error in call to ca_bget()\n");
+            _channels[ix].value[0] = '\0';  // empty string is default
+          }
         }
       } else {
         // channel is not connected
         printf("Error: failed to connect PV %s\n", in[ix].sPvName.c_str());
+        _channels[ix].isDouble = false;
         _channels[ix].value[0] = '\0';    // empty string is default
       }
     }
@@ -405,7 +423,14 @@ int OfflineAppliance::_readEpicsPv(PvConfigFile::TPvList in, std::vector < std::
       read_count = 0;
     }
     for (ix = 0; ix < (int)in.size(); ix ++) {
-      pvValues.push_back((read_count > 0) ? _channels[ix].value: "");
+      if (read_count > 0) {
+        if (_channels[ix].isDouble) {
+          sprintf(_channels[ix].value, "%g", _channels[ix].dValue);
+        }
+        pvValues.push_back(_channels[ix].value);
+      } else {
+        pvValues.push_back("");
+      }
     }
   }
   else {

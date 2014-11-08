@@ -62,7 +62,7 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <pv_config_file>] [-w <slow readout:0/1] [-v] [-h]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <pv_config_file>] [-w <slow readout:0/1] [-v] [-g] [-h]\n", progname);
 }
 
 // Appliance* app;
@@ -96,9 +96,10 @@ int main(int argc, char** argv) {
   int verbose = 0;
   (void) signal(SIGINT, sigfunc);
   bool parseErr = false;
+  bool gFormat = false;
   extern int optind;
   int c;
-  while ((c = getopt(argc, argv, "p:P:E:L:V:w:vh")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:E:L:V:w:vgh")) != -1) {
     errno = 0;
     switch (c) {
     case 'p':
@@ -121,6 +122,10 @@ int main(int argc, char** argv) {
       break;
     case 'v':
       ++verbose;
+      break;
+    case 'g':
+      printf("%s: using %%g format for floating point PVs\n", argv[0]);
+      gFormat = true;
       break;
     case 'h':
       usage(argv[0]);
@@ -181,7 +186,7 @@ int main(int argc, char** argv) {
     if (expnum != OFFLINECLIENT_DEFAULT_EXPNUM) {
       printf("%s: instrument %s:%u experiment %s (#%u)\n", argv[0],
              pd.GetInstrumentName().c_str(), pd.GetStationNumber(), offlineclient->GetExperimentName(), expnum);
-      app = new OfflineAppliance(offlineclient, parm_list_file, OFFLINECLIENT_MAX_PARMS, (verbose > 0));
+      app = new OfflineAppliance(offlineclient, parm_list_file, OFFLINECLIENT_MAX_PARMS, (verbose > 0), gFormat);
     } else {
       fprintf(stderr, "%s: failed to find experiment '%s'\n", argv[0], experiment_name);
       app = NULL;
@@ -193,7 +198,7 @@ int main(int argc, char** argv) {
     if (expname) {
       printf("%s: instrument %s:%u experiment %s (#%u)\n", argv[0],
              pd.GetInstrumentName().c_str(), pd.GetStationNumber(), expname, offlineclient->GetExperimentNumber());
-      app = new OfflineAppliance(offlineclient, parm_list_file, OFFLINECLIENT_MAX_PARMS, (verbose > 0));
+      app = new OfflineAppliance(offlineclient, parm_list_file, OFFLINECLIENT_MAX_PARMS, (verbose > 0), gFormat);
     } else {
       fprintf(stderr, "%s: failed to find current experiment\n", argv[0]);
       app = NULL;

@@ -24,7 +24,7 @@ namespace Pds {
   class OfflineAppliance : public Fsm {
     enum { NotRecording=0xffffffff };
   public:
-    OfflineAppliance(OfflineClient*, const char*, int, bool);
+    OfflineAppliance(OfflineClient*, const char*, int, bool, bool);
 
     // Appliance methods
     Transition* transitions(Transition* tr);
@@ -36,7 +36,9 @@ namespace Pds {
     typedef struct parm_channel {
       chid         value_channel;
       bool         created;
+      bool         isDouble;
       dbr_string_t value;
+      dbr_double_t dValue;
     } parm_channel_t;
 
     static int _readConfigFile( const std::string& sFnConfig, PvConfigFile::TPvList& vsPvNameList );
@@ -67,6 +69,7 @@ namespace Pds {
     PvConfigFile::TPvList _vsPvNameList;
     int          _maxParms;
     bool         _verbose;
+    bool         _gFormat;
   };
 
 }
