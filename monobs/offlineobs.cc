@@ -62,7 +62,12 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <pv_config_file>] [-w <slow readout:0/1] [-v] [-g] [-h]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <pv_config_file>] [OPTIONS]\n", progname);
+  printf("\nOptions:\n");
+  printf("  -g        Use %%g format for floating point PVs\n");
+  printf("  -h        Print help message and exit\n");
+  printf("  -v        Be verbose\n");
+  printf("  -w        Slow readout (0 or 1, default=0)\n");
 }
 
 // Appliance* app;
