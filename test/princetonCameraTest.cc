@@ -1171,7 +1171,10 @@ int ImageCapture::testImageCaptureStandard(const char* sFnPrefix, int iNumFrame,
     if (fInitTime == -1)
       fInitTime = (timeVal1.tv_nsec - timeVal0.tv_nsec) * 1.e-6 + ( timeVal1.tv_sec - timeVal0.tv_sec ) * 1.e3;
 
-    pl_exp_start_seq(_hCam, pFrameBuffer);
+    if(!pl_exp_start_seq(_hCam, pFrameBuffer))
+      printPvError("pl_exp_start_seq() failed");
+    else
+      printf("pl_exp_start_seq() ok\n"); //!!!debug
 
     timespec timeVal2;
     clock_gettime( CLOCK_REALTIME, &timeVal2 );
@@ -1189,6 +1192,12 @@ int ImageCapture::testImageCaptureStandard(const char* sFnPrefix, int iNumFrame,
       // use select() to simulate nanosleep(), because experimentally select() controls the sleeping time more precisely
       select( 0, NULL, NULL, NULL, &timeSleepMicro);
       iNumLoop++;
+
+
+      //!!!debug
+      if (iNumLoop%1000==1) {
+        printf("  status %d bytes %d\n", (int) status, (int) uNumBytesTransfered);
+      }
     }
 
     /* Check Error Codes */
