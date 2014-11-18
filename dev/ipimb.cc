@@ -168,6 +168,9 @@ void printUsage(char* s) {
          "    -f <fileName>               configuration file\n"
          "    -a <arp>                    arp process id\n"
          "    -u <alias>                  set device alias\n"
+         "    -c <detid>                  set detector Id\n"
+         "    -b <baselineSubtract>       if 0, report raw data, if 1, report baseline subtracted data\n"
+         "    -o                          record data type Ipimb::DataV1; if absent, record latest ipimbDataType\n"
          "    -h                          print this message and exit\n", s);
 }
 
@@ -189,7 +192,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* uniqueid = (char *)NULL;
   int s;
-  while ( (s=getopt( argc, argv, "a:i:c:p:n:b:f:u:ho")) != EOF ) {
+  while ( (s=getopt( argc, argv, "a:i:c:p:b:f:u:ho")) != EOF ) {
     switch(s) {
       case 'a':
       arp = new Arp(optarg);
@@ -212,12 +215,6 @@ int main(int argc, char** argv) {
     case 'p':
       if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
         printf("%s: option `-p' parsing error\n", argv[0]);
-        lUsage = true;
-      }
-      break;
-    case 'n':
-      if (!CmdLineTools::parseUInt(optarg,nboards)) {
-        printf("%s: option `-n' parsing error\n", argv[0]);
         lUsage = true;
       }
       break;
