@@ -22,6 +22,8 @@ using std::string;
 namespace Pds 
 {
 
+  enum DataDump_t { TY_DUMP_NONE, TY_DUMP_INT, TY_DUMP_UINT, TY_DUMP_DOUBLE };
+
   static std::string addressToStr( unsigned int uAddr );
 
   BldServerSlim::BldServerSlim(unsigned uAddr, unsigned uPort, unsigned int uMaxDataSize,
@@ -180,7 +182,7 @@ namespace Pds
       if ((gap = e - _lastEvr) != 1) {
         printf("\tGAP GAP GAP, evr %s %d\n", gap < 0 ? "restart" : "gap", gap - 1);
       }
-    } else printf("Watching for gaps in EVR packets\n");
+    }
     _lastEvr = e;
   }
 
@@ -246,7 +248,7 @@ namespace Pds
  */
 
 using namespace Pds::ConfigurationMulticast;
-void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize );
+void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize, char * sTyDump, size_t cntDump, bool quiet );
 void printSummary();
 
 static void showUsage()
@@ -260,7 +262,10 @@ static void showUsage()
       "   -P|--PGPtest                        PGP card test with occasional summary of received packets\n"
       "   -s|--size      <Buffer Size>        Set the max data size for allocating buffer. Default: %u\n"
       "   -e|--evrGapHunt                     Watch for and print out message if a gap is seen in EVR packets\n"
-      "   -E|--evrFiducialGapCheck>           Watch for anomalous fiducials period in evr multicasts\n"
+      "   -c|--cntDump                        Number of data values to dump from start of packet.  Default 0\n"
+      "   -t|--tyDump                         Type of data to dump: int, uint, double\n"
+      "   -E|--evrFiducialGapCheck            Watch for anomalous fiducials period in evr multicasts\n"
+      "   -q|--quiet           				  Only dump data if gap changes\n"
       "   -i|--interface <Interface Name/IP>  Set the network interface for receiving multicast. Use ether IP address (xxx.xx.xx.xx) or name (eth0, eth1,...)\n"
       "   <Interface IP/Name>                 Same as above. *This is an argument without the option (-i) flag\n",
       Pds::addressToStr(uDefaultAddr).c_str(), uDefaultPort, uDefaultMaxDataSize
@@ -295,6 +300,7 @@ int main(int argc, char** argv)
   bool evrGapHunt = false;
   bool PGPcardTestSummary = false;
   bool evrFiducialGapCheck = false;
+  bool quiet	= false;
   int iOptionIndex = 0;
   struct option loOptions[] =
   {
@@ -305,8 +311,11 @@ int main(int argc, char** argv)
       {"PGPtest",  0, 0, 'P'},
       {"size",     1, 0, 's'},
       {"interface",1, 0, 'i'},
+      {"tyDump",   1, 0, 't'},
+      {"cntDump",  1, 0, 'c'},
       {"evrGapHunt", 0, 0, 'e'},
       {"evrFiducialGapCheck", 0, 0, 'E'},
+      {"quiet",    0, 0, 'q'},
       {0,          0, 0,  0 }
   };
 
@@ -314,7 +323,9 @@ int main(int argc, char** argv)
   unsigned int  uAddr         = uDefaultAddr;
   unsigned int  uPort         = uDefaultPort;
   unsigned int  uMaxDataSize  = uDefaultMaxDataSize;
-  while ( int opt = getopt_long(argc, argv, ":vha:p:Pi:s:eE", loOptions, &iOptionIndex ) )
+  char		*	sTyDump		  = NULL;
+  size_t		cntDump		  = 0;
+  while ( int opt = getopt_long(argc, argv, ":vha:p:Pi:s:t:c:eEq", loOptions, &iOptionIndex ) )
   {
     if ( opt == -1 ) break;
 
@@ -332,11 +343,20 @@ int main(int argc, char** argv)
       case 'P':
         PGPcardTestSummary = true;
         break;
+      case 'q':
+        quiet = true;
+        break;
       case 's':
         uMaxDataSize = strtoul(optarg, NULL, 0);
         break;
       case 'i':
         sInterfaceIp = optarg;
+        break;
+      case 't':
+        sTyDump = optarg;
+        break;
+      case 'c':
+        cntDump = strtoul(optarg, NULL, 0);
         break;
       case 'e':
         evrGapHunt = !evrGapHunt;
@@ -402,10 +422,12 @@ int main(int argc, char** argv)
     if (evrGapHunt)
     {
       bldServer.lastEVR(dgram->evr);
-    } else {
+    }
+	else {
       if (evrFiducialGapCheck) {
         bldServer.thisDgram(dgram);
-      } else {
+      }
+	  else {
         if (PGPcardTestSummary) {
           if (wp[MagicNumber] == MAGIC) {
             if (pcount != PacketsPerSegment) {
@@ -469,7 +491,7 @@ int main(int argc, char** argv)
             }
           }
         } else {
-          printData( vcFetchBuffer, iRecvDataSize );
+          printData( vcFetchBuffer, iRecvDataSize, sTyDump, cntDump, quiet );
         }
       }
     }
@@ -482,7 +504,15 @@ void printSummary() {
       packetCount, lastFrameNumber, lostPackets, lostSegments, lostEvents);
 }
 
-void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize )
+using namespace	Pds;
+
+void printData(
+	const std::vector<unsigned char>& vcBuffer,
+	int				iDataSize,
+	char		*	sTyDump,
+	size_t			cntDump,
+  	bool			quiet
+	)
 {
   const unsigned char* pcData       = (const unsigned char*) &vcBuffer[0];
 
@@ -495,25 +525,64 @@ void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize )
   if ( iFiducialPrev != -1 && iFiducialCurr > 3 )
   {
     int iFiducialDiffCurr = iFiducialCurr - iFiducialPrev;
+    if ( iFiducialDiffCurr != iFiducialDiffPrev )
+		quiet = false;
 
-    //if ( iFiducialDiffCurr != iFiducialDiffPrev )
-    //printf( "** Fiducial Prev 0x%x Curr 0x%x Diff 0x%x\n", iFiducialPrev, iFiducialCurr,
-    //iFiducialDiffCurr );
-    printf( "** Fiducial Prev 0x%x Curr 0x%x Diff 0x%x\n", iFiducialPrev, iFiducialCurr,
-        iFiducialDiffCurr );
+	if ( !quiet )
+    	printf( "** Size %d Fiducial Curr %d (0x%x) Diff %d", iDataSize, iFiducialCurr, iFiducialCurr,
+				iFiducialDiffCurr );
 
     iFiducialDiffPrev = iFiducialDiffCurr;
-    fflush(NULL);
-    fsync(1);
   }
   else if ( iCount == 0 )
   {
-    printf( "Fiducial Prev 0x%x Curr 0x%x\n", iFiducialPrev, iFiducialCurr);
-    fflush(NULL);
-    fsync(1);
+    printf( "Fiducial Curr %d (0x%x)", iFiducialCurr, iFiducialCurr );
   }
 
   iFiducialPrev = iFiducialCurr;
+
+  if ( !quiet )
+  {
+	enum DataDump_t	tyDump	= TY_DUMP_NONE;
+	if ( sTyDump != NULL )
+	{
+	  if (		strcmp( sTyDump, "int"		) == 0 ) tyDump = TY_DUMP_INT;
+	  else if (	strcmp( sTyDump, "uint"		) == 0 ) tyDump = TY_DUMP_UINT;
+	  else if (	strcmp( sTyDump, "double"	) == 0 ) tyDump = TY_DUMP_DOUBLE;
+	  else printf( "Dump Type %s not supported\n", sTyDump );
+	}
+	if ( tyDump != TY_DUMP_NONE )
+	{
+	  const uint32_t	* pData       = (const uint32_t * ) &vcBuffer[0];
+	  pData += 15;	// Skip the header
+	  const int			* pInt        = (const int		* ) pData;
+	  const uint32_t	* pUint       = (const uint32_t	* ) pData;
+	  const double		* pDouble     = (const double	* ) pData;
+	  printf( " Data: " );
+	  while ( cntDump > 0 )
+	  {
+		switch ( tyDump )
+		{
+		case TY_DUMP_NONE:
+			printf( " ---" );
+			break;
+		case TY_DUMP_INT:
+			printf( " %8d", *pInt++ );
+			break;
+		case TY_DUMP_UINT:
+			printf( " %8u", *pUint++ );
+			break;
+		case TY_DUMP_DOUBLE:
+			printf( " %.8f", *pDouble++ );
+			break;
+		}
+		cntDump--;
+	  }
+	}
+	printf("\n");
+	fflush(NULL);
+	fsync(1);
+  }
 
   //printf("Dumping Data (Data Size = %d):\n", iDataSize);
   //for (int i=0; i< iDataSize; i++)
