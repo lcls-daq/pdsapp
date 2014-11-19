@@ -1,6 +1,6 @@
 #include <new>
 
-#include "TimeToolConfig.hh"
+#include "TimeToolConfig_V1.hh"
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
@@ -23,16 +23,19 @@
 
 #include <stdint.h>
 
+using Pds_ConfigDb::V1::TimeToolConfig;
+
 using namespace Pds_ConfigDb;
 
 static const char* xy_names[] = { "X","Y",NULL };
 
 using Pds::Camera::FrameCoord;
 
-typedef Pds::TimeTool::ConfigV2 TT;
+typedef Pds::TimeTool::ConfigV1 TT;
 
 namespace Pds_ConfigDb
 {  
+  namespace V1 {
   class ROI : public Parameter {
   public:
     ROI(const char* label,
@@ -88,13 +91,11 @@ namespace Pds_ConfigDb
       _proj_axis("Projection Axis",TT::X,xy_names),
       _time_axis("","X","Y"),
       _sig_roi  ("Signal"  ,"Y","X"),
-      _use_ref  ("Use Separate Reference Region",false),
-      _ref_roi  ("Reference","Y","X"),
-      _ref_conv ("Reference Convergence (1/N)",1.,0.,1.),
-      _use_sb   ("Subtract Sideband Region",false),
       _sb_roi   ("Sideband","Y","X"),
       _sb_conv  ("Sideband Convergence (1/N)",0.05,0.,1.),
+      _ref_conv ("Reference Convergence (1/N)",1.,0.,1.),
       _sig_cut  ("Signal Minimum Projected Value",0,-(1<<20),(1<<20)),
+      _use_sb   ("Subtract Sideband Region",true),
       _record_image("Image",true),
       _record_proj ("Projections",false),
       _base_name("Output PV name","TTSPEC",32),
@@ -112,13 +113,11 @@ namespace Pds_ConfigDb
       pList.insert(&_proj_axis);
       pList.insert(&_time_axis);
       pList.insert(&_sig_roi);
-      pList.insert(&_ref_roi);
       pList.insert(&_sb_roi);
       pList.insert(&_sb_conv);
       pList.insert(&_ref_conv);
       pList.insert(&_sig_cut);
       pList.insert(&_use_sb);
-      pList.insert(&_use_ref);
       pList.insert(&_record_image);
       pList.insert(&_record_proj);
       pList.insert(&_base_name);
@@ -143,11 +142,8 @@ namespace Pds_ConfigDb
       layout->addLayout(_sig_roi  .initialize(p));
       layout->addStretch();
       layout->addLayout(_use_sb   .initialize(p));
-      layout->addLayout(_sb_concealer.add(_sb_roi .initialize(p)));
-      layout->addLayout(_sb_concealer.add(_sb_conv.initialize(p)));
-      layout->addStretch();
-      layout->addLayout(_use_ref   .initialize(p));
-      layout->addLayout(_ref_concealer.add(_ref_roi .initialize(p)));
+      layout->addLayout(_concealer.add(_sb_roi .initialize(p)));
+      layout->addLayout(_concealer.add(_sb_conv.initialize(p)));
       layout->addStretch();
       layout->addLayout(_ref_conv .initialize(p));
       layout->addLayout(_sig_cut  .initialize(p));
@@ -163,11 +159,9 @@ namespace Pds_ConfigDb
       QObject::connect(_proj_axis._input, SIGNAL(currentIndexChanged(int)), _time_axis._sw, SLOT(setCurrentIndex(int)));
       QObject::connect(_proj_axis._input, SIGNAL(currentIndexChanged(int)), _sig_roi  ._sw, SLOT(setCurrentIndex(int)));
       QObject::connect(_proj_axis._input, SIGNAL(currentIndexChanged(int)), _sb_roi   ._sw, SLOT(setCurrentIndex(int)));
-      QObject::connect(_use_sb._input, SIGNAL(toggled(bool)), &_sb_concealer, SLOT(show(bool)));
-      QObject::connect(_use_ref._input, SIGNAL(toggled(bool)), &_ref_concealer, SLOT(show(bool)));
+      QObject::connect(_use_sb._input, SIGNAL(toggled(bool)), &_concealer, SLOT(show(bool)));
 
-      _sb_concealer.show (_use_sb .value=false);
-      _ref_concealer.show(_use_ref.value=false);
+      _use_sb.value=false;
       //      _record_proj.enable(false);
 
       return layout;
@@ -184,8 +178,6 @@ namespace Pds_ConfigDb
       _time_axis._hi.value = (a==TT::X) ? c.sig_roi_hi().column() : c.sig_roi_hi().row();
       _sig_roi  ._lo.value = (a==TT::Y) ? c.sig_roi_lo().column() : c.sig_roi_lo().row();
       _sig_roi  ._hi.value = (a==TT::Y) ? c.sig_roi_hi().column() : c.sig_roi_hi().row();
-      _ref_roi  ._lo.value = (a==TT::Y) ? c.ref_roi_lo().column() : c.ref_roi_lo().row();
-      _ref_roi  ._hi.value = (a==TT::Y) ? c.ref_roi_hi().column() : c.ref_roi_hi().row();
       _sb_roi  ._lo.value = (a==TT::Y) ? c.sb_roi_lo().column() : c.sb_roi_lo().row();
       _sb_roi  ._hi.value = (a==TT::Y) ? c.sb_roi_hi().column() : c.sb_roi_hi().row();
 
@@ -200,7 +192,6 @@ namespace Pds_ConfigDb
       std::copy(c.calib_poly().begin(),c.calib_poly().end(),_cal_poly.value.begin());
 
       _use_sb      .value = c.subtract_sideband();
-      _use_ref     .value = c.use_reference_roi();
       _record_image.value = c.write_image();
       _record_proj .value = c.write_projections();
 
@@ -212,7 +203,7 @@ namespace Pds_ConfigDb
     }
     int push(void *to)
     {
-      FrameCoord sig_roi_lo, sig_roi_hi, sb_roi_lo, sb_roi_hi, ref_roi_lo, ref_roi_hi;
+      FrameCoord sig_roi_lo, sig_roi_hi, sb_roi_lo, sb_roi_hi;
       if (_proj_axis.value == TT::X) {
 	sig_roi_lo = FrameCoord(_time_axis._lo.value,
 				_sig_roi._lo.value);
@@ -222,10 +213,6 @@ namespace Pds_ConfigDb
 				_sb_roi._lo.value);
 	sb_roi_hi  = FrameCoord(_time_axis._hi.value,
 				_sb_roi._hi.value);
-	ref_roi_lo  = FrameCoord(_time_axis._lo.value,
-				 _ref_roi._lo.value);
-	ref_roi_hi  = FrameCoord(_time_axis._hi.value,
-				 _ref_roi._hi.value);
       }
       else {
 	sig_roi_lo = FrameCoord(_sig_roi._lo.value,
@@ -236,10 +223,6 @@ namespace Pds_ConfigDb
 				_time_axis._lo.value);
 	sb_roi_hi  = FrameCoord(_sb_roi._hi.value,
 				_time_axis._hi.value);
-	ref_roi_lo  = FrameCoord(_ref_roi._lo.value,
-				 _time_axis._lo.value);
-	ref_roi_hi  = FrameCoord(_ref_roi._hi.value,
-				 _time_axis._hi.value);
       }
 
       ndarray<const Pds::TimeTool::EventLogic,1> beam_logic  = _beam_logic.get();
@@ -249,7 +232,6 @@ namespace Pds_ConfigDb
 			  _record_image.value,
 			  _record_proj .value,
 			  _use_sb      .value,
-			  _use_ref     .value,
 			  _weights.value.size(), 
 			  _cal_poly.value.size(),
 			  strlen(_base_name.value)+1,
@@ -261,8 +243,6 @@ namespace Pds_ConfigDb
 			  sb_roi_lo,
 			  sb_roi_hi,
 			  _sb_conv.value,
-			  ref_roi_lo,
-			  ref_roi_hi,
 			  _ref_conv.value,
 			  beam_logic.data(),
 			  laser_logic.data(),
@@ -284,26 +264,21 @@ namespace Pds_ConfigDb
 
     bool validate() {
       bool v=true;
-      if (_use_sb .value) v &= _check_region(_sb_roi ,"Sideband");
-      if (_use_ref.value) v &= _check_region(_ref_roi,"Reference");
-      return v;
-    }
-  private:
-    bool _check_region(const ROI& roi, const char* n) const {
-      bool v=true;
-      if ((roi._hi.value-roi._lo.value)!=
-	  (_sig_roi._hi.value-_sig_roi._lo.value)) {
-	QMessageBox::warning(_sig_roi._lo._input,
-			     QString("%1 region error").arg(n),
-			     QString("%1 and signal region sizes differ").arg(n));
-	v=false;
-      }
-      if (!((roi ._hi.value<_sig_roi._lo.value) ||
-	    (roi ._lo.value>_sig_roi._hi.value))) {
-	QMessageBox::warning(_sig_roi._lo._input,
-			     QString("%1 region error").arg(n),
-			     QString("%1 and signal regions overlap").arg(n));
-	v=false;
+      if (_use_sb.value) {
+	if ((_sb_roi ._hi.value-_sb_roi ._lo.value)!=
+	    (_sig_roi._hi.value-_sig_roi._lo.value)) {
+	  QMessageBox::warning(_sig_roi._lo._input,
+			       "Sideband region error",
+			       "Sideband and signal region sizes differ");
+	  v=false;
+	}
+	if (!((_sb_roi ._hi.value<_sig_roi._lo.value) ||
+	      (_sb_roi ._lo.value>_sig_roi._hi.value))) {
+	  QMessageBox::warning(_sig_roi._lo._input,
+			       "Sideband region error",
+			       "Sideband and signal regions overlap");
+	  v=false;
+	}
       }
       return v;
     }
@@ -314,21 +289,19 @@ namespace Pds_ConfigDb
     Enumerated<TT::Axis> _proj_axis;
     ROI        _time_axis;
     ROI        _sig_roi;
-    CheckValue           _use_ref;
-    ROI                  _ref_roi;
-    NumericFloat<double> _ref_conv;
-    CheckValue           _use_sb;
-    ROI                  _sb_roi;
+    ROI        _sb_roi;
     NumericFloat<double> _sb_conv;
+    NumericFloat<double> _ref_conv;
     NumericInt  <int>    _sig_cut;
+    CheckValue   _use_sb;
     CheckValue   _record_image;
     CheckValue   _record_proj;
     TextParameter _base_name;
     Poly<double> _weights;
     Poly<double> _cal_poly;
-    QtConcealer  _sb_concealer;
-    QtConcealer  _ref_concealer;
+    QtConcealer  _concealer;
   };
+  }
 } // namespace Pds_ConfigDb
 
 
@@ -360,4 +333,4 @@ bool TimeToolConfig::validate()
 
 #include "Parameters.icc"
 
-template class Enumerated<Pds::TimeTool::ConfigV2::Axis>;
+template class Enumerated<Pds::TimeTool::ConfigV1::Axis>;

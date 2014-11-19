@@ -60,6 +60,7 @@
 #include "pdsapp/config/AndorConfig.hh"
 #include "pdsapp/config/PimaxConfig.hh"
 #include "pdsapp/config/TimeToolConfig.hh"
+#include "pdsapp/config/TimeToolConfig_V1.hh"
 
 #include "pds/config/AliasConfigType.hh"
 #include "pds/config/EvsConfigType.hh"
@@ -182,11 +183,16 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_DiodeFexConfig,1), new DiodeFexConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,1),new ControlConfig_V1::ControlConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_TimepixConfig,2),new TimepixConfig_V2);
+  enroll(Pds::TypeId(Pds::TypeId::Id_TimeToolConfig,1),new V1::TimeToolConfig);
 //  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
 
   if (Parameter::readFromData())
     enroll(_aliasConfigType, new AliasConfig);
 
 #undef enroll
+
+  printf("Unable to find serializer for %s_v%d\n",
+	 Pds::TypeId::name(type.id()),type.version());
+
   return 0;
 }

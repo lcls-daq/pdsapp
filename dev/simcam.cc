@@ -27,8 +27,12 @@
 #include "pdsdata/psddl/cspad.ddl.h"
 #include "pds/config/ImpConfigType.hh"
 #include "pds/config/ImpDataType.hh"
+#include "pds/config/IpimbConfigType.hh"
+#include "pds/config/IpimbDataType.hh"
+#include "pds/config/IpmFexConfigType.hh"
 
 #include "pds/service/Task.hh"
+#include "pds/xtc/XtcType.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/psddl/camera.ddl.h"
@@ -617,6 +621,114 @@ private:
 };
 
 
+class SimIpm : public SimApp {
+  enum { CfgSize = sizeof(IpimbConfigType)+sizeof(IpmFexConfigType)+3*sizeof(Xtc) };
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    switch(info.device()) {
+    case DetInfo::Ipimb:
+      return true;
+    default:
+      break;
+    }
+    return false;
+  }
+public:
+  SimIpm(const Src& src)
+  {
+    const float base []= {3.3,3.3,3.3,3.3,3.3,3.3,3.3,3.3,3.3,3.3,3.3,3.3,3.3,3.3,3.3,3.3,};
+    const float scale[]= {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,};
+    Lusi::DiodeFexConfigV2 fexcfg[] = { Lusi::DiodeFexConfigV2(base,scale),
+					Lusi::DiodeFexConfigV2(base,scale),
+					Lusi::DiodeFexConfigV2(base,scale),
+					Lusi::DiodeFexConfigV2(base,scale), };
+    unsigned cap_cfg_ch[] = {0,0,0,0};
+
+    _cfgpayload = new char[CfgSize];
+    _cfgtc = new(_cfgpayload) Xtc(_xtcType,src);
+    { Xtc* xtc = new ((char*)_cfgtc->alloc(0)) Xtc(_ipimbConfigType,src);
+      new (xtc->alloc(sizeof(IpimbConfigType))) 
+	IpimbConfigType(0, 0, 
+			(cap_cfg_ch[0]<<0) | (cap_cfg_ch[1]<<4) |
+			(cap_cfg_ch[2]<<8) | (cap_cfg_ch[3]<<12),
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+      _cfgtc->alloc(xtc->extent); }
+    { Xtc* xtc = new ((char*)_cfgtc->alloc(0)) Xtc(_ipmFexConfigType,src);
+      new (xtc->alloc(sizeof(IpmFexConfigType)))
+	IpmFexConfigType(fexcfg,1,1);
+      _cfgtc->alloc(xtc->extent); }
+
+    const size_t sz = sizeof(IpimbDataType)+sizeof(Lusi::IpmFexV1)+2*sizeof(Xtc);
+    unsigned evtsz = sz + sizeof(Xtc);
+    unsigned evtst = (evtsz+3)&~3;
+    _evtpayload = new char[NBuffers*evtst];
+
+    for(unsigned b=0; b<NBuffers; b++) {
+      Xtc* extc = new(_evtpayload+b*evtst) Xtc(_xtcType,src);
+      const IpimbDataType* d;
+      { Xtc* xtc = new ((char*)extc->alloc(0)) Xtc(_ipimbDataType,src);
+	uint16_t* p = (uint16_t*) xtc->alloc(IpimbDataType::_sizeof());
+	*(uint64_t*)p = b;
+	p[4] = p[5] = p[6] = 0;
+	double q = double(b&0xff)/1024.;
+	double r = 0.01*sqrt(q);
+	double r0 = 0.001;
+	for(unsigned i=0; i<4; i++) {
+	  p[ 7+i] = uint16_t(3.3*(1-q+r*rangss())*IpimbDataType::ipimbAdcSteps
+			     /IpimbDataType::ipimbAdcRange);
+	  p[11+i] = uint16_t(3.3*r0*rangss()*IpimbDataType::ipimbAdcSteps
+			     /IpimbDataType::ipimbAdcRange);
+	}
+	p[15] = 0;
+	d = reinterpret_cast<const IpimbDataType*>(xtc->payload());
+	extc->alloc(xtc->extent); }
+      { Xtc* xtc = new ((char*)extc->alloc(0)) Xtc(TypeId(TypeId::Id_IpmFex,1),src);
+	float v[4],sum=0;
+#define FEX(ch) {							\
+	  int s=cap_cfg_ch[ch];						\
+	  v[ch] = (fexcfg[ch].base()[s] - d->channel##ch##Volts())	\
+	    *fexcfg[ch].scale()[s];					\
+	  sum += v[ch]; }
+	FEX(0);
+	FEX(1);
+	FEX(2);
+	FEX(3);
+	new (xtc->alloc(Lusi::IpmFexV1::_sizeof())) Lusi::IpmFexV1(v, sum, 
+								   (v[2]-v[0])/(v[2]+v[0]),
+								   (v[3]-v[1])/(v[3]+v[1]));
+	extc->alloc(xtc->extent); } 
+      _evttc[b] = extc;
+    }
+  }
+  ~SimIpm()
+  {
+    delete[] _cfgpayload;
+    delete[] _evtpayload;
+  }
+private:
+  void _execute_configure() { _ibuffer=0; }
+  void _insert_configure(InDatagram* dg)
+  {
+    dg->insert(*_cfgtc,_cfgtc->payload());
+  }
+  void _insert_event(InDatagram* dg)
+  {
+    dg->insert(*_evttc[_ibuffer],_evttc[_ibuffer]->payload());
+    if (++_ibuffer == NBuffers) _ibuffer=0;
+  }
+public:
+  size_t max_size() const { return _evttc[0]->sizeofPayload(); }
+private:
+  char* _cfgpayload;
+  char* _evtpayload;
+  Xtc*  _cfgtc;
+  enum { NBuffers=1024 };
+  Xtc*  _evttc[NBuffers];
+  unsigned _ibuffer;
+};
+
+
 template<class C, class E>
 class SimEpixBase : public SimApp {
 public:
@@ -652,7 +764,7 @@ protected:
       uint16_t* p = const_cast<uint16_t*>(a.data());
       uint16_t* e = p+a.size();
       unsigned o = 0x150 + ((rand()>>8)&0x7f);
-      double sigm = 4;
+      double sigm = 32;
       while(p < e)
         *p++ = rangss(o,sigm,0x3fff);
     }
@@ -939,6 +1051,8 @@ public:
       _app = new SimCspad140k(src);
     else if (SimImp::handles(src))
       _app = new SimImp(src);
+    else if (SimIpm::handles(src))
+      _app = new SimIpm(src);
     else if (SimEpix100::handles(src))
       _app = new SimEpix100(src);
     else if (SimEpix10k::handles(src))

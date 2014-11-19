@@ -107,6 +107,7 @@ libsrcs_configdbg += Epix10kConfig.cc Epix10kConfigP.cc Epix10kCopyAsicDialog.cc
 libsrcs_configdbg += SequenceFactory.cc
 libsrcs_configdbg += GenericEpixConfig.cc GenericEpix10kConfig.cc
 libsrcs_configdbg += GenericPgpConfig.cc GenericPgpConfig_moc.cc
+libsrcs_configdbg += TimeToolConfig_V1.cc
 libsrcs_configdbg += TimeToolConfig.cc
 libsrcs_configdbg += Epix100aConfig.cc Epix100aCopyAsicDialog.cc Epix100aCopyAsicDialog_moc.cc
 libsrcs_configdbg += Epix100aPixelMap.cc Epix100aPixelMap_moc.cc

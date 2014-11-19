@@ -21,7 +21,7 @@ namespace Pds {
 		     int size) :
       CfgCache(src,id,size) {}
   public:
-    int _size(void* p) const { return reinterpret_cast<TimeTool::ConfigV1*>(p)->_sizeof(); }
+    int _size(void* p) const { return reinterpret_cast<TimeToolConfigType*>(p)->_sizeof(); }
   };
 
   class ConfigHandler : public XtcIterator {
@@ -37,9 +37,9 @@ namespace Pds {
 	iterate(xtc);
 	break;
       case TypeId::Id_Opal1kConfig:
-	{ TimeTool::ConfigV1 tmplate(4,4,256,8,64);
+	{ TimeToolConfigType tmplate(4,4,256,8,64);
 	  _cache = new TimeToolCfgCache(xtc->src,
-					TypeId(TypeId::Id_TimeToolConfig,1),
+					_timetoolConfigType,
 					tmplate._sizeof());
 	  _cache->init(*_allocation);
 	  int s = _cache->fetch(_configure);
@@ -150,6 +150,11 @@ static void _add_laser(ndarray<uint16_t,3> a,
       for(unsigned ix=edge; ix<a.shape()[2]; ix++)
 	*p++ += int(AMPL*vx[ix]);
     }
+    for(unsigned iy=800; iy<1000; iy++) {
+      uint16_t* p=&a[i][iy][0];
+      for(unsigned ix=0; ix<a.shape()[2]; ix++)
+	*p++ += int(AMPL*vx[ix]);
+    }
   }
 }
 
@@ -209,7 +214,7 @@ InDatagram* SimTimeTool::events(InDatagram* dg)
     break;
   }
 
-  const TimeTool::ConfigV1* cfg = _configH.cache();
+  const TimeToolConfigType* cfg = _configH.cache();
   if (cfg) {
     switch (dg->seq.service()) {
     case TransitionId::Configure:
@@ -237,7 +242,7 @@ Occurrence* SimTimeTool::occurrences(Occurrence* occ)
   if (occ->id() == OccurrenceId::EvrCommand) {
     const EvrCommand& cmd = *reinterpret_cast<const EvrCommand*>(occ);
     unsigned vector = 1<<(cmd.seq.stamp().vector()&0x1f);
-    const TimeTool::ConfigV1* cfg = _configH.cache();
+    const TimeToolConfigType* cfg = _configH.cache();
     if (cfg) {
       ndarray<const TimeTool::EventLogic,1> beam = cfg->beam_logic();
       for(unsigned i=0; i<beam.size(); i++)
@@ -260,7 +265,7 @@ int SimTimeTool::process(Xtc* xtc)
     iterate(xtc);
     break;
   case TypeId::Id_Frame:
-    { const TimeTool::ConfigV1* cfg = _configH.cache();
+    { const TimeToolConfigType* cfg = _configH.cache();
       if (cfg) {
 	bool beamOn  = _calculate_logic(cfg->beam_logic(),
 					_beam, _vector);
