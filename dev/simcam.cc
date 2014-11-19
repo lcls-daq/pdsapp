@@ -677,7 +677,7 @@ public:
 	for(unsigned i=0; i<4; i++) {
 	  p[ 7+i] = uint16_t(3.3*(1-q+r*rangss())*IpimbDataType::ipimbAdcSteps
 			     /IpimbDataType::ipimbAdcRange);
-	  p[11+i] = uint16_t(3.3*r0*rangss()*IpimbDataType::ipimbAdcSteps
+	  p[11+i] = uint16_t(3.3*(1+r0*rangss())*IpimbDataType::ipimbAdcSteps
 			     /IpimbDataType::ipimbAdcRange);
 	}
 	p[15] = 0;
@@ -685,15 +685,29 @@ public:
 	extc->alloc(xtc->extent); }
       { Xtc* xtc = new ((char*)extc->alloc(0)) Xtc(TypeId(TypeId::Id_IpmFex,1),src);
 	float v[4],sum=0;
-#define FEX(ch) {							\
-	  int s=cap_cfg_ch[ch];						\
-	  v[ch] = (fexcfg[ch].base()[s] - d->channel##ch##Volts())	\
-	    *fexcfg[ch].scale()[s];					\
-	  sum += v[ch]; }
-	FEX(0);
-	FEX(1);
-	FEX(2);
-	FEX(3);
+	const bool _polarity     = (src.phy()&1);
+	const bool _baselineMode = (src.phy()&2);
+	double base = _polarity ? 0 : IpimbDataType::ipimbAdcRange;
+#define CALC_FEX(ch) {                                                  \
+	  int s=cap_cfg_ch[ch];                                         \
+	  if (_baselineMode)						\
+	    v[ch] = (fexcfg[ch].base()[s] -				\
+		     base -						\
+		     d->channel##ch##Volts() +				\
+		     d->channel##ch##psVolts() )			\
+	      *fexcfg[ch].scale()[s];					\
+	  else								\
+	    v[ch] = (fexcfg[ch].base()[s] -				\
+		     d->channel##ch##Volts() )				\
+	      *fexcfg[ch].scale()[s];					\
+	  sum += v[ch];							\
+	}
+	CALC_FEX(0);
+	CALC_FEX(1);
+	CALC_FEX(2);
+	CALC_FEX(3);
+#undef CALC_FEX
+
 	new (xtc->alloc(Lusi::IpmFexV1::_sizeof())) Lusi::IpmFexV1(v, sum, 
 								   (v[2]-v[0])/(v[2]+v[0]),
 								   (v[3]-v[1])/(v[3]+v[1]));

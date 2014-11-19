@@ -22,6 +22,7 @@
 #include <net/if.h>
 
 #include <vector>
+#include <map>
 
 static int openFifo(const char* name, int flags, unsigned index) {
   char path[128];
@@ -140,24 +141,26 @@ int main(int argc, char** argv) {
   const unsigned nServers = ipms.size();
   IpimbServer**  ipimbServer = new IpimbServer* [nServers];
   CfgClientNfs** cfgService  = new CfgClientNfs*[nServers];
-  int*           polarities  = new int[nServers];
+  std::map<uint32_t,int> polarities;
   char**         portNames   = new char*[nServers];
 
   for (unsigned i=0; i<nServers; i++) {
     cfgService [i] = new CfgClientNfs(ipms[i].det_info);
     ipimbServer[i] = new IpimbServer (ipms[i].det_info, false);
-    polarities [i] = 0;
+    polarities [ipms[i].det_info.phy()] = 0;
     portNames  [i] = new char[ipms[i].port_name.size()+1];
     strcpy(portNames[i],ipms[i].port_name.c_str());
   }
 
+  int defPolarities[] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,};
   IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, 
                                              nServers, 
                                              cfgService, 
                                              portNames, 
-                                             baselineSubtraction, 
-                                             polarities, 
-                                             *new LusiDiagFex);
+                                             0, 
+                                             defPolarities, 
+                                             *new LusiDiagFex(baselineSubtraction,
+                                                              polarities));
   ipimbMgr.appliance().connect(stream->inlet());
 
 

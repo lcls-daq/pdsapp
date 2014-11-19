@@ -43,6 +43,8 @@
 
 #include "EvrConfigType.hh" 
 
+#include <map>
+
 #define IPIMB_BLD_MAX_DATASIZE  512
 #define DEFAULT_EVENT_OPCODE    140 
 #define IPIMB_CONFIG_DB         "/reg/g/pcds/dist/pds/sharedIpimb/configdb"
@@ -228,7 +230,7 @@ int main(int argc, char** argv) {
     portName[i] = new char[16];
   }
 
-  int polarities[16];
+  std::map<uint32_t,int> polarities;
   unsigned* bldIdMap = new unsigned[16];  
   if (fp) {
     char* tmp = NULL;
@@ -245,7 +247,8 @@ int main(int argc, char** argv) {
         portInfo[nboards][1] = detectorId;
         portInfo[nboards][2] = deviceId;
         strcpy(portName[nboards], port);
-        polarities[nboards] = polarity;
+        polarities[DetInfo(0,DetInfo::Detector(detector),detectorId,
+                           DetInfo::Ipimb,deviceId).phy()] = polarity;
         *(bldIdMap+nboards) = bldId;
         nboards++;
       }  
@@ -278,7 +281,10 @@ int main(int argc, char** argv) {
   if (fp) {
     for (unsigned i=0; i<nServers; i++) {
       printf("Using config file info: detector %d, detector id %d, device id %d, port %s, polarity %d multicast addr:(%s.%d)\n", 
-             portInfo[i][0], portInfo[i][1], portInfo[i][2], portName[i], polarities[i],getBldAddrBase(),*(bldIdMap+i));
+             portInfo[i][0], portInfo[i][1], portInfo[i][2], portName[i], 
+             polarities[DetInfo(0,DetInfo::Detector(portInfo[i][0]),portInfo[i][1],
+                                DetInfo::Ipimb,portInfo[i][2]).phy()],
+             getBldAddrBase(),*(bldIdMap+i));
     }
     fclose(fp);
   } else 
@@ -313,8 +319,10 @@ int main(int argc, char** argv) {
   // EVR & IPIMB Mgr Appliances and Stream Connections
   EvgrBoardInfo<Evr>& erInfo = *new EvgrBoardInfo<Evr>(evrdev);
   evrBldMgr = new EvrBldManager(erInfo, pulses, evrBldServer,cfgService,nServers,bldIdMap);  
-  //IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, baselineSubtraction, polarities, *new IpimbFex);
-  IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, baselineSubtraction, polarities, *new LusiDiagFex);
+  int defPolarities[] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,};
+  IpimbManager& ipimbMgr = *new IpimbManager(ipimbServer, nServers, cfgService, portName, 0, defPolarities, 
+                                             *new LusiDiagFex(baselineSubtraction,
+                                                              polarities));
   evrBldMgr->appliance().connect(bldIpimbStream->inlet());
   ipimbMgr.appliance().connect(bldIpimbStream->inlet());
   

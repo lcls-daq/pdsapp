@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <climits>
 #include <string.h>
+#include <map>
 
 extern int optind;
 
@@ -85,20 +86,20 @@ namespace Pds {
         SegWireSettings&      settings,
         Arp*                  arp,
         IpimbServer**         ipimbServer,
-        int nServers,
-        char* portName[16],
-        int baselineMode,
-        int polarities[16]) :
+        int                   nServers,
+        char*                 portName[16],
+        int                   baselineMode,
+        const std::map<uint32_t,int>& polarities) :
       _task(task),
       _platform(platform),
       _cfg   (cfgService),
       _ipimbServer(ipimbServer),
       _nServers(nServers),
-      _baselineMode(baselineMode)
+      _baselineMode(baselineMode),
+      _polarities  (polarities)
     {
       for (int i=0; i<16; i++) {
         _portName[i] = portName[i];
-        _polarities[i] = polarities[i];
       }
     }
 
@@ -113,9 +114,10 @@ namespace Pds {
     {
       printf("Seg connected to platform 0x%x\n", 
              _platform);
-      
+
+      int defPolarity[] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,};
       Stream* frmk = streams.stream(StreamParams::FrameWork);
-      IpimbManager& ipimbMgr = *new IpimbManager(_ipimbServer, _nServers, _cfg, _portName, _baselineMode, _polarities, *new LusiDiagFex);
+      IpimbManager& ipimbMgr = *new IpimbManager(_ipimbServer, _nServers, _cfg, _portName, 0, defPolarity, *new LusiDiagFex(_baselineMode,_polarities));
       ipimbMgr.appliance().connect(frmk->inlet());
     }
     void failed(Reason reason)
@@ -150,8 +152,8 @@ namespace Pds {
     IpimbServer**  _ipimbServer;
     const int _nServers;
     char* _portName[16];
-    int _polarities[16];
     int _baselineMode;
+    const std::map<uint32_t,int> _polarities;
   };
 }
 
@@ -185,7 +187,7 @@ int main(int argc, char** argv) {
   unsigned nboards = 1;
   bool c01 = false;
   bool lUsage = false;
-  int baselineSubtraction = 1;
+  int baselineSubtraction = 0;
   FILE *fp = NULL;
   Arp* arp = 0;
 
@@ -287,7 +289,7 @@ int main(int argc, char** argv) {
     aliasName[i] = new char[SrcAlias::AliasNameMax];
     memset(aliasName[i], 0, SrcAlias::AliasNameMax);
   }
-  int polarities[16];
+  std::map<uint32_t,int> polarities;
   if (fp) {
     char* tmp = NULL;
     size_t sz = 0;
@@ -299,7 +301,8 @@ int main(int argc, char** argv) {
         portInfo[nboards][1] = detectorId;
         portInfo[nboards][2] = deviceId;
         strcpy(portName[nboards], port);
-        polarities[nboards] = polarity;
+        polarities[DetInfo(0,DetInfo::Detector(detector),detectorId,
+                           DetInfo::Ipimb,deviceId).phy()] = polarity;
         if (rv < 6) {
           alias[0] = '\0';  // column 6 is optional
         }
