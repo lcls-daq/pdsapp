@@ -116,7 +116,7 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
             printf("Error: read %d of %d PVs\n", parm_read_count, _parm_list_size);
           }
           for ( int iPv = 0; iPv < _parm_list_size; iPv++ ) {
-            if (strlen(vsPvValueList[iPv].c_str()) == 0) {
+            if (vsPvValueList[iPv].empty()) {
               // skip empty values
               continue;
             }
