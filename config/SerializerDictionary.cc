@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "pdsapp/config/SerializerDictionary.hh"
 
 #include "pdsapp/config/Serializer.hh"
