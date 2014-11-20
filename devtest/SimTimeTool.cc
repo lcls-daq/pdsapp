@@ -29,7 +29,8 @@ namespace Pds {
     ConfigHandler() : 
       _cache      (0),
       _allocation (0),
-      _configure  (0) {}
+      _configure  (0),
+      _src(Level::Control) {}
   public:
     int process(Xtc* xtc) {
       switch(xtc->contains.id()) {
@@ -38,7 +39,7 @@ namespace Pds {
 	break;
       case TypeId::Id_Opal1kConfig:
 	{ TimeToolConfigType tmplate(4,4,256,8,64);
-	  _cache = new TimeToolCfgCache(xtc->src,
+	  _cache = new TimeToolCfgCache(_src = xtc->src,
 					_timetoolConfigType,
 					tmplate._sizeof());
 	  _cache->init(*_allocation);
@@ -87,10 +88,12 @@ namespace Pds {
     }
     const TimeToolConfigType* cache() const { return _cache && _cache->current() ? 
 	reinterpret_cast<const TimeToolConfigType*>(_cache->current()) : 0; }
+    const DetInfo& src() const { return static_cast<const DetInfo&>(_src); }
   private:
     TimeToolCfgCache* _cache;
     const Allocation* _allocation;
     const Transition* _configure;
+    Src               _src;
   };
 
   class SimTimeTool : public Appliance,
@@ -181,16 +184,6 @@ static bool _calculate_logic(const ndarray<const TimeTool::EventLogic,1>& cfg,
 
 SimTimeTool::SimTimeTool()
 {
-  _laseroff = make_ndarray<uint16_t>(NBuffers,Opal1k::ConfigV1::Row_Pixels,Opal1k::ConfigV1::Column_Pixels);
-  _set_dark(_laseroff, 32);
-
-  _beamoff = make_ndarray<uint16_t>(NBuffers,Opal1k::ConfigV1::Row_Pixels,Opal1k::ConfigV1::Column_Pixels);
-  _set_dark(_beamoff, 32);
-  _add_laser(_beamoff, 0.);
-
-  _beamon = make_ndarray<uint16_t>(NBuffers,Opal1k::ConfigV1::Row_Pixels,Opal1k::ConfigV1::Column_Pixels);
-  _set_dark(_beamon, 32);
-  _add_laser(_beamon, 0.2);
 }
 
 Transition* SimTimeTool::transitions(Transition* tr)
@@ -207,6 +200,21 @@ InDatagram* SimTimeTool::events(InDatagram* dg)
 
   switch(dg->datagram().seq.service()) {
   case TransitionId::Configure:
+    { unsigned rows = Opal1k::max_row_pixels(_configH.src());
+      unsigned cols = Opal1k::max_column_pixels(_configH.src());
+      printf("Constructing arrays of size %d,%d,%d\n",
+             NBuffers,rows,cols);
+      _laseroff = make_ndarray<uint16_t>(NBuffers,rows,cols);
+      _set_dark(_laseroff, 32);
+
+      _beamoff = make_ndarray<uint16_t>(NBuffers,rows,cols);
+      _set_dark(_beamoff, 32);
+      _add_laser(_beamoff, 0.);
+
+      _beamon = make_ndarray<uint16_t>(NBuffers,rows,cols);
+      _set_dark(_beamon, 32);
+      _add_laser(_beamon, 0.2);
+    } break;
   case TransitionId::L1Accept:
     iterate(&dg->datagram().xtc);
     break;

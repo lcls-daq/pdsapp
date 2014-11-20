@@ -40,8 +40,8 @@ namespace Pds_ConfigDb
 	const char* b) : 
       Parameter(label),
       _sw(new QStackedWidget),
-      _lo(0,0,0,1023),
-      _hi(0,1023,0,1023) 
+      _lo(0,0,0,0x1fff),
+      _hi(0,0x1ff,0,0x1fff) 
     {
       QString qa = QString("%1 %2 Range").arg(_label).arg(a);
       _sw->addWidget(new QLabel(qa));
