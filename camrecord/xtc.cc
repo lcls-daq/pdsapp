@@ -117,6 +117,16 @@ static struct event {
 } events[MAX_EVENTS];
 static struct event *evlist = NULL; // The oldest event.  Its prev is the newest event.
 
+#define MAX_TRANS    128
+static struct transition_queue {
+    unsigned int id;
+    unsigned int secs;
+    unsigned int nsecs;
+    unsigned int fid;
+} saved_trans[MAX_TRANS];
+static int transidx = 0;
+static int cfgdone = 0;
+
 static FILE *myfopen(char *name, char *flags)
 {
     FILE *fp = fopen(name, flags);
@@ -338,7 +348,19 @@ static void write_xtc_config(void)
 
         begin_run();
         started = 1;
+    } else {
+        /*
+         * Replay what we've got so far!
+         *
+         * MCB: There is a race condition here, in that we might get
+         * another transition after we finish the loop but before we
+         * set cfgdone.  I think we can take our chances though.
+         */
+        for (i = 0; i < transidx; i++)
+            do_transition(saved_trans[i].id, saved_trans[i].secs,
+                          saved_trans[i].nsecs, saved_trans[i].fid, 1);
     }
+    cfgdone = 1;
 }
 
 /*
@@ -902,9 +924,17 @@ void xtc_stats(void)
     fflush(stderr);
 }
 
-void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int fid)
+void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int fid, int force)
 {
     havetransitions = 1;
+    if (!force && !cfgdone) { /* If we're not initialized, just save it! */
+        saved_trans[transidx].id = id;
+        saved_trans[transidx].secs = secs;
+        saved_trans[transidx].nsecs = nsecs;
+        saved_trans[transidx].fid = fid;
+        transidx++;
+        return;
+    }
     csec = secs;
     cnsec = nsecs;
     cfid = fid;

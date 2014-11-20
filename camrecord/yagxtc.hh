@@ -64,6 +64,7 @@ extern void data_xtc(int id, unsigned int secs, unsigned int nsecs, Pds::Xtc *hd
 extern void cleanup_xtc(void);
 extern void cleanup_index(void);
 extern void xtc_stats(void);
-extern void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int fid);
+extern void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int fid,
+                          int force);
 extern char *damage_report(void);
 

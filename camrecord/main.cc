@@ -303,7 +303,7 @@ static void read_config_file(const char *name)
                 do_transition(atoi(arrayTokens[1].c_str()),
                               atoi(arrayTokens[2].c_str()),
                               atoi(arrayTokens[3].c_str()),
-                              atoi(arrayTokens[4].c_str()));
+                              atoi(arrayTokens[4].c_str()), 0);
             break;
         } else if (arrayTokens[0] == "output") {
             char *s;
@@ -468,7 +468,7 @@ static void process_command(char *buf)
         int id;
         unsigned int sec, nsec, fid;
         if (sscanf(buf, "trans %d %d %d %d", &id, &sec, &nsec, &fid) == 4)
-            do_transition(id, sec, nsec, fid);
+            do_transition(id, sec, nsec, fid, 0);
     } else if (!strncmp(buf, "damage", 6)) {
         char *rpt = damage_report();
         fprintf(stderr, "%s\n", rpt);
