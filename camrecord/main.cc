@@ -101,6 +101,7 @@ static string lb_params[LCPARAMS] = { /* This is the order of parameters to LogB
 int start_sec = 0, start_nsec = 0;
 int end_sec = 0, end_nsec = 0;
 int streamno = 0;
+static char *defether = "eth0";
 
 static void int_handler(int signal)
 {
@@ -177,8 +178,9 @@ static void record(string name, const char *arg)
     }
     switch (s->stype) {
     case symbol::BLD_TYPE:
-        printf("Found %s -> BLD at 239.255.24.%d\n", name.c_str(), s->address);
-        create_bld(s->name, s->address, (string)(arg ? arg : "eth0"), s->revtime);
+        printf("Found %s -> BLD at 239.255.24.%d on %s\n", name.c_str(), s->address,
+               arg ? arg : defether);
+        create_bld(s->name, s->address, (string)(arg ? arg : defether), s->revtime);
         break;
     case symbol::CAMERA_TYPE:
         printf("Found %s -> CA to (%s,%s) at %s.\n", name.c_str(), 
@@ -386,6 +388,7 @@ static void usage(void)
     printf("Usage: camrecord [ OPTION ]...\n");
     printf("Record camera PVs and BLDs into a file.  Options are:\n");
     printf("    -h, --help                       = Print this help text.\n");
+    printf("    -b ethX, --bldif ethX            = Specify the BLD interface.\n");
     printf("    -c FILE, --config FILE           = Specify the configuration file.\n");
     printf("    -o FILE, --output FILE           = The name of the XTC file to be saved.\n");
     printf("    -t SECS, --timeout SECS          = Seconds to record after connecting.\n");
@@ -573,6 +576,7 @@ int main(int argc, char **argv)
     int idx = 0;
     static struct option long_options[] = {
         {"help",      0, 0, 'h'},
+        {"bldif",     1, 0, 'b'},
         {"config",    1, 0, 'c'},
         {"output",    1, 0, 'o'},
         {"timeout",   1, 0, 't'},
@@ -585,13 +589,16 @@ int main(int argc, char **argv)
 
     bool helpFlag = false;
     bool parseErr = false;
-    while ((c = getopt_long(argc, argv, "hc:o:t:d:sk:H:", long_options, &idx)) != -1) {
+    while ((c = getopt_long(argc, argv, "hb:c:o:t:d:sk:H:", long_options, &idx)) != -1) {
         switch (c) {
         case 'h':
             helpFlag = true;
             break;
+        case 'b':
+            defether = strdup(optarg);
+            break;
         case 'c':
-            config = optarg;
+            config = strdup(optarg);
             break;
         case 'o': {
             outfile = strdup(optarg);
