@@ -495,6 +495,10 @@ void configure_xtc(int id, char *xtc, int size, unsigned int secs, unsigned int 
     memcpy((void *)src[id]->val, (void *)xtc, size);
     cfgcnt++;
     if (csec == 0 && cnsec == 0) {
+        /*
+         * For channel access, secs and nsecs are zero.  So this must be a BLD,
+         * which means we *aren't* running in DAQ mode and have no transitions!
+         */
         csec = secs;
         cnsec = nsecs;
         cfid = nsecs & 0x1ffff;
