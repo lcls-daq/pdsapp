@@ -762,9 +762,23 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
          * we don't have a timestamp (csec == 0).
          */
         if (fp != NULL && cfgcnt == numsrc && csec == 0) {
-            csec = sec;
-            cnsec = nsec;
-            cfid = nsec & 0x1ffff;
+            if (!havetransitions || !transidx) {
+                csec = sec;
+                cnsec = nsec;
+            } else {
+                int i;
+                for (i = 0; i < transidx; i++)
+                    if (saved_trans[i].id == TransitionId::Configure)
+                        break;
+                if (i != transidx) {
+                    csec = saved_trans[i].secs;
+                    cnsec = saved_trans[i].nsecs;
+                } else {
+                    csec = sec;
+                    cnsec = nsec;
+                }
+            }
+            cfid = cnsec & 0x1ffff;
             write_xtc_config();
         } else
             return;
