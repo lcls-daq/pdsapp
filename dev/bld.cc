@@ -66,7 +66,12 @@ typedef Pds::Bld::BldDataEBeamV6 BldDataEBeam;
 typedef Pds::Bld::BldDataFEEGasDetEnergyV1 BldDataFEEGasDetEnergy;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV2 BldDataGMD;
-typedef Pds::Bld::BldDataSpectrometerV0 BldDataSpectrometer;
+typedef Pds::Bld::BldDataSpectrometerV1 SpectrometerType;
+static const Pds::TypeId::Type Id_SpectrometerType = 
+  Pds::TypeId::Type(SpectrometerType::TypeId);
+static Pds::TypeId _spectrometerType(Id_SpectrometerType,
+                                     SpectrometerType::Version);
+
 //    typedef BldDataAcqADCV1 BldDataAcqADC;
 using Pds::Bld::BldDataPhaseCavity;
 using Pds::Bld::BldDataPimV1;
@@ -221,7 +226,7 @@ namespace Pds {
       TEST_CREAT(PhaseCavityMask,Id_PhaseCavity      ,BldDataPhaseCavity);
       TEST_CREAT(FEEGasDetMask  ,Id_FEEGasDetEnergy  ,BldDataFEEGasDetEnergy);
       TEST_CREAT(GMDMask        ,Id_GMD              ,BldDataGMD);
-      TEST_CREAT(SpecMask       ,Id_Spectrometer     ,BldDataSpectrometer);
+      TEST_CACHE(SpecMask       ,_spectrometerType   ,SpectrometerType);
       TEST_CACHE(IpimbMask      ,_ipimbConfigType    ,IpimbConfigType);
       if (im & IpimbMask) {
         Xtc tc(_ipmFexConfigType, BldInfo(_pid,BldInfo::Type(i)));
@@ -334,6 +339,7 @@ namespace Pds {
       REQUIRE(TM6740Config)
       REQUIRE(PimImageConfig)
       REQUIRE(Opal1kConfig)
+      REQUIRE(Spectrometer)
       default:
         _dg->insert(*xtc,xtc->payload());
         break;
@@ -345,9 +351,9 @@ namespace Pds {
     bool _require(const Xtc& xtc, const IpimbConfigType& c) {
       char* p = _cache.fetch(xtc);
       if (!p || memcmp(p,&c,sizeof(c))) {
-  _cache.update(xtc,(const char*)&c, sizeof(c));
-  if (!p) _reconfigure(xtc);
-  return true;
+        _cache.update(xtc,(const char*)&c, sizeof(c));
+        if (!p) _reconfigure(xtc);
+        return true;
       }
       return false;
     }
@@ -382,6 +388,17 @@ namespace Pds {
         return true;
       }
       return false;
+    }
+
+    bool _require(const Xtc& xtc,
+                  const SpectrometerType& c) {
+      void* p = _cache.fetch(xtc);
+      //  Only the first 3 uint32's describe the configuration
+      if (!p || memcmp(p,&c,3*sizeof(uint32_t))) {
+        _cache.update(xtc, (const char*)&c, sizeof(c));
+        _reconfigure(xtc);
+      }
+      return true;
     }
 
     bool _require(const Xtc& xtc,
