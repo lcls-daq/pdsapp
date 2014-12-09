@@ -160,12 +160,13 @@ namespace Pds_ConfigDb
       layout->addLayout(_cal_poly .initialize(p));
       layout->addLayout(_base_name.initialize(p));
 
-      QObject::connect(_proj_axis._input, SIGNAL(currentIndexChanged(int)), _time_axis._sw, SLOT(setCurrentIndex(int)));
-      QObject::connect(_proj_axis._input, SIGNAL(currentIndexChanged(int)), _sig_roi  ._sw, SLOT(setCurrentIndex(int)));
-      QObject::connect(_proj_axis._input, SIGNAL(currentIndexChanged(int)), _sb_roi   ._sw, SLOT(setCurrentIndex(int)));
-      QObject::connect(_use_sb._input, SIGNAL(toggled(bool)), &_sb_concealer, SLOT(show(bool)));
-      QObject::connect(_use_ref._input, SIGNAL(toggled(bool)), &_ref_concealer, SLOT(show(bool)));
-
+      if (Parameter::allowEdit()) {
+        QObject::connect(_proj_axis._input, SIGNAL(currentIndexChanged(int)), _time_axis._sw, SLOT(setCurrentIndex(int)));
+        QObject::connect(_proj_axis._input, SIGNAL(currentIndexChanged(int)), _sig_roi  ._sw, SLOT(setCurrentIndex(int)));
+        QObject::connect(_proj_axis._input, SIGNAL(currentIndexChanged(int)), _sb_roi   ._sw, SLOT(setCurrentIndex(int)));
+        QObject::connect(_use_sb._input, SIGNAL(toggled(bool)), &_sb_concealer, SLOT(show(bool)));
+        QObject::connect(_use_ref._input, SIGNAL(toggled(bool)), &_ref_concealer, SLOT(show(bool)));
+      }
       _sb_concealer.show (_use_sb .value=false);
       _ref_concealer.show(_use_ref.value=false);
       //      _record_proj.enable(false);
@@ -207,6 +208,14 @@ namespace Pds_ConfigDb
       std::string base_name(c.base_name());
 
       strcpy(_base_name.value,base_name.c_str());
+
+      if (!Parameter::allowEdit()) {
+        _time_axis._sw->setCurrentIndex(int(a));
+        _sig_roi  ._sw->setCurrentIndex(int(a));
+        _sb_roi   ._sw->setCurrentIndex(int(a));
+        _sb_concealer .show(_use_sb .value);
+        _ref_concealer.show(_use_ref.value);
+      }
 
       return c._sizeof();
     }

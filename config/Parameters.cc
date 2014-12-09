@@ -31,6 +31,7 @@ TextParameter::TextParameter(const char* label, const char* val, unsigned size) 
   Parameter(label),
   _size    (size)
 {
+  memset (value, 0, size);
   strncpy(value, val, size);
 }
 

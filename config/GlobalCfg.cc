@@ -30,10 +30,10 @@ namespace Pds_ConfigDb {
 	  _forced &= ~(1<<q);
       }
       else if (_forced & (1<<q)) {
-	if (p) delete p;
+	if (p) delete[] p;
       }
       else {
-	if (_btype[q]) delete _btype[q];
+	if (_btype[q]) delete[] _btype[q];
 	_btype[q] = p;
       }
     }

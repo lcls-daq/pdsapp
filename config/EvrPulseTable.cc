@@ -365,8 +365,10 @@ QLayout* EvrPulseTable::initialize(QWidget*)
       for(unsigned i=0; i<iocfg.nchannels(); i++) {
 	const EvrIOChannelType& ch = iocfg.channels()[i];
 	if (ch.output().module()==_id &&
-	    strlen(iocfg.channels()[i].name()))
+	    strlen(iocfg.channels()[i].name())) {
+          delete _outputs[ch.output().conn_id()];
 	  _outputs[ch.output().conn_id()] = new QrLabel(ch.name());
+        }
       }
     }
   }  
