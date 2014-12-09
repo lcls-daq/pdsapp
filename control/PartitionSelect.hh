@@ -58,6 +58,7 @@ namespace Pds {
     unsigned _nnodes;
     Node _nodes[MAX_NODES];
     QList<DetInfo > _detectors;
+    QList<DetInfo > _iocs;
     std::set<std::string> _deviceNames;
     QList<ProcInfo> _segments;
     QList<BldInfo > _reporters;

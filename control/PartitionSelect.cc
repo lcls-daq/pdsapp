@@ -117,6 +117,7 @@ void PartitionSelect::select_dialog()
     }
 
     _detectors   = dialog->detectors();
+    _iocs        = dialog->iocs();
     _deviceNames = dialog->deviceNames();
     _segments    = dialog->segments ();
     _reporters   = dialog->reporters();
@@ -130,10 +131,9 @@ void PartitionSelect::select_dialog()
     }
     std::string l3_path(dialog->l3_path());
 
-    QList<DetInfo> iocs = dialog->iocs();
     std::list<DetInfo> inodes;
-    for(int i=0; i<iocs.size(); i++)
-      inodes.push_back(iocs[i]);
+    for(int i=0; i<_iocs.size(); i++)
+      inodes.push_back(_iocs[i]);
 
     uint64_t bld_mask = 0 ;
     foreach(BldInfo n, _reporters) {
@@ -287,18 +287,23 @@ bool PartitionSelect::_validate(uint64_t bld_mask)
 
   bool lEvr    =false;
   bool lBld    =false;
-  std::pair<std::set<std::string>::iterator,bool> insertResult;
   std::set<std::string> unique_names;
   foreach(DetInfo info, _detectors) {
     lEvr     |= (info.device  ()==DetInfo::Evr);
     lBld     |= (info.detector()==DetInfo::BldEb);
     // check for duplicate device name
-    insertResult = unique_names.insert(DetInfo::name(info));
-    if (!(insertResult.second)) {
+    const char* p = DetInfo::name(info);
+    if (!(unique_names.insert(p).second)) {
       lError = true;
-      errorMsg += "Duplicate devices selected: ";
-      errorMsg += DetInfo::name(info);
-      errorMsg += "\n";
+      errorMsg += QString("Duplicate devices selected: %1\n").arg(p);
+    }
+  }
+
+  foreach(DetInfo info, _iocs) {
+    const char* p = DetInfo::name(info);
+    if (!(unique_names.insert(p).second)) {
+      lError = true;
+      errorMsg += QString("Duplicate devices selected: %1 [IOC]\n").arg(p);
     }
   }
 
