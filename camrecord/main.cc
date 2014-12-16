@@ -656,6 +656,7 @@ int main(int argc, char **argv)
 
     signal(SIGINT, int_handler);
     signal(SIGALRM, int_handler);
+    sigignore(SIGIO);
 
     while (!haveint) {
         do_poll();
