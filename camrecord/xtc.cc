@@ -782,7 +782,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
                     cnsec = nsec;
                 }
             }
-            cfid = cnsec & 0x1ffff;
+            cfid = 0x1ffff;
             write_xtc_config();
         } else
             return;

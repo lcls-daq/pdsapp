@@ -551,6 +551,7 @@ void cleanup(void)
     cleanup_bld();
     cleanup_ca();
     cleanup_xtc();
+    cleanup_index();
 
     if (running) {
         runtime = (1000000LL * stop.tv_sec + stop.tv_usec) - 
@@ -564,8 +565,6 @@ void cleanup(void)
                 prefix.c_str());
         fflush(stderr);
     }
-
-    cleanup_index();
 }
 
 int main(int argc, char **argv)
