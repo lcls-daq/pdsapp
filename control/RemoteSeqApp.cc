@@ -6,6 +6,7 @@
 #include "RemotePartition.hh"
 #include "RunStatus.hh"
 
+#include "pdsapp/config/GlobalCfg.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/utility/Transition.hh"
 #include "pds/xtc/EnableEnv.hh"
@@ -13,8 +14,8 @@
 #include "pds/service/Task.hh"
 #include "pds/service/Sockaddr.hh"
 #include "pds/service/Ins.hh"
-#include "pdsdata/psddl/control.ddl.h"
 #include "pds/config/ControlConfigType.hh"
+#include "pds/config/PartitionConfigType.hh"
 #include "pds/client/L3TIterator.hh"
 
 #include <sys/types.h>
@@ -25,12 +26,13 @@
 #include <fcntl.h>
 #include <inttypes.h>
 
-#define DBUG
+//#define DBUG
 
 static const int MaxConfigSize = 0x100000;
 static const int Control_Port  = 10130;
 
 using namespace Pds;
+using Pds_ConfigDb::GlobalCfg;
 
 RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
          StateSelect&      manual,
@@ -201,7 +203,9 @@ void RemoteSeqApp::routine()
             ::write(_socket,_control.partition().dbpath(),length);
 
             uint32_t old_key = _control.get_transition_env(TransitionId::Configure);
-            ::write(_socket,&old_key,sizeof(old_key));
+            uint32_t options = old_key&DbKeyMask;
+            if (lrecord) options |= RecordValMask;
+            ::write(_socket,&options,sizeof(options));
 
             // send the current config type (alias)
             string sType = _select.getType();
@@ -215,6 +219,12 @@ void RemoteSeqApp::routine()
 	    const Allocation* palloc = new Allocation(_control.partition());
 
 	    { RemotePartition* partition = new RemotePartition;
+              if (palloc->l3tag())
+                partition->set_l3t(palloc->l3path(),
+                                   palloc->l3veto(),
+                                   palloc->unbiased_fraction());
+              else
+                partition->clear_l3t();
 	      const QList<DetInfo>& detectors = _pselect.detectors();
 	      const QList<ProcInfo>& segments = _pselect.segments ();
 	      for(int j=0; j<detectors.size(); j++) {
@@ -232,7 +242,6 @@ void RemoteSeqApp::routine()
 	      delete partition;
 	    }
 
-            uint32_t options;
 	    while(1) {
 
 	      //  Receive the requested run key and recording option
@@ -264,6 +273,10 @@ void RemoteSeqApp::routine()
 
 #ifdef DBUG
 		printf("Received partition %p\n",partition);
+                printf("l3tag %c  veto %c  path %s\n",
+                       partition->l3tag()?'t':'f',
+                       partition->l3veto()?'t':'f',
+                       partition->l3path());
 		for(unsigned j=0; j<partition->nodes(); j++) {
 		  const RemoteNode& node = *partition->node(j);
 		  printf("\t%s : %x : %s : %s\n",
@@ -278,21 +291,52 @@ void RemoteSeqApp::routine()
 		//
 		//  Re-allocate
 		//
-		const QList<DetInfo>& detectors = _pselect.detectors();
-		const QList<ProcInfo>& segments = _pselect.segments ();
+                PartitionConfigType* apcfg;
 		Allocation* alloc = new Allocation(_control.partition());
-		for(unsigned j=0; j<partition->nodes(); j++) {
-		  RemoteNode& node = *partition->node(j);
-		  for(int k=0; k<detectors.size(); k++) {
-		    if (detectors[k].phy() == node.phy()) {
-		      if (!node.readout())
-			alloc->remove(segments[k]);
-		      else
-			alloc->node(segments[k])->setTransient(!node.record());
-		    }
-		  }
-		}
-		_control.set_partition(*alloc);
+                {
+                  const PartitionConfigType& pcfg = 
+                    *reinterpret_cast<const PartitionConfigType*>
+                    (GlobalCfg::instance().fetch(_partitionConfigType));
+                  ndarray<Partition::Source,1> psrcs = make_ndarray<Partition::Source>(pcfg.numSources());
+                  unsigned pnsrcs=0;
+
+                  const QList<DetInfo>& detectors = _pselect.detectors();
+                  const QList<ProcInfo>& segments = _pselect.segments ();
+                  if (partition->l3tag())
+                    alloc->set_l3t(partition->l3path(),
+                                   partition->l3veto(),
+                                   partition->l3uf  ());
+                  else
+                    alloc->clear_l3t();
+                  for(unsigned j=0; j<partition->nodes(); j++) {
+                    RemoteNode& node = *partition->node(j);
+                    for(int k=0; k<detectors.size(); k++) {
+                      if (detectors[k].phy() == node.phy()) {
+                        if (!node.readout())
+                          alloc->remove(segments[k]);
+                        else {
+                          alloc->node(segments[k])->setTransient(!node.record());
+                          if (node.record())
+                            for(unsigned i=0; i<pcfg.numSources(); i++)
+                              if (pcfg.sources()[i].src().phy()==node.phy())
+                                psrcs[pnsrcs++] = pcfg.sources()[i];
+                        }
+                      }
+                    }
+                  }
+                  apcfg = new (new char[pcfg._sizeof()])
+                    PartitionConfigType(pcfg.bldMask(),pnsrcs,psrcs.data());
+                }
+
+#ifdef DBUG
+		printf("Reallocating with partition %p\n",alloc);
+                printf("l3tag %c  veto %c  path %s\n",
+                       alloc->l3tag()?'t':'f',
+                       alloc->l3veto()?'t':'f',
+                       alloc->l3path());
+#endif
+
+		_control.set_partition(*alloc, apcfg);
 		_control.set_target_state(PartitionControl::Unmapped);
 		delete alloc;
 	      }
@@ -353,7 +397,10 @@ void RemoteSeqApp::routine()
 	    //  Reallocate with the initial settings
 	    //
             if (options & ModifyPartition) {
-              _control.set_partition(*palloc);
+              const PartitionConfigType& pcfg = 
+                *reinterpret_cast<const PartitionConfigType*>(GlobalCfg::instance().fetch(_partitionConfigType));
+              char* p = new char[pcfg._sizeof()];
+              _control.set_partition(*palloc,new(p) PartitionConfigType(pcfg));
               _control.set_target_state(PartitionControl::Unmapped);
               _control.wait_for_target();
 

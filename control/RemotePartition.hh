@@ -39,16 +39,32 @@ namespace Pds {
 
   class RemotePartition {
   public:
-    RemotePartition() : _nnodes(0) {}
+    RemotePartition() : _nnodes(0), _options(0), _unbiased_f(0) {}
   public:
+    bool l3tag () const { return _options&L3Tag; }
+    bool l3veto() const { return _options&L3Veto; }
+    float l3uf () const { return _unbiased_f; }
+    const char* l3path() const { return _l3path; }
     unsigned nodes() const { return _nnodes; }
     RemoteNode* node(unsigned j) { return &_nodes[j]; }
     const RemoteNode* node(unsigned j) const { return &_nodes[j]; }
+  public:
+    void set_l3t (const char* path, bool veto=false, float uf=0) 
+    { 
+      strncpy(_l3path,path,MaxName); 
+      _options |= L3Tag | (veto ? L3Veto:0);
+      _unbiased_f = uf;
+    }
+    void clear_l3t() { _options &= ~(L3Veto|L3Tag); }
     void add_node(const RemoteNode& n) { _nodes[_nnodes++]=n; }
   private:
     enum { MaxNodes=64 };
+    enum { MaxName=128 };
+    enum { L3Tag=1, L3Veto=2 };
     uint32_t   _nnodes;
-    uint32_t   _reserved;
+    uint32_t   _options;
+    float      _unbiased_f;
+    char       _l3path[MaxName];
     RemoteNode _nodes[MaxNodes];
   };
 };

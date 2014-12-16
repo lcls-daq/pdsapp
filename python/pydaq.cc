@@ -50,6 +50,7 @@ static PyObject* pdsdaq_dbpath   (PyObject* self);
 static PyObject* pdsdaq_dbalias  (PyObject* self);
 static PyObject* pdsdaq_dbkey    (PyObject* self);
 static PyObject* pdsdaq_partition(PyObject* self);
+static PyObject* pdsdaq_record   (PyObject* self);
 static PyObject* pdsdaq_runnum   (PyObject* self);
 static PyObject* pdsdaq_expt     (PyObject* self);
 static PyObject* pdsdaq_detectors(PyObject* self);
@@ -69,6 +70,7 @@ static PyMethodDef pdsdaq_methods[] = {
   {"dbalias"   , (PyCFunction)pdsdaq_dbalias   , METH_NOARGS  , "Get database alias"},
   {"dbkey"     , (PyCFunction)pdsdaq_dbkey     , METH_NOARGS  , "Get database key"},
   {"partition" , (PyCFunction)pdsdaq_partition , METH_NOARGS  , "Get partition"},
+  {"record"    , (PyCFunction)pdsdaq_record    , METH_NOARGS  , "Get record status"},
   {"runnumber" , (PyCFunction)pdsdaq_runnum    , METH_NOARGS  , "Get run number"},
   {"experiment", (PyCFunction)pdsdaq_expt      , METH_NOARGS  , "Get experiment number"},
   {"detectors" , (PyCFunction)pdsdaq_detectors , METH_NOARGS  , "Get the detector names"},
@@ -166,6 +168,7 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
     self->dbpath   = new char[MaxPathSize];
     self->dbalias  = new char[MaxAliasSize];
     self->dbkey    = 0;
+    self->record   = false;
     self->partition= new RemotePartition;
     self->buffer   = new char[MaxConfigSize];
     self->runinfo  = 0;
@@ -286,7 +289,8 @@ PyObject* pdsdaq_connect(PyObject* self)
       break;
     }
 
-    daq->dbkey  = key;
+    daq->dbkey  = key&DbKeyMask;
+    daq->record = key&RecordValMask;
 
 #ifdef DBUG
     printf("pdsdaq_connect received dbkey %d\n",daq->dbkey);
@@ -384,6 +388,12 @@ PyObject* pdsdaq_dbkey    (PyObject* self)
   return PyLong_FromLong(daq->dbkey);
 }
 
+PyObject* pdsdaq_record   (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  return PyBool_FromLong(daq->record);
+}
+
 PyObject* pdsdaq_partition(PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
@@ -401,7 +411,14 @@ PyObject* pdsdaq_partition(PyObject* self)
     PyDict_SetItemString(n, "record" , PyBool_FromLong(node.record ()));
     PyList_SetItem(o, j, n);
   }
-  return o;
+  PyObject* p = PyDict_New();
+  PyDict_SetItemString(p, "l3tag" , PyBool_FromLong    (daq->partition->l3tag()));
+  PyDict_SetItemString(p, "l3veto", PyBool_FromLong    (daq->partition->l3veto()));
+  PyDict_SetItemString(p, "l3unbiasedFraction", PyFloat_FromDouble(daq->partition->l3uf()));
+  PyDict_SetItemString(p, "l3path", PyString_FromString(daq->partition->l3path()));
+  PyDict_SetItemString(p, "nodes", o);
+
+  return p;
 }
 
 PyObject* pdsdaq_runnum   (PyObject* self)
@@ -527,8 +544,12 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
   uint32_t urecord = 0;
   if (record) {
     urecord |= RecordSetMask;
-    if (record==Py_True)
+    if (record==Py_True) {
       urecord |= RecordValMask;
+      daq->record = true;
+    }
+    else
+      daq->record = false;
   }
 
   uint32_t upartition = 0;
@@ -540,17 +561,26 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
 
   if (partition) {
     // Translate partition dict to Allocation and write
-    if (PyList_Size(partition)!=daq->partition->nodes()) {
+    if (PyDict_GetItemString(partition,"l3tag")==Py_True) {
+      daq->partition->set_l3t( PyString_AsString(PyDict_GetItemString(partition,"l3path")),
+                               PyDict_GetItemString(partition,"l3veto")==Py_True,
+                               PyFloat_AsDouble (PyDict_GetItemString(partition,"l3unbiasedFraction")) );
+    }
+    else
+      daq->partition->clear_l3t();
+
+    PyObject* nodes = PyDict_GetItemString(partition,"nodes");
+    if (PyList_Size(nodes)!=daq->partition->nodes()) {
       printf("partition list size (%zd) does not match original size (%d).\nPartition unchanged.\n",
-       PyList_Size(partition),daq->partition->nodes());
+       PyList_Size(nodes),daq->partition->nodes());
       PyErr_SetString(PyExc_RuntimeError,"Partition size changed.");
       return NULL;
     }
     else {
       for(unsigned j=0; j<daq->partition->nodes(); j++) {
-  PyObject* n = PyList_GetItem(partition,j);
-  daq->partition->node(j)->readout( PyDict_GetItemString(n,"readout")==Py_True );
-  daq->partition->node(j)->record ( PyDict_GetItemString(n,"record" )==Py_True );
+        PyObject* n = PyList_GetItem(nodes,j);
+        daq->partition->node(j)->readout( PyDict_GetItemString(n,"readout")==Py_True );
+        daq->partition->node(j)->record ( PyDict_GetItemString(n,"record" )==Py_True );
       }
       ::write(daq->socket, daq->partition, sizeof(*daq->partition));
     }
