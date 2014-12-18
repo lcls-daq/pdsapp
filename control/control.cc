@@ -2,6 +2,7 @@
 #include "pdsapp/control/SelectDialog.hh"
 #include "pdsapp/control/EventcodeQuery.hh"
 #include "pdsapp/config/Experiment.hh"
+#include "pds/utility/Transition.hh"
 #include "pds/service/CmdLineTools.hh"
 
 #include <QtGui/QApplication>
@@ -30,6 +31,7 @@ static void usage(char *argv0)
    "         -A                        : auto run\n"
    "         -O                        : override errors\n"
    "         -T                        : collect transient data\n"
+   "         -t <interval>             : traffic shaping interval[sec]\n"
    "         -w <0/1>                  : slow readout\n"
    "         -o <options>              : partition options\n"
    "            1=CXI slow runningkludge\n"
@@ -61,7 +63,7 @@ int main(int argc, char** argv)
   bool lusage = false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:D:L:R:E:e:N:C:AOTS:w:o:hv")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:e:N:C:AOTS:t:w:o:hv")) != -1) {
     switch (c) {
     case 'A':
       autorun = true;
@@ -119,6 +121,9 @@ int main(int argc, char** argv)
       break;
     case 'T':
       SelectDialog::useTransient(true);
+      break;
+    case 't':
+      Allocation::set_traffic_interval(strtod(optarg,NULL));
       break;
     case 'w':
       if (!Pds::CmdLineTools::parseInt(optarg, slowReadout)) {
