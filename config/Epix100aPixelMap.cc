@@ -1,12 +1,8 @@
 // Graphical display of whole detector
-//   - sector selection shows graphical display of sector map
 
-// Graphical display of sector gain map
+// Graphical display of sector gain mask/test
 //   - shows proper orientation (square window)
-//   - lo value is black, hi value is white
-
-// Mouse click toggles pixel value
-// All Clear/Set buttons
+//   - lo value is black
 // Import/Export file option buttons (space-delimited)
 // Save/Close buttons
 
