@@ -137,12 +137,12 @@ using namespace Pds;
 static void showUsage()
 {
     printf( "Usage:  epicsArch  [-v|--version] [-h|--help] "
-      "[-d|--debug <debug level>] [-u|--unit <unit #> -p|--platform <platform>  -f <config filename>\n" 
+      "[-d|--debug <debug level>] [-n|--unit <unit #> -p|--platform <platform>  -f <config filename>\n" 
       "  Options:\n"
       "    -v|--version       Show file version\n"
       "    -h|--help          Show usage\n"
       "    -d|--debug         Set debug level\n"
-      "    -u|--unit          Set unit number [Default: 0]\n"
+      "    -n|--unit          Set unit number [Default: 0]\n"
       "    -f|--file          [*required*] Set configuration filename\n"
       "    -p|--platform      [*required*] Set platform id\n"
       " ================================================================================\n"
@@ -171,7 +171,7 @@ static void showVersion()
 
 int main(int argc, char** argv) 
 {
-    const char*         strOptions  = ":vhi:d:p:f:u:";
+    const char*         strOptions  = ":vhi:d:p:f:n:";
     const struct option loOptions[] = 
     {
        {"version",  0, 0, 'v'},
@@ -180,7 +180,7 @@ int main(int argc, char** argv)
        {"interval", 1, 0, 'i'},
        {"platform", 1, 0, 'p'},
        {"file",     1, 0, 'f'},
-       {"unit",     1, 0, 'u'},
+       {"unit",     1, 0, 'n'},
        {0,          0, 0,  0  }
     };    
     
@@ -218,7 +218,7 @@ int main(int argc, char** argv)
         case 'f':
             sFnConfig = optarg;
             break;
-        case 'u':
+        case 'n':
             errno = 0;
             iUnit = strtoul(optarg, &endptr, 0);
             if ((optarg == endptr) || errno) {
