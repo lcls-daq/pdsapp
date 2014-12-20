@@ -17,19 +17,22 @@ namespace Pds_ConfigDb {
         "channels 0-10", "channels 0-11", "channels 0-12", "channels 0-13", "channels 0-14",
         "channels 0-15", NULL };
   static const char* autoCalib_to_name[] = { "Disabled", "Enabled", NULL };
+  static const char* dataFormat_to_name[] = { "Two's Complement", "Offset Binary", NULL };
 
   class Gsc16aiConfig::Private_Data {
   public:
     Private_Data() :
       _voltageRange   ("Voltage Range", Pds::Gsc16ai::ConfigV1::VoltageRange_10V, voltageRange_to_name),
       _channelSelect  ("Input Channels", 0, channelSelect_to_name),
-      _autocalibEnable("Autocalibration", Enums::True, autoCalib_to_name)
+      _autocalibEnable("Autocalibration", Enums::True, autoCalib_to_name),
+      _dataFormat     ("Data Format", Pds::Gsc16ai::ConfigV1::DataFormat_TwosComplement, dataFormat_to_name)
     {}
 
     void insert(Pds::LinkedList<Parameter>& pList) {
       pList.insert(&_voltageRange);
       pList.insert(&_channelSelect);
       pList.insert(&_autocalibEnable);
+      pList.insert(&_dataFormat);
     }
 
     int pull(void* from) {
@@ -37,6 +40,7 @@ namespace Pds_ConfigDb {
       _voltageRange.value    = tc.voltageRange();
       _channelSelect.value   = tc.lastChan();
       _autocalibEnable.value = tc.autocalibEnable() ? Enums::True : Enums::False;
+      _dataFormat.value      = tc.dataFormat();
       return tc._sizeof();
     }
 
@@ -46,7 +50,7 @@ namespace Pds_ConfigDb {
                                                          _channelSelect.value,
                                                          Gsc16aiConfigType::InputMode_Differential,
                                                          Gsc16aiConfigType::TriggerMode_ExtPos,
-                                                         Gsc16aiConfigType::DataFormat_TwosComplement,
+                                                         _dataFormat.value,
                                                          0, 
                                                          _autocalibEnable.value,
                                                          false);
@@ -61,6 +65,7 @@ namespace Pds_ConfigDb {
     Enumerated<Pds::Gsc16ai::ConfigV1::VoltageRange> _voltageRange;
     Enumerated<int> _channelSelect;
     Enumerated<Enums::Bool> _autocalibEnable;
+    Enumerated<Pds::Gsc16ai::ConfigV1::DataFormat> _dataFormat;
   };
 };
 
