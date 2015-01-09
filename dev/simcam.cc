@@ -224,8 +224,10 @@ public:
                                                                QuartzConfigType::x1,
                                                                QuartzConfigType::x1,
                                                                QuartzConfigType::None,
-                                                               false,
-                                                               false, 0, 0, 0))->_sizeof();
+                                                               false, false, false, false, 8,
+                                                               Pds::Camera::FrameCoord(0,0),
+                                                               Pds::Camera::FrameCoord(0,0),
+                                                               0, 0, 0))->_sizeof();
       width  = QuartzConfigType::Column_Pixels;
       height = QuartzConfigType::Row_Pixels;
       depth  = 8;

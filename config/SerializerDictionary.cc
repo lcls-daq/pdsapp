@@ -30,6 +30,7 @@
 #include "pdsapp/config/UsdUsbConfig.hh"
 #include "pdsapp/config/Opal1kConfig.hh"
 #include "pdsapp/config/QuartzConfig.hh"
+#include "pdsapp/config/QuartzConfig_V1.hh"
 #include "pdsapp/config/OrcaConfig.hh"
 #include "pdsapp/config/FccdConfig.hh"
 #include "pdsapp/config/TM6740Config.hh"
@@ -186,6 +187,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,1),new ControlConfig_V1::ControlConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_TimepixConfig,2),new TimepixConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_TimeToolConfig,1),new V1::TimeToolConfig);
+  enroll(Pds::TypeId(Pds::TypeId::Id_QuartzConfig,1),new V1::QuartzConfig);
 //  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
 
   if (Parameter::readFromData())

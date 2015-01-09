@@ -48,6 +48,7 @@ static void usage(const char* p)
          "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
          "    -g <grabberId>              grabber ID (default=0)\n"
          "    -C <N>                      compress and copy every Nth event\n"
+         "    -t                          generate test pattern\n"
          "    -v                          be verbose (default=false)\n"
          "    -u <alias>                  set device alias\n"
          "    -h                          print this message and exit\n");
@@ -255,7 +256,7 @@ int main(int argc, char** argv) {
   extern char* optarg;
   char* uniqueid = (char *)NULL;
   int c;
-  while ( (c=getopt( argc, argv, "a:i:p:g:L:C:u:vh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:i:p:g:L:C:u:tvh")) != EOF ) {
     switch(c) {
     case 'a':
       arp = new Arp(optarg);
@@ -317,6 +318,9 @@ int main(int argc, char** argv) {
       } else {
         uniqueid = optarg;
       }
+      break;
+    case 't':
+      CameraBase::useTestPattern(true);
       break;
     case 'v':
       verbose = true;
