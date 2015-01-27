@@ -286,3 +286,20 @@ void RunStatus::use_l3t(bool v)
   updateGeometry();
   resize(minimumWidth(),minimumHeight());
 }
+
+int RunStatus::get_counts(unsigned long long *duration, unsigned long long *events, unsigned long long *damaged, unsigned long long *bytes)
+{
+  if (duration) {
+    *duration = _duration->get_count();
+  }
+  if (events) {
+    *events = _events->get_count();
+  }
+  if (damaged) {
+    *damaged = _damaged->get_count();
+  }
+  if (bytes) {
+    *bytes = _bytes->get_count();
+  }
+  return 0;
+}

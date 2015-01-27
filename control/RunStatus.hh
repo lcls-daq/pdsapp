@@ -49,6 +49,7 @@ namespace Pds {
     
   public:
     unsigned long long getEventNum ();
+    int get_counts(unsigned long long *duration, unsigned long long *events, unsigned long long *damaged, unsigned long long *bytes);
     
   private:
     Task*     _task;
