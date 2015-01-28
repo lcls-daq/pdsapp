@@ -390,18 +390,19 @@ int AndorCameraTest::init()
 int AndorCameraTest::_selectCamera(int iCamera)
 {
   at_32 iNumCamera;
-  GetAvailableCameras(&iNumCamera);
+  unsigned int iError = GetAvailableCameras(&iNumCamera);
+  if (!isAndorFuncOk(iError))
+    printf("GetAvailableCameras(): %s\n", AndorErrorCodes::name(iError));
+  else
+    printf("Found %d Andor Cameras\n", (int) iNumCamera);
 
-  printf("Found %d Andor Cameras\n", (int) iNumCamera);
+  iError = GetCameraHandle(iCamera, &_iCameraHandle);
+  if (!isAndorFuncOk(iError))
+    printf("GetCameraHandle(): %s\n", AndorErrorCodes::name(iError));
 
-  if (iCamera < 0 || iCamera >= iNumCamera)
-  {
-    printf("Invalid Camera selection: %d\n", iCamera);
-    return 1;
-  }
-
-  GetCameraHandle(iCamera, &_iCameraHandle);
-  SetCurrentCamera(_iCameraHandle);
+  iError = SetCurrentCamera(_iCameraHandle);
+  if (!isAndorFuncOk(iError))
+    printf("SetCurrentCamera(): %s\n", AndorErrorCodes::name(iError));
 
   return 0;
 }
