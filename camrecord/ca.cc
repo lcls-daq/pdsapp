@@ -368,6 +368,9 @@ class caconn {
     const char *getpvname() {
         return pvname.c_str();
     }
+    const char *getname() {
+        return name.c_str();
+    }
  private:
     static vector<caconn *> conns;
     static int nxtcaid;
@@ -465,6 +468,7 @@ static void connection_handler(struct connection_handler_args args)
     caconn *c = caconn::find(args.chid);
 
     if (args.op == CA_OP_CONN_UP) {
+        printf("%s (%s) is connected.\n", c->getname(), c->getpvname());
         c->connected = 1;
         if (c->nelem == -1)
             c->nelem = ca_element_count(args.chid);

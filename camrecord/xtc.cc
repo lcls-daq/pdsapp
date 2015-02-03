@@ -953,6 +953,8 @@ void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int f
         transidx++;
         return;
     }
+    printf("TRANS: %d.%09d (0x%x) %s\n", secs, nsecs, fid, 
+           TransitionId::name((TransitionId::Value) id));
     csec = secs;
     cnsec = nsecs;
     cfid = fid;
@@ -989,9 +991,8 @@ void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int f
     case TransitionId::EndRun:
         write_datagram(TransitionId::EndRun, 0);
         // write_datagram(TransitionId::Unconfigure, 0);
-        if (fp)
-            fclose(fp);
         cleanup_ca();
+        cleanup_index();
         exit(0);
     }
 }
