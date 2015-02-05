@@ -248,7 +248,8 @@ namespace Pds
  */
 
 using namespace Pds::ConfigurationMulticast;
-void printData( const std::vector<unsigned char>& vcBuffer, int iDataSize, char * sTyDump, size_t cntDump, bool quiet );
+void printData(	const std::vector<unsigned char>& vcBuffer, int iDataSize,
+				char * sTyDump, size_t cntDump, size_t offDump, bool quiet );
 void printSummary();
 
 static void showUsage()
@@ -263,6 +264,7 @@ static void showUsage()
       "   -s|--size      <Buffer Size>        Set the max data size for allocating buffer. Default: %u\n"
       "   -e|--evrGapHunt                     Watch for and print out message if a gap is seen in EVR packets\n"
       "   -c|--cntDump                        Number of data values to dump from start of packet.  Default 0\n"
+      "   -o|--offDump                        Dump offset, number of bytes of data to skip before dump.  Default 0, must be mult of 4\n"
       "   -t|--tyDump                         Type of data to dump: int, uint, double\n"
       "   -E|--evrFiducialGapCheck            Watch for anomalous fiducials period in evr multicasts\n"
       "   -q|--quiet           				  Only dump data if gap changes\n"
@@ -313,6 +315,7 @@ int main(int argc, char** argv)
       {"interface",1, 0, 'i'},
       {"tyDump",   1, 0, 't'},
       {"cntDump",  1, 0, 'c'},
+      {"offDump",  1, 0, 'o'},
       {"evrGapHunt", 0, 0, 'e'},
       {"evrFiducialGapCheck", 0, 0, 'E'},
       {"quiet",    0, 0, 'q'},
@@ -325,6 +328,7 @@ int main(int argc, char** argv)
   unsigned int  uMaxDataSize  = uDefaultMaxDataSize;
   char		*	sTyDump		  = NULL;
   size_t		cntDump		  = 0;
+  size_t		offDump		  = 0;
   while ( int opt = getopt_long(argc, argv, ":vha:p:Pi:s:t:c:eEq", loOptions, &iOptionIndex ) )
   {
     if ( opt == -1 ) break;
@@ -357,6 +361,9 @@ int main(int argc, char** argv)
         break;
       case 'c':
         cntDump = strtoul(optarg, NULL, 0);
+        break;
+      case 'o':
+        offDump = strtoul(optarg, NULL, 0);
         break;
       case 'e':
         evrGapHunt = !evrGapHunt;
@@ -491,7 +498,7 @@ int main(int argc, char** argv)
             }
           }
         } else {
-          printData( vcFetchBuffer, iRecvDataSize, sTyDump, cntDump, quiet );
+          printData( vcFetchBuffer, iRecvDataSize, sTyDump, cntDump, offDump, quiet );
         }
       }
     }
@@ -511,6 +518,7 @@ void printData(
 	int				iDataSize,
 	char		*	sTyDump,
 	size_t			cntDump,
+	size_t			offDump,
   	bool			quiet
 	)
 {
@@ -554,7 +562,11 @@ void printData(
 	if ( tyDump != TY_DUMP_NONE )
 	{
 	  const uint32_t	* pData       = (const uint32_t * ) &vcBuffer[0];
-	  pData += 15;	// Skip the header
+
+	  // Skip the 15 word header and requested dump offset (4 byte aligned)
+	  pData += 15;
+	  pData += offDump/sizeof(uint32_t);
+
 	  const int			* pInt        = (const int		* ) pData;
 	  const uint32_t	* pUint       = (const uint32_t	* ) pData;
 	  const double		* pDouble     = (const double	* ) pData;
@@ -573,7 +585,7 @@ void printData(
 			printf( " %8u", *pUint++ );
 			break;
 		case TY_DUMP_DOUBLE:
-			printf( " %.8f", *pDouble++ );
+			printf( " %.6e", *pDouble++ );
 			break;
 		}
 		cntDump--;
