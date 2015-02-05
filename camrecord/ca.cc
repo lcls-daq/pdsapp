@@ -494,6 +494,7 @@ static void connection_handler(struct connection_handler_args args)
         }
     } else {
         c->connected = 0;
+        printf("%s (%s) has disconnected!\n", c->getname(), c->getpvname());
     }
     fflush(stdout);
 }

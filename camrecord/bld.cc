@@ -17,7 +17,7 @@ using namespace std;
 // Code shamelessly stolen from bldServerTest.{cpp,h}
 static const unsigned int uDefaultAddr = 239<<24 | 255<<16 | 24<<8; /// multicast address without low byte
 static const unsigned int uDefaultPort = 10148;
-static const unsigned int uDefaultMaxDataSize = 512; /// in bytes
+static const unsigned int uDefaultMaxDataSize = 10000; /// in bytes
 
 class BldServerSlim 
 {
