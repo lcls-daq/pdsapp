@@ -136,11 +136,21 @@ bool RemoteSeqApp::processTransitionCmd(RemoteSeqCmd& cmd)
   switch (cmd.u32Type)
   {
   case RemoteSeqCmd::CMD_GET_CUR_EVENT_NUM:
-    int64_t iEventNum = _runStatus.getEventNum();
-    ::write(_socket,&iEventNum,sizeof(iEventNum));
+    { int64_t iEventNum = _runStatus.getEventNum();
+      ::write(_socket,&iEventNum,sizeof(iEventNum));
 #ifdef DBUG
-    printf("RemoteSeqApp get events [%ld]\n",long(iEventNum));
+      printf("RemoteSeqApp get events [%ld]\n",long(iEventNum));
 #endif
+    } break;
+  case RemoteSeqCmd::CMD_GET_CUR_L3EVENT_NUM:
+    { int64_t iEventNum = _runStatus.getEventNum();
+      ::write(_socket,&iEventNum,sizeof(iEventNum));
+#ifdef DBUG
+      printf("RemoteSeqApp get l3events [%ld]\n",long(iEventNum));
+#endif
+    } break;
+  default:
+    printf("RemoteSeqApp unrecognized command [%u]\n",cmd.u32Type);
     break;
   }
 

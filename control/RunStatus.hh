@@ -49,6 +49,7 @@ namespace Pds {
     
   public:
     unsigned long long getEventNum ();
+    unsigned long long getL3EventNum ();
     int get_counts(unsigned long long *duration, unsigned long long *events, unsigned long long *damaged, unsigned long long *bytes);
     
   private:

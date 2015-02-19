@@ -63,6 +63,7 @@ static PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds
 static PyObject* pdsdaq_end      (PyObject* self);
 static PyObject* pdsdaq_stop     (PyObject* self);
 static PyObject* pdsdaq_eventnum (PyObject* self);
+static PyObject* pdsdaq_l3eventnum(PyObject* self);
 static PyObject* pdsdaq_rcv      (PyObject* self);
 
 static PyMethodDef pdsdaq_methods[] = {
@@ -81,6 +82,7 @@ static PyMethodDef pdsdaq_methods[] = {
   {"end"       , (PyCFunction)pdsdaq_end       , METH_NOARGS  , "Wait for the cycle end"},
   {"stop"      , (PyCFunction)pdsdaq_stop      , METH_NOARGS  , "End the current cycle"},
   {"eventnum"  , (PyCFunction)pdsdaq_eventnum  , METH_NOARGS  , "Get current event number"},
+  {"l3eventnum", (PyCFunction)pdsdaq_l3eventnum, METH_NOARGS  , "Get current l3pass event number"},
   {"connect"   , (PyCFunction)pdsdaq_connect   , METH_NOARGS  , "Connect to control"},
   {"disconnect", (PyCFunction)pdsdaq_disconnect, METH_NOARGS  , "Disconnect from control"},
   {NULL},
@@ -859,6 +861,27 @@ PyObject* pdsdaq_eventnum(PyObject* self)
     {
       ostringstream o;
       o << "pdsdap_eventnum(): recv() failed... disconnecting.";
+      PyErr_SetString(PyExc_RuntimeError,o.str().c_str());
+      Py_DECREF(pdsdaq_disconnect(self));
+    }
+  }
+
+  return PyLong_FromLong(iEventNum);
+}
+
+PyObject* pdsdaq_l3eventnum(PyObject* self)
+{
+  int64_t iEventNum = -1;
+
+  pdsdaq* daq = (pdsdaq*)self;
+  if (daq->state >= Configured) {
+    Pds::RemoteSeqCmd cmd(Pds::RemoteSeqCmd::CMD_GET_CUR_L3EVENT_NUM);
+    ::write(daq->socket, &cmd, sizeof(cmd));
+
+    if (::recv(daq->socket,&iEventNum,sizeof(iEventNum),MSG_WAITALL) < 0)
+    {
+      ostringstream o;
+      o << "pdsdap_l3eventnum(): recv() failed... disconnecting.";
       PyErr_SetString(PyExc_RuntimeError,o.str().c_str());
       Py_DECREF(pdsdaq_disconnect(self));
     }

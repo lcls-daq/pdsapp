@@ -13,7 +13,8 @@ namespace Pds
   public:
     enum CmdType
     {
-      CMD_GET_CUR_EVENT_NUM = 0x1
+      CMD_GET_CUR_EVENT_NUM = 0x1,
+      CMD_GET_CUR_L3EVENT_NUM = 0x2
     };
   
     uint32_t  u32Signature;

@@ -61,6 +61,7 @@ namespace Pds {
       _pass->update_count();
       _fail->update_count();
     }
+    unsigned long long pass() const { return _pass->get_count(); }
   private:
     QLabel*   _title_pass;
     QLabel*   _title_fail;
@@ -278,6 +279,11 @@ void RunStatus::set_damage_alarm(bool alarm)
 unsigned long long RunStatus::getEventNum()
 {
   return _events->get_count();
+}
+
+unsigned long long RunStatus::getL3EventNum()
+{
+  return _l3t->pass();
 }
 
 void RunStatus::use_l3t(bool v)
