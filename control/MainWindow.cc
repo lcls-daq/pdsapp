@@ -32,6 +32,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <climits>
 
 #define DBUG
 
@@ -166,9 +167,10 @@ namespace Pds {
 
   class OfflineReport : public Appliance {
   public:
-    OfflineReport(PartitionSelect& partition, RunAllocator& runallocator) :
+    OfflineReport(PartitionSelect& partition, RunAllocator& runallocator, RunStatus& runstatus) :
       _partition(partition),
       _runallocator(runallocator),
+      _runstatus(runstatus),
       _experiment(0),
       _run(0)
     {
@@ -178,17 +180,34 @@ namespace Pds {
   public:
     Transition* transitions(Transition* tr)
     {
-      if ((tr->id()==TransitionId::BeginRun) &&
-          (tr->size() > sizeof(Transition))) {
-        // RunInfo
-        RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
-        _experiment = rinfo.experiment();
-        _run = rinfo.run();
-        std::vector<std::string> names;
-        foreach (std::string ss, _partition.deviceNames()) {
-          names.push_back(ss);
+      if (tr->id()==TransitionId::BeginRun) {
+        if (tr->size() > sizeof(Transition)) {
+          // RunInfo
+          RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
+          _experiment = rinfo.experiment();
+          _run = rinfo.run();
+          std::vector<std::string> names;
+          foreach (std::string ss, _partition.deviceNames()) {
+            names.push_back(ss);
+          }
+          _runallocator.reportDetectors(_experiment, _run, names);
+        } else {
+          _run = 0;
         }
-        _runallocator.reportDetectors(_experiment, _run, names);
+      }
+      if (tr->id()==TransitionId::EndRun) {
+        if (_run > 0) {
+          unsigned long long events, damaged, bytes;
+          _runstatus.get_counts(NULL, &events, &damaged, &bytes);
+          // do not let event counts wrap around when converting to 32-bits
+          if (events > LONG_MAX) {
+            events = LONG_MAX;
+          }
+          if (damaged > LONG_MAX) {
+            damaged = LONG_MAX;
+          }
+          _runallocator.reportTotals(_experiment, _run, (long)events, (long)damaged, (double)(bytes / 1000000000.));
+        }
       }
     return tr;
     }
@@ -200,6 +219,7 @@ namespace Pds {
   private:
     PartitionSelect& _partition;
     RunAllocator& _runallocator;
+    RunStatus&  _runstatus;
     unsigned    _experiment;
     unsigned    _run;
   };
@@ -333,7 +353,7 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(new ControlDamage(*this));
   _controlcb->add_appliance(new FileReport(*_log));
   if (_offlineclient) {
-    _controlcb->add_appliance(new OfflineReport(*_partition, *_runallocator));
+    _controlcb->add_appliance(new OfflineReport(*_partition, *_runallocator, *run));
   }
   _controlcb->add_appliance(state);
   _controlcb->add_appliance(new SeqAppliance(*_control, *state, *config, *_config,

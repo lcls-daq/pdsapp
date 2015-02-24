@@ -37,3 +37,7 @@ int MySqlRunAllocator::reportDetectors(int expt, int run, std::vector<std::strin
   return _offlineclient ? _offlineclient->reportDetectors(expt,run,names) : 0;
 }
 
+int MySqlRunAllocator::reportTotals(int expt, int run, long events, long damaged, double gigabytes) {
+  return _offlineclient ? _offlineclient->reportTotals(expt, run, events, damaged, gigabytes) : 0;
+}
+
