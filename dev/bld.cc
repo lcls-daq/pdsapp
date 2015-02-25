@@ -884,7 +884,7 @@ namespace Pds {
           _evrServer =
             new NullServer(ins,
                            header().procInfo(),
-                           sizeof(Pds::EvrData::DataV3)+256*sizeof(Pds::EvrData::FIFOEvent),
+                           sizeof(EvrDataType)+256*sizeof(Pds::EvrData::FIFOEvent),
                            EvrBufferDepth);
 
           Ins mcastIns(ins.address());
