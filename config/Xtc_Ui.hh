@@ -47,7 +47,7 @@ namespace Pds_ConfigDb {
     QListWidget* _devlist;
     QListWidget* _cmplist;
     Pds::XtcFileIterator*          _fiter;
-    std::vector<const Pds::Dgram*> _cycle;
+    std::vector<char*>             _cycle;
     int                            _icycle;
   };
 };

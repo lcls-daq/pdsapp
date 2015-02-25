@@ -191,8 +191,6 @@ Xtc_Ui::Xtc_Ui(QWidget* parent) :
 
 Xtc_Ui::~Xtc_Ui()
 {
-  if (_cfgdg_buffer)
-    delete[] _cfgdg_buffer;
   if (_l1adg_buffer)
     delete[] _l1adg_buffer;
   if (_fiter)
@@ -201,6 +199,14 @@ Xtc_Ui::~Xtc_Ui()
 
 void Xtc_Ui::set_file(QString fname)
 {
+  for(unsigned i=0; i<_cycle.size(); i++)
+    delete[] (char*)(_cycle[i]);
+
+  if (_l1adg_buffer)
+    delete[] _l1adg_buffer;
+
+  _cfgdg_buffer = _l1adg_buffer = 0;
+
   _cycle.clear();
   _icycle = 0;
 
@@ -212,13 +218,6 @@ void Xtc_Ui::set_file(QString fname)
     return;
   }
 
-  if (_cfgdg_buffer)
-    delete[] _cfgdg_buffer;
-  if (_l1adg_buffer)
-    delete[] _l1adg_buffer;
-
-  _cfgdg_buffer = _l1adg_buffer = 0;
-
   _fiter = new Pds::XtcFileIterator(fd,0x2000000);
 
   Pds::XtcFileIterator& iter = *_fiter;
@@ -226,11 +225,18 @@ void Xtc_Ui::set_file(QString fname)
   
   while((dg = iter.next())) {
     if (dg->seq.service()==Pds::TransitionId::Configure) {
-      _copy_to_buffer(dg, _cfgdg_buffer);
-      _cycle.push_back(dg);
+      char* buffer=0;
+      _copy_to_buffer(dg, buffer);
+      _cycle.push_back(buffer);
+      _cfgdg_buffer = buffer;
+      set_cycle(_icycle=0);
     }
     else if (dg->seq.service()==Pds::TransitionId::BeginCalibCycle) {
-      _cycle.push_back(dg);
+      char* buffer=0;
+      _copy_to_buffer(dg, buffer);
+      _cycle.push_back(buffer);
+      _cfgdg_buffer = buffer;
+      set_cycle(_icycle=1);
     }
     else if (dg->seq.service()==Pds::TransitionId::L1Accept) {
       _copy_to_buffer(dg, _l1adg_buffer);
@@ -257,7 +263,9 @@ void Xtc_Ui::next_cycle()
     Pds::Dgram* dg;
     while((dg = iter.next())) {
       if (dg->seq.service()==Pds::TransitionId::BeginCalibCycle) {
-	_cycle.push_back(dg);
+        char* buffer = 0;
+        _copy_to_buffer(dg, buffer);
+	_cycle.push_back(buffer);
 	if (icycle<int(_cycle.size())) break;
       }
     }
@@ -266,7 +274,7 @@ void Xtc_Ui::next_cycle()
   if (icycle>=int(_cycle.size())) return;
 
   emit set_cycle(_icycle = icycle);
-  _copy_to_buffer(_cycle[icycle], _cfgdg_buffer);
+  _cfgdg_buffer = _cycle[icycle];
   update_device_list();
 }
 
@@ -276,7 +284,7 @@ void Xtc_Ui::prev_cycle()
   if (icycle<0) return;
 
   emit set_cycle(_icycle = icycle);
-  _copy_to_buffer(_cycle[icycle], _cfgdg_buffer);
+  _cfgdg_buffer = _cycle[icycle];
   update_device_list();
 }
 
