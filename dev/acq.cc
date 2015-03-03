@@ -198,7 +198,8 @@ static void calibrate(AcqFinder& acqFinder,
 
 static void usage(char *p)
 {
-  printf("Usage: %s -i <detid> -p <platform>,<mod>,<chan> [OPTIONS]\n", p);
+  printf("Usage: %s -i <detid> -p <platform>,<mod>,<chan> [OPTIONS]\n\n", p);
+  printf("       %s -C [OPTIONS]\n", p);
   printf("\n"
          "Options:\n"
          "    -i <detid>                  detector ID (e.g. 12 for SxrEndstation)\n"
@@ -285,12 +286,12 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (detid == UINT_MAX) {
+  if (!lcalibrate && (detid == UINT_MAX)) {
     printf("%s: detid is required\n", argv[0]);
     helpFlag = true;
   }
 
-  if (platform == UINT_MAX) {
+  if (!lcalibrate && (platform == UINT_MAX)) {
     printf("%s: platform is required\n", argv[0]);
     helpFlag = true;
   }
