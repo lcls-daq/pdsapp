@@ -118,11 +118,15 @@ void VmonReaderTreeMenu::set_tree(QAbstractButton* b)
 
 void VmonReaderTreeMenu::add(const MonCds& cds)
 {
+  QList<QAbstractButton*> l = _client_bg->buttons();
+  for(QList<QAbstractButton*>::iterator it=l.begin()+1; it!=l.end(); it++)
+    if ((*it)->text()==QString(cds.desc().name()))
+      return;
+
   QRadioButton* button = new QRadioButton(cds.desc().name(),0);
   button->setChecked( false );
 
   //  Re-sort the buttons
-  QList<QAbstractButton*> l = _client_bg->buttons();
   for(QList<QAbstractButton*>::iterator it=l.begin()+1; it!=l.end(); it++) {
     _client_bg->removeButton(*it);
     _client_bg_box->layout()->removeWidget(*it);
