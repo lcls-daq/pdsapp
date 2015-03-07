@@ -34,6 +34,7 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, i
   _useTransient    (useTransient)
 {
   //  Read persistent selected nodes
+  printf("NodeGroup::NodeGroup useGroups %d\n",useGroups);
   if (useGroups<=0) {
     _read_pref(title(), 
 	       _persist, _persistTrans);
@@ -44,7 +45,7 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, i
     if (_useGroups>=2) _useGroups=2;
     _read_pref(title(), 
 	       _persist, _persistGroup, _persistTrans);
-   _read_pref(QString("%1 required").arg(title()), 
+    _read_pref(QString("%1 required").arg(title()), 
 	       _require, _requireGroup, _requireTrans);
   }    
 
@@ -183,7 +184,7 @@ void NodeGroup::add_node(int index)
     }
     else
     {
-      iNodeGroup = ( indexPersist >= 0 ? _persistGroup[indexPersist] : 1 );            
+      iNodeGroup = ( indexPersist >= 0 && _useGroups>=2 ? _persistGroup[indexPersist] : 1 );            
       if (iNodeGroup == 0) {
         printf("NodeGroup::add_node _persistGroup=0 for non EVR/BLD node [%s].  Defaulting to group 1.\n",
                qPrintable(_persist[indexPersist]));
