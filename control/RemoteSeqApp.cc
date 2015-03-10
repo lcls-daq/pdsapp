@@ -143,7 +143,7 @@ bool RemoteSeqApp::processTransitionCmd(RemoteSeqCmd& cmd)
 #endif
     } break;
   case RemoteSeqCmd::CMD_GET_CUR_L3EVENT_NUM:
-    { int64_t iEventNum = _runStatus.getEventNum();
+    { int64_t iEventNum = _runStatus.getL3EventNum();
       ::write(_socket,&iEventNum,sizeof(iEventNum));
 #ifdef DBUG
       printf("RemoteSeqApp get l3events [%ld]\n",long(iEventNum));
