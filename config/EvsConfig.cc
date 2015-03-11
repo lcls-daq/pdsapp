@@ -8,6 +8,8 @@
 #include <QtGui/QMessageBox>
 #include <QtGui/QLabel>
 
+static const double RateBase = 119000160; // an exact multiple of 360
+
 namespace Pds_ConfigDb {
 
   class EvsCode : public Parameter {
@@ -15,7 +17,7 @@ namespace Pds_ConfigDb {
     EvsCode() : 
       Parameter(NULL),
       _code  ("Code",59,59,59),
-      _rate  ("Rate [Hz]",120,0,119e6)
+      _rate  ("Rate [Hz]",120,0,RateBase)
     {}
   public:
     QLayout* initialize(QWidget*) {
@@ -38,11 +40,11 @@ namespace Pds_ConfigDb {
     void pull(const EvsConfigType& tc) {
       _code  .value = tc.eventcodes()[0].code();
       unsigned period = tc.eventcodes()[0].period();
-      _rate  .value = period ? 119.e6/double(period) : 0;
+      _rate  .value = period ? RateBase/double(period) : 0;
     }
     bool validate() {
       new(_result) Pds::EvrData::SrcEventCode(_code.value, 
-					      _rate.value ? unsigned(119e6/_rate.value+0.5) : 0,
+					      _rate.value ? unsigned(RateBase/_rate.value+0.5) : 0,
 					      0, 0, 
 					      0, 1);
       return true;
