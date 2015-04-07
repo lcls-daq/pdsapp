@@ -24,8 +24,8 @@ static bool pathOK(const char *cmd, const char *pathname)
   bool emptyFlag = false;
   char errmsg[256];
 
-  snprintf(errmsg, 255, "%s: %s", cmd, pathname);
-  if (pathname) {
+  if (pathname && cmd) {
+    snprintf(errmsg, 255, "%s: %s", cmd, pathname);
     if (stat(pathname, &buf)) {
       perror(errmsg);
     } else {
@@ -54,9 +54,9 @@ static bool pathOK(const char *cmd, const char *pathname)
         emptyFlag = true;
       }
     }
-  }
-  if (emptyFlag) {
-    fprintf(stderr, "%s: %s is empty\n", cmd, pathname);
+    if (emptyFlag) {
+      fprintf(stderr, "%s: %s is empty\n", cmd, pathname);
+    }
   }
   return (goodFlag);
 }
