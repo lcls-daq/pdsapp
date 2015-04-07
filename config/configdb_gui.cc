@@ -7,7 +7,59 @@
 #include <stdio.h>
 #include <getopt.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <dirent.h>
+
 using namespace Pds_ConfigDb;
+
+//
+// pathOK - verify that path exists and is nonempty
+//
+static bool pathOK(const char *cmd, const char *pathname)
+{
+  struct stat buf;
+  bool goodFlag = false;
+  bool emptyFlag = false;
+  char errmsg[256];
+
+  snprintf(errmsg, 255, "%s: %s", cmd, pathname);
+  if (pathname) {
+    if (stat(pathname, &buf)) {
+      perror(errmsg);
+    } else {
+      if (S_ISDIR(buf.st_mode)) {
+        DIR *dir = opendir(pathname);
+        if (dir == NULL) {
+          perror(errmsg);
+        } else {
+          struct dirent *entry;
+          // search directory
+          emptyFlag = true;
+          while ((entry = readdir(dir))) {
+            if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
+              // directory is not empty
+              goodFlag = true;
+              emptyFlag = false;
+              break;
+            }
+          }
+          (void) closedir(dir);
+        }
+      } else if (buf.st_size > 0) {
+        // file is not empty
+        goodFlag = true;
+      } else {
+        emptyFlag = true;
+      }
+    }
+  }
+  if (emptyFlag) {
+    fprintf(stderr, "%s: %s is empty\n", cmd, pathname);
+  }
+  return (goodFlag);
+}
 
 int main(int argc, char** argv)
 {
@@ -60,7 +112,7 @@ int main(int argc, char** argv)
     lusage = true;
   }
 
-  if (lusage || !dbnamed) {
+  if (lusage || !dbnamed || !pathOK(argv[0], path.c_str())) {
     printf("Usage: %s --db <path> [--edit] [-h]\n",argv[0]);
     return 1;
   }
