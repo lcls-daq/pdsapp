@@ -101,6 +101,7 @@ tgtincs_cspad2x2 := pdsdata/include ndarray/include boost/include
 tgtsrcs_acq := acq.cc
 tgtincs_acq := acqiris pdsdata/include ndarray/include boost/include 
 tgtlibs_acq := $(commonlibs) pds/acqiris acqiris/AqDrv4
+tgtlibs_acq += pds/epicstools epics/ca epics/Com
 tgtslib_acq := $(commonslib)
 
 tgtsrcs_ipimb := ipimb.cc

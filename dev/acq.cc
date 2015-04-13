@@ -183,13 +183,45 @@ static void calibrate_module(ViSession id,
   }
 }
 
+static long temperature(ViSession id, int module) {
+  long degC = 999;    // unknown temp
+  char tempstring[32];
+  sprintf(tempstring,"Temperature %d",module);
+  ViStatus status = AcqrsD1_getInstrumentInfo(id, tempstring, &degC);
+  if(status != VI_SUCCESS) {
+    degC = 999;
+    char message[256];
+    AcqrsD1_errorMessage(id,status,message);
+    printf("Acqiris id %u module %d temperature reading error: %s\n", (unsigned)id, module, message);
+  }
+  return degC;
+}
+
 static void calibrate(AcqFinder& acqFinder,
                       unsigned   nbrConverters,
-                      unsigned   calChannelMask) 
+                      unsigned   calChannelMask, 
+                      char *     pvPrefix)
 {
   printf("Calibrating %ld D1 instruments\n",acqFinder.numD1Instruments());
-  for(int i=0; i<acqFinder.numD1Instruments();i++)
+  ViSession instrumentId;
+  unsigned nbrModulesInInstrument;
+  for(int i=0; i<acqFinder.numD1Instruments();i++) {
+    if (pvPrefix) {
+      instrumentId = acqFinder.D1Id(i);
+      ViStatus status = AcqrsD1_getInstrumentInfo(instrumentId,"NbrModulesInInstrument",
+                                &nbrModulesInInstrument);
+      if (status != VI_SUCCESS) {
+        char message[256];
+        AcqrsD1_errorMessage(instrumentId,status,message);
+        printf("%s: Acqiris NbrModulesInInstrument error: %s\n", __PRETTY_FUNCTION__,  message);
+      } else {
+        for (int module = 1; module <= (int)nbrModulesInInstrument; module++) {
+          printf("*** Acqiris Temperature %d: %ld C ***\n", module, temperature(instrumentId, module));
+        }
+      }
+    }
     calibrate_module(acqFinder.D1Id(i),nbrConverters,calChannelMask);
+  }
 
   printf("Calibrating %ld T3 instruments\n",acqFinder.numT3Instruments());
   for(int i=0; i<acqFinder.numT3Instruments();i++)
@@ -206,7 +238,9 @@ static void usage(char *p)
          "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
          "    -d <devid>                  device ID \n"
          "    -t                          multi-instrument (look for more than one module, ADC or TDC, in crate)\n"
+         "    -P                          PV prefix (for status monitoring)\n"
          "    -u <alias>                  set device alias\n"
+         "    -v                          be verbose\n"
          "    -C                          calibrate\n"
          "    -c <nConverters>            number of converters (used by calibrate function only)\n"
          "    -m <mask>                   calibration channel mask (used by calibrate function only)\n");
@@ -222,15 +256,17 @@ int main(int argc, char** argv) {
   unsigned module = 0;
   unsigned channel = 0;
   bool multi_instruments_only = true;
+  char* pvPrefix = (char *)NULL;
   bool lcalibrate = false;
   unsigned nbrConverters=0;
   unsigned calChannelMask=0;
   char* uniqueid = (char *)NULL;
   bool helpFlag = false;
+  bool verboseFlag = false;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:d:p:tCc:m:u:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:d:p:tP:Cc:m:u:hv")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseUInt(optarg,detid)) {
@@ -252,6 +288,16 @@ int main(int argc, char** argv) {
       break;
     case 't':
       multi_instruments_only = false;
+      break;
+    case 'v':
+      verboseFlag = true;
+      break;
+    case 'P':
+        if (strlen(optarg) > 20) {
+          printf("PV prefix '%s' exceeds 20 chars, ignored\n", optarg);
+        } else {
+          pvPrefix = optarg;
+        }
       break;
     case 'u':
       if (!CmdLineTools::parseSrcAlias(optarg)) {
@@ -306,12 +352,16 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  if ((pvPrefix) && verboseFlag) {
+    printf("%s: PV prefix: %s\n", argv[0], pvPrefix);
+  }
+
   AcqFinder acqFinder(multi_instruments_only ? 
 		      AcqFinder::MultiInstrumentsOnly :
 		      AcqFinder::All);
 
   if (lcalibrate) {
-    calibrate(acqFinder,nbrConverters,calChannelMask);
+    calibrate(acqFinder,nbrConverters,calChannelMask,pvPrefix);
     return 0;
   }
 
@@ -326,7 +376,7 @@ int main(int argc, char** argv) {
     DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::Acqiris, i+devid);
     AcqServer* srv = new AcqServer(detInfo,_acqDataType);
     servers   .push_back(srv);
-    D1Managers.push_back(new AcqD1Manager(acqFinder.D1Id(i),*srv,*new CfgClientNfs(detInfo),sem));
+    D1Managers.push_back(new AcqD1Manager(acqFinder.D1Id(i),*srv,*new CfgClientNfs(detInfo),sem,pvPrefix));
   }
   for(int i=0; i<acqFinder.numT3Instruments();i++) {
     DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::AcqTDC, i+devid);
