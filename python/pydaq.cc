@@ -713,7 +713,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
       list<PVControl>::iterator it=clist.begin();
       while(it!=clist.end()) {
-        if (strcmp(name,it->name())==0) {
+        if (strncmp(name,it->name(),PVControl::NameSize)==0) {
           (*it) = PVControl(name,PVControl::NoArray,PyFloat_AsDouble (PyTuple_GetItem(item,1)));
           break;
         }
@@ -738,7 +738,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
       list<PVMonitor>::iterator it=mlist.begin();
       while(it!=mlist.end()) {
-        if (strcmp(name,it->name())==0) {
+        if (strncmp(name,it->name(),PVMonitor::NameSize)==0) {
           (*it) = PVMonitor(name,
                             PVMonitor::NoArray,
                             PyFloat_AsDouble (PyTuple_GetItem(item,1)),
@@ -766,7 +766,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
       list<PVLabel>::iterator it=llist.begin();
       while(it!=llist.end()) {
-        if (strcmp(name,it->name())==0) {
+        if (strncmp(name,it->name(),PVLabel::NameSize)==0) {
           (*it) = PVLabel(name, PyString_AsString(PyTuple_GetItem(item,1)));
           break;
         }
