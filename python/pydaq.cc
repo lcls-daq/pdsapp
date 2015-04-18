@@ -11,6 +11,7 @@
 
 #include "pdsapp/python/pydaq.hh"
 #include "pdsapp/control/RemoteSeqCmd.hh"
+#include "pdsapp/control/RemoteSeqResponse.hh"
 #include "pds/config/ControlConfigType.hh"
 #include "pdsdata/psddl/control.ddl.h"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -173,7 +174,8 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
     self->record   = false;
     self->partition= new RemotePartition;
     self->buffer   = new char[MaxConfigSize];
-    self->runinfo  = 0;
+    self->exptnum  = -1;
+    self->runnum   = -1;
   }
 
   return (PyObject*)self;
@@ -426,13 +428,13 @@ PyObject* pdsdaq_partition(PyObject* self)
 PyObject* pdsdaq_runnum   (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
-  return PyLong_FromLong(daq->runinfo & 0xffff);
+  return PyLong_FromLong(daq->runnum);
 }
 
 PyObject* pdsdaq_expt     (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
-  return PyLong_FromLong(daq->runinfo >> 16);
+  return PyLong_FromLong(daq->exptnum);
 }
 
 PyObject* pdsdaq_detectors (PyObject* self)
@@ -893,17 +895,25 @@ PyObject* pdsdaq_l3eventnum(PyObject* self)
 PyObject* pdsdaq_rcv      (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
-  int32_t result = -1;
-  if (::recv(daq->socket,&result,sizeof(result),MSG_WAITALL) < 0 ||
-      result < 0) {
+  Pds::RemoteSeqResponse result;
+  int r = ::recv(daq->socket,&result,sizeof(result),MSG_WAITALL);
+  if (r<0) {
+    PyErr_SetString(PyExc_ValueError,"pdsdaq_rcv interrupted");
+    return NULL;
+  }
+  else if (result.damage()) {
     ostringstream o;
-    o << "Remote DAQ failed transition " << -result << "... disconnecting.";
+    o << "Remote DAQ failed " 
+      << Pds::TransitionId::name(result.id()) 
+      << " transition... disconnecting.";
     PyErr_SetString(PyExc_RuntimeError,o.str().c_str());
     Py_DECREF(pdsdaq_disconnect(self));
     return NULL;
   }
-
-  daq->runinfo = result;
+  else {
+    daq->exptnum = result.exptnum();
+    daq->runnum  = result.runnum ();
+  }
 
   Py_INCREF(Py_None);
   return Py_None;

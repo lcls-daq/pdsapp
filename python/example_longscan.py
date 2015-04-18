@@ -4,8 +4,12 @@
 import pydaq
 import sys
 import time
+import signal
 
 from optparse import OptionParser
+
+def handle_keyb_interrupt(signal,frame):
+    daq.stop()
 
 if __name__ == "__main__":
     import sys
@@ -43,6 +47,8 @@ if __name__ == "__main__":
 
     do_record = False
     
+    oldh = signal.signal(signal.SIGINT, handle_keyb_interrupt)
+
     daq.configure(record=do_record,
                   events=options.events,
                   controls=[('EXAMPLEPV1',0),('EXAMPLEPV2',0)],
@@ -58,16 +64,21 @@ if __name__ == "__main__":
     if options.wait:
         ready = raw_input('--Hit Enter when Ready-->')
 
-    for cycle in range(options.cycles):
-        print "Cycle ", cycle
-        time.sleep(options.tsleep)
-        daq.begin(controls=[('EXAMPLEPV1',cycle),('EXAMPLEPV2',100-cycle)],
-                  labels=[('EXAMPLELABEL1','CYCLE%d'%cycle),('EXAMPLELABEL2','LCYCLE%d'%options.cycles)])
-        # enable the EVR sequence, if necessary
+    try:
+        for cycle in range(options.cycles):
+            print "Cycle ", cycle
+            time.sleep(options.tsleep)
+            daq.begin(controls=[('EXAMPLEPV1',cycle),('EXAMPLEPV2',100-cycle)],
+                      labels=[('EXAMPLELABEL1','CYCLE%d'%cycle),('EXAMPLELABEL2','LCYCLE%d'%options.cycles)])
+            # enable the EVR sequence, if necessary
 
-        # wait for disabled, then disable the EVR sequence
-        daq.end()
+            # wait for disabled, then disable the EVR sequence
+            daq.end()
+    except ValueError:
+        print 'Scan interrupted'
             
+    signal.signal(signal.SIGINT,oldh)
+
     if (do_record==True):
         print 'Recorded expt %d run %d' % (daq.experiment(),daq.runnumber())
         

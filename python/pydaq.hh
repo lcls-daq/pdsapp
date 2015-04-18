@@ -17,7 +17,8 @@ typedef struct {
   int32_t  dbkey;
   bool     record;
   char*    buffer;
-  int32_t  runinfo;
+  int32_t  exptnum;
+  int32_t  runnum;
   Pds::RemotePartition* partition;
 } pdsdaq;
 

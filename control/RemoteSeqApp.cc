@@ -5,6 +5,7 @@
 #include "PVManager.hh"
 #include "RemotePartition.hh"
 #include "RunStatus.hh"
+#include "RemoteSeqResponse.hh"
 
 #include "pdsapp/config/GlobalCfg.hh"
 #include "pds/management/PartitionControl.hh"
@@ -204,6 +205,10 @@ void RemoteSeqApp::routine()
 
             _manual.disable_control();
             _select.enable_control(false);
+
+	    _control.set_target_state(PartitionControl::Mapped);
+	    _control.wait_for_target();
+	    _control.release_target();
             
             _socket = s;
 
@@ -470,20 +475,17 @@ Transition* RemoteSeqApp::transitions(Transition* tr)
 Occurrence* RemoteSeqApp::occurrences(Occurrence* occ)
 {
   if (_socket >= 0) {
-    int info = _last_run.run() | (_last_run.experiment()<<16);
     switch (occ->id()) {
     case OccurrenceId::SequencerDone:
       _control.set_target_state(PartitionControl::Running);
-#ifdef DBUG
-      printf("RemoteSeqApp SequencerDone [%d]\n",info);
-#endif
       return 0;
-    case OccurrenceId::EvrEnabled:
-      ::write(_socket,&info,sizeof(info));
-#ifdef DBUG
-      printf("RemoteSeqApp EvrEnabled [%d]\n",info);
-#endif
+    case OccurrenceId::EvrEnabled: {
+      RemoteSeqResponse response(_last_run.experiment(),
+				 _last_run.run(),
+				 Pds::TransitionId::Enable, 0);
+      ::write(_socket,&response,sizeof(response));
       return 0;
+    }
     default:
       break;
     }
@@ -506,30 +508,22 @@ InDatagram* RemoteSeqApp::events     (InDatagram* dg)
       }
       return 0;
     }
-    int info = _last_run.run() | (_last_run.experiment()<<16);
-    if (dg->datagram().xtc.damage.value()!=0) {
-      info = -id;
-      ::write(_socket,&info,sizeof(info));
-#ifdef DBUG
-      printf("RemoteSeqApp transition [%d] damaged [%x]\n",
-             -info,dg->datagram().xtc.damage.value());
-#endif
-    }
+
+    RemoteSeqResponse response(_last_run.experiment(),
+			       _last_run.run(),
+			       dg->datagram().seq.service(),
+			       dg->datagram().xtc.damage.value());
+
+    if (dg->datagram().xtc.damage.value()!=0)
+      ::write(_socket,&response,sizeof(response));
     else if (_wait_for_configure) {
       if (id==TransitionId::Configure) {
-	::write(_socket,&info,sizeof(info));
+	::write(_socket,&response,sizeof(response));
 	_wait_for_configure = false;
-#ifdef DBUG
-        printf("RemoteSeqApp configure complete [%d]\n",info);
-#endif
       }
     }
-    else if (id==TransitionId::EndCalibCycle) {
-      ::write(_socket,&info,sizeof(info));
-#ifdef DBUG
-        printf("RemoteSeqApp endcalib complete [%d]\n",info);
-#endif
-    }
+    else if (id==TransitionId::EndCalibCycle)
+      ::write(_socket,&response,sizeof(response));
   }
   return dg;
 }
