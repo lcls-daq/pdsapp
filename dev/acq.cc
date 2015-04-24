@@ -29,6 +29,8 @@
 #include <list>
 #include <climits>
 
+static char acqFlag;
+
 using Pds::Alias::SrcAlias;
 
 namespace Pds {
@@ -239,6 +241,7 @@ static void usage(char *p)
          "    -d <devid>                  device ID \n"
          "    -t                          multi-instrument (look for more than one module, ADC or TDC, in crate)\n"
          "    -P                          PV prefix (for status monitoring)\n"
+         "    -z <period>                 period in seconds (for periodic status monitoring)\n"
          "    -u <alias>                  set device alias\n"
          "    -v                          be verbose\n"
          "    -C                          calibrate\n"
@@ -257,6 +260,7 @@ int main(int argc, char** argv) {
   unsigned channel = 0;
   bool multi_instruments_only = true;
   char* pvPrefix = (char *)NULL;
+  unsigned pvPeriod = 0;
   bool lcalibrate = false;
   unsigned nbrConverters=0;
   unsigned calChannelMask=0;
@@ -266,7 +270,7 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:d:p:tP:Cc:m:u:hv")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:d:p:tP:z:Cc:m:u:hv")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseUInt(optarg,detid)) {
@@ -291,6 +295,7 @@ int main(int argc, char** argv) {
       break;
     case 'v':
       verboseFlag = true;
+      acqFlag |= AcqManager::AcqFlagVerbose;
       break;
     case 'P':
         if (strlen(optarg) > 20) {
@@ -298,6 +303,13 @@ int main(int argc, char** argv) {
         } else {
           pvPrefix = optarg;
         }
+      break;
+    case 'z':
+      acqFlag |= AcqManager::AcqFlagZealous;
+      if (!CmdLineTools::parseUInt(optarg,pvPeriod)) {
+        printf("%s: option `-z' parsing error\n", argv[0]);
+        helpFlag = true;
+      }
       break;
     case 'u':
       if (!CmdLineTools::parseSrcAlias(optarg)) {
@@ -353,7 +365,7 @@ int main(int argc, char** argv) {
   }
 
   if ((pvPrefix) && verboseFlag) {
-    printf("%s: PV prefix: %s\n", argv[0], pvPrefix);
+    printf("%s: PV prefix: %s  period: %u\n", argv[0], pvPrefix, pvPeriod);
   }
 
   AcqFinder acqFinder(multi_instruments_only ? 
@@ -376,7 +388,7 @@ int main(int argc, char** argv) {
     DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::Acqiris, i+devid);
     AcqServer* srv = new AcqServer(detInfo,_acqDataType);
     servers   .push_back(srv);
-    D1Managers.push_back(new AcqD1Manager(acqFinder.D1Id(i),*srv,*new CfgClientNfs(detInfo),sem,pvPrefix));
+    D1Managers.push_back(new AcqD1Manager(acqFinder.D1Id(i),*srv,*new CfgClientNfs(detInfo),sem,pvPrefix,pvPeriod,&acqFlag));
   }
   for(int i=0; i<acqFinder.numT3Instruments();i++) {
     DetInfo detInfo(node.pid(), (Pds::DetInfo::Detector)detid, 0, DetInfo::AcqTDC, i+devid);
