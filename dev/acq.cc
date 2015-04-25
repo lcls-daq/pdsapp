@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <list>
 #include <climits>
@@ -240,13 +241,16 @@ static void usage(char *p)
          "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
          "    -d <devid>                  device ID \n"
          "    -t                          multi-instrument (look for more than one module, ADC or TDC, in crate)\n"
-         "    -P                          PV prefix (for status monitoring)\n"
-         "    -z <period>                 period in seconds (for periodic status monitoring)\n"
+         "    -P <prefix>[,<period>]      temperature monitoring: PV prefix (req'd) and period in sec (default %d)\n"
+         "    -z                          temperature monitoring: do not pause during data collection\n"
          "    -u <alias>                  set device alias\n"
          "    -v                          be verbose\n"
          "    -C                          calibrate\n"
          "    -c <nConverters>            number of converters (used by calibrate function only)\n"
-         "    -m <mask>                   calibration channel mask (used by calibrate function only)\n");
+         "    -m <mask>                   calibration channel mask (used by calibrate function only)\n"
+         "\n"
+         "     * Warning! Setting 'z' flag may negatively affect data quality due to crosstalk\n",
+         AcqManager::AcqTemperaturePeriod);
 }
 
 
@@ -260,7 +264,8 @@ int main(int argc, char** argv) {
   unsigned channel = 0;
   bool multi_instruments_only = true;
   char* pvPrefix = (char *)NULL;
-  unsigned pvPeriod = 0;
+  char* pComma = (char *)NULL;
+  unsigned pvPeriod = AcqManager::AcqTemperaturePeriod;
   bool lcalibrate = false;
   unsigned nbrConverters=0;
   unsigned calChannelMask=0;
@@ -270,7 +275,7 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:d:p:tP:z:Cc:m:u:hv")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:d:p:tP:zCc:m:u:hv")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseUInt(optarg,detid)) {
@@ -298,6 +303,14 @@ int main(int argc, char** argv) {
       acqFlag |= AcqManager::AcqFlagVerbose;
       break;
     case 'P':
+        pComma = strchr(optarg, ',');
+        if (pComma) {
+          *pComma++ = '\0';
+          if (!CmdLineTools::parseUInt(pComma,pvPeriod)) {
+            printf("%s: option `-P' parsing error\n", argv[0]);
+            helpFlag = true;
+          }
+        }
         if (strlen(optarg) > 20) {
           printf("PV prefix '%s' exceeds 20 chars, ignored\n", optarg);
         } else {
@@ -306,10 +319,8 @@ int main(int argc, char** argv) {
       break;
     case 'z':
       acqFlag |= AcqManager::AcqFlagZealous;
-      if (!CmdLineTools::parseUInt(optarg,pvPeriod)) {
-        printf("%s: option `-z' parsing error\n", argv[0]);
-        helpFlag = true;
-      }
+      printf("%s: 'z' flag is set. Temperature monitoring will not pause during data collection.\n", argv[0]);
+      printf("Warning!  Crosstalk may affect data quality.\n");
       break;
     case 'u':
       if (!CmdLineTools::parseSrcAlias(optarg)) {
@@ -342,6 +353,11 @@ int main(int argc, char** argv) {
       helpFlag = true;
       break;
     }
+  }
+
+  if (!pvPrefix) {
+    // no temperature monitoring, so ignore the 'z' flag
+    acqFlag &= ~AcqManager::AcqFlagZealous;
   }
 
   if (!lcalibrate && (detid == UINT_MAX)) {
