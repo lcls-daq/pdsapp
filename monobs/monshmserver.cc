@@ -147,6 +147,8 @@ public:
   InDatagram* events     (InDatagram* dg)
   {
     Dgram& dgrm = reinterpret_cast<Dgram&>(dg->datagram());
+    if (dgrm.seq.service()!=TransitionId::L1Accept)
+      printf("LiveMonitorServer dg %s\n",TransitionId::name(dgrm.seq.service()));
     return
       (XtcMonitorServer::events(&dgrm) == XtcMonitorServer::Deferred) ?
       (InDatagram*)DontDelete : dg;
