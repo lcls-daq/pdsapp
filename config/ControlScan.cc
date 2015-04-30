@@ -52,14 +52,14 @@ enum { PvTab , TriggerTab };
 ControlScan::ControlScan(QWidget* parent, Experiment& expt) :
   QWidget(0),
   _expt        (expt),
-  _steps       (new QLineEdit),
+  _steps       (new QLineEdit("1")),
   _acqB         (new QButtonGroup),
   _events_value (new QLineEdit),
   _time_value   (new QLineEdit),
   _buf_control  (new char[0x100000]),
   _buf_evr      (new char[0x100000])
 {
-  new QIntValidator(0,0x7fffffff,_steps);
+  new QIntValidator(1,0x7fffffff,_steps);
   new QDoubleValidator(_events_value);
   new QDoubleValidator(_time_value);
 
