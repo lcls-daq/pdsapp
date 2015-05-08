@@ -9,6 +9,11 @@
 #include <new>
 
 namespace Pds_ConfigDb {
+
+  // these must end in NULL
+  static const char* gain_to_name[] = { "1x", "2x", "4x", NULL };
+  static const char* readoutSpeed_to_name[] = { "3.000000 MHz", "1.000000 MHz", "0.050000 MHz", NULL };
+
   class AndorConfig::Private_Data : public Parameter {
   static const char*  lsEnumFanMode[];
   public:
@@ -26,8 +31,8 @@ namespace Pds_ConfigDb {
       _enumFanMode          ("Fan Mode",            AndorConfigType::ENUM_FAN_FULL, lsEnumFanMode),
       _enumBaselineClamp    ("Baseline Clamp",      Enums::Disabled_Disable, Enums::Disabled_Names ),
       _enumHighCapacity     ("High Capacity",       Enums::Disabled_Disable, Enums::Disabled_Names ),
-      _u8GainIndex          ("Gain Index",          0,    0,    5),
-      _u16ReadoutSpeedIndex ("Readout Speed",       0,    0,    5),
+      _u8GainIndex          ("Gain",                0 /* 1x */, gain_to_name),
+      _u16ReadoutSpeedIndex ("Readout Speed",       0 /* 3 MHz */, readoutSpeed_to_name),
       _boxTrigger           ("External Trigger",    false),
       _u16ExposureEventCode ("Exposure Event Code", 1,    1,    255),
       _u32NumDelayShots     ("Num Integration Shots",  1,    0,    0x7FFFFFFF)
@@ -166,8 +171,8 @@ namespace Pds_ConfigDb {
     Enumerated<AndorConfigType::EnumFanMode>  _enumFanMode;
     Enumerated<Enums::Disabled>               _enumBaselineClamp;
     Enumerated<Enums::Disabled>               _enumHighCapacity;
-    NumericInt<uint8_t>     _u8GainIndex;
-    NumericInt<uint16_t>    _u16ReadoutSpeedIndex;
+    Enumerated<uint8_t>     _u8GainIndex;
+    Enumerated<uint16_t>    _u16ReadoutSpeedIndex;
     CheckValue              _boxTrigger;
     NumericInt<uint16_t>    _u16ExposureEventCode;
     NumericInt<uint32_t>    _u32NumDelayShots;
