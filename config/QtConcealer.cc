@@ -39,3 +39,8 @@ void QtConcealer::show(bool v)
   for(unsigned j=0; j<_widgets.size(); j++)
     _widgets[j]->setVisible(v);
 }
+
+void QtConcealer::hide(bool v)
+{
+  show(!v);
+}
