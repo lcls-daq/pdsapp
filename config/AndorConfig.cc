@@ -16,7 +16,7 @@ namespace Pds_ConfigDb {
       _uWidth               ("Width",               16, 1,      4152),
       _uHeight              ("Height",              16, 1,      4128),
       _uOrgX                ("Orgin X",             0,    0,    4151),
-      _uOrgY                ("Orgin WHY",           0,    0,    4127),
+      _uOrgY                ("Orgin Y",             0,    0,    4127),
       _uBinX                ("Binning X",           1,    1,    2048),
       _boxBinning           ("Full Binning Mode",   false),
       _uBinY                ("Binning Y",           1,    1,    2048),
