@@ -67,12 +67,15 @@ typedef Pds::Bld::BldDataFEEGasDetEnergyV1 BldDataFEEGasDetEnergy;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV2 BldDataGMD;
 typedef Pds::Bld::BldDataSpectrometerV1 SpectrometerType;
-typedef Pds::Bld::BldDataAnalogInputV1 BldDataAI;
+typedef Pds::Bld::BldDataAnalogInputV1 AnalogInputType;
 
 static const Pds::TypeId::Type Id_SpectrometerType = 
   Pds::TypeId::Type(SpectrometerType::TypeId);
 static Pds::TypeId _spectrometerType(Id_SpectrometerType,
                                      SpectrometerType::Version);
+
+static Pds::TypeId _analogInputType(Pds::TypeId::Id_AnalogInput,
+                                    AnalogInputType::Version);
 
 //    typedef BldDataAcqADCV1 BldDataAcqADC;
 using Pds::Bld::BldDataPhaseCavity;
@@ -251,7 +254,7 @@ namespace Pds {
         dg->insert(tc,&_frameFexConfig);
       }
       //      TEST_CACHE(AcqMask        ,Id_SharedAcq      ,BldDataAcqADC);
-      TEST_CREAT(AIMask, Id_AnalogInput, BldDataAI);
+      TEST_CACHE(AIMask, _analogInputType, AnalogInputType);
     }
   }
 #undef TEST_CACHE
@@ -345,6 +348,7 @@ namespace Pds {
       REQUIRE(PimImageConfig)
       REQUIRE(Opal1kConfig)
       REQUIRE(Spectrometer)
+      REQUIRE(AnalogInput)
       default:
         _dg->insert(*xtc,xtc->payload());
         break;
@@ -353,78 +357,51 @@ namespace Pds {
       return 1;
     }
   private:
-    bool _require(const Xtc& xtc, const IpimbConfigType& c) {
-      char* p = _cache.fetch(xtc);
-      if (!p || memcmp(p,&c,sizeof(c))) {
-        _cache.update(xtc,(const char*)&c, sizeof(c));
+    bool _require(const Xtc& xtc, const void* c, unsigned sizeofc) {
+      void* p = _cache.fetch(xtc);
+      if (!p || memcmp(p,c,sizeofc)) {
+        _cache.update(xtc, (const char*)c, sizeofc);
+        _reconfigure(xtc);
+        return true;
+      }
+      return false;
+    }
+    bool _require_nz(const Xtc& xtc, const void* c, unsigned sizeofc) {
+      void* p = _cache.fetch(xtc);
+      if (!p || memcmp(p,c,sizeofc)) {
+        _cache.update(xtc, (const char*)c, sizeofc);
         if (!p) _reconfigure(xtc);
         return true;
       }
       return false;
     }
 
-    bool _require(const Xtc& xtc, const PimImageConfigType& c) {
-      void* p = _cache.fetch(xtc);
-      if (!p || memcmp(p,&c,sizeof(c))) {
-        _cache.update(xtc, (const char*)&c, sizeof(c));
-        if (!p) _reconfigure(xtc);
-        return true;
-      }
-      return false;
-    }
+    bool _require(const Xtc& xtc, const IpimbConfigType& c)
+    { return _require_nz(xtc,&c,sizeof(c)); }
+    bool _require(const Xtc& xtc, const PimImageConfigType& c)
+    { return _require_nz(xtc,&c,sizeof(c)); }
+    bool _require(const Xtc& xtc, const TM6740ConfigType& c)
+    { return _require(xtc,&c,sizeof(c)); }
+    bool _require(const Xtc& xtc, const Opal1kConfigType& c)
+    { return _require(xtc,&c,sizeof(c)); }
+    bool _require(const Xtc& xtc, const SpectrometerType& c)
+    { _require(xtc,&c,3*sizeof(uint32_t)); 
+      return true; }
+    bool _require(const Xtc& xtc, const AcqConfigType& c)
+    { return _require(xtc,&c,sizeof(c)); }
+    bool _require(const Xtc& xtc, const AnalogInputType& c)
+    { _require(xtc,&c,sizeof(c));
+      return true; }
 
-    bool _require(const Xtc& xtc,
-                  const TM6740ConfigType& c) {
-      void* p = _cache.fetch(xtc);
-      if (!p || memcmp(p,&c,sizeof(c))) {
-        _cache.update(xtc, (const char*)&c, sizeof(c));
-        _reconfigure(xtc);
-        return true;
-      }
-      return false;
-    }
-
-    bool _require(const Xtc& xtc,
-                  const Opal1kConfigType& c) {
-      void* p = _cache.fetch(xtc);
-      if (!p || memcmp(p,&c,sizeof(c))) {
-        _cache.update(xtc, (const char*)&c, sizeof(c));
-        _reconfigure(xtc);
-        return true;
-      }
-      return false;
-    }
-
-    bool _require(const Xtc& xtc,
-                  const SpectrometerType& c) {
-      void* p = _cache.fetch(xtc);
-      //  Only the first 3 uint32's describe the configuration
-      if (!p || memcmp(p,&c,3*sizeof(uint32_t))) {
-        _cache.update(xtc, (const char*)&c, sizeof(c));
-        _reconfigure(xtc);
-      }
-      return true;
-    }
-
-    bool _require(const Xtc& xtc,
-                  const AcqConfigType& c) {
-      char* p = _cache.fetch(xtc);
-      if (!p || memcmp(p,&c,sizeof(c))) {
-        _cache.update(xtc, (const char*)&c, sizeof(c));
-        _reconfigure(xtc);
-        return true;
-      }
-      return false;
-    }
   private:
     void _reconfigure(const Xtc& xtc) {
       if (!_reconfigure_requested) {
-  _reconfigure_requested=true;
-  UserMessage* msg = new(&_occ) UserMessage;
-  msg->append("BLD Configuration change.  Begin running again.");
-  post(msg);
-  Occurrence* occ = new(&_occ) Occurrence(OccurrenceId::ClearReadout);
-  post(occ);
+        _reconfigure_requested=true;
+        UserMessage* msg = new(&_occ) UserMessage;
+        msg->append("BLD Configuration change.  Begin running again.");
+        post(msg);
+        Occurrence* occ = new(&_occ) Occurrence(OccurrenceId::ClearReadout);
+        post(occ);
       }
     }
     void _abort(const TypeId& id) {
