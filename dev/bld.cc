@@ -67,6 +67,8 @@ typedef Pds::Bld::BldDataFEEGasDetEnergyV1 BldDataFEEGasDetEnergy;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV2 BldDataGMD;
 typedef Pds::Bld::BldDataSpectrometerV1 SpectrometerType;
+typedef Pds::Bld::BldDataAnalogInputV1 BldDataAI;
+
 static const Pds::TypeId::Type Id_SpectrometerType = 
   Pds::TypeId::Type(SpectrometerType::TypeId);
 static Pds::TypeId _spectrometerType(Id_SpectrometerType,
@@ -203,6 +205,8 @@ namespace Pds {
   uint64_t SpecMask = (1ULL<<BldInfo::FeeSpec0) |
     (1ULL<<BldInfo::SxrSpec0) |
     (1ULL<<BldInfo::XppSpec0);
+  uint64_t AIMask = (1ULL<<BldInfo::XppAin01) |
+    (1ULL<<BldInfo::XcsAin01);
 #define TEST_CREAT(mask, idType, dataType)                  \
   if (im & mask) {                                          \
     Xtc tc(TypeId(TypeId::idType,dataType::Version),        \
@@ -247,6 +251,7 @@ namespace Pds {
         dg->insert(tc,&_frameFexConfig);
       }
       //      TEST_CACHE(AcqMask        ,Id_SharedAcq      ,BldDataAcqADC);
+      TEST_CREAT(AIMask, Id_AnalogInput, BldDataAI);
     }
   }
 #undef TEST_CACHE
@@ -437,164 +442,6 @@ namespace Pds {
     unsigned    _pid;
   };
 
-  //
-  //  Add temporary configuration objects to indicate which detectors are coming
-  //
-  class BldConfigApp : public Appliance {
-  public:
-    BldConfigApp(const Src& src) :
-      _configtc       (_xtcType, src),
-      _config_payload (0) {}
-    ~BldConfigApp() { if (_config_payload) delete[] _config_payload; }
-  public:
-    InDatagram* events     (InDatagram* dg) {
-      if (dg->datagram().seq.service()==TransitionId::Configure)
-        dg->insert(_configtc, _config_payload);
-      return dg;
-    }
-    Transition* transitions(Transition* tr) {
-      if (tr->id()==TransitionId::Map) {
-        const Allocation& alloc = reinterpret_cast<const Allocate*>(tr)->allocation();
-        uint64_t m = alloc.bld_mask();
-#define CheckType(bldType)  (m & (1ULL<<BldInfo::bldType))
-#define SizeType(dataType)  (sizeof(Xtc) + sizeof(dataType))
-#define AddType(bldType,idType,dataType) {        \
-    Xtc& xtc = *new(p) Xtc(TypeId(TypeId::idType,(uint32_t)dataType::Version), BldInfo(0,BldInfo::bldType)); \
-    xtc.extent = SizeType(dataType);        \
-    p += xtc.extent;            \
-  }
-#define SizeCamType         (sizeof(Xtc)*3 + sizeof(TM6740ConfigType) + sizeof(FrameFexConfigType) + sizeof(PimImageConfigType))
-#define AddCamXtc(bldType,idType,dataType) {                            \
-    Xtc& xtc = *new(p) Xtc(idType, BldInfo(0,BldInfo::bldType));  \
-    xtc.extent += sizeof(dataType);       \
-    p += xtc.extent;            \
-  }
-#define AddCamType(bldType) {                                           \
-    AddCamXtc(bldType,_tm6740ConfigType  ,TM6740ConfigType);  \
-    AddCamXtc(bldType,_frameFexConfigType,FrameFexConfigType);  \
-    AddCamXtc(bldType,_pimImageConfigType,PimImageConfigType);  \
-  }
-  unsigned extent = 0;
-  if (CheckType(EBeam))           extent += SizeType(BldDataEBeam);
-  if (CheckType(PhaseCavity))     extent += SizeType(BldDataPhaseCavity);
-  if (CheckType(FEEGasDetEnergy)) extent += SizeType(BldDataFEEGasDetEnergy);
-  if (CheckType(Nh2Sb1Ipm01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(Nh2Sb1Ipm02))     extent += SizeType(BldDataIpimb);
-  if (CheckType(HxxUm6Imb01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(HxxUm6Imb02))     extent += SizeType(BldDataIpimb);
-  if (CheckType(HfxDg2Imb01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(HfxDg2Imb02))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XcsDg3Imb03))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XcsDg3Imb04))     extent += SizeType(BldDataIpimb);
-  if (CheckType(HfxDg3Imb01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(HfxDg3Imb02))     extent += SizeType(BldDataIpimb);
-  if (CheckType(HxxDg1Cam  ))     extent += SizeCamType;
-  if (CheckType(HfxDg2Cam  ))     extent += SizeCamType;
-  if (CheckType(HfxDg3Cam  ))     extent += SizeCamType;
-  if (CheckType(XcsDg3Cam  ))     extent += SizeCamType;
-  if (CheckType(HfxMonCam  ))     extent += SizeCamType;
-  if (CheckType(HfxMonImb01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(HfxMonImb02))     extent += SizeType(BldDataIpimb);
-  if (CheckType(HfxMonImb03))     extent += SizeType(BldDataIpimb);
-  if (CheckType(MecLasEm01))      extent += SizeType(BldDataIpimb);
-  if (CheckType(MecTctrPip01))    extent += SizeType(BldDataIpimb);
-  if (CheckType(MecTcTrDio01))    extent += SizeType(BldDataIpimb);
-  if (CheckType(MecXt2Ipm02))     extent += SizeType(BldDataIpimb);
-  if (CheckType(MecXt2Ipm03))     extent += SizeType(BldDataIpimb);
-  if (CheckType(MecHxmIpm01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(GMD))             extent += SizeType(BldDataGMD);
-  if (CheckType(CxiDg1Imb01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(CxiDg2Imb01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(CxiDg2Imb02))     extent += SizeType(BldDataIpimb);
-  if (CheckType(CxiDg4Imb01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(CxiDg1Pim  ))     extent += SizeCamType;
-  if (CheckType(CxiDg2Pim  ))     extent += SizeCamType;
-  if (CheckType(CxiDg4Pim  ))     extent += SizeCamType;
-  if (CheckType(XppMonPim0 ))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XppMonPim1 ))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XppSb2Ipm  ))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XppSb3Ipm  ))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XppSb3Pim  ))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XppSb4Pim  ))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XppEndstation0))  extent += SizeType(BldDataIpimb);
-  if (CheckType(XppEndstation1))  extent += SizeType(BldDataIpimb);
-  if (CheckType(MecXt2Pim02))     extent += SizeType(BldDataIpimb);
-  if (CheckType(MecXt2Pim03))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XcsSb1Ipm01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XcsSb1Ipm02))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XcsSb2Ipm01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XcsSb2Ipm02))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XcsGonIpm01))     extent += SizeType(BldDataIpimb);
-  if (CheckType(XcsLamIpm01))     extent += SizeType(BldDataIpimb);
-
-  _configtc.extent = sizeof(Xtc)+extent;
-  if (extent) {
-    if (_config_payload) delete[] _config_payload;
-    char* p = _config_payload = new char[extent];
-    if (CheckType(EBeam))           AddType(EBeam,           Id_EBeam,           BldDataEBeam);
-    if (CheckType(PhaseCavity))     AddType(PhaseCavity,     Id_PhaseCavity,     BldDataPhaseCavity);
-    if (CheckType(FEEGasDetEnergy)) AddType(FEEGasDetEnergy, Id_FEEGasDetEnergy, BldDataFEEGasDetEnergy );
-    if (CheckType(Nh2Sb1Ipm01))     AddType(Nh2Sb1Ipm01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(Nh2Sb1Ipm02))     AddType(Nh2Sb1Ipm02,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(HxxUm6Imb01))     AddType(HxxUm6Imb01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(HxxUm6Imb02))     AddType(HxxUm6Imb02,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(HfxDg2Imb01))     AddType(HfxDg2Imb01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(HfxDg2Imb02))     AddType(HfxDg2Imb02,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XcsDg3Imb03))     AddType(XcsDg3Imb03,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XcsDg3Imb04))     AddType(XcsDg3Imb04,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(HfxDg3Imb01))     AddType(HfxDg3Imb01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(HfxDg3Imb02))     AddType(HfxDg3Imb02,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(HxxDg1Cam  ))     AddCamType(HxxDg1Cam);
-    if (CheckType(HfxDg2Cam  ))     AddCamType(HfxDg2Cam);
-    if (CheckType(HfxDg3Cam  ))     AddCamType(HfxDg3Cam);
-    if (CheckType(XcsDg3Cam  ))     AddCamType(XcsDg3Cam);
-    if (CheckType(HfxMonCam  ))     AddCamType(HfxMonCam);
-    if (CheckType(HfxMonImb01))     AddType(HfxMonImb01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(HfxMonImb02))     AddType(HfxMonImb02,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(HfxMonImb03))     AddType(HfxMonImb03,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(MecLasEm01))      AddType(MecLasEm01,      Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(MecTctrPip01))    AddType(MecTctrPip01,    Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(MecTcTrDio01))    AddType(MecTcTrDio01,    Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(MecXt2Ipm02))     AddType(MecXt2Ipm02,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(MecXt2Ipm03))     AddType(MecXt2Ipm03,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(MecHxmIpm01))     AddType(MecHxmIpm01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(GMD))             AddType(GMD,             Id_GMD,             BldDataGMD);
-    if (CheckType(CxiDg1Imb01))     AddType(CxiDg1Imb01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(CxiDg2Imb01))     AddType(CxiDg2Imb01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(CxiDg2Imb02))     AddType(CxiDg2Imb02,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(CxiDg4Imb01))     AddType(CxiDg4Imb01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(CxiDg1Pim  ))     AddCamType(CxiDg1Pim);
-    if (CheckType(CxiDg2Pim  ))     AddCamType(CxiDg2Pim);
-    if (CheckType(CxiDg4Pim  ))     AddCamType(CxiDg4Pim);
-    if (CheckType(XppMonPim0 ))     AddType(XppMonPim0,      Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XppMonPim1 ))     AddType(XppMonPim1,      Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XppSb2Ipm  ))     AddType(XppSb2Ipm ,      Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XppSb3Ipm  ))     AddType(XppSb3Ipm ,      Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XppSb3Pim  ))     AddType(XppSb3Pim ,      Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XppSb4Pim  ))     AddType(XppSb4Pim ,      Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XppEndstation0))  AddType(XppEndstation0,  Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XppEndstation1))  AddType(XppEndstation1,  Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(MecXt2Pim02))     AddType(MecXt2Pim02,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(MecXt2Pim03))     AddType(MecXt2Pim03,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XcsSb1Ipm01))     AddType(XcsSb1Ipm01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XcsSb1Ipm02))     AddType(XcsSb1Ipm02,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XcsSb2Ipm01))     AddType(XcsSb2Ipm01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XcsSb2Ipm02))     AddType(XcsSb2Ipm02,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XcsGonIpm01))     AddType(XcsGonIpm01,     Id_SharedIpimb,     BldDataIpimb);
-    if (CheckType(XcsLamIpm01))     AddType(XcsLamIpm01,     Id_SharedIpimb,     BldDataIpimb);
-
-  }
-#undef CheckType
-#undef SizeType
-#undef AddType
-      }
-      return tr;
-    }
-  private:
-    Xtc      _configtc;
-    char*    _config_payload;
-  };
-
   class BldDbg : public Appliance {
     enum { Period=300 };
   public:
@@ -657,7 +504,6 @@ namespace Pds {
       if (_lCompress)
         (new FrameCompApp(TM6740ConfigType::Row_Pixels*TM6740ConfigType::Column_Pixels*2))->connect(inlet);
       (new BldParseApp(_cache))->connect(inlet);
-      //      (new BldConfigApp(_sources.front()))->connect(inlet);
       (new BldDbg(static_cast<EbBase*>(streams.wire())))->connect(inlet);
     }
     void failed(Reason reason)
