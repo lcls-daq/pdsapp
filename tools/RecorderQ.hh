@@ -2,6 +2,7 @@
 #define PDS_RECORDERQ
 
 #include "pdsapp/tools/Recorder.hh"
+#include "pdsapp/tools/DgSummary.hh"
 #include "pds/service/Semaphore.hh"
 #include "pds/offlineclient/OfflineClient.hh"
 
@@ -21,6 +22,7 @@ namespace Pds {
               const char* expname=NULL);
     ~RecorderQ() {}
   public:
+    Transition* transitions(Transition* in);
     InDatagram* events     (InDatagram* in);
     void        record_time(double, const ClockTime&);
   private:
@@ -30,6 +32,7 @@ namespace Pds {
     bool       _busy;
     MonEntryTH1F* _rec_time;
     MonEntryTH1F* _rec_time_log;
+    DgSummary  _summary;
   };
 
 }

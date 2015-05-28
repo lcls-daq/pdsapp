@@ -15,18 +15,20 @@ namespace Pds {
 
   class QueuedAction : public Routine {
   public:
-    QueuedAction(InDatagram* in, RecorderQ& rec, Semaphore* sem = 0) :
-      _in(in), _rec(rec), _sem(sem) {}
+    QueuedAction(InDatagram* in, RecorderQ& rec, DgSummary& sum, Semaphore* sem = 0) :
+      _in(in), _rec(rec), _sum(sum), _sem(sem) {}
     ~QueuedAction() {}
   public:
     void routine() {
-
+      InDatagram* out = _sum.events(_in);
       ClockTime now(_in->datagram().seq.clock());
       unsigned sample = SysClk::sample();
-      _rec.post(_rec.Recorder::events(_in));
+      _rec.Recorder::events(_in);
       _rec.record_time(double(SysClk::since(sample))/
                        double(_in->xtc.sizeofPayload()),
                        now);
+      delete _in;
+      _rec.post(out);
 
       if (_sem)	_sem->give();
       delete this;
@@ -34,6 +36,7 @@ namespace Pds {
   private:
     InDatagram* _in;
     RecorderQ&  _rec;
+    DgSummary&  _sum;
     Semaphore*  _sem;
   };
 };
@@ -65,16 +68,21 @@ RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize
     group->add(_rec_time_log); }
 }
 
+Transition* RecorderQ::transitions(Transition* in)
+{
+  return _summary.transitions(Recorder::transitions(in));
+}
+
 InDatagram* RecorderQ::events(InDatagram* in) 
 {
   if (in->datagram().seq.service()==TransitionId::L1Accept) {
     if (_busy)
       return in;
     _busy = _dont_queue;
-    _task->call(new QueuedAction(in,*this));
+    _task->call(new QueuedAction(in,*this,_summary));
   }
   else {
-    _task->call(new QueuedAction(in,*this,&_sem));
+    _task->call(new QueuedAction(in,*this,_summary,&_sem));
     _sem.take();
   }
   return (InDatagram*)Appliance::DontDelete;
