@@ -23,6 +23,7 @@ namespace Pds_ConfigDb {
                                               NULL };
   static const char* res_to_name[] =        { "1920x1920 (binning 2x2)", 
                                               "960x960 (binning 4x4)", 
+                                              "384x384 (binning 10x10)",
                                               NULL };
 
   static const char* dark_to_name_expert[] = { "Keep current background", "Update background on config", NULL };
@@ -154,7 +155,7 @@ namespace Pds_ConfigDb {
   class RayonixConfig::Private_Data {
   public:
     enum Mode       { standardMode=0 };
-    enum Resolution { res1920x1920=0, res960x960=1 }; 
+    enum Resolution { res1920x1920=0, res960x960=1, res384x384=2}; 
     enum Dark       { keepDark=0, newDark=1 };
     enum Raw        { correctedFrames=0 };
     enum Trigger    { frameTransferMode=0, bulbMode=1 };
@@ -184,6 +185,7 @@ namespace Pds_ConfigDb {
       switch (in) {
         case res1920x1920: return (2);
         case res960x960: return (4);
+        case res384x384: return(10);
         default: break;
       }
       return (2);
