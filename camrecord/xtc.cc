@@ -12,6 +12,7 @@
 #include<unistd.h>
 #include<errno.h>
 #include<sys/stat.h>
+#include<pthread.h>
 
 #include<new>
 #include<vector>
@@ -29,6 +30,7 @@
 #include"pdsdata/psddl/bld.ddl.h"
 #include"pdsdata/psddl/alias.ddl.h"
 #include"pdsdata/psddl/epics.ddl.h"
+#include"pdsdata/psddl/smldata.ddl.h"
 #include"pds/service/NetServer.hh"
 #include"pds/service/Ins.hh"
 #include"LogBook/Connection.h"
@@ -42,10 +44,10 @@ struct event;
 
 class xtcsrc {
  public:
-    xtcsrc(int _id, int _sync, string _name, int _crit)
+    xtcsrc(int _id, int _sync, string _name, int _crit, int _isbig)
         : id(_id), sync(_sync), name(_name), cnt(0), val(NULL),
           len(0), ref(NULL), sec(0), nsec(0), ev(NULL), critical(_crit),
-          damagecnt(0) {};
+          damagecnt(0), isbig(_isbig) {};
     int   id;
     int   sync;                   // Is this a synchronous source?
     string name;
@@ -60,18 +62,27 @@ class xtcsrc {
                                   // we declare damage.  If we don't have any critical sources, we just
                                   // throw away partials.
     int   damagecnt;
+    int   isbig;
 };
+
+#define SML_CONFIG_SIZE (sizeof(Xtc) + sizeof(SmlData::ConfigV1))
+#define SML_OFFSET_SIZE (sizeof(Xtc) + sizeof(SmlData::OrigDgramOffsetV1))
+#define SML_PROXY_SIZE  (sizeof(Xtc) + sizeof(SmlData::ProxyV1))
 
 #define CHUNK_SIZE 107374182400LL
 // #define CHUNK_SIZE      100000000LL  // For debug!
 FILE *fp = NULL;
+FILE *sfp = NULL;
 Index::IndexList _indexList;
 static char *fname;            // The current output file name.
+static char *sfname;           // The current small output file name.
 static char *iname;            // The current index file name.
 static char *cpos;             // Where in the current file name to change the chunk number.
+static char *cspos;            // Where in the current small file name to change the chunk number.
 static char *cipos;            // Where in the current index name to change the chunk number.
 static int chunk = 0;          // The current chunk number.
 static int64_t fsize = 0;      // The size of the current file, so far.
+static int64_t sfsize = 0;     // The size of the current small file, so far.
 static sigset_t blockset;
 static int started = 0;        // We are actually running.
 static int paused = 0;         // We are temporarily paused.
@@ -85,6 +96,7 @@ static int haveasync = 0;      // Number of asynchronous sources that sent us a 
 static int cfgcnt = 0;         // Number of sources that sent us their configuration.
 static int totalcfglen = 0;    // Total number of bytes in all of the configuration records.
 static int totaldlen   = 0;    // Total number of bytes in all of the data records.
+static int totalsdlen  = SML_OFFSET_SIZE;    // Total number of bytes in all of the small data records.
 static unsigned int csec = 0;  // Configuration timestamp.
 static unsigned int cnsec = 0;
 static unsigned int cfid = 0;
@@ -102,6 +114,7 @@ static ProcInfo *evtInfo = NULL;
 static ProcInfo *segInfo = NULL;
 static ProcInfo *ctrlInfo = NULL;
 static Xtc    damagextc(TypeId(TypeId::Any, 1));
+static pthread_mutex_t datalock = PTHREAD_MUTEX_INITIALIZER;
 
 #define MAX_EVENTS    128
 static struct event {
@@ -127,7 +140,7 @@ static struct transition_queue {
 static int transidx = 0;
 static int cfgdone = 0;
 
-static FILE *myfopen(char *name, char *flags)
+static FILE *myfopen(char *name, char *flags, int doreg)
 {
     FILE *fp = fopen(name, flags);
     if (!fp)
@@ -148,6 +161,8 @@ static FILE *myfopen(char *name, char *flags)
             /* This can't be good.  Better not tell the data mover about it! */
             return fp;
         }
+        if (!doreg)
+            return fp;
         try {
             LogBook::Connection *conn;
             conn = LogBook::Connection::open(logbook[0], logbook[1], logbook[2], logbook[3],
@@ -229,7 +244,54 @@ static void setup_datagram(TransitionId::Value val)
     seg = new (&dg->xtc) Xtc(TypeId(TypeId::Id_Xtc, 1), *segInfo);
 }
 
-static void write_datagram(TransitionId::Value val, int extra)
+static char *get_sml_config(int threshold)
+{
+    static char buf[SML_CONFIG_SIZE];
+    memset(buf, 0, sizeof(buf));
+    Xtc *xtc = new ((char *) buf) Xtc(TypeId(TypeId::Id_SmlDataConfig, 1),
+                                      Src(Level::Recorder));
+    new (xtc->alloc(sizeof(SmlData::ConfigV1)))
+        SmlData::ConfigV1(threshold);
+    return buf;
+}
+
+static char *get_sml_offset(int64_t offset, uint32_t extent)
+{
+    static char buf[SML_OFFSET_SIZE];
+    memset(buf, 0, sizeof(buf));
+    Xtc *xtc = new ((char *) buf) Xtc(TypeId(TypeId::Id_SmlDataOrigDgramOffset, 1),
+                                      Src(Level::Recorder));
+    new (xtc->alloc(sizeof(SmlData::OrigDgramOffsetV1)))
+         SmlData::OrigDgramOffsetV1(offset, extent);
+    return buf;
+}
+
+static char *get_sml_proxy(int64_t offset, uint32_t extent, Src &src) 
+{
+    static char buf[SML_PROXY_SIZE];
+    memset(buf, 0, sizeof(buf));
+    Xtc *xtc = new ((char *) buf) Xtc(TypeId(TypeId::Id_SmlDataProxy, 1), src);
+    new (xtc->alloc(sizeof(SmlData::ProxyV1)))
+         SmlData::ProxyV1(offset, TypeId(TypeId::Id_Frame, 1), extent);
+    return buf;
+}
+
+static int myfwrite(void *buf, int size)
+{
+    if (!fwrite(buf, size, 1, fp))
+        return 0;
+    fsize += size;
+    fflush(fp);
+
+    if (!fwrite(buf, size, 1, sfp))
+        return 0;
+    sfsize += size;
+    fflush(sfp);
+
+    return 1;
+}
+
+static void write_datagram(TransitionId::Value val, int extra, int diff)
 {
     sigset_t oldsig;
 
@@ -245,6 +307,17 @@ static void write_datagram(TransitionId::Value val, int extra)
     }
     fsize += sizeof(Dgram) + sizeof(Xtc);
     fflush(fp);
+
+    seg->extent    += diff;
+    dg->xtc.extent += diff;
+
+    if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, sfp)) {
+        printf("Write failed!\n");
+        exit(1);
+    }
+    sfsize += sizeof(Dgram) + sizeof(Xtc);
+    fflush(fp);
+
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
 }
 
@@ -303,26 +376,22 @@ static void write_xtc_config(void)
     } else
         printf("No PV alias info!\n");
 
-    write_datagram(TransitionId::Configure, totalcfglen);
+    write_datagram(TransitionId::Configure, totalcfglen, SML_CONFIG_SIZE);
     if (pvcnt) {
         *reinterpret_cast<uint32_t *>(xtcpv->alloc(sizeof(uint32_t))) = pvcnt;
         for (vector<Epics::PvConfigV1 *>::iterator it = pvalias.begin(); it != pvalias.end(); it++) {
             new (xtcpv->alloc(sizeof(Epics::PvConfigV1))) Epics::PvConfigV1(**it);
         }
-        if (!fwrite(xtcpv, xtcpv->extent, 1, fp)) {
+        if (!myfwrite(xtcpv, xtcpv->extent)) {
             printf("Cannot write to file!\n");
             exit(1);
         }
-        fsize += xtcpv->extent;
-        fflush(fp);
     }
     for (i = 0; i < numsrc; i++) {
-        if (!fwrite(src[i]->val, src[i]->len, 1, fp)) {
+        if (!myfwrite(src[i]->val, src[i]->len)) {
             printf("Cannot write to file!\n");
             exit(1);
         }
-        fsize += src[i]->len;
-        fflush(fp);
         delete src[i]->val;
         src[i]->val = NULL;
         src[i]->len = 0;
@@ -332,19 +401,23 @@ static void write_xtc_config(void)
         for (vector<Alias::SrcAlias *>::iterator it = alias.begin(); it != alias.end(); it++) {
             new (xtc->alloc(sizeof(Alias::SrcAlias))) Alias::SrcAlias(**it);
         }
-        if (!fwrite(xtc1, xtc1->extent, 1, fp)) {
+        if (!myfwrite(xtc1, xtc1->extent)) {
             printf("Cannot write to file!\n");
             exit(1);
         }
-        fsize += xtc1->extent;
-        fflush(fp);
     }
+    if (!fwrite(get_sml_config(1024), SML_CONFIG_SIZE, 1, sfp)) {
+        printf("Cannot write to file!\n");
+        exit(1);
+    }
+    sfsize += SML_CONFIG_SIZE;
+
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
 
     if (!havetransitions) {
-        write_datagram(TransitionId::BeginRun,        0);
-        write_datagram(TransitionId::BeginCalibCycle, 0);
-        write_datagram(TransitionId::Enable,          0);
+        write_datagram(TransitionId::BeginRun,        0, 0);
+        write_datagram(TransitionId::BeginCalibCycle, 0, 0);
+        write_datagram(TransitionId::Enable,          0, 0);
 
         begin_run();
         started = 1;
@@ -391,29 +464,41 @@ void initialize_xtc(char *outfile)
     evlist = &events[0];
 
     /*
-     * outfile can either end in ".xtc" or not.  If it doesn't, we will add
-     * "-c00.xtc" to the first file.  If it does, the first file will have
-     * exactly this name, but if we go to a second, we will insert "-cNN".
+     * outfile can either end in ".xtc" or not.  Strip this off.
      */
-    i = strlen(outfile) - 4;
-    if (i < 0 || strcmp(outfile + i, ".xtc")) {
-        /* No final ".xtc" */
-        fname = new char[i + 12]; // Add space for "-cNN.xtc"
-        sprintf(fname, "%s-c00.xtc", outfile);
-        cpos = fname + i + 4;
-    } else {
-        /* Final ".xtc" */
-        fname = new char[i + 8];  // Add space for "-cNN.xtc"
-        strcpy(fname, outfile);
-        cpos = fname + i;
+    i = strlen(outfile);
+    if (i >= 4 && !strcmp(outfile + i - 4, ".xtc")) {
+        i -= 4;
+        outfile[i] = 0;
     }
-    if (!(fp = myfopen(fname, "w"))) {
+
+    fname = new char[i + 8]; // Add space for "-cNN.xtc"
+    sprintf(fname, "%s-c00.xtc", outfile);
+    cpos = fname + i;
+    base = rindex(fname, '/');
+
+    sfname = new char[i + 22]; // Add space for "smalldata/" and "-cNN.smd.xtc"
+    if (base) {
+        *base++ = 0;
+        sprintf(sfname, "%s/smalldata/%s", fname, base);
+        *--base = '/';
+    } else {
+        sprintf(sfname, "smalldata/%s", fname);
+    }
+    strcpy(sfname + i + 10, "-c00.smd.xtc");
+    cspos = sfname + i + 10;
+
+    if (!(fp = myfopen(fname, "w", 1))) {
         printf("Cannot open %s for output!\n", fname);
         exit(0);
     } else
         printf("Opened %s for writing.\n", fname);
+    if (!(sfp = myfopen(sfname, "w", 0))) {
+        printf("Cannot open %s for output!\n", sfname);
+        exit(0);
+    } else
+        printf("Opened %s for writing.\n", sfname);
     iname = new char[i + 25];
-    base = rindex(fname, '/');
     if (base) {
         *base++ = 0;
         sprintf(iname, "%s/index/%s.idx", fname, base);
@@ -440,7 +525,7 @@ void initialize_xtc(char *outfile)
 /*
  * Generate a unique id for this source.
  */
-int register_xtc(int sync, string name, int critical)
+int register_xtc(int sync, string name, int critical, int isbig)
 {
     // Make all of the names equal length!
     if (name.length() > maxname) {
@@ -452,7 +537,7 @@ int register_xtc(int sync, string name, int critical)
     }
     while (name.length() != maxname)
         name.append(" ");
-    src.push_back(new xtcsrc(numsrc, sync, name, critical));
+    src.push_back(new xtcsrc(numsrc, sync, name, critical, isbig));
     if (sync)
         syncsrc++;
     else
@@ -484,6 +569,10 @@ void register_pv_alias(std::string name, int idx, DetInfo &sourceInfo)
  */
 void configure_xtc(int id, char *xtc, int size, unsigned int secs, unsigned int nsecs)
 {
+    if (pthread_mutex_trylock(&datalock)) {
+        printf("configure_xtc(%p) can't get lock!\n", (void *)pthread_self());
+        pthread_mutex_lock(&datalock);
+    }
 #ifdef TRACE
     printf("%08x:%08x C %d\n", secs, nsecs, id);
 #endif
@@ -511,6 +600,7 @@ void configure_xtc(int id, char *xtc, int size, unsigned int secs, unsigned int 
     if (fp != NULL && cfgcnt == numsrc && csec != 0) {
         write_xtc_config();
     }
+    pthread_mutex_unlock(&datalock);
 }
 
 static void reset_event(struct event *ev)
@@ -554,6 +644,8 @@ void send_event(struct event *ev)
 {
     sigset_t oldsig;
     int damagesize = 0;
+    int sdamagesize = 0;
+    unsigned int segext, dgxext;
     bool bInvalidData = false;
     bool bStopUpdate = false;
 
@@ -583,10 +675,16 @@ void send_event(struct event *ev)
         if (!ev->data[i]) {
             damagesize += src[i]->len - sizeof(Xtc); // Instead of the full data, we're going to write
                                                      // an empty Xtc!
+            if (src[i]->isbig)
+                sdamagesize += SML_PROXY_SIZE - sizeof(Xtc);
+            else
+                sdamagesize += src[i]->len - sizeof(Xtc);
             src[i]->damagecnt++;
         }
     }
 
+    segext = seg->extent;
+    dgxext = dg->xtc.extent;
     if (damagesize) {
         seg->extent    -= damagesize;
         dg->xtc.extent -= damagesize;
@@ -605,31 +703,77 @@ void send_event(struct event *ev)
 
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
     _indexList.startNewNode(*dg, fsize, bInvalidData);
+
+    int64_t svoff = fsize;
+
     if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
         printf("Write failed!\n");
         exit(1);
     }
     fsize += sizeof(Dgram) + sizeof(Xtc);
+
+    uint32_t svext = dg->xtc.extent;
+
+    /* Remove the full size, add in the small size. */
+    seg->extent    += totalsdlen - totaldlen;
+    dg->xtc.extent += totalsdlen - totaldlen;
+    if (damagesize) {
+        seg->extent    += damagesize - sdamagesize;
+        dg->xtc.extent += damagesize - sdamagesize;
+    }
+
+    if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, sfp)) {
+        printf("Write failed!\n");
+        exit(1);
+    }
+    sfsize += sizeof(Dgram) + sizeof(Xtc);
+
+    if (!fwrite(get_sml_offset(svoff, svext), SML_OFFSET_SIZE, 1, sfp)) {
+        printf("Cannot write to file!\n");
+        exit(1);
+    }
+    sfsize += SML_OFFSET_SIZE;
+
     if (!bInvalidData)
         _indexList.updateSegment(*seg);
+
+    /* Restore the datagram! */
+    seg->extent = segext;
+    dg->xtc.extent = dgxext;
+    if (damagesize) {
+        seg->damage     = 0;
+        dg->xtc.damage  = 0;
+    }
+
     for (int i = 0; i < numsrc; i++) {
         if (ev->data[i]) {
             if (!bInvalidData && !bStopUpdate)
                 _indexList.updateSource(*(Xtc *)ev->data[i], bStopUpdate);
-            if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
-                printf("Write failed!\n");
-                exit(1);
+            if (src[i]->isbig) {
+                if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
+                    printf("Write failed!\n");
+                    exit(1);
+                }
+                if (!fwrite(get_sml_proxy(fsize, src[i]->len, src[i]->src), SML_PROXY_SIZE, 1, sfp)) {
+                    printf("Write failed!\n");
+                    exit(1);
+                }
+                fsize += src[i]->len;
+                sfsize += SML_PROXY_SIZE;
+            } else {
+                if (!myfwrite(ev->data[i], src[i]->len)) {
+                    printf("Write failed!\n");
+                    exit(1);
+                }
             }
-            fsize += src[i]->len;
         } else {
             damagextc.src = src[i]->src;
             if (!bInvalidData && !bStopUpdate)
                 _indexList.updateSource(damagextc, bStopUpdate);
-            if (!fwrite(&damagextc, sizeof(Xtc), 1, fp)) {
+            if (!myfwrite(&damagextc, sizeof(Xtc))) {
                 printf("Write failed!\n");
                 exit(1);
             }
-            fsize += sizeof(Xtc);
         }
     }
     if (!bInvalidData) {
@@ -641,25 +785,25 @@ void send_event(struct event *ev)
     if (fsize >= CHUNK_SIZE) { /* Next chunk! */
         write_idx_file();
         fclose(fp);
+        fclose(sfp);
         sprintf(cpos, "-c%02d.xtc", ++chunk);
+        sprintf(cspos, "-c%02d.smd.xtc", chunk);
         sprintf(cipos, "-c%02d.xtc.idx", chunk);
-        if (!(fp = myfopen(fname, "w"))) {
+        if (!(fp = myfopen(fname, "w", 1))) {
             printf("Cannot open %s for output!\n", fname);
             exit(0);
         } else
             printf("Opened %s for writing.\n", fname);
+        if (!(sfp = myfopen(sfname, "w", 0))) {
+            printf("Cannot open %s for output!\n", sfname);
+            exit(0);
+        } else
+            printf("Opened %s for writing.\n", sfname);
         _indexList.reset();
         _indexList.setXtcFilename(fname);
         fsize = 0;
     }
     record_cnt++;
-
-    if (damagesize) {
-        seg->extent    += damagesize;
-        dg->xtc.extent += damagesize;
-        seg->damage     = 0;
-        dg->xtc.damage  = 0;
-    }
 }
 
 static struct event *find_event(unsigned int sec, unsigned int nsec)
@@ -749,14 +893,20 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
     xtcsrc *s = src[id];
     struct event *ev, *cur;
 
+    if (pthread_mutex_trylock(&datalock)) {
+        printf("data_xtc(%p) can't get lock!\n", (void *)pthread_self());
+        pthread_mutex_lock(&datalock);
+    }
     s->cnt++;
     /*
      * Just go home if:
      *    - We aren't running yet.
      *    - We don't have all of the asynchronous PVs.
      */
-    if (s->sync && haveasync != asyncsrc)
+    if (s->sync && haveasync != asyncsrc) {
+        pthread_mutex_unlock(&datalock);
         return;
+    }
     if (!started) {
         /*
          * Only BLD configurations give us a timestamp.  So if we are only recording
@@ -784,8 +934,10 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
             }
             cfid = 0x1ffff;
             write_xtc_config();
-        } else
+        } else {
+            pthread_mutex_unlock(&datalock);
             return;
+        }
     }
 
     /*
@@ -799,6 +951,10 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
     if (!s->len) { // First time we've seen this data!
         s->len = hdr->extent;
         totaldlen += hdr->extent;
+        if (s->isbig)
+            totalsdlen += SML_PROXY_SIZE;
+        else
+            totalsdlen += hdr->extent;
         if (++havedata == numsrc) {
             // Initialize the header now that we know its length.
             setup_datagram(TransitionId::L1Accept);
@@ -816,6 +972,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
             printf("%08x:%08x AI%d -> event %d\n", sec, nsec, id, s->ev->id);
 #endif
             haveasync++;
+            pthread_mutex_unlock(&datalock);
             return;
         }
     }
@@ -825,6 +982,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
      */
     if (!(ev = find_event(sec, nsec))) {
         delete buf;
+        pthread_mutex_unlock(&datalock);
         return;
     }
     if (ev->data[id]) {
@@ -843,6 +1001,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
                buf[12], buf[13], buf[14], buf[15]);
 #endif
         delete buf;
+        pthread_mutex_unlock(&datalock);
         return;
     }
 
@@ -904,6 +1063,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
     s->sec = sec;
     s->nsec = nsec;
     s->ev = ev;
+    pthread_mutex_unlock(&datalock);
 }
 
 void cleanup_xtc(void)
@@ -918,10 +1078,10 @@ void cleanup_xtc(void)
             cnsec = dnsec;
             cfid = dnsec & 0x1ffff;
         }
-        write_datagram(TransitionId::Disable,       0);
-        write_datagram(TransitionId::EndCalibCycle, 0);
-        write_datagram(TransitionId::EndRun,        0);
-        write_datagram(TransitionId::Unconfigure,   0);
+        write_datagram(TransitionId::Disable,       0, 0);
+        write_datagram(TransitionId::EndCalibCycle, 0, 0);
+        write_datagram(TransitionId::EndRun,        0, 0);
+        write_datagram(TransitionId::Unconfigure,   0, 0);
     }
 }
 
@@ -929,8 +1089,10 @@ void cleanup_index(void)
 {
     if (fp) {
         fflush(fp);
+        fflush(sfp);
         write_idx_file();
         fclose(fp);
+        fclose(sfp);
     }
 }
 
@@ -969,10 +1131,10 @@ void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int f
     case TransitionId::BeginRun:
     case TransitionId::BeginCalibCycle:
     case TransitionId::EndCalibCycle:
-        write_datagram((TransitionId::Value) id, 0);
+        write_datagram((TransitionId::Value) id, 0, 0);
         break;
     case TransitionId::Enable:
-        write_datagram(TransitionId::Enable, 0);
+        write_datagram(TransitionId::Enable, 0, 0);
         if (!started)
             begin_run();
         if (havedata == numsrc) {
@@ -985,12 +1147,12 @@ void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int f
         paused = 0;
         break;
     case TransitionId::Disable:
-        write_datagram(TransitionId::Disable, 0);
+        write_datagram(TransitionId::Disable, 0, 0);
         paused = 1;
         break;
     case TransitionId::EndRun:
-        write_datagram(TransitionId::EndRun, 0);
-        // write_datagram(TransitionId::Unconfigure, 0);
+        write_datagram(TransitionId::EndRun, 0, 0);
+        // write_datagram(TransitionId::Unconfigure, 0, 0);
         cleanup_ca();
         cleanup_index();
         exit(0);

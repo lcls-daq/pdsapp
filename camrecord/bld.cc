@@ -229,7 +229,7 @@ class bldconn {
         printf("BLD at address %d on device %s has fd %d\n", _address, device.c_str(), fd);
 #endif
         add_socket(fd);
-        xid = register_xtc(1, name, 0); // BLDs -> not critical.
+        xid = register_xtc(1, name, 0, 0); // BLDs -> not critical and not big.
     }
     static bldconn *index(int idx) {
         if (idx >= 0 && idx < (int) conns.size())

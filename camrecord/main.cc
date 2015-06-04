@@ -422,11 +422,13 @@ static void initialize(char *config)
     if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
         char buf[1024];
         *s = 0;
-        sprintf(buf, "umask %s; mkdir -p %s/index", expid == -1 ? "0" : "2", outfile);
+        sprintf(buf, "umask %s; mkdir -p %s/index %s/smalldata", 
+                expid == -1 ? "0" : "2", outfile, outfile);
         *s = '/';
         system(buf);
     } else {
-        system(expid == -1 ? "umask 0; mkdir index" : "umask 2; mkdir index");
+        system(expid == -1 ? "umask 0; mkdir index smalldata" 
+                           : "umask 2; mkdir index smalldata");
     }
     initialize_xtc(outfile);
 }

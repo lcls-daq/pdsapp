@@ -56,7 +56,7 @@ extern void cleanup_ca(void);
 
 /* xtc.cc */
 extern void initialize_xtc(char *outfile);
-extern int register_xtc(int sync, std::string name, int critical);
+extern int register_xtc(int sync, std::string name, int critical, int isbig);
 extern void register_alias(std::string name, Pds::DetInfo &sourceInfo);
 extern void register_pv_alias(std::string name, int idx, Pds::DetInfo &sourceInfo);
 extern void configure_xtc(int id, char *buf, int size, unsigned int secs, unsigned int nsecs);
