@@ -185,7 +185,11 @@ static void record(string name, const char *arg)
     case symbol::CAMERA_TYPE:
         printf("Found %s -> CA to (%s,%s) at %s.\n", name.c_str(), 
                s->detector.c_str(), s->camtype.c_str(), s->pvname.c_str());
-        create_ca(s->name, s->detector, s->camtype, s->pvname, s->binned, 1);
+        if (!strncmp(s->pvname.c_str(), "DUMMY:", 6)) {
+            printf("Fake symbol, not recording!\n");
+        } else {
+            create_ca(s->name, s->detector, s->camtype, s->pvname, s->binned, 1);
+        }
         break;
     case symbol::PV_TYPE:
         printf("Found %s -> CA to (EpicsArch, NoDevice) at %s.\n",
