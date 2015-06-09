@@ -435,8 +435,9 @@ static void get_handler(struct event_handler_args args)
     int hdrsize = sizeof(EpicsPvCtrlHeader);
     int ctrlsize = dbr_size_n(args.type, args.count);
 
-    if (hdrsize % 4)
-        hdrsize += 4 - (hdrsize % 4); /* Sigh.  Padding in the middle! */
+#if 0
+    /* NO PADDING BETWEEN DATA STRUCTURES IN EpicsPvCtrl*! */
+#endif
 
     char             *buf = (char *) calloc(1, sizeof(Xtc) + hdrsize + ctrlsize);
     Xtc              *cfg = new (buf) Xtc(TypeId(TypeId::Id_Epics, 1), sourceInfo);
@@ -449,8 +450,11 @@ static void get_handler(struct event_handler_args args)
     free(buf); /* delete ~cfg? */
 
     hdrsize = sizeof(EpicsPvHeader);
+#if 1
+    /* BUT THERE *IS* PADDING BETWEEN DATA STRUCTURES IN EpicsPvTime*! */
     if (hdrsize % 4)
         hdrsize += 4 - (hdrsize % 4); /* Sigh.  Padding in the middle! */
+#endif
     c->hdrlen = sizeof(Xtc) + hdrsize;
     buf = (char *) calloc(1, c->hdrlen);
     c->hdr = new (buf) Xtc(TypeId(TypeId::Id_Epics, 1), sourceInfo);
