@@ -28,7 +28,7 @@
 
 static void usage(const char *p)
 {
-  printf("Usage: %s -i <device info> -p <platform>,<mod>,<chan> [-D <port>] [-u <alias>] [-v] [-h] [-d <flags>]\n", p);
+  printf("Usage: %s -i <device info> -p <platform>,<mod>,<chan> [-D <port>] [-u <alias>] [-v] [-a <cpu>] [-h] [-d <flags>]\n", p);
 }
 
 static void help()
@@ -41,6 +41,7 @@ static void help()
          "  -D    Data port                                 (default: %d)\n"
          "  -u    Device alias                              [Default: none]\n"
          "  -v    Increase verbosity                        (may be repeated)\n"
+         "  -a    Affinity CPU ID\n"
          "  -h    Help: print this message and exit\n"
          "  -d    Debug flags\n"
          "Debug flags:\n"
