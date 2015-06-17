@@ -242,18 +242,28 @@ PyObject* pdsdaq_connect(PyObject* self)
   sa.sin_addr.s_addr = htonl(daq->addr);
   sa.sin_port        = htons(Control_Port+daq->platform);
 
-  if (::connect(s, (sockaddr*)&sa, sizeof(sa)) < 0) {
+  int nb;
+  char buff[256];
+  uint32_t len=0;
+  uint32_t key;
+
+  Py_BEGIN_ALLOW_THREADS
+  nb = ::connect(s, (sockaddr*)&sa, sizeof(sa));
+  Py_END_ALLOW_THREADS
+
+  if (nb < 0) {
     ::close(s);
     PyErr_SetString(PyExc_RuntimeError,"Connect failed");
     return NULL;
   }
 
-  daq->socket = s;
-
   while(1) {
 
-    uint32_t len=0;
-    if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
+    Py_BEGIN_ALLOW_THREADS
+    nb = ::recv(s, &len, sizeof(len), MSG_WAITALL);
+    Py_END_ALLOW_THREADS
+
+    if (nb < 0)
     {
       printf("pdsdaq_connect(): get dbpath len failed.  Is DAQ allocated?\n");
       break;
@@ -268,15 +278,17 @@ PyObject* pdsdaq_connect(PyObject* self)
       break;
     }
 
-    char buff[256];
-    if (::recv(s, buff, len, MSG_WAITALL) != len)
+    Py_BEGIN_ALLOW_THREADS
+    nb = ::recv(s, buff, len, MSG_WAITALL);
+    Py_END_ALLOW_THREADS
+
+    if (nb != int(len))
     {
       printf("pdsdaq_connect(): get dbpath string failed\n");
       break;
     }
 
     buff[len] = 0;
-//    *strrchr(buff,'/') = 0;
     strcpy(daq->dbpath,buff);
 
 #ifdef DBUG
@@ -286,8 +298,12 @@ PyObject* pdsdaq_connect(PyObject* self)
     /*
      * Get dbkey
      */
-    uint32_t key;
-    if (::recv(s, &key, sizeof(key), MSG_WAITALL) < 0)
+    
+    Py_BEGIN_ALLOW_THREADS
+    nb = ::recv(s, &key, sizeof(key), MSG_WAITALL);
+    Py_END_ALLOW_THREADS
+
+    if (nb < 0)
     {
       printf("pdsdaq_connect(): get dbkey failed\n");
       break;
@@ -304,7 +320,11 @@ PyObject* pdsdaq_connect(PyObject* self)
      * Get dbalias
      */
     len=0;
-    if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
+    Py_BEGIN_ALLOW_THREADS
+    nb = ::recv(s, &len, sizeof(len), MSG_WAITALL);
+    Py_END_ALLOW_THREADS
+
+    if (nb < 0)
     {
       printf("pdsdaq_connect(): get alias len failed\n");
       break;
@@ -316,7 +336,11 @@ PyObject* pdsdaq_connect(PyObject* self)
       break;
     }
 
-    if (::recv(s, buff, len, MSG_WAITALL) != len)
+    Py_BEGIN_ALLOW_THREADS
+    nb = ::recv(s, buff, len, MSG_WAITALL);
+    Py_END_ALLOW_THREADS
+
+    if (nb != int(len))
     {
       printf("pdsdaq_connect(): get alias string failed\n");
       break;
@@ -332,7 +356,11 @@ PyObject* pdsdaq_connect(PyObject* self)
     /*
     * Get partition selection
     */
-    if (::recv(s, &len, sizeof(len), MSG_WAITALL) < 0)
+    Py_BEGIN_ALLOW_THREADS
+    nb = ::recv(s, &len, sizeof(len), MSG_WAITALL);
+    Py_END_ALLOW_THREADS
+
+    if (nb < 0)
     {
       printf("pdsdaq_connect(): get partition len failed\n");
       break;
@@ -344,12 +372,20 @@ PyObject* pdsdaq_connect(PyObject* self)
       break;
     }
 
-    if (::recv(s, daq->partition, len, MSG_WAITALL) != len)
+    RemotePartition partition;
+    
+    Py_BEGIN_ALLOW_THREADS
+    nb = ::recv(s, &partition, len, MSG_WAITALL);
+    Py_END_ALLOW_THREADS
+
+    if (nb != int(len))
     {
       printf("pdsdaq_connect(): get partition failed\n");
       break;
     }
 
+    daq->socket = s;
+    *daq->partition = partition;
 #ifdef DBUG
     printf("pdsdaq_connect received partition %p\n",daq->partition);
     for(unsigned j=0; j<daq->partition->nodes(); j++) {
@@ -368,6 +404,7 @@ PyObject* pdsdaq_connect(PyObject* self)
     return Py_None;
   }
 
+  daq->socket = s;
   Py_DECREF(pdsdaq_disconnect(self));
   PyErr_SetString(PyExc_RuntimeError,"Initial query failed");
   return NULL;
@@ -859,7 +896,14 @@ PyObject* pdsdaq_eventnum(PyObject* self)
     Pds::RemoteSeqCmd cmd(Pds::RemoteSeqCmd::CMD_GET_CUR_EVENT_NUM);
     ::write(daq->socket, &cmd, sizeof(cmd));
 
-    if (::recv(daq->socket,&iEventNum,sizeof(iEventNum),MSG_WAITALL) < 0)
+    int s = daq->socket;
+
+    int nb;
+    Py_BEGIN_ALLOW_THREADS
+    nb = ::recv(s,&iEventNum,sizeof(iEventNum),MSG_WAITALL);
+    Py_END_ALLOW_THREADS
+
+    if (nb < 0)
     {
       ostringstream o;
       o << "pdsdap_eventnum(): recv() failed... disconnecting.";
@@ -877,10 +921,16 @@ PyObject* pdsdaq_l3eventnum(PyObject* self)
 
   pdsdaq* daq = (pdsdaq*)self;
   if (daq->state >= Configured) {
+    int s = daq->socket;
     Pds::RemoteSeqCmd cmd(Pds::RemoteSeqCmd::CMD_GET_CUR_L3EVENT_NUM);
-    ::write(daq->socket, &cmd, sizeof(cmd));
+    ::write(s, &cmd, sizeof(cmd));
 
-    if (::recv(daq->socket,&iEventNum,sizeof(iEventNum),MSG_WAITALL) < 0)
+    int nb;
+    Py_BEGIN_ALLOW_THREADS
+    nb = ::recv(s,&iEventNum,sizeof(iEventNum),MSG_WAITALL);
+    Py_END_ALLOW_THREADS
+
+    if (nb < 0)
     {
       ostringstream o;
       o << "pdsdap_l3eventnum(): recv() failed... disconnecting.";
@@ -896,7 +946,11 @@ PyObject* pdsdaq_rcv      (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
   Pds::RemoteSeqResponse result;
-  int r = ::recv(daq->socket,&result,sizeof(result),MSG_WAITALL);
+  int s = daq->socket;
+  int r;
+  Py_BEGIN_ALLOW_THREADS
+  r = ::recv(s,&result,sizeof(result),MSG_WAITALL);
+  Py_END_ALLOW_THREADS
   if (r<0) {
     PyErr_SetString(PyExc_ValueError,"pdsdaq_rcv interrupted");
     return NULL;
