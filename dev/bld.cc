@@ -209,7 +209,8 @@ namespace Pds {
     (1ULL<<BldInfo::SxrSpec0) |
     (1ULL<<BldInfo::XppSpec0);
   uint64_t AIMask = (1ULL<<BldInfo::XppAin01) |
-    (1ULL<<BldInfo::XcsAin01);
+    (1ULL<<BldInfo::XcsAin01) |
+    (1ULL<<BldInfo::AmoAin01);
 #define TEST_CREAT(mask, idType, dataType)                  \
   if (im & mask) {                                          \
     Xtc tc(TypeId(TypeId::idType,dataType::Version),        \
