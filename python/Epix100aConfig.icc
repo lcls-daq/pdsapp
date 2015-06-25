@@ -54,20 +54,20 @@ PyObject* pds_Epix100aConfig_get    (PyObject*   self, PyObject* args)
 
   char* ubegin = xtc->payload + isize*icycle;
 
+  PyObject* o    = PyDict_New();
+  unsigned n     = 0;
+  
   if(xtc->contains.version()==1) {
     const Pds::Epix::Config100aV1* cfg = 
       reinterpret_cast<const Pds::Epix::Config100aV1*>(ubegin);
 
-    PyObject* o = PyDict_New();
-    Epix100aConfigShadow* s = (Epix100aConfigShadow*)cfg;
-    for (unsigned i=0; i<Pds::Epix100aConfig::ConfigV1::NumberOfRegisters; i++) {
+    Epix100aConfigShadowV1* s = (Epix100aConfigShadowV1*)cfg;
+    for (unsigned i=0; i<Pds::Epix100aConfig_V1::ConfigV1::NumberOfRegisters; i++) {
       PyDict_SetItemString(o, 
-          s->name((Pds::Epix100aConfig::ConfigV1::Registers)i),
-          PyLong_FromLong(s->get((Pds::Epix100aConfig::ConfigV1::Registers)i)));
-    }
-    
-    unsigned n = cfg->numberOfAsics();
-    
+        s->name((Pds::Epix100aConfig_V1::ConfigV1::Registers)i),
+        PyLong_FromLong(s->get((Pds::Epix100aConfig_V1::ConfigV1::Registers)i)));
+    } 
+    n = cfg->numberOfAsics();
     printf("Retrieving asics\n");
     { PyObject* l = PyList_New(n);
       for(unsigned i=0; i<n; i++)
@@ -99,10 +99,52 @@ PyObject* pds_Epix100aConfig_get    (PyObject*   self, PyObject* args)
       }
       PyDict_SetItemString(o, "calibPixelConfigArray", rows);
     }
-
     return o;
   }
+  else if (xtc->contains.version()==2) {
+    const Pds::Epix::Config100aV2* cfg =
+      reinterpret_cast<const Pds::Epix::Config100aV2*>(ubegin);
+    Epix100aConfigShadow* s = (Epix100aConfigShadow*)cfg;
+    for (unsigned i=0; i<Pds::Epix100aConfig::ConfigV2::NumberOfRegisters; i++) {
+      PyDict_SetItemString(o, 
+          s->name((Pds::Epix100aConfig::ConfigV2::Registers)i),
+          PyLong_FromLong(s->get((Pds::Epix100aConfig::ConfigV2::Registers)i)));
+      
+    }
+    n = cfg->numberOfAsics();
+    printf("Retrieving asics\n");
+    { PyObject* l = PyList_New(n);
+      for(unsigned i=0; i<n; i++)
+        PyList_SetItem(l,i,get_asic(&cfg->asics(i)));
+      PyDict_SetItemString(o,"asics",l); }
 
+    printf("Retrieving Pixel Config Array\n");
+    ndarray<const uint16_t,2> a = cfg->asicPixelConfigArray();
+    { PyObject* rows = PyList_New(a.shape()[0]);
+      for (unsigned j=0; j<a.shape()[0]; j++) {
+        PyObject* pixels = PyList_New(a.shape()[1]);
+        for (unsigned k=0; k<a.shape()[1]; k++) {
+          PyList_SetItem(pixels, k, PyLong_FromLong(a[j][k]));
+        }
+        PyList_SetItem(rows, j, pixels);
+      }
+      PyDict_SetItemString(o, "asicPixelConfigArray", rows);
+    }
+
+    printf("Retrieving Calib Config Array\n");
+    ndarray<const uint8_t,2> b = cfg->calibPixelConfigArray();
+    { PyObject* rows = PyList_New(b.shape()[0]);
+      for (unsigned j=0; j<b.shape()[0]; j++) {
+        PyObject* pixels = PyList_New(b.shape()[1]);
+        for (unsigned k=0; k<b.shape()[1]; k++) {
+          PyList_SetItem(pixels, k, PyLong_FromLong(b[j][k]));
+        }
+        PyList_SetItem(rows, j, pixels);
+      }
+      PyDict_SetItemString(o, "calibPixelConfigArray", rows);
+    }
+    return o;
+  }
   //  Throw an exception
   return NULL;
 }
@@ -129,22 +171,36 @@ PyObject* pds_Epix100aConfig_set    (PyObject*   self, PyObject* args)
   PyObject* o = 0;
   PyObject* in = 0;
   int icycle = 0;
+  unsigned isize = 0;
+  unsigned usize = 0;
   if (PyArg_ParseTuple(args,"O|I",&o,&icycle)==0)
     return NULL;
 
   pdsxtc* xtc = (pdsxtc*)self;
       
-  Pds::Epix::Config100aV1* myConfig = new Pds::Epix::Config100aV1(
-      PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerRow")), 
-      PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerColumn")), 
-      PyLong_AsLong(PyDict_GetItemString(o, "NumberOfRowsPerAsic")), 
-      PyLong_AsLong(PyDict_GetItemString(o, "NumberOfPixelsPerAsicRow")),
-      PyLong_AsLong(PyDict_GetItemString(o, "CalibrationRowCountPerASIC")));
+  if (xtc->contains.version()==1) {
+    Pds::Epix::Config100aV1* myConfig = new Pds::Epix::Config100aV1(
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerRow")), 
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerColumn")), 
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfRowsPerAsic")), 
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfPixelsPerAsicRow")),
+        PyLong_AsLong(PyDict_GetItemString(o, "CalibrationRowCountPerASIC")));
+    isize = myConfig->_sizeof();
+    usize = isize*(icycle+1);
+    delete myConfig;
+  }
 
-  unsigned isize = myConfig->_sizeof();
-  unsigned usize = isize*(icycle+1);
-
-  delete myConfig;
+  else if (xtc->contains.version()==2) {
+    Pds::Epix::Config100aV2* myConfig = new Pds::Epix::Config100aV2(
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerRow")), 
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerColumn")), 
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfRowsPerAsic")), 
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfPixelsPerAsicRow")),
+        PyLong_AsLong(PyDict_GetItemString(o, "CalibrationRowCountPerASIC")));
+    isize = myConfig->_sizeof();
+    usize = isize*(icycle+1);
+    delete myConfig;
+  }
   
 //  printf("pds_Epix100aConfig_set isize(%u) usize(%u) icycle(%u)\n", isize, usize, icycle);
 
@@ -164,10 +220,10 @@ PyObject* pds_Epix100aConfig_set    (PyObject*   self, PyObject* args)
     
 //    printf("pds_Epix100aConfig_set cfg %p\n", cfg);
 
-    Epix100aConfigShadow* s = new(ubegin)Epix100aConfigShadow(true);
-    for (unsigned i=0; i<Pds::Epix100aConfig::ConfigV1::NumberOfRegisters; i++) {
-      in = PyDict_GetItemString(o, s->name((Pds::Epix100aConfig::ConfigV1::Registers)i));
-      s->set((Pds::Epix100aConfig::ConfigV1::Registers)i, PyLong_AsLong(in));
+    Epix100aConfigShadowV1* s = new(ubegin)Epix100aConfigShadowV1(true);
+    for (unsigned i=0; i<Pds::Epix100aConfig_V1::ConfigV1::NumberOfRegisters; i++) {
+      in = PyDict_GetItemString(o, s->name((Pds::Epix100aConfig_V1::ConfigV1::Registers)i));
+      s->set((Pds::Epix100aConfig_V1::ConfigV1::Registers)i, PyLong_AsLong(in));
     }
     
 //    printf("pds_Epix100aConfig_set n %u, r %u, p, %u, cfg %p, s %p\n", n, r, p, cfg, s);
@@ -179,13 +235,84 @@ PyObject* pds_Epix100aConfig_set    (PyObject*   self, PyObject* args)
 //        q++;
 //      }
 //      printf("Config ---\n");
-//      for (unsigned i=0; i<Pds::Epix100aConfig::ConfigV1::NumberOfRegisters; i++) {
-//        in = PyDict_GetItemString(o, s->name((Pds::Epix100aConfig::ConfigV1::Registers)i));
+//      for (unsigned i=0; i<Pds::Epix100aConfig_V1::ConfigV1::NumberOfRegisters; i++) {
+//        in = PyDict_GetItemString(o, s->name((Pds::Epix100aConfig_V1::ConfigV1::Registers)i));
 //        printf("\t%s  =  %u shadow has %u, offset is %u\n", 
-//            s->name((Pds::Epix100aConfig::ConfigV1::Registers)i), 
+//            s->name((Pds::Epix100aConfig_V1::ConfigV1::Registers)i), 
 //            PyLong_AsLong(in), 
 //            s->get((Pds::Epix100aConfig::ConfigV1::Registers)i),
 //            s->offset((Pds::Epix100aConfig::ConfigV1::Registers)i));
+//      }  
+//    }
+
+    if ((in = PyDict_GetItemString(o,"asics"))) {
+      for(unsigned q=0; q<PyList_Size(in); q++) {
+        const Asic100aConfigV1& asic = cfg->asics(q);
+        Asic100aConfigV1* ncptr = (Asic100aConfigV1*) &asic;
+        if (!set_asic(ncptr,PyList_GetItem(in,q))) {
+          Py_DECREF(o);
+          return NULL;
+        }
+      }
+    }
+
+//    printf("Writing asic pixel config array\n");
+    PyObject* l = PyDict_GetItemString(o,"asicPixelConfigArray");
+    if (l) {
+      for (unsigned j=0; j<PyList_Size(l); j++) {
+        PyObject* row = PyList_GetItem(l, j);
+        for (unsigned k=0; k<PyList_Size(row); k++) {
+          uint16_t* ncptr = (uint16_t*)&(cfg->asicPixelConfigArray()[j][k]);
+          *ncptr = PyLong_AsLong(PyList_GetItem(row, k));
+        }
+      }
+    } else {
+      return NULL;
+    }
+
+//    printf("Writing calib pixel config array\n");
+    PyObject* li = PyDict_GetItemString(o,"calibPixelConfigArray");
+    if (li) {
+      for (unsigned j=0; j<PyList_Size(li); j++) {
+        PyObject* row = PyList_GetItem(li, j);
+        for (unsigned k=0; k<PyList_Size(row); k++) {
+          uint8_t* ncptr = (uint8_t*)&(cfg->calibPixelConfigArray()[j][k]);
+          *ncptr = PyLong_AsLong(PyList_GetItem(row, k));
+        }
+      }
+    } else {
+      return NULL;
+    }
+  }
+  
+  else if (xtc->contains.version()==2) {
+    Pds::Epix::Config100aV2* cfg = 
+        reinterpret_cast<Pds::Epix::Config100aV2*>(ubegin);
+    
+//    printf("pds_Epix100aConfig_set cfg %p\n", cfg);
+
+    Epix100aConfigShadow* s = new(ubegin)Epix100aConfigShadow(true);
+    for (unsigned i=0; i<Pds::Epix100aConfig::ConfigV2::NumberOfRegisters; i++) {
+      in = PyDict_GetItemString(o, s->name((Pds::Epix100aConfig::ConfigV2::Registers)i));
+      s->set((Pds::Epix100aConfig::ConfigV2::Registers)i, PyLong_AsLong(in));
+    }
+    
+//    printf("pds_Epix100aConfig_set n %u, r %u, p, %u, cfg %p, s %p\n", n, r, p, cfg, s);
+//    if ((n > 4) || (icycle == 0)) {
+//      const uint32_t* q = reinterpret_cast<const uint32_t*>(cfg);
+//      const uint32_t* qe = reinterpret_cast<const uint32_t*>(cfg+1);
+//      while(q<qe) {
+//        printf("%p: %08x\n",q,*q);
+//        q++;
+//      }
+//      printf("Config ---\n");
+//      for (unsigned i=0; i<Pds::Epix100aConfig::ConfigV2::NumberOfRegisters; i++) {
+//        in = PyDict_GetItemString(o, s->name((Pds::Epix100aConfig::ConfigV2::Registers)i));
+//        printf("\t%s  =  %u shadow has %u, offset is %u\n", 
+//            s->name((Pds::Epix100aConfig::ConfigV2::Registers)i), 
+//            PyLong_AsLong(in), 
+//            s->get((Pds::Epix100aConfig::ConfigV2::Registers)i),
+//            s->offset((Pds::Epix100aConfig::ConfigV2::Registers)i));
 //      }  
 //    }
 
@@ -241,9 +368,9 @@ unsigned pds_Epix100aConfig_size(PyObject* self)
   if (xtc->contains.id() == Pds::TypeId::Id_Epix100aConfig) {
     switch(xtc->contains.version()) {
       case 1:  return ((Pds::Epix::Config100aV1*)xtc->payload)->_sizeof();
+      case 2:  return ((Pds::Epix::Config100aV2*)xtc->payload)->_sizeof();
      default: break;
     }
   }
-
   return 0;
 }

@@ -58,6 +58,7 @@
 #include "pdsapp/config/EpixConfig.hh"
 #include "pdsapp/config/Epix10kConfig.hh"
 #include "pdsapp/config/Epix100aConfig.hh"
+#include "pdsapp/config/Epix100aConfig_V1.hh"
 #include "pdsapp/config/GenericPgpConfig.hh"
 #include "pdsapp/config/OceanOpticsConfig.hh"
 #include "pdsapp/config/FliConfig.hh"
@@ -190,7 +191,8 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_TimepixConfig,2),new TimepixConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_TimeToolConfig,1),new V1::TimeToolConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_QuartzConfig,1),new V1::QuartzConfig);
-//  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
+  enroll(Pds::TypeId(Pds::TypeId::Id_Epix100aConfig,1),new V1::Epix100aConfig);
+  //  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
 
   if (Parameter::readFromData())
     enroll(_aliasConfigType, new AliasConfig);
