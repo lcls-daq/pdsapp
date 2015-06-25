@@ -106,18 +106,19 @@ namespace Pds_ConfigDb {
           Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerRow))),
       _calibArray(make_ndarray<uint8_t>(
           Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::CalibrationRowCountPerASIC)  ,
-          // one calibration row per two actuals, assumes two ASICs per column AND tow calibration rows per ASIC !!!!
+          // one calibration row per two actuals, assumes two ASICs per column AND two calibration rows per ASIC !!!!
           Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfPixelsPerAsicRow) *
           Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerRow))),
       _dialog(_pixelArray), _calibdialog(_calibArray) {
       Epix100aConfigShadow::initNames();
       for (unsigned i=0; i<Epix100aConfigShadow::NumberOfRegisters; i++) {
+    	  Epix100aConfigShadow::Registers r = (Epix100aConfigShadow::Registers) i;
         _reg[i] = new NumericInt<uint32_t>(
-                                           Epix100aConfigShadow::name((Epix100aConfigShadow::Registers) i),
-                                           Epix100aConfigShadow::defaultValue((Epix100aConfigShadow::Registers) i),
-                                           Epix100aConfigShadow::rangeLow((Epix100aConfigShadow::Registers) i),
-                                           Epix100aConfigShadow::rangeHigh((Epix100aConfigShadow::Registers) i),
-                                           Hex
+                                           Epix100aConfigShadow::name(r),
+                                           Epix100aConfigShadow::defaultValue(r),
+                                           Epix100aConfigShadow::rangeLow(r),
+                                           Epix100aConfigShadow::rangeHigh(r),
+                                           Epix100aConfigShadow::type(r)  ==  Epix100aConfigShadow::decimal ? Decimal : Hex
                                            );
       }
       for (uint32_t i=0; i<Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerRow) *
