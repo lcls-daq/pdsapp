@@ -118,7 +118,7 @@ namespace Pds_ConfigDb {
                                            Epix100aConfigShadow::defaultValue(r),
                                            Epix100aConfigShadow::rangeLow(r),
                                            Epix100aConfigShadow::rangeHigh(r),
-                                           Epix100aConfigShadow::type(r)  ==  Epix100aConfigShadow::decimal ? Decimal : Hex
+                                           Epix100aConfigShadow::type(r)  ==  Epix100aConfigShadow::hex ? Hex : Decimal
                                            );
       }
       for (uint32_t i=0; i<Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerRow) *
