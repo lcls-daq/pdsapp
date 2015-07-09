@@ -227,13 +227,20 @@ namespace Pds {
     tc.extent += sizeof(dataType);                          \
     dg->insert(tc,_tc_init);                                \
   }
+
+  //
+  //  Retrieve template data from the cache to provide an object
+  //  giving the expected size of these objects from this source.
+  //
 #define TEST_CACHE(mask, idType, dataType)                        \
   if (im & mask) {                                                \
     Xtc tc(idType, BldInfo(_pid,BldInfo::Type(i)));               \
-    tc.extent += sizeof(dataType);                                \
     char* p = _cache.fetch(tc);                                   \
-    if (p)                                                        \
+    if (p) {                                                      \
+      const dataType* t = reinterpret_cast<const dataType*>(p);   \
+      tc.extent += t->_sizeof();                                  \
       dg->insert(tc,p);                                           \
+    }                                                             \
   }
 
   for(unsigned i=0; i<BldInfo::NumberOf; i++) {
@@ -385,7 +392,6 @@ namespace Pds {
       }
       return false;
     }
-
     bool _require_and_zero(const Xtc& xtc, const void* c, unsigned sizeofc, unsigned nzsize) {
       void* p = _cache.fetch(xtc);
       if (!p || memcmp(p,c,nzsize)) {
