@@ -135,6 +135,15 @@ namespace Pds {
       _map[key] = Entry(len,p);
     }
 
+    void update(const Xtc& tc, const char* payload, unsigned len, unsigned nzlen) {
+      uint64_t key = tc.contains.value();
+      key = (key<<32) | tc.src.phy();
+      char* p = new char[len];
+      memcpy(p,payload,nzlen);
+      memset(p+nzlen,len-nzlen,0);
+      _map[key] = Entry(len,p);
+    }
+
     void store() {
       for(std::map<uint64_t,Entry>::iterator it=_map.begin(); it!=_map.end(); it++) {
         uint64_t key = it->first;
@@ -377,6 +386,16 @@ namespace Pds {
       return false;
     }
 
+    bool _require_and_zero(const Xtc& xtc, const void* c, unsigned sizeofc, unsigned nzsize) {
+      void* p = _cache.fetch(xtc);
+      if (!p || memcmp(p,c,nzsize)) {
+        _cache.update(xtc, (const char*)c, sizeofc, nzsize);
+        if (!p) _reconfigure(xtc);
+        return true;
+      }
+      return false;
+    }
+
     bool _require(const Xtc& xtc, const IpimbConfigType& c)
     { return _require_nz(xtc,&c,sizeof(c)); }
     bool _require(const Xtc& xtc, const PimImageConfigType& c)
@@ -386,8 +405,7 @@ namespace Pds {
     bool _require(const Xtc& xtc, const Opal1kConfigType& c)
     { return _require(xtc,&c,sizeof(c)); }
     bool _require(const Xtc& xtc, const SpectrometerType& c)
-    { _require(xtc,&c,3*sizeof(uint32_t)); 
-      return true; }
+    { return _require_and_zero(xtc,&c,sizeof(c),3*sizeof(uint32_t)); }
     bool _require(const Xtc& xtc, const AcqConfigType& c)
     { return _require(xtc,&c,sizeof(c)); }
     bool _require(const Xtc& xtc, const AnalogInputType& c)
