@@ -250,8 +250,9 @@ tgtsrcs_andor := andor.cc
 tgtlibs_andor := $(commonlibs) 
 tgtlibs_andor += pdsapp/configdb
 tgtlibs_andor += pds/pdsandor pds/configdata andor/andor
+tgtlibs_andor += epics/ca epics/Com
 tgtslib_andor := $(commonslib) ${USRLIBDIR}/dl ${USRLIBDIR}/pthread 
-tgtincs_andor := pdsdata/include ndarray/include boost/include 
+tgtincs_andor := pdsdata/include ndarray/include boost/include epics/include epics/include/os/Linux
 
 libPicam := picam/picam picam/GenApi_gcc40_v2_2 picam/GCBase_gcc40_v2_2 picam/MathParser_gcc40_v2_2 picam/log4cpp_gcc40_v2_2 picam/Log_gcc40_v2_2
 libPicam += picam/pidi picam/picc picam/pida picam/PvBase picam/PvDevice picam/PvBuffer picam/PvPersistence
