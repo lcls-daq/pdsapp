@@ -77,11 +77,11 @@ class EventCallBackAndor : public EventCallback
 {
 public:
     EventCallBackAndor(int iPlatform, CfgClientNfs& cfgService, int iCamera, bool bDelayMode,
-      bool bInitTest, string sConfigDb, int iSleepInt, int iDebugLevel) :
+                       bool bInitTest, string sConfigDb, int iSleepInt, int iDebugLevel, string sTempPV) :
       _iPlatform(iPlatform), _cfg(cfgService), _iCamera(iCamera),
       _bDelayMode(bDelayMode), _bInitTest(bInitTest),
       _sConfigDb(sConfigDb), _iSleepInt(iSleepInt), _iDebugLevel(iDebugLevel),
-      _bAttached(false), _andorManager(NULL)
+      _bAttached(false), _sTempPV(sTempPV), _andorManager(NULL)
     {
     }
 
@@ -108,7 +108,7 @@ private:
 
         try
         {
-        _andorManager = new AndorManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iSleepInt, _iDebugLevel);
+        _andorManager = new AndorManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iSleepInt, _iDebugLevel, _sTempPV);
         _andorManager->initServer();
         }
         catch ( AndorManagerException& eManager )
@@ -159,6 +159,7 @@ private:
     int                 _iSleepInt;
     int                 _iDebugLevel;
     bool                _bAttached;
+    string              _sTempPV;
     AndorManager*   _andorManager;
 }; // class EventCallBackAndor
 
@@ -173,7 +174,8 @@ static void showUsage()
 {
     printf( "Usage:  andor  [-v|--version] [-h|--help] [-c|--camera <0-9> ] "
       "[-i|--id <id>] [-d|--delay] [-n|--init] [-g|--config <db_path>] [-s|--sleep <ms>] "
-      "[-l|--debug <level>] [-u|--uniqueid <alias>] -p|--platform <platform>[,<mod>,<chan>]\n"
+      "[-l|--debug <level>] [-u|--uniqueid <alias>] -p|--platform <platform>[,<mod>,<chan>]"
+      "[-t <temperature_pv>]\n"
       "  Options:\n"
       "    -v|--version                             Show file version.\n"
       "    -h|--help                                Show usage.\n"
@@ -186,6 +188,7 @@ static void showUsage()
       "    -s|--sleep    <sleep_ms>                 Sleep interval between multiple andor cameras. (Default: 0 ms)\n"
       "    -l|--debug    <level>                    Set debug level. (Default: 0)\n"
       "    -p|--platform <platform>[,<mod>,<chan>]  Set platform id [*required*], EVR module, EVR channel\n"
+      "    -t|--temperature <pvname>                Write the temperature to the specified PV.\n"
     );
 }
 
@@ -207,21 +210,22 @@ void andorSignalIntHandler( int iSignalNo )
 
 int main(int argc, char** argv)
 {
-    const char*   strOptions    = ":vhp:c:i:u:dnl:g:s:";
+    const char*   strOptions    = ":vhp:c:i:u:dnl:g:s:t:";
     const struct option loOptions[]   =
     {
-       {"ver",      0, 0, 'v'},
-       {"help",     0, 0, 'h'},
-       {"platform", 1, 0, 'p'},
-       {"camera",   1, 0, 'c'},
-       {"id",       1, 0, 'i'},
-       {"uniqueid", 1, 0, 'u'},
-       {"delay",    0, 0, 'd'},
-       {"init",     0, 0, 'n'},
-       {"config",   1, 0, 'g'},
-       {"sleep" ,   1, 0, 's'},
-       {"debug" ,   1, 0, 'l'},
-       {0,          0, 0,  0 }
+       {"ver",         0, 0, 'v'},
+       {"help",        0, 0, 'h'},
+       {"platform",    1, 0, 'p'},
+       {"camera",      1, 0, 'c'},
+       {"id",          1, 0, 'i'},
+       {"uniqueid",    1, 0, 'u'},
+       {"delay",       0, 0, 'd'},
+       {"init",        0, 0, 'n'},
+       {"config",      1, 0, 'g'},
+       {"sleep" ,      1, 0, 's'},
+       {"debug" ,      1, 0, 'l'},
+       {"temperature", 1, 0, 't'},
+       {0,             0, 0,  0 }
     };
 
     // parse the command line for our boot parameters
@@ -241,6 +245,7 @@ int main(int argc, char** argv)
     bool              bShowUsage    = false;
     bool              bTriggered    = false;
     unsigned          uu1, uu2, uu3;
+    string            sTempPV;
 
     int               iOptionIndex  = 0;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
@@ -333,6 +338,9 @@ int main(int argc, char** argv)
             printf( "andor:main(): Missing argument for %c\n", optopt );
             bShowUsage = true;
             break;
+        case 't':
+            sTempPV = optarg;
+            break;
         default:
         case 'h':               /* Print usage */
             showUsage();
@@ -393,7 +401,7 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsAndor settings(detInfo, bTriggered, uModule, uChannel, sUniqueId);
 
-    EventCallBackAndor  eventCallBackAndor(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iDebugLevel);
+    EventCallBackAndor  eventCallBackAndor(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iDebugLevel, sTempPV);
     SegmentLevel segmentLevel(iPlatform, settings, eventCallBackAndor, NULL);
 
     segmentLevel.attach();
