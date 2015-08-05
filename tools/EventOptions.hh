@@ -30,6 +30,8 @@ public:
   const char* expname;
   Appliance*  apps;
   int      slowReadout;
+  unsigned uSizeThreshold;
+
 };
 }
 

@@ -103,7 +103,8 @@ EventOptions::EventOptions() :
   delayXfer(false),
   expname(NULL),
   apps   (NULL),
-  slowReadout (0)
+  slowReadout (0),
+  uSizeThreshold (1024)
 {
   printf("(%p) apps = %p\n",this,this->apps);
 }
@@ -120,7 +121,8 @@ EventOptions::EventOptions(int argc, char** argv) :
   delayXfer(false),
   expname(NULL),
   apps   (NULL),
-  slowReadout (0)
+  slowReadout (0),
+  uSizeThreshold (1024)
 {
   int c;
   while ((c = getopt(argc, argv, opt_string())) != -1) {
@@ -131,7 +133,7 @@ EventOptions::EventOptions(int argc, char** argv) :
 
 const char* EventOptions::opt_string()
 {
-  return "f:p:b:a:s:c:n:edDE:L:F:w:V";
+  return "f:p:b:a:s:c:n:edDE:L:F:w:V:t:";
 }
 
 bool        EventOptions::parse_opt (int c)
@@ -181,6 +183,10 @@ bool        EventOptions::parse_opt (int c)
     chunkSize = strtoull(optarg, &endPtr, 0);
     if (errno != 0 || endPtr == optarg) chunkSize = DefaultChunkSize;
     break;
+  case 't':
+     uSizeThreshold = strtoul(optarg, &endPtr, 0);
+     if (errno != 0 || endPtr == optarg) uSizeThreshold = 1024;
+     break;
   case 'L':
     load_appliance(optarg, apps);
     break;
@@ -212,6 +218,7 @@ int EventOptions::validate(const char* arg0) const
      "         -L <plugin>\n"
      "         -F <L3 filter plugin>\n"
      "         -w <0/1> : enable slow readout support\n"
+     "         -t <smldata size threshold>\n"
      " Use \'-F VETO[plugin]\' to enable veto\n",
      arg0);
     return 0;
