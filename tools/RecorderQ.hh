@@ -15,11 +15,12 @@ namespace Pds {
 
   class RecorderQ : public Recorder {
   public:
-    RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, 
-              bool delay_xfer=false,
-              bool dont_queue=false,
-              OfflineClient *offlineclient=NULL,
-              const char* expname=NULL);
+     RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, 
+               unsigned uSizeThreshold,
+               bool delay_xfer=false,
+               bool dont_queue=false,
+               OfflineClient *offlineclient=NULL,
+               const char* expname=NULL);
     ~RecorderQ() {}
   public:
     Transition* transitions(Transition* in);
