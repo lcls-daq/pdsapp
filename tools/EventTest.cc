@@ -49,7 +49,9 @@ void EventTest::attached(SetOfStreams& streams)
   frmk->outlet()->sink(TransitionId::Unknown);
   
   if (_options.outfile) {
-    (new RecorderQ(_options.outfile, _options.sliceID, _options.chunkSize, _options.delayXfer, false, NULL, _options.expname))->connect(frmk->inlet());
+     (new RecorderQ(_options.outfile, _options.sliceID, _options.chunkSize, 
+                    _options.uSizeThreshold, _options.delayXfer, 
+                    false, NULL, _options.expname))->connect(frmk->inlet());
   }
   else {
     (new DgSummary)->connect(frmk->inlet());
