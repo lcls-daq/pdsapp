@@ -28,7 +28,7 @@ liblibs_tools += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
 libincs_tools := offlinedb/include pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_event := event.cc
-tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata pdsdata/smldataindex
+tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata pdsdata/smldata
 tgtslib_event := $(USRLIBDIR)/rt
 tgtincs_event := offlinedb/include pdsdata/include
 
@@ -89,7 +89,7 @@ tgtslib_bldServerTest := $(USRLIBDIR)/rt
 tgtincs_bldServerTest := pdsdata/include
 
 tgtsrcs_bldMonitor := bldMonitor.cc bldMonitor.hh 
-tgtlibs_bldMonitor := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata pdsdata/smldataindex
+tgtlibs_bldMonitor := $(liblibs_tools) $(commonlibs) pdsapp/tools pdsdata/indexdata pdsdata/smldata
 tgtslib_bldMonitor := $(USRLIBDIR)/rt
 tgtincs_bldMonitor := pdsdata/include
 
