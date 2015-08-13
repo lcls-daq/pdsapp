@@ -3,6 +3,7 @@
 #include "EventTest.hh"
 #include "EventOptions.hh"
 #include "DgSummary.hh"
+#include "MonReqServer.hh"
 
 #include "pds/management/PartitionMember.hh"
 #include "pds/utility/SetOfStreams.hh"
@@ -61,7 +62,7 @@ void EventTest::attached(SetOfStreams& streams)
   if (_options.apps) {
     _options.apps->connect(frmk->inlet());
   }
-  
+
   switch (_options.mode) {
   case EventOptions::Counter:
     {
@@ -82,6 +83,7 @@ void EventTest::attached(SetOfStreams& streams)
     }
   }
 
+  (new MonReqServer)->connect(frmk->inlet());
 }
 
 void EventTest::detach()

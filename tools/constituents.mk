@@ -7,7 +7,7 @@ libnames := tools l3test l3sacla l3saclacompound
 
 CPPFLAGS += -D_FILE_OFFSET_BITS=64
  
-libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc CspadShuffle.cc StripTransient.cc
+libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc CspadShuffle.cc StripTransient.cc MonReqServer.cc
 
 libsrcs_l3test := L3TestModule.cc
 libincs_l3test := pdsdata/include ndarray/include boost/include 
