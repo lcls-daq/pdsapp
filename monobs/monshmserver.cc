@@ -31,6 +31,11 @@
 #include <string.h>
 #include <sys/prctl.h>
 
+static inline bool rantest(double f)
+{
+  return rand() < int(double(RAND_MAX)*f);
+}
+
 using namespace Pds;
 
 class DynamicObserver : public ObserverLevel,
@@ -103,7 +108,7 @@ public:
   bool     changed() { bool v(_changed); _changed=false; return v; }
   unsigned nodes() const { return _nodes; }
   unsigned mask() const { return _mask; }
-  unsigned short port() { return MonShmComm::ServerPort - header().platform(); }
+  unsigned short port() const { return MonShmComm::ServerPort - header().platform(); }
 private:
   Allocation _alloc;
   unsigned   _mask;
@@ -117,10 +122,13 @@ public:
   LiveMonitorServer(const char* tag,
                     unsigned sizeofBuffers,
                     int numberofEvBuffers,
-                    unsigned numberofEvQueues) :
+                    unsigned numberofEvQueues,
+		    double dropProb=0) :
     XtcMonitorServer(tag, sizeofBuffers, numberofEvBuffers, numberofEvQueues),
-    _upool          (new GenericPool(sizeof(CDatagram),1))
+    _upool          (new GenericPool(sizeof(CDatagram),1)),
+    _dropProb       (dropProb)
   {
+    _init();
   }
   ~LiveMonitorServer()
   {
@@ -179,6 +187,7 @@ private:
   }
 private:
   Pool* _upool;
+  double _dropProb;
 };
 
 #include "pds/utility/EbBase.hh"
@@ -247,7 +256,14 @@ private:
 };
 
 void usage(char* progname) {
-  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [-q <# event queues>] [-t <tag name>] [-d] [-c] [-g <max groups>] [-h]\n", progname);
+  printf("Usage: %s -p <platform> -P <partition> -i <node mask> -n <numb shm buffers> -s <shm buffer size> [options]\n"
+	 "Options: -q <# event queues>  (number of queues to hold for clients)\n"
+	 "         -t <tag name>        (name of shared memory)\n"
+	 "         -d                   (distribute events)\n"
+	 "         -c                   (allow remote control of node mask)\n"
+	 "         -g <max groups>      (number of event nodes receiving data)\n"
+	 "         -T <drop prob>       (test mode - drop transitions)\n"
+	 "         -h\n", progname);
 }
 
 int main(int argc, char** argv) {
@@ -265,6 +281,7 @@ int main(int argc, char** argv) {
   bool lcomm = false;
   Appliance* uapps = 0;
   int slowReadout = 0;
+  double dropProb=0;
 
   printf("Command line: ");
   for(unsigned i=0; i<argc; i++)
@@ -272,7 +289,7 @@ int main(int argc, char** argv) {
   printf("\n\n");
 
   int c;
-  while ((c = getopt(argc, argv, "p:i:g:n:P:s:q:L:w:t:dch")) != -1) {
+  while ((c = getopt(argc, argv, "p:i:g:n:P:s:q:L:w:t:dcT:h")) != -1) {
     errno = 0;
     char* endPtr;
     switch (c) {
@@ -309,6 +326,9 @@ int main(int argc, char** argv) {
       break;
     case 'w':
       slowReadout = strtoul(optarg, NULL, 0);
+      break;
+    case 'T':
+      dropProb = strtod(optarg, NULL);
       break;
     case 'L':
       { for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
@@ -363,7 +383,11 @@ int main(int argc, char** argv) {
 
   Stats* stats = new Stats;
 
-  LiveMonitorServer* apps = new LiveMonitorServer(tag, sizeOfBuffers, numberOfBuffers, nevqueues);
+  LiveMonitorServer* apps = new LiveMonitorServer(tag, 
+						  sizeOfBuffers, 
+						  numberOfBuffers, 
+						  nevqueues,
+						  dropProb);
   apps->distribute(ldist);
 
   apps->connect(stats);

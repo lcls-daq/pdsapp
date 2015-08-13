@@ -1,4 +1,4 @@
-tgtnames := monobs monshm monshmserver offlineobs sxrmon xppmon cximon xcsmon cspadmon
+tgtnames := monobs monshm monshmserver monreqserver offlineobs sxrmon xppmon cximon xcsmon cspadmon
 #tgtnames += alive_mon
 ifneq ($(findstring x86_64,$(tgt_arch)),)
 else
@@ -25,6 +25,12 @@ tgtlibs_monshmserver := pdsdata/appdata pds/offlineclient offlinedb/mysqlclient 
 tgtlibs_monshmserver += $(commonlibs) pds/mon $(liblibs_tools) pdsapp/tools pdsdata/indexdata pdsdata/smldata pdsdata/psddl_pdsdata
 tgtslib_monshmserver := $(USRLIBDIR)/rt
 tgtincs_monshmserver := pdsdata/include
+
+tgtsrcs_monreqserver := monreqserver.cc
+tgtlibs_monreqserver := pdsdata/appdata pds/offlineclient offlinedb/mysqlclient offlinedb/offlinedb
+tgtlibs_monreqserver += $(commonlibs) pds/mon $(liblibs_tools) pdsapp/tools pdsdata/indexdata pdsdata/smldata pdsdata/psddl_pdsdata
+tgtslib_monreqserver := $(USRLIBDIR)/rt
+tgtincs_monreqserver := pdsdata/include
 
 tgtsrcs_offlineobs := offlineobs.cc OfflineAppliance.cc
 tgtlibs_offlineobs := $(commonlibs) pds/mon pds/offlineclient
