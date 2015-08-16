@@ -1,5 +1,8 @@
 #include "pdsdata/app/XtcMonitorServer.hh"
 
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <errno.h>
 
 namespace Pds {
