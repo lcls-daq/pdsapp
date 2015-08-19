@@ -105,7 +105,9 @@ int MonConsumerTH1F::_update()
     if (_barchive_mode) {
       MonStats1D diff;
       diff.setto(*entry, *_last_stats);
-      if (diff.sum())
+      if (entry->desc().chartentries())
+        _chart->point(entry->last(), diff.sum());
+      else if (diff.sum())
 	_chart->point(entry->last(), diff.mean());
       _last_stats->setto(*entry);
     }
@@ -116,7 +118,10 @@ int MonConsumerTH1F::_update()
       _diff ->stats();
       _hist ->setto(*entry);
       _hist ->stats();
-      _chart->point(entry->last(), _diff->mean());
+      if (entry->desc().chartentries())
+        _chart->point(entry->last(), _diff->sum());
+      else if (_diff->sum())
+	_chart->point(entry->last(), _diff->mean());
       _last ->setto(*entry);
       emit redraw();
     }
@@ -225,8 +230,12 @@ void MonConsumerTH1F::select(Select selection)
     _plot->setAxisLabelRotation (QwtPlot::xBottom, -50.0);
     _plot->setAxisLabelAlignment(QwtPlot::xBottom, Qt::AlignLeft | Qt::AlignBottom);
     xtitle.setText("Time");
-    if (_entry)
-      ytitle.setText(_entry->desc().xtitle());
+    if (_entry) {
+      if (_entry->desc().chartentries())
+        ytitle.setText("Entries");
+      else
+        ytitle.setText(_entry->desc().xtitle());
+    }
   }
   else {
     if (_entry) {

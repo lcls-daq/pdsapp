@@ -46,6 +46,7 @@ VmonReaderTreeMenu::VmonReaderTreeMenu(QWidget&        p,
   { QVBoxLayout* clayout = new QVBoxLayout(control);
     QPushButton* browB = new QPushButton("Browse");
     QPushButton* execB = _execB = new QPushButton("Execute");
+    _execB->setEnabled(false);
     clayout->addWidget(browB);
     clayout->addWidget(_recent = new QComboBox);
     clayout->addWidget(execB);
@@ -99,6 +100,7 @@ void VmonReaderTreeMenu::set_tree(QAbstractButton* b)
     const MonCds& cds = *_reader->cds(src);
     if (QString(cds.desc().name())==name) {
       _tabs.setup(cds,0);
+      _execB->setEnabled(true);
       return;
     }
   }
@@ -111,6 +113,7 @@ void VmonReaderTreeMenu::set_tree(QAbstractButton* b)
     for(QList<QAbstractButton*>::iterator it=l.begin()+1; it!=l.end(); it++,j++)
       if ((*it)->text() == QString(cds.desc().name())) {
         _tabs.setup(cds,j);
+        _execB->setEnabled(true);
         break;
       }
   }
@@ -155,6 +158,8 @@ void VmonReaderTreeMenu::add(const MonCds& cds)
 
 void VmonReaderTreeMenu::clear()
 {
+  _execB->setEnabled(false);
+
   _tabs.clear();
   //  _map.clear();
 
