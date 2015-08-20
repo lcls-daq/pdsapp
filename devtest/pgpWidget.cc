@@ -31,13 +31,14 @@ Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
-  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-S detID,sharedMemoryTag,nclients][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
+  printf( "Usage: %s [-h]  -P <pgpcardNumb> [-G] [-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-S detID,sharedMemoryTag,nclients][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
       "    -h      Show usage\n"
       "    -P      Set pgpcard index number  (REQUIRED)\n"
       "                The format of the index number is a one byte number with the bottom nybble being\n"
       "                the index of the card and the top nybble being a port mask where one bit is for\n"
       "                each port, but a value of zero maps to 15 for compatibility with unmodified\n"
       "                applications that use the whole card\n"
+      "    -G      Use if pgpcard is a G3 card\n"
       "    -w      Write register to destination, reply will be send to standard output\n"
       "                The format of the paraemeters are: 'dest addr data'\n"
       "                where addr and Data are 32 bit unsigned integers, but the Dest is a\n"
@@ -57,7 +58,7 @@ void printUsage(char* name) {
       "    -s      Save to file when reading data\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          print out progress\n"
-       "    -f      set run time config file name\n"
+      "    -f      set run time config file name\n"
       "                The format of the file consists of lines: 'Dest Addr Data'\n"
       "                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
       "                four bit field where the bottom two bits are VC and The top two are Lane\n"
@@ -72,6 +73,7 @@ int main( int argc, char** argv )
 {
   unsigned            pgpcard             = 0;
   unsigned            d                   = 0;
+  char                g3[16]              = {""};
   uint32_t            data                = 0xdead;
   unsigned            command             = none;
   unsigned            addr                = 0;
@@ -91,11 +93,14 @@ int main( int argc, char** argv )
   char*               endptr;
   extern char*        optarg;
   int c;
-  while( ( c = getopt( argc, argv, "hP:w:W:D:r:d:RS:o:s:f:p:t:" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hP:Gw:W:D:r:d:RS:o:s:f:p:t:" ) ) != EOF ) {
      switch(c) {
       case 'P':
         pgpcard = strtoul(optarg, NULL, 0);
         cardGiven = true;
+        break;
+      case 'G':
+        strcpy(g3, "G3");
         break;
       case 'D':
         debug = strtoul(optarg, NULL, 0);
@@ -227,9 +232,9 @@ int main( int argc, char** argv )
   char err[128];
   if (ports == 0) {
     ports = 15;
-    sprintf(devName, "/dev/pgpcard%u", pgpcard);
+    sprintf(devName, "/dev/pgpcard%s%u", g3, pgpcard);
   } else {
-    sprintf(devName, "/dev/pgpcard_%u_%u", pgpcard & 0xf, ports);
+    sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
   }
 
   int fd = open( devName,  O_RDWR );
