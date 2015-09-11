@@ -555,18 +555,18 @@ int Recorder::_openOutputFile(bool verbose) {
     if (verbose) {
       printf("Opened %s\n",_sdfname); 
     }
-    if (_offlineclient) {
-      if (_experiment != 0) {
-        // fast feedback
-        std::string hostname = _host_name;
-        std::string sdfilename = _sdfname;
-        // ffb=true
-        _offlineclient->reportOpenFile(_experiment, _run, (int)_sliceID, (int)_chunk, hostname, sdfilename, true);
-      }
-    } else {
-      post(new(_occPool) DataFileOpened(_experiment,_run,_sliceID,_chunk,_host_name, _sdfname));
-    }
-  }
+    // JBT - do not register open file with offline client until offline client API contains file type
+//    if (_offlineclient) {
+//      if (_experiment != 0) {
+//        // fast feedback
+//        std::string hostname = _host_name;
+//        std::string sdfilename = _sdfname;
+//        // ffb=true
+//        // Don't report smldata file name until offline client API changes to include file type
+//        //        _offlineclient->reportOpenFile(_experiment, _run, (int)_sliceID, (int)_chunk, hostname, sdfilename, true);
+//      }
+//    } 
+  } // if (_sdf)
   else {
     _open_data_file_error = true;
       printf("Error opening smldata file %s : %s\n",_sdfnamerunning,strerror(errno));
@@ -754,6 +754,18 @@ int Recorder::_closeOutputFile() {
       // error
       perror("fclose");
       _postDataFileError();
+    }
+
+    // Close small data index file
+    if (_sdf) {
+      if (_delay_xfer) {
+        if ( (rv |= rename(_sdfnamerunning, _sdfname)) ) {
+          perror(_sdfname);
+        }
+      }
+      if (fclose(_sdf) != 0) {
+        perror("fclose");
+      }
     }
   }
 
