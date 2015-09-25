@@ -83,7 +83,8 @@ void EventTest::attached(SetOfStreams& streams)
     }
   }
 
-  (new MonReqServer)->connect(frmk->inlet());
+  if (_options.monRequest)
+    (new MonReqServer)->connect(frmk->inlet());
 }
 
 void EventTest::detach()

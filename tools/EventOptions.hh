@@ -31,7 +31,7 @@ public:
   Appliance*  apps;
   int      slowReadout;
   unsigned uSizeThreshold;
-
+  int      monRequest;
 };
 }
 
