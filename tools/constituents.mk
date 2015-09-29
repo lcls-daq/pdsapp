@@ -20,6 +20,7 @@ libincs_l3saclacompound := pdsdata/include ndarray/include boost/include
 
 tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest bldMonitor xtcdump currentexp showPlatform
 #tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
+#tgtnames := findSource
 
 commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs += pds/pnccdFrameV0
@@ -131,3 +132,9 @@ tgtsrcs_epicsmonservertest := epicsmonservertest.cc EpicsMonServer.cc
 tgtlibs_epicsmonservertest := pdsapp/epicsmon pdsdata/xtcdata pdsdata/appdata pdsdata/epics
 tgtslib_epicsmonservertest := $(USRLIBDIR)/rt
 tgtincs_epicsmonservertest := pdsdata/include ndarray/include boost/include 
+
+tgtsrcs_findSource := findSource.cc
+tgtlibs_findSource := $(commonlibs)
+tgtslib_findSource := $(USRLIBDIR)/rt
+tgtincs_findSource := pdsdata/include
+
