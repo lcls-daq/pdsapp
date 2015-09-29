@@ -94,6 +94,9 @@ void EvrStandAloneManager::configure() {
   }
 
   _er.DumpPulses(npulses);
+//add additional dump calls
+  _er.DumpUnivOutMap(12);
+  _er.DumpMapRam(ram);
 
   if (nsrc) {
     if (src.period) {
