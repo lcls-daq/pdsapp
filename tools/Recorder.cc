@@ -791,17 +791,5 @@ int Recorder::_requestChunk() {
     }        
   }
 
-  // Close small data index file
-  if (_sdf) {
-    if (_delay_xfer) {
-      if ( (rv |= rename(_sdfnamerunning, _sdfname)) ) {
-        perror(_sdfname);
-      }
-    }
-    if (fclose(_sdf) != 0) {
-      perror("fclose");
-    }
-  }
-
   return rv;
 }
