@@ -118,11 +118,20 @@ namespace Pds {
           return 0;
         }
         printf("Opened %s\n",fname);
-        unsigned len = tc.sizeofPayload();
-        char* c = new char[len];
-        fread(c,len,1,f);
-        fclose(f);
-        _map[key] = Entry(len,c);
+        fseek(f, 0, SEEK_END);
+        unsigned len = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        if (len) {
+          char* c = new char[len];
+          fread(c,len,1,f);
+          fclose(f);
+          _map[key] = Entry(len,c);
+        }
+        else {
+          printf("%s is empty\n",fname);
+          fclose(f);
+          return 0;
+        }
       }
       return _map[key].payload;
     }
