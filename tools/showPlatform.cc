@@ -4,12 +4,22 @@
 #include "pds/management/ControlCallback.hh"
 #include "pds/collection/PingReply.hh"
 #include "pds/collection/AliasReply.hh"
+#include "pds/collection/Route.hh"
 
 #include <string.h>
 
 void showUsage(const char* p)
 {
   printf("Usage: %s -p <platform> [-h]\n",p);
+}
+
+static void print_ip(int ip)
+{
+  printf(" %d.%d.%d.%d",
+         (ip>>24)&0xff,
+         (ip>>16)&0xff,
+         (ip>> 8)&0xff,
+         (ip>> 0)&0xff);
 }
 
 namespace Pds {
@@ -96,6 +106,21 @@ int main(int argc, char* argv [])
   PartitionControl control(platform, cb, 0);
 
   if (!control.attach()) {
+    char buff[64];
+    printf("Route is [%s]",Route::name());
+    print_ip(Route::interface());
+    print_ip(Route::broadcast());
+    print_ip(Route::netmask());
+    printf(" %s\n",Route::ether().as_string(buff));
+
+    RouteTable table;
+    for(unsigned i=0; i<table.routes(); i++) {
+      printf("%u [%s]",i,table.name(i));
+      print_ip(table.interface(i));
+      print_ip(table.broadcast(i));
+      print_ip(table.netmask(i));
+      printf(" %s\n",table.ether(i).as_string(buff));
+    }
     exit(1);
   }
 
