@@ -195,6 +195,21 @@ MonDialog::MonDialog(MonCanvas* canvas,
 }
 
 MonDialog::MonDialog(MonCanvas* canvas, 
+		     MonQtChart* hist,
+		     MonQtChart* since,
+		     MonQtChart* diff) :
+  QVWidget((QWidget*)0, "Scalar Dialog"),
+  _canvas(canvas),
+  _nentries(0)
+{
+  _entries[_nentries++] = new MonDialogEntry(this, "Integrated", hist);
+  _entries[_nentries++] = new MonDialogEntry(this, "Since",      since);
+  _entries[_nentries++] = new MonDialogEntry(this, "Difference", diff);
+
+  addbuttons(canvas);
+}
+
+MonDialog::MonDialog(MonCanvas* canvas, 
 		     MonQtProf* hist,
 		     MonQtProf* since,
 		     MonQtProf* diff,

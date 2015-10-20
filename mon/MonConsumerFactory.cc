@@ -1,4 +1,5 @@
 #include "MonConsumerFactory.hh"
+#include "MonConsumerScalar.hh"
 #include "MonConsumerTH1F.hh"
 #include "MonConsumerTH2F.hh"
 #include "MonConsumerProf.hh"
@@ -17,6 +18,12 @@ MonCanvas* MonConsumerFactory::create(QWidget& parent,
 {
   MonCanvas* canvas = 0;
   switch (entry.desc().type()) {
+  case MonDescEntry::Scalar:
+    {
+      const MonEntryScalar& e = (const MonEntryScalar&)entry;
+      canvas = new MonConsumerScalar(parent, clientdesc, groupdesc, e);
+    }
+    break;
   case MonDescEntry::TH1F:
     {
       const MonEntryTH1F& e = (const MonEntryTH1F&)entry;

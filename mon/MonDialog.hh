@@ -63,6 +63,10 @@ namespace Pds {
 	      MonQtTH1F* diff,
 	      MonQtChart* chart);
     MonDialog(MonCanvas* canvas, 
+	      MonQtChart* hist,
+	      MonQtChart* since,
+	      MonQtChart* diff);
+    MonDialog(MonCanvas* canvas, 
 	      MonQtProf* hist,
 	      MonQtProf* since,
 	      MonQtProf* diff,

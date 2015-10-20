@@ -6,6 +6,8 @@
 
 #include "pds/mon/MonGroup.hh"
 #include "pds/mon/MonUsage.hh"
+#include "pds/mon/MonStatsScalar.hh"
+#include "pds/mon/MonEntryScalar.hh"
 #include "pds/mon/MonEntryTH1F.hh"
 #include "pds/mon/MonEntryTH2F.hh"
 #include "pds/mon/MonEntryWaveform.hh"
@@ -296,6 +298,23 @@ void VmonReaderTreeMenu::execute()
   delete[] vu;
 
   _execB->setEnabled(true);
+}
+
+void VmonReaderTreeMenu::process(const ClockTime&  t,
+				 const Src&        src,
+				 int               signature,
+				 const MonStatsScalar& stats)
+{
+  MonCds& cds = *const_cast<MonCds*>(_reader->cds(src));
+  MonEntry* entry = cds.entry(signature);
+  entry->time(t);
+  switch(entry->desc().type()) {
+  case MonDescEntry::Scalar:
+    { MonEntryScalar* e = static_cast<MonEntryScalar*>(entry);
+      e->setvalues(stats.values());
+    } break;							      
+  default: break;
+  }
 }
 
 void VmonReaderTreeMenu::process(const ClockTime&  t,

@@ -52,6 +52,10 @@ namespace Pds {
     void process(const ClockTime& t,
 		 const Src&       src,
 		 int,
+		 const MonStatsScalar& stats);
+    void process(const ClockTime& t,
+		 const Src&       src,
+		 int,
 		 const MonStats1D& stats);
     void process(const ClockTime& t,
 		 const Src&       src,

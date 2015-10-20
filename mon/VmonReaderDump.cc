@@ -33,6 +33,17 @@ namespace Pds {
     void process(const ClockTime& time,
 		 const Src& src,
 		 int signature,
+		 const std::vector<double>& stats)
+    {
+      fprintf(_file,"%08x/%08x ",
+	      time.seconds(),time.nanoseconds());
+      for(unsigned i=0; i<stats.size(); i++)
+	fprintf(_file," %9g", stats[i]);
+      fprintf("\n");
+    }
+    void process(const ClockTime& time,
+		 const Src& src,
+		 int signature,
 		 const MonStats1D& stats)
     {
       fprintf(_file,"%08x/%08x  %9g %9g %9g\n",

@@ -2,6 +2,10 @@
 #define Pds_MonROOTCHART_HH
 
 #include "MonQtBase.hh"
+#include <QtGui/QColor>
+#include <QtCore/QString>
+
+#include <vector>
 
 class QwtPlot;
 class QwtPlotCurve;
@@ -9,18 +13,21 @@ class QwtPlotCurve;
 namespace Pds {
 
   class MonDescProf;
+  class MonDescScalar;
   class MonDescTH1F;
   class MonDescTH2F;
   class MonDescImage;
 
   class MonQtChart : public MonQtBase {
   public:
+    MonQtChart(const char* name, const MonDescScalar& desc);
     MonQtChart(const char* name, const MonDescProf& desc);
     MonQtChart(const char* name, const MonDescTH1F& desc);
     MonQtChart(const char* name, const MonDescTH2F& desc, Axis ax);
     MonQtChart(const char* name, const MonDescImage& desc, Axis ax);
     virtual ~MonQtChart();
 
+    void params(const MonDescScalar& desc);
     void params(const MonDescProf& desc);
     void params(const MonDescTH1F& desc);
     void params(const MonDescTH2F& desc);
@@ -31,6 +38,7 @@ namespace Pds {
 
     // Set values for a point for all lines
     void point(double time, const double* y);
+    void point(double time, const std::vector<double>&);
 
     // Set a value for a point for first line
     void point(double time, double y);
@@ -47,6 +55,11 @@ namespace Pds {
 
     void attach(QwtPlot*);
 
+    void dump() const;
+
+    unsigned    nlines()           const { return _nlines; }
+    QString     name  (unsigned i) const;
+    QColor      qcolor(unsigned i) const;
   private:
     void params(unsigned, const char* names);
     void autorange();
@@ -61,7 +74,6 @@ namespace Pds {
     double* _yl;
 
     QwtPlotCurve** _curves;
-    const char** _names;
 
     float _ymin, _ymax;
   };

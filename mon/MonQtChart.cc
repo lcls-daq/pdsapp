@@ -1,6 +1,7 @@
 #include "MonQtChart.hh"
 #include "MonPath.hh"
 #include "MonUtils.hh"
+#include "pds/mon/MonDescScalar.hh"
 #include "pds/mon/MonDescProf.hh"
 #include "pds/mon/MonDescTH1F.hh"
 #include "pds/mon/MonDescTH2F.hh"
@@ -35,6 +36,21 @@ MonQtChart::MonQtChart(const char* name,
 }
 
 MonQtChart::MonQtChart(const char* name, 
+		       const MonDescScalar& desc) :
+  MonQtBase(Chart, desc, name),
+  _npoints(Points),
+  _nfill  (0),
+  _nlines (0),
+  _current(0),
+  _xl(0),
+  _yl(0),
+  _curves(0)
+{
+  params(desc.elements(),desc.names());
+  settings(MonQtBase::Y, 0, 1, true, false);
+}
+
+MonQtChart::MonQtChart(const char* name, 
 		       const MonDescTH1F& desc) : 
   MonQtBase(Chart, desc, name),
   _npoints(Points),
@@ -45,7 +61,7 @@ MonQtChart::MonQtChart(const char* name,
   _yl(new double[2*_npoints]),
   _curves(0)
 {
-  params(1,name);
+  params(1,"");
   settings(MonQtBase::Y, 0, 1, true, false);
 }
 
@@ -61,7 +77,7 @@ MonQtChart::MonQtChart(const char* name,
   _yl(new double[2*_npoints]),
   _curves(0)
 {
-  params(1,name);
+  params(1,"");
   settings(MonQtBase::Y, 0, 1, true, false);
 }
 
@@ -77,7 +93,7 @@ MonQtChart::MonQtChart(const char* name,
   _yl(new double[2*_npoints]),
   _curves(0)
 {
-  params(1,name);
+  params(1,"");
   settings(MonQtBase::Y, 0, 1, true, false);
 }
 
@@ -113,21 +129,26 @@ void MonQtChart::params(unsigned nl, const char* names)
   _nlines = nl;
   _curves = new QwtPlotCurve*[_nlines];
     
+  char* buf = new char[strlen(names)+1];
   const char** snames = new const char*[_nlines];
-  unsigned nfound = MonPath::split(names, snames, _nlines);
+  unsigned nfound = MonPath::split(names, buf, snames, ':');
   for(unsigned k=0; k<_nlines; k++) {
     char nameb[64];
     sprintf(nameb,"%s:%d",_name,k);
     QwtPlotCurve* c = new QwtPlotCurve((nfound==_nlines) ? snames[k] : nameb);
     //  c->setStyle(QwtPlotCurve::Dots);
-    c->setStyle(QwtPlotCurve::Steps);
-    if (_nlines>1)
+    if (_nlines>1) {
+      c->setStyle(QwtPlotCurve::Lines);
       c->setPen  (QPen(MonUtils::color(k,_nlines)));
-    else
+    }
+    else {
+      c->setStyle(QwtPlotCurve::Steps);
       c->setPen  (QPen(MonUtils::color(_color)));
+    }
     _curves[k] = c;
   }
   delete[] snames;
+  delete[] buf;
   _nfill = 0;
   _current = 0;
 }
@@ -135,6 +156,13 @@ void MonQtChart::params(unsigned nl, const char* names)
 void MonQtChart::params(const MonDescProf& desc)
 {
   params(desc.nbins(),desc.names());
+  points(_npoints);
+  _nfill = 0;
+}
+
+void MonQtChart::params(const MonDescScalar& desc)
+{
+  params(desc.elements(),desc.names());
   points(_npoints);
   _nfill = 0;
 }
@@ -231,6 +259,9 @@ void MonQtChart::point(double time, const double* y)
   }
 }
 
+void MonQtChart::point(double time, const std::vector<double>& y) 
+{ point(time,y.data()); }
+
 void MonQtChart::point(double time, double y) 
 {
   last(time);
@@ -277,6 +308,16 @@ int  MonQtChart::color() const
   return _color;
 }
 
+QColor MonQtChart::qcolor(unsigned i) const
+{
+  return _curves[i]->pen().color();
+}
+
+QString MonQtChart::name(unsigned i) const
+{
+  return _curves[i]->title().text();
+}
+
 void MonQtChart::attach(QwtPlot* plot)
 {
   MonQtBase::attach(plot);
@@ -308,3 +349,15 @@ void MonQtChart::settings(MonQtBase::Axis ax, float vmin, float vmax,
   MonQtBase::settings(ax,vmin,vmax,autorng,islog);
 }
 
+void MonQtChart::dump() const
+{
+  printf("MonQtChart[%s] %u %u\n",
+	 _desc->name(),_npoints,_nlines);
+  unsigned start = _current+_npoints-_nfill;
+  for(unsigned i=0; i<_nfill; i++) {
+    printf("%g:",_xl[start+i]);
+    for(unsigned k=0; k<_nlines; k++)
+      printf(" %g", _yl[start+i+2*k*_npoints]);
+    printf("\n");
+  }
+}
