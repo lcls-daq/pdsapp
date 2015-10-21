@@ -1,0 +1,106 @@
+//
+//  pds_RayonixConfig class methods
+//
+static PyObject* pds_RayonixConfig_get    (PyObject*   self, PyObject* args);
+static PyObject* pds_RayonixConfig_set    (PyObject*   self, PyObject* args);
+
+static PyMethodDef pds_RayonixConfig_methods[] = {
+  {"get"   , (PyCFunction)pds_RayonixConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"set"   , (PyCFunction)pds_RayonixConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {NULL},
+};
+
+DefineXtcType(RayonixConfig) ;
+
+#include "pdsdata/psddl/rayonix.ddl.h"
+#include <new>
+
+
+//  Return a dictionary of configuration data
+#define SetDictMember(name)                                                       \
+  { PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfg->name())); }
+
+PyObject* pds_RayonixConfig_get (PyObject*   self, PyObject* args) 
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();  
+  if (xtc->contains.version()==2) { 
+    const Pds::Rayonix::ConfigV2* cfg = 
+      reinterpret_cast<const Pds::Rayonix::ConfigV2*>(xtc->payload);
+
+    SetDictMember(binning_f);
+    SetDictMember(binning_s);
+    SetDictMember(testPattern);
+    SetDictMember(trigger);
+    SetDictMember(rawMode);
+    SetDictMember(darkFlag);
+    SetDictMember(readoutMode);
+    PyDict_SetItemString(o,"deviceID",PyString_FromString(cfg->deviceID()));
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported RayonixConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+
+}
+#undef SetDictMember
+
+
+//  Retrieve configuration data from a Python Dictionary
+#define SetDictMember(name)                                          \
+  double name;                                                       \
+  { PyObject* i = PyDict_GetItemString(o,#name);                     \
+    if (i) {                                                         \
+      if (PyInt_CheckExact(i)) name = (double) PyInt_AsLong(i);      \
+      else  name = (double) PyLong_AsUnsignedLong(i);                \
+    }                                                                \
+    else { \
+  printf("Unknown %s\n",#name); \
+  name = (double) cfg->name();  } }              
+
+
+PyObject* pds_RayonixConfig_set    (PyObject*   self, PyObject* args)
+{
+  PyObject* o = 0;
+  if (PyArg_ParseTuple(args,"O",&o)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==2) { 
+    const Pds::Rayonix::ConfigV2* cfg = 
+      reinterpret_cast<const Pds::Rayonix::ConfigV2*>(xtc->payload);
+
+    SetDictMember(binning_f);
+    SetDictMember(binning_s);
+    SetDictMember(testPattern);
+    SetDictMember(exposure);
+    SetDictMember(trigger);
+    SetDictMember(rawMode);
+    SetDictMember(darkFlag);
+    SetDictMember(readoutMode);
+    new(xtc->payload) Pds::Rayonix::ConfigV2(
+                      (uint8_t) binning_f,
+                      (uint8_t) binning_s,
+                      (int16_t) testPattern,
+                      (uint32_t) exposure,
+                      (uint32_t) trigger,
+                      (uint16_t) rawMode,
+                      (uint16_t) darkFlag,
+                      (Pds::Rayonix::ConfigV2::ReadoutMode) readoutMode,
+                      "name:0000");
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else {
+    printf("set(): Unsupported RayonixConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+
+#undef SetDictMember
+

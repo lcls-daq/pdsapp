@@ -145,6 +145,9 @@ static PyObject* _new_xtc(Pds::TypeId& contains)
           case Pds::TypeId::Id_PimaxConfig:
             o = _PyObject_New(&pds_PimaxConfig_type);
             break;
+          case Pds::TypeId::Id_RayonixConfig:
+            o = _PyObject_New(&pds_RayonixConfig_type);
+            break;
           default:
             o = _PyObject_New(&pds_Xtc_type);
             break;
@@ -580,6 +583,10 @@ PyObject* pdsdb_evolve(PyObject* self_o, PyObject* args, PyObject* kwds)
     extent = (contains.version()==1) ? 
       sizeof(Pds::Ipimb::ConfigV1) :
       sizeof(Pds::Ipimb::ConfigV2);
+    break;      
+  case Pds::TypeId::Id_RayonixConfig:
+    o = _PyObject_New(&pds_RayonixConfig_type);
+    extent = sizeof(Pds::Rayonix::ConfigV2);
     break;      
   case Pds::TypeId::Id_CspadConfig:
     o = _PyObject_New(&pds_CspadConfig_type);
