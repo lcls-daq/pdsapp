@@ -13,16 +13,12 @@ namespace Pds_ConfigDb {
   // these must end in NULL
   static const char* readoutMode_to_name[] = { "Standard", "High gain", "Low noise", "HDR", NULL };
 
-  static const char* res_to_name_expert[] = { "1920x1920 (binning 2x2)", 
+  static const char* res_to_name[] =        { "1920x1920 (binning 2x2)", 
                                               "1280x1280 (binning 3x3)", 
                                               "960x960 (binning 4x4)", 
                                               "768x768 (binning 5x5)", 
                                               "640x640 (binning 6x6)", 
                                               "480x480 (binning 8x8)", 
-                                              "384x384 (binning 10x10)",
-                                              NULL };
-  static const char* res_to_name[] =        { "1920x1920 (binning 2x2)", 
-                                              "960x960 (binning 4x4)", 
                                               "384x384 (binning 10x10)",
                                               NULL };
 
@@ -52,7 +48,7 @@ namespace Pds_ConfigDb {
 
     Private_Data() :
       _readoutMode    ("Readout mode", (Pds::Rayonix::ConfigV2::ReadoutMode)0, readoutMode_to_name),
-      _resolution     ("Resolution",      res1920x1920,           res_to_name_expert),
+      _resolution     ("Resolution",      res1920x1920,           res_to_name),
       _binning_f      (0),    // derived from _resolution
       _binning_s      (0),    // derived from _resolution
       _testPattern    ("Test pattern",          0,            -1,32767),
@@ -155,7 +151,13 @@ namespace Pds_ConfigDb {
   class RayonixConfig::Private_Data {
   public:
     enum Mode       { standardMode=0 };
-    enum Resolution { res1920x1920=0, res960x960=1, res384x384=2}; 
+    enum Resolution { res1920x1920=0, 
+                      res1280x1280=1, 
+                      res960x960=2,
+                      res768x768=3, 
+                      res640x640=4, 
+                      res480x480=5, 
+                      res384x384=6}; 
     enum Dark       { keepDark=0, newDark=1 };
     enum Raw        { correctedFrames=0 };
     enum Trigger    { frameTransferMode=0, bulbMode=1 };
@@ -184,8 +186,27 @@ namespace Pds_ConfigDb {
     {
       switch (in) {
         case res1920x1920: return (2);
+        case res1280x1280: return(3); 
         case res960x960: return (4);
+        case res768x768: return(5);
+        case res640x640: return (6);
+        case res480x480: return(8);
         case res384x384: return(10);
+        default: break;
+      }
+      return (2);
+    }
+
+    uint32_t binning2enum(uint32_t in)
+    {
+      switch (in) {
+        case 2: return(res1920x1920);
+        case 3: return(res1280x1280); 
+        case 4: return(res960x960);
+        case 5: return(res768x768);
+        case 6: return(res640x640);
+        case 8: return(res480x480);
+        case 10: return(res384x384);
         default: break;
       }
       return (2);
@@ -196,7 +217,7 @@ namespace Pds_ConfigDb {
 
       _binning_f = tc.binning_f();
       _binning_s = tc.binning_s();
-      _resolution.value = (_binning_f == 4) ? res960x960 : res1920x1920;
+      _resolution.value = binning2enum(_binning_f);
       _testPattern.value = tc.testPattern();
       _exposure_ms.value = tc.exposure();
       _trigger.value = tc.trigger();
