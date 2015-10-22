@@ -52,15 +52,17 @@ PyObject* pds_RayonixConfig_get (PyObject*   self, PyObject* args)
 
 //  Retrieve configuration data from a Python Dictionary
 #define SetDictMember(name)                                          \
-  double name;                                                       \
+  long name;                                                         \
   { PyObject* i = PyDict_GetItemString(o,#name);                     \
     if (i) {                                                         \
-      if (PyInt_CheckExact(i)) name = (double) PyInt_AsLong(i);      \
-      else  name = (double) PyLong_AsUnsignedLong(i);                \
+      if (PyInt_CheckExact(i)) name = PyInt_AsLong(i);               \
+      else  name = PyLong_AsUnsignedLong(i);                         \
     }                                                                \
-    else { \
-  printf("Unknown %s\n",#name); \
-  name = (double) cfg->name();  } }              
+    else {                                                           \
+      printf("Unknown %s\n",#name);                                  \
+      name = cfg->name();                                            \
+    }                                                                \
+  }              
 
 
 PyObject* pds_RayonixConfig_set    (PyObject*   self, PyObject* args)
@@ -77,21 +79,30 @@ PyObject* pds_RayonixConfig_set    (PyObject*   self, PyObject* args)
     SetDictMember(binning_f);
     SetDictMember(binning_s);
     SetDictMember(testPattern);
-    SetDictMember(exposure);
     SetDictMember(trigger);
     SetDictMember(rawMode);
     SetDictMember(darkFlag);
     SetDictMember(readoutMode);
+    if ((binning_f != 2) && (binning_f != 3) && (binning_f != 4) &&
+        (binning_f != 5) && (binning_f != 6) && (binning_f != 8) && (binning_f != 10)) {
+      printf("Warning: binning_f changed from invalid value %ld to valid value 2\n", binning_f);
+      printf("Notice:  valid binning values: 2, 3, 4, 5, 6, 8, 10\n");
+      binning_f = 2;
+    }
+    if (binning_s != binning_f) {
+      printf("Warning: binning_s changed from value %ld to binning_f value %ld\n", binning_s, binning_f);
+      binning_s = binning_f;
+    }
     new(xtc->payload) Pds::Rayonix::ConfigV2(
                       (uint8_t) binning_f,
                       (uint8_t) binning_s,
                       (int16_t) testPattern,
-                      (uint32_t) exposure,
+                      (uint32_t) 0,           // exposure not used
                       (uint32_t) trigger,
                       (uint16_t) rawMode,
                       (uint16_t) darkFlag,
                       (Pds::Rayonix::ConfigV2::ReadoutMode) readoutMode,
-                      "name:0000");
+                      "name:0000");           // deviceID read from device
     Py_INCREF(Py_None);
     return Py_None;
   }
