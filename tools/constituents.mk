@@ -24,8 +24,8 @@ tgtnames := event segtest sourcetest bldtest source montest showPartitions killP
 
 commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs += pds/pnccdFrameV0
-liblibs_tools :=
-liblibs_tools += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
+
+liblibs_tools := offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
 libincs_tools := offlinedb/include pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_event := event.cc

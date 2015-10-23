@@ -3,9 +3,13 @@ libnames :=
 libsrcs_test :=
 
 
-tgtnames := andorStandAlone timestampReceiver sqlDbTest timerResolution
+tgtnames := timestampReceiver sqlDbTest timerResolution
 ifneq ($(findstring i386-linux,$(tgt_arch)),)
 tgtnames += princetonCameraTest
+endif
+
+ifeq ($(findstring rhel7,$(tgt_arch)),)
+tgtnames += andorStandAlone
 endif
 
 commonlibs := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client

@@ -542,7 +542,7 @@ int main( int argc, char** argv )
   bufs->startFrame(startFrame);
 
   if (evrActive) {
-    myEvrReceiver = new MyEvrReceiver::MyEvrReceiver(uAddr, uPort, uMaxDataSize, sInterfaceP);
+    myEvrReceiver = new MyEvrReceiver(uAddr, uPort, uMaxDataSize, sInterfaceP);
   }
 
   if (debug & 1) printf("pnccdwidget writing frame size %u\n", pnCCDFrameSize);

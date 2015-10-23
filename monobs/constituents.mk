@@ -23,7 +23,7 @@ tgtincs_monshm := pdsdata/include ndarray/include boost/include
 tgtsrcs_monshmserver := monshmserver.cc MonComm.cc
 tgtlibs_monshmserver := pdsdata/appdata pds/offlineclient offlinedb/mysqlclient offlinedb/offlinedb
 tgtlibs_monshmserver += $(commonlibs) pds/mon $(liblibs_tools) pdsapp/tools pdsdata/indexdata pdsdata/smldata pdsdata/psddl_pdsdata
-tgtslib_monshmserver := $(USRLIBDIR)/rt
+tgtslib_monshmserver := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
 tgtincs_monshmserver := pdsdata/include
 
 tgtsrcs_monreqserver := monreqserver.cc

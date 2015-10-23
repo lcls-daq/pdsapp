@@ -92,7 +92,7 @@ static int read_ca_long(char *name, unsigned int *value)
     return 0;
 }
 
-static int get_image_size(const char *image, char *xname, char *yname, unsigned int *x, unsigned int *y)
+static int get_image_size(const char *image, const char *xname, const char *yname, unsigned int *x, unsigned int *y)
 {
     char buf[256], *s;
 

@@ -101,7 +101,7 @@ static string lb_params[LCPARAMS] = { /* This is the order of parameters to LogB
 int start_sec = 0, start_nsec = 0;
 int end_sec = 0, end_nsec = 0;
 int streamno = 0;
-static char *defether = "eth0";
+static const char *defether = "eth0";
 
 static void int_handler(int signal)
 {
@@ -152,7 +152,7 @@ void begin_run(void)
         setitimer(ITIMER_REAL, &timer, NULL);
 }
 
-static istream *open_config_file(char *name)
+static istream *open_config_file(const char *name)
 {
     char buf[512];
 

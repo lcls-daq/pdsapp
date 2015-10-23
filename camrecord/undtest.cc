@@ -11,7 +11,7 @@
 #include"cadef.h"
 #include"alarm.h"
 
-char *pvlist[] = {
+const char *pvlist[] = {
     "OTRS:DMP1:695:Image:ArrayData",
     "OTRS:DMP1:695:MinX_RBV",
     "OTRS:DMP1:695:MinY_RBV",
@@ -38,7 +38,7 @@ char *pvlist[] = {
 };
 
 typedef struct caconn {
-    char  *name;
+    const char *name;
     chid   chan;
     int    nelem;
     chtype dbftype;

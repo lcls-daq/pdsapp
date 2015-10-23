@@ -12,25 +12,32 @@ tgtnames += imp pnccd epix epixsampler epix10k epix100a genericpgp
 tgtnames += simcam
 tgtnames += ipimb lusidiag
 tgtnames += rayonix udpcam
-tgtnames += oceanoptics fli andor
+tgtnames += oceanoptics
 
-ifneq ($(findstring x86_64,$(tgt_arch)),)
-tgtnames += camedt
-  ifeq ($(build_extra),$(true))
-    tgtnames += phasics xamps fexamp
-  endif
-else
+ifneq ($(findstring i386,$(tgt_arch)),)
 tgtnames +=  acq \
     encoder \
     princeton \
     princetonsim \
     gsc16ai  \
     cam \
-    usdusb
+    usdusb \
+    fli andor
+endif
+
+ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
+tgtnames += camedt fli andor
+  ifeq ($(build_extra),$(true))
+    tgtnames += phasics xamps fexamp
+  endif
 endif
 
 ifneq ($(findstring x86_64-rhel6,$(tgt_arch)),)
-tgtnames += pimax
+tgtnames += pimax fli andor
+endif
+
+ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
+tgtnames += camedt
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -195,7 +202,7 @@ tgtincs_epicsArch := pdsdata/include ndarray/include boost/include
 tgtsrcs_bld := bld.cc 
 tgtlibs_bld := $(commonlibs) 
 tgtlibs_bld += pds/clientcompress pds/pnccdFrameV0 pdsdata/compressdata
-tgtslib_bld := $(commonslib)
+tgtslib_bld := $(commonslib) /usr/lib64/pthread
 tgtincs_bld := pdsdata/include ndarray/include boost/include  
 
 tgtsrcs_princeton := princeton.cc

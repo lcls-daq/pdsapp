@@ -140,7 +140,7 @@ static struct transition_queue {
 static int transidx = 0;
 static int cfgdone = 0;
 
-static FILE *myfopen(char *name, char *flags, int doreg)
+static FILE *myfopen(const char *name, const char *flags, int doreg)
 {
     FILE *fp = fopen(name, flags);
     if (!fp)

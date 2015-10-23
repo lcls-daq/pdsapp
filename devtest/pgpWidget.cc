@@ -26,8 +26,8 @@ void sigHandler( int signal ) {
 
 using namespace Pds;
 
-Pgp::Destination* dest;
-Pgp::Pgp* pgp;
+Pds::Pgp::Destination* dest;
+Pds::Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
@@ -253,8 +253,8 @@ int main( int argc, char** argv )
 
   Pds::Pgp::Pgp::portOffset(offset);
 
-  pgp = new Pds::Pgp::Pgp::Pgp(fd, debug != 0);
-  dest = new Pds::Pgp::Destination::Destination(d);
+  pgp = new Pds::Pgp::Pgp(fd, debug != 0);
+  dest = new Pds::Pgp::Destination(d);
 
   if (writing) {
 //    char path[512];
