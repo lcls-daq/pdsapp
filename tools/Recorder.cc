@@ -5,10 +5,10 @@
 #include "EventOptions.hh"
 #include "pdsdata/index/XtcIterL1Accept.hh"
 #include "pdsdata/index/SmlDataIterL1Accept.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/collection/Node.hh"
 #include "pds/service/GenericPool.hh"
 #include "pds/utility/Occurrence.hh"
+#include "pds/xtc/CDatagramIterator.hh"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,7 +89,7 @@ static void local_mkdir_with_acls (const char * path, const char *expname)
 
 Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer, OfflineClient *offlineclient, const char* expname, unsigned uSizeThreshold) : 
   Appliance(), 
-  _pool    (new GenericPool(sizeof(ZcpDatagramIterator),1)),
+  _pool    (new GenericPool(sizeof(CDatagramIterator),1)),
   _node    (0),
   _sliceID (sliceID),
   _beginrunerr(0),

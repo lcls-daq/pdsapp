@@ -9,7 +9,7 @@
 #include "pds/utility/EbBase.hh"
 #include "pds/xtc/InDatagram.hh"
 #include "pds/xtc/InDatagramIterator.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
+#include "pds/xtc/CDatagramIterator.hh"
 #include "pds/client/Browser.hh"
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ using namespace Pds;
 
 class StatsApp : public Appliance, public XtcIterator {
 public:
-  StatsApp(const Src& s) : _src(s), _pool(sizeof(ZcpDatagramIterator),1) {}
+  StatsApp(const Src& s) : _src(s), _pool(sizeof(CDatagramIterator),1) {}
   ~StatsApp() {}
 
   Transition* transitions(Transition* in) {

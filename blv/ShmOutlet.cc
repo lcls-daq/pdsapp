@@ -1,7 +1,7 @@
 #include "pdsapp/blv/ShmOutlet.hh"
 
+#include "pds/xtc/CDatagramIterator.hh"
 #include "pds/utility/Appliance.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
 #include "pds/service/GenericPool.hh"
 #include "pds/service/Task.hh"
 #include "pdsdata/xtc/Dgram.hh"
@@ -18,7 +18,7 @@ ShmOutlet::ShmOutlet(Outlet& outlet,
 		     unsigned numberofClients) : 
   OutletWire(outlet),
   XtcMonitorServer(tag, sizeofBuffers, numberofEvBuffers, numberofClients),
-  _pool           (new GenericPool(sizeof(ZcpDatagramIterator),2))
+  _pool           (new GenericPool(sizeof(CDatagramIterator),2))
 {
 }
 

@@ -1,5 +1,4 @@
-#include "pds/xtc/InDatagramIterator.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
+#include "pds/xtc/CDatagramIterator.hh"
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/psddl/acqiris.ddl.h"
@@ -119,7 +118,7 @@ AcqDisplay::~AcqDisplay() {
 AcqDisplayConfigAction::~AcqDisplayConfigAction() {}
 
 AcqDisplayConfigAction::AcqDisplayConfigAction(MonServerManager& monsrv,DisplayConfig& disp, DisplayConfig& dispprofile) :
-  _monsrv(monsrv), _disp(disp), _dispprofile(dispprofile), _iter(sizeof(ZcpDatagramIterator),1) {}
+  _monsrv(monsrv), _disp(disp), _dispprofile(dispprofile), _iter(sizeof(CDatagramIterator),1) {}
 
 Transition* AcqDisplayConfigAction::fire(Transition* tr) {
   return tr;
@@ -171,7 +170,7 @@ AcqDisplayL1Action::~AcqDisplayL1Action() {}
 
 AcqDisplayL1Action::AcqDisplayL1Action(DisplayConfig& disp, DisplayConfig& dispprofile) :
   _disp(disp),_dispprofile(dispprofile),
-  _iter(sizeof(ZcpDatagramIterator),1)
+  _iter(sizeof(CDatagramIterator),1)
 {}
 
 Transition* AcqDisplayL1Action::fire(Transition* tr) {

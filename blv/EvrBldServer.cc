@@ -1,5 +1,4 @@
 #include "pds/xtc/CDatagram.hh"
-#include "pds/xtc/ZcpDatagram.hh"
 #include "pds/utility/DmaEngine.hh"
 #include "EvrBldServer.hh"
 
@@ -113,10 +112,5 @@ int EvrBldServer::fetch(char* payload, int flags)
 #endif
 
   return payloadSize+sizeof(Xtc);
-}
-
-int EvrBldServer::fetch(ZcpFragment& zf, int flags)
-{
-  return 0;
 }
 

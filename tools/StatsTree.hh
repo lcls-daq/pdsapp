@@ -7,7 +7,7 @@
 #include "pds/utility/EbBase.hh"
 #include "pds/xtc/InDatagram.hh"
 #include "pds/xtc/InDatagramIterator.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
+#include "pds/xtc/CDatagramIterator.hh"
 
 #include <stdio.h>
 #include <string.h>
@@ -105,7 +105,7 @@ using namespace Pds;
 
 class StatsTree : public Appliance {
   public:
-    StatsTree() : _pool(sizeof(ZcpDatagramIterator),1) {}
+    StatsTree() : _pool(sizeof(CDatagramIterator),1) {}
     ~StatsTree() {}
 
     Transition* transitions(Transition* in) {

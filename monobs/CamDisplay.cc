@@ -17,7 +17,7 @@
 #include "pds/camera/TwoDGaussianType.hh"
 
 #include "pds/xtc/InDatagramIterator.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
+#include "pds/xtc/CDatagramIterator.hh"
 
 #include "pds/config/Opal1kConfigType.hh"
 #include "pds/config/TM6740ConfigType.hh"
@@ -202,7 +202,7 @@ namespace Pds {
   public:
     ConfigAction(MonServerManager& monsrv) : 
       _monsrv(monsrv), 
-      _iter(sizeof(ZcpDatagramIterator),1) 
+      _iter(sizeof(CDatagramIterator),1) 
     {}
     ~ConfigAction() {}
   public:
@@ -287,7 +287,7 @@ namespace Pds {
   public:
     L1Action(ConfigAction& config) : 
       _config(config), 
-      _iter(sizeof(ZcpDatagramIterator),1) 
+      _iter(sizeof(CDatagramIterator),1) 
     {}
     ~L1Action() {}
   public:

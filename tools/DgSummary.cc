@@ -1,7 +1,7 @@
 #include "DgSummary.hh"
 
 #include "pds/xtc/SummaryDg.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
+#include "pds/xtc/CDatagramIterator.hh"
 #include "pdsdata/psddl/l3t.ddl.h"
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/Damage.hh"
@@ -80,7 +80,7 @@ using namespace Pds;
 
 DgSummary::DgSummary() : 
   _dgpool(sizeof(SummaryDg::Dg),16),
-  _itpool(sizeof(ZcpDatagramIterator),16),
+  _itpool(sizeof(CDatagramIterator),16),
   _bld   (new BldStats)
 {
 }

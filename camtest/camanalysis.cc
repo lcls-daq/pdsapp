@@ -1,6 +1,5 @@
 #include "pds/client/XtcIterator.hh"
-#include "pds/xtc/InDatagramIterator.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
+#include "pds/xtc/CDatagramIterator.hh"
 #include "pds/xtc/CDatagram.hh"
 #include "pds/service/GenericPool.hh"
 #include "pdsdata/xtc/Xtc.hh"
@@ -54,7 +53,7 @@ class CamAnalysis : public XtcIterator {
 public:
   CamAnalysis(unsigned detectorId) :
     _detectorId(detectorId),
-    _iter      (sizeof(ZcpDatagramIterator),1)
+    _iter      (sizeof(CDatagramIterator),1)
   {	
   }
   ~CamAnalysis()

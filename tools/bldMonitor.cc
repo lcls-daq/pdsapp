@@ -12,7 +12,7 @@
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pds/client/XtcIterator.hh"
 #include "pds/xtc/InDatagramIterator.hh"
-#include "pds/xtc/ZcpDatagramIterator.hh"
+#include "pds/xtc/CDatagramIterator.hh"
 
 static const int netbufdepth=8;
 static const int MaxSize = 1024*1024;
@@ -119,7 +119,7 @@ namespace Pds {
 
   class MyStats : public Appliance, public PdsClient::XtcIterator {
   public:
-    MyStats(int n) : _n(n > 0 ? n : 1), _count(_n), _pool(sizeof(ZcpDatagramIterator),1)
+    MyStats(int n) : _n(n > 0 ? n : 1), _count(_n), _pool(sizeof(CDatagramIterator),1)
     {
       for(int i=0; i<BldInfo::NumberOf; i++)
   _stats[i].id = i;

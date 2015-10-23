@@ -28,7 +28,6 @@ namespace Pds {
     //  Server interface
     int      pend  (int flag = 0);
     int      fetch (char* payload, int flags);
-    int      fetch (ZcpFragment& , int flags);
   public:
     const Sequence&     sequence() const;
     const L1AcceptEnv&  env() const;
