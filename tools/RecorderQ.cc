@@ -1,5 +1,4 @@
 #include "RecorderQ.hh"
-#include "pdsapp/tools/DgSummary.hh"
 #include "pds/service/Routine.hh"
 #include "pds/service/Task.hh"
 #include "pds/service/TaskObject.hh"
@@ -15,20 +14,18 @@ namespace Pds {
 
   class QueuedAction : public Routine {
   public:
-    QueuedAction(InDatagram* in, RecorderQ& rec, DgSummary& sum, Semaphore* sem = 0) :
-      _in(in), _rec(rec), _sum(sum), _sem(sem) {}
+    QueuedAction(InDatagram* in, RecorderQ& rec, Semaphore* sem = 0) :
+      _in(in), _rec(rec), _sem(sem) {}
     ~QueuedAction() {}
   public:
     void routine() {
-      InDatagram* out = _sum.events(_in);
       ClockTime now(_in->datagram().seq.clock());
       unsigned sample = SysClk::sample();
       _rec.Recorder::events(_in);
       _rec.record_time(double(SysClk::since(sample))/
                        double(_in->xtc.sizeofPayload()),
                        now);
-      delete _in;
-      _rec.post(out);
+      _rec.post(_in);
 
       if (_sem)	_sem->give();
       delete this;
@@ -36,18 +33,16 @@ namespace Pds {
   private:
     InDatagram* _in;
     RecorderQ&  _rec;
-    DgSummary&  _sum;
     Semaphore*  _sem;
   };
 };
 
 using namespace Pds;
 
-RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, unsigned uSizeThreshold, bool delay_xfer, bool dont_queue, OfflineClient *offlineclient, const char* expname) :
+RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, unsigned uSizeThreshold, bool delay_xfer, OfflineClient *offlineclient, const char* expname) :
    Recorder(fname, sliceID, chunkSize, delay_xfer, offlineclient, expname, uSizeThreshold),
   _task(new Task(TaskObject("RecEvt"))),
-  _sem (Semaphore::EMPTY),
-  _dont_queue(dont_queue)
+  _sem (Semaphore::EMPTY)
 {
   MonGroup* group = new MonGroup("RecQ");
   VmonServerManager::instance()->cds().add(group);
@@ -68,21 +63,13 @@ RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize
     group->add(_rec_time_log); }
 }
 
-Transition* RecorderQ::transitions(Transition* in)
-{
-  return _summary.transitions(Recorder::transitions(in));
-}
-
 InDatagram* RecorderQ::events(InDatagram* in) 
 {
   if (in->datagram().seq.service()==TransitionId::L1Accept) {
-    if (_busy)
-      return in;
-    _busy = _dont_queue;
-    _task->call(new QueuedAction(in,*this,_summary));
+    _task->call(new QueuedAction(in,*this));
   }
   else {
-    _task->call(new QueuedAction(in,*this,_summary,&_sem));
+    _task->call(new QueuedAction(in,*this,&_sem));
     _sem.take();
   }
   return (InDatagram*)Appliance::DontDelete;
@@ -94,5 +81,4 @@ void RecorderQ::record_time(double t_ns_byte, const ClockTime& now)
   _rec_time_log->addcontent(1., log10f(t_ns_byte));
   _rec_time    ->time(now);
   _rec_time_log->time(now);
-  _busy = false;
 }

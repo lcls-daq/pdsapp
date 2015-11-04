@@ -49,14 +49,12 @@ void EventTest::attached(SetOfStreams& streams)
   //    frmk->outlet()->sink(TransitionId::L1Accept);
   frmk->outlet()->sink(TransitionId::Unknown);
   
-  if (_options.outfile) {
+  (new DgSummary)->connect(frmk->inlet());
+
+  if (_options.outfile)
      (new RecorderQ(_options.outfile, _options.sliceID, _options.chunkSize, 
                     _options.uSizeThreshold, _options.delayXfer, 
-                    false, NULL, _options.expname))->connect(frmk->inlet());
-  }
-  else {
-    (new DgSummary)->connect(frmk->inlet());
-  }
+                    NULL, _options.expname))->connect(frmk->inlet());
 
   printf("EventTest options %p apps %p\n",&_options,_options.apps);
   if (_options.apps) {
