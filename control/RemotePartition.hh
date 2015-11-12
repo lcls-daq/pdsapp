@@ -29,7 +29,7 @@ namespace Pds {
       else   _options &= ~ReadoutMask;
     }
   private:
-    enum { NameSize=32 };
+    enum { NameSize=64 };
     enum { ReadoutMask = 1,
 	   RecordMask  = 2 };
     char     _name[NameSize];
