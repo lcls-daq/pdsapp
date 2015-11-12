@@ -1,0 +1,287 @@
+//
+//  pds_AcqirisConfig class methods
+//
+static PyObject* pds_AcqirisConfig_get      (PyObject*   self, PyObject* args);
+static PyObject* pds_AcqirisConfig_set      (PyObject*   self, PyObject* args);
+static PyObject* pds_AcqirisConfig_enum     (PyObject*   self, PyObject* args);
+
+static PyMethodDef pds_AcqirisConfig_methods[] = {
+  {"get"        , (PyCFunction)pds_AcqirisConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"set"        , (PyCFunction)pds_AcqirisConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"get_enums"  , (PyCFunction)pds_AcqirisConfig_enum  , METH_NOARGS  , "Output enum constants"},
+  {NULL},
+};
+
+DefineXtcType(AcqirisConfig)
+
+
+#include "pdsdata/psddl/acqiris.ddl.h"
+#include <new>
+
+
+// Return a dictionary of enum types in config
+#define SetEnum(name,type,dict)                                                             \
+  { PyDict_SetItemString(dict,#name,PyInt_FromLong(Pds::Acqiris::type::name)); }    
+
+#define SetEnumDict(name,dict)              \
+  { PyDict_SetItemString(o,#name,dict); }
+
+static PyObject* get_trigV1_enum()
+{
+  PyObject* source_enum = PyDict_New();
+  SetEnum(Internal,TrigV1,source_enum);
+  SetEnum(External,TrigV1,source_enum);
+
+  PyObject* coupling_enum = PyDict_New();
+  SetEnum(DC,TrigV1,coupling_enum);
+  SetEnum(AC,TrigV1,coupling_enum);
+  SetEnum(HFreject,TrigV1,coupling_enum);
+  SetEnum(DC50ohm,TrigV1,coupling_enum);
+  SetEnum(AC50ohm,TrigV1,coupling_enum);
+
+  PyObject* slope_enum = PyDict_New();
+  SetEnum(Positive,TrigV1,slope_enum);
+  SetEnum(Negative,TrigV1,slope_enum);
+  SetEnum(OutOfWindow,TrigV1,slope_enum);
+  SetEnum(IntoWindow,TrigV1,slope_enum);
+  SetEnum(HFDivide,TrigV1,slope_enum);
+  SetEnum(SpikeStretcher,TrigV1,slope_enum);
+
+  PyObject* o = PyDict_New();
+  SetEnumDict(Source,source_enum)
+  SetEnumDict(Coupling,coupling_enum);
+  SetEnumDict(Slope,slope_enum);
+
+  return o;
+}
+
+static PyObject* get_vertV1_enum()
+{
+  PyObject* coupling_enum = PyDict_New();
+  SetEnum(GND,VertV1,coupling_enum);
+  SetEnum(DC,VertV1,coupling_enum);
+  SetEnum(AC,VertV1,coupling_enum);
+  SetEnum(DC50ohm,VertV1,coupling_enum);
+  SetEnum(AC50ohm,VertV1,coupling_enum);
+
+  PyObject* bandwidth_enum = PyDict_New();
+  SetEnum(None,VertV1,bandwidth_enum);
+  SetEnum(MHz25,VertV1,bandwidth_enum);
+  SetEnum(MHz700,VertV1,bandwidth_enum);
+  SetEnum(MHz200,VertV1,bandwidth_enum);
+  SetEnum(MHz20,VertV1,bandwidth_enum);
+  SetEnum(MHz35,VertV1,bandwidth_enum);
+
+  PyObject* o = PyDict_New();
+  SetEnumDict(Coupling,coupling_enum);
+  SetEnumDict(Bandwidth,bandwidth_enum);
+
+  return o;
+}
+
+PyObject* pds_AcqirisConfig_enum (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+
+    SetEnum(MaxChan,ConfigV1,o)
+    SetEnumDict(Trig,get_trigV1_enum());
+    SetEnumDict(Vert,get_vertV1_enum());
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported AcqirisConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+
+#undef SetEnum
+#undef SetEnumDict
+
+
+//  Return a dictionary of configuration data
+#define SetDictMember(name,isFloat,isSigned)                                          \
+  { if (isFloat)                                                                      \
+      PyDict_SetItemString(o,#name,PyFloat_FromDouble(cfg->name()));                  \
+    else if (isSigned)                                                                \
+      PyDict_SetItemString(o,#name,PyLong_FromLong((signed)cfg->name()));             \
+    else                                                                              \
+      PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfg->name())); }
+
+static PyObject* get_trig(const Pds::Acqiris::TrigV1* cfg)
+{
+  PyObject* o = PyDict_New();
+
+  SetDictMember(coupling,false,false);
+  SetDictMember(input,false,true);
+  SetDictMember(slope,false,false);
+  SetDictMember(level,true,false);
+
+  return o;
+}
+
+static PyObject* get_horiz(const Pds::Acqiris::HorizV1* cfg)
+{
+  PyObject* o = PyDict_New();
+
+  SetDictMember(sampInterval,true,false);
+  SetDictMember(delayTime,true,false);
+  SetDictMember(nbrSamples,false,false);
+  SetDictMember(nbrSegments,false,false);
+
+  return o;
+}
+
+static PyObject* get_vert(const Pds::Acqiris::VertV1* cfg)
+{
+  PyObject* o = PyDict_New();
+
+  SetDictMember(fullScale,true,false);
+  SetDictMember(offset,true,false);
+  SetDictMember(coupling,false,false);
+  SetDictMember(bandwidth,false,false);
+  SetDictMember(slope,true,false);
+
+  return o;
+}
+
+PyObject* pds_AcqirisConfig_get (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+    const Pds::Acqiris::ConfigV1* cfg =
+      reinterpret_cast<const Pds::Acqiris::ConfigV1*>(xtc->payload);
+    const unsigned max_channels = Pds::Acqiris::ConfigV1::MaxChan;
+
+    SetDictMember(nbrConvertersPerChannel,false,false);
+    SetDictMember(channelMask,false,false);
+    SetDictMember(nbrBanks,false,false);
+    SetDictMember(nbrChannels,false,false)
+
+    { PyObject* trig = get_trig(&cfg->trig());
+      PyDict_SetItemString(o,"trig",trig); }
+
+    { PyObject* horiz = get_horiz(&cfg->horiz());
+      PyDict_SetItemString(o,"horiz",horiz); }
+
+    { PyObject* l = PyList_New(max_channels);
+      ndarray<const Pds::Acqiris::VertV1, 1> vert_chans = cfg->vert();
+      for(unsigned i=0; i<max_channels; i++)
+        PyList_SetItem(l,i,get_vert(&vert_chans[i]));
+      PyDict_SetItemString(o,"vert",l); }
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported AcqirisConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+#undef SetDictMember
+
+
+//  Retrieve configuration data from a Python Dictionary
+#define SetDictMember(name)                                            \
+  double name;                                                         \
+  { PyObject* i = PyDict_GetItemString(o,#name);                       \
+    if (i) {                                                           \
+      if(PyFloat_Check(i))  name = PyFloat_AsDouble(i);                \
+      else if (PyLong_CheckExact(i)) name = (double) PyLong_AsLong(i); \
+      else  name = (double) PyLong_AsLongLong(i);                      \
+    }                                                                  \
+    else name = (double) cfg->name();  }
+
+static Pds::Acqiris::TrigV1 set_trig(const Pds::Acqiris::TrigV1* cfg, PyObject* o)
+{
+  SetDictMember(coupling)
+  SetDictMember(input)
+  SetDictMember(slope)
+  SetDictMember(level)
+
+  Pds::Acqiris::TrigV1 trig = Pds::Acqiris::TrigV1((uint32_t) coupling,
+                                                   (uint32_t) input,
+                                                   (uint32_t) slope,
+                                                   (double) level);
+
+  return trig;
+}
+
+static Pds::Acqiris::HorizV1 set_horiz(const Pds::Acqiris::HorizV1* cfg, PyObject* o)
+{
+  SetDictMember(sampInterval)
+  SetDictMember(delayTime)
+  SetDictMember(nbrSamples)
+  SetDictMember(nbrSegments)
+
+  Pds::Acqiris::HorizV1 horiz = Pds::Acqiris::HorizV1((double) sampInterval,
+                                                      (double) delayTime,
+                                                      (uint32_t) nbrSamples,
+                                                      (uint32_t) nbrSegments);
+
+  return horiz;
+}
+
+static Pds::Acqiris::VertV1 set_vert(const Pds::Acqiris::VertV1* cfg, PyObject* o)
+{
+  SetDictMember(fullScale);
+  SetDictMember(offset);
+  SetDictMember(coupling);
+  SetDictMember(bandwidth);
+
+  Pds::Acqiris::VertV1 vert = Pds::Acqiris::VertV1((double) fullScale,
+                                                   (double) offset,
+                                                   (uint32_t) coupling,
+                                                   (uint32_t) bandwidth);
+
+  return vert;
+}
+
+PyObject* pds_AcqirisConfig_set    (PyObject*   self, PyObject* args)
+{
+  PyObject* o = 0;
+  if (PyArg_ParseTuple(args,"O",&o)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==1) {
+    const Pds::Acqiris::ConfigV1* cfg =
+      reinterpret_cast<const Pds::Acqiris::ConfigV1*>(xtc->payload);
+    const unsigned max_channels = Pds::Acqiris::ConfigV1::MaxChan;
+
+    SetDictMember(nbrConvertersPerChannel);
+    SetDictMember(channelMask);
+    SetDictMember(nbrBanks);
+    SetDictMember(nbrChannels);
+
+    Pds::Acqiris::VertV1 vert_chans[max_channels];
+    ndarray<const Pds::Acqiris::VertV1, 1> vert_cfs = cfg->vert();
+    PyObject* i = PyDict_GetItemString(o,"vert");
+    for(unsigned q=0; q<PyList_Size(i); q++) {
+      vert_chans[q] = set_vert(&vert_cfs[q], PyList_GetItem(i,q));
+    }
+
+    new(xtc->payload) Pds::Acqiris::ConfigV1((uint32_t) nbrConvertersPerChannel,
+                                             (uint32_t) channelMask,
+                                             (uint32_t) nbrBanks,
+                                             set_trig(&cfg->trig(), PyDict_GetItemString(o,"trig")),
+                                             set_horiz(&cfg->horiz(), PyDict_GetItemString(o,"horiz")),
+                                             vert_chans);
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else {
+    printf("set(): Unsupported AcqirisConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+
+#undef SetDictMember
+

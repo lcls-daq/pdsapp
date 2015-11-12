@@ -26,6 +26,7 @@
 #include "pdsapp/python/AndorConfig.icc"
 #include "pdsapp/python/PimaxConfig.icc"
 #include "pdsapp/python/RayonixConfig.icc"
+#include "pdsapp/python/AcqirisConfig.icc"
 #include "pdsapp/python/Db.icc"
 #include "pdsapp/python/pycdbHelp.icc"
 
@@ -94,6 +95,9 @@ initpycdb(void)
   if (PyType_Ready(&pds_RayonixConfig_type) < 0)
     return; 
 
+  if (PyType_Ready(&pds_AcqirisConfig_type) < 0)
+    return;
+
   PyObject *m = Py_InitModule("pycdb", PycdbMethods);
   if (m == NULL)
     return;
@@ -144,5 +148,8 @@ initpycdb(void)
   PyModule_AddObject(m, "PimaxConfig", (PyObject*)&pds_PimaxConfig_type);       
 
   Py_INCREF(&pds_RayonixConfig_type);
-  PyModule_AddObject(m, "RayonixConfig", (PyObject*)&pds_RayonixConfig_type);     
+  PyModule_AddObject(m, "RayonixConfig", (PyObject*)&pds_RayonixConfig_type);
+
+  Py_INCREF(&pds_AcqirisConfig_type);
+  PyModule_AddObject(m, "AcqirisConfig", (PyObject*)&pds_AcqirisConfig_type);
 }
