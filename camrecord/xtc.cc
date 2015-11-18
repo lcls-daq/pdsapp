@@ -1,6 +1,5 @@
 #define EXACT_TS_MATCH       0
 #define FIDUCIAL_MATCH       1
-#define MATCH_TYPE           FIDUCIAL_MATCH
 //#define TRACE
 #include<stdio.h>
 #include<signal.h>
@@ -139,6 +138,12 @@ static struct transition_queue {
 } saved_trans[MAX_TRANS];
 static int transidx = 0;
 static int cfgdone = 0;
+static int match_type = FIDUCIAL_MATCH;
+
+void nofid(void)
+{
+    match_type = EXACT_TS_MATCH;
+}
 
 static FILE *myfopen(const char *name, const char *flags, int doreg)
 {
@@ -213,19 +218,21 @@ int length_list(struct event *ev)
  */
 static int ts_match(struct event *_ev, int _sec, int _nsec)
 {
-#if MATCH_TYPE == EXACT_TS_MATCH
-    /* Exactly match the timestamps */
-    return (_ev->sec != _sec) ? ((int)_ev->sec - _sec) : ((int)_ev->nsec - _nsec);
-#endif
+    int diff;
 
-#if MATCH_TYPE == FIDUCIAL_MATCH
-    /* Exactly match the fiducials, and make the seconds be close. */
-    int diff = _ev->sec - _sec;
-    if (abs(diff) <= 1) /* Close to the same second! */
-        return (0x1ffff & (int)_ev->nsec) - (0x1ffff & _nsec);
-    else
-        return diff;
-#endif
+    switch (match_type) {
+    case EXACT_TS_MATCH:
+        /* Exactly match the timestamps */
+        return ((int) _ev->sec != _sec) ? ((int)_ev->sec - _sec) : ((int)_ev->nsec - _nsec);
+    case FIDUCIAL_MATCH:
+        /* Exactly match the fiducials, and make the seconds be close. */
+        diff = _ev->sec - _sec;
+        if (abs(diff) <= 1) /* Close to the same second! */
+            return (0x1ffff & (int)_ev->nsec) - (0x1ffff & _nsec);
+        else
+            return diff;
+    }
+    return 0;
 }
 
 static void setup_datagram(TransitionId::Value val)

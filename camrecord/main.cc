@@ -589,12 +589,13 @@ int main(int argc, char **argv)
         {"silent",    0, 0, 's'},
         {"keepalive", 1, 0, 'k'},
         {"hostname",  1, 0, 'H'},
+        {"nofid",     0, 0, 'n'},
         {NULL, 0, NULL, 0}
     };
 
     bool helpFlag = false;
     bool parseErr = false;
-    while ((c = getopt_long(argc, argv, "hb:c:o:t:d:sk:H:", long_options, &idx)) != -1) {
+    while ((c = getopt_long(argc, argv, "hb:c:o:t:d:snk:H:", long_options, &idx)) != -1) {
         switch (c) {
         case 'h':
             helpFlag = true;
@@ -631,6 +632,9 @@ int main(int argc, char **argv)
         case 'H':
             curdir = ((std::string) NFSBASE) + optarg + "/";
             haveH = 1;
+            break;
+        case 'n':
+            nofid();
             break;
         case 's':
             verbose = 0;
