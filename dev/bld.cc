@@ -149,7 +149,7 @@ namespace Pds {
       key = (key<<32) | tc.src.phy();
       char* p = new char[len];
       memcpy(p,payload,nzlen);
-      memset(p+nzlen,len-nzlen,0);
+      memset(p+nzlen,0,len-nzlen);
       _map[key] = Entry(len,p);
     }
 
