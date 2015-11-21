@@ -420,7 +420,10 @@ namespace Pds {
     bool _require(const Xtc& xtc, const Opal1kConfigType& c)
     { return _require(xtc,&c,sizeof(c)); }
     bool _require(const Xtc& xtc, const SpectrometerType& c)
-    { return _require_and_zero(xtc,&c,sizeof(c),3*sizeof(uint32_t)); }
+    {
+      _require_and_zero(xtc,&c,sizeof(c),3*sizeof(uint32_t)); 
+      return true;   // this configuration data is part of the event data (always require)
+    }
     bool _require(const Xtc& xtc, const AcqConfigType& c)
     { return _require(xtc,&c,sizeof(c)); }
     bool _require(const Xtc& xtc, const AnalogInputType& c)
