@@ -89,7 +89,8 @@ RunStatus::RunStatus(QWidget* parent,
   _details (0),
   _alarm   (false),
   _green          ( new QPalette(Qt::green)),
-  _red            ( new QPalette(Qt::red))
+  _red            ( new QPalette(Qt::red)),
+  _run     (0)
 {
   _detailsB = new QPushButton("Damage Stats");
   QGridLayout* layout = new QGridLayout(this);

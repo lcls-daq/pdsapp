@@ -9,6 +9,7 @@
 #include "pdsapp/control/PVDisplay.hh"
 #include "pdsapp/control/PVManager.hh"
 #include "pdsapp/control/RunStatus.hh"
+#include "pdsapp/control/ExportStatus.hh"
 #include "pdsapp/control/ControlLog.hh"
 #include "pdsapp/control/MySqlRunAllocator.hh"
 #include "pdsapp/control/FileRunAllocator.hh"
@@ -111,8 +112,9 @@ namespace Pds {
 
   class FileReport : public Appliance {
   public:
-    FileReport(ControlLog& log) :
+    FileReport(ControlLog& log, RunStatus& runstatus) :
       _log(log),
+      _runstatus(runstatus),
       _experiment(0)
     {
     }
@@ -121,6 +123,7 @@ namespace Pds {
   public:
     Transition* transitions(Transition* tr)
     {
+      unsigned runNumber = 0;
       if (tr->id()==TransitionId::BeginRun) {
   if (tr->size() == sizeof(Transition)) {  // No RunInfo
     char fname[256];
@@ -132,6 +135,7 @@ namespace Pds {
   }
   else {
           RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
+          runNumber = rinfo.run();
     char fname[256];
     sprintf(fname, "e%d/e%d-r%04d-s00-c00.xtc",
       rinfo.experiment(), rinfo.experiment(), rinfo.run());
@@ -141,27 +145,29 @@ namespace Pds {
         .arg(rinfo.run())
         .arg(fname));
   }
-      }
-    return tr;
+    _runstatus.runNumber(runNumber);
     }
+  return tr;
+  }
 
-    InDatagram* events     (InDatagram* dg) { return dg; }
+  InDatagram* events     (InDatagram* dg) { return dg; }
 
-    Occurrence* occurrences(Occurrence* occ)
-    {
-      if (occ->id() == OccurrenceId::DataFileOpened) {
-        char fname[256];
-        const DataFileOpened& dfo = *static_cast<const DataFileOpened*>(occ);
-        snprintf(fname, sizeof(fname), "%s:%s", dfo.host, dfo.path);
-                _log.appendText(QString("%1: Opened data file %2")
-                .arg(QTime::currentTime().toString("hh:mm:ss"))
-                .arg(fname));
-      }
-      return occ;
+  Occurrence* occurrences(Occurrence* occ)
+  {
+    if (occ->id() == OccurrenceId::DataFileOpened) {
+      char fname[256];
+      const DataFileOpened& dfo = *static_cast<const DataFileOpened*>(occ);
+      snprintf(fname, sizeof(fname), "%s:%s", dfo.host, dfo.path);
+              _log.appendText(QString("%1: Opened data file %2")
+              .arg(QTime::currentTime().toString("hh:mm:ss"))
+              .arg(fname));
     }
+    return occ;
+  }
 
-  private:
+private:
     ControlLog& _log;
+    RunStatus&  _runstatus;
     unsigned    _experiment;
   };
 
@@ -254,12 +260,14 @@ MainWindow::MainWindow(unsigned          platform,
                        unsigned          partition_options,
                        bool              verbose,
                        const char*       controlrc,
-                       unsigned          experiment_number) :
+                       unsigned          experiment_number,
+                       unsigned          status_port) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
   _control  (new QualifiedControl(platform, *_controlcb, slowReadout, new ControlTimeout(*this))),
   _icontrol (new IocControl),
   _config   (new CfgClientNfs(Node(Level::Control,platform).procInfo())),
+  _status_port(status_port),
   _override_errors(false)
 {
   setAttribute(Qt::WA_DeleteOnClose, true);
@@ -344,6 +352,9 @@ MainWindow::MainWindow(unsigned          platform,
   layout->addWidget(_log      = new ControlLog, 1);
 
   _pvmanager = new PVManager(*pvs);
+  if (_status_port) {
+    _exportstatus = new ExportStatus(run, config, state, _status_port);
+  }
 
   //  the order matters
   _controlcb->add_appliance(run);    // must be first
@@ -351,7 +362,7 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(new ShutdownTest(*_control));
   _controlcb->add_appliance(_icontrol);
   _controlcb->add_appliance(new ControlDamage(*this));
-  _controlcb->add_appliance(new FileReport(*_log));
+  _controlcb->add_appliance(new FileReport(*_log, *run));
   if (_offlineclient) {
     _controlcb->add_appliance(new OfflineReport(*_partition, *_runallocator, *run));
   }
@@ -364,6 +375,10 @@ MainWindow::MainWindow(unsigned          platform,
 
   QObject::connect(state , SIGNAL(configured(bool)), config, SLOT(configured(bool)));
   QObject::connect(state , SIGNAL(state_changed(QString)), _partition, SLOT(change_state(QString)));
+  if (_status_port) {
+    QObject::connect(state , SIGNAL(configured(bool)),       _exportstatus, SLOT(configured(bool)));
+    QObject::connect(state , SIGNAL(state_changed(QString)), _exportstatus, SLOT(change_state(QString)));
+  }
   QObject::connect(this  , SIGNAL(message_received(const QString&, bool))   ,
        this  , SLOT(handle_message(const QString&, bool)));
   QObject::connect(config, SIGNAL(assert_message(const QString&, bool))   ,
@@ -387,6 +402,9 @@ MainWindow::MainWindow(unsigned          platform,
     snTerm = new QSocketNotifier(sigtermFd[1], QSocketNotifier::Read, this);
     connect(snTerm, SIGNAL(activated(int)), this, SLOT(handle_sigterm()));
   }
+  if (_status_port) {
+    _exportstatus->start();
+  }
 }
 
 MainWindow::~MainWindow()
@@ -400,6 +418,10 @@ MainWindow::~MainWindow()
   delete _runallocator;
   if (_offlineclient) {
     delete _offlineclient;
+  }
+  if (_status_port) {
+    _exportstatus->cancel();
+    delete _exportstatus;
   }
 }
 

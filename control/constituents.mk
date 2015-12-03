@@ -21,6 +21,7 @@ tgtsrcs_control_gui += PVDisplay.cc       PVDisplay_moc.cc
 tgtsrcs_control_gui += ControlLog.cc    ControlLog_moc.cc
 tgtsrcs_control_gui += DamageStats.cc     DamageStats_moc.cc
 tgtsrcs_control_gui += RunStatus.cc     RunStatus_moc.cc
+tgtsrcs_control_gui += ExportStatus.cc  ExportStatus_moc.cc
 tgtsrcs_control_gui += Preferences.cc
 tgtsrcs_control_gui += MySqlRunAllocator.cc
 tgtsrcs_control_gui += FileRunAllocator.cc

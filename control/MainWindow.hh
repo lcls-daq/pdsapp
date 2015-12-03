@@ -15,6 +15,7 @@ namespace Pds {
   class IocControl;
   class QualifiedControl;
   class PVManager;
+  class ExportStatus;
   class InDatagram;
   class RunAllocator;
   class PartitionSelect;
@@ -34,7 +35,8 @@ namespace Pds {
                unsigned          partition_options,
                bool              verbose,
                const char*       controlrc,
-               unsigned          experiment_number);
+               unsigned          experiment_number,
+               unsigned          status_port);
     ~MainWindow();
 
     // Unix signal handlers.
@@ -69,6 +71,8 @@ namespace Pds {
     IocControl*       _icontrol;
     CfgClientNfs*     _config;
     PVManager*        _pvmanager;
+    ExportStatus*     _exportstatus;
+    unsigned          _status_port;
     ControlLog*       _log;
     OfflineClient*    _offlineclient;
     RunAllocator*     _runallocator;

@@ -51,6 +51,8 @@ namespace Pds {
     unsigned long long getEventNum ();
     unsigned long long getL3EventNum ();
     int get_counts(unsigned long long *duration, unsigned long long *events, unsigned long long *damaged, unsigned long long *bytes);
+    unsigned runNumber(unsigned run)    { _run = run; return _run; }
+    unsigned runNumber(void)            { return _run; }
     
   private:
     Task*     _task;
@@ -70,6 +72,7 @@ namespace Pds {
     QPalette*    _red;
     unsigned  _prev_events;
     unsigned  _prev_damaged;
+    unsigned      _run;
   };
 };
 

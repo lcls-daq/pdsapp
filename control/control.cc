@@ -36,6 +36,7 @@ static void usage(char *argv0)
    "         -o <options>              : partition options\n"
    "            1=CXI slow runningkludge\n"
    "            2=XPP short timeout on Disable\n"
+   "         -X <port_number>          : status export UDP port\n"
    "         -h                        : print usage information\n"
    "         -v\n",
    argv0);
@@ -54,6 +55,7 @@ int main(int argc, char** argv)
   double nfs_log_threshold = -1;
   unsigned    sequencer_id = 0;
   unsigned    expnum = 0;
+  unsigned    status_port = 0;
   int         slowReadout = 0;
   unsigned key=0;
   int verbose = 0;
@@ -63,7 +65,7 @@ int main(int argc, char** argv)
   bool lusage = false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:D:L:R:E:e:N:C:AOTS:t:w:o:hv")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:e:N:C:AOTS:X:t:w:o:hv")) != -1) {
     switch (c) {
     case 'A':
       autorun = true;
@@ -116,6 +118,12 @@ int main(int argc, char** argv)
     case 'S':
       if (!Pds::CmdLineTools::parseUInt(optarg, sequencer_id)) {
         printf("%s: option `-S' parsing error\n", argv[0]);
+        lusage = true;
+      }
+      break;
+    case 'X':
+      if (!Pds::CmdLineTools::parseUInt(optarg, status_port)) {
+        printf("%s: option `-X' parsing error\n", argv[0]);
         lusage = true;
       }
       break;
@@ -204,7 +212,8 @@ int main(int argc, char** argv)
                                       partition_options,
                                       (verbose > 0),
                                       controlrc,
-                                      expnum);
+                                      expnum,
+                                      status_port);
   window->override_errors(override);
   window->show();
   if (autorun)
