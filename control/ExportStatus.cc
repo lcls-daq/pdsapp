@@ -66,7 +66,7 @@ void ExportStatus::expired()
     _runStatus->get_counts(&duration, &events, &damaged, &bytes);
 
     snprintf(localbuf, sizeof(localbuf), UPDATE_1_FORMAT,
-             _runStatus->runNumber(), duration, bytes, events, damaged, _controlState.c_str());
+             _runStatus->runNumber(), duration, bytes / (1024 * 1024), events, damaged, _controlState.c_str());
 
   } else {
    

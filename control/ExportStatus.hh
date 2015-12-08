@@ -23,7 +23,7 @@
         "\"running\" : 1,"            \
         "\"run_number\" : %u,"        \
         "\"run_duration\" : %llu,"    \
-        "\"run_bytes\" : %llu,"       \
+        "\"run_mbytes\" : %llu,"      \
         "\"event_count\" : %llu,"     \
         "\"damage_count\" : %llu,"    \
         "\"control_state\" : \"%s\""  \
