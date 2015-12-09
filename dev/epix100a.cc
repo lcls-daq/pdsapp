@@ -11,7 +11,9 @@
 #include "pds/epix100a/Epix100aManager.hh"
 #include "pds/epix100a/Epix100aServer.hh"
 #include "pds/config/CfgClientNfs.hh"
+#include "pds/pgp/Pgp.hh"
 
+#include <strings.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -179,12 +181,13 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: epix100a [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-m <bool>] [-r <runTimeConfigName>] [-D <debug>] [-P <pgpcardNumb> -p <platform>\n"
+  printf( "Usage: epix100a [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-m <bool>] [-r <runTimeConfigName>] [-D <debug>] [-P <pgpcardNumb>] [-G] -p <platform>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id           [required]\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
       "    -P      Set pgpcard index number  [Default: 0]\n"
+      "    -G      Use if pgpcard is a G3 card\n"
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
       "    -m <B>  Set flag to maintain or not maintain lost run triggers (turn off for slow running\n"
@@ -218,6 +221,7 @@ int main( int argc, char** argv )
   unsigned            resetOnEverConfig   = 0;
   bool                maintainRunTrig     = false;
   char                runTimeConfigname[256] = {""};
+  char                g3[16]              = {""};
   ::signal( SIGINT,  sigHandler );
   ::signal( SIGSEGV, sigHandler );
   ::signal( SIGFPE,  sigHandler );
@@ -226,7 +230,7 @@ int main( int argc, char** argv )
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:r:D:P:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:r:D:P:G" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -256,6 +260,9 @@ int main( int argc, char** argv )
             break;
          case 'P':
            pgpcard = strtoul(optarg, NULL, 0);
+           break;
+         case 'G':
+           strcpy(g3, "G3");
            break;
          case 'e':
            eventDepth = strtoul(optarg, NULL, 0);
@@ -322,6 +329,41 @@ int main( int argc, char** argv )
    MySegWire settings(epix100aServer);
    settings.max_event_depth(eventDepth);
 
+   unsigned ports = (pgpcard >> 4) & 0xf;
+   char devName[128];
+   char err[128];
+   if (ports == 0) {
+     ports = 15;
+     sprintf(devName, "/dev/pgpcard%s%u", g3, pgpcard);
+   } else {
+     sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
+   }
+
+   int epix100a = open( devName,  O_RDWR );
+   if (debug & 1) printf("%s using %s\n", argv[0], devName);
+   if (epix100a < 0) {
+     sprintf(err, "%s opening %s failed", argv[0], devName);
+     perror(err);
+     return 1;
+   }
+
+   bool G3Flag = strlen(g3) != 0;
+
+   unsigned limit = G3Flag ? 8 : 4;
+
+   unsigned offset = 0;
+   while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
+     offset += 1;
+   }
+
+   if (offset >= limit) {
+     printf("%s illegal port mask!! 0x%x\n", argv[0], ports);
+     return 1;
+   }
+
+   Pds::Pgp::Pgp::portOffset(offset);
+   epix100aServer->setEpix100a(epix100a);
+
    printf("making Seg\n");
    Seg* seg = new Seg( task,
                        platform,
@@ -329,7 +371,7 @@ int main( int argc, char** argv )
                        settings,
                        0,
                        epix100aServer,
-                       pgpcard );
+                       epix100a );
 
    printf("making SegmentLevel\n");
    SegmentLevel* seglevel = new SegmentLevel( platform,
@@ -341,10 +383,10 @@ int main( int argc, char** argv )
 
    if (seg->didYouFail()) printf("So, goodbye cruel world!\n ");
    else  {
-     printf("entering epix100a task main loop, \n\tDetector: %s\n\tDeviceId: %d\n\tPlatform: %u\n",
-         DetInfo::name((DetInfo::Detector)detector), deviceId, platform);
+     printf("entering %s task main loop, \n\tDetector: %s\n\tDeviceId: %d\n\tPlatform: %u\n",
+         argv[0], DetInfo::name((DetInfo::Detector)detector), deviceId, platform);
      task->mainLoop();
-     printf("exiting epix100a task main loop\n");
+     printf("exiting %s task main loop\n", argv[0]);
    }
    return 0;
 }
