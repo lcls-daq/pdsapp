@@ -215,13 +215,13 @@ namespace Pds {
   uint64_t IpimbMask =
     ((1ULL<<(BldInfo::HfxDg3Imb02+1)) - (1ULL<<BldInfo::Nh2Sb1Ipm01)) |
     ((1ULL<<(BldInfo::MecHxmIpm01+1)) - (1ULL<<BldInfo::HfxMonImb01)) |
-    ((1ULL<<(BldInfo::CxiDg4Imb01+1)) - (1ULL<<BldInfo::CxiDg1Imb01)) |
+    ((1ULL<<(BldInfo::CxiDg3Imb01+1)) - (1ULL<<BldInfo::CxiDg1Imb01)) |
     ((1ULL<<(BldInfo::MecXt2Pim03+1)) - (1ULL<<BldInfo::XppMonPim0))  |
     ((1ULL<<(BldInfo::Nh2Sb1Ipm02+1)) - (1ULL<<BldInfo::Nh2Sb1Ipm02)) |
     ((1ULL<<(BldInfo::XcsLamIpm01+1)) - (1ULL<<BldInfo::XcsUsrIpm01));
   uint64_t PimMask =
     ((1ULL<<(BldInfo::HfxMonCam+1)) - (1ULL<<BldInfo::HxxDg1Cam)) |
-    ((1ULL<<(BldInfo::CxiDg4Pim+1)) - (1ULL<<BldInfo::CxiDg1Pim));
+    ((1ULL<<(BldInfo::CxiDg3Pim+1)) - (1ULL<<BldInfo::CxiDg1Pim));
   uint64_t OpalMask = 1ULL<<BldInfo::CxiDg3Spec;
   uint64_t SpecMask = (1ULL<<BldInfo::FeeSpec0) |
     (1ULL<<BldInfo::SxrSpec0) |
