@@ -41,11 +41,11 @@ static QList<int> _bldOrder =
          << BldInfo::CxiDg1Imb01
          << BldInfo::CxiDg2Imb01
          << BldInfo::CxiDg2Imb02
-         << BldInfo::CxiDg4Imb01
+         << BldInfo::CxiDg3Imb01
          << BldInfo::CxiDg1Pim
          << BldInfo::CxiDg2Pim
          << BldInfo::CxiDg3Spec
-         << BldInfo::CxiDg4Pim
+         << BldInfo::CxiDg3Pim
          << BldInfo::NumberOf;
 
 BldNodeGroup::BldNodeGroup(const QString& label, 
