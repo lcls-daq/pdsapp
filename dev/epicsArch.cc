@@ -34,7 +34,7 @@ public:
     virtual ~SegWireSettingsEpicsArch() {}
     void connect (InletWire& wire, StreamParams::StreamType s, int interface) {}        
     const std::list<Src>& sources() const { return _sources; }
-     
+    bool is_triggered() const { return false; }
 private:
     std::list<Src> _sources;
 };

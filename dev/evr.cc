@@ -65,6 +65,7 @@ namespace Pds {
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
+    bool is_triggered() const { return false; }
   private:
     Server&             _srv;
     std::list<Src>      _sources;

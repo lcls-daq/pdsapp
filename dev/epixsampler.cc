@@ -1,3 +1,4 @@
+#include "pds/service/CmdLineTools.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 
 #include "pds/management/SegmentLevel.hh"
@@ -31,7 +32,7 @@ class Pds::MySegWire
    : public SegWireSettings
 {
   public:
-   MySegWire(EpixSamplerServer* epixSamplerServer);
+  MySegWire(EpixSamplerServer* epixSamplerServer, unsigned module, unsigned channel, const char* id);
    virtual ~MySegWire() {}
 
    void connect( InletWire& wire,
@@ -39,6 +40,12 @@ class Pds::MySegWire
                  int interface );
 
    const std::list<Src>& sources() const { return _sources; }
+   const std::list<SrcAlias>* pAliases() const
+   { return (_aliases.size() > 0) ? &_aliases : NULL; }
+
+   bool is_triggered() const { return true; }
+   unsigned module      () const { return _module; }
+   unsigned channel     () const { return _channel; }
 
    unsigned max_event_size () const { return 2*1024*1024; }
    unsigned max_event_depth() const { return _max_event_depth; }
@@ -46,6 +53,9 @@ class Pds::MySegWire
  private:
    EpixSamplerServer* _epixSamplerServer;
    std::list<Src> _sources;
+   std::list<SrcAlias> _aliases;
+   unsigned _module;
+   unsigned _channel;
    unsigned _max_event_depth;
 };
 
@@ -83,10 +93,20 @@ class Pds::Seg
 };
 
 
-Pds::MySegWire::MySegWire( EpixSamplerServer* epixSamplerServer )
-   : _epixSamplerServer(epixSamplerServer), _max_event_depth(256)
+Pds::MySegWire::MySegWire( EpixSamplerServer* epixSamplerServer,
+                           unsigned        module,
+                           unsigned        channel,
+                           const char*     aliasName )
+   : _epixSamplerServer(epixSamplerServer), 
+     _module         (module),
+     _channel        (channel),
+     _max_event_depth(256)
 { 
    _sources.push_back(epixSamplerServer->client());
+   if (aliasName) {
+     SrcAlias tmpAlias(epixSamplerServer->client(), aliasName);
+     _aliases.push_back(tmpAlias);
+   }
 }
 
 static Pds::InletWire* myWire = 0;
@@ -204,6 +224,8 @@ int main( int argc, char** argv )
   int                 deviceId            = 0;
   unsigned            platform            = 0;
   bool                platformEntered     = false;
+  unsigned            module              = 0;
+  unsigned            channel             = 0;
   unsigned            mask                = 0;
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
@@ -211,8 +233,9 @@ int main( int argc, char** argv )
   ::signal( SIGINT, sigHandler );
 
    extern char* optarg;
+   char* uniqueid = (char *)NULL;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:e:D:P:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:e:D:P:u:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -234,8 +257,10 @@ int main( int argc, char** argv )
            }
            break;
          case 'p':
-           platform = strtoul(optarg, NULL, 0);
-           platformEntered = true;
+           if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3)
+             printf("%s: option `-p' parsing error\n", argv[0]);
+           else
+             platformEntered = true;
            break;
          case 'i':
            deviceId = strtoul(optarg, NULL, 0);
@@ -254,7 +279,14 @@ int main( int argc, char** argv )
            printUsage(argv[0]);
            return 0;
            break;
-         default:
+         case 'u':
+           if (!CmdLineTools::parseSrcAlias(optarg)) {
+             printf("%s: option `-u' parsing error\n", argv[0]);
+           } else {
+             uniqueid = optarg;
+           }
+           break;
+        default:
            printf("Error: Option could not be parsed!\n");
            printUsage(argv[0]);
            return 0;
@@ -291,7 +323,7 @@ int main( int argc, char** argv )
    epixSamplerServer->debug(debug);
 
    printf("MySetWire settings\n");
-   MySegWire settings(epixSamplerServer);
+   MySegWire settings(epixSamplerServer, module, channel, uniqueid);
    settings.max_event_depth(eventDepth);
 
    printf("making Seg\n");

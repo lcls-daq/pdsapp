@@ -407,6 +407,8 @@ namespace Pds {
 
       const std::list<Src>& sources() const { return _sources; }
 
+      bool is_triggered() const { return false; }
+
     private:
       // Implements EventCallback
       void attached(SetOfStreams& streams)

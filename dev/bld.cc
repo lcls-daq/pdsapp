@@ -510,6 +510,7 @@ namespace Pds {
     // Implements SegWireSettings
     void connect (InletWire& inlet, StreamParams::StreamType s, int ip) {}
     const std::list<Src>& sources() const { return _sources; }
+    bool is_triggered() const { return false; }
   private:
     // Implements EventCallback
     void attached(SetOfStreams& streams)
