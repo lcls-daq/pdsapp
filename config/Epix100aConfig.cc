@@ -48,6 +48,9 @@ namespace Pds_ConfigDb {
         if (Epix100aASIC_ConfigShadow::doNotCopy(Epix100aASIC_ConfigShadow::Registers(i)) == Epix100aASIC_ConfigShadow::DoCopy) {
           _reg[i]->value = src._reg[i]->value;
         }
+        else {
+        	printf("Epix100aASICdata::copy did not copy %s\n", Epix100aASIC_ConfigShadow::name(Epix100aASIC_ConfigShadow::Registers(i)));
+        }
       }
     }
   public:
