@@ -48,6 +48,7 @@ public:
     {
       return (_aliases.size() > 0) ? &_aliases : NULL;
     }
+    bool     is_triggered() const { return false; }
 private:
     std::list<Src>      _sources;
     std::list<SrcAlias> _aliases;
