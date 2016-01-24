@@ -7,6 +7,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/psddl/epics.ddl.h"
 
+#include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventCallback.hh"
 #include "pds/collection/Arp.hh"
@@ -47,9 +48,9 @@ class EvtCbEpicsArch : public EventCallback
 {
 public:
     EvtCbEpicsArch(Task* task, int iPlatform, CfgClientNfs& cfgService, const string& sFnConfig, 
-      float fMinTriggerInterval, int iDebugLevel) :
+      float fMinTriggerInterval, int iDebugLevel, int iIgnoreLevel) :
       _task(task), _iPlatform(iPlatform), _cfg(cfgService), _sFnConfig(sFnConfig), 
-      _fMinTriggerInterval(fMinTriggerInterval), _iDebugLevel(iDebugLevel),
+      _fMinTriggerInterval(fMinTriggerInterval), _iDebugLevel(iDebugLevel), _iIgnoreLevel(iIgnoreLevel),
       _bAttached(false), _epicsArchManager(NULL), _pool(sizeof(Transition),1)
     {
         //// !! For debug test only
@@ -81,7 +82,7 @@ private:
         Stream* frmk = streams.stream(StreamParams::FrameWork);
      
         reset();        
-        _epicsArchManager = new EpicsArchManager(_cfg, _sFnConfig, _fMinTriggerInterval, _iDebugLevel);
+        _epicsArchManager = new EpicsArchManager(_cfg, _sFnConfig, _fMinTriggerInterval, _iDebugLevel, _iIgnoreLevel);
         _epicsArchManager->appliance().connect(frmk->inlet());
         _bAttached = true;
 
@@ -122,6 +123,7 @@ private:
     string              _sFnConfig;
     float               _fMinTriggerInterval;
     int                 _iDebugLevel;
+    int                 _iIgnoreLevel;
     bool                _bAttached;
     EpicsArchManager*   _epicsArchManager;    
     GenericPool         _pool;
@@ -137,12 +139,15 @@ using namespace Pds;
 static void showUsage()
 {
     printf( "Usage:  epicsArch  [-v|--version] [-h|--help] "
-      "[-d|--debug <debug level>] [-n|--unit <unit #> -p|--platform <platform>  -f <config filename>\n" 
+      "[-d|--debug <debug level>] [-n|--unit <unit #>] [-I|--ignore <ignore level>]\n" 
+      "                   -p|--platform <platform>  -f <config filename>\n" 
       "  Options:\n"
       "    -v|--version       Show file version\n"
       "    -h|--help          Show usage\n"
       "    -d|--debug         Set debug level\n"
       "    -n|--unit          Set unit number [Default: 0]\n"
+      "    -I|--ignore        Ignore PV connection errors [Default: 0]\n"
+      "                         0 = do not ignore, 1 = ignore with message, 2 = ignore silently\n"
       "    -f|--file          [*required*] Set configuration filename\n"
       "    -p|--platform      [*required*] Set platform id\n"
       " ================================================================================\n"
@@ -171,7 +176,7 @@ static void showVersion()
 
 int main(int argc, char** argv) 
 {
-    const char*         strOptions  = ":vhi:d:p:f:n:";
+    const char*         strOptions  = ":vhi:d:p:f:n:I:";
     const struct option loOptions[] = 
     {
        {"version",  0, 0, 'v'},
@@ -181,6 +186,7 @@ int main(int argc, char** argv)
        {"platform", 1, 0, 'p'},
        {"file",     1, 0, 'f'},
        {"unit",     1, 0, 'n'},
+       {"ignore",   1, 0, 'I'},
        {0,          0, 0,  0  }
     };    
     
@@ -189,6 +195,7 @@ int main(int argc, char** argv)
     string  sFnConfig;
     int     iDebugLevel         = 0;
     int     iUnit               = 0;
+    int     iIgnoreLevel        = 0;
 
     int     iOptionIndex        = 0;
     char *  endptr;
@@ -223,6 +230,13 @@ int main(int argc, char** argv)
             iUnit = strtoul(optarg, &endptr, 0);
             if ((optarg == endptr) || errno) {
               printf( "epicsArch:main(): Invalid unit number\n");
+            }
+            break;
+        case 'I':
+            if (!CmdLineTools::parseInt(optarg, iIgnoreLevel)) {
+              printf("epicsArch:main(): option `-I' parsing error\n");
+              showUsage();
+              return 1;
             }
             break;
         case '?':               /* Terse output mode */
@@ -263,7 +277,7 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsEpicsArch settings(detInfo);
     
-    EvtCbEpicsArch evtCBEpicsArch(task, iPlatform, cfgService, sFnConfig, fMinTriggerInterval, iDebugLevel);
+    EvtCbEpicsArch evtCBEpicsArch(task, iPlatform, cfgService, sFnConfig, fMinTriggerInterval, iDebugLevel, iIgnoreLevel);
     SegmentLevel seglevel(iPlatform, settings, evtCBEpicsArch, NULL);
     
     seglevel.attach();    
