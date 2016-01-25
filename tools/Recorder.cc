@@ -276,6 +276,12 @@ InDatagram* Recorder::events(InDatagram* in) {
               
               typedef std::vector<SmlDataIterL1Accept::XtcInfo> XtcInfoList;
               XtcInfoList& xtcInfoList = iterL1AcceptSml.xtcInfoList();
+
+              // If iteration is not possible (i.e., IncompleteContribution) skip
+              if (not iterL1AcceptSml.iterationOk() or (xtcInfoList.size()==1)) {
+                printf("WARNING:  smldata iteration no good; skipping\n");
+                break;
+              }
               
               // Write datagram header to small data file
               if (_writeSmallDataFile( &in->datagram(), sizeof(in->datagram()) - sizeof(Xtc) ) != 0) {
