@@ -381,11 +381,13 @@ void RemoteSeqApp::routine()
 		//
 		//  A request for a cycle of zero duration is an EndCalib
 		//
-		const Pds::ClockTime NoTime(0,0);
-		if (config.uses_duration() && config.duration()==NoTime) {
+		if (config.uses_duration() && config.duration()==EndCalibTime) {
 		  _control.set_target_state(PartitionControl::Running);
 		}
-		else {
+                else if (config.uses_duration() && config.duration()==EndRunTime) {
+		  _control.set_target_state(PartitionControl::Configured);
+                }
+                else {
 		  _control.wait_for_target();
 		  _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
 		  if (config.uses_duration())
