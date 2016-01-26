@@ -39,7 +39,7 @@ static const int MaxAliasSize   = 0x100;
 static const int MaxConfigSize = 0x100000;
 static const int Control_Port  = 10130;
 
-enum PydaqState { Disconnected, Connected, Configured, Running };
+enum PydaqState { Disconnected, Connected, Configured, Open, Running };
 
 //
 //  pdsdaq class methods
@@ -63,6 +63,7 @@ static PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds
 static PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_end      (PyObject* self);
 static PyObject* pdsdaq_stop     (PyObject* self);
+static PyObject* pdsdaq_endrun   (PyObject* self);
 static PyObject* pdsdaq_eventnum (PyObject* self);
 static PyObject* pdsdaq_l3eventnum(PyObject* self);
 static PyObject* pdsdaq_rcv      (PyObject* self);
@@ -82,6 +83,7 @@ static PyMethodDef pdsdaq_methods[] = {
   {"begin"     , (PyCFunction)pdsdaq_begin     , METH_KEYWORDS, "Configure the cycle"},
   {"end"       , (PyCFunction)pdsdaq_end       , METH_NOARGS  , "Wait for the cycle end"},
   {"stop"      , (PyCFunction)pdsdaq_stop      , METH_NOARGS  , "End the current cycle"},
+  {"endrun"    , (PyCFunction)pdsdaq_endrun    , METH_NOARGS  , "End the current run"},
   {"eventnum"  , (PyCFunction)pdsdaq_eventnum  , METH_NOARGS  , "Get current event number"},
   {"l3eventnum", (PyCFunction)pdsdaq_l3eventnum, METH_NOARGS  , "Get current l3pass event number"},
   {"connect"   , (PyCFunction)pdsdaq_connect   , METH_NOARGS  , "Connect to control"},
@@ -690,7 +692,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     Py_DECREF(o);
   }
 
-  if (daq->state != Configured) {
+  if (daq->state < Configured) {
     PyErr_SetString(PyExc_RuntimeError,"Not configured");
     return NULL;
   }
@@ -853,7 +855,6 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
   ::write(daq->socket,daq->buffer,cfg->_sizeof());
 
   daq->state = Running;
-
   return pdsdaq_rcv(self);
 }
 
@@ -865,11 +866,31 @@ PyObject* pdsdaq_end      (PyObject* self)
     return NULL;
   }
 
-  daq->state = Configured;
+  daq->state = Open;
   return pdsdaq_rcv(self);
 }
 
 PyObject* pdsdaq_stop     (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  if (daq->state >= Open) {
+    char* buff = new char[MaxConfigSize];
+    ControlConfigType* cfg = Pds::ControlConfig::_new(buff,
+                                                      list<PVControl>(),
+                                                      list<PVMonitor>(),
+                                                      list<PVLabel  >(),
+                                                      EndCalibTime);
+    ::write(daq->socket, buff, cfg->_sizeof());
+    delete[] buff;
+  }
+
+  daq->state = Open;
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+PyObject* pdsdaq_endrun   (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
   if (daq->state >= Configured) {
@@ -878,10 +899,12 @@ PyObject* pdsdaq_stop     (PyObject* self)
                                                       list<PVControl>(),
                                                       list<PVMonitor>(),
                                                       list<PVLabel  >(),
-                                                      Pds::ClockTime(0,0));
+                                                      EndRunTime);
     ::write(daq->socket, buff, cfg->_sizeof());
     delete[] buff;
   }
+
+  daq->state = Configured;
 
   Py_INCREF(Py_None);
   return Py_None;
