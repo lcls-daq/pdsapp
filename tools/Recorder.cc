@@ -178,6 +178,7 @@ InDatagram* Recorder::events(InDatagram* in) {
        memcpy (_smlconfig, &in->datagram(), sizeof(Datagram));
        memcpy (_smlconfig+sizeof(Datagram),(char*)&xtcIndexConfig, xtcIndexConfig.xtc.extent);
        memcpy (_smlconfig+sizeof(Datagram)+xtcIndexConfig.xtc.extent,in->datagram().xtc.payload(),sizeofPayloadOrg);
+       in->datagram().xtc.extent -= xtcIndexConfig.xtc.extent;
     }
        break;
   case TransitionId::BeginRun:
