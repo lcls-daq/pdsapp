@@ -10,6 +10,7 @@ endif
 
 ifeq ($(findstring rhel7,$(tgt_arch)),)
 tgtnames += andorStandAlone
+tgtnames += andorDualStandAlone
 endif
 
 commonlibs := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
@@ -22,6 +23,10 @@ tgtslib_princetonCameraTest := dl pthread rt
 tgtsrcs_andorStandAlone := andorStandAlone.cc
 tgtlibs_andorStandAlone := pds/andorutil andor/andor
 tgtslib_andorStandAlone := dl pthread rt
+
+tgtsrcs_andorDualStandAlone := andorDualStandAlone.cc
+tgtlibs_andorDualStandAlone := pds/andorutil andor/andor
+tgtslib_andorDualStandAlone := dl pthread rt
 
 tgtsrcs_timestampReceiver := timestampReceiver.cc
 
