@@ -1,18 +1,18 @@
 //
 //  pds_IpimbConfig class methods
 //
-static PyObject* pds_AndorConfig_get    (PyObject*   self, PyObject* args);
-static PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args);
+static PyObject* pds_Andor3dConfig_get    (PyObject*   self, PyObject* args);
+static PyObject* pds_Andor3dConfig_set    (PyObject*   self, PyObject* args);
 
-static PyMethodDef pds_AndorConfig_methods[] = {
-  {"get"   , (PyCFunction)pds_AndorConfig_get   , METH_NOARGS  , "Output the configuration"},
-  {"set"   , (PyCFunction)pds_AndorConfig_set   , METH_KEYWORDS, "Input the configuration"},
+static PyMethodDef pds_Andor3dConfig_methods[] = {
+  {"get"   , (PyCFunction)pds_Andor3dConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"set"   , (PyCFunction)pds_Andor3dConfig_set   , METH_KEYWORDS, "Input the configuration"},
   {NULL},
 };
 
-DefineXtcType(AndorConfig) ;
+DefineXtcType(Andor3dConfig) ;
 
-#include "pdsdata/psddl/andor.ddl.h"
+#include "pdsdata/psddl/andor3d.ddl.h"
 #include <new>
 
 
@@ -23,16 +23,17 @@ DefineXtcType(AndorConfig) ;
     else                                                                                    \
       PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfg->name())); }
 
-PyObject* pds_AndorConfig_get (PyObject*   self, PyObject* args) 
+PyObject* pds_Andor3dConfig_get (PyObject*   self, PyObject* args) 
 {
   pdsxtc* xtc = (pdsxtc*)self;
   PyObject* o = PyDict_New();  
   if (xtc->contains.version()==1) { 
-    const Pds::Andor::ConfigV1* cfg = 
-      reinterpret_cast<const Pds::Andor::ConfigV1*>(xtc->payload);
+    const Pds::Andor3d::ConfigV1* cfg = 
+      reinterpret_cast<const Pds::Andor3d::ConfigV1*>(xtc->payload);
 
     SetDictMember(width,false);
     SetDictMember(height,false);
+    SetDictMember(numSensors,false);
     SetDictMember(orgX,false);
     SetDictMember(orgY,false); 
     SetDictMember(binX,false);
@@ -45,13 +46,14 @@ PyObject* pds_AndorConfig_get (PyObject*   self, PyObject* args)
     SetDictMember(gainIndex,false);
     SetDictMember(readoutSpeedIndex,false);
     SetDictMember(exposureEventCode,false);
+    SetDictMember(exposureStartDelay,false);
     SetDictMember(numDelayShots,false);
 
     return o;
   }
   else {
     Py_DECREF(o);
-    printf("get(): Unsupported AndorConfig Version= %u \n",xtc->contains.version());
+    printf("get(): Unsupported Andor3dConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception
   }
 
@@ -74,7 +76,7 @@ PyObject* pds_AndorConfig_get (PyObject*   self, PyObject* args)
   name = (double) cfg->name();  } }              
 
 
-PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
+PyObject* pds_Andor3dConfig_set    (PyObject*   self, PyObject* args)
 {
   PyObject* o = 0;
   if (PyArg_ParseTuple(args,"O",&o)==0)
@@ -82,11 +84,12 @@ PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
 
   pdsxtc* xtc = (pdsxtc*)self;
   if (xtc->contains.version()==1) { 
-    const Pds::Andor::ConfigV1* cfg = 
-      reinterpret_cast<const Pds::Andor::ConfigV1*>(xtc->payload);
+    const Pds::Andor3d::ConfigV1* cfg = 
+      reinterpret_cast<const Pds::Andor3d::ConfigV1*>(xtc->payload);
 
     SetDictMember(width);
     SetDictMember(height);
+    SetDictMember(numSensors);
     SetDictMember(orgX);
     SetDictMember(orgY);
     SetDictMember(binX);
@@ -99,27 +102,30 @@ PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
     SetDictMember(gainIndex);
     SetDictMember(readoutSpeedIndex);
     SetDictMember(exposureEventCode);
+    SetDictMember(exposureStartDelay);
     SetDictMember(numDelayShots);
-    new(xtc->payload) Pds::Andor::ConfigV1((uint32_t) width,
+    new(xtc->payload) Pds::Andor3d::ConfigV1((uint32_t) width,
                       (uint32_t)  height,
+                      (uint32_t)  numSensors,
                       (uint32_t)  orgX,
                       (uint32_t)  orgY,
                       (uint32_t)  binX,
                       (uint32_t)  binY,
                       (float)     exposureTime,
                       (float)     coolingTemp,
-                      Pds::Andor::ConfigV1::EnumFanMode(fanMode),
+                      Pds::Andor3d::ConfigV1::EnumFanMode(fanMode),
                       (uint8_t)   baselineClamp,
                       (uint8_t)   highCapacity,
                       (uint8_t)   gainIndex,
                       (uint16_t)  readoutSpeedIndex,
                       (uint16_t)  exposureEventCode,
+                      (uint32_t)  exposureStartDelay,
                       (uint32_t)  numDelayShots); 
     Py_INCREF(Py_None);
     return Py_None;
   }
   else {
-    printf("set(): Unsupported AndorConfig Version= %u \n",xtc->contains.version());
+    printf("set(): Unsupported Andor3dConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception
   }
 

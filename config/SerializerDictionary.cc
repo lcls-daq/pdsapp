@@ -66,6 +66,7 @@
 #include "pdsapp/config/PimaxConfig.hh"
 #include "pdsapp/config/TimeToolConfig.hh"
 #include "pdsapp/config/TimeToolConfig_V1.hh"
+#include "pdsapp/config/Andor3dConfig.hh"
 
 #include "pds/config/AliasConfigType.hh"
 #include "pds/config/EvsConfigType.hh"
@@ -101,6 +102,7 @@
 #include "pds/config/AndorConfigType.hh"
 #include "pds/config/PimaxConfigType.hh"
 #include "pds/config/TimeToolConfigType.hh"
+#include "pds/config/Andor3dConfigType.hh"
 #include "pds/config/PdsDefs.hh"
 
 #include "pdsdata/psddl/lusi.ddl.h"
@@ -161,13 +163,14 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_epixSamplerConfigType ,new EpixSamplerConfig);
   enroll(_epixConfigType        ,new EpixConfig);
   enroll(_epix10kConfigType     ,new Epix10kConfig);
-  enroll(_epix100aConfigType     ,new Epix100aConfig);
+  enroll(_epix100aConfigType    ,new Epix100aConfig);
   enroll(_genericPgpConfigType  ,new GenericPgpConfig);
   enroll(_oceanOpticsConfigType ,new OceanOpticsConfig);  
   enroll(_fliConfigType         ,new FliConfig);  
   enroll(_andorConfigType       ,new AndorConfig);
   enroll(_pimaxConfigType       ,new PimaxConfig);
   enroll(_timetoolConfigType    ,new TimeToolConfig);
+  enroll(_andor3dConfigType     ,new Andor3dConfig);
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_Cspad2x2Config,1),new Cspad2x2Config_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,4) , new CspadConfig_V4);

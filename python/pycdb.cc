@@ -24,6 +24,7 @@
 #include "pdsapp/python/EvrConfig.icc"
 #include "pdsapp/python/FliConfig.icc"
 #include "pdsapp/python/AndorConfig.icc"
+#include "pdsapp/python/Andor3dConfig.icc"
 #include "pdsapp/python/PimaxConfig.icc"
 #include "pdsapp/python/RayonixConfig.icc"
 #include "pdsapp/python/AcqirisConfig.icc"
@@ -88,7 +89,10 @@ initpycdb(void)
 
   if (PyType_Ready(&pds_AndorConfig_type) < 0)
     return; 
-    
+
+  if (PyType_Ready(&pds_Andor3dConfig_type) < 0)
+    return; 
+
   if (PyType_Ready(&pds_PimaxConfig_type) < 0)
     return; 
 
@@ -142,7 +146,10 @@ initpycdb(void)
   PyModule_AddObject(m, "FliConfig", (PyObject*)&pds_FliConfig_type);     
   
   Py_INCREF(&pds_AndorConfig_type);
-  PyModule_AddObject(m, "AndorConfig", (PyObject*)&pds_AndorConfig_type);       
+  PyModule_AddObject(m, "AndorConfig", (PyObject*)&pds_AndorConfig_type);
+
+  Py_INCREF(&pds_Andor3dConfig_type);
+  PyModule_AddObject(m, "Andor3dConfig", (PyObject*)&pds_Andor3dConfig_type);
 
   Py_INCREF(&pds_PimaxConfig_type);
   PyModule_AddObject(m, "PimaxConfig", (PyObject*)&pds_PimaxConfig_type);       
