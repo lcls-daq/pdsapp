@@ -77,11 +77,13 @@ class EventCallBackDualAndor : public EventCallback
 {
 public:
     EventCallBackDualAndor(int iPlatform, CfgClientNfs& cfgService, int iCamera, bool bDelayMode,
-                           bool bInitTest, string sConfigDb, int iSleepInt, int iDebugLevel, string sTempPV) :
+                           bool bInitTest, string sConfigDb, int iSleepInt, int iDebugLevel,
+                           string sTempMasterPV, string sTempSlavePV) :
       _iPlatform(iPlatform), _cfg(cfgService), _iCamera(iCamera),
       _bDelayMode(bDelayMode), _bInitTest(bInitTest),
       _sConfigDb(sConfigDb), _iSleepInt(iSleepInt), _iDebugLevel(iDebugLevel),
-      _bAttached(false), _sTempPV(sTempPV), _dualAndorManager(NULL)
+      _bAttached(false), _sTempMasterPV(sTempMasterPV), _sTempSlavePV(sTempSlavePV),
+      _dualAndorManager(NULL)
     {
     }
 
@@ -108,7 +110,7 @@ private:
 
         try
         {
-        _dualAndorManager = new DualAndorManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iSleepInt, _iDebugLevel, _sTempPV);
+        _dualAndorManager = new DualAndorManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iSleepInt, _iDebugLevel, _sTempMasterPV, _sTempSlavePV);
         _dualAndorManager->initServer();
         }
         catch ( DualAndorManagerException& eManager )
@@ -159,7 +161,8 @@ private:
     int                 _iSleepInt;
     int                 _iDebugLevel;
     bool                _bAttached;
-    string              _sTempPV;
+    string              _sTempMasterPV;
+    string              _sTempSlavePV;
     DualAndorManager*   _dualAndorManager;
 }; // class EventCallBackDualAndor
 
@@ -175,7 +178,7 @@ static void showUsage()
     printf( "Usage:  andordual  [-v|--version] [-h|--help] [-c|--camera <0-9> ] "
       "[-i|--id <id>] [-d|--delay] [-n|--init] [-g|--config <db_path>] [-s|--sleep <ms>] "
       "[-l|--debug <level>] [-u|--uniqueid <alias>] -p|--platform <platform>[,<mod>,<chan>]"
-      "[-t <temperature_pv>]\n"
+      "[-t <temperature_pv>,<temperature_pv>]\n"
       "  Options:\n"
       "    -v|--version                             Show file version.\n"
       "    -h|--help                                Show usage.\n"
@@ -188,7 +191,7 @@ static void showUsage()
       "    -s|--sleep    <sleep_ms>                 Sleep interval between multiple dual andor cameras. (Default: 0 ms)\n"
       "    -l|--debug    <level>                    Set debug level. (Default: 0)\n"
       "    -p|--platform <platform>[,<mod>,<chan>]  Set platform id [*required*], EVR module, EVR channel\n"
-      "    -t|--temperature <pvname>                Write the temperature to the specified PV.\n"
+      "    -t|--temperature <pvname>,<pvname>       Write the temperatures to the specified PVs.\n"
     );
 }
 
@@ -230,9 +233,6 @@ int main(int argc, char** argv)
 
     // parse the command line for our boot parameters
     int               iCamera       = 0;
-    DetInfo::Detector detector      = DetInfo::NoDetector;
-    int               iDetectorId   = 0;
-    int               iDeviceId     = 0;
     string            sUniqueId;
     bool              bDelayMode    = true; // always use delay mode
     bool              bInitTest     = false;
@@ -243,9 +243,14 @@ int main(int argc, char** argv)
     string            sConfigDb;
     int               iSleepInt     = 0; // 0 ms
     bool              bShowUsage    = false;
+    bool              bInfoFlag     = false;
     bool              bTriggered    = false;
-    unsigned          uu1, uu2, uu3;
-    string            sTempPV;
+    unsigned          uu1;
+    size_t            sIndex;
+    string            sTempPVList;
+    string            sTempMasterPV;
+    string            sTempSlavePV;
+    DetInfo           info;
 
     int               iOptionIndex  = 0;
     while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &iOptionIndex ) )
@@ -281,16 +286,14 @@ int main(int argc, char** argv)
             }
             break;
         case 'i':
-            if (CmdLineTools::parseUInt(optarg,uu1,uu2,uu3,0,'/') != 3)
+            if (!CmdLineTools::parseDetInfo(optarg,info))
             {
               printf( "andordual:main(): option `-i' parsing error\n" );
               bShowUsage = true;
             }
             else
             {
-              detector = (DetInfo::Detector) uu1;
-              iDetectorId = (int) uu2;
-              iDeviceId = (int) uu3;
+              bInfoFlag = true;
             }
             break;
        case 'u':
@@ -339,13 +342,30 @@ int main(int argc, char** argv)
             bShowUsage = true;
             break;
         case 't':
-            sTempPV = optarg;
+            sTempPVList = optarg;
+            sIndex = sTempPVList.find(",");
+            if (sIndex != string::npos) {
+              sTempMasterPV = sTempPVList.substr(0, sIndex);
+              sTempSlavePV  = sTempPVList.substr(sIndex);
+              if (sTempSlavePV.find(",") != string::npos) {
+                printf( "andordual:main(): option `-t' parsing error\n" );
+                bShowUsage = true;
+              }
+            } else {
+              printf( "andordual:main(): option `-t' parsing error\n" );
+              bShowUsage = true;
+            }
             break;
         default:
         case 'h':               /* Print usage */
             showUsage();
             return 0;
         }
+    }
+
+    if ( !bInfoFlag ) {
+      printf( "andordual:main(): Please specify detinfo in command line options\n" );
+      bShowUsage = true;
     }
 
     if ( iPlatform == -1 )
@@ -388,7 +408,7 @@ int main(int argc, char** argv)
     else
       printf("  Platform: %d  Camera: %d\n", iPlatform, iCamera);
 
-    const DetInfo detInfo( getpid(), detector, iDetectorId, DetInfo::DualAndor, iDeviceId);
+    const DetInfo detInfo( getpid(), info.detector(), info.detId(), info.device(), info.devId());
     printf("  DetInfo: %s  ConfigDb: %s  Sleep: %d ms\n", DetInfo::name(detInfo), sConfigDb.c_str(), iSleepInt );
     printf("  Delay Mode: %s  Init Test: %s  Debug Level: %d\n", (bDelayMode?"Yes":"No"), (bInitTest?"Yes":"No"),
       iDebugLevel);
@@ -401,7 +421,7 @@ int main(int argc, char** argv)
     CfgClientNfs cfgService = CfgClientNfs(detInfo);
     SegWireSettingsDualAndor settings(detInfo, bTriggered, uModule, uChannel, sUniqueId);
 
-    EventCallBackDualAndor  eventCallBackDualAndor(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iDebugLevel, sTempPV);
+    EventCallBackDualAndor  eventCallBackDualAndor(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iDebugLevel, sTempMasterPV, sTempSlavePV);
     SegmentLevel segmentLevel(iPlatform, settings, eventCallBackDualAndor, NULL);
 
     segmentLevel.attach();
