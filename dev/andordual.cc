@@ -346,7 +346,7 @@ int main(int argc, char** argv)
             sIndex = sTempPVList.find(",");
             if (sIndex != string::npos) {
               sTempMasterPV = sTempPVList.substr(0, sIndex);
-              sTempSlavePV  = sTempPVList.substr(sIndex);
+              sTempSlavePV  = sTempPVList.substr(sIndex+1);
               if (sTempSlavePV.find(",") != string::npos) {
                 printf( "andordual:main(): option `-t' parsing error\n" );
                 bShowUsage = true;
