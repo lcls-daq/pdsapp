@@ -67,6 +67,7 @@ static PyObject* pdsdaq_endrun   (PyObject* self);
 static PyObject* pdsdaq_eventnum (PyObject* self);
 static PyObject* pdsdaq_l3eventnum(PyObject* self);
 static PyObject* pdsdaq_rcv      (PyObject* self);
+static PyObject* pdsdaq_clear    (PyObject* self);
 
 static PyMethodDef pdsdaq_methods[] = {
   {"dbpath"    , (PyCFunction)pdsdaq_dbpath    , METH_NOARGS  , "Get database path"},
@@ -916,10 +917,16 @@ PyObject* pdsdaq_eventnum(PyObject* self)
 
   pdsdaq* daq = (pdsdaq*)self;
   if (daq->state >= Configured) {
-    Pds::RemoteSeqCmd cmd(Pds::RemoteSeqCmd::CMD_GET_CUR_EVENT_NUM);
-    ::write(daq->socket, &cmd, sizeof(cmd));
+    // Automatic Calib cycle transisitions may have left messages in socket
+    while (true) {
+      PyObject* o = pdsdaq_clear(self);
+      if (o == NULL) break;
+      Py_DECREF(o);
+    }
 
     int s = daq->socket;
+    Pds::RemoteSeqCmd cmd(Pds::RemoteSeqCmd::CMD_GET_CUR_EVENT_NUM);
+    ::write(s, &cmd, sizeof(cmd));
 
     int nb;
     Py_BEGIN_ALLOW_THREADS
@@ -944,6 +951,13 @@ PyObject* pdsdaq_l3eventnum(PyObject* self)
 
   pdsdaq* daq = (pdsdaq*)self;
   if (daq->state >= Configured) {
+    // Automatic Calib cycle transisitions may have left messages in socket
+    while (true) {
+      PyObject* o = pdsdaq_clear(self);
+      if (o == NULL) break;
+      Py_DECREF(o);
+    }
+
     int s = daq->socket;
     Pds::RemoteSeqCmd cmd(Pds::RemoteSeqCmd::CMD_GET_CUR_L3EVENT_NUM);
     ::write(s, &cmd, sizeof(cmd));
@@ -994,6 +1008,26 @@ PyObject* pdsdaq_rcv      (PyObject* self)
 
   Py_INCREF(Py_None);
   return Py_None;
+}
+
+PyObject* pdsdaq_clear    (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  Pds::RemoteSeqResponse result;
+  int s = daq->socket;
+  int nb;
+
+  Py_BEGIN_ALLOW_THREADS
+  nb = ::recv(s,&result,sizeof(result),MSG_DONTWAIT | MSG_PEEK);
+  Py_END_ALLOW_THREADS
+
+  if (nb < 0) {
+    return NULL; // nothing left to read
+  } else if (daq->state >= Running) {
+    return pdsdaq_end(self);  
+  } else {
+    return pdsdaq_rcv(self);
+  }
 }
 
 //

@@ -36,8 +36,14 @@ namespace Pds {
     virtual InDatagram* events     (InDatagram*);
     virtual void        routine    ();
   private:
-    bool readTransition();
-    bool processTransitionCmd(RemoteSeqCmd& cmd);
+    enum MsgType
+    {
+      INVALID     = 0,
+      TRANSITION  = 1,
+      EVENTNUM    = 2
+    };
+    MsgType readTransition();
+    MsgType processTransitionCmd(RemoteSeqCmd& cmd);
   private:
     PartitionControl&  _control;
     StateSelect&       _manual;
