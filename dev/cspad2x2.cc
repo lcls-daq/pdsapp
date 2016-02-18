@@ -218,6 +218,7 @@ void printUsage(char* s) {
       "                the index of the card and the top nybble being a port mask where one bit is for\n"
       "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
       "                applications that use the whole card\n"
+      "    -G      Use if pgpcard is a G3 card\n"
       "    -e <N>  Set the maximum event depth, default is 256\n"
       "    -C <N>  Compress and copy every Nth event\n"
       "    -u      Set device alias                         [Default: none]\n"
@@ -255,9 +256,10 @@ int main( int argc, char** argv )
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
   unsigned            eventDepth          = 256;
-  unsigned            runTriggerFactor       = 1;
+  unsigned            runTriggerFactor    = 1;
   ::signal( SIGINT, sigHandler );
   char                runTimeConfigname[256] = {""};
+  char                g3[16]              = {""};
   bool                platformMissing     = true;
   bool                compressFlag        = false;
   bool                bUsage              = false;
@@ -266,7 +268,7 @@ int main( int argc, char** argv )
    extern char* optarg;
    char* uniqueid = (char *)NULL;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:C:e:D:xP:u:r:R:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:C:e:D:xP:u:r:R:G" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -357,6 +359,9 @@ int main( int argc, char** argv )
              printf("Cspad2x2 using run trigger rate of %u Hz\n", 120 / runTriggerFactor);
            }
            break;
+         case 'G':
+           strcpy(g3, "G3");
+           break;
          case 'r':
            strcpy(runTimeConfigname, optarg);
            break;
@@ -407,6 +412,42 @@ int main( int argc, char** argv )
    cspad2x2Server->debug(debug);
    cspad2x2Server->runTimeConfigName(runTimeConfigname);
    cspad2x2Server->runTrigFactor(runTriggerFactor);
+
+   unsigned ports = (pgpcard >> 4) & 0xf;
+   char devName[128];
+   printf("cspad2x2 pgpcard 0x%x, ports %d\n", pgpcard, ports);
+   char err[128];
+   if (ports == 0) {
+     ports = 15;
+     sprintf(devName, "/dev/pgpcard%s%u", g3, pgpcard);
+   } else {
+     sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
+   }
+
+   int cspad2x2 = open( devName,  O_RDWR | O_NONBLOCK );
+   if (debug & 1) printf("%s using %s\n", argv[0], devName);
+   if (cspad2x2 < 0) {
+     sprintf(err, "%s opening %s failed", argv[0], devName);
+     perror(err);
+     return 1;
+   }
+
+   bool G3Flag = strlen(g3) != 0;
+
+   unsigned limit = G3Flag ? 8 : 4;
+
+   unsigned offset = 0;
+   while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
+     offset += 1;
+   }
+
+   if (offset >= limit) {
+     printf("%s illegal port mask!! 0x%x\n", argv[0], ports);
+     return 1;
+   }
+
+   Pds::Pgp::Pgp::portOffset(offset);
+   cspad2x2Server->setCspad2x2(cspad2x2);
 
    MySegWire settings(cspad2x2Server, module, channel, uniqueid);
    settings.max_event_depth(eventDepth);
