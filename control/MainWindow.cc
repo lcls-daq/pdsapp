@@ -360,8 +360,8 @@ MainWindow::MainWindow(unsigned          platform,
   _controlcb->add_appliance(run);    // must be first
   //  _controlcb->add_appliance(new Decoder(Level::Control));
   _controlcb->add_appliance(new ShutdownTest(*_control));
-  _controlcb->add_appliance(_icontrol);
   _controlcb->add_appliance(new ControlDamage(*this));
+  _controlcb->add_appliance(_icontrol);
   _controlcb->add_appliance(new FileReport(*_log, *run));
   if (_offlineclient) {
     _controlcb->add_appliance(new OfflineReport(*_partition, *_runallocator, *run));
