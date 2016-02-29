@@ -34,7 +34,7 @@ class AndorCameraTest
 public:
   AndorCameraTest(int iCamera, double fExposureTime, int iReadoutPort, int iSpeedIndex, int iGainIndex,
     double fTemperature, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iTriggerMode,
-    char* sFnPrefix, int iNumImages, int iMenu);
+    char* sFnPrefix, int iNumImages, int iMenu, bool bTriggerFast);
 
   int init();
   int run();
@@ -67,6 +67,7 @@ private:
   string  _strFnPrefix;
   int     _iNumImages;
   int     _iMenu;
+  bool    _bTriggerFast;
 
   int     _iOutImageIndex;
   at_32   _iCameraHandle;
@@ -81,11 +82,11 @@ private:
 
 AndorCameraTest::AndorCameraTest(int iCamera, double fExposureTime, int iReadoutPort, int iSpeedIndex,
   int iGainIndex, double fTemperature, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY,
-  int iTriggerMode, char* sFnPrefix, int iNumImages, int iMenu) :
+  int iTriggerMode, char* sFnPrefix, int iNumImages, int iMenu, bool bTriggerFast) :
   _iCamera(iCamera), _iCameraMaster(-1), _iCameraSlave(-1), _fExposureTime(fExposureTime),
   _iReadoutPort(iReadoutPort), _iSpeedIndex(iSpeedIndex), _iGainIndex(iGainIndex), _fTemperature(fTemperature),
   _iRoiX(iRoiX), _iRoiY(iRoiY), _iRoiW(iRoiW), _iRoiH(iRoiH), _iBinX(iBinX), _iBinY(iBinY),
-  _iTriggerMode(iTriggerMode), _strFnPrefix(sFnPrefix), _iNumImages(iNumImages), _iMenu(iMenu),
+  _iTriggerMode(iTriggerMode), _strFnPrefix(sFnPrefix), _iNumImages(iNumImages), _iMenu(iMenu), _bTriggerFast(bTriggerFast),
   _iOutImageIndex(0), _iCameraHandle(0), _iDetectorWidth(-1), _iDetectorHeight(-1), _iADChannel(0)
 {
 }
@@ -264,7 +265,7 @@ int AndorCameraTest::_initCamera(int iCamera)
   for (int iVSAmplitude = 0; iVSAmplitude < iNumVSAmplitude; ++iVSAmplitude)
   {
     int iAmplitudeValue = -1;
-    GetVSAmplitudeValue(iAmplitudeValue, &iAmplitudeValue);
+    GetVSAmplitudeValue(iVSAmplitude, &iAmplitudeValue);
 
     char sAmplitude[32];
     sAmplitude[sizeof(sAmplitude)-1] = 0;
@@ -491,6 +492,7 @@ int AndorCameraTest::run()
     cout << "i. Set Trigger Mode" << endl;
     cout << "r. Set ROI" << endl;
     cout << "b. Set Binning" << endl;
+    cout << "f. Set Fast Trigger Mode" << endl;
     cout << "q. Quit Program" << endl;
     cout << "====================================="  << endl;
     cout << "> ";
@@ -592,6 +594,12 @@ int AndorCameraTest::run()
       if ( *pNextToken == 0 ) break;
       _iBinY = strtoul(pNextToken, &pNextToken, 0); ++pNextToken;
       printf("New binX %d binY %d \n", _iBinX, _iBinY);
+      break;
+    }
+    case 'f':
+    {
+      cout << endl << "Enter new Fast Trigger Mode [true, false]> ";
+      cin >> _bTriggerFast;
       break;
     }
     case 'q': //Exit
@@ -795,7 +803,7 @@ int AndorCameraTest::_prepAcquisition(int iCamera)
   iError = SetTriggerMode(_iTriggerMode);
   if (!isAndorFuncOk(iError))
     printf("SetTriggerMode(): %s\n", AndorErrorCodes::name(iError));
-  if (bExtTrigger)
+  if (bExtTrigger && _bTriggerFast)
   {
     iError = SetFastExtTrigger(1);
     if (!isAndorFuncOk(iError))
@@ -1006,13 +1014,16 @@ int AndorCameraTest::_runAcquisition()
     }
     else
     {
-      int       iWaitTime     = 0;
-      const int iWaitPerIter  = 1; // 1milliseconds
       while (numAcqNew == numAcq)
       {
-        timeval timeSleepMicro = {0, iWaitPerIter * 1000}; // in milliseconds
-        // use select() to simulate nanosleep(), because experimentally select() controls the sleeping time more precisely
-        select( 0, NULL, NULL, NULL, &timeSleepMicro);
+        iError = WaitForAcquisitionTimeOut(iMaxReadoutTime );
+        if (!isAndorFuncOk(iError))
+        {
+          printf("WaitForAcquisitionTimeOut(): %s\n", AndorErrorCodes::name(iError));
+          bWaitError = true;
+          break;
+        }
+
 
         // DOES THIS NEED TO BE DONE FOR BOTH?
         iError = GetTotalNumberImagesAcquired(&numAcqNew);
@@ -1025,13 +1036,6 @@ int AndorCameraTest::_runAcquisition()
 
         if (bPrint && numAcqNew != numAcq)
           printf("Num Image Acquired: %d / %d\n", (int) numAcqNew, (int) numAcq);
-
-        iWaitTime += iWaitPerIter;
-        if (iWaitTime >= iMaxReadoutTime)
-        {
-          bWaitError = true;
-          break;
-        }
 
         //at_32 numFirst, numLast;
         //iError = GetNumberNewImages(&numFirst, &numLast);
@@ -1139,29 +1143,33 @@ int AndorCameraTest::_retrieveData(int iCamera, uint16_t* liImageData, int iImag
     printf("GetOldestImage16(): %s\n", AndorErrorCodes::name(iError));
     return 2;
   }
-  else if (!bExtTrigger)
+  else
   {
-    const uint16_t*     pPixel     = liImageData;
-    const uint16_t*     pEnd       = pPixel + iImageWidth*iImageHeight;
-    const uint64_t      uNumPixels = (uint64_t) (iImageWidth*iImageHeight);
-
-    uint64_t            uSum    = 0;
-    uint64_t            uSumSq  = 0;
-    for ( ; pPixel < pEnd; pPixel++ )
+    if (!bExtTrigger)
     {
-      uSum   += *pPixel;
-      uSumSq += ((uint32_t)*pPixel) * ((uint32_t)*pPixel);
+      const uint16_t*     pPixel     = liImageData;
+      const uint16_t*     pEnd       = pPixel + iImageWidth*iImageHeight;
+      const uint64_t      uNumPixels = (uint64_t) (iImageWidth*iImageHeight);
+
+      uint64_t            uSum    = 0;
+      uint64_t            uSumSq  = 0;
+      for ( ; pPixel < pEnd; pPixel++ )
+      {
+        uSum   += *pPixel;
+        uSumSq += ((uint32_t)*pPixel) * ((uint32_t)*pPixel);
+      }
+
+      printf( " Avg %.2lf Std %.2lf",
+        (double) uSum / (double) uNumPixels,
+        sqrt( (uNumPixels * uSumSq - uSum * uSum) / (double)(uNumPixels*uNumPixels)) );
+
+      char* pByte;
+      for ( pByte = (char*)( liImageData + iTestBufferSizeIn16 ) - 1;
+            pByte >= (char*)liImageData && *pByte == uTestByte; --pByte )
+        ;
+      printf( " Image size (bytes): %ld\n", (long) (pByte - (char*) liImageData) + 1 );
     }
 
-    printf( " Avg %.2lf Std %.2lf",
-      (double) uSum / (double) uNumPixels,
-      sqrt( (uNumPixels * uSumSq - uSum * uSum) / (double)(uNumPixels*uNumPixels)) );
-
-    char* pByte;
-    for ( pByte = (char*)( liImageData + iTestBufferSizeIn16 ) - 1;
-          pByte >= (char*)liImageData && *pByte == uTestByte; --pByte )
-      ;
-    printf( " Image size (bytes): %ld\n", (long) (pByte - (char*) liImageData) + 1 );
     if ( !_strFnPrefix.empty() )
     {
       ++_iOutImageIndex;
@@ -1380,7 +1388,7 @@ static void showUsage()
       "Usage:  andorStandAlone  [-v|--version] [-h|--help] [-c|--camera <camera number>]\n"
       "    [-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (sec)>]\n"
       "    [-p|--port <readout port>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
-      "    [-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>] [-i <trigger mode>]\n"
+      "    [-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>] [-i <trigger mode>] [-f|--fast]\n"
       "[-m|--menu]\n"
       "  Options:\n"
       "    -v|--version                      Show file version\n"
@@ -1397,6 +1405,7 @@ static void showUsage()
       "    -b|--bin       <xbin,ybin>        Binning of X/Y\n"
       "    -i|--trigger   <trigger mode>     0: Int, 1: Ext, 6: ExtStart, 7: Bulb,\n"
       "                                      9: ExtFvbEm, 10: Soft, 12: ExtChrgSht\n"
+      "    -f|--fast      <fast trigger>     Enable fast trigger mode - don't wait for clear cycle\n"
       "    -m|--menu                         Show interactive menu\n"
     );
 }
@@ -1417,7 +1426,7 @@ void signalIntHandler(int iSignalNo)
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhc:w:n:e:p:s:g:t:r:b:i:m";
+  const char*         strOptions  = ":vhc:w:n:e:p:s:g:t:r:b:i:fm";
   const struct option loOptions[] =
   {
      {"ver",      0, 0, 'v'},
@@ -1433,6 +1442,7 @@ int main(int argc, char **argv)
      {"roi",      1, 0, 'r'},
      {"bin",      1, 0, 'b'},
      {"trigger",  1, 0, 'i'},
+     {"fast",     0, 0, 'f'},
      {"menu",     0, 0, 'm'},
      {0,          0, 0,  0 }
   };
@@ -1452,6 +1462,7 @@ int main(int argc, char **argv)
   int     iBinX         = 1;
   int     iBinY         = 1;
   int     iTriggerMode  = 0;
+  bool    bTriggerFast  = false;
   int     iMenu         = 0;
 
   int iOptionIndex = 0;
@@ -1511,6 +1522,9 @@ int main(int argc, char **argv)
       case 'i':
           iTriggerMode    = strtoul(optarg, NULL, 0);
           break;
+      case 'f':
+          bTriggerFast    = true;
+          break;
       case 'm':
           iMenu = 1;
           break;
@@ -1545,7 +1559,8 @@ int main(int argc, char **argv)
     printf( "main(): Cannot register signal handler for SIGTERM\n" );
 
   AndorCameraTest testCamera(iCamera, fExposureTime, iReadoutPort, iSpeedIndex, iGainIndex,
-    fTemperature, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iTriggerMode, sFnPrefix, iNumImages, iMenu);
+    fTemperature, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iTriggerMode, sFnPrefix, iNumImages, iMenu,
+    bTriggerFast);
 
   int iError = testCamera.init();
   if (iError == 0)
