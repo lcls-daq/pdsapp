@@ -1016,15 +1016,6 @@ int AndorCameraTest::_runAcquisition()
     {
       while (numAcqNew == numAcq)
       {
-        iError = WaitForAcquisitionTimeOut(iMaxReadoutTime );
-        if (!isAndorFuncOk(iError))
-        {
-          printf("WaitForAcquisitionTimeOut(): %s\n", AndorErrorCodes::name(iError));
-          bWaitError = true;
-          break;
-        }
-
-
         // DOES THIS NEED TO BE DONE FOR BOTH?
         iError = GetTotalNumberImagesAcquired(&numAcqNew);
         if (!isAndorFuncOk(iError))
@@ -1034,19 +1025,21 @@ int AndorCameraTest::_runAcquisition()
           break;
         }
 
-        if (bPrint && numAcqNew != numAcq)
-          printf("Num Image Acquired: %d / %d\n", (int) numAcqNew, (int) numAcq);
-
-        //at_32 numFirst, numLast;
-        //iError = GetNumberNewImages(&numFirst, &numLast);
-        //if (!isAndorFuncOk(iError))
-        //{
-        //  printf("GetNumberNewImages(): %s\n", AndorErrorCodes::name(iError));
-        //  bWaitError = true;
-        //  break;
-        //}
-        //else
-        //  printf("New Image: first %d last %d\n", (int)numFirst, (int)numLast);
+        if (numAcqNew != numAcq)
+        {
+          if (bPrint)
+            printf("Num Image Acquired: %d / %d\n", (int) numAcqNew, (int) numAcq);
+        }
+        else
+        {
+          iError = WaitForAcquisitionTimeOut(iMaxReadoutTime );
+          if (!isAndorFuncOk(iError))
+          {
+            printf("WaitForAcquisitionTimeOut(): %s\n", AndorErrorCodes::name(iError));
+            bWaitError = true;
+            break;
+          }
+        }
       }
       ++numAcq;
     }
