@@ -1,0 +1,539 @@
+//
+//  pds_TimeToolConfig class methods
+//
+static PyObject* pds_TimeToolConfig_get      (PyObject*   self, PyObject* args);
+static PyObject* pds_TimeToolConfig_set      (PyObject*   self, PyObject* args);
+static PyObject* pds_TimeToolConfig_enum     (PyObject*   self, PyObject* args);
+
+static PyMethodDef pds_TimeToolConfig_methods[] = {
+  {"get"        , (PyCFunction)pds_TimeToolConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"set"        , (PyCFunction)pds_TimeToolConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"get_enums"  , (PyCFunction)pds_TimeToolConfig_enum  , METH_NOARGS  , "Output enum constants"},
+  {NULL},
+};
+
+DefineXtcType(TimeToolConfig)
+
+
+#include "pdsdata/psddl/timetool.ddl.h"
+#include <new>
+
+
+// Return a dictionary of enum types in config
+#define SetEnum(name,type,dict)                               \
+  { PyObject* v = PyInt_FromLong(Pds::TimeTool::type::name);  \
+    if (v) {                                                  \
+      PyDict_SetItemString(dict,#name,v);                     \
+      Py_DECREF(v);                                           \
+    }                                                         \
+  }
+
+#define SetEnumDict(name,dict)              \
+  { PyDict_SetItemString(o,#name,dict);     \
+    Py_DECREF(dict); }
+
+static PyObject* get_axisV1_enum()
+{
+  PyObject* axis_enum = PyDict_New();
+  SetEnum(X,ConfigV1,axis_enum);
+  SetEnum(Y,ConfigV1,axis_enum);
+
+  return axis_enum;
+}
+
+static PyObject* get_axisV2_enum()
+{
+  PyObject* axis_enum = PyDict_New();
+  SetEnum(X,ConfigV2,axis_enum);
+  SetEnum(Y,ConfigV2,axis_enum);
+
+  return axis_enum;
+}
+
+static PyObject* get_eventlogic_enum()
+{
+  PyObject* logic_enum = PyDict_New();
+  SetEnum(L_OR,EventLogic,logic_enum);
+  SetEnum(L_AND,EventLogic,logic_enum);
+  SetEnum(L_OR_NOT,EventLogic,logic_enum);
+  SetEnum(L_AND_NOT,EventLogic,logic_enum);
+
+  return logic_enum;
+}
+
+PyObject* pds_TimeToolConfig_enum (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+
+    SetEnumDict(Axis,get_axisV1_enum());
+    SetEnumDict(EventLogic,get_eventlogic_enum());
+
+    return o;
+  }
+  else if (xtc->contains.version()==2) {
+
+    SetEnumDict(Axis,get_axisV2_enum());
+    SetEnumDict(EventLogic,get_eventlogic_enum());
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported TimeToolConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+
+#undef SetEnum
+#undef SetEnumDict
+
+
+//  Return a dictionary of configuration data
+#define SetDictMember(name,isFloat,isEnum)                \
+  { PyObject* v = NULL;                                   \
+    if (isFloat)                                          \
+      v = PyFloat_FromDouble(cfg->name());                \
+    else if (isEnum)                                      \
+      v = PyInt_FromLong((signed)cfg->name());            \
+    else                                                  \
+      v = PyLong_FromUnsignedLong((unsigned)cfg->name()); \
+    if (v) {                                              \
+      PyDict_SetItemString(o,#name,v);                    \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
+
+#define SetDictString(name)                         \
+  { PyObject* s = PyString_FromString(cfg->name()); \
+    PyDict_SetItemString(o,#name,s);                \
+    Py_DECREF(s); }
+
+#define SetDictFloat(name)                          \
+  { PyObject* dict = get_float_array(cfg->name());  \
+    PyDict_SetItemString(o,#name,dict);             \
+    Py_DECREF(dict); }
+
+#define SetDictFrame(name)                          \
+  { PyObject* dict = get_frame_coord(&cfg->name()); \
+    PyDict_SetItemString(o,#name,dict);             \
+    Py_DECREF(dict); }
+
+#define SetDictEventLogic(name)                     \
+  { PyObject* list = get_event_logic(cfg->name());  \
+    PyDict_SetItemString(o,#name,list);             \
+    Py_DECREF(list); }
+
+static PyObject* get_frame_coord(const Pds::Camera::FrameCoord* cfg)
+{
+  PyObject* o = PyDict_New();
+
+  SetDictMember(column,false,false);
+  SetDictMember(row,false,false);
+
+  return o;
+}
+
+static PyObject* get_event_logic(ndarray<const Pds::TimeTool::EventLogic, 1> el)
+{
+  PyObject* event_logic = PyList_New(el.size());
+  for (unsigned i=0; i<el.size(); i++) {
+    const Pds::TimeTool::EventLogic* cfg = &el[i];
+    PyObject* o = PyDict_New();
+    SetDictMember(event_code,false,false);
+    SetDictMember(logic_op,false,true);
+    PyList_SetItem(event_logic, i, o);
+  }
+
+  return event_logic;
+}
+
+static PyObject* get_float_array(ndarray<const double, 1> values)
+{
+  PyObject* value_list = PyList_New(values.size());
+  for (unsigned i=0; i<values.size(); i++) {
+    PyList_SetItem(value_list, i, PyFloat_FromDouble(values[i]));
+  }
+
+  return value_list;
+}
+
+PyObject* pds_TimeToolConfig_get  (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+    const Pds::TimeTool::ConfigV1* cfg =
+      reinterpret_cast<const Pds::TimeTool::ConfigV1*>(xtc->payload);
+
+    SetDictMember(project_axis,false,true);
+    SetDictMember(write_image,false,false);
+    SetDictMember(write_projections,false,false);
+    SetDictMember(subtract_sideband,false,false);
+    SetDictMember(signal_cut,false,false);
+    SetDictMember(sb_convergence,true,false);
+    SetDictMember(ref_convergence,true,false);
+    SetDictMember(signal_projection_size,false,false);
+    SetDictMember(sideband_projection_size,false,false);
+
+    SetDictString(base_name);
+    
+    SetDictFrame(sig_roi_lo);
+    SetDictFrame(sig_roi_hi);
+    SetDictFrame(sb_roi_lo);
+    SetDictFrame(sb_roi_hi);
+
+    SetDictEventLogic(beam_logic);
+    SetDictEventLogic(laser_logic);
+
+    SetDictFloat(weights);
+    SetDictFloat(calib_poly);
+
+    return o;
+  }
+  else if (xtc->contains.version()==2) {
+    const Pds::TimeTool::ConfigV2* cfg =
+      reinterpret_cast<const Pds::TimeTool::ConfigV2*>(xtc->payload);
+
+    SetDictMember(project_axis,false,true);
+    SetDictMember(write_image,false,false);
+    SetDictMember(write_projections,false,false);
+    SetDictMember(subtract_sideband,false,false);
+    SetDictMember(use_reference_roi,false,false);
+    SetDictMember(signal_cut,false,false);
+    SetDictMember(sb_convergence,true,false);
+    SetDictMember(ref_convergence,true,false);
+    SetDictMember(signal_projection_size,false,false);
+    SetDictMember(sideband_projection_size,false,false);
+    SetDictMember(reference_projection_size,false,false);
+
+    SetDictString(base_name);
+
+    SetDictFrame(sig_roi_lo);
+    SetDictFrame(sig_roi_hi);
+    SetDictFrame(sb_roi_lo);
+    SetDictFrame(sb_roi_hi);
+    SetDictFrame(ref_roi_lo);
+    SetDictFrame(ref_roi_hi);
+
+    SetDictEventLogic(beam_logic);
+    SetDictEventLogic(laser_logic);
+
+    SetDictFloat(weights);
+    SetDictFloat(calib_poly);
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported TimeToolConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+#undef SetDictMember
+#undef SetDictString
+#undef SetDictFloat
+#undef SetDictFrame
+#undef SetDictEventLogic
+
+//  Retrieve configuration data from a Python Dictionary
+#define GetDictEnum(name,type)                                          \
+  type name;                                                            \
+  { PyObject* i = PyDict_GetItemString(o,#name);                        \
+    if (i) {                                                            \
+      if (PyInt_CheckExact(i))  name = (type) PyInt_AsLong(i);          \
+      else if (PyLong_CheckExact(i)) name = (type) PyLong_AsLong(i);    \
+      else name = (type) cfg->name();                                   \
+    }                                                                   \
+    else name = cfg->name(); }
+
+#define GetDictLong(name)                                         \
+  unsigned long name;                                             \
+  { PyObject* i = PyDict_GetItemString(o,#name);                  \
+    if (i) {                                                      \
+      if (PyLong_Check(i)) name = PyLong_AsUnsignedLong(i);       \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);            \
+      else name = cfg->name();                                    \
+    }                                                             \
+    else name = cfg->name(); }
+
+#define GetDictFloat(name)                              \
+  double name;                                          \
+  { PyObject* i = PyDict_GetItemString(o,#name);        \
+    if (i) {                                            \
+      if (PyFloat_Check(i)) name = PyFloat_AsDouble(i); \
+      else name = cfg->name();                          \
+    }                                                   \
+    else name = cfg->name(); }
+
+#define GetDictString(name,lname)                 \
+  const char* name;                               \
+  uint8_t lname;                                  \
+  { PyObject* i = PyDict_GetItemString(o,#name);  \
+    if (i && PyString_Check(i)) {                 \
+      name  = PyString_AsString(i);               \
+      lname = PyString_Size(i) + 1;               \
+    }                                             \
+    else {                                        \
+      name  = cfg->name();                        \
+      lname = cfg->lname();                       \
+    }                                             \
+  }
+
+#define GetDictFrame(name)                        \
+  Pds::Camera::FrameCoord name;                   \
+  { PyObject* i = PyDict_GetItemString(o,#name);  \
+    if (i) {                                      \
+      name = get_frame_coord(&cfg->name(), i);    \
+    }                                             \
+    else name = cfg->name(); }
+
+#define GetFloatArray(name,lname)                 \
+  const double* name;                             \
+  uint16_t lname;                                 \
+  { PyObject* i = PyDict_GetItemString(o,#name);  \
+    if (i && PyList_Check(i)) {                   \
+      name = get_float_array(i);                  \
+      lname = PyList_Size(i);                     \
+    }                                             \
+    else {                                        \
+      name = cfg->name().data();                  \
+      lname = cfg->lname();                       \
+    }                                             \
+  }
+
+#define GetLogicArray(name,lname)                 \
+  const Pds::TimeTool::EventLogic* name;          \
+  uint16_t lname;                                 \
+  { PyObject* i = PyDict_GetItemString(o,#name);  \
+    if (i && PyList_Check(i)) {                   \
+      name = get_logic_array(i);                  \
+      if (name) {                                 \
+        lname = PyList_Size(i);                   \
+      }                                           \
+      else {                                      \
+        name = cfg->name().data();                \
+        lname = cfg->lname();                     \
+      }                                           \
+    }                                             \
+    else {                                        \
+      name = cfg->name().data();                  \
+      lname = cfg->lname();                       \
+    }                                             \
+  }
+
+#define CheckEnum(name,type)                                          \
+  type name;                                                          \
+  { PyObject* i = PyDict_GetItemString(o,#name);                      \
+    if (i) {                                                          \
+      if (PyInt_CheckExact(i))  name = (type) PyInt_AsLong(i);        \
+      else if (PyLong_CheckExact(i)) name = (type) PyLong_AsLong(i);  \
+      else return NULL;                                               \
+    }                                                                 \
+    else return NULL; }
+
+#define CheckLong(name)                                     \
+  unsigned long name;                                       \
+  { PyObject* i = PyDict_GetItemString(o,#name);            \
+  if (i) {                                                  \
+    if (PyLong_Check(i)) name = PyLong_AsUnsignedLong(i);   \
+    else if (PyInt_Check(i)) name = PyInt_AsLong(i);        \
+    else return NULL;                                       \
+  }                                                         \
+  else return NULL; }
+
+
+static Pds::TimeTool::EventLogic* get_logic_array(PyObject* l)
+{
+  Py_ssize_t num = PyList_Size(l);
+  Pds::TimeTool::EventLogic* values = new Pds::TimeTool::EventLogic[num];
+  Pds::TimeTool::EventLogic* value_ptr = values;
+  for (unsigned i=0; i<num; value_ptr++, i++) {
+    PyObject* o = PyList_GetItem(l,i);
+    CheckLong(event_code);
+    CheckEnum(logic_op,Pds::TimeTool::EventLogic::LogicOp);
+    new(value_ptr) Pds::TimeTool::EventLogic((uint8_t) event_code, logic_op);
+  }
+
+  return values;
+}
+
+static double* get_float_array(PyObject* l)
+{
+  Py_ssize_t num = PyList_Size(l);
+  double* values = new double[num];
+  for (unsigned i=0; i<num; i++) {
+    values[i] = PyFloat_AsDouble(PyList_GetItem(l,i));
+  }
+
+  return values;
+}
+
+static Pds::Camera::FrameCoord get_frame_coord(const Pds::Camera::FrameCoord* cfg, PyObject* o)
+{
+  GetDictLong(column);
+  GetDictLong(row);
+
+  Pds::Camera::FrameCoord frame_coord = Pds::Camera::FrameCoord((uint16_t) column,
+                                                                (uint16_t) row);
+
+  return frame_coord;
+}
+
+PyObject* pds_TimeToolConfig_set  (PyObject*   self, PyObject* args)
+{
+  PyObject* o = 0;
+  if (PyArg_ParseTuple(args,"O",&o)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==1) {
+    const Pds::TimeTool::ConfigV1* cfg =
+      reinterpret_cast<const Pds::TimeTool::ConfigV1*>(xtc->payload);
+
+    GetDictEnum(project_axis,Pds::TimeTool::ConfigV1::Axis);
+    GetDictLong(write_image);
+    GetDictLong(write_projections);
+    GetDictLong(subtract_sideband);
+    GetDictString(base_name,base_name_length);
+    GetDictFrame(sig_roi_lo);
+    GetDictFrame(sig_roi_hi);
+    GetDictFrame(sb_roi_lo);
+    GetDictFrame(sb_roi_hi);
+    GetDictLong(signal_cut);
+    GetDictFloat(sb_convergence);
+    GetDictFloat(ref_convergence);
+
+    GetFloatArray(weights,number_of_weights);
+    GetFloatArray(calib_poly,calib_poly_dim);
+
+    GetLogicArray(beam_logic, number_of_beam_event_codes);
+    GetLogicArray(laser_logic, number_of_laser_event_codes);
+
+    size_t pack = 4;
+    size_t sz = (sizeof(Pds::TimeTool::ConfigV1)    +
+                number_of_weights * sizeof(double)  +
+                calib_poly_dim    * sizeof(double)  +
+                base_name_length  * sizeof(char)    +
+                number_of_beam_event_codes  * sizeof(Pds::TimeTool::EventLogic) +
+                number_of_laser_event_codes * sizeof(Pds::TimeTool::EventLogic) +
+                pack-1) / pack * pack;
+
+    /* Remove the old payload and replace if size changes */
+    if (xtc->extent != sz) {
+      delete[] xtc->payload;
+      xtc->extent = sz;
+      xtc->payload = new char[sz];
+    }
+
+    new(xtc->payload) Pds::TimeTool::ConfigV1(project_axis,
+                                              (uint8_t) write_image,
+                                              (uint8_t) write_projections,
+                                              (uint8_t) subtract_sideband,
+                                              number_of_weights,
+                                              calib_poly_dim,
+                                              base_name_length,
+                                              number_of_beam_event_codes,
+                                              number_of_laser_event_codes,
+                                              (uint32_t) signal_cut,
+                                              sig_roi_lo,
+                                              sig_roi_hi,
+                                              sb_roi_lo,
+                                              sb_roi_hi,
+                                              sb_convergence,
+                                              ref_convergence,
+                                              beam_logic,
+                                              laser_logic,
+                                              weights,
+                                              calib_poly,
+                                              base_name);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else if (xtc->contains.version()==2) {
+    const Pds::TimeTool::ConfigV2* cfg =
+      reinterpret_cast<const Pds::TimeTool::ConfigV2*>(xtc->payload);
+
+    GetDictEnum(project_axis,Pds::TimeTool::ConfigV2::Axis);
+    GetDictLong(write_image);
+    GetDictLong(write_projections);
+    GetDictLong(subtract_sideband);
+    GetDictLong(use_reference_roi);
+    GetDictString(base_name,base_name_length);
+    GetDictFrame(sig_roi_lo);
+    GetDictFrame(sig_roi_hi);
+    GetDictFrame(sb_roi_lo);
+    GetDictFrame(sb_roi_hi);
+    GetDictLong(signal_cut);
+    GetDictFloat(sb_convergence);
+    GetDictFrame(ref_roi_lo);
+    GetDictFrame(ref_roi_hi);
+    GetDictFloat(ref_convergence);
+
+    GetFloatArray(weights,number_of_weights);
+    GetFloatArray(calib_poly,calib_poly_dim);
+
+    GetLogicArray(beam_logic, number_of_beam_event_codes);
+    GetLogicArray(laser_logic, number_of_laser_event_codes);
+
+    size_t pack = 4;
+    size_t sz = (sizeof(Pds::TimeTool::ConfigV2)    +
+                number_of_weights * sizeof(double)  +
+                calib_poly_dim    * sizeof(double)  +
+                base_name_length  * sizeof(char)    +
+                number_of_beam_event_codes  * sizeof(Pds::TimeTool::EventLogic) +
+                number_of_laser_event_codes * sizeof(Pds::TimeTool::EventLogic) +
+                pack-1) / pack * pack;
+
+    /* Remove the old payload and replace if size changes */
+    if (xtc->extent != sz) {
+      delete[] xtc->payload;
+      xtc->extent = sz;
+      xtc->payload = new char[sz];
+    }
+
+    new(xtc->payload) Pds::TimeTool::ConfigV2(project_axis,
+                                              (uint8_t) write_image,
+                                              (uint8_t) write_projections,
+                                              (uint8_t) subtract_sideband,
+                                              (uint8_t) use_reference_roi,
+                                              number_of_weights,
+                                              calib_poly_dim,
+                                              base_name_length,
+                                              number_of_beam_event_codes,
+                                              number_of_laser_event_codes,
+                                              (uint32_t) signal_cut,
+                                              sig_roi_lo,
+                                              sig_roi_hi,
+                                              sb_roi_lo,
+                                              sb_roi_hi,
+                                              sb_convergence,
+                                              ref_roi_lo,
+                                              ref_roi_hi,
+                                              ref_convergence,
+                                              beam_logic,
+                                              laser_logic,
+                                              weights,
+                                              calib_poly,
+                                              base_name);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else {
+    printf("set(): Unsupported TimeToolConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+#undef GetDictEnum
+#undef GetDictLong
+#undef GetDictFloat
+#undef GetDictString
+#undef GetDictFrame
+#undef GetFloatArray
+#undef GetLogicArray
+#undef CheckEnum
+#undef CheckLong
