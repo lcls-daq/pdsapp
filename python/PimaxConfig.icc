@@ -17,11 +17,17 @@ DefineXtcType(PimaxConfig) ;
 
 
 //  Return a dictionary of configuration data
-#define SetDictMember(name,isFloat)                                                       \
-  { if (isFloat)                                                                            \
-      PyDict_SetItemString(o,#name,PyFloat_FromDouble(cfg->name()));                      \
-    else                                                                                    \
-      PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfg->name())); }
+#define SetDictMember(name,isFloat)                       \
+  { PyObject* v = NULL;                                   \
+    if (isFloat)                                          \
+      v = PyFloat_FromDouble(cfg->name());                \
+    else                                                  \
+      v = PyLong_FromUnsignedLong((unsigned)cfg->name()); \
+    if (v) {                                              \
+      PyDict_SetItemString(o,#name,v);                    \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
 
 PyObject* pds_PimaxConfig_get (PyObject*   self, PyObject* args) 
 {
@@ -41,7 +47,7 @@ PyObject* pds_PimaxConfig_get (PyObject*   self, PyObject* args)
     SetDictMember(coolingTemp,true);
     SetDictMember(readoutSpeed,true);
     SetDictMember(gainIndex,false);
-	SetDictMember(intensifierGain,false);
+    SetDictMember(intensifierGain,false);
     SetDictMember(gateDelay,true);
     SetDictMember(gateWidth,true);
     SetDictMember(maskedHeight,false);
@@ -99,7 +105,7 @@ PyObject* pds_PimaxConfig_set    (PyObject*   self, PyObject* args)
     SetDictMember(coolingTemp);
     SetDictMember(readoutSpeed);
     SetDictMember(gainIndex);
-	SetDictMember(intensifierGain);
+    SetDictMember(intensifierGain);
     SetDictMember(gateDelay);
     SetDictMember(gateWidth);
     SetDictMember(maskedHeight);

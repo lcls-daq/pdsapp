@@ -1,5 +1,5 @@
 //
-//  pds_IpimbConfig class methods
+//  pds_Andor3dConfig class methods
 //
 static PyObject* pds_Andor3dConfig_get    (PyObject*   self, PyObject* args);
 static PyObject* pds_Andor3dConfig_set    (PyObject*   self, PyObject* args);
@@ -17,11 +17,17 @@ DefineXtcType(Andor3dConfig) ;
 
 
 //  Return a dictionary of configuration data
-#define SetDictMember(name,isFloat)                                                       \
-  { if (isFloat)                                                                            \
-      PyDict_SetItemString(o,#name,PyFloat_FromDouble(cfg->name()));                      \
-    else                                                                                    \
-      PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfg->name())); }
+#define SetDictMember(name,isFloat)                       \
+  { PyObject* v = NULL;                                   \
+    if (isFloat)                                          \
+      v = PyFloat_FromDouble(cfg->name());                \
+    else                                                  \
+      v = PyLong_FromUnsignedLong((unsigned)cfg->name()); \
+    if (v) {                                              \
+      PyDict_SetItemString(o,#name,v);                    \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
 
 PyObject* pds_Andor3dConfig_get (PyObject*   self, PyObject* args) 
 {

@@ -17,8 +17,13 @@ DefineXtcType(RayonixConfig) ;
 
 
 //  Return a dictionary of configuration data
-#define SetDictMember(name)                                                       \
-  { PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfg->name())); }
+#define SetDictMember(name)                                       \
+  { PyObject* v = PyLong_FromUnsignedLong((unsigned)cfg->name()); \
+    if (v) {                                                      \
+      PyDict_SetItemString(o,#name,v);                            \
+      Py_DECREF(v);                                               \
+    }                                                             \
+  }
 
 PyObject* pds_RayonixConfig_get (PyObject*   self, PyObject* args) 
 {
@@ -35,7 +40,12 @@ PyObject* pds_RayonixConfig_get (PyObject*   self, PyObject* args)
     SetDictMember(rawMode);
     SetDictMember(darkFlag);
     SetDictMember(readoutMode);
-    PyDict_SetItemString(o,"deviceID",PyString_FromString(cfg->deviceID()));
+    { PyObject* v = PyString_FromString(cfg->deviceID());
+      if (v) {
+        PyDict_SetItemString(o,"deviceID",v);
+        Py_DECREF(v);
+      }
+    }
 
     return o;
   }

@@ -17,14 +17,19 @@ DefineXtcType(IpimbConfig) ;
 
 
 //  Return a dictionary of configuration data
-#define SetDictMember(name,isFloat,isLongLong)                                                 \
-  { if (isFloat)                                                                               \
-      PyDict_SetItemString(o,#name,PyFloat_FromDouble(cfg->name()));                         \
-    else if (isLongLong)                                                                       \
-      PyDict_SetItemString(o,#name,PyLong_FromUnsignedLongLong((unsigned long)cfg->name())); \
-    else                                                                                       \
-      PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfg->name())); }
-
+#define SetDictMember(name,isFloat,isLongLong)                      \
+  { PyObject* v = NULL;                                             \
+    if (isFloat)                                                    \
+      v = PyFloat_FromDouble(cfg->name());                          \
+    else if (isLongLong)                                            \
+      v = PyLong_FromUnsignedLongLong((unsigned long)cfg->name());  \
+    else                                                            \
+      v = PyLong_FromUnsignedLong((unsigned)cfg->name());           \
+    if (v) {                                                        \
+      PyDict_SetItemString(o,#name,v);                              \
+      Py_DECREF(v);                                                 \
+    }                                                               \
+  }
 
 PyObject* pds_IpimbConfig_get (PyObject*   self, PyObject* args) 
 {

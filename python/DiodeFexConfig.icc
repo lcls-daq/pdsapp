@@ -26,11 +26,13 @@ PyObject* pds_DiodeFexConfig_get    (PyObject*   self, PyObject* args)
     { PyObject* l = PyList_New(n);
       for(unsigned j=0; j<n; j++)
         PyList_SetItem(l,j,PyFloat_FromDouble(v1->base()[j]));
-      PyDict_SetItemString(o,"base",l); }
+      PyDict_SetItemString(o,"base",l);
+      Py_DECREF(l); }
     { PyObject* l = PyList_New(n);
       for(unsigned j=0; j<n; j++)
         PyList_SetItem(l,j,PyFloat_FromDouble(v1->scale()[j]));
-      PyDict_SetItemString(o,"scale",l); }
+      PyDict_SetItemString(o,"scale",l);
+      Py_DECREF(l); }
     return o;
   }
   else if (xtc->contains.version()==2) {
@@ -42,11 +44,13 @@ PyObject* pds_DiodeFexConfig_get    (PyObject*   self, PyObject* args)
     { PyObject* l = PyList_New(n);
       for(unsigned j=0; j<n; j++)
         PyList_SetItem(l,j,PyFloat_FromDouble(v1->base()[j]));
-      PyDict_SetItemString(o,"base",l); }
+      PyDict_SetItemString(o,"base",l);
+      Py_DECREF(l); }
     { PyObject* l = PyList_New(n);
       for(unsigned j=0; j<n; j++)
         PyList_SetItem(l,j,PyFloat_FromDouble(v1->scale()[j]));
-      PyDict_SetItemString(o,"scale",l); }
+      PyDict_SetItemString(o,"scale",l);
+      Py_DECREF(l); }
     return o;
   }
 

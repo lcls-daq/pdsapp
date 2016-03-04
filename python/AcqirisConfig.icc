@@ -20,11 +20,17 @@ DefineXtcType(AcqirisConfig)
 
 
 // Return a dictionary of enum types in config
-#define SetEnum(name,type,dict)                                                             \
-  { PyDict_SetItemString(dict,#name,PyInt_FromLong(Pds::Acqiris::type::name)); }    
+#define SetEnum(name,type,dict)                             \
+  { PyObject* v = PyInt_FromLong(Pds::Acqiris::type::name); \
+    if (v) {                                                \
+      PyDict_SetItemString(dict,#name,v);                   \
+      Py_DECREF(v);                                         \
+    }                                                       \
+  }
 
-#define SetEnumDict(name,dict)              \
-  { PyDict_SetItemString(o,#name,dict); }
+#define SetEnumDict(name,dict)          \
+  { PyDict_SetItemString(o,#name,dict); \
+    Py_DECREF(dict); }
 
 static PyObject* get_trigV1_enum()
 {
@@ -104,13 +110,19 @@ PyObject* pds_AcqirisConfig_enum (PyObject*   self, PyObject* args)
 
 
 //  Return a dictionary of configuration data
-#define SetDictMember(name,isFloat,isSigned)                                          \
-  { if (isFloat)                                                                      \
-      PyDict_SetItemString(o,#name,PyFloat_FromDouble(cfg->name()));                  \
-    else if (isSigned)                                                                \
-      PyDict_SetItemString(o,#name,PyLong_FromLong((signed)cfg->name()));             \
-    else                                                                              \
-      PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfg->name())); }
+#define SetDictMember(name,isFloat,isSigned)              \
+  { PyObject* v = NULL;                                   \
+    if (isFloat)                                          \
+      v = PyFloat_FromDouble(cfg->name());                \
+    else if (isSigned)                                    \
+      v = PyLong_FromLong((signed)cfg->name());           \
+    else                                                  \
+      v = PyLong_FromUnsignedLong((unsigned)cfg->name()); \
+    if (v) {                                              \
+      PyDict_SetItemString(o,#name,v);                    \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
 
 static PyObject* get_trig(const Pds::Acqiris::TrigV1* cfg)
 {
@@ -164,16 +176,25 @@ PyObject* pds_AcqirisConfig_get (PyObject*   self, PyObject* args)
     SetDictMember(nbrChannels,false,false)
 
     { PyObject* trig = get_trig(&cfg->trig());
-      PyDict_SetItemString(o,"trig",trig); }
+      if (trig) {
+        PyDict_SetItemString(o,"trig",trig);
+        Py_DECREF(trig);
+      }
+    }
 
     { PyObject* horiz = get_horiz(&cfg->horiz());
-      PyDict_SetItemString(o,"horiz",horiz); }
+      if (horiz) {
+        PyDict_SetItemString(o,"horiz",horiz);
+        Py_DECREF(horiz);
+      }
+    }
 
     { PyObject* l = PyList_New(max_channels);
       ndarray<const Pds::Acqiris::VertV1, 1> vert_chans = cfg->vert();
       for(unsigned i=0; i<max_channels; i++)
         PyList_SetItem(l,i,get_vert(&vert_chans[i]));
-      PyDict_SetItemString(o,"vert",l); }
+      PyDict_SetItemString(o,"vert",l); 
+      Py_DECREF(l); }
 
     return o;
   }

@@ -17,11 +17,17 @@ DefineXtcType(FliConfig) ;
 
 
 //  Return a dictionary of configuration data
-#define SetDictMember(name,isFloat)                                                       \
-  { if (isFloat)                                                                            \
-      PyDict_SetItemString(o,#name,PyFloat_FromDouble(cfg->name()));                      \
-    else                                                                                    \
-      PyDict_SetItemString(o,#name,PyLong_FromUnsignedLong((unsigned)cfg->name())); }
+#define SetDictMember(name,isFloat)                       \
+  { PyObject* v = NULL;                                   \
+    if (isFloat)                                          \
+      v = PyFloat_FromDouble(cfg->name());                \
+    else                                                  \
+      v = PyLong_FromUnsignedLong((unsigned)cfg->name()); \
+    if (v) {                                              \
+      PyDict_SetItemString(o,#name,v);                    \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
 
 PyObject* pds_FliConfig_get (PyObject*   self, PyObject* args) 
 {
