@@ -346,8 +346,14 @@ static void read_config_file(const char *name)
                         binned |= CAMERA_ROI;
                     if (arrayTokens[5] == "size")
                         binned |= CAMERA_SIZE;
-                    if (arrayTokens[5] == "areadet")
+                    if (!strncmp(arrayTokens[5].c_str(), "areadet", 7)) {
                         binned |= CAMERA_ADET;
+                        if (arrayTokens[5].length() != 7) {
+                            int bd = atoi(arrayTokens[5].c_str() + 7);
+                            if (bd)
+                                binned |= bd << CAMERA_DEPTH_OFFSET;
+                        }
+                    }
                 }
                 printf("New symbol %s, binned = %d\n", arrayTokens[1].c_str(), binned);
                 new symbol(arrayTokens[1], arrayTokens[2], arrayTokens[3], arrayTokens[4], binned);

@@ -188,7 +188,7 @@ class caconn {
 
         /* Now find the real camera size. */
         unsigned int hh, ww;
-        switch (binned) {
+        switch (CAMERA_FLAGS(binned)) {
         case CAMERA_NONE:
             break;
         case CAMERA_BINNED:
@@ -234,6 +234,8 @@ class caconn {
             } else {
                 /* Print an error? */
             }
+            if (CAMERA_DEPTH(binned))
+                d = CAMERA_DEPTH(binned);
             break;
         }
         nelem = w * h;
@@ -261,7 +263,7 @@ class caconn {
             // Fake a configuration!
             // black_level_a = black_level_b = 32, gaina = gainb = 0x1e8 (max, min is 0x42),
             // gain_balance = false, Depth = 10 bit, hbinning = vbinning = x1, LookupTable = linear.
-            if (binned == CAMERA_BINNED)
+            if (CAMERA_FLAGS(binned) == CAMERA_BINNED)
                 new ((void *)cfg->alloc(sizeof(Pulnix::TM6740ConfigV2)))
                     Pulnix::TM6740ConfigV2(32, 32, 0x1e8, 0x1e8, false,
                                            Pulnix::TM6740ConfigV2::Eight_bit,

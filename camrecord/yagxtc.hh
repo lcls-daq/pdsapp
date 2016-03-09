@@ -19,7 +19,12 @@
 #define CAMERA_ROI     2    /* The image has a size described by :ROI_YNP and :ROI_XNP. */
 #define CAMERA_SIZE    4    /* The image has a size described by :N_OF_ROW and :N_OF_COL. */
 #define CAMERA_ADET    8    /* The image has a size described by :ArraySize0_RBV and :ArraySize1_RBV */
+#define CAMERA_FLAG_MASK    0x0000ffff
+#define CAMERA_DEPTH_MASK   0x00ff0000
+#define CAMERA_DEPTH_OFFSET 16
 
+#define CAMERA_FLAGS(b) ((b) & CAMERA_FLAG_MASK)
+#define CAMERA_DEPTH(b) (((b) & CAMERA_DEPTH_MASK) >> CAMERA_DEPTH_OFFSET)
 
 /* How many parameters does LogBook::Connection::open have? */
 #define LCPARAMS 12
