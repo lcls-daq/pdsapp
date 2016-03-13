@@ -32,7 +32,7 @@ liblibs_epixsim := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata
 liblibs_epixsim += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
 libincs_epixsim := pdsdata/include ndarray/include boost/include 
 
-tgtnames    := evgr evg pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget xtccamfix compressstat epixwriter microspin xtcwriter 
+tgtnames    := evgr evg pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget xtccamfix compressstat epixwriter microspin xtcwriter  epix100abintoxtc
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
@@ -146,6 +146,12 @@ tgtlibs_epix10kbintoxtc := pds/service pds/collection pds/xtc pds/mon pds/vmon p
 tgtlibs_epix10kbintoxtc += pdsdata/xtcdata pdsdata/compressdata pdsdata/psddl_pdsdata
 tgtslib_epix10kbintoxtc := ${USRLIBDIR}/rt
 tgtincs_epix10kbintoxtc := pdsdata/include boost/include ndarray/include
+
+tgtsrcs_epix100abintoxtc := epix100abintoxtc.cc
+tgtlibs_epix100abintoxtc := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
+tgtlibs_epix100abintoxtc += pdsdata/xtcdata pdsdata/compressdata pdsdata/psddl_pdsdata
+tgtslib_epix100abintoxtc := ${USRLIBDIR}/rt
+tgtincs_epix100abintoxtc := pdsdata/include boost/include ndarray/include
 
 tgtsrcs_netlink := netlink.cc
 tgtlibs_netlink := pds/collection pds/service pdsdata/xtcdata
