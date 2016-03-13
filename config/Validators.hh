@@ -14,14 +14,19 @@ namespace Pds_ConfigDb {
     Q_OBJECT
   public:
     IntValidator(Parameter& p, QLineEdit& l,
-		 int vlo, int vhi);
+                 int vlo, int vhi);
+    IntValidator(Parameter& p, QLineEdit& l,
+		 unsigned& vlo, unsigned& vhi);
     ~IntValidator();
   public:
     virtual void fixup(QString&) const;
+    QValidator::State validate(QString&,int&) const;
   public slots:
     void validChange();  
   private:
     Parameter& _p;
+    bool       _unsigned;
+    unsigned   _rlo, _rhi;
   };
 
   class HexValidator : public QValidator {

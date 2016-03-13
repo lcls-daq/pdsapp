@@ -8,9 +8,23 @@ using namespace Pds_ConfigDb;
 IntValidator::IntValidator(Parameter& p, QLineEdit& l,
 			   int rlo, int rhi) :
   QIntValidator(&l),
-  _p           (p)
+  _p           (p),
+  _unsigned    (false),
+  _rlo         (0),
+  _rhi         (0)
 {
   setRange(rlo,rhi);
+  connect(&l, SIGNAL(editingFinished()), this, SLOT(validChange()));
+}
+
+IntValidator::IntValidator(Parameter& p, QLineEdit& l,
+			   unsigned& rlo, unsigned& rhi) :
+  QIntValidator(&l),
+  _p           (p),
+  _unsigned    (true),
+  _rlo         (rlo),
+  _rhi         (rhi)
+{
   connect(&l, SIGNAL(editingFinished()), this, SLOT(validChange()));
 }
 
@@ -24,6 +38,20 @@ void IntValidator::fixup(QString& str) const
 void IntValidator::validChange()
 {
   _p.update();
+}
+
+QValidator::State IntValidator::validate(QString& input,
+					 int& pos) const
+{
+  if (!_unsigned)
+    return QIntValidator::validate(input,pos);
+
+  if (input.size()==0) return Intermediate;
+  bool ok;
+  unsigned v = input.toUInt(&ok, 10);
+  if (!ok) return Invalid;
+  if (v < _rlo || v > _rhi) return Invalid;
+  return Acceptable;
 }
 
 
