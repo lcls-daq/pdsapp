@@ -13,7 +13,7 @@ tgtnames += simcam
 tgtnames += ipimb lusidiag
 tgtnames += rayonix udpcam
 tgtnames += oceanoptics
-tgtnames += pvdaq
+#tgtnames += pvdaq
 
 ifneq ($(findstring i386,$(tgt_arch)),)
 tgtnames +=  acq \
