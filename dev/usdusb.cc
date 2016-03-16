@@ -2,12 +2,9 @@
 #include "pdsdata/xtc/DetInfo.hh"
 
 #include "pds/management/SegmentLevel.hh"
-#include "pds/management/EventCallback.hh"
-#include "pds/collection/Arp.hh"
+#include "pds/management/EventAppCallback.hh"
+#include "pds/management/StdSegWire.hh"
 
-#include "pds/management/SegStreams.hh"
-#include "pds/utility/SegWireSettings.hh"
-#include "pds/utility/InletWire.hh"
 #include "pds/service/Task.hh"
 #include "pds/usdusb/Manager.hh"
 #include "pds/usdusb/Server.hh"
@@ -57,120 +54,6 @@ static void close_usb(int isig)
   if (sem_unlink(nsem))
     perror("Error unlinking usb4 semaphore");
   exit(0);
-}
-
-namespace Pds {
-
-  //
-  //  This class creates the server when the streams are connected.
-  //  Real implementations will have something like this.
-  //
-  class MySegWire : public SegWireSettings {
-  public:
-    MySegWire(std::list<UsdUsb::Server*>& servers,
-              unsigned module,
-              unsigned channel,
-              const char *aliasName) :
-        _servers(servers),
-        _module   (module),
-        _channel  (channel)
-    {
-      for(std::list<UsdUsb::Server*>::iterator it=servers.begin(); it!=servers.end(); it++) {
-	_sources.push_back((*it)->client()); 
-        // only apply alias to the first server on the list
-        if (aliasName && (it==servers.begin())) {
-          SrcAlias tmpAlias((*it)->client(), aliasName);
-          _aliases.push_back(tmpAlias);
-        }
-      }
-    }
-    virtual ~MySegWire() {}
-    void connect (InletWire& wire,
-		  StreamParams::StreamType s,
-		  int interface) {
-      for(std::list<UsdUsb::Server*>::iterator it=_servers.begin(); it!=_servers.end(); it++)
-	wire.add_input(*it);
-    }
-    const std::list<Src>& sources() const { return _sources; }
-    const std::list<SrcAlias>* pAliases() const
-    {
-      return (_aliases.size() > 0) ? &_aliases : NULL;
-    }
-    bool     is_triggered   () const { return true; }
-    unsigned module         () const { return _module; }
-    unsigned channel        () const { return _channel; }
-    unsigned max_event_size () const { return 1024; }
-    unsigned max_event_depth() const { return 256; }
-  private:
-    std::list<UsdUsb::Server*>& _servers;
-    std::list<Src>              _sources;
-    std::list<SrcAlias>         _aliases;
-    unsigned                    _module;
-    unsigned                    _channel;
-  };
-
-  //
-  //  Implements the callbacks for attaching/dissolving.
-  //  Appliances can be added to the stream here.
-  //
-  class Seg : public EventCallback {
-  public:
-    Seg(Task*                     task,
-        unsigned                  platform,
-        SegWireSettings&          settings,
-        Arp*                      arp,
-        std::list<UsdUsb::Manager*>& managers) :
-      _task      (task),
-      _platform  (platform),
-      _managers  (managers)
-    {
-    }
-
-    virtual ~Seg()
-    {
-      _task->destroy();
-    }
-    
-  private:
-    // Implements EventCallback
-    void attached(SetOfStreams& streams)
-    {
-      printf("Seg connected to platform 0x%x\n",_platform);
-      
-      Stream* frmk = streams.stream(StreamParams::FrameWork);
-      for(std::list<UsdUsb::Manager*>::iterator it=_managers.begin(); it!=_managers.end(); it++)
-	(*it)->appliance().connect(frmk->inlet());
-    }
-    void failed(Reason reason)
-    {
-      static const char* reasonname[] = { "platform unavailable", 
-					  "crates unavailable", 
-					  "fcpm unavailable" };
-      printf("Seg: unable to allocate crates on platform 0x%x : %s\n", 
-	     _platform, reasonname[reason]);
-      delete this;
-    }
-    void dissolved(const Node& who)
-    {
-      const unsigned userlen = 12;
-      char username[userlen];
-      Node::user_name(who.uid(),username,userlen);
-      
-      const unsigned iplen = 64;
-      char ipname[iplen];
-      Node::ip_name(who.ip(),ipname, iplen);
-      
-      printf("Seg: platform 0x%x dissolved by user %s, pid %d, on node %s", 
-	     who.platform(), username, who.pid(), ipname);
-      
-      delete this;
-    }
-    
-  private:
-    Task*                        _task;
-    unsigned                     _platform;
-    std::list<UsdUsb::Manager*>& _managers;
-  };
 }
 
 using namespace Pds;
@@ -313,7 +196,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  std::list<UsdUsb::Server*>  servers;
+  std::list<EbServer*>        servers;
   std::list<UsdUsb::Manager*> managers;
 
   UsdUsb::Server* srv = new UsdUsb::Server(detInfo);
@@ -322,9 +205,10 @@ int main(int argc, char** argv) {
   mgr->testTimeStep(tsc);
   managers.push_back(new UsdUsb::Manager(0, *srv, *new CfgClientNfs(detInfo)));
 
+  StdSegWire settings(servers, uniqueid, 1024, 256, true, module, channel);
+
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings(servers, module, channel, uniqueid);
-  Seg* seg = new Seg(task, platform, settings, 0, managers);
+  EventAppCallback* seg = new EventAppCallback(task, platform, managers.front()->appliance());
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
   seglevel->attach();
 

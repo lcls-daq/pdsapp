@@ -13,6 +13,7 @@ tgtnames += simcam
 tgtnames += ipimb lusidiag
 tgtnames += rayonix udpcam
 tgtnames += oceanoptics
+tgtnames += pvdaq
 
 ifneq ($(findstring i386,$(tgt_arch)),)
 tgtnames +=  acq \
@@ -241,6 +242,13 @@ tgtsrcs_udpcam := udpcam.cc
 tgtlibs_udpcam := $(commonlibs) pds/udpcam
 tgtslib_udpcam := $(commonslib)
 tgtincs_udpcam := pdsdata/include ndarray/include boost/include 
+
+tgtsrcs_pvdaq := pvdaq.cc
+tgtlibs_pvdaq := $(commonlibs) pds/pvdaq
+tgtlibs_pvdaq += pds/epicstools epics/ca epics/Com
+tgtslib_pvdaq := $(commonslib)
+tgtincs_pvdaq := pdsdata/include ndarray/include boost/include 
+tgtincs_pvdaq += epics/include epics/include/os/Linux
 
 tgtsrcs_oceanoptics := oceanoptics.cc
 tgtlibs_oceanoptics := $(commonlibs) pds/oceanoptics pds/oopt
