@@ -7,6 +7,7 @@
 #include "pds/config/EpixConfigType.hh"
 #include "pds/config/EpixDataType.hh"
 
+#include <stdio.h>
 #include <iostream>
 #include <signal.h>
 #include <stdlib.h>
