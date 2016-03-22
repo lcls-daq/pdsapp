@@ -25,6 +25,7 @@
 #include "pds/config/EpixSamplerConfigType.hh"
 #include "pds/config/EpixSamplerDataType.hh"
 #include "pdsdata/psddl/cspad.ddl.h"
+#include "pdsdata/psddl/generic1d.ddl.h"
 #include "pds/config/ImpConfigType.hh"
 #include "pds/config/ImpDataType.hh"
 #include "pds/config/IpimbConfigType.hh"
@@ -45,6 +46,11 @@
 #include <math.h>
 #include <dlfcn.h>
 #include <new>
+ 
+typedef Pds::Generic1D::ConfigV0 G1DCfg;   
+typedef Pds::Generic1D::DataV0 G1DData; 
+
+using namespace Pds;
 
 static bool verbose = false;
 static int fdrop = 0;
@@ -252,7 +258,7 @@ public:
       offset = 0x1000;
       break;
     default:
-      printf("Unsupported camera %s\n",Pds::DetInfo::name(info.device()));
+      printf("Unsupported1 camera %s\n",Pds::DetInfo::name(info.device()));
       exit(1);
     }
 
@@ -621,6 +627,105 @@ private:
   Xtc*  _evttc[NBuffers];
   unsigned _ibuffer;
 };
+
+
+
+
+
+/////////////////////////////
+class SimGeneric1D : public SimApp {
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    switch(info.device()) {
+    case DetInfo::Wave8:
+      return true;
+    default:
+      break;
+    }
+    return false;
+  }
+public:
+  SimGeneric1D(const Src& src)
+  {
+	_ibuffer=0;
+  G1DCfg sample;
+  uint32_t _Channels = 16;
+  uint32_t _Length[16]= {1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000};
+  uint32_t _SampleType[16]= {G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16, G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32};
+  int32_t _Offset[16]= {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  double _Period[16]= {8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7};
+	
+int Config_Size = G1DCfg (_Channels, 0, 0, 0, 0)._sizeof();
+
+	_cfgpayload = new char[sizeof(Xtc)+Config_Size];
+	_cfgtc = new (_cfgpayload) Xtc(Pds::TypeId(Pds::TypeId::Type(G1DCfg::TypeId),G1DCfg::Version),src);
+	G1DCfg *m = new (_cfgtc->alloc(Config_Size)) G1DCfg(_Channels,_Length,_SampleType,_Offset,_Period);
+
+unsigned size_calc = 0;
+for(unsigned n=0; n<_Channels; n++){
+	if (_SampleType[n] == G1DCfg::UINT16){
+	size_calc = size_calc + _Length[n]*2;
+	}
+	if (_SampleType[n] == G1DCfg::UINT32){
+	size_calc = size_calc + _Length[n]*4;
+	}
+}
+size_calc = size_calc + 4;
+printf("VALUE OF Size: %g\n", size_calc);
+
+    G1DData data;
+    int z = NBuffers*(sizeof(Xtc)+(size_calc));
+    _evtpayload = new char[z];
+    char* p = _evtpayload;
+    for (int k=0; k<NBuffers; k++) {
+    _evttc[k] = new (p) Xtc(Pds::TypeId(Pds::TypeId::Type(G1DData::TypeId),G1DData::Version),src);
+    G1DData* dataptr = new (_evttc[k]->alloc(size_calc)) G1DData;
+	*reinterpret_cast<uint32_t*>(dataptr)= size_calc;
+	uint16_t* p16 = reinterpret_cast<uint16_t*>(dataptr)+2;
+	for(unsigned i=0; i<_Channels/2; i++) {
+           for(unsigned j=0; j<_Length[i]; j++) {
+		*p16++ = i*200+j%200+500*k;
+		}
+	}
+        uint32_t* p32 = reinterpret_cast<uint32_t*>(p16);
+	for(unsigned i=_Channels/2; i<_Channels; i++) {
+           for(unsigned j=0; j<_Length[i]; j++) {
+		*p32++ = i*200+j%200+500*k;
+		}
+	}
+        p=reinterpret_cast <char*>(p32);
+     }
+  }
+  ~SimGeneric1D()
+  {
+    delete[] _cfgpayload;
+    delete[] _evtpayload;
+  }
+private:
+  void _execute_configure() { _ibuffer=0; }
+  void _insert_configure(InDatagram* dg)
+  {
+    dg->insert(*_cfgtc,_cfgtc->payload());
+  }
+  void _insert_event(InDatagram* dg)
+  {
+    dg->insert(*_evttc[_ibuffer],_evttc[_ibuffer]->payload());
+//printf("first value %x\n", *reinterpret_cast<uint32_t*> (_evttc[_ibuffer]->payload()));
+    if (++_ibuffer == NBuffers) _ibuffer=0;
+  }
+public:
+  size_t max_size() const { return _evttc[0]->sizeofPayload(); }
+private:
+  char* _cfgpayload;
+  char* _evtpayload;
+  Xtc*  _cfgtc;
+  enum { NBuffers=16 };
+  Xtc*  _evttc[NBuffers];
+  unsigned _ibuffer;
+};
+/////////////////////////////
+
 
 
 class SimIpm : public SimApp {
@@ -1067,6 +1172,8 @@ public:
       _app = new SimCspad140k(src);
     else if (SimImp::handles(src))
       _app = new SimImp(src);
+    else if (SimGeneric1D::handles(src))
+      _app = new SimGeneric1D(src);
     else if (SimIpm::handles(src))
       _app = new SimIpm(src);
     else if (SimEpix100::handles(src))
@@ -1079,7 +1186,7 @@ public:
       _app = new SimEpixSampler(src);
     else {
       const DetInfo& printInfo = static_cast<const DetInfo&>(src);
-      fprintf(stderr,"Unsupported camera %s\n",Pds::DetInfo::name(printInfo.device()));
+      fprintf(stderr,"Unsupported2 camera %s\n",Pds::DetInfo::name(printInfo.device()));
       exit(1);
     }
 
