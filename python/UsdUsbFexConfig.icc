@@ -1,0 +1,151 @@
+static PyObject* pds_UsdUsbFexConfig_get      (PyObject*   self, PyObject* args);
+static PyObject* pds_UsdUsbFexConfig_set      (PyObject*   self, PyObject* args);
+
+static PyMethodDef pds_UsdUsbFexConfig_methods[] = {
+  {"get"        , (PyCFunction)pds_UsdUsbFexConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"set"        , (PyCFunction)pds_UsdUsbFexConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {NULL},
+};
+
+DefineXtcType(UsdUsbFexConfig)
+
+
+#include "pdsdata/psddl/usdusb.ddl.h"
+#include <new>
+
+
+//  Return a dictionary of configuration data
+#define SetDictMember(name,isFloat)                   \
+  { PyObject* v = NULL;                               \
+    if (isFloat)                                      \
+      v = PyFloat_FromDouble(cfg->name()[chan]);      \
+    else                                              \
+      v = PyLong_FromLong((signed)cfg->name()[chan]); \
+    if (v) {                                          \
+      PyDict_SetItemString(o,#name,v);                \
+      Py_DECREF(v);                                   \
+    }                                                 \
+  }
+
+#define SetDictString(name)                             \
+  { PyObject* s = PyString_FromString(cfg->name(chan)); \
+    PyDict_SetItemString(o,#name,s);                    \
+    Py_DECREF(s); }
+
+#define SetDictChannel(name,chan)             \
+  { PyObject* dict = set_channel(cfg,chan);   \
+    PyDict_SetItemString(o,#name#chan,dict);  \
+    Py_DECREF(dict); }
+
+static PyObject* set_channel(const Pds::UsdUsb::FexConfigV1* cfg, unsigned chan)
+{
+  PyObject* o = PyDict_New();
+
+  SetDictString(name);
+  SetDictMember(offset,false);
+  SetDictMember(scale,true);
+
+  return o;
+}
+
+PyObject* pds_UsdUsbFexConfig_get  (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+    const Pds::UsdUsb::FexConfigV1* cfg =
+      reinterpret_cast<const Pds::UsdUsb::FexConfigV1*>(xtc->payload);
+
+    SetDictChannel(chan,0);
+    SetDictChannel(chan,1);
+    SetDictChannel(chan,2);
+    SetDictChannel(chan,3);
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported UsdUsbFexConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+#undef SetDictMember
+#undef SetDictString
+#undef SetDictChannel
+
+//  Retrieve configuration data from a Python Dictionary
+#define GetDictLong(name,chan)                                \
+  { PyObject* i = PyDict_GetItemString(c,#name);              \
+    if (i) {                                                  \
+      if (PyLong_Check(i)) name[chan] = PyLong_AsLong(i);     \
+      else if (PyInt_Check(i)) name[chan] = PyInt_AsLong(i);  \
+      else name[chan] = cfg->name()[chan];                    \
+    }                                                         \
+    else name[chan] = cfg->name()[chan]; }
+
+#define GetDictFloat(name,chan)                                   \
+  { PyObject* i = PyDict_GetItemString(c,#name);                  \
+    if (i) {                                                      \
+      if (PyFloat_Check(i) || PyLong_Check(i) || PyInt_Check(i))  \
+        name[chan] = PyFloat_AsDouble(i);                         \
+      else name[chan] = cfg->name()[chan];                        \
+    }                                                             \
+    else name[chan] = cfg->name()[chan]; }
+
+#define GetDictString(name,chan,len)                \
+  { PyObject* i = PyDict_GetItemString(c,#name);    \
+    if (i && PyString_Check(i)) {                   \
+      strncpy(name[chan],PyString_AsString(i),len); \
+    }                                               \
+    else {                                          \
+      strncpy(name[chan],cfg->name(chan),len);      \
+    }                                               \
+  }
+
+PyObject* pds_UsdUsbFexConfig_set  (PyObject*   self, PyObject* args)
+{
+  PyObject* o = 0;
+  if (PyArg_ParseTuple(args,"O",&o)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==1) {
+    const Pds::UsdUsb::FexConfigV1* cfg =
+      reinterpret_cast<const Pds::UsdUsb::FexConfigV1*>(xtc->payload);
+
+    unsigned NCHANNELS = Pds::UsdUsb::FexConfigV1::NCHANNELS;
+    unsigned NAME_CHAR_MAX =  Pds::UsdUsb::FexConfigV1::NAME_CHAR_MAX;
+    int32_t offset[NCHANNELS];
+    double  scale [NCHANNELS];
+    char    name  [NCHANNELS][NAME_CHAR_MAX];
+
+    for (unsigned index=0;index<NCHANNELS;index++) {
+      char chan_name[32];
+      sprintf(chan_name,"chan%d",index);
+      PyObject* c = PyDict_GetItemString(o,chan_name);
+      if(c && PyDict_Check(c)) {
+        GetDictLong(offset,index);
+        GetDictFloat(scale,index);
+        GetDictString(name,index,NAME_CHAR_MAX);
+      } else {
+        offset[index] = cfg->offset()[index];
+        scale [index] = cfg->scale()[index];
+        strncpy(name[index],cfg->name(index),NAME_CHAR_MAX);
+      }
+    }
+
+    new(xtc->payload) Pds::UsdUsb::FexConfigV1((int32_t*) offset,
+                                               (double*) scale,
+                                               (char*) name);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else {
+    printf("set(): Unsupported UsdUsbConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+#undef GetDictLong
+#undef GetDictFloat
+#undef GetDictString

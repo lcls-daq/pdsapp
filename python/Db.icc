@@ -157,6 +157,9 @@ static PyObject* _new_xtc(Pds::TypeId& contains)
           case Pds::TypeId::Id_TimeToolConfig:
             o = _PyObject_New(&pds_TimeToolConfig_type);
             break;
+          case Pds::TypeId::Id_UsdUsbFexConfig:
+            o = _PyObject_New(&pds_UsdUsbFexConfig_type);
+            break;
           default:
             o = _PyObject_New(&pds_Xtc_type);
             break;

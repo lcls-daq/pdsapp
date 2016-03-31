@@ -29,6 +29,7 @@
 #include "pdsapp/python/RayonixConfig.icc"
 #include "pdsapp/python/AcqirisConfig.icc"
 #include "pdsapp/python/TimeToolConfig.icc"
+#include "pdsapp/python/UsdUsbFexConfig.icc"
 #include "pdsapp/python/Db.icc"
 #include "pdsapp/python/pycdbHelp.icc"
 
@@ -106,6 +107,9 @@ initpycdb(void)
   if (PyType_Ready(&pds_TimeToolConfig_type) < 0)
     return;
 
+  if (PyType_Ready(&pds_UsdUsbFexConfig_type) < 0)
+    return;
+
   PyObject *m = Py_InitModule("pycdb", PycdbMethods);
   if (m == NULL)
     return;
@@ -166,4 +170,7 @@ initpycdb(void)
 
   Py_INCREF(&pds_TimeToolConfig_type);
   PyModule_AddObject(m, "TimeToolConfig", (PyObject*)&pds_TimeToolConfig_type);
+
+  Py_INCREF(&pds_UsdUsbFexConfig_type);
+  PyModule_AddObject(m, "UsdUsbFexConfig", (PyObject*)&pds_UsdUsbFexConfig_type);
 }
