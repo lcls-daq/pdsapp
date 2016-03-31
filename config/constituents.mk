@@ -102,6 +102,7 @@ libsrcs_configdbg += DiodeFexConfig.cc DiodeFexConfig_V1.cc
 libsrcs_configdbg += PimImageConfig.cc
 libsrcs_configdbg += EncoderConfig.cc EncoderConfig_V1.cc
 libsrcs_configdbg += UsdUsbConfig.cc
+libsrcs_configdbg += UsdUsbFexConfig.cc
 libsrcs_configdbg += Gsc16aiConfig.cc
 libsrcs_configdbg += TimepixConfig.cc TimepixConfig_V2.cc
 libsrcs_configdbg += RayonixConfig.cc RayonixConfig_V1.cc

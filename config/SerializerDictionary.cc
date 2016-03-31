@@ -28,6 +28,7 @@
 #include "pdsapp/config/EncoderConfig.hh"
 #include "pdsapp/config/EncoderConfig_V1.hh"
 #include "pdsapp/config/UsdUsbConfig.hh"
+#include "pdsapp/config/UsdUsbFexConfig.hh"
 #include "pdsapp/config/Opal1kConfig.hh"
 #include "pdsapp/config/QuartzConfig.hh"
 #include "pdsapp/config/QuartzConfig_V1.hh"
@@ -79,6 +80,7 @@
 #include "pds/config/PimImageConfigType.hh"
 #include "pds/config/EncoderConfigType.hh"
 #include "pds/config/UsdUsbConfigType.hh"
+#include "pds/config/UsdUsbFexConfigType.hh"
 #include "pds/config/Opal1kConfigType.hh"
 #include "pds/config/QuartzConfigType.hh"
 #include "pds/config/OrcaConfigType.hh"
@@ -131,6 +133,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
 #define enroll(_type, v) { if (type.value()==_type.value()) return v; }
   enroll(_encoderConfigType     ,new EncoderConfig);
   enroll(_usdusbConfigType      ,new UsdUsbConfig);
+  enroll(_usdusbFexConfigType   ,new UsdUsbFexConfig);
   enroll(_acqConfigType         ,new AcqConfig);
   enroll(_acqTdcConfigType      ,new AcqTdcConfig);
   enroll(_evsConfigType         ,new EvsConfig);

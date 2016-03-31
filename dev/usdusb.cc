@@ -8,6 +8,7 @@
 #include "pds/service/Task.hh"
 #include "pds/usdusb/Manager.hh"
 #include "pds/usdusb/Server.hh"
+#include "pds/usdusb/Fex.hh"
 #include "pds/config/CfgClientNfs.hh"
 #include "usdusb4/include/libusdusb4.h"
 
@@ -199,11 +200,14 @@ int main(int argc, char** argv) {
   std::list<EbServer*>        servers;
   std::list<UsdUsb::Manager*> managers;
 
+  CfgClientNfs* cfg = new CfgClientNfs(detInfo);
+
+  UsdUsb::Fex* fex = new UsdUsb::Fex(*cfg);
   UsdUsb::Server* srv = new UsdUsb::Server(detInfo);
   servers   .push_back(srv);
-  UsdUsb::Manager* mgr = new UsdUsb::Manager(0, *srv, *new CfgClientNfs(detInfo));
+  UsdUsb::Manager* mgr = new UsdUsb::Manager(0, *srv, *cfg, *fex);
   mgr->testTimeStep(tsc);
-  managers.push_back(new UsdUsb::Manager(0, *srv, *new CfgClientNfs(detInfo)));
+  managers.push_back(mgr);
 
   StdSegWire settings(servers, uniqueid, 1024, 256, true, module, channel);
 
