@@ -13,6 +13,7 @@ tgtnames += simcam
 tgtnames += ipimb lusidiag
 tgtnames += rayonix udpcam
 tgtnames += oceanoptics
+tgtnames += lecroy
 tgtnames += pvdaq
 
 ifneq ($(findstring i386,$(tgt_arch)),)
@@ -133,6 +134,13 @@ tgtincs_usdusb := usdusb4/include libusb/include/libusb-1.0
 tgtincs_usdusb += pdsdata/include ndarray/include boost/include 
 tgtlibs_usdusb := $(commonlibs) pds/usdusb usdusb4/usdusb4 libusb/usb-1.0
 tgtslib_usdusb := $(commonslib) 
+
+tgtsrcs_lecroy := lecroy.cc
+tgtincs_lecroy := pdsdata/include ndarray/include boost/include
+tgtincs_lecroy += epics/include epics/include/os/Linux
+tgtlibs_lecroy := $(commonlibs) pds/lecroy
+tgtlibs_lecroy += pds/epicstools epics/ca epics/Com
+tgtslib_lecroy := $(commonslib)
 
 tgtsrcs_evr := evr.cc
 tgtincs_evr := evgr pdsdata/include ndarray/include boost/include  
