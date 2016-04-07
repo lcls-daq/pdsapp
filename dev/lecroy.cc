@@ -32,12 +32,15 @@ namespace Pds {
                 bool isTriggered,
                 unsigned module,
                 unsigned channel,
-                const char *aliasName) :
+                const char *aliasName,
+                const unsigned max_length) :
         _server(server),
         _isTriggered(isTriggered),
         _module(module),
-        _channel(channel)
+        _channel(channel),
+        _max_size(0x100)
       {
+        _max_size += LeCroy::Server::NCHANNELS*max_length*8;
         _sources.push_back(src);
         if (aliasName)
         {
@@ -57,7 +60,7 @@ namespace Pds {
       bool     is_triggered   () const { return _isTriggered; }
       unsigned module         () const { return _module; }
       unsigned channel        () const { return _channel; }
-      unsigned max_event_size () const { return 4*8*81920; }
+      unsigned max_event_size () const { return _max_size; }
       unsigned max_event_depth() const { return 32; }
     private:
       LeCroy::Server*     _server;
@@ -66,6 +69,7 @@ namespace Pds {
       bool                _isTriggered;
       unsigned            _module;
       unsigned            _channel;
+      unsigned            _max_size;
   };
 
   //
@@ -129,7 +133,7 @@ using namespace Pds;
 
 static void usage(const char* p) {
   printf("Usage: %s [-h|--help] [-u|--uniqueid <alias>] -i|--id <detinfo> -p|--platform <platform>[,<mod>,<chan>] "
-         "-b|--base <pvbase>\n"
+         "-b|--base <pvbase> [-m|--max <max_length>] [-w|--wait <0/1>]\n"
          "\n"
          "Options:\n"
          "    -h|--help                                   Show usage.\n"
@@ -137,12 +141,14 @@ static void usage(const char* p) {
          "                                                  (e.g. XppEndStation/0/USDUSB/1 or 22/0/26/1)\n"
          "    -p|--platform   <platform>[,<mod>,<chan>]   Set platform id [*required*], EVR module, EVR channel\n"
          "    -u|--uniqueid   <alias>                     Set device alias.\n"
-         "    -b|--base       <pvbase>                    Set base string of PV name\n", p);
+         "    -b|--base       <pvbase>                    Set base string of PV name\n"
+         "    -m|--max        <max_length>                Set max length of scope traces (default: 100000)\n"
+         "    -w|--wait       <0/1>                       Set slow readout mode (default: 1)\n", p);
 }
 
 int main(int argc, char** argv) {
 
-  const char*   strOptions    = ":hp:i:u:b:";
+  const char*   strOptions    = ":hp:i:u:b:m:w:";
   const struct option loOptions[]   =
     {
        {"help",        0, 0, 'h'},
@@ -150,6 +156,8 @@ int main(int argc, char** argv) {
        {"id",          1, 0, 'i'},
        {"uniqueid",    1, 0, 'u'},
        {"base",        1, 0, 'b'},
+       {"max",         1, 0, 'm'},
+       {"wait",        1, 0, 'w'},
        {0,             0, 0,  0 }
     };
 
@@ -158,6 +166,8 @@ int main(int argc, char** argv) {
   unsigned platform = no_entry;
   unsigned module = 0;
   unsigned channel = 0;
+  unsigned max_length = 100000;
+  int slowReadout = 1;
   bool lUsage = false;
   bool isTriggered = false;
   Pds::Node node(Level::Source,platform);
@@ -204,6 +214,21 @@ int main(int argc, char** argv) {
       case 'b':
         pvPrefix = optarg;
         break;
+      case 'm':
+        if (!CmdLineTools::parseUInt(optarg,max_length)) {
+          printf("%s: option `-m' parsing error\n", argv[0]);
+          lUsage = true;
+        }
+        break;
+      case 'w':
+        if (!CmdLineTools::parseInt(optarg,slowReadout)) {
+          printf("%s: option `-w' parsing error\n", argv[0]);
+          lUsage = true;
+        } else if ((slowReadout != 0) && (slowReadout != 1)) {
+          printf("%s: option `-w' out of range\n", argv[0]);
+          lUsage = true;
+        }
+        break;
       case '?':
         if (optopt)
           printf("%s: Unknown option: %c\n", argv[0], optopt);
@@ -242,16 +267,23 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  if(slowReadout==0) {
+    printf("Setting normal readout mode for lecroy process!\n");
+  } else {
+    printf("Setting slow readout mode for lecroy process.\n");
+  }
+  printf("Max number of elements per trace is set to %d.\n", max_length);
+
   //  EPICS thread initialization
   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), "lecroy calling ca_context_create");
 
-  LeCroy::Server*   srv = new LeCroy::Server(pvPrefix, detInfo);
+  LeCroy::Server*   srv = new LeCroy::Server(pvPrefix, detInfo, max_length);
   LeCroy::Manager*  mgr = new LeCroy::Manager(*srv);
 
   Task* task = new Task(Task::MakeThisATask);
-  MySegWire settings(srv, detInfo, isTriggered, module, channel, uniqueid);
+  MySegWire settings(srv, detInfo, isTriggered, module, channel, uniqueid, max_length);
   Seg* seg = new Seg(task, platform, settings, mgr);
-  SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0, 1);
+  SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0, slowReadout);
   seglevel->attach();
 
   task->mainLoop();
