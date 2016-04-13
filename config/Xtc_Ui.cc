@@ -41,8 +41,8 @@ static QString sname(const Pds::Src& src)
   case Pds::Level::Event:
     { unsigned ip = static_cast<const Pds::ProcInfo&>(src).ipAddr();
       r = QString("Event-%1.%2.%3.%4")
-	.arg((ip>>24)&0xff).arg((ip>>16)&0xff)
-	.arg((ip>> 8)&0xff).arg((ip>> 0)&0xff);
+        .arg((ip>>24)&0xff).arg((ip>>16)&0xff)
+        .arg((ip>> 8)&0xff).arg((ip>> 0)&0xff);
     } break;
   case Pds::Level::Reporter:
     r = QString(Pds::BldInfo::name(static_cast<const Pds::BldInfo&>(src)));
@@ -76,7 +76,7 @@ namespace Pds_ConfigDb {
 
   class ComponentIterator : public Pds::XtcIterator {
   public:
-    ComponentIterator(QListWidget& list,QString name) : 
+    ComponentIterator(QListWidget& list,QString name) :
       _list(list), _name(name) {}
     ~ComponentIterator() {}
   public:
@@ -87,12 +87,12 @@ namespace Pds_ConfigDb {
         QString name = sname(xtc->src);
         if (name == _name) {
           UTypeName          u = PdsDefs::utypeName(xtc->contains);
-	  if (GlobalCfg::instance().contains(u)) {
-	    GlobalCfg::instance().flush(u);
-	    char* p = new char[xtc->sizeofPayload()];
-	    memcpy(p, xtc->payload(), xtc->sizeofPayload());
-	    GlobalCfg::instance().cache(u,p);
-	  }
+          if (GlobalCfg::instance().contains(u)) {
+            GlobalCfg::instance().flush(u);
+            char* p = new char[xtc->sizeofPayload()];
+            memcpy(p, xtc->payload(), xtc->sizeofPayload());
+            GlobalCfg::instance().cache(u,p);
+          }
           if (PdsDefs::typeId(u)) {
             QTypeName          q = PdsDefs::qtypeName(u);
             const Pds::TypeId* t = PdsDefs::typeId(q);
@@ -136,7 +136,7 @@ namespace Pds_ConfigDb {
         iterate(xtc);
       else if (_cmp==QString(PdsDefs::utypeName(xtc->contains).c_str()) &&
                _dev==sname(xtc->src)) {
-	Parameter::allowEdit(false);
+        Parameter::allowEdit(false);
         Dialog* d = new Dialog(_ui, _ui->lookup(xtc->contains), "xtc", xtc->payload(), xtc->sizeofPayload());
         d->exec();
         _found = true;
@@ -159,7 +159,7 @@ static void _copy_to_buffer(const Dgram* dg,
   if (buffer) delete[] buffer;
   int size = sizeof(*dg)+dg->xtc.sizeofPayload();
   buffer = new char[size];
-  memcpy(buffer, (char*)dg, size); 
+  memcpy(buffer, (char*)dg, size);
 }
 
 using namespace Pds_ConfigDb;
@@ -222,7 +222,7 @@ void Xtc_Ui::set_file(QString fname)
 
   Pds::XtcFileIterator& iter = *_fiter;
   Pds::Dgram* dg;
-  
+
   while((dg = iter.next())) {
     if (dg->seq.service()==Pds::TransitionId::Configure) {
       char* buffer=0;
@@ -243,7 +243,7 @@ void Xtc_Ui::set_file(QString fname)
       break;
     }
   }
-  
+
   const Pds::ClockTime& time = reinterpret_cast<const Pds::Dgram*>(_cfgdg_buffer)->seq.clock();
   QDateTime datime; datime.setTime_t(time.seconds());
   QString info = QString("%1.%2")
@@ -265,8 +265,8 @@ void Xtc_Ui::next_cycle()
       if (dg->seq.service()==Pds::TransitionId::BeginCalibCycle) {
         char* buffer = 0;
         _copy_to_buffer(dg, buffer);
-	_cycle.push_back(buffer);
-	if (icycle<int(_cycle.size())) break;
+        _cycle.push_back(buffer);
+        if (icycle<int(_cycle.size())) break;
       }
     }
   }
@@ -316,7 +316,7 @@ void Xtc_Ui::update_component_list()
     if (_cfgdg_buffer) {
       iter.iterate(&reinterpret_cast<Pds::Dgram*>(_cfgdg_buffer)->xtc);
       if (_l1adg_buffer)
-	iter.iterate(&reinterpret_cast<Pds::Dgram*>(_l1adg_buffer)->xtc);
+        iter.iterate(&reinterpret_cast<Pds::Dgram*>(_l1adg_buffer)->xtc);
     }
   }
 
@@ -326,8 +326,8 @@ void Xtc_Ui::update_component_list()
 //  View component
 void Xtc_Ui::change_component()
 {
-  ConfigIterator iter(this, 
-                      _devlist->currentItem()->text(), 
+  ConfigIterator iter(this,
+                      _devlist->currentItem()->text(),
                       _cmplist->currentItem()->text());
   if (_l1adg_buffer)
     iter.iterate(&reinterpret_cast<Pds::Dgram*>(_l1adg_buffer)->xtc);
@@ -336,6 +336,6 @@ void Xtc_Ui::change_component()
 }
 
 Serializer& Xtc_Ui::lookup(const Pds::TypeId& stype)
-{ 
+{
   return *_dict .lookup(stype);
-}    
+}

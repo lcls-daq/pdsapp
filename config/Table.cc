@@ -19,12 +19,12 @@ using namespace Pds_ConfigDb;
 const int line_size=128;
 
 //===============
-//  FileEntry 
+//  FileEntry
 //===============
 
 FileEntry::FileEntry() {}
 
-FileEntry::FileEntry(istream& i) 
+FileEntry::FileEntry(istream& i)
 {
   i >> _name >> _entry;
 }
@@ -53,7 +53,7 @@ string FileEntry::name() const
 }
 
 //===============
-//  TableEntry 
+//  TableEntry
 //===============
 
 TableEntry::TableEntry() : _name("None"), _key("Unassigned"), _changed(false) {}
@@ -61,12 +61,12 @@ TableEntry::TableEntry() : _name("None"), _key("Unassigned"), _changed(false) {}
 TableEntry::TableEntry(const string& name) : _name(name), _key("Unassigned"), _changed(false) {}
 
 TableEntry::TableEntry(const string& name, const string& key,
-		       const FileEntry& entry) :
+                       const FileEntry& entry) :
   _name(name), _key(key), _changed(false)
 { _entries.push_back(entry); }
 
 TableEntry::TableEntry(const string& name, const string& key,
-		       const list<FileEntry>& entries) :
+                       const list<FileEntry>& entries) :
   _name(name), _key(key), _entries(entries), _changed(false)
 {}
 
@@ -87,7 +87,7 @@ void TableEntry::remove(const FileEntry& e)
   _entries.remove(o);
 }
 
-void TableEntry::update(unsigned key) 
+void TableEntry::update(unsigned key)
 {
   ostringstream o;
   o << hex << setw(8) << setfill('0') << key;
@@ -98,7 +98,7 @@ void TableEntry::update(unsigned key)
 bool TableEntry::updated() const { return _changed; }
 
 //===============
-//  Table 
+//  Table
 //===============
 
 Table::Table() : _next_key(0)
@@ -111,7 +111,7 @@ void Table::dump(const string& path) const
   for(list<TableEntry>::const_iterator iter=_entries.begin(); iter!=_entries.end(); iter++) {
     printf("%s\t%s\n",iter->name().c_str(),iter->key().c_str());
     for(list<FileEntry>::const_iterator fiter=iter->entries().begin();
-	fiter!=iter->entries().end(); fiter++)
+        fiter!=iter->entries().end(); fiter++)
       printf("[%s,%s]\t",fiter->name().c_str(),fiter->entry().c_str());
     printf("\n");
   }
@@ -158,7 +158,7 @@ void Table::copy_top_entry(const string& dst, const string& src)
 {
   for(list<TableEntry>::iterator iter=_entries.begin(); iter!=_entries.end(); iter++)
     if (iter->name()==src) {
-      _entries.push_back(TableEntry(dst,"Unassigned",iter->entries())); 
+      _entries.push_back(TableEntry(dst,"Unassigned",iter->entries()));
       break;
     }
 }

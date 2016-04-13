@@ -33,7 +33,7 @@ using namespace Pds_ConfigDb;
 enum { EditMode, RestoreMode };
 
 Reconfig_Ui::Reconfig_Ui(QWidget* parent,
-			 Experiment& expt) :
+                         Experiment& expt) :
   QDialog(parent),
   _expt    (expt),
   _entry   (0),
@@ -127,8 +127,8 @@ void Reconfig_Ui::enable(bool v)
   }
 }
 
-Device* Reconfig_Ui::_device() const 
-{ 
+Device* Reconfig_Ui::_device() const
+{
   QListWidgetItem* item = _devlist->currentItem();
   string s(qPrintable(item->text()));
   size_t alias_ext = s.find('[');
@@ -142,9 +142,9 @@ const TableEntry* Reconfig_Ui::_device_entry() const
   Device* device = _device();
   if (device) {
     for(list<FileEntry>::const_iterator iter=_entry->entries().begin();
-	iter!=_entry->entries().end(); iter++)
+        iter!=_entry->entries().end(); iter++)
       if (iter->name() == device->name())
-	return device->table().get_top_entry(iter->entry());
+        return device->table().get_top_entry(iter->entry());
   }
   return 0;
 }
@@ -172,40 +172,48 @@ void Reconfig_Ui::update_device_list()
     const AliasConfigType* alias     = (const AliasConfigType*)GlobalCfg::instance().fetch(_aliasConfigType);
     const PartitionConfigType* partn = (const PartitionConfigType*)GlobalCfg::instance().fetch(_partitionConfigType);
     for(list<FileEntry>::const_iterator iter=_entry->entries().begin();
-	iter!=_entry->entries().end(); iter++) { 
+        iter!=_entry->entries().end(); iter++) {
+      //
+      //  Do we have a dialog for any of its components
+      //
+      if (!_has_dialog(*iter))
+        continue;
+      //
+      //  Append alias names to list entry
+      //
       QString name = QString(iter->name().c_str());
       if (alias && partn) {
-	const std::list<DeviceEntry>& sources = _expt.device(iter->name())->src_list();
-	ndarray<const Pds::Alias::SrcAlias,1> aliases = alias->srcAlias();
-	std::list<std::string> names;
-	for(std::list<DeviceEntry>::const_iterator it=sources.begin(); 
-	    it!=sources.end(); it++) {
-	  const Pds::DetInfo* info = 0;
-	  for(unsigned j=0; j<partn->numSources(); j++)
-	    if (DeviceEntry(partn->sources()[j].src().phy())==*it) {
-	      info = &static_cast<const Pds::DetInfo&>(partn->sources()[j].src());
-	      break;
-	    }
-	  if (info) {
-	    bool lalias=false;
-	    for(unsigned j=0; j<aliases.size(); j++)
-	      if (DeviceEntry(aliases[j].src().phy())==*it) {
-		names.push_back(aliases[j].aliasName());
-		lalias=true;
-		break;
-	      }
-	    if (!lalias)
-	      names.push_back(Pds::DetInfo::name(*info));
-	  }
-	}
-	names.sort();
-	names.unique();
-	if (names.size()) {
-	  name += " [ ";
-	  for(std::list<std::string>::const_iterator it=names.begin(); it!=names.end(); it++)
-	    name += QString("%1 ").arg(it->c_str());
-	  name += "]";
-	}
+        const std::list<DeviceEntry>& sources = _expt.device(iter->name())->src_list();
+        ndarray<const Pds::Alias::SrcAlias,1> aliases = alias->srcAlias();
+        std::list<std::string> names;
+        for(std::list<DeviceEntry>::const_iterator it=sources.begin();
+            it!=sources.end(); it++) {
+          const Pds::DetInfo* info = 0;
+          for(unsigned j=0; j<partn->numSources(); j++)
+            if (DeviceEntry(partn->sources()[j].src().phy())==*it) {
+              info = &static_cast<const Pds::DetInfo&>(partn->sources()[j].src());
+              break;
+            }
+          if (info) {
+            bool lalias=false;
+            for(unsigned j=0; j<aliases.size(); j++)
+              if (DeviceEntry(aliases[j].src().phy())==*it) {
+                names.push_back(aliases[j].aliasName());
+                lalias=true;
+                break;
+              }
+            if (!lalias)
+              names.push_back(Pds::DetInfo::name(*info));
+          }
+        }
+        names.sort();
+        names.unique();
+        if (names.size()) {
+          name += " [ ";
+          for(std::list<std::string>::const_iterator it=names.begin(); it!=names.end(); it++)
+            name += QString("%1 ").arg(it->c_str());
+          name += "]";
+        }
       }
       *new QListWidgetItem(name,_devlist);
     }
@@ -224,14 +232,14 @@ void Reconfig_Ui::update_component_list()
     const TableEntry* entry = _device_entry();
     if (entry)
       for(list<FileEntry>::const_iterator iter=entry->entries().begin();
-	  iter!=entry->entries().end(); iter++)
-	*new QListWidgetItem(QString(iter->name().c_str()),_cmplist);
+          iter!=entry->entries().end(); iter++)
+        *new QListWidgetItem(QString(iter->name().c_str()),_cmplist);
     //  List global entries here
     if ((entry = _device()->table().get_top_entry(string(GlobalCfg::instance().name())))) {
       GlobalCfg::instance().cache(_expt.path(),_device());
       for(list<FileEntry>::const_iterator iter=entry->entries().begin();
-	  iter!=entry->entries().end(); iter++)
-	*new QListWidgetItem(QString(iter->name().c_str()),_cmplist);
+          iter!=entry->entries().end(); iter++)
+        *new QListWidgetItem(QString(iter->name().c_str()),_cmplist);
     }
   }
 
@@ -256,74 +264,85 @@ void Reconfig_Ui::change_component()
   }
   if (entry) {
     for(list<FileEntry>::const_iterator iter=entry->entries().begin();
-	iter!=entry->entries().end(); iter++)
+        iter!=entry->entries().end(); iter++)
       if (iter->name()==t) {
-	qchoice = iter->entry().c_str();
+        qchoice = iter->entry().c_str();
 
-	if (_modeG->checkedId()==EditMode) {
+        if (_modeG->checkedId()==EditMode) {
 
-	  XtcEntry x;
-	  x.type_id = *PdsDefs::typeId(stype);
-	  x.name    = iter->entry();
-	  
-	  db.begin();
-	  if ((payload_sz = db.getXTC(x))<=0)
-	    db.abort();
-	  else {
-	    db.commit();
+          XtcEntry x;
+          x.type_id = *PdsDefs::typeId(stype);
+          x.name    = iter->entry();
 
-	    payload = new char[payload_sz];
-	    db.begin();
-	    db.getXTC(x,payload,payload_sz);
-	    db.commit();
+          db.begin();
+          if ((payload_sz = db.getXTC(x))<=0)
+            db.abort();
+          else {
+            db.commit();
 
-	    //  edit the contents of the file	
-	    Parameter::allowEdit(true);
-      Serializer* s = lookup(stype);
-      if (s) {
-	    Dialog* d = new Dialog(this, *s, qchoice,
-				   payload, payload_sz, true);
-	    if (d->exec()==QDialog::Accepted) {
-          
-	      x.name = qPrintable(d->name());
-	      db.begin();
-	      db.setXTC(x, d->payload(), d->payload_size());
-	      db.commit();
-          
-	      if (GlobalCfg::instance().contains(stype)) {
-		char* b = new char[d->payload_size()];
-		memcpy(b, d->payload(), d->payload_size());
-		GlobalCfg::instance().cache(stype,b);
-	      }
-	    }
-	    delete d;
-      }
-	    delete[] payload;
-	  }
-	}
-	else { // RestoreMode
-	  Restore_Ui* d = new Restore_Ui(this, db, 
-					 *_device(), 
-					 *PdsDefs::typeId(stype), 
-					 iter->entry());
-	  d->exec();
-	  delete d;
-	}
-	break;
+            payload = new char[payload_sz];
+            db.begin();
+            db.getXTC(x,payload,payload_sz);
+            db.commit();
+
+            //  edit the contents of the file
+            Parameter::allowEdit(true);
+            Dialog* d = new Dialog(this, *lookup(stype), qchoice,
+                                   payload, payload_sz, true);
+            if (d->exec()==QDialog::Accepted) {
+
+              x.name = qPrintable(d->name());
+              db.begin();
+              db.setXTC(x, d->payload(), d->payload_size());
+              db.commit();
+
+              if (GlobalCfg::instance().contains(stype)) {
+                char* b = new char[d->payload_size()];
+                memcpy(b, d->payload(), d->payload_size());
+                GlobalCfg::instance().cache(stype,b);
+              }
+            }
+            delete d;
+            delete[] payload;
+          }
+        }
+        else { // RestoreMode
+          Restore_Ui* d = new Restore_Ui(this, db,
+                                         *_device(),
+                                         *PdsDefs::typeId(stype),
+                                         iter->entry());
+          d->exec();
+          delete d;
+        }
+        break;
       }
   }
   if (qchoice.isEmpty())
     printf("Error looking up %s\n", t.c_str());
 }
 
-void Reconfig_Ui::expert_mode() { _expert_mode=true; }
-void Reconfig_Ui::user_mode  () { _expert_mode=false; }
+void Reconfig_Ui::expert_mode() { _expert_mode=true ; update_device_list(); }
+void Reconfig_Ui::user_mode  () { _expert_mode=false; update_device_list(); }
 
 Serializer* Reconfig_Ui::lookup(const UTypeName& stype)
-{ 
-  Serializer* s = _expert_mode ? 
+{
+  Serializer* s = _expert_mode ?
     _xdict.lookup(*PdsDefs::typeId(stype)) :
     _dict .lookup(*PdsDefs::typeId(stype));
   //  s.setPath(_expt.path());
   return s;
-}    
+}
+
+bool Reconfig_Ui::_has_dialog(const FileEntry& e)
+{
+  Device* device = _expt.device(e.name());
+  const TableEntry* entry = device->table().get_top_entry(e.entry());
+  if (entry)
+    for(list<FileEntry>::const_iterator iter=entry->entries().begin();
+        iter!=entry->entries().end(); iter++) {
+      UTypeName stype(iter->name());
+      if (lookup(stype)) return true;
+    }
+  return false;
+}
+

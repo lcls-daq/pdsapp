@@ -21,6 +21,7 @@ namespace Pds_ConfigDb {
   class Experiment;
   class Serializer;
   class TableEntry;
+  class FileEntry;
   class UTypeName;
 
   class Reconfig_Ui : public QDialog, public Pds::Routine {
@@ -44,6 +45,7 @@ namespace Pds_ConfigDb {
     Device* _device() const;
     const TableEntry* _device_entry() const;
     Serializer* lookup(const UTypeName&);
+    bool _has_dialog(const FileEntry&);
   signals:
     void changed();
     void gchanged();
