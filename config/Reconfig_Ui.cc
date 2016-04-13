@@ -279,7 +279,9 @@ void Reconfig_Ui::change_component()
 
 	    //  edit the contents of the file	
 	    Parameter::allowEdit(true);
-	    Dialog* d = new Dialog(this, lookup(stype), qchoice,
+      Serializer* s = lookup(stype);
+      if (s) {
+	    Dialog* d = new Dialog(this, *s, qchoice,
 				   payload, payload_sz, true);
 	    if (d->exec()==QDialog::Accepted) {
           
@@ -295,6 +297,7 @@ void Reconfig_Ui::change_component()
 	      }
 	    }
 	    delete d;
+      }
 	    delete[] payload;
 	  }
 	}
@@ -316,11 +319,11 @@ void Reconfig_Ui::change_component()
 void Reconfig_Ui::expert_mode() { _expert_mode=true; }
 void Reconfig_Ui::user_mode  () { _expert_mode=false; }
 
-Serializer& Reconfig_Ui::lookup(const UTypeName& stype)
+Serializer* Reconfig_Ui::lookup(const UTypeName& stype)
 { 
-  Serializer& s = _expert_mode ? 
-    *_xdict.lookup(*PdsDefs::typeId(stype)) :
-    *_dict .lookup(*PdsDefs::typeId(stype));
+  Serializer* s = _expert_mode ? 
+    _xdict.lookup(*PdsDefs::typeId(stype)) :
+    _dict .lookup(*PdsDefs::typeId(stype));
   //  s.setPath(_expt.path());
   return s;
 }    

@@ -43,7 +43,7 @@ namespace Pds_ConfigDb {
   private:
     Device* _device() const;
     const TableEntry* _device_entry() const;
-    Serializer& lookup(const UTypeName&);
+    Serializer* lookup(const UTypeName&);
   signals:
     void changed();
     void gchanged();
