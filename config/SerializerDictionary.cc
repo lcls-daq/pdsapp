@@ -163,7 +163,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_epixSamplerConfigType ,new EpixSamplerConfig);
   enroll(_epixConfigType        ,new EpixConfig);
   enroll(_epix10kConfigType     ,new Epix10kConfig);
-  enroll(_epix100aConfigType    ,new Epix100aConfig);
+//  enroll(_epix100aConfigType    ,new Epix100aConfig);
   enroll(_genericPgpConfigType  ,new GenericPgpConfig);
   enroll(_oceanOpticsConfigType ,new OceanOpticsConfig);  
   enroll(_fliConfigType         ,new FliConfig);  
