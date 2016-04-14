@@ -305,6 +305,7 @@ InDatagram* Recorder::events(InDatagram* in) {
               for (size_t i=0; i < xtcInfoList.size(); ++i) {
                  Xtc* pOrgXtc = (Xtc*)((char*)&(in->datagram()) + (long) (xtcInfoList[i].i64Offset - i64Offset));
                  Xtc* pXtc    = (xtcInfoList[i].iPoolIndex == -1? pOrgXtc : &xtcObjPool[xtcInfoList[i].iPoolIndex].xtc);
+                 uint32_t orgExtent = pXtc->extent; // Save the original extent before we overwrite it with xtcInfoList[i].uSize
                  pXtc->extent       = xtcInfoList[i].uSize;
                  uint32_t sizeWrite = ((i == xtcInfoList.size()-1 || xtcInfoList[i].depth >= xtcInfoList[i+1].depth) 
                                        ? pXtc->extent : sizeof(Xtc));
@@ -316,6 +317,11 @@ InDatagram* Recorder::events(InDatagram* in) {
                     _sdf_write_error=true;
                     printf("ERROR:  failed to write to small data index file\n");
                  }
+                 // If pXtc is pointing to the original datagram reset the extent of the xtc.
+                 // If we don't we'll end up returning a corrupted datagram which has downstream effects.
+                 // Not reseting the extent for xtc objects in xtcObjPool since they're allocated on the stack and not reused.
+                 if (pXtc == pOrgXtc)
+                    pXtc->extent = orgExtent;
               } // loop over xtcInfoList
            } // _sdf L1Accept transition
            else {
