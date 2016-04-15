@@ -660,7 +660,7 @@ int Config_Size = G1DCfg (_Channels, 0, 0, 0, 0)._sizeof();
 
 	_cfgpayload = new char[sizeof(Xtc)+Config_Size];
 	_cfgtc = new (_cfgpayload) Xtc(Pds::TypeId(Pds::TypeId::Type(G1DCfg::TypeId),G1DCfg::Version),src);
-	G1DCfg *m = new (_cfgtc->alloc(Config_Size)) G1DCfg(_Channels,_Length,_SampleType,_Offset,_Period);
+	/*G1DCfg *m =*/ new (_cfgtc->alloc(Config_Size)) G1DCfg(_Channels,_Length,_SampleType,_Offset,_Period);
 
 unsigned size_calc = 0;
 for(unsigned n=0; n<_Channels; n++){
@@ -672,7 +672,7 @@ for(unsigned n=0; n<_Channels; n++){
 	}
 }
 size_calc = size_calc + 4;
-printf("VALUE OF Size: %g\n", size_calc);
+printf("VALUE OF Size: %d\n", size_calc);
 
     G1DData data;
     int z = NBuffers*(sizeof(Xtc)+(size_calc));
