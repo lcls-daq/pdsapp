@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
   bool lUsage = false;
   bool isTriggered = false;
   Pds::Node node(Level::Source,platform);
-  DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::USDUSB, 0);
+  DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::LeCroy, 0);
   char* uniqueid = (char *)NULL;
   char* pvPrefix = (char *)NULL;
 
