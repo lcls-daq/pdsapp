@@ -298,3 +298,64 @@ tgtlibs_pimax += pds/pdspimax pds/configdata
 tgtlibs_pimax +=  $(libPicam)
 tgtslib_pimax := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
 tgtincs_pimax := pdsdata/include ndarray/include boost/include
+
+#
+#  LCLS-II development
+#
+
+tgtnames := tpr tprclk tprbsa tprtrg xpm xpmerr tprx tprds
+
+ifneq ($(findstring rhel7,$(tgt_arch)),)
+#  tprdaq only builds on RHEL7 daq machine with AgMD2 library
+tgtnames += tprdaq
+endif
+
+tgtsrcs_tpr := tpr.cc 
+tgtincs_tpr := evgr
+tgtlibs_tpr := evgr/evr pds/tpr
+tgtslib_tpr := dl pthread rt
+
+tgtsrcs_tprclk := tprclk.cc
+tgtincs_tprclk := evgr
+tgtlibs_tprclk := evgr/evr
+tgtslib_tprclk := dl pthread rt
+
+tgtsrcs_tprbsa := tprbsa.cc
+tgtincs_tprbsa := evgr
+tgtlibs_tprbsa := evgr/evr pds/tpr
+tgtslib_tprbsa := dl pthread rt
+
+tgtsrcs_tprtrg := tprtrg.cc
+tgtincs_tprtrg := evgr
+tgtlibs_tprtrg := evgr/evr pds/tpr
+tgtslib_tprtrg := dl pthread rt
+
+tgtsrcs_tprdaq := tprdaq.cc
+tgtincs_tprdaq := evgr
+tgtlibs_tprdaq := evgr/evr pds/tpr
+tgtslib_tprdaq := dl pthread rt AgMD2
+
+tgtsrcs_tprx := tprx.cc
+tgtincs_tprx := evgr
+tgtlibs_tprx := evgr/evr pds/tpr
+tgtslib_tprx := dl pthread rt
+
+tgtsrcs_tprds := tprds.cc
+tgtincs_tprds := evgr
+tgtlibs_tprds := evgr/evr pds/tpr
+tgtslib_tprds := dl pthread rt
+
+tgtsrcs_pgpds := pgpds.cc
+tgtslib_pgpds := dl pthread rt
+
+tgtsrcs_pgpds_recv := pgpds_recv.cc
+tgtincs_pgpds_recv := pgpcard
+tgtslib_pgpds_recv := dl pthread rt
+
+tgtsrcs_xpm := xpm.cc 
+tgtlibs_xpm := pds/xpm
+tgtslib_xpm := dl pthread rt
+
+tgtsrcs_xpmerr := xpmerr.cc 
+tgtlibs_xpmerr := pds/xpm
+tgtslib_xpmerr := dl pthread rt

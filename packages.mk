@@ -16,3 +16,7 @@ ifneq ($(findstring ppc-rtems-rce,$(tgt_arch)),)
 packages := 
 endif
 
+#
+#  LCLS-II development
+#
+packages := dev
