@@ -19,4 +19,4 @@ endif
 #
 #  LCLS-II development
 #
-packages := dev
+packages := tools dev

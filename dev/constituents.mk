@@ -303,7 +303,7 @@ tgtincs_pimax := pdsdata/include ndarray/include boost/include
 #  LCLS-II development
 #
 
-tgtnames := tpr tprclk tprbsa tprtrg xpm xpmerr tprx tprds
+tgtnames := tpr tprclk tprbsa tprtrg xpm xpmerr tprx tprds simapp
 
 ifneq ($(findstring rhel7,$(tgt_arch)),)
 #  tprdaq only builds on RHEL7 daq machine with AgMD2 library
@@ -342,7 +342,7 @@ tgtslib_tprx := dl pthread rt
 
 tgtsrcs_tprds := tprds.cc
 tgtincs_tprds := evgr
-tgtlibs_tprds := evgr/evr pds/tpr
+tgtlibs_tprds := evgr/evr pds/tpr pds/service pdsdata/xtcdata
 tgtslib_tprds := dl pthread rt
 
 tgtsrcs_pgpds := pgpds.cc
@@ -359,3 +359,9 @@ tgtslib_xpm := dl pthread rt
 tgtsrcs_xpmerr := xpmerr.cc 
 tgtlibs_xpmerr := pds/xpm
 tgtslib_xpmerr := dl pthread rt
+
+tgtsrcs_simapp := simapp.cc 
+tgtincs_simapp := pdsdata/include
+tgtlibs_simapp := pdsdata/xtcdata pdsapp/tools pds/service pds/collection pds/utility
+tgtslib_simapp := dl pthread rt
+

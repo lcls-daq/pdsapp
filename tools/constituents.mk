@@ -138,3 +138,13 @@ tgtlibs_findSource := $(commonlibs)
 tgtslib_findSource := $(USRLIBDIR)/rt
 tgtincs_findSource := pdsdata/include
 
+
+#
+#  LCLS-II development
+#
+libnames := tools
+libsrcs_tools := TestApp.cc
+liblibs_tools := 
+libincs_tools := pdsdata/include ndarray/include boost/include 
+
+tgtnames :=
