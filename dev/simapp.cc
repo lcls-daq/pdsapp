@@ -144,9 +144,9 @@ int main(int argc, char** argv) {
       printf("Unable to connect to FEZ\n");
       return -1;
     }
+    m.cancel();
   }
     
-
   //
   //  Instanciate the test appliance
   //
