@@ -2,9 +2,11 @@
 //  simapp.cc - a small program to read an XTC file and simulate the reception of
 //              data for the analysis server Appliance (TestApp).
 //
+#include "pdsapp/tools/TestApp.hh"
 #include "pds/xtc/CDatagram.hh"
 #include "pds/xtc/XtcType.hh"
-#include "pdsapp/tools/TestApp.hh"
+#include "pds/collection/CollectionManager.hh"
+#include "pds/collection/Route.hh"
 #include "pdsdata/xtc/XtcIterator.hh"
 #include "pdsdata/xtc/XtcFileIterator.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -12,6 +14,7 @@
 #include <new>
 #include <list>
 #include <fcntl.h>
+#include <netinet/in.h>
 
 using namespace Pds;
 
@@ -126,6 +129,23 @@ int main(int argc, char** argv) {
     perror("Error opening xtc file");
     return -1;
   }
+
+  //
+  //  Lookup the FEZ subnet interface
+  //    (available from Route::interface() afterwards)
+  //
+  { CollectionManager m(Level::Observer, 0, 32, 250, 0);
+    m.start();
+    if (m.connect()) {
+      struct in_addr a; a.s_addr = htonl(Route::interface());
+      printf("FEZ interface at %s\n",inet_ntoa(a));
+    }
+    else {
+      printf("Unable to connect to FEZ\n");
+      return -1;
+    }
+  }
+    
 
   //
   //  Instanciate the test appliance
