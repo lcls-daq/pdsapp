@@ -41,10 +41,6 @@ ProcNodeGroup::ProcNodeGroup(const QString& label,
   _l3f_unbiasl->setVisible(false);
   _l3f_unbias ->setVisible(false);
 
-  _input_data = new QFileDialog(_l3f_data);
-  _input_data->setFileMode(QFileDialog::ExistingFile);
-  _input_data->selectFile(QString("%1/.").arg(getenv("HOME")));
-
   connect(_l3f_data, SIGNAL(clicked()), this, SLOT(select_file()));
   connect(_l3f_box, SIGNAL(stateChanged(int)), this, SLOT(action_change(int)));
   connect(_l3f_action, SIGNAL(currentIndexChanged(int)), this, SLOT(action_change(int)));
@@ -59,7 +55,6 @@ ProcNodeGroup::ProcNodeGroup(const QString& label,
 
 ProcNodeGroup::~ProcNodeGroup() 
 {
-  delete _input_data;
   delete _palette[0];
   delete _palette[1];
   delete _palette[2];
@@ -76,7 +71,6 @@ void ProcNodeGroup::_read_pref()
   if (v.size()>0)  _l3f_box->setChecked(v[0]);
   if (v.size()>1)  _l3f_action->setCurrentIndex(v[1]?1:0);
   if (v.size()>2) {
-    _input_data->selectFile(s[2]);
     _l3f_data->setText(s[2]);
   }
   if (v.size()>3) {
@@ -112,11 +106,17 @@ float ProcNodeGroup::unbiased_fraction() const
 
 void ProcNodeGroup::select_file()
 {
+  QFileDialog* _input_data = new QFileDialog(_l3f_data);
+  _input_data->setFileMode(QFileDialog::ExistingFile);
+  _input_data->selectFile(QString("%1/.").arg(getenv("HOME")));
+
   if (_input_data->exec()) {
     QStringList ofiles = _input_data->selectedFiles();
     if (ofiles.length()>0)
       _l3f_data->setText(ofiles[0]);
   }
+
+  delete _input_data;
 }
 
 void ProcNodeGroup::action_change(int)

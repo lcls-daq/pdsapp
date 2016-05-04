@@ -6,7 +6,6 @@
 class QCheckBox;
 class QComboBox;
 class QPushButton;
-class QFileDialog;
 class QLabel;
 class QLineEdit;
 class QPalette;
@@ -44,7 +43,6 @@ namespace Pds {
     QComboBox*   _l3f_action;
     QLabel*      _l3f_unbiasl;
     QLineEdit*   _l3f_unbias;
-    QFileDialog* _input_data;
     QPalette*    _palette[3];
     bool         _triggered;
     float        _l3f_unbiasv;
