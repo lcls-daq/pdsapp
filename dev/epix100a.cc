@@ -125,16 +125,26 @@ void Pds::MySegWire::connect( InletWire& wire,
 
 void sigHandler( int signal ) {
   Pds::Epix100aServer* server = Pds::Epix100aServer::instance();
-  psignal( signal, "Signal received by Epix100aApplication");
+  psignal( signal, "Signal received by Epix100aApplication\n");
   if (server != 0) {
     server->disable();
-    if (myWire != 0) {
-      myWire->remove_input(server);
-    }
-    if (server != 0) server->dumpFrontEnd();
-    if (server != 0) server->die();
   } else {
     printf("sigHandler found nil server 1!\n");
+  }
+  if (myWire != 0) {
+    myWire->remove_input(server);
+  } else {
+    printf("sigHandler found nil myWire 2!\n");
+  }
+  if (server != 0) {
+    server->dumpFrontEnd();
+  } else {
+    printf("sigHandler found nil server 3!\n");
+  }
+  if (server != 0) {
+    server->die();
+  } else {
+    printf("sigHandler found nil server 4!\n");
   }
   printf("Signal handler pulling the plug\n");
   ::exit(signal);
@@ -208,9 +218,12 @@ void printUsage(char* s) {
       "    -i      Set device id             [Default: 0]\n"
       "    -P      Set pgpcard index number  [Default: 0]\n"
       "                The format of the index number is a one byte number with the bottom nybble being\n"
-      "                the index of the card and the top nybble being a port mask where one bit is for\n"
-      "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
+      "                the index of the card and the top nybble being a value that depends on the card\n"
+      "                in use.  For the G2 or earlier, it is a port mask where one bit is for\n"
+      "                each port, but a value of zero maps to 15 for compatibility with unmodified\n"
       "                applications that use the whole card\n"
+      "                For a G3 card, the top nybble is the index of the bottom port in use, with the\n"
+      "                index of 1 for the first port\n"
       "    -G      Use if pgpcard is a G3 card\n"
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
@@ -252,6 +265,7 @@ int main( int argc, char** argv )
   ::signal( SIGFPE,  sigHandler );
   ::signal( SIGTERM, sigHandler );
   ::signal( SIGQUIT, sigHandler );
+  ::signal( SIGKILL, sigHandler );
 
    extern char* optarg;
    char* uniqueid = (char *)NULL;
@@ -360,41 +374,39 @@ int main( int argc, char** argv )
    MySegWire settings(epix100aServer, module, channel, uniqueid);
    settings.max_event_depth(eventDepth);
 
+   bool G3Flag = strlen(g3) != 0;
    unsigned ports = (pgpcard >> 4) & 0xf;
    char devName[128];
-   printf("epix100a pgpcard 0x%x, ports %d\n", pgpcard, ports);
+   printf("%s pgpcard 0x%x, ports %d\n", argv[0], pgpcard, ports);
    char err[128];
-   if (ports == 0) {
+   if ((ports == 0) && !G3Flag) {
      ports = 15;
-     sprintf(devName, "/dev/pgpcard%s%u", g3, pgpcard);
-   } else {
-     sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
    }
+   sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
 
-   int epix100a = open( devName,  O_RDWR | O_NONBLOCK );
+   int fd = open( devName,  O_RDWR | O_NONBLOCK );
    if (debug & 1) printf("%s using %s\n", argv[0], devName);
-   if (epix100a < 0) {
+   if (fd < 0) {
      sprintf(err, "%s opening %s failed", argv[0], devName);
      perror(err);
      return 1;
    }
 
-   bool G3Flag = strlen(g3) != 0;
-
-   unsigned limit = G3Flag ? 8 : 4;
-
+   unsigned limit =  4;
    unsigned offset = 0;
-   while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
-     offset += 1;
+
+   if ( !G3Flag ) {
+     while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
+       offset += 1;
+     }
+   } else {
+     offset = ports -1;
    }
 
-   if (offset >= limit) {
-     printf("%s illegal port mask!! 0x%x\n", argv[0], ports);
-     return 1;
-   }
+   printf("%s pgpcard opened as fd %d, offset %d, ports %d\n", argv[0], fd, offset, ports);
 
    Pds::Pgp::Pgp::portOffset(offset);
-   epix100aServer->setEpix100a(epix100a);
+   epix100aServer->setEpix100a(fd);
 
    printf("making Seg\n");
    Seg* seg = new Seg( task,
@@ -403,7 +415,7 @@ int main( int argc, char** argv )
                        settings,
                        0,
                        epix100aServer,
-                       epix100a );
+                       fd );
 
    printf("making SegmentLevel\n");
    SegmentLevel* seglevel = new SegmentLevel( platform,
@@ -413,8 +425,9 @@ int main( int argc, char** argv )
    printf("attaching seglevel\n");
    seglevel->attach();
 
-   if (seg->didYouFail()) printf("So, goodbye cruel world!\n ");
-   else  {
+   if (seg->didYouFail()) {
+     printf("So, goodbye cruel world!\n ");
+   } else {
      printf("entering %s task main loop, \n\tDetector: %s\n\tDeviceId: %d\n\tPlatform: %u\n",
          argv[0], DetInfo::name((DetInfo::Detector)detector), deviceId, platform);
      task->mainLoop();

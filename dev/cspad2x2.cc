@@ -80,7 +80,6 @@ class Pds::Seg
         SegWireSettings& settings,
         Arp* arp,
         Cspad2x2Server* cspad2x2Server,
-        unsigned pgpcard,
         bool compress = false );
 
    virtual ~Seg();
@@ -96,7 +95,6 @@ class Pds::Seg
    unsigned      _platform;
    CfgClientNfs* _cfg;
    Cspad2x2Server*  _cspad2x2Server;
-   unsigned      _pgpcard;
    bool          _compress;
    bool          _failed;
 };
@@ -146,13 +144,11 @@ Pds::Seg::Seg( Task* task,
                SegWireSettings& settings,
                Arp* arp,
                Cspad2x2Server* cspad2x2Server,
-               unsigned pgpcard,
                bool compress )
    : _task(task),
      _platform(platform),
      _cfg   (cfgService),
      _cspad2x2Server(cspad2x2Server),
-     _pgpcard(pgpcard),
      _compress(compress),
      _failed(false)
 {}
@@ -168,7 +164,7 @@ void Pds::Seg::attached( SetOfStreams& streams )
           _platform);
       
    Stream* frmk = streams.stream(StreamParams::FrameWork);
-   Cspad2x2Manager& cspad2x2Mgr = * new Cspad2x2Manager( _cspad2x2Server, _pgpcard );
+   Cspad2x2Manager& cspad2x2Mgr = * new Cspad2x2Manager( _cspad2x2Server);
    if (_compress) (new FrameCompApp(0x80000))->connect( frmk->inlet() );
    cspad2x2Mgr.appliance().connect( frmk->inlet() );
 }
@@ -413,41 +409,39 @@ int main( int argc, char** argv )
    cspad2x2Server->runTimeConfigName(runTimeConfigname);
    cspad2x2Server->runTrigFactor(runTriggerFactor);
 
+   bool G3Flag = strlen(g3) != 0;
    unsigned ports = (pgpcard >> 4) & 0xf;
    char devName[128];
-   printf("cspad2x2 pgpcard 0x%x, ports %d\n", pgpcard, ports);
+   printf("%s pgpcard 0x%x, ports %d\n", argv[0], pgpcard, ports);
    char err[128];
-   if (ports == 0) {
+   if ((ports == 0) && !G3Flag) {
      ports = 15;
-     sprintf(devName, "/dev/pgpcard%s%u", g3, pgpcard);
-   } else {
-     sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
    }
+   sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
 
-   int cspad2x2 = open( devName,  O_RDWR | O_NONBLOCK );
+   int fd = open( devName,  O_RDWR | O_NONBLOCK );
    if (debug & 1) printf("%s using %s\n", argv[0], devName);
-   if (cspad2x2 < 0) {
+   if (fd < 0) {
      sprintf(err, "%s opening %s failed", argv[0], devName);
      perror(err);
      return 1;
    }
 
-   bool G3Flag = strlen(g3) != 0;
-
-   unsigned limit = G3Flag ? 8 : 4;
-
+   unsigned limit =  4;
    unsigned offset = 0;
-   while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
-     offset += 1;
+
+   if ( !G3Flag ) {
+     while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
+       offset += 1;
+     }
+   } else {
+     offset = ports -1;
    }
 
-   if (offset >= limit) {
-     printf("%s illegal port mask!! 0x%x\n", argv[0], ports);
-     return 1;
-   }
+   printf("%s pgpcard opened as fd %d, offset %d, ports %d\n", argv[0], fd, offset, ports);
 
    Pds::Pgp::Pgp::portOffset(offset);
-   cspad2x2Server->setCspad2x2(cspad2x2);
+   cspad2x2Server->setCspad2x2(fd);
 
    MySegWire settings(cspad2x2Server, module, channel, uniqueid);
    settings.max_event_depth(eventDepth);
@@ -458,7 +452,6 @@ int main( int argc, char** argv )
                        settings,
                        0,
                        cspad2x2Server,
-                       pgpcard,
                        compressFlag);
 
    SegmentLevel* seglevel = new SegmentLevel( platform,
@@ -469,10 +462,10 @@ int main( int argc, char** argv )
 
    if (seg->didYouFail()) printf("So, goodbye cruel world!\n ");
    else  {
-     printf("entering cspad2x2 task main loop, \n\tDetector: %s\n\tDevice: %s\n\tPlatform: %u\n",
-         DetInfo::name((DetInfo::Detector)detector), DetInfo::name(device), platform);
+     printf("entering %s task main loop, \n\tDetector: %s\n\tDevice: %s\n\tPlatform: %u\n",
+         argv[0], DetInfo::name((DetInfo::Detector)detector), DetInfo::name(device), platform);
      task->mainLoop();
-     printf("exiting cspad2x2 task main loop\n");
+     printf("exiting %s task main loop\n", argv[0]);
    }
    return 0;
 }
