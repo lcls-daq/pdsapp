@@ -55,6 +55,29 @@ PyObject* pds_AndorConfig_get (PyObject*   self, PyObject* args)
 
     return o;
   }
+  else if (xtc->contains.version()==2) {
+    const Pds::Andor::ConfigV2* cfg =
+      reinterpret_cast<const Pds::Andor::ConfigV2*>(xtc->payload);
+
+    SetDictMember(width,false);
+    SetDictMember(height,false);
+    SetDictMember(orgX,false);
+    SetDictMember(orgY,false);
+    SetDictMember(binX,false);
+    SetDictMember(binY,false);
+    SetDictMember(exposureTime,true);
+    SetDictMember(coolingTemp,true);
+    SetDictMember(fanMode,false);
+    SetDictMember(cropMode,false);
+    SetDictMember(baselineClamp,false);
+    SetDictMember(highCapacity,false);
+    SetDictMember(gainIndex,false);
+    SetDictMember(readoutSpeedIndex,false);
+    SetDictMember(exposureEventCode,false);
+    SetDictMember(numDelayShots,false);
+
+    return o;
+  }
   else {
     Py_DECREF(o);
     printf("get(): Unsupported AndorConfig Version= %u \n",xtc->contains.version());
@@ -121,6 +144,45 @@ PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
                       (uint16_t)  readoutSpeedIndex,
                       (uint16_t)  exposureEventCode,
                       (uint32_t)  numDelayShots); 
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else if (xtc->contains.version()==2) {
+    const Pds::Andor::ConfigV2* cfg =
+      reinterpret_cast<const Pds::Andor::ConfigV2*>(xtc->payload);
+
+    SetDictMember(width);
+    SetDictMember(height);
+    SetDictMember(orgX);
+    SetDictMember(orgY);
+    SetDictMember(binX);
+    SetDictMember(binY);
+    SetDictMember(exposureTime);
+    SetDictMember(coolingTemp);
+    SetDictMember(fanMode);
+    SetDictMember(cropMode);
+    SetDictMember(baselineClamp);
+    SetDictMember(highCapacity);
+    SetDictMember(gainIndex);
+    SetDictMember(readoutSpeedIndex);
+    SetDictMember(exposureEventCode);
+    SetDictMember(numDelayShots);
+    new(xtc->payload) Pds::Andor::ConfigV2((uint32_t) width,
+                      (uint32_t)  height,
+                      (uint32_t)  orgX,
+                      (uint32_t)  orgY,
+                      (uint32_t)  binX,
+                      (uint32_t)  binY,
+                      (float)     exposureTime,
+                      (float)     coolingTemp,
+                      Pds::Andor::ConfigV2::EnumFanMode(fanMode),
+                      Pds::Andor::ConfigV2::EnumCropMode(cropMode),
+                      (uint8_t)   baselineClamp,
+                      (uint8_t)   highCapacity,
+                      (uint8_t)   gainIndex,
+                      (uint16_t)  readoutSpeedIndex,
+                      (uint16_t)  exposureEventCode,
+                      (uint32_t)  numDelayShots);
     Py_INCREF(Py_None);
     return Py_None;
   }

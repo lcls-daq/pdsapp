@@ -1,8 +1,8 @@
-#include "pdsapp/config/AndorConfig.hh"
+#include "pdsapp/config/AndorConfig_V1.hh"
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/QtConcealer.hh"
-#include "pds/config/AndorConfigType.hh"
+#include "pdsdata/psddl/andor.ddl.h"
 #include <QtGui/QCheckBox>
 #include <QtGui/QVBoxLayout>
 
@@ -14,9 +14,8 @@ namespace Pds_ConfigDb {
   static const char* gain_to_name[] = { "1x", "2x", "4x", NULL };
   static const char* readoutSpeed_to_name[] = { "3.000000 MHz", "1.000000 MHz", "0.050000 MHz", NULL };
 
-  class AndorConfig::Private_Data : public Parameter {
+  class AndorConfig_V1::Private_Data : public Parameter {
   static const char*  lsEnumFanMode[];
-  static const char*  lsEnumCropMode[];
   public:
     Private_Data() :
       _uWidth               ("Width",               16, 1,      4152),
@@ -29,8 +28,7 @@ namespace Pds_ConfigDb {
       // Note: Here the min exposure time need to set 9.99e-7 to allow user to input 1e-6, due to floating points imprecision
       _f32ExposureTime      ("Exposure time (sec)", 1e-3, 9.99e-7, 3600),
       _f32CoolingTemp       ("Cooling Temp (C)",    25,   -300,  25),
-      _enumFanMode          ("Fan Mode",            AndorConfigType::ENUM_FAN_FULL, lsEnumFanMode),
-      _enumCropMode         ("Crop Mode",           AndorConfigType::ENUM_CROP_OFF, lsEnumCropMode),
+      _enumFanMode          ("Fan Mode",            Pds::Andor::ConfigV1::ENUM_FAN_FULL, lsEnumFanMode),
       _enumBaselineClamp    ("Baseline Clamp",      Enums::Disabled_Disable, Enums::Disabled_Names ),
       _enumHighCapacity     ("High Capacity",       Enums::Disabled_Disable, Enums::Disabled_Names ),
       _u8GainIndex          ("Gain",                0 /* 1x */, gain_to_name),
@@ -49,7 +47,6 @@ namespace Pds_ConfigDb {
       pList.insert(&_f32ExposureTime);
       pList.insert(&_f32CoolingTemp);
       pList.insert(&_enumFanMode);
-      pList.insert(&_enumCropMode);
       pList.insert(&_enumBaselineClamp);
       pList.insert(&_enumHighCapacity);
       pList.insert(&_u8GainIndex);
@@ -86,7 +83,6 @@ namespace Pds_ConfigDb {
       layout->addLayout(_f32ExposureTime.initialize(p));
       layout->addLayout(_f32CoolingTemp.initialize(p));
       layout->addLayout(_enumFanMode.initialize(p));
-      layout->addLayout(_enumCropMode.initialize(p));
       layout->addLayout(_enumBaselineClamp.initialize(p));
       layout->addLayout(_enumHighCapacity.initialize(p));
       layout->addLayout(_u8GainIndex.initialize(p));
@@ -102,7 +98,7 @@ namespace Pds_ConfigDb {
     }
 
     int pull(void* from) {
-      AndorConfigType& tc = *new(from) AndorConfigType;
+      Pds::Andor::ConfigV1& tc = *new(from) Pds::Andor::ConfigV1;
       _uWidth               .value = tc.width   ();
       _uHeight              .value = tc.height  ();
       _uOrgX                .value = tc.orgX    ();
@@ -111,8 +107,7 @@ namespace Pds_ConfigDb {
       _uBinY                .value = tc.binY    ();
       _f32ExposureTime      .value = tc.exposureTime();
       _f32CoolingTemp       .value = tc.coolingTemp ();
-      _enumFanMode          .value = (AndorConfigType::EnumFanMode) tc.fanMode();
-      _enumCropMode         .value = (AndorConfigType::EnumCropMode) tc.cropMode();
+      _enumFanMode          .value = (Pds::Andor::ConfigV1::EnumFanMode) tc.fanMode();
       _enumBaselineClamp    .value = (Enums::Disabled) tc.baselineClamp();
       _enumHighCapacity     .value = (Enums::Disabled) tc.highCapacity();
       _u8GainIndex          .value = tc.gainIndex();
@@ -138,7 +133,7 @@ namespace Pds_ConfigDb {
         _u32NumDelayShots.value = 0;
       }
 
-      AndorConfigType& tc = *new(to) AndorConfigType(
+      Pds::Andor::ConfigV1& tc = *new(to) Pds::Andor::ConfigV1(
         _uWidth               .value,
         _uHeight              .value,
         _uOrgX                .value,
@@ -148,7 +143,6 @@ namespace Pds_ConfigDb {
         _f32ExposureTime      .value,
         _f32CoolingTemp       .value,
         _enumFanMode          .value,
-        _enumCropMode         .value,
         _enumBaselineClamp    .value,
         _enumHighCapacity     .value,
         _u8GainIndex          .value,
@@ -160,7 +154,7 @@ namespace Pds_ConfigDb {
     }
 
     int dataSize() const {
-      return sizeof(AndorConfigType);
+      return sizeof(Pds::Andor::ConfigV1);
     }
 
   public:
@@ -174,10 +168,9 @@ namespace Pds_ConfigDb {
     NumericInt<uint32_t>    _uBinY;
     NumericFloat<float>     _f32ExposureTime;
     NumericFloat<float>     _f32CoolingTemp;
-    Enumerated<AndorConfigType::EnumFanMode>  _enumFanMode;
-    Enumerated<AndorConfigType::EnumCropMode> _enumCropMode;
-    Enumerated<Enums::Disabled>               _enumBaselineClamp;
-    Enumerated<Enums::Disabled>               _enumHighCapacity;
+    Enumerated<Pds::Andor::ConfigV1::EnumFanMode> _enumFanMode;
+    Enumerated<Enums::Disabled>                   _enumBaselineClamp;
+    Enumerated<Enums::Disabled>                   _enumHighCapacity;
     Enumerated<uint8_t>     _u8GainIndex;
     Enumerated<uint16_t>    _u16ReadoutSpeedIndex;
     CheckValue              _boxTrigger;
@@ -187,29 +180,28 @@ namespace Pds_ConfigDb {
     QtConcealer             _concealerTrigger;
   };
 
-  const char* AndorConfig::Private_Data::lsEnumFanMode[]  = { "Full", "Low", "Off", "Off during Acq", NULL};
-  const char* AndorConfig::Private_Data::lsEnumCropMode[] = { "Off", "Crop", "CropEx", NULL};
+  const char* AndorConfig_V1::Private_Data::lsEnumFanMode[] = { "Full", "Low", "Off", "Off during Acq", NULL};
 
 };
 
 using namespace Pds_ConfigDb;
 
-AndorConfig::AndorConfig() :
-  Serializer("andor_Config"),
+AndorConfig_V1::AndorConfig_V1() :
+  Serializer("andor_Config_V1"),
   _private_data( new Private_Data )
 {
   pList.insert(_private_data);
 }
 
-int  AndorConfig::readParameters (void* from) {
+int  AndorConfig_V1::readParameters (void* from) {
   return _private_data->pull(from);
 }
 
-int  AndorConfig::writeParameters(void* to) {
+int  AndorConfig_V1::writeParameters(void* to) {
   return _private_data->push(to);
 }
 
-int  AndorConfig::dataSize() const {
+int  AndorConfig_V1::dataSize() const {
   return _private_data->dataSize();
 }
 

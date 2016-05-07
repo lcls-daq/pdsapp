@@ -64,6 +64,7 @@
 #include "pdsapp/config/OceanOpticsConfig.hh"
 #include "pdsapp/config/FliConfig.hh"
 #include "pdsapp/config/AndorConfig.hh"
+#include "pdsapp/config/AndorConfig_V1.hh"
 #include "pdsapp/config/PimaxConfig.hh"
 #include "pdsapp/config/TimeToolConfig.hh"
 #include "pdsapp/config/TimeToolConfig_V1.hh"
@@ -198,6 +199,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_TimeToolConfig,1),new V1::TimeToolConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_QuartzConfig,1),new V1::QuartzConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_Epix100aConfig,1),new V1::Epix100aConfig);
+  enroll(Pds::TypeId(Pds::TypeId::Id_AndorConfig,1),  new AndorConfig_V1);
   //  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
 
   if (Parameter::readFromData())
