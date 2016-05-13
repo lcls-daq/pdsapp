@@ -240,7 +240,7 @@ void printUsage(char* s) {
       "                each port, but a value of zero maps to 15 for compatibility with unmodified\n"
       "                applications that use the whole card\n"
       "                For a G3 card, the top nybble is the index of the bottom port in use, with the\n"
-      "                index of 1 for the first port\n"
+      "                index of 1 for the first port, i.e. 1,2,3,4,5,6,7 or 8\n"
       "    -G      Use if pgpcard is a G3 card\n"
       "    -e <N>  Set the maximum event depth, default is 64\n"
       "    -C <N> or \"<N>,<T>\"  Compress and copy every Nth event (and use <T> threads)\n"
@@ -471,7 +471,7 @@ int main( int argc, char** argv )
   bool G3Flag = strlen(g3) != 0;
   unsigned ports = (pgpcard >> 4) & 0xf;
   char devName[128];
-  printf("%s pgpcard 0x%x, ports %d\n", argv[0], pgpcard, ports);
+//  printf("%s pgpcard 0x%x, ports %d\n", argv[0], pgpcard, ports);
   char err[128];
   if ((ports == 0) && !G3Flag) {
     ports = 15;
@@ -489,11 +489,11 @@ int main( int argc, char** argv )
   unsigned limit =  4;
   unsigned offset = 0;
 
-  if ( !G3Flag ) {
+  if ( !G3Flag ) {  // G2 or lower
     while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
       offset += 1;
     }
-  } else {
+  } else {  // G3 card
     offset = ports -1;
   }
 

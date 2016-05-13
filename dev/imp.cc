@@ -92,8 +92,8 @@ class Pds::Seg
    unsigned _platform;
    CfgClientNfs* _cfg;
    ImpServer* _impServer;
-   unsigned     _pgpcard;
-   bool         _failed;
+   unsigned        _pgpcard;
+   bool       _failed;
 };
 
 
@@ -198,13 +198,21 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: imp [-h] [-d <detector>] [-i <deviceID>] [-u <alias>] [-e <numb>] [-D <debug>] [-P <pgpcardNumb> -p <platform>,<mod>,<chan>\n"
+  printf( "Usage: imp [-h] [-d <detector>] [-i <deviceID>] [-u <alias>] [-e <numb>] [-D <debug>]  [-G] [-P <pgpcardNumb> -p <platform>,<mod>,<chan>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id, EVR module, EVR channel [required]\n"
       "    -d      Set detector type by name                [Default: XcsEndstation]\n"
       "    -i      Set device id                            [Default: 0]\n"
       "    -u      Set device alias                         [Default: none]\n"
-      "    -P      Set pgpcard index number                 [Default: 0]\n"
+      "    -P      Set pgpcard index number  [Default: 0]\n"
+      "                The format of the index number is a one byte number with the bottom nybble being\n"
+      "                the index of the card and the top nybble being a value that depends on the card\n"
+      "                in use.  For the G2 or earlier, it is a port mask where one bit is for\n"
+      "                each port, but a value of zero maps to 15 for compatibility with unmodified\n"
+      "                applications that use the whole card\n"
+      "                For a G3 card, the top nybble is the index of the bottom port in use, with the\n"
+      "                index of 1 for the first port, i.e. 1,2,3,4,5,6,7 or 8\n"
+      "    -G      Use if pgpcard is a G3 card\n"
       "    -e <N>  Set the maximum event depth, default is 256\n"
       "    -D      Set debug value                          [Default: 0]\n"
       "                bit 00          label every fetch\n"
@@ -232,6 +240,7 @@ int main( int argc, char** argv )
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
   unsigned            eventDepth          = 256;
+  char                g3[16]              = {""};
   ::signal( SIGINT,  sigHandler );
   ::signal( SIGSEGV, sigHandler );
   ::signal( SIGFPE,  sigHandler );
@@ -241,7 +250,7 @@ int main( int argc, char** argv )
    extern char* optarg;
    char* uniqueid = (char *)NULL;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:u:m:e:D:P:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:u:m:e:D:P:G" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -285,6 +294,9 @@ int main( int argc, char** argv )
             break;
          case 'P':
            pgpcard = strtoul(optarg, NULL, 0);
+           break;
+         case 'G':
+           strcpy(g3, "G3");
            break;
          case 'e':
            eventDepth = strtoul(optarg, NULL, 0);
@@ -336,6 +348,42 @@ int main( int argc, char** argv )
    printf("MySetWire settings\n");
    MySegWire settings(impServer, module, channel, uniqueid);
    settings.max_event_depth(eventDepth);
+
+   bool G3Flag = strlen(g3) != 0;
+   unsigned ports = (pgpcard >> 4) & 0xf;
+   char devName[128];
+//   printf("%s pgpcard 0x%x, ports %d\n", argv[0], pgpcard, ports);
+   char err[128];
+   if ((ports == 0) && !G3Flag) {
+     ports = 15;
+   }
+   sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
+
+   int fd = open( devName,  O_RDWR | O_NONBLOCK );
+   if (debug & 1) printf("%s using %s\n", argv[0], devName);
+   if (fd < 0) {
+     sprintf(err, "%s opening %s failed", argv[0], devName);
+     perror(err);
+     return 1;
+   }
+
+   unsigned limit =  4;
+   unsigned offset = 0;
+
+   if ( !G3Flag ) {  // G2 or lower
+     while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
+       offset += 1;
+     }
+   } else {  // G3 card
+     offset = ports -1;
+   }
+
+   printf("%s pgpcard opened as fd %d, offset %d, ports %d\n", argv[0], fd, offset, ports);
+
+   Pds::Pgp::Pgp::portOffset(offset);
+   impServer->setImp(fd);
+
+
 
    printf("making Seg\n");
    Seg* seg = new Seg( task,

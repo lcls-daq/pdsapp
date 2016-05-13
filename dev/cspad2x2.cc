@@ -201,7 +201,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <nevents>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb>] [-r <runTimeConfigName>] [-R <runTriggerFactor>] -p <platform>,<mod>,<chan>\n"
+  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <nevents>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb>] [-r <runTimeConfigName>] [-R <runTriggerFactor>] [-G] -p <platform>,<mod>,<chan>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id, EVR module, EVR channel [required]\n"
       "    -d      Set detector type by name                [Default: XppGon]\n"
@@ -209,11 +209,14 @@ void printUsage(char* s) {
       "            just make up something and it'll list them\n"
       "    -i      Set device id                            [Default: 0]\n"
       "    -m      Set config mask                          [Default: 0]\n"
-      "    -P      Set pgpcard index number                 [Default: 0]\n"
+      "    -P      Set pgpcard index number  [Default: 0]\n"
       "                The format of the index number is a one byte number with the bottom nybble being\n"
-      "                the index of the card and the top nybble being a port mask where one bit is for\n"
-      "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
+      "                the index of the card and the top nybble being a value that depends on the card\n"
+      "                in use.  For the G2 or earlier, it is a port mask where one bit is for\n"
+      "                each port, but a value of zero maps to 15 for compatibility with unmodified\n"
       "                applications that use the whole card\n"
+      "                For a G3 card, the top nybble is the index of the bottom port in use, with the\n"
+      "                index of 1 for the first port, i.e. 1,2,3,4,5,6,7 or 8\n"
       "    -G      Use if pgpcard is a G3 card\n"
       "    -e <N>  Set the maximum event depth, default is 256\n"
       "    -C <N>  Compress and copy every Nth event\n"
@@ -430,11 +433,11 @@ int main( int argc, char** argv )
    unsigned limit =  4;
    unsigned offset = 0;
 
-   if ( !G3Flag ) {
+   if ( !G3Flag ) { // G2 or lower
      while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
        offset += 1;
      }
-   } else {
+   } else {  // G3 card
      offset = ports -1;
    }
 
