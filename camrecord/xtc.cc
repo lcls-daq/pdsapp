@@ -177,14 +177,17 @@ static FILE *myfopen(const char *name, const char *flags, int doreg)
             conn->reportOpenFile(expid, runnum, strnum, chunk, hostname, curdir + name);
             conn->commitTransaction();
         } catch (LogBook::DatabaseError* e) {
-            /* Is there anything really to do here? */
             printf("Caught DatabaseError, ignoring.\n");
+            fprintf(stderr, "error Database error: aborting.\n");
+            exit(1);
         } catch (LogBook::ValueTypeMismatch* e) {
-            /* Is there anything really to do here? */
             printf("Caught ValueTypeMismatch, ignoring.\n");
+            fprintf(stderr, "error Database value type-mismatch error: aborting.\n");
+            exit(1);
         } catch (LogBook::WrongParams* e) {
-            /* Is there anything really to do here? */
             printf("Caught WrongParams, ignoring.\n");
+            fprintf(stderr, "error Database wrong parameter error: aborting.\n");
+            exit(1);
         }
     }
     return fp;
@@ -310,6 +313,7 @@ static void write_datagram(TransitionId::Value val, int extra, int diff)
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
     if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
         printf("Write failed!\n");
+        fprintf(stderr, "error Write to %s failed.\n", fname);
         exit(1);
     }
     fsize += sizeof(Dgram) + sizeof(Xtc);
@@ -320,6 +324,7 @@ static void write_datagram(TransitionId::Value val, int extra, int diff)
 
     if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, sfp)) {
         printf("Write failed!\n");
+        fprintf(stderr, "error Write to %s failed.\n", fname);
         exit(1);
     }
     sfsize += sizeof(Dgram) + sizeof(Xtc);
@@ -391,12 +396,14 @@ static void write_xtc_config(void)
         }
         if (!myfwrite(xtcpv, xtcpv->extent)) {
             printf("Cannot write to file!\n");
+            fprintf(stderr, "error Write to %s failed.\n", fname);
             exit(1);
         }
     }
     for (i = 0; i < numsrc; i++) {
         if (!myfwrite(src[i]->val, src[i]->len)) {
             printf("Cannot write to file!\n");
+            fprintf(stderr, "error Write to %s failed.\n", fname);
             exit(1);
         }
         delete src[i]->val;
@@ -410,11 +417,13 @@ static void write_xtc_config(void)
         }
         if (!myfwrite(xtc1, xtc1->extent)) {
             printf("Cannot write to file!\n");
+            fprintf(stderr, "error Write to %s failed.\n", fname);
             exit(1);
         }
     }
     if (!fwrite(get_sml_config(1024), SML_CONFIG_SIZE, 1, sfp)) {
         printf("Cannot write to file!\n");
+        fprintf(stderr, "error Write to %s failed.\n", sfname);
         exit(1);
     }
     sfsize += SML_CONFIG_SIZE;
@@ -497,11 +506,13 @@ void initialize_xtc(char *outfile)
 
     if (!(fp = myfopen(fname, "w", 1))) {
         printf("Cannot open %s for output!\n", fname);
+        fprintf(stderr, "error Open %s failed.\n", fname);
         exit(0);
     } else
         printf("Opened %s for writing.\n", fname);
     if (!(sfp = myfopen(sfname, "w", 0))) {
         printf("Cannot open %s for output!\n", sfname);
+        fprintf(stderr, "error Open %s failed.\n", sfname);
         exit(0);
     } else
         printf("Opened %s for writing.\n", sfname);
@@ -715,6 +726,7 @@ void send_event(struct event *ev)
 
     if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
         printf("Write failed!\n");
+        fprintf(stderr, "error Write to %s failed.\n", fname);
         exit(1);
     }
     fsize += sizeof(Dgram) + sizeof(Xtc);
@@ -731,12 +743,14 @@ void send_event(struct event *ev)
 
     if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, sfp)) {
         printf("Write failed!\n");
+        fprintf(stderr, "error Write to %s failed.\n", fname);
         exit(1);
     }
     sfsize += sizeof(Dgram) + sizeof(Xtc);
 
     if (!fwrite(get_sml_offset(svoff, svext), SML_OFFSET_SIZE, 1, sfp)) {
         printf("Cannot write to file!\n");
+        fprintf(stderr, "error Write to %s failed.\n", sfname);
         exit(1);
     }
     sfsize += SML_OFFSET_SIZE;
@@ -759,10 +773,12 @@ void send_event(struct event *ev)
             if (src[i]->isbig) {
                 if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
                     printf("Write failed!\n");
+                    fprintf(stderr, "error Write to %s failed.\n", sfname);
                     exit(1);
                 }
                 if (!fwrite(get_sml_proxy(fsize, src[i]->len, src[i]->src), SML_PROXY_SIZE, 1, sfp)) {
                     printf("Write failed!\n");
+                    fprintf(stderr, "error Write to %s failed.\n", sfname);
                     exit(1);
                 }
                 fsize += src[i]->len;
@@ -770,6 +786,7 @@ void send_event(struct event *ev)
             } else {
                 if (!myfwrite(ev->data[i], src[i]->len)) {
                     printf("Write failed!\n");
+                    fprintf(stderr, "error Write to %s failed.\n", fname);
                     exit(1);
                 }
             }
@@ -779,6 +796,7 @@ void send_event(struct event *ev)
                 _indexList.updateSource(damagextc, bStopUpdate);
             if (!myfwrite(&damagextc, sizeof(Xtc))) {
                 printf("Write failed!\n");
+                fprintf(stderr, "error Write to %s failed.\n", fname);
                 exit(1);
             }
         }
@@ -798,11 +816,13 @@ void send_event(struct event *ev)
         sprintf(cipos, "-c%02d.xtc.idx", chunk);
         if (!(fp = myfopen(fname, "w", 1))) {
             printf("Cannot open %s for output!\n", fname);
+            fprintf(stderr, "error Open %s failed.\n", fname);
             exit(0);
         } else
             printf("Opened %s for writing.\n", fname);
         if (!(sfp = myfopen(sfname, "w", 0))) {
             printf("Cannot open %s for output!\n", sfname);
+            fprintf(stderr, "error Open %s failed.\n", sfname);
             exit(0);
         } else
             printf("Opened %s for writing.\n", sfname);

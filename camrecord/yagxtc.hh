@@ -35,6 +35,8 @@ extern void remove_socket(int s);
 extern void begin_run(void);
 extern int record_cnt;
 extern int verbose;
+extern int quiet;
+extern int pvignore;
 extern std::string hostname;
 extern std::string prefix;
 extern std::string username;

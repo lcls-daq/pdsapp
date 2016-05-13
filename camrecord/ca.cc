@@ -133,6 +133,8 @@ class caconn {
 
         if (det == DetInfo::NumDetector || (det != DetInfo::EpicsArch && dev == DetInfo::NumDevice)) {
             printf("Cannot find (%s, %s) values!\n", detector.c_str(), camtype.c_str());
+            fprintf(stderr, "error Bad configuration: Cannot identify detector %s %s.\n",
+                    detector.c_str(), camtype.c_str());
             exit(1);
         }
         bld = bld ? atoi(ds + 4) : -1;
@@ -154,9 +156,20 @@ class caconn {
                                            50, /* priority?!? */
                                            &chan);
             if (result != ECA_NORMAL) {
+                const char *s = ca_message(result);
                 printf("CA error %s while creating channel to %s!\n",
-                        ca_message(result), pvname.c_str());
-                exit(0);
+                        s, pvname.c_str());
+                switch (pvignore) {
+                case 0:
+                    fprintf(stderr, "error CA error %s for %s.\n", s, pvname.c_str());
+                    exit(0);
+                    break;
+                case 1:
+                    fprintf(stderr, "warn CA error %s for %s.\n", s, pvname.c_str());
+                    break;
+                case 2:
+                    break;
+                }
             }
             ca_poll();
             return;
@@ -182,6 +195,7 @@ class caconn {
             break;
         default:
             /* This is bad. We should probably print something. */
+            fprintf(stderr, "error Unknown camera type %d.\n", ctp);
             exit(0);
             break;
         }
@@ -314,6 +328,7 @@ class caconn {
             break;
         default:
             printf("Unknown device: %s!\n", DetInfo::name(ctp));
+            fprintf(stderr, "error Unknown device %s\n", DetInfo::name(ctp));
             exit(1);
         }
         // This is on every camera.
@@ -344,9 +359,22 @@ class caconn {
                                        50, /* priority?!? */
                                        &chan);
         if (result != ECA_NORMAL) {
+            const char *s = ca_message(result);
             printf("CA error %s while creating channel to %s!\n",
-                    ca_message(result), pvname.c_str());
-            exit(0);
+                    s, pvname.c_str());
+                switch (pvignore) {
+                case 0:
+                    fprintf(stderr, "error CA error %s while creating %s.\n", 
+                            s, pvname.c_str());
+                    exit(0);
+                    break;
+                case 1:
+                    fprintf(stderr, "warn CA error %s while creating %s.\n", 
+                            s, pvname.c_str());
+                    break;
+                case 2:
+                    break;
+                }
         }
         ca_poll();
     };
@@ -467,7 +495,17 @@ static void get_handler(struct event_handler_args args)
                                         event_handler, (void *) c, &c->event);
     if (status != ECA_NORMAL) {
         printf("Failed to create subscription! error %d!\n", status);
-        exit(0);
+        switch (pvignore) {
+        case 0:
+            fprintf(stderr, "error Cannot subscribe to %s (error %d).\n", c->getpvname(), status);
+            exit(0);
+            break;
+        case 1:
+            fprintf(stderr, "warn Cannot subscribe to %s (error %d).\n", c->getpvname(), status);
+            break;
+        case 2:
+            break;
+        }
     }
 }
 
@@ -491,13 +529,33 @@ static void connection_handler(struct connection_handler_args args)
                                                 event_handler, (void *) c, &c->event);
             if (status != ECA_NORMAL) {
                 printf("Failed to create subscription! error %d!\n", status);
-                exit(0);
+                switch (pvignore) {
+                case 0:
+                    fprintf(stderr, "error Cannot subscribe to %s (error %d).\n", c->getpvname(), status);
+                    exit(0);
+                    break;
+                case 1:
+                    fprintf(stderr, "warn Cannot subscribe to %s (error %d).\n", c->getpvname(), status);
+                    break;
+                case 2:
+                    break;
+                }
             }
         } else {
             int status = ca_array_get_callback(dbf_type_to_DBR_CTRL(c->dbftype), c->nelem, args.chid, get_handler, (void *) c);
             if (status != ECA_NORMAL) {
                 printf("Get failed! error %d!\n", status);
-                exit(0);
+                switch (pvignore) {
+                case 0:
+                    fprintf(stderr, "error Cannot get %s (error %d).\n", c->getpvname(), status);
+                    exit(0);
+                    break;
+                case 1:
+                    fprintf(stderr, "warn Cannot get %s (error %d).\n", c->getpvname(), status);
+                    break;
+                case 2:
+                    break;
+                }
             }
         }
     } else {
@@ -541,7 +599,17 @@ void begin_run_ca(void)
             int status = ca_array_get_callback(c->dbrtype, c->nelem, c->chan, event_handler, (void *) c);
             if (status != ECA_NORMAL) {
                 printf("Get failed! error %d!\n", status);
-                exit(0);
+                switch (pvignore) {
+                case 0:
+                    fprintf(stderr, "error Cannot get %s (error %d).\n", c->getpvname(), status);
+                    exit(0);
+                    break;
+                case 1:
+                    fprintf(stderr, "warn Cannot get %s (error %d).\n", c->getpvname(), status);
+                    break;
+                case 2:
+                    break;
+                }
             }
         }
     }

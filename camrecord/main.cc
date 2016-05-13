@@ -74,6 +74,7 @@ int record_cnt = 0;
 static int nrec = 0;
 int verbose = 1;
 int quiet = 0;
+int pvignore = 0;
 static char *outfile = NULL;
 string hostname = "";
 string prefix = "";
@@ -174,6 +175,7 @@ static void record(string name, const char *arg)
     symbol *s = symbol::find(name);
     if (!s) {
         printf("Can't find symbol %s!\n", name.c_str());
+        fprintf(stderr, "error Bad configuration: no symbol %s to record.\n", name.c_str());
         exit(1);
     }
     switch (s->stype) {
@@ -275,6 +277,10 @@ static void read_config_file(const char *name)
             continue;
         } else if (arrayTokens[0] == "quiet") {
             quiet = 1;
+        } else if (arrayTokens[0] == "pvignore") {
+            if (arrayTokens.size() >= 2) {
+                pvignore = atoi(arrayTokens[1].c_str());
+            }
         } else if (arrayTokens[0] == "starttime") {
             if (arrayTokens.size() >= 3) {
                 start_sec = atoi(arrayTokens[1].c_str());
@@ -305,7 +311,7 @@ static void read_config_file(const char *name)
         } else if (arrayTokens[0] == "end") {
             break;
         } else if (arrayTokens[0] == "trans") {
-            if (arrayTokens.size() >= 4)
+            if (arrayTokens.size() >= 5)
                 do_transition(atoi(arrayTokens[1].c_str()),
                               atoi(arrayTokens[2].c_str()),
                               atoi(arrayTokens[3].c_str()),
