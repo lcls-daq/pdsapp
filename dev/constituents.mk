@@ -93,8 +93,10 @@ tgtincs_imp := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_pnccd := pnccd.cc
 tgtlibs_pnccd := $(commonlibs) pds/pnccd pds/pnccdFrameV0 pds/pgp pds/configdata
+tgtlibs_pnccd += pds/epicstools epics/ca epics/Com
 tgtslib_pnccd := $(commonslib)
-tgtincs_pnccd := pdsdata/include ndarray/include boost/include 
+tgtincs_pnccd := pdsdata/include ndarray/include boost/include
+tgtincs_pnccd += epics/include epics/include/os/Linux
 
 tgtsrcs_cspad := cspad.cc
 tgtlibs_cspad := $(commonlibs) pds/cspad pds/pgp
