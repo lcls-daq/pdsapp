@@ -37,6 +37,10 @@ static void usage(char *argv0)
    "            1=CXI slow runningkludge\n"
    "            2=XPP short timeout on Disable\n"
    "         -X <port_number>          : status export UDP port\n"
+   "         -I <ignore_options>       : ignore PV connection errors for IOC recorder\n"
+   "            0=Do not ignore (default)\n"
+   "            1=Ignore with message\n"
+   "            2=Ignore silently\n"
    "         -h                        : print usage information\n"
    "         -v\n",
    argv0);
@@ -61,11 +65,12 @@ int main(int argc, char** argv)
   int verbose = 0;
   bool override = false;
   unsigned partition_options = 0;
+  unsigned pv_ignore_options = 0;
   bool autorun = false;
   bool lusage = false;
 
   int c;
-  while ((c = getopt(argc, argv, "p:P:D:L:R:E:e:N:C:AOTS:X:t:w:o:hv")) != -1) {
+  while ((c = getopt(argc, argv, "p:P:D:L:R:E:e:N:C:AOTS:X:t:w:o:I:hv")) != -1) {
     switch (c) {
     case 'A':
       autorun = true;
@@ -148,6 +153,12 @@ int main(int argc, char** argv)
         lusage = true;
       }
       break;
+    case 'I':
+      if (!Pds::CmdLineTools::parseUInt(optarg, pv_ignore_options)) {
+        printf("%s: option `-I' parsing error\n", argv[0]);
+        lusage = true;
+      }
+      break;
     case 'h':
       lusage = true;
       break;
@@ -213,7 +224,8 @@ int main(int argc, char** argv)
                                       (verbose > 0),
                                       controlrc,
                                       expnum,
-                                      status_port);
+                                      status_port,
+                                      pv_ignore_options);
   window->override_errors(override);
   window->show();
   if (autorun)

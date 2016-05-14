@@ -261,7 +261,8 @@ MainWindow::MainWindow(unsigned          platform,
                        bool              verbose,
                        const char*       controlrc,
                        unsigned          experiment_number,
-                       unsigned          status_port) :
+                       unsigned          status_port,
+                       unsigned          pv_ignore_options) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
   _control  (new QualifiedControl(platform, *_controlcb, slowReadout, new ControlTimeout(*this))),
@@ -316,7 +317,7 @@ MainWindow::MainWindow(unsigned          platform,
 	experiment_label->setAlignment(Qt::AlignHCenter);
 
         delete _icontrol;
-        _icontrol = new IocControl(offlinerc,instname,station,experiment_number,controlrc);
+        _icontrol = new IocControl(offlinerc,instname,station,experiment_number,controlrc,pv_ignore_options);
       } else {
         // error: run number fixed at 0
         _runallocator = new RunAllocator;

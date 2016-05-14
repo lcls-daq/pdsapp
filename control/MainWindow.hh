@@ -36,7 +36,8 @@ namespace Pds {
                bool              verbose,
                const char*       controlrc,
                unsigned          experiment_number,
-               unsigned          status_port);
+               unsigned          status_port,
+               unsigned          pv_ignore_options);
     ~MainWindow();
 
     // Unix signal handlers.
