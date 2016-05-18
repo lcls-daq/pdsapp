@@ -4,6 +4,7 @@
 #include "pds/pgp/Pgp.hh"
 #include "pds/pgp/Destination.hh"
 #include "pds/pgp/DataImportFrame.hh"
+#include "pgpcard/PgpCardMod.h"
 #include <strings.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -32,13 +33,16 @@ Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
-	printf( "Usage: %s [-h]  -P <pgpcardNumb> [-G] [-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-S detID,sharedMemoryTag,nclients][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
+	printf( "Usage: %s [-h]  -P <pgpcardNumb> [-G] [-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-S detID,sharedMemoryTag,nclients][-a n,m,o][-o maxPrint][-s filename][-D <debug>] [-f <runTimeConfigName>][-p pf]\n"
 			"    -h      Show usage\n"
-			"    -P      Set pgpcard index number  (REQUIRED)\n"
-			"                The format of the index number is a one byte number with the bottom nybble being\n"
-			"                the index of the card and the top nybble being a port mask where one bit is for\n"
-			"                each port, but a value of zero maps to 15 for compatibility with unmodified\n"
-			"                applications that use the whole card\n"
+      "    -P      Set pgpcard index number                 [Default: 0]\n"
+      "                The format of the index number is a one byte number with the bottom nybble being\n"
+      "                the index of the card and the top nybble being a value that depends on the card\n"
+      "                in use.  For the G2 or earlier, it is a port mask where one bit is for\n"
+      "                each port, but a value of zero maps to 15 for compatibility with unmodified\n"
+      "                applications that use the whole card\n"
+      "                For a G3 card, the top nybble is the index of the bottom port in use, with the\n"
+      "                index of 1 for the first port\n"
 			"    -G      Use if pgpcard is a G3 card\n"
 			"    -w      Write register to destination, reply will be send to standard output\n"
 			"                The format of the paraemeters are: 'dest addr data'\n"
@@ -57,6 +61,7 @@ void printUsage(char* name) {
 			"    -S      Loop reading data until interrupted, resulting data will be written with the device type to the shared memory.  [Example: -S \"EpixSampler,0_1_DAQ\"\n"
 			"    -o      Print out up to maxPrint words when reading data\n"
 			"    -s      Save to file when reading data\n"
+	    "    -a      Add more ports to G3 allocation, parameters are n first allocation and m second\n"
 			"    -D      Set debug value           [Default: 0]\n"
 			"                bit 00          print out progress\n"
 			"    -f      set run time config file name\n"
@@ -68,7 +73,7 @@ void printUsage(char* name) {
 	);
 }
 
-enum Commands{none, writeCommand,readCommand,readAsyncCommand,dumpCommand,testCommand,loopWriteCommand,numberOfCommands};
+enum Commands{none, writeCommand,readCommand,readAsyncCommand,dumpCommand,testCommand,loopWriteCommand,addPortsCommand,numberOfCommands};
 
 int main( int argc, char** argv )
 {
@@ -100,6 +105,8 @@ int main( int argc, char** argv )
 	bool                cardGiven           = false;
 	unsigned            debug               = 0;
 	unsigned            idx                 = 0;
+	unsigned            portsToAdd[3]       = {0,0,0};
+	int                 reti                 = SUCCESS;
 	::signal( SIGINT, sigHandler );
 	char                runTimeConfigname[256] = {""};
 	char                writeFileName[256] = {""};
@@ -109,7 +116,7 @@ int main( int argc, char** argv )
 	char*               endptr;
 	extern char*        optarg;
 	int c;
-	while( ( c = getopt( argc, argv, "hP:Gw:W:D:r:d:RS:o:s:f:p:t:" ) ) != EOF ) {
+	while( ( c = getopt( argc, argv, "hP:Gw:W:D:r:d:RS:o:s:f:p:t:a:" ) ) != EOF ) {
 		switch(c) {
 		case 'P':
 			pgpcard = strtoul(optarg, NULL, 0);
@@ -157,6 +164,12 @@ int main( int argc, char** argv )
 			addr = strtoul(endptr+1,&endptr,0);
 			count = strtoul(endptr+1,&endptr,0);
 			break;
+		case 'a':
+		  command = addPortsCommand;
+		  portsToAdd[0] = strtoul(optarg  ,&endptr,0);
+		  portsToAdd[1] = strtoul(endptr+1,&endptr,0);
+		  portsToAdd[2] = strtoul(endptr+1,&endptr,0);
+		  break;
 		case 'R':
 			command = readAsyncCommand;
 			break;
@@ -370,6 +383,24 @@ int main( int argc, char** argv )
 			printf("\t%16x - %16x %s\n", i, data, i == data ? "" : "<<--ERROR");
 		}
 		break;
+	case addPortsCommand:
+	  printf("we allocated one to begin\n");
+	  if (portsToAdd[0]) {
+	    printf("Now adding %u ports\n", portsToAdd[0]);
+	    reti = pgp->IoctlCommand(IOCTL_Add_More_Ports, portsToAdd[0]);
+	  }
+    if (portsToAdd[1] && reti == SUCCESS) {
+      printf("Now adding %u ports\n", portsToAdd[1]);
+      reti = pgp->IoctlCommand(IOCTL_Add_More_Ports, portsToAdd[1]);
+    }
+    if (portsToAdd[2] && reti == SUCCESS) {
+      printf("Now adding %u ports\n", portsToAdd[2]);
+      reti = pgp->IoctlCommand(IOCTL_Add_More_Ports, portsToAdd[2]);
+    }
+    if (reti == ERROR) {
+      printf("We failed to add them all!!!\n");
+    }
+	  break;
 	case readAsyncCommand:
 		enum {BufferWords = 1<<24};
 		Pds::Pgp::DataImportFrame* inFrame;

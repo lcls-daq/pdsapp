@@ -80,7 +80,6 @@ class Pds::Seg
         SegWireSettings& settings,
         Arp* arp,
         Cspad2x2Server* cspad2x2Server,
-        unsigned pgpcard,
         bool compress = false );
 
    virtual ~Seg();
@@ -96,7 +95,6 @@ class Pds::Seg
    unsigned      _platform;
    CfgClientNfs* _cfg;
    Cspad2x2Server*  _cspad2x2Server;
-   unsigned      _pgpcard;
    bool          _compress;
    bool          _failed;
 };
@@ -146,13 +144,11 @@ Pds::Seg::Seg( Task* task,
                SegWireSettings& settings,
                Arp* arp,
                Cspad2x2Server* cspad2x2Server,
-               unsigned pgpcard,
                bool compress )
    : _task(task),
      _platform(platform),
      _cfg   (cfgService),
      _cspad2x2Server(cspad2x2Server),
-     _pgpcard(pgpcard),
      _compress(compress),
      _failed(false)
 {}
@@ -168,7 +164,7 @@ void Pds::Seg::attached( SetOfStreams& streams )
           _platform);
       
    Stream* frmk = streams.stream(StreamParams::FrameWork);
-   Cspad2x2Manager& cspad2x2Mgr = * new Cspad2x2Manager( _cspad2x2Server, _pgpcard );
+   Cspad2x2Manager& cspad2x2Mgr = * new Cspad2x2Manager( _cspad2x2Server);
    if (_compress) (new FrameCompApp(0x80000))->connect( frmk->inlet() );
    cspad2x2Mgr.appliance().connect( frmk->inlet() );
 }
@@ -205,7 +201,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <nevents>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb>] [-r <runTimeConfigName>] [-R <runTriggerFactor>] -p <platform>,<mod>,<chan>\n"
+  printf( "Usage: cspad2x2 [-h] [-d <detector>] [-i <deviceID>] [-m <configMask>] [-e <numb>] [-C <nevents>] [-u <alias>] [-D <debug>] [-P <pgpcardNumb>] [-r <runTimeConfigName>] [-R <runTriggerFactor>] [-G] -p <platform>,<mod>,<chan>\n"
       "    -h      Show usage\n"
       "    -p      Set platform id, EVR module, EVR channel [required]\n"
       "    -d      Set detector type by name                [Default: XppGon]\n"
@@ -213,11 +209,15 @@ void printUsage(char* s) {
       "            just make up something and it'll list them\n"
       "    -i      Set device id                            [Default: 0]\n"
       "    -m      Set config mask                          [Default: 0]\n"
-      "    -P      Set pgpcard index number                 [Default: 0]\n"
+      "    -P      Set pgpcard index number  [Default: 0]\n"
       "                The format of the index number is a one byte number with the bottom nybble being\n"
-      "                the index of the card and the top nybble being a port mask where one bit is for\n"
-      "                each port, but a value of zero maps to 15 for compatiblity with unmodified\n"
+      "                the index of the card and the top nybble being a value that depends on the card\n"
+      "                in use.  For the G2 or earlier, it is a port mask where one bit is for\n"
+      "                each port, but a value of zero maps to 15 for compatibility with unmodified\n"
       "                applications that use the whole card\n"
+      "                For a G3 card, the top nybble is the index of the bottom port in use, with the\n"
+      "                index of 1 for the first port, i.e. 1,2,3,4,5,6,7 or 8\n"
+      "    -G      Use if pgpcard is a G3 card\n"
       "    -e <N>  Set the maximum event depth, default is 256\n"
       "    -C <N>  Compress and copy every Nth event\n"
       "    -u      Set device alias                         [Default: none]\n"
@@ -255,9 +255,10 @@ int main( int argc, char** argv )
   unsigned            pgpcard             = 0;
   unsigned            debug               = 0;
   unsigned            eventDepth          = 256;
-  unsigned            runTriggerFactor       = 1;
+  unsigned            runTriggerFactor    = 1;
   ::signal( SIGINT, sigHandler );
   char                runTimeConfigname[256] = {""};
+  char                g3[16]              = {""};
   bool                platformMissing     = true;
   bool                compressFlag        = false;
   bool                bUsage              = false;
@@ -266,7 +267,7 @@ int main( int argc, char** argv )
    extern char* optarg;
    char* uniqueid = (char *)NULL;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:C:e:D:xP:u:r:R:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:C:e:D:xP:u:r:R:G" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -357,6 +358,9 @@ int main( int argc, char** argv )
              printf("Cspad2x2 using run trigger rate of %u Hz\n", 120 / runTriggerFactor);
            }
            break;
+         case 'G':
+           strcpy(g3, "G3");
+           break;
          case 'r':
            strcpy(runTimeConfigname, optarg);
            break;
@@ -408,6 +412,40 @@ int main( int argc, char** argv )
    cspad2x2Server->runTimeConfigName(runTimeConfigname);
    cspad2x2Server->runTrigFactor(runTriggerFactor);
 
+   bool G3Flag = strlen(g3) != 0;
+   unsigned ports = (pgpcard >> 4) & 0xf;
+   char devName[128];
+   printf("%s pgpcard 0x%x, ports %d\n", argv[0], pgpcard, ports);
+   char err[128];
+   if ((ports == 0) && !G3Flag) {
+     ports = 15;
+   }
+   sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
+
+   int fd = open( devName,  O_RDWR | O_NONBLOCK );
+   if (debug & 1) printf("%s using %s\n", argv[0], devName);
+   if (fd < 0) {
+     sprintf(err, "%s opening %s failed", argv[0], devName);
+     perror(err);
+     return 1;
+   }
+
+   unsigned limit =  4;
+   unsigned offset = 0;
+
+   if ( !G3Flag ) { // G2 or lower
+     while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
+       offset += 1;
+     }
+   } else {  // G3 card
+     offset = ports -1;
+   }
+
+   printf("%s pgpcard opened as fd %d, offset %d, ports %d\n", argv[0], fd, offset, ports);
+
+   Pds::Pgp::Pgp::portOffset(offset);
+   cspad2x2Server->setCspad2x2(fd);
+
    MySegWire settings(cspad2x2Server, module, channel, uniqueid);
    settings.max_event_depth(eventDepth);
 
@@ -417,7 +455,6 @@ int main( int argc, char** argv )
                        settings,
                        0,
                        cspad2x2Server,
-                       pgpcard,
                        compressFlag);
 
    SegmentLevel* seglevel = new SegmentLevel( platform,
@@ -428,10 +465,10 @@ int main( int argc, char** argv )
 
    if (seg->didYouFail()) printf("So, goodbye cruel world!\n ");
    else  {
-     printf("entering cspad2x2 task main loop, \n\tDetector: %s\n\tDevice: %s\n\tPlatform: %u\n",
-         DetInfo::name((DetInfo::Detector)detector), DetInfo::name(device), platform);
+     printf("entering %s task main loop, \n\tDetector: %s\n\tDevice: %s\n\tPlatform: %u\n",
+         argv[0], DetInfo::name((DetInfo::Detector)detector), DetInfo::name(device), platform);
      task->mainLoop();
-     printf("exiting cspad2x2 task main loop\n");
+     printf("exiting %s task main loop\n", argv[0]);
    }
    return 0;
 }
