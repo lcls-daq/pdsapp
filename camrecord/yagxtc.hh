@@ -60,6 +60,7 @@ extern void create_ca(std::string name, std::string detector, std::string camtyp
 extern void handle_ca(fd_set *rfds);
 extern void begin_run_ca(void);
 extern void cleanup_ca(void);
+extern char *connection_status(void);
 
 /* xtc.cc */
 extern void nofid(void);

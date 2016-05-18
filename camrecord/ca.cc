@@ -543,28 +543,8 @@ static void connection_handler(struct connection_handler_args args)
             }
         }
     } else {
-        if(c->connected == 0) {
-            printf("Initial connection to %s (%s) failed.\n", c->getname(), c->getpvname());
-            if (c->is_cam) {
-                fprintf(stderr, "error Cannot connect to %s.\n", c->getpvname());
-                exit(0);
-            } else {
-                switch (pvignore) {
-                case 0:
-                    fprintf(stderr, "error Cannot connect to %s.\n", c->getpvname());
-                    exit(0);
-                    break;
-                case 1:
-                    fprintf(stderr, "warn Cannot connect to %s.\n", c->getpvname());
-                    break;
-                case 2:
-                    break;
-                }
-            }
-        } else {
-            c->connected = 0;
-            printf("%s (%s) has disconnected!\n", c->getname(), c->getpvname());
-        }
+        c->connected = 0;
+        printf("%s (%s) has disconnected!\n", c->getname(), c->getpvname());
     }
     fflush(stdout);
 }
@@ -630,4 +610,20 @@ void cleanup_ca(void)
 
     ca_pend_io(0.0);
     ca_context_destroy();
+}
+
+char *connection_status(void)
+{
+    static char buf[1024];
+    char *s = buf;
+    int i, j;
+    caconn *c;
+
+    for (i = 0, j=0, c = caconn::index(i); c; c = caconn::index(++i)) {
+        j += c->connected;
+    }
+
+    sprintf(s, "cstat %d %d", i, j);
+    
+    return buf;
 }

@@ -494,6 +494,10 @@ static void process_command(char *buf)
         char *rpt = damage_report();
         fprintf(stderr, "%s\n", rpt);
         fflush(stderr);
+    } else if (!strncmp(buf, "connect", 7)) {
+        char *crpt = connection_status();
+        fprintf(stderr, "%s\n", crpt);
+        fflush(stderr);
     } else if (buf[0] == 0 || !strcmp(buf, "stats")) {
         gettimeofday(&now, NULL);
         if (delay && (now.tv_sec > ka_finish.tv_sec || 
