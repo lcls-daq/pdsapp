@@ -32,6 +32,7 @@ namespace Pds {
     void clear();
     void setup(const MonCds&, unsigned icolor);
     void update(bool redraw);
+    void update(const MonCds&);
   };
 };
 

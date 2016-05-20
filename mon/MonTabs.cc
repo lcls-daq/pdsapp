@@ -126,3 +126,18 @@ void MonTabs::update(bool lredraw)
     static_cast<MyTab*>(scroll->widget())->update(lredraw);
   }
 }  
+
+void MonTabs::update(const MonCds& cds)
+{
+  for(unsigned tabid=0; tabid<cds.ngroups(); tabid++) {
+    const MonGroup& group = *cds.group(tabid);
+    QString gname(group.desc().name());
+    for(int i=0; i<count(); i++) {
+      if (tabText(i)==gname) {
+        QScrollArea* scroll = static_cast<QScrollArea*>(widget(i));
+        static_cast<MyTab*>(scroll->widget())->update(true);
+        break;
+      }
+    }
+  }
+}  
