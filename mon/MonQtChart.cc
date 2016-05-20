@@ -134,7 +134,7 @@ void MonQtChart::params(unsigned nl, const char* names)
   unsigned nfound = MonPath::split(names, buf, snames, ':');
   for(unsigned k=0; k<_nlines; k++) {
     char nameb[64];
-    sprintf(nameb,"%s:%d",_name,k);
+    sprintf(nameb,"%s:%d",_name.c_str(),k);
     QwtPlotCurve* c = new QwtPlotCurve((nfound==_nlines) ? snames[k] : nameb);
     //  c->setStyle(QwtPlotCurve::Dots);
     if (_nlines>1) {
@@ -252,10 +252,12 @@ void MonQtChart::point(double time, const double* y)
     _nfill++;
 
   unsigned start = _current+_npoints-_nfill;
-  double* yl = &_yl[start];
-  for(unsigned k=0; k<_nlines; k++) {
-    _curves[k]->setRawData(&_xl[start], yl, _nfill);
-    yl += 2*_npoints;
+  if (_nfill>1) {
+    double* yl = &_yl[start];
+    for(unsigned k=0; k<_nlines; k++) {
+      _curves[k]->setRawData(&_xl[start], yl, _nfill);
+      yl += 2*_npoints;
+    }
   }
 }
 
@@ -273,8 +275,10 @@ void MonQtChart::point(double time, double y)
     _current = 0;
   if (_nfill < _npoints)
     _nfill++;
-  unsigned start = _current+_npoints-_nfill;
-  _curves[0]->setRawData(&_xl[start], &_yl[start], _nfill);
+  if (_nfill>1) {
+    unsigned start = _current+_npoints-_nfill;
+    _curves[0]->setRawData(&_xl[start], &_yl[start], _nfill);
+  }
 }
 
 float MonQtChart::min(Axis ax) const 

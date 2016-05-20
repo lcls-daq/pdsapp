@@ -95,7 +95,8 @@ int MonConsumerScalar::_update()
   if (entry->time() > _last->time()) {
 
     _since->point(entry->last(), entry->since(*_prev)); 
-    _diff ->point(entry->last(), entry->since(*_last));
+    if (_last->last())
+      _diff ->point(entry->last(), entry->since(*_last));
     _hist ->point(entry->last(), entry->values());
     _last ->setto(*entry);
 

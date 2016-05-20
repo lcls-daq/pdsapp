@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+#include <string>
+
 class QwtPlot;
 
 namespace Pds {
@@ -43,9 +45,9 @@ namespace Pds {
   protected:
     const Type _type;
     const MonDescEntry* _desc;
-    const char* _name;
-    const char* _xtitle;
-    const char* _ytitle;
+    std::string _name;
+    std::string _xtitle;
+    std::string _ytitle;
     const bool _swapaxis;
 
     double _last;

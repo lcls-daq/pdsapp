@@ -112,7 +112,7 @@ void MonTree::event(MonConsumerClient::Type type, int result)
     break;
   case MonConsumerClient::Payload:
     _status = Ready;
-    _tabs.update(true);
+    _tabs.update(_client.cds());
     break;
   default:
     printf("*** MonTree::event unable to handle event %d\n", type);
