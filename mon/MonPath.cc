@@ -47,14 +47,14 @@ unsigned MonPath::split(const char* name,
   strcpy(buf, name);
   *ptr++ = buf;
   ++found;
-  do {
+  while(*buf) {
     if (*buf == separator) {
       *buf = 0;
       *ptr++ = buf+1;
       ++found;
     }
     ++buf;
-  } while (*buf);
+  }
   return found;
 }
 
