@@ -2,6 +2,7 @@ libnames := monapp
 
 libsrcs_monapp := $(filter-out MonMain.cc MonTreeMenu.cc MonTreeMenu_moc.cc MonTabMenu.cc, $(wildcard Mon*.cc))
 libsrcs_monapp += MonDialog_moc.cc MonQtImageDisplay_moc.cc MonTab_moc.cc MonCanvas_moc.cc MonTree_moc.cc
+libsrcs_monapp += QtPlotCurve.cc QtPlotCurve_moc.cc
 libincs_monapp := $(qtincdir)
 libincs_monapp += $(qwtincs) qwt/include
 libincs_monapp += pdsdata/include

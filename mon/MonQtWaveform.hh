@@ -1,8 +1,7 @@
 #ifndef Pds_MonROOTWaveform_HH
 #define Pds_MonROOTWaveform_HH
 
-#include "qwt_plot_curve.h"
-
+#include "QtPlotCurve.hh"
 #include "pds/mon/MonStats1D.hh"
 #include "MonQtBase.hh"
 
@@ -15,7 +14,7 @@ namespace Pds {
   class MonDescImage;
   class MonEntryWaveform;
 
-  class MonQtWaveform : public QwtPlotCurve, 
+  class MonQtWaveform : public QtPlotCurve, 
 		    public MonStats1D,
 		    public MonQtBase 
   {

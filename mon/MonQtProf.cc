@@ -2,10 +2,10 @@
 #include "MonPath.hh"
 #include "MonUtils.hh"
 
+#include "pdsapp/mon/QtPlotCurve.hh"
 #include "pds/mon/MonEntryProf.hh"
 
 #include "qwt_plot.h"
-#include "qwt_plot_curve.h"
 #include "qwt_scale_engine.h"
 
 #include <QtGui/QColor>
@@ -19,7 +19,7 @@ MonQtProf::MonQtProf(const char* name,
   _nbins(0),
   _names(0)
 { 
-  _curve = new QwtPlotCurve(name);
+  _curve = new QtPlotCurve(name);
   _curve->setStyle(QwtPlotCurve::Steps);
   _curve->setPen  (QPen(MonUtils::color(0)));
   params(desc);

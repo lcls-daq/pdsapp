@@ -8,7 +8,6 @@
 #include <vector>
 
 class QwtPlot;
-class QwtPlotCurve;
 
 namespace Pds {
 
@@ -17,6 +16,7 @@ namespace Pds {
   class MonDescTH1F;
   class MonDescTH2F;
   class MonDescImage;
+  class QtPlotCurve;
 
   class MonQtChart : public MonQtBase {
   public:
@@ -73,7 +73,7 @@ namespace Pds {
     double* _xl;
     double* _yl;
 
-    QwtPlotCurve** _curves;
+    QtPlotCurve** _curves;
 
     float _ymin, _ymax;
   };

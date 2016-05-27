@@ -1,7 +1,7 @@
 #ifndef Pds_MonROOTTH1F_HH
 #define Pds_MonROOTTH1F_HH
 
-#include "qwt_plot_curve.h"
+#include "QtPlotCurve.hh"
 
 #include "pds/mon/MonStats1D.hh"
 #include "MonQtBase.hh"
@@ -15,7 +15,7 @@ namespace Pds {
   class MonDescImage;
   class MonEntryTH1F;
 
-  class MonQtTH1F : public QwtPlotCurve, 
+  class MonQtTH1F : public QtPlotCurve, 
 		    public MonStats1D,
 		    public MonQtBase 
   {

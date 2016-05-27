@@ -12,7 +12,7 @@
 #include <QtGui/QHBoxLayout>
 
 static const unsigned Step = 64;
-
+static const unsigned MinSize = 300;
 using namespace Pds;
 
 MonTab::MonTab(MonClient& client,
@@ -30,6 +30,12 @@ MonTab::MonTab(MonClient& client,
   unsigned n = group.nentries();
   unsigned rows = (n+2)/3;
   unsigned columns = rows ? (n+rows-1)/rows : 0;
+
+  for(unsigned i=0; i<rows; i++)
+    layout->setRowMinimumHeight(i,MinSize);
+
+  for(unsigned i=0; i<columns; i++)
+    layout->setColumnMinimumWidth(i,MinSize);
 
   for(_used = 0; _used < group.nentries(); _used++) {
     const MonEntry& entry = *group.entry(_used);

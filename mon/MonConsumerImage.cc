@@ -222,7 +222,7 @@ void MonConsumerImage::select(Select selection)
       _selected == MonCanvas::ChartY) {
     _plot->setAxisScaleDraw(QwtPlot::xBottom, new MonTimeScale);
     _plot->setAxisLabelRotation (QwtPlot::xBottom, -50.0);
-    _plot->setAxisLabelAlignment(QwtPlot::xBottom, Qt::AlignLeft | Qt::AlignBottom);
+    _plot->setAxisLabelAlignment(QwtPlot::xBottom, ::Qt::AlignLeft | ::Qt::AlignBottom);
     //     QwtScaleWidget *scaleWidget = _plot->axisWidget(QwtPlot::xBottom);
     //     const int fmh = QFontMetrics(scaleWidget->font()).height();
     //     scaleWidget->setMinBorderDist(0, fmh / 2);
