@@ -11,7 +11,6 @@ using namespace Pds;
 
 static QList<int> _bldOrder = 
   QList<int>() << BldInfo::EBeam
-         << BldInfo::EOrbits
          << BldInfo::PhaseCavity
          << BldInfo::FEEGasDetEnergy
          << BldInfo::Nh2Sb1Ipm01
