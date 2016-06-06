@@ -12,7 +12,7 @@
 #include <new>
 
 #include "pds/xpm/Module.hh"
-#include "pds/xpm/RingBuffer.hh"
+#include "pds/cphw/RingBuffer.hh"
 
 #include <string>
 
@@ -23,14 +23,14 @@ static inline double dtime(timespec& tsn, timespec& tso)
 
 extern int optind;
 
-using namespace Xpm;
+using namespace Pds::Xpm;
 
 void usage(const char* p) {
   printf("Usage: %s [-a <IP addr (dotted notation)>]\n",p);
 }
 
 void sigHandler( int signal ) {
-  Xpm::Module* m = new(0) Xpm::Module;
+  Module* m = new(0) Module;
   m->setL0Enabled(false);
   ::exit(signal);
 }
@@ -66,9 +66,9 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  Reg::set(ip, port, 0x80000000);
+  Pds::Cphw::Reg::set(ip, port, 0x80000000);
 
-  Xpm::Module* m = new(0) Xpm::Module;
+  Module* m = new(0) Module;
   
   while(1) {
     unsigned rx = m->rxLinkStat();

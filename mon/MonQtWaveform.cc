@@ -17,7 +17,7 @@ using namespace Pds;
 
 MonQtWaveform::MonQtWaveform(const char* name, 
 			     const MonDescWaveform& desc) : 
-  QwtPlotCurve(name),
+  QtPlotCurve(name),
   MonQtBase(H1, desc, name)
 {
   setStyle(QwtPlotCurve::Steps);
@@ -38,7 +38,7 @@ MonQtWaveform::MonQtWaveform(const char* name,
 MonQtWaveform::MonQtWaveform(const char* name, 
 			     const MonDescTH2F& desc,
 			     Axis ax) : 
-  QwtPlotCurve(name),
+  QtPlotCurve(name),
   MonQtBase(H1, desc, name, ax == X ? false : true)
 {
   setStyle(QwtPlotCurve::Steps);
@@ -60,7 +60,7 @@ MonQtWaveform::MonQtWaveform(const char* name,
 MonQtWaveform::MonQtWaveform(const char* name, 
 			     const MonDescImage& desc,
 			     Axis ax) : 
-  QwtPlotCurve(name),
+  QtPlotCurve(name),
   MonQtBase(H1, desc, name, ax == X ? false : true)
 {
   setStyle(QwtPlotCurve::Steps);

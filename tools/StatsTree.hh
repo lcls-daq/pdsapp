@@ -1,21 +1,19 @@
 #ifndef Pds_StatsTree_hh
 #define Pds_StatsTree_hh
 
-#include "pds/client/XtcIterator.hh"
 #include "pds/service/LinkedList.hh"
 #include "pds/utility/Appliance.hh"
 #include "pds/utility/EbBase.hh"
 #include "pds/xtc/InDatagram.hh"
-#include "pds/xtc/InDatagramIterator.hh"
-#include "pds/xtc/CDatagramIterator.hh"
+#include "pdsdata/xtc/XtcIterator.hh"
 
 #include <stdio.h>
 #include <string.h>
 
 namespace StatsT {
   class NodeStats : public Pds::LinkedList<NodeStats>, 
-                    public PdsClient::XtcIterator {
-    public:
+                    public XtcIterator {
+  public:
     NodeStats(const Pds::Src& n) : _node(n) { reset(); }
     ~NodeStats() {}
 
@@ -36,7 +34,7 @@ namespace StatsT {
       }
     }
 
-    int  accumulate(const Pds::Xtc& xtc, Pds::InDatagramIterator* iter) {
+    int  accumulate(Pds::Xtc& xtc) {
       _events++;
       _size   += xtc.sizeofPayload();
       unsigned dmg = xtc.damage.bits();
@@ -48,30 +46,32 @@ namespace StatsT {
             _usrBitBins[xtc.damage.userBits()]++;
           }
         }
-      return xtc.contains.id()==Pds::TypeId::Id_Xtc ? iterate(xtc,iter) : 0;
+      if (xtc.contains.id()==Pds::TypeId::Id_Xtc)
+        iterate(&xtc);
+      return 1;
     }
 
-    int  process(const Pds::Xtc& xtc, Pds::InDatagramIterator* iter) {
+    int  process(Pds::Xtc* xtc) {
       NodeStats* n = _list.forward();
       while(n != _list.empty()) {
-        if (n->node() == xtc.src)
-          return n->accumulate(xtc,iter);
+        if (n->node() == xtc->src)
+          return n->accumulate(*xtc);
         n = n->forward();
       }
       // add a new node
-      n = new NodeStats(xtc.src);
+      n = new NodeStats(xtc->src);
       _list.insert(n);
-      return n->accumulate(xtc,iter);
+      return n->accumulate(*xtc);
     }
 
     void dump(int indent) const {
 
-      if (_damage==0) 
-        return;
+      //      if (_damage==0) 
+      //        return;
 
       printf("%*c%08x/%08x : dmg 0x%08x  events 0x%x  avg sz 0x%llx\n",
-          indent, ' ', _node.log(), _node.phy(),
-          _damage, _events, _events ? _size/_events : 0);
+             indent, ' ', _node.log(), _node.phy(),
+             _damage, _events, _events ? _size/_events : 0);
       for(int i=0; i<24; i++) {
         if (_dmgbins[i]) {
           printf("%*c%8d : 0x%x\n",indent,' ',i,_dmgbins[i]);
@@ -90,7 +90,7 @@ namespace StatsT {
         n = n->forward();
       }
     }
-    private:
+  private:
     Pds::LinkedList<NodeStats> _list;
     Pds::Src       _node;
     unsigned  _damage;
@@ -104,79 +104,75 @@ namespace StatsT {
 using namespace Pds;
 
 class StatsTree : public Appliance {
-  public:
-    StatsTree() : _pool(sizeof(CDatagramIterator),1) {}
-    ~StatsTree() {}
-
-    Transition* transitions(Transition* in) {
-      _seq = 0;
-      _nPrint = 10;
-      switch( in->id() ) {
-        case TransitionId::Unmap:
-          while(_list.forward() != _list.empty())
-            delete _list.remove();
-          break;
-        case TransitionId::Enable:
-        {
-          EbBase::printFixups(20);
-          StatsT::NodeStats* n = _list.forward();
-          while(n != _list.empty()) {
-            n->reset();
-            n = n->forward();
-          }
+public:
+  StatsTree() {}
+  ~StatsTree() {}
+  
+  Transition* transitions(Transition* in) {
+    _seq = 0;
+    _nPrint = 10;
+    switch( in->id() ) {
+    case TransitionId::Unmap:
+      while(_list.forward() != _list.empty())
+        delete _list.remove();
+      break;
+    case TransitionId::Enable:
+      {
+        EbBase::printFixups(20);
+        StatsT::NodeStats* n = _list.forward();
+        while(n != _list.empty()) {
+          n->reset();
+          n = n->forward();
         }
-        break;
-        default:
-          break;
+      }
+      break;
+    default:
+      break;
+    }
+    return in;
+  }
+  InDatagram* occurrences(InDatagram* in) { return in; }
+  InDatagram* events     (InDatagram* in) {
+    Datagram& dg = in->datagram();
+    if (!dg.seq.isEvent()) {
+      printf("Transition %02x/%016lx\n",dg.seq.service(),dg.seq.stamp().fiducials());
+      if (dg.seq.service()==TransitionId::Disable) {
+        StatsT::NodeStats* n = _list.forward();
+        while(n != _list.empty()) {
+          n->dump(6);
+          n = n->forward();
+        }
       }
       return in;
     }
-    InDatagram* occurrences(InDatagram* in) { return in; }
-    InDatagram* events     (InDatagram* in) {
-      const Datagram& dg = in->datagram();
-      if (!dg.seq.isEvent()) {
-        printf("Transition %02x/%08x\n",dg.seq.service(),dg.seq.stamp().fiducials());
-        if (dg.seq.service()==TransitionId::Disable) {
-          StatsT::NodeStats* n = _list.forward();
-          while(n != _list.empty()) {
-            n->dump(6);
-            n = n->forward();
-          }
-        }
-        return in;
-      }
 
-      static const unsigned rollover = 360;
-      if ((_seq > dg.seq.stamp().fiducials()) && (dg.seq.stamp().fiducials()>rollover) && _nPrint) {
-        printf("seq %08x followed %08x\n",dg.seq.stamp().fiducials(), _seq);
-        _nPrint--;
-      }
-      _seq = dg.seq.stamp().fiducials();
-
-      InDatagramIterator* iter = in->iterator(&_pool);
-      process(dg.xtc,iter);
-      delete iter;
-
-      return in;
+    if ((_seq > dg.seq.stamp().fiducials()) && _nPrint) {
+      printf("seq %lx followed %lx\n",dg.seq.stamp().fiducials(), _seq);
+      _nPrint--;
     }
+    _seq = dg.seq.stamp().fiducials();
 
-    int process(const Xtc& xtc, InDatagramIterator* iter) {
-      StatsT::NodeStats* n = _list.forward();
-      while(n != _list.empty()) {
-        if (n->node() == xtc.src)
-          return n->accumulate(xtc,iter);
-        n = n->forward();
-      }
-      // add a new node
-      n = new StatsT::NodeStats(xtc.src);
-      _list.insert(n);
-      return n->accumulate(xtc,iter);
+    process(dg.xtc);
+
+    return in;
+  }
+
+  int process(Xtc& xtc) {
+    StatsT::NodeStats* n = _list.forward();
+    while(n != _list.empty()) {
+      if (n->node() == xtc.src)
+        return n->accumulate(xtc);
+      n = n->forward();
     }
-  private:
-    LinkedList<StatsT::NodeStats> _list;
-    GenericPool _pool;
-    unsigned _seq;
-    unsigned _nPrint;
+    // add a new node
+    n = new StatsT::NodeStats(xtc.src);
+    _list.insert(n);
+    return n->accumulate(xtc);
+  }
+private:
+  LinkedList<StatsT::NodeStats> _list;
+  uint64_t _seq;
+  unsigned _nPrint;
 };
 
 #endif

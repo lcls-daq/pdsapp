@@ -235,9 +235,6 @@ void PartitionSelect::select_dialog()
       
       _aliases = dialog->aliases();
 
-      Pds_ConfigDb::GlobalCfg::instance().cache(_evrIOConfigType, 
-						reinterpret_cast<char*>(dialog->evrio  ().config(dialog->aliases())), 
-						true);
       Pds_ConfigDb::GlobalCfg::instance().cache(_aliasConfigType, 
 						reinterpret_cast<char*>(dialog->aliases().config()),
 						true);
@@ -276,14 +273,9 @@ const QList<BldInfo >& PartitionSelect::reporters() const { return _reporters ; 
 
 bool PartitionSelect::_validate(uint64_t bld_mask)
 {
-  bool lEvent  =false;
   bool lError  =false;
   bool lWarning=false;
   QString errorMsg;
-
-  for(unsigned i=0; i<_nnodes; i++) {
-    lEvent   |= (_nodes[i].level()==Level::Event);
-  }
 
   bool lEvr    =false;
   bool lBld    =false;
@@ -305,11 +297,6 @@ bool PartitionSelect::_validate(uint64_t bld_mask)
       lError = true;
       errorMsg += QString("Duplicate devices selected: %1 [IOC]\n").arg(p);
     }
-  }
-
-  if (!lEvent) {
-    lError = true;
-    errorMsg += "No Processing Node selected.\n";
   }
 
   if (!lEvr) {
@@ -399,10 +386,6 @@ void PartitionSelect::autorun()
 void PartitionSelect::latch_aliases()
 {
   if (_alias_poll) {
-    Pds_ConfigDb::GlobalCfg::instance().cache(_evrIOConfigType, 
-					      reinterpret_cast<char*>(_alias_poll->evrio  ().config(_alias_poll->aliases())), 
-					      true);
-    
     Pds_ConfigDb::GlobalCfg::instance().cache(_aliasConfigType, 
                                               reinterpret_cast<char*>(_alias_poll->aliases().config()),
                                               true);

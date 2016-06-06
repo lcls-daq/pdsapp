@@ -19,4 +19,4 @@ endif
 #
 #  LCLS-II development
 #
-packages := tools dev
+packages := tools dev devtest config control mon monobs

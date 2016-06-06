@@ -23,111 +23,17 @@
 #include <vector>
 
 #include "pds/service/Histogram.hh"
-#include "pds/tpr/Module.hh"
+#include "pds/tprds/Module.hh"
 
-using Tpr::DmaControl;
-using Tpr::XBar;
-using Tpr::TprCore;
-using Tpr::RingB;
-using Tpr::TpgMini;
-
-namespace TprDS {
-
-class TprBase {
-public:
-  enum { NCHANNELS=12 };
-  enum { NTRIGGERS=12 };
-  enum Destination { Any };
-  enum FixedRate { _1M, _500K, _100K, _10K, _1K, _100H, _10H, _1H };
-public:
-  void dump() const;
-  void setupDaq    (unsigned i,
-                    unsigned partition,
-                    unsigned dataLength);
-public:
-  volatile uint32_t irqEnable;
-  volatile uint32_t irqStatus;;
-  volatile uint32_t reserved_8;
-  volatile uint32_t gtxDebug;
-  volatile uint32_t countReset;
-  volatile uint32_t dmaFullThr; // [32-bit words]
-  volatile uint32_t reserved_18[2];
-  struct {  // 0x20
-    volatile uint32_t control;
-    volatile uint32_t evtSel;
-    volatile uint32_t evtCount;
-    volatile uint32_t testData;  // [32-bit words]
-    volatile uint32_t reserved[4];
-  } channel[NCHANNELS];
-  volatile uint32_t reserved_20[2];
-  volatile uint32_t frameCount;
-  volatile uint32_t pauseCount;
-  volatile uint32_t overflowCount;
-  volatile uint32_t idleCount;
-  volatile uint32_t reserved_38[1];
-  volatile uint32_t reserved_b[1+(14-NCHANNELS)*8];
-  struct { // 0x200
-    volatile uint32_t control; // input, polarity, enabled
-    volatile uint32_t delay;
-    volatile uint32_t width;
-    volatile uint32_t reserved_t;
-  } trigger[NTRIGGERS];
-};
-
-// Memory map of TPR registers (EvrCardG2 BAR 1)
-class TprReg {
-public:
-  TprBase  base;
-  volatile uint32_t reserved_0    [(0x400-sizeof(TprBase))/4];
-  DmaControl dma;
-  volatile uint32_t reserved_1    [(0x10000-0x400-sizeof(DmaControl))/4];
-  XBar     xbar;
-  volatile uint32_t reserved_xbar [(0x30000-sizeof(XBar))/4];
-  TprCore  tpr;
-  volatile uint32_t reserved_tpr  [(0x10000-sizeof(TprCore))/4];
-  RingB    ring0;
-  volatile uint32_t reserved_ring0[(0x10000-sizeof(RingB))/4];
-  RingB    ring1;
-  volatile uint32_t reserved_ring1[(0x10000-sizeof(RingB))/4];
-  TpgMini  tpg;
-};
-};
-
-void TprDS::TprBase::dump() const {
-  static const unsigned NChan=12;
-  printf("irqEnable [%p]: %08x\n",&irqEnable,irqEnable);
-  printf("irqStatus [%p]: %08x\n",&irqStatus,irqStatus);
-  printf("gtxDebug  [%p]: %08x\n",&gtxDebug  ,gtxDebug);
-  printf("dmaFullThr[%p]: %08x\n",&dmaFullThr,dmaFullThr);
-  printf("channel0  [%p]\n",&channel[0].control);
-  printf("control : ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",channel[i].control);
-  printf("\nevtCount: ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",channel[i].evtCount);
-  printf("\nevtSel  : ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",channel[i].evtSel);
-  printf("\ntestData : ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",channel[i].testData);
-  printf("\nframeCnt: %08x\n",frameCount);
-  printf("pauseCnt  : %08x\n",pauseCount);
-  printf("ovfloCnt  : %08x\n",overflowCount);
-  printf("idleCnt   : %08x\n",idleCount);
-}
-
-void TprDS::TprBase::setupDaq    (unsigned i,
-                                  unsigned partition,
-                                  unsigned dataLength) {
-  channel[i].evtSel    = (1<<31) | (3<<14) | partition; // 
-  //  channel[i].evtSel    = (1<<31) | (0<<14) | partition; // 10Hz fixed rate
-  channel[i].testData  = dataLength;
-  channel[i].control   = 5;
-}
+using namespace Pds::TprDS;
+using Pds::Tpr::EvrReg;
+using Pds::Tpr::XBar;
+using Pds::Tpr::RxDesc;
 
 extern int optind;
 
 static const unsigned NCHANNELS = 14;
 static const unsigned NTRIGGERS = 12;
-using namespace TprDS;
 
 class ThreadArgs {
 public:
@@ -172,7 +78,7 @@ public:
     for(unsigned i=0; i<_values.size(); i++)
       _values[i]=0;
   }
-  DmaStats(TprDS::TprBase& o) : _values(4) {
+  DmaStats(TprBase& o) : _values(4) {
     //    frameCount   () = o.frameCount;
     frameCount   () = o.channel[1].evtCount;
     pauseCount   () = o.pauseCount;
@@ -230,7 +136,7 @@ private:
   
 
 static DaqStats  daqStats;
-static Pds::Histogram readSize(64,1);
+static Pds::Histogram readSize(6,1);
 
 static unsigned nPrint = 20;
 
@@ -243,6 +149,7 @@ void usage(const char* p) {
 }
 
 static TprReg* tprReg=0;
+static int partition = -1;
 
 void sigHandler( int signal ) {
   if (tprReg) {
@@ -256,10 +163,9 @@ void sigHandler( int signal ) {
 int main(int argc, char** argv) {
   extern char* optarg;
   char evrid='a';
-  unsigned partition=0;
   unsigned emptyThr=2;
   unsigned fullThr=-1U;
-  unsigned length=16;
+  unsigned length=16;  // transfer is +6 words (up to 28)
   unsigned rate=6;
   ThreadArgs args;
   args.fd = -1;
@@ -267,7 +173,7 @@ int main(int argc, char** argv) {
   
   int c;
   bool lUsage = false;
-  while ( (c=getopt( argc, argv, "r:v:S:B:E:F:R:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "r:v:S:B:E:F:R:P:h")) != EOF ) {
     switch(c) {
     case 'r':
       evrid  = optarg[0];
@@ -290,6 +196,10 @@ int main(int argc, char** argv) {
       break;
     case 'R':
       rate = strtoul(optarg,NULL,0);
+      break;
+    case 'P':
+      partition = strtoul(optarg,NULL,0);
+      break;
     case 'v':
       nPrint = strtoul(optarg,NULL,0);
       break;
@@ -327,13 +237,13 @@ int main(int argc, char** argv) {
       return -1;
     }
 
-    void* ptr = mmap(0, sizeof(Tpr::EvrReg), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    void* ptr = mmap(0, sizeof(Pds::Tpr::EvrReg), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
     if (ptr == MAP_FAILED) {
       perror("Failed to map");
       return -2;
     }
 
-    Tpr::EvrReg* p = reinterpret_cast<Tpr::EvrReg*>(ptr);
+    EvrReg* p = reinterpret_cast<EvrReg*>(ptr);
 
     printf("SLAC Version[%p]: %08x\n", 
 	   &(p->evr),
@@ -348,6 +258,7 @@ int main(int argc, char** argv) {
     printf("[%p] [%p] [%p]\n",p, &(p->version), &(p->xbar));
 
     p->xbar.setTpr(XBar::StraightIn);
+    //p->xbar.setTpr(XBar::LoopIn);
     p->xbar.setTpr(XBar::StraightOut);
   }
 
@@ -389,9 +300,7 @@ int main(int argc, char** argv) {
     { printf("flushing\n");
       unsigned nflush=0;
       uint32_t* data = new uint32_t[1024];
-      EvrRxDesc* desc = new EvrRxDesc;
-      desc->maxSize = 1024;
-      desc->data    = data;
+      RxDesc* desc = new RxDesc(data,1024);
       pollfd pfd;
       pfd.fd = args.fd;
       pfd.events = POLLIN;
@@ -424,7 +333,10 @@ int main(int argc, char** argv) {
     p->base.countReset = 0;
 
     //  only one channel implemented
-    p->base.setupDaq(0,rate,length);
+    if (partition>=0)
+      p->base.setupDaq (0,partition,length);
+    else
+      p->base.setupRate(0,rate,length);
 
     p->base.dump();
 
@@ -433,6 +345,7 @@ int main(int argc, char** argv) {
   RateMonitor<DmaStats> dstats(d);
 
   unsigned och0=0;
+  unsigned otot=0;
 
   while(1) {
     usleep(1000000);
@@ -451,10 +364,11 @@ int main(int argc, char** argv) {
            p->tpr.RxDecErrs+p->tpr.RxDspErrs,
            p->tpr.RxRstDone);
 
-    { unsigned uch0 = p->base.channel[0].evtCount;
-      unsigned utot = p->base.channel[6].evtCount;
-      printf("eventCount: %08x:%08x [%d]\n",uch0,utot,uch0-och0);
+    { unsigned uch0 = p->base.channel[ 0].evtCount;
+      unsigned utot = p->base.channel[12].evtCount;
+      printf("eventCount: %08x:%08x [%d:%d]\n",uch0,utot,uch0-och0,utot-otot);
       och0 = uch0;
+      otot = utot;
     }
 
     { DmaStats d(p->base);
@@ -472,9 +386,7 @@ void* read_thread(void* arg)
 
   uint32_t* data = new uint32_t[1024];
   
-  EvrRxDesc* desc = new EvrRxDesc;
-  desc->maxSize = 1024;
-  desc->data    = data;
+  RxDesc* desc = new RxDesc(data,1024);
   
   unsigned ntag = 0;
   uint64_t opid = 0;
@@ -523,11 +435,9 @@ void* read_thread(void* arg)
 
       unsigned tag = (pword>>1)&0x1f;
 
-      if (tag != ntag) {
-#if 1
+      if (partition>=0 && tag != ntag) {
         printf("Tag error: %x:%x  pid: %016lx:%016lx\n",
                tag, ntag, pid, opid);
-#endif
         if (pid==opid) {
           daqStats.repeatFrames()++;
         }

@@ -169,6 +169,7 @@ void StateSelect::set_record(bool r)
 
 Transition* StateSelect::transitions(Transition* tr) 
 {
+  printf("StateSelect::transitions %s\n",TransitionId::name(tr->id()));
   if (tr->id() == TransitionId::Unmap) {
     QString label(TransitionId::name(tr->id()));
     emit state_changed(label); 

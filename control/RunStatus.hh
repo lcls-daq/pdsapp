@@ -1,10 +1,10 @@
 #ifndef Pds_RunStatus_hh
 #define Pds_RunStatus_hh
 
-#include "pds/service/GenericPool.hh"
 #include "pds/service/Timer.hh"
 #include "pds/utility/Appliance.hh"
-#include "pds/client/XtcIterator.hh"
+#include "pdsdata/xtc/XtcIterator.hh"
+
 #include <QtGui/QGroupBox>
 
 class QPushButton;
@@ -21,7 +21,7 @@ namespace Pds {
   class RunStatus : public QGroupBox,
                     public Appliance,
                     public Timer,
-                    public PdsClient::XtcIterator {
+                    public XtcIterator {
     Q_OBJECT
   public:
     RunStatus(QWidget*, PartitionControl&, IocControl&, PartitionSelect&);
@@ -35,7 +35,7 @@ namespace Pds {
     virtual unsigned duration() const;
     virtual unsigned repetitive() const;
   public:
-    virtual int process(const Xtc&, InDatagramIterator*);
+    virtual int process(Xtc*);
   private slots:
     void reset();
     void update_stats();
@@ -56,7 +56,6 @@ namespace Pds {
     
   private:
     Task*     _task;
-    GenericPool _pool;
     QCounter* _duration;
     QCounter* _events;
     QCounter* _damaged;

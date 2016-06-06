@@ -28,7 +28,7 @@ static unsigned nPrint = 0;
 
 static void* read_thread(void*);
 
-using namespace Tpr;
+using namespace Pds::Tpr;
 
 void usage(const char* p) {
   printf("Usage: %s -r <evr a/b> [-T|-L]\n",p);
@@ -312,10 +312,7 @@ void* read_thread(void* arg)
 
   uint32_t* data = new uint32_t[1024];
   
-  EvrRxDesc* desc = new EvrRxDesc;
-  desc->maxSize = 1024;
-  desc->data    = data;
-  
+  Pds::Tpr::RxDesc* desc = new Pds::Tpr::RxDesc(data,1024);
 
   eventFrames = 0;
   bsaControlFrames = 0;

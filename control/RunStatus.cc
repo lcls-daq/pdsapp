@@ -6,7 +6,6 @@
 #include "pds/service/GenericPool.hh"
 #include "pds/service/Task.hh"
 #include "pds/service/TaskObject.hh"
-#include "pds/xtc/CDatagramIterator.hh"
 #include "pds/client/L3TIterator.hh"
 
 #include <QtCore/QString>
@@ -78,7 +77,6 @@ RunStatus::RunStatus(QWidget* parent,
                      PartitionSelect&  partition) :
   QGroupBox("Run Statistics",parent),
   _task    (new Task(TaskObject("runsta"))),
-  _pool    (sizeof(CDatagramIterator),1),
   _duration(new QCounter),
   _events  (new QCounter),
   _damaged (new QCounter),
@@ -197,10 +195,7 @@ InDatagram* RunStatus::events     (InDatagram* dg)
     */
     if (_details) {
       _events->increment();
-
-      InDatagramIterator* iter = dg->iterator(&_pool);
-      iterate(dg->datagram().xtc,iter);
-      delete iter;
+      iterate(&dg->datagram().xtc);
     }
     else {
       printf("RunStatus::events L1Accept and no details\n");
@@ -214,10 +209,12 @@ InDatagram* RunStatus::events     (InDatagram* dg)
   return dg; 
 }
 
-int RunStatus::process(const Xtc& xtc, InDatagramIterator* iter) {
-
-  if (xtc.contains.id()==TypeId::Id_Xtc)
-    return iterate(xtc,iter);
+int RunStatus::process(Xtc* pxtc) {
+  const Xtc& xtc = *pxtc;
+  if (xtc.contains.id()==TypeId::Id_Xtc) {
+    iterate(pxtc);
+    return 1;
+  }
 
   if (xtc.contains.value() == SummaryDg::Xtc::typeId().value()) {
     const SummaryDg::Xtc& s = reinterpret_cast<const SummaryDg::Xtc&>(xtc);
@@ -232,7 +229,7 @@ int RunStatus::process(const Xtc& xtc, InDatagramIterator* iter) {
     case L1AcceptEnv::Pass:  _l3t->increment(true); break;
     case L1AcceptEnv::Fail:  _l3t->increment(false); break;
     default: break; }
-    return iter->skip(xtc.sizeofPayload());
+    return 1;
   }
 
   return 0;

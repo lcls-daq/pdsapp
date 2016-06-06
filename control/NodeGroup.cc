@@ -353,8 +353,8 @@ void NodeGroup::_read_pref(const QString&  title,
                            QList<QString>& l,
                            QList<bool>&    lt)
 {
-  Preferences pref(qPrintable(title), _platform, "r");
-  pref.read(l,lt,cTransient);
+  //  Preferences pref(qPrintable(title), _platform, "r");
+  //  pref.read(l,lt,cTransient);
 }
 
 
@@ -363,8 +363,8 @@ void NodeGroup::_read_pref(const QString&  title,
                            QList<int>&     lg,
 			   QList<bool>&    lt)
 {
-  Preferences pref(qPrintable(title), _platform, "r");
-  pref.read(l,lg,lt,cTransient);
+  //  Preferences pref(qPrintable(title), _platform, "r");
+  //  pref.read(l,lg,lt,cTransient);
 }
 
 

@@ -91,7 +91,7 @@ namespace Pds {
     }
     Occurrence* occurrences(Occurrence* occ)
     { if (occ->id()==OccurrenceId::UserMessage)
-  _w.insert_message(static_cast<UserMessage*>(occ)->msg());
+        _w.insert_message(static_cast<UserMessage*>(occ)->msg());
       else if (occ->id()==OccurrenceId::ClearReadout) {
         _w.insert_message("Detector out-of-order.\n  Shutting down.\n  Allocate/Run to continue");
         _w.require_shutdown();
@@ -99,8 +99,8 @@ namespace Pds {
         char msg[256];
         const DataFileError& dfe = *static_cast<const DataFileError*>(occ);
         snprintf(msg, sizeof(msg), "Error writing e%d-r%04d-s%02d-c%02d.xtc.\n"
-                "  Shutting down.\n  Fix and Allocate again.",
-                dfe.expt, dfe.run, dfe.stream, dfe.chunk);
+                 "  Shutting down.\n  Fix and Allocate again.",
+                 dfe.expt, dfe.run, dfe.stream, dfe.chunk);
         _w.insert_message(msg);
         _w.require_shutdown();
       }
@@ -125,47 +125,47 @@ namespace Pds {
     {
       unsigned runNumber = 0;
       if (tr->id()==TransitionId::BeginRun) {
-  if (tr->size() == sizeof(Transition)) {  // No RunInfo
-    char fname[256];
-    sprintf(fname, "e%d/e%d-r%04d-sNN-cNN.xtc",
-      0, 0, tr->env().value());
-    _log.appendText(QString("%1: Not recording. Transient data file: %2\n")
-        .arg(QTime::currentTime().toString("hh:mm:ss"))
-        .arg(fname));
-  }
-  else {
+        if (tr->size() == sizeof(Transition)) {  // No RunInfo
+          char fname[256];
+          sprintf(fname, "e%d/e%d-r%04d-sNN-cNN.xtc",
+                  0, 0, tr->env().value());
+          _log.appendText(QString("%1: Not recording. Transient data file: %2\n")
+                          .arg(QTime::currentTime().toString("hh:mm:ss"))
+                          .arg(fname));
+        }
+        else {
           RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
           runNumber = rinfo.run();
-    char fname[256];
-    sprintf(fname, "e%d/e%d-r%04d-s00-c00.xtc",
-      rinfo.experiment(), rinfo.experiment(), rinfo.run());
-    _experiment = rinfo.experiment();
-    _log.appendText(QString("%1: Recording run %2. Transient data file: %3\n")
-        .arg(QTime::currentTime().toString("hh:mm:ss"))
-        .arg(rinfo.run())
-        .arg(fname));
-  }
-    _runstatus.runNumber(runNumber);
+          char fname[256];
+          sprintf(fname, "e%d/e%d-r%04d-s00-c00.xtc",
+                  rinfo.experiment(), rinfo.experiment(), rinfo.run());
+          _experiment = rinfo.experiment();
+          _log.appendText(QString("%1: Recording run %2. Transient data file: %3\n")
+                          .arg(QTime::currentTime().toString("hh:mm:ss"))
+                          .arg(rinfo.run())
+                          .arg(fname));
+        }
+        _runstatus.runNumber(runNumber);
+      }
+      return tr;
     }
-  return tr;
-  }
 
-  InDatagram* events     (InDatagram* dg) { return dg; }
+    InDatagram* events     (InDatagram* dg) { return dg; }
 
-  Occurrence* occurrences(Occurrence* occ)
-  {
-    if (occ->id() == OccurrenceId::DataFileOpened) {
-      char fname[256];
-      const DataFileOpened& dfo = *static_cast<const DataFileOpened*>(occ);
-      snprintf(fname, sizeof(fname), "%s:%s", dfo.host, dfo.path);
-              _log.appendText(QString("%1: Opened data file %2")
-              .arg(QTime::currentTime().toString("hh:mm:ss"))
-              .arg(fname));
+    Occurrence* occurrences(Occurrence* occ)
+    {
+      if (occ->id() == OccurrenceId::DataFileOpened) {
+        char fname[256];
+        const DataFileOpened& dfo = *static_cast<const DataFileOpened*>(occ);
+        snprintf(fname, sizeof(fname), "%s:%s", dfo.host, dfo.path);
+        _log.appendText(QString("%1: Opened data file %2")
+                        .arg(QTime::currentTime().toString("hh:mm:ss"))
+                        .arg(fname));
+      }
+      return occ;
     }
-    return occ;
-  }
 
-private:
+  private:
     ControlLog& _log;
     RunStatus&  _runstatus;
     unsigned    _experiment;
@@ -215,7 +215,7 @@ private:
           _runallocator.reportTotals(_experiment, _run, (long)events, (long)damaged, (double)(bytes / 1000000000.));
         }
       }
-    return tr;
+      return tr;
     }
 
     InDatagram* events     (InDatagram* dg) { return dg; }
@@ -264,7 +264,7 @@ MainWindow::MainWindow(unsigned          platform,
                        unsigned          status_port) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
-  _control  (new QualifiedControl(platform, *_controlcb, slowReadout, new ControlTimeout(*this))),
+  _control  (new QualifiedControl(platform, *_controlcb, new ControlTimeout(*this))),
   _icontrol (new IocControl),
   _config   (new CfgClientNfs(Node(Level::Control,platform).procInfo())),
   _status_port(status_port),
@@ -380,11 +380,11 @@ MainWindow::MainWindow(unsigned          platform,
     QObject::connect(state , SIGNAL(state_changed(QString)), _exportstatus, SLOT(change_state(QString)));
   }
   QObject::connect(this  , SIGNAL(message_received(const QString&, bool))   ,
-       this  , SLOT(handle_message(const QString&, bool)));
+                   this  , SLOT(handle_message(const QString&, bool)));
   QObject::connect(config, SIGNAL(assert_message(const QString&, bool))   ,
-       this  , SLOT(handle_message(const QString&, bool)));
+                   this  , SLOT(handle_message(const QString&, bool)));
   QObject::connect(this  , SIGNAL(override_received(const QString&)),
-       this  , SLOT(handle_override(const QString&)));
+                   this  , SLOT(handle_override(const QString&)));
   //  QObject::connect(this , SIGNAL(platform_failed()), this, SLOT(handle_platform_error()));
   QObject::connect(this  , SIGNAL(auto_run_started()), _partition, SLOT(autorun()));
   QObject::connect(config, SIGNAL(aliases_required()), _partition, SLOT(latch_aliases()));
@@ -466,28 +466,28 @@ void MainWindow::transition_damaged(const InDatagram& dg)
       const ProcInfo& info = static_cast<const ProcInfo&>(xtc.src);
       DetInfo dinfo(-1,DetInfo::NoDetector,0,DetInfo::NoDevice,0);
       for(int i=0; i<_partition->segments().size();i++) {
-  if (_partition->segments().at(i)==info) {
-    dinfo = _partition->detectors().at(i);
-    break;
-  }
+        if (_partition->segments().at(i)==info) {
+          dinfo = _partition->detectors().at(i);
+          break;
+        }
       }
       struct in_addr inaddr;
       inaddr.s_addr = ntohl(info.ipAddr());
       msg += QString("\n  %1 [%2 : %3] : 0x%4").
-  arg(DetInfo::name(dinfo)).
-  arg(inet_ntoa(inaddr)).
-  arg(info.processId()).
-  arg(QString::number(xtc.damage.value(),16));
+        arg(DetInfo::name(dinfo)).
+        arg(inet_ntoa(inaddr)).
+        arg(info.processId()).
+        arg(QString::number(xtc.damage.value(),16));
     }
     else {
       const ProcInfo& info = static_cast<const ProcInfo&>(xtc.src);
       struct in_addr inaddr;
       inaddr.s_addr = ntohl(info.ipAddr());
       msg += QString("\n  %1 : %2 : %3 : 0x%4").
-  arg(Level::name(xtc.src.level())).
-  arg(inet_ntoa(inaddr)).
-  arg(info.processId()).
-  arg(QString::number(xtc.damage.value(),16));
+        arg(Level::name(xtc.src.level())).
+        arg(inet_ntoa(inaddr)).
+        arg(info.processId()).
+        arg(QString::number(xtc.damage.value(),16));
     }
   }
 
@@ -564,30 +564,30 @@ void MainWindow::handle_override(const QString& msg)
 //
 void MainWindow::handle_sigterm()
 {
-    snTerm->setEnabled(false);
-    char tmp;
-    ::read(sigtermFd[1], &tmp, sizeof(tmp));
+  snTerm->setEnabled(false);
+  char tmp;
+  ::read(sigtermFd[1], &tmp, sizeof(tmp));
 
-    printf("SIGTERM received.  Closing all windows.\n");
+  printf("SIGTERM received.  Closing all windows.\n");
 
-    // do Qt stuff
-    QApplication::closeAllWindows();
+  // do Qt stuff
+  QApplication::closeAllWindows();
 
-    snTerm->setEnabled(true);
+  snTerm->setEnabled(true);
 }
 
 void MainWindow::handle_sigint()
 {
-    snInt->setEnabled(false);
-    char tmp;
-    ::read(sigintFd[1], &tmp, sizeof(tmp));
+  snInt->setEnabled(false);
+  char tmp;
+  ::read(sigintFd[1], &tmp, sizeof(tmp));
 
-    printf("SIGINT received.  Closing all windows.\n");
+  printf("SIGINT received.  Closing all windows.\n");
 
-    // do Qt stuff
-    QApplication::closeAllWindows();
+  // do Qt stuff
+  QApplication::closeAllWindows();
 
-    snInt->setEnabled(true);
+  snInt->setEnabled(true);
 }
 
 //
@@ -597,27 +597,27 @@ void MainWindow::handle_sigint()
 //
 static int setup_unix_signal_handlers()
 {
-    struct sigaction int_action, term_action;
+  struct sigaction int_action, term_action;
 
-    int_action.sa_handler = MainWindow::intSignalHandler;
-    sigemptyset(&int_action.sa_mask);
-    int_action.sa_flags = 0;
-    int_action.sa_flags |= SA_RESTART;
+  int_action.sa_handler = MainWindow::intSignalHandler;
+  sigemptyset(&int_action.sa_mask);
+  int_action.sa_flags = 0;
+  int_action.sa_flags |= SA_RESTART;
 
-    if (sigaction(SIGINT, &int_action, 0) > 0) {
-        return 1;
-    }
+  if (sigaction(SIGINT, &int_action, 0) > 0) {
+    return 1;
+  }
 
-    term_action.sa_handler = MainWindow::termSignalHandler;
-    sigemptyset(&term_action.sa_mask);
-    term_action.sa_flags = 0;
-    term_action.sa_flags |= SA_RESTART;
+  term_action.sa_handler = MainWindow::termSignalHandler;
+  sigemptyset(&term_action.sa_mask);
+  term_action.sa_flags = 0;
+  term_action.sa_flags |= SA_RESTART;
 
-    if (sigaction(SIGTERM, &term_action, 0) > 0) {
-        return 2;
-    }
+  if (sigaction(SIGTERM, &term_action, 0) > 0) {
+    return 2;
+  }
 
-    return 0;
+  return 0;
 }
 
 //
@@ -628,14 +628,14 @@ static int setup_unix_signal_handlers()
 //
 void MainWindow::intSignalHandler(int)
 {
-    char a = 1;
-    ::write(sigintFd[0], &a, sizeof(a));
+  char a = 1;
+  ::write(sigintFd[0], &a, sizeof(a));
 }
 
 void MainWindow::termSignalHandler(int)
 {
-    char a = 1;
-    ::write(sigtermFd[0], &a, sizeof(a));
+  char a = 1;
+  ::write(sigtermFd[0], &a, sizeof(a));
 }
 
 void MainWindow::override_errors(bool l)

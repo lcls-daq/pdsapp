@@ -303,12 +303,17 @@ tgtincs_pimax := pdsdata/include ndarray/include boost/include
 #  LCLS-II development
 #
 
-tgtnames := tpr tprclk tprbsa tprtrg xpm xpmerr tprx tprds simapp
+tgtnames := tpr tprclk tprbsa tprtrg xpm xpmapp xpmerr tprx tprds tprdsapp simapp 
 
 ifneq ($(findstring rhel7,$(tgt_arch)),)
 #  tprdaq only builds on RHEL7 daq machine with AgMD2 library
-tgtnames += tprdaq
+#tgtnames += tprdaq
 endif
+
+tgtnames += evr
+
+commonlibs += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
+commonlibs += pdsdata/indexdata pdsdata/smalldata
 
 tgtsrcs_tpr := tpr.cc 
 tgtincs_tpr := evgr
@@ -342,8 +347,15 @@ tgtslib_tprx := dl pthread rt
 
 tgtsrcs_tprds := tprds.cc
 tgtincs_tprds := evgr
-tgtlibs_tprds := evgr/evr pds/tpr pds/service pdsdata/xtcdata
+tgtlibs_tprds := evgr/evr pds/tprdsbase pds/tpr pds/service pdsdata/xtcdata
 tgtslib_tprds := dl pthread rt
+
+tgtsrcs_tprdsapp := tprdsapp.cc
+tgtincs_tprdsapp := evgr offlinedb/include pdsdata/include ndarray/include boost/include
+tgtlibs_tprdsapp := evgr/evr pds/tpr pds/tprds 
+tgtlibs_tprdsapp += $(commonlibs) pdsapp/tools
+tgtlibs_tprdsapp += pdsdata/xtcdata
+tgtslib_tprdsapp := dl pthread rt
 
 tgtsrcs_pgpds := pgpds.cc
 tgtslib_pgpds := dl pthread rt
@@ -353,15 +365,29 @@ tgtincs_pgpds_recv := pgpcard
 tgtslib_pgpds_recv := dl pthread rt
 
 tgtsrcs_xpm := xpm.cc 
-tgtlibs_xpm := pds/xpm
+tgtlibs_xpm := pds/xpmbase pds/cphw
 tgtslib_xpm := dl pthread rt
 
+tgtsrcs_xpmapp := xpmapp.cc
+tgtincs_xpmapp := pdsdata/include ndarray/include boost/include
+tgtlibs_xpmapp := pds/xpm pds/cphw
+tgtlibs_xpmapp += $(commonlibs)
+tgtslib_xpmapp := dl pthread rt
+
 tgtsrcs_xpmerr := xpmerr.cc 
-tgtlibs_xpmerr := pds/xpm
+tgtlibs_xpmerr := pds/xpmbase pds/cphw
 tgtslib_xpmerr := dl pthread rt
 
 tgtsrcs_simapp := simapp.cc 
 tgtincs_simapp := pdsdata/include
-tgtlibs_simapp := pdsdata/xtcdata pdsapp/tools pds/service pds/collection pds/utility
+tgtlibs_simapp := pdsdata/xtcdata pdsapp/tools pds/service pds/collection pds/utility pds/vmon pds/mon
+tgtlibs_simapp += $(commonlibs)
 tgtslib_simapp := dl pthread rt
+
+tgtsrcs_evr := evr.cc
+tgtincs_evr := evgr pdsdata/include ndarray/include boost/include  
+tgtlibs_evr := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/configdata
+tgtlibs_evr += evgr/evr evgr/evg 
+tgtlibs_evr += $(commonlibs) pds/evgr 
+tgtslib_evr := $(commonslib)
 

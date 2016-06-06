@@ -158,3 +158,9 @@ tgtlibs_netlink := pds/collection pds/service pdsdata/xtcdata
 tgtslib_netlink := ${USRLIBDIR}/rt
 tgtincs_netlink := 
 
+libnames :=
+tgtnames := tasktest xcasttest
+
+tgtsrcs_tasktest := tasktest.cc
+tgtlibs_tasktest := pds/service pdsdata/xtcdata
+tgtslib_tasktest := $(USRLIBDIR)/rt

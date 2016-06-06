@@ -302,7 +302,7 @@ int main(int argc, char** argv) {
 
   MySegWire settings(detInfo, uniqueid, *srv, pEvrmgr);
   Seg* seg = new Seg(task, platform, settings, *app);
-  SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
+  SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg);
   seglevel->attach();
 
   task->mainLoop();

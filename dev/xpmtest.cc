@@ -12,7 +12,7 @@
 #include <new>
 
 #include "pds/xpm/Module.hh"
-#include "pds/cphw/RingBuffer.hh"
+#include "pds/xpm/RingBuffer.hh"
 
 #include <string>
 
@@ -23,14 +23,14 @@ static inline double dtime(timespec& tsn, timespec& tso)
 
 extern int optind;
 
-using namespace Pds::Xpm;
+using namespace Xpm;
 
 void usage(const char* p) {
   printf("Usage: %s [-a <IP addr (dotted notation)>]\n",p);
 }
 
 void sigHandler( int signal ) {
-  Module* m = new(0) Module;
+  Xpm::Module* m = new(0) Xpm::Module;
   m->setL0Enabled(false);
   ::exit(signal);
 }
@@ -44,21 +44,17 @@ int main(int argc, char** argv) {
 
   unsigned ip = 0xc0a8020a;
   unsigned short port = 8192;
-  unsigned link = 0;
   int fixedRate=-1;
   bool lreset=false;
   bool lenable=true;
 
-  while ( (c=getopt( argc, argv, "a:F:L:RDh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:F:RDh")) != EOF ) {
     switch(c) {
     case 'a':
       ip = ntohl(inet_addr(optarg)); break;
       break;
     case 'F':
       fixedRate = atoi(optarg);
-      break;
-    case 'L':
-      link = atoi(optarg);
       break;
     case 'R':
       lreset = true;
@@ -78,19 +74,15 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  Pds::Cphw::Reg::set(ip, port, 0);
+  Reg::set(ip, port, 0x80000000);
 
-  Module* m = new((void*)0x80000000) Module;
+  Xpm::Module* m = new(0) Xpm::Module;
 
-  
-  if (lreset) {
-    m->linkLoopback(link,false);
-    m->txLinkReset(link);
-    m->rxLinkReset(link);
-  }
+  if (lreset) 
+    m->rxLinkReset(0);
 
 #if 1
-  Pds::Cphw::RingBuffer* b = new((void*)0x80010000) Pds::Cphw::RingBuffer;
+  Xpm::RingBuffer* b = new((void*)0x10000) Xpm::RingBuffer;
 
   b->enable(false);
   b->clear();
@@ -100,17 +92,17 @@ int main(int argc, char** argv) {
   b->dump();
 #endif
 
-  m->setL0Enabled(false);
-  if (fixedRate>=0)
-    m->setL0Select_FixedRate(fixedRate);
-  m->linkEnable(link,lenable);
-  L0Stats s = m->l0Stats();
-  L0Stats s0 = s;
-  m->setL0Enabled(true);
-  
   m->init();
   printf("rx/tx Status: %08x/%08x\n", m->rxLinkStat(), m->txLinkStat());
 
+  m->setL0Enabled(false);
+  if (fixedRate>=0)
+    m->setL0Select_FixedRate(fixedRate);
+  L0Stats s = m->l0Stats();
+  L0Stats s0 = s;
+  m->linkEnable(0,lenable);
+  m->setL0Enabled(true);
+  
   ::signal( SIGINT, sigHandler );
 
   while(1) {

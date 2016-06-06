@@ -1,6 +1,6 @@
 #include "Recorder.hh"
-#include "PnccdShuffle.hh"
-#include "CspadShuffle.hh"
+//#include "PnccdShuffle.hh"
+//#include "CspadShuffle.hh"
 #include "StripTransient.hh"
 #include "EventOptions.hh"
 #include "pdsdata/index/XtcIterL1Accept.hh"
@@ -8,7 +8,6 @@
 #include "pds/collection/Node.hh"
 #include "pds/service/GenericPool.hh"
 #include "pds/utility/Occurrence.hh"
-#include "pds/xtc/CDatagramIterator.hh"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,11 +86,9 @@ static void local_mkdir_with_acls (const char * path, const char *expname)
   }
 }
 
-Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer, OfflineClient *offlineclient, const char* expname, unsigned uSizeThreshold) : 
+Recorder::Recorder(const char* path, uint64_t chunkSize, bool delay_xfer, OfflineClient *offlineclient, const char* expname, unsigned uSizeThreshold) : 
   Appliance(), 
-  _pool    (new GenericPool(sizeof(CDatagramIterator),1)),
   _node    (0),
-  _sliceID (sliceID),
   _beginrunerr(0),
   _path_error(false),
   _write_error(false),
@@ -142,14 +139,12 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
 }
 
 InDatagram* Recorder::events(InDatagram* in) {
-  PnccdShuffle::shuffle(in->datagram());
-  if (!CspadShuffle::shuffle(reinterpret_cast<Dgram&>(in->datagram()))) {
-    post(new(_occPool) UserMessage("Corrupt CSPAD data.  Recommend reboot of CSPAD host"));
-    post(new(_occPool) Occurrence(OccurrenceId::ClearReadout));
-  }
+//   PnccdShuffle::shuffle(in->datagram());
+//   if (!CspadShuffle::shuffle(reinterpret_cast<Dgram&>(in->datagram()))) {
+//     post(new(_occPool) UserMessage("Corrupt CSPAD data.  Recommend reboot of CSPAD host"));
+//     post(new(_occPool) Occurrence(OccurrenceId::ClearReadout));
+//   }
   StripTransient::process(reinterpret_cast<Dgram&>(in->datagram()));
-
-  InDatagramIterator* iter = in->iterator(_pool);
 
   switch(in->datagram().seq.service()) {
   case TransitionId::Map:
@@ -160,9 +155,10 @@ InDatagram* Recorder::events(InDatagram* in) {
   case TransitionId::Configure: // cache the configure result
     {
        // Cache configure transition for xtc file
-       memcpy   (_config, &in->datagram(), sizeof(Datagram));
-       iter->copy(_config+sizeof(Datagram), in->datagram().xtc.sizeofPayload());
-       
+       memcpy(_config, &in->datagram(), sizeof(Datagram));
+       memcpy(_config+sizeof(Datagram), in->datagram().xtc.payload(), in->datagram().xtc.sizeofPayload());
+
+#if 0       
        // Add SmlData::ConfigV1 to configure datagram for smldata index file
        XtcObj   xtcIndexConfig;
        uint32_t sizeofPayloadOrg = in->datagram().xtc.sizeofPayload();
@@ -179,6 +175,7 @@ InDatagram* Recorder::events(InDatagram* in) {
        memcpy (_smlconfig+sizeof(Datagram),(char*)&xtcIndexConfig, xtcIndexConfig.xtc.extent);
        memcpy (_smlconfig+sizeof(Datagram)+xtcIndexConfig.xtc.extent,in->datagram().xtc.payload(),sizeofPayloadOrg);
        in->datagram().xtc.extent -= xtcIndexConfig.xtc.extent;
+#endif
     }
        break;
   case TransitionId::BeginRun:
@@ -204,17 +201,14 @@ InDatagram* Recorder::events(InDatagram* in) {
         // error
         in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
       } else {
-        struct iovec iov;
         int rv;
         int remaining = in->datagram().xtc.sizeofPayload();
-        while(remaining) {
-          int isize = iter->read(&iov,1,remaining);
-          if (_writeOutputFile(iov.iov_base,iov.iov_len,1) != 0) {
+        if (remaining) {
+          if (_writeOutputFile(in->datagram().xtc.payload(),remaining,1) != 0) {
             // error
             in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
             break;
           }
-          remaining -= isize;
         }
         if ((rv = fstat64(fileno(_f), &st)) != 0) {
           perror("fstat");
@@ -222,6 +216,7 @@ InDatagram* Recorder::events(InDatagram* in) {
           in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
         }
 
+#if 0
         /////////////// Index file ////////////////////////////
 
         if ( _indexfname[0] != 0 )
@@ -247,7 +242,7 @@ InDatagram* Recorder::events(InDatagram* in) {
             _indexList.addCalibCycle(i64Offset, in->datagram().seq.clock().seconds(), in->datagram().seq.clock().nanoseconds() );
           }          
         } // if ( _indexfname[0] != 0 )
-        
+#endif        
         if ((0 == rv) && ((uint64_t)st.st_size >= _chunkSize)) {
           _requestChunk();
         }
@@ -257,7 +252,7 @@ InDatagram* Recorder::events(InDatagram* in) {
           // error
           in->datagram().xtc.damage.increase(1<<Damage::UserDefined);
         }
-
+#if 0
         /////////////// Small data file ////////////////////////////
 
         // Write to small data file
@@ -346,6 +341,7 @@ InDatagram* Recorder::events(InDatagram* in) {
         } // if (_sdf)
         
         ///////////////////////////////////////////
+#endif
 
       } //(_writeOutputFile(&(in->datagram()),sizeof(in->datagram()),1) successful
     } // if (_f)
@@ -359,7 +355,6 @@ InDatagram* Recorder::events(InDatagram* in) {
     _f = 0;
   }
 
-  delete iter;
   return in;
 }
 
@@ -371,7 +366,8 @@ Transition* Recorder::transitions(Transition* tr) {
     for(unsigned k=0; k<alloc.nnodes(); k++) {
       const Node& n = *alloc.node(k);
       if (n.procInfo() == reinterpret_cast<const ProcInfo&>(_src)) {
-        _node = k;
+        _node    = k;
+        _sliceID = k;
         break;
       }
     }
@@ -430,12 +426,14 @@ Transition* Recorder::transitions(Transition* tr) {
             // error
             _beginrunerr++;
           }
+#if 0
           if (_writeSmallDataFile(_smlconfig, sizeof(Datagram) + 
                              reinterpret_cast<const Datagram*>(_smlconfig)->xtc.sizeofPayload()) != 0) {
              // error
              _sdf_write_error=true;
              printf("ERROR:  Did not write config transition to small data file\n");
           }
+#endif
         }
       }
     }
@@ -527,6 +525,7 @@ int Recorder::_openOutputFile(bool verbose) {
     }
   }
 
+#if 0
   /*
    * Open small data index file 
    */
@@ -608,6 +607,7 @@ int Recorder::_openOutputFile(bool verbose) {
     sprintf(_indexfname,"%s/e%d/index/e%d-r%04d-s%02d-c%02d.xtc.idx",
       _path, _experiment, _experiment, _run, _sliceID, _chunk); 
   }
+#endif
   
   return rv;
 }
@@ -632,7 +632,8 @@ int Recorder::_writeOutputFile(const void *ptr, size_t size, size_t nmemb) {
   int rv = -1;
 
   if (_f) {
-    if (fwrite(ptr, size, nmemb, _f) == nmemb) {
+    size_t n = fwrite(ptr, size, nmemb, _f);
+    if (n == nmemb) {
       // success
       rv = 0;
     } else if (!_write_error) {
@@ -641,6 +642,7 @@ int Recorder::_writeOutputFile(const void *ptr, size_t size, size_t nmemb) {
       _write_error = true;
       perror("fwrite");
       _postDataFileError();
+      printf("Wrote %d/%u [%u]\n",n,nmemb,size);
     }
   }
 
@@ -657,7 +659,8 @@ int Recorder::_writeSmallDataFile(const void *ptr, size_t size)
   int rv = -1;
   size_t count = 1;
   if (_sdf) {
-     if (fwrite(ptr, size, count, _sdf) == count) {
+    size_t n = fwrite(ptr, size, count, _sdf);
+    if (n == count) {
         // success
         rv = 0;
      } else if (!_write_error) {
@@ -665,6 +668,7 @@ int Recorder::_writeSmallDataFile(const void *ptr, size_t size)
         // use flag to avoid flood of occurrences
         _sdf_write_error = true;
         perror("fwrite");
+      printf("Wrote %d/%d\n",n,count);
         printf("ERROR:   in _writeSmallDataFile\n");
      }
   } // if (_sdf)

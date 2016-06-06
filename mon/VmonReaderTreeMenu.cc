@@ -252,7 +252,8 @@ void VmonReaderTreeMenu::preface()
 void VmonReaderTreeMenu::execute()
 {
   _execB->setEnabled(false);
-  const QString& name = _client_bg->checkedButton()->text();
+  QString name = (_client_bg->checkedButton()) ? 
+    _client_bg->checkedButton()->text() : QString("Default");
   for(unsigned i=0; i<_reader->sources().size(); i++) {
     const Src& src = _reader->sources()[i];
     const MonCds& cds = *_reader->cds(src);

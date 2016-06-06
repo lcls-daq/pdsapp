@@ -13,7 +13,7 @@ namespace Pds {
 
   class RecorderQ : public Recorder {
   public:
-     RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, 
+     RecorderQ(const char* fname, uint64_t chunkSize, 
                unsigned uSizeThreshold,
                bool delay_xfer=false,
                OfflineClient *offlineclient=NULL,

@@ -60,6 +60,7 @@ int main(int argc, char **argv)
   unsigned port  = 0;
   ssize_t  sz    = 0x2000;
   bool lreceiver = false;
+  bool lpeek = false;
   std::vector<unsigned> uaddr;
 
   for(int i=0; i<argc; i++) {
@@ -78,6 +79,8 @@ int main(int argc, char **argv)
     }
     else if (strcmp(argv[i],"-r")==0)
       lreceiver = true;
+    else if (strcmp(argv[i],"-P")==0)
+      lpeek = true;
   }
 
   std::vector<sockaddr_in> address(uaddr.size());
@@ -228,8 +231,16 @@ int main(int argc, char **argv)
   while(1) {
 
     ssize_t bytes;
-    if (lreceiver) 
+    if (lreceiver) {
+      if (lpeek) {
+        unsigned nbsz = 32;
+        int nb = ::recv(fd, buff, nbsz, MSG_PEEK);
+        if (nb != nbsz) {
+          printf("peek %d/%u\n",nb,nbsz);
+        }
+      }
       bytes = ::recv(fd, buff, sz, 0);
+    }
     else {
       const sockaddr_in& sa = address[iaddr];
 #ifdef USE_RAW

@@ -14,7 +14,7 @@
 #include <semaphore.h>
 
 #include "pds/service/CmdLineTools.hh"
-#include "pdsapp/test/Timing.hh"
+#include "pds/tpr/Module.hh"
 
 #include <string>
 #include <vector>

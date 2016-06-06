@@ -24,7 +24,8 @@ extern int optind;
 
 static const unsigned NCHANNELS = 14;
 static const unsigned NTRIGGERS = 12;
-using namespace Tpr;
+
+using namespace Pds::Tpr;
 
 class ThreadArgs {
 public:
@@ -231,6 +232,7 @@ int main(int argc, char** argv) {
       if (channels&(1<<i))
         p->base.setupDaq(i,partition);
 
+    p->base.setupDma();
     p->base.dump();
 
 
@@ -269,9 +271,7 @@ void* read_thread(void* arg)
 
   uint32_t* data = new uint32_t[1024];
   
-  EvrRxDesc* desc = new EvrRxDesc;
-  desc->maxSize = 1024;
-  desc->data    = data;
+  RxDesc* desc = new RxDesc(data,1024);
   
   unsigned ntag = 0;
   uint64_t opid = 0;

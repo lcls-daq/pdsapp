@@ -149,13 +149,13 @@ void MonDialogAxis::applied(MonQtBase& hist, MonQtBase::Axis ax)
   hist.settings(ax,
 		_min_entry ? _min_entry->entry() : 0,
 		_max_entry ? _max_entry->entry() : 0,
-		(!_autorng_bt || _autorng_bt->checkState() == Qt::Checked),
-		(_log_bt && _log_bt->checkState()==Qt::Checked));
+		(!_autorng_bt || _autorng_bt->checkState() == ::Qt::Checked),
+		(_log_bt && _log_bt->checkState()==::Qt::Checked));
 }
 
 void MonDialogAxis::validate_log(int state) 
 {
-  if (state==Qt::Checked) {
+  if (state==::Qt::Checked) {
     if (_min_entry && _min_entry->entry() <= 0)
       _min_entry->setEntry(0.1);
     if (_max_entry && _max_entry->entry() <= 0)
@@ -267,7 +267,7 @@ MonDialog::MonDialog(MonCanvas* canvas,
   _entries[_nentries++] = new MonDialogEntry(this, "Chart X", chartx);
   _entries[_nentries++] = new MonDialogEntry(this, "Chart Y", charty);
 
-  //  setAttribute(Qt::WA_DeleteOnClose);
+  //  setAttribute(::Qt::WA_DeleteOnClose);
   addbuttons(canvas);
 }
 

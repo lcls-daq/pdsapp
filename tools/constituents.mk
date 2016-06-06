@@ -18,12 +18,11 @@ libincs_l3sacla := pdsdata/include ndarray/include boost/include
 libsrcs_l3saclacompound := L3SACLACompoundModule.cc
 libincs_l3saclacompound := pdsdata/include ndarray/include boost/include 
 
-tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest bldMonitor xtcdump currentexp showPlatform
+tgtnames := event segtest bldtest montest showPartitions killPartition control bldClientTest bldServerTest bldMonitor xtcdump currentexp showPlatform
 #tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
-#tgtnames := findSource
 
 commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
-commonlibs += pds/pnccdFrameV0
+#commonlibs += pds/pnccdFrameV0
 
 liblibs_tools := offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
 libincs_tools := offlinedb/include pdsdata/include ndarray/include boost/include 
@@ -42,16 +41,6 @@ tgtsrcs_control := control.cc
 tgtlibs_control := $(commonlibs)
 tgtslib_control := $(USRLIBDIR)/rt
 tgtincs_control := pdsdata/include ndarray/include boost/include  
-
-tgtsrcs_source := source.cc
-tgtlibs_source := $(commonlibs)
-tgtslib_source := $(USRLIBDIR)/rt
-tgtincs_source := pdsdata/include
-
-tgtsrcs_sourcetest := sourcetest.cc
-tgtlibs_sourcetest := $(commonlibs)
-tgtslib_sourcetest := $(USRLIBDIR)/rt
-tgtincs_sourcetest := pdsdata/include
 
 tgtsrcs_bldtest := bldtest.cc
 tgtlibs_bldtest := $(commonlibs)
@@ -138,13 +127,19 @@ tgtlibs_findSource := $(commonlibs)
 tgtslib_findSource := $(USRLIBDIR)/rt
 tgtincs_findSource := pdsdata/include
 
+tgtsrcs_source := source.cc
+tgtlibs_source := $(commonlibs)
+tgtslib_source := $(USRLIBDIR)/rt
+tgtincs_source := pdsdata/include
+
 
 #
 #  LCLS-II development
 #
 libnames := tools
-libsrcs_tools := TestApp.cc
+libsrcs_tools := EventOptions.cc Recorder.cc RecorderQ.cc StripTransient.cc
+libsrcs_tools += TestApp.cc
 liblibs_tools := 
-libincs_tools := pdsdata/include ndarray/include boost/include 
+libincs_tools := offlinedb/include pdsdata/include ndarray/include boost/include 
 
-tgtnames :=
+tgtnames := showPartitions source

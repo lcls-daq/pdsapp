@@ -7,7 +7,7 @@ endif
 libnames := 
 
 commonlibs := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/configdata pdsdata/xtcdata pdsdata/psddl_pdsdata
-commonlibs += pds/pnccdFrameV0
+#commonlibs += pds/pnccdFrameV0
 liblibs_tools := pdsdata/psddl_pdsdata
 
 tgtsrcs_monobs := monobs.cc CamDisplay.cc AcqDisplay.cc
@@ -92,3 +92,8 @@ tgtlibs_alive_mon := pdsdata/xtcdata pdsdata/appdata
 tgtlibs_alive_mon += pds/service
 tgtslib_alive_mon := $(USRLIBDIR)/rt
 tgtincs_alive_mon += pdsdata/include
+
+#
+#  LCLS-II development
+#
+tgtnames := monshmserver

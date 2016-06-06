@@ -1,6 +1,7 @@
 #include "MonQtChart.hh"
 #include "MonPath.hh"
 #include "MonUtils.hh"
+#include "QtPlotCurve.hh"
 #include "pds/mon/MonDescScalar.hh"
 #include "pds/mon/MonDescProf.hh"
 #include "pds/mon/MonDescTH1F.hh"
@@ -9,7 +10,6 @@
 
 #include <QtGui/QBrush>
 #include <QtGui/QPen>
-#include "qwt_plot_curve.h"
 #include "qwt_plot.h"
 #include "qwt_scale_engine.h"
 
@@ -127,7 +127,7 @@ void MonQtChart::params(unsigned nl, const char* names)
   }
 
   _nlines = nl;
-  _curves = new QwtPlotCurve*[_nlines];
+  _curves = new QtPlotCurve*[_nlines];
     
   char* buf = new char[strlen(names)+1];
   const char** snames = new const char*[_nlines];
@@ -135,7 +135,7 @@ void MonQtChart::params(unsigned nl, const char* names)
   for(unsigned k=0; k<_nlines; k++) {
     char nameb[64];
     sprintf(nameb,"%s:%d",_name.c_str(),k);
-    QwtPlotCurve* c = new QwtPlotCurve((nfound==_nlines) ? snames[k] : nameb);
+    QtPlotCurve* c = new QtPlotCurve((nfound==_nlines) ? snames[k] : nameb);
     //  c->setStyle(QwtPlotCurve::Dots);
     if (_nlines>1) {
       c->setStyle(QwtPlotCurve::Lines);

@@ -17,7 +17,7 @@
 
 extern int optind;
 
-using namespace Tpr;
+using namespace Pds::Tpr;
 
 void usage(const char* p) {
   printf("Usage: %s -r <a/b> -R <rate> [-I] [-f <input file> | -p<channel,delay,width,polarity]>\n",p);

@@ -4,10 +4,10 @@
 #include "MonQtBase.hh"
 
 class QwtPlot;
-class QwtPlotCurve;
 
 namespace Pds {
 
+  class QtPlotCurve;
   class MonDescProf;
   class MonEntryProf;
 
@@ -39,7 +39,7 @@ namespace Pds {
     void params(const char* names);
 
   private:
-    QwtPlotCurve* _curve;
+    QtPlotCurve* _curve;
     double* _x;
     double* _y;
     double* _e;

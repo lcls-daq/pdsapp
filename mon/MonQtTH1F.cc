@@ -17,7 +17,7 @@ using namespace Pds;
 
 MonQtTH1F::MonQtTH1F(const char* name, 
 		     const MonDescTH1F& desc) : 
-  QwtPlotCurve(name),
+  QtPlotCurve(name),
   MonQtBase(H1, desc, name)
 {
   setStyle(QwtPlotCurve::Steps);
@@ -38,7 +38,7 @@ MonQtTH1F::MonQtTH1F(const char* name,
 MonQtTH1F::MonQtTH1F(const char* name, 
 		     const MonDescTH2F& desc,
 		     Axis ax) : 
-  QwtPlotCurve(name),
+  QtPlotCurve(name),
   MonQtBase(H1, desc, name, ax == X ? false : true)
 {
   setStyle(QwtPlotCurve::Steps);
@@ -60,7 +60,7 @@ MonQtTH1F::MonQtTH1F(const char* name,
 MonQtTH1F::MonQtTH1F(const char* name, 
 		     const MonDescImage& desc,
 		     Axis ax) : 
-  QwtPlotCurve(name),
+  QtPlotCurve(name),
   MonQtBase(H1, desc, name, ax == X ? false : true)
 {
   setStyle(QwtPlotCurve::Steps);

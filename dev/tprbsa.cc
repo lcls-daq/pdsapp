@@ -14,7 +14,7 @@
 
 extern int optind;
 
-using namespace Tpr;
+using namespace Pds::Tpr;
 
 struct read_args_s {
   int fd;
@@ -213,9 +213,7 @@ void* read_thread(void* arg)
 
   uint32_t* data = new uint32_t[1024];
   
-  EvrRxDesc* desc = new EvrRxDesc;
-  desc->maxSize = 1024;
-  desc->data    = data;
+  RxDesc* desc = new RxDesc(data,1024);
   
   unsigned eventFrames=0;
   unsigned bsaControlFrames=0;

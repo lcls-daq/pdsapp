@@ -39,8 +39,8 @@ namespace Pds {
 
 using namespace Pds;
 
-RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize, unsigned uSizeThreshold, bool delay_xfer, OfflineClient *offlineclient, const char* expname) :
-   Recorder(fname, sliceID, chunkSize, delay_xfer, offlineclient, expname, uSizeThreshold),
+RecorderQ::RecorderQ(const char* fname, uint64_t chunkSize, unsigned uSizeThreshold, bool delay_xfer, OfflineClient *offlineclient, const char* expname) :
+   Recorder(fname, chunkSize, delay_xfer, offlineclient, expname, uSizeThreshold),
   _task(new Task(TaskObject("RecEvt"))),
   _sem (Semaphore::EMPTY)
 {

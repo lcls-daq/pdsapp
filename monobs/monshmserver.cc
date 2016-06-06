@@ -1,8 +1,5 @@
 #include "pdsapp/monobs/MonComm.hh"
 
-#include "pdsapp/tools/PnccdShuffle.hh"
-#include "pdsapp/tools/CspadShuffle.hh"
-
 #include "pds/service/Task.hh"
 #include "pds/collection/Arp.hh"
 #include "pds/management/EventCallback.hh"
@@ -169,9 +166,6 @@ private:
   void _copyDatagram(Dgram* dg, char* b)
   {
     Datagram& dgrm = *reinterpret_cast<Datagram*>(dg);
-
-    PnccdShuffle::shuffle(dgrm);
-    CspadShuffle::shuffle(reinterpret_cast<Dgram&>(dgrm));
 
     //  write the datagram
     memcpy(b, &dgrm, sizeof(Datagram));

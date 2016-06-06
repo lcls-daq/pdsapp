@@ -228,7 +228,7 @@ void MonConsumerTH1F::select(Select selection)
   if (_selected == MonCanvas::Chart) {
     _plot->setAxisScaleDraw(QwtPlot::xBottom, new MonTimeScale);
     _plot->setAxisLabelRotation (QwtPlot::xBottom, -50.0);
-    _plot->setAxisLabelAlignment(QwtPlot::xBottom, Qt::AlignLeft | Qt::AlignBottom);
+    _plot->setAxisLabelAlignment(QwtPlot::xBottom, ::Qt::AlignLeft | ::Qt::AlignBottom);
     xtitle.setText("Time");
     if (_entry) {
       if (_entry->desc().chartentries())

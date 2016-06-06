@@ -11,6 +11,7 @@
 #include "pdsdata/xtc/XtcFileIterator.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 
+#include <unistd.h>
 #include <new>
 #include <list>
 #include <fcntl.h>

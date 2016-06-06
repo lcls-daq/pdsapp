@@ -14,7 +14,7 @@ class GenericPool;
 
 class Recorder : public Appliance {
 public:
-   Recorder(const char* fname, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer, OfflineClient *offline, const char* expname, unsigned uSizeThreshold);  
+   Recorder(const char* fname, uint64_t chunkSize, bool delay_xfer, OfflineClient *offline, const char* expname, unsigned uSizeThreshold);  
   ~Recorder() {}
   virtual Transition* transitions(Transition*);
   virtual InDatagram* occurrences(InDatagram* in);
