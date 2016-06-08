@@ -5,6 +5,7 @@
 #include "pdsapp/mon/MonCanvas.hh"
 #include "pdsapp/mon/MonConsumerFactory.hh"
 
+#include <QtGui/QLabel>
 #include <QtGui/QScrollArea>
 #include <QtGui/QGridLayout>
 
