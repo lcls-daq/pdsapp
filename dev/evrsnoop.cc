@@ -15,6 +15,8 @@ using namespace Pds;
 
 static EvgrBoardInfo<Evr> *erInfoGlobal;
 
+static uint32_t* ticks = 0;
+
 class EvrStandAloneManager {
 public:
   EvrStandAloneManager(EvgrBoardInfo<Evr>& erInfo, char opcodes[], int iMaxEvents = -1);
@@ -119,7 +121,10 @@ extern "C" {
     
     while( !er.GetFIFOEvent(&fe) ) {      
 
-      printf( "Received Fiducial %06x  Event code %03d  Timestamp %d\n", fe.TimestampHigh, fe.EventCode, fe.TimestampLow );          
+      if (ticks && fe.TimestampHigh!=0)
+        ticks[(fe.TimestampLow>>5)&0x3fff] |= 1<<(fe.TimestampLow&0x1f);
+      else
+        printf( "Received Fiducial %06x  Event code %03d  Timestamp %d\n", fe.TimestampHigh, fe.EventCode, fe.TimestampLow );          
 
       if ( fe.EventCode == 40 )
       {
@@ -159,6 +164,19 @@ void evrStandAloneSignalHandler( int iSignalNo )
 {
   printf( "\nevrStandAloneSignalHandler(): signal %d received.\n", iSignalNo );  
   
+  if (ticks) {
+    printf("ticks: ");
+    for(unsigned i=0,j=0; i<(1<<19); i++)
+      if (ticks[(i>>5)&0x3fff] & (1<<(i&0x1f))) {
+        printf("%8u",i);
+        if ((++j%10)==0) {
+          j=0;
+          printf("\n       ");
+        }
+      }
+    printf("\n");
+  }
+
   EvrStandAloneManager* pManager = pEvrStandAloneManager;
   if ( pEvrStandAloneManager != NULL )
   {
@@ -257,11 +275,12 @@ void selectOpcodes( char opcodes[256], char* strSelection )
 
 void showUsage(const char *cc)
 {
-  printf( "Usage: %s [-h] [-r <a/b/c/d>] [-n <max event num>] [-o <event list>]\n\n"
+  printf( "Usage: %s [-h] [-r <a/b/c/d>] [-n <max event num>] [-o <event list>] [-H]\n\n"
     "Options:\n"
     "    -h                   Show usage\n"
     "    -r <a/b/c/d>         Use evr device a/b/c/d\n"
     "    -n <max event num>   Force evr to pause for every N events. -1 = Unlimited\n"
+    "    -H                   Histogram ticks\n"
     "    -o <event list>      Select event codes\n"
     " ------------------------------------------------\n"
     " Event List Examples:\n"
@@ -282,7 +301,7 @@ int main(int argc, char** argv) {
   bool lUsage = false;
    
   int c;
-  while ( (c=getopt( argc, argv, "r:n:o:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "r:n:o:Hh")) != EOF ) {
     switch(c) {
     case 'r':
       evrid  = optarg;
@@ -295,6 +314,10 @@ int main(int argc, char** argv) {
       break;
     case 'o':
       selectOpcodes( opcodes, optarg );
+      break;
+    case 'H':
+      ticks = new uint32_t[1<<14];
+      memset(ticks,0,(1<<14)*sizeof(uint32_t));
       break;
     case 'h':
       showUsage(argv[0]);
