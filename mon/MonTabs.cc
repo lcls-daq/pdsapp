@@ -22,18 +22,23 @@ MyTab::MyTab( const MonGroup& group,
 {
   QGridLayout* layout = new QGridLayout;
   unsigned n = group.nentries();
-  unsigned rows = (n+2)/3;
-  unsigned columns = (n+rows-1)/rows;
+  if (n) {
+    unsigned rows = (n+2)/3;
+    unsigned columns = (n+rows-1)/rows;
 
-  for(unsigned i = 0; i < group.nentries(); i++) {
-    const MonEntry& entry = *group.entry(i);
-    MonCanvas* canvas = MonConsumerFactory::create(*this,
-						   "title",
-						   group,
-						   entry);
-    canvas->set_plot_color(icolor);
-    _canvases.push_back(canvas);
-    layout->addWidget(canvas, i/columns, i%columns);
+    for(unsigned i = 0; i < group.nentries(); i++) {
+      const MonEntry& entry = *group.entry(i);
+      MonCanvas* canvas = MonConsumerFactory::create(*this,
+                                                     "title",
+                                                     group,
+                                                     entry);
+      canvas->set_plot_color(icolor);
+      _canvases.push_back(canvas);
+      layout->addWidget(canvas, i/columns, i%columns);
+    }
+  }
+  else {
+    layout->addWidget(new QLabel("Empty Group", 0, 0));
   }
   setLayout(layout);
 }
