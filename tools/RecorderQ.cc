@@ -12,11 +12,11 @@
 
 namespace Pds {
 
-  class QueuedAction : public Routine {
+  class QueuedActionR : public Routine {
   public:
-    QueuedAction(InDatagram* in, RecorderQ& rec, Semaphore* sem = 0) :
+    QueuedActionR(InDatagram* in, RecorderQ& rec, Semaphore* sem = 0) :
       _in(in), _rec(rec), _sem(sem) {}
-    ~QueuedAction() {}
+    ~QueuedActionR() {}
   public:
     void routine() {
       ClockTime now(_in->datagram().seq.clock());
@@ -66,10 +66,10 @@ RecorderQ::RecorderQ(const char* fname, unsigned int sliceID, uint64_t chunkSize
 InDatagram* RecorderQ::events(InDatagram* in) 
 {
   if (in->datagram().seq.service()==TransitionId::L1Accept) {
-    _task->call(new QueuedAction(in,*this));
+    _task->call(new QueuedActionR(in,*this));
   }
   else {
-    _task->call(new QueuedAction(in,*this,&_sem));
+    _task->call(new QueuedActionR(in,*this,&_sem));
     _sem.take();
   }
   return (InDatagram*)Appliance::DontDelete;
