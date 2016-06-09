@@ -285,6 +285,7 @@ int main( int argc, char** argv )
 
 	pgp = new Pds::Pgp::Pgp::Pgp(fd, debug != 0);
 	dest = new Pds::Pgp::Destination::Destination(d);
+	if (debug & 1) printf("Destination %s\n", dest->name());
 
 	if (writing) {
 		//    char path[512];
