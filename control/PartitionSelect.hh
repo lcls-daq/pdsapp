@@ -7,6 +7,7 @@
 
 #include "pds/config/AliasFactory.hh"
 #include "pds/collection/Node.hh"
+#include "pds/service/BldBitMaskSize.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
@@ -18,6 +19,9 @@ namespace Pds {
   class PartitionControl;
   class IocControl;
   class AliasPoll;
+
+  template <unsigned N> class BitMaskArray;
+  typedef BitMaskArray<PDS_BLD_MASKSIZE> BldBitMask;
 
   class PartitionSelect : public QGroupBox {
     Q_OBJECT
@@ -44,7 +48,7 @@ namespace Pds {
     void autorun      ();
     void latch_aliases();
   private:
-    bool _validate(uint64_t);
+    bool _validate(const BldBitMask&);
     bool _checkReadGroupEnable();
   private:
     PartitionControl&  _pcontrol;
