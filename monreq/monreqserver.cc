@@ -1,5 +1,4 @@
 #include "pdsdata/app/XtcMonitorServer.hh"
-#include "pdsapp/tools/MonReqServer.hh"
 #include "pdsapp/tools/PnccdShuffle.hh"
 #include "pdsapp/tools/CspadShuffle.hh"
 #include <errno.h>
@@ -26,6 +25,7 @@
 #include "pds/service/Sockaddr.hh"
 #include "pds/utility/StreamPorts.hh"
 #include "pds/service/Ins.hh"
+#include "pds/service/Task.hh"
 #include <vector>
 
 #include "pds/vmon/VmonEb.hh"
@@ -38,6 +38,7 @@
 #include "pds/mon/MonDescTH1F.hh"
 #include "pds/mon/MonDescScalar.hh"
 
+#include "pds/xtc/CDatagram.hh"
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/Src.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
