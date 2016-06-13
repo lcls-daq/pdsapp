@@ -54,7 +54,12 @@ void MyTab::insert(const MonGroup& group,
 						   group,
 						   entry);
     canvas->set_plot_color(icolor);
-    _canvases[i]->overlay(*canvas);
+    //
+    //  Groups are supposed to be the same size (same set of plots)
+    //    but we broke this rule with monreqserver
+    //
+    if (i<_canvases.size())
+      _canvases[i]->overlay(*canvas);
   }
 }
 
