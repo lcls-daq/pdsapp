@@ -16,6 +16,8 @@
 
 #include <string>
 
+static const unsigned short port_req = 11000;
+
 static inline double dtime(timespec& tsn, timespec& tso)
 {
   return double(tsn.tv_sec-tso.tv_sec)+1.e-9*(double(tsn.tv_nsec)-double(tso.tv_nsec));
@@ -30,10 +32,12 @@ void usage(const char* p) {
 }
 
 void sigHandler( int signal ) {
-  Module* m = new(0) Module;
+  Module* m = new((void*)0x80000000) Module;
   m->setL0Enabled(false);
   ::exit(signal);
 }
+
+static void* handle_req(void*);
 
 int main(int argc, char** argv) {
 
@@ -113,6 +117,17 @@ int main(int argc, char** argv) {
 
   ::signal( SIGINT, sigHandler );
 
+  //
+  //  Create thread to receive analysis tag requests
+  //
+  { 
+    pthread_attr_t tattr;
+    pthread_attr_init(&tattr);
+    pthread_t tid;
+    if (pthread_create(&tid, &tattr, &handle_req, 0))
+      perror("Error creating tag request thread");
+  }
+  
   while(1) {
     usleep(1000000);
     L0Stats n = m->l0Stats();
@@ -138,3 +153,45 @@ int main(int argc, char** argv) {
 
   return 0;
 }
+
+void* handle_req(void* arg)
+{
+  int fd = ::socket(AF_INET, SOCK_DGRAM, 0);
+  if (fd<0) { 
+    perror("Error opening analysis tag request socket");
+    return 0;
+  }
+
+  struct sockaddr_in addr;
+  bzero(&addr, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr=0;
+  addr.sin_port=htons(port_req);
+
+  if (::bind(fd, (sockaddr*)&addr, sizeof(addr))) {
+    perror("bind error");
+    return 0;
+  }
+
+  char request[32];
+  Module* m = new((void*)0x80000000) Module;
+
+  m->_analysisRst = 0xffff;
+  m->_analysisRst = 0;
+  
+  uint32_t otag=0;
+  while( recv(fd, request, 32, 0)==4 ) {
+    uint32_t tag = *reinterpret_cast<uint32_t*>(request);
+    m->_analysisTag = tag;
+    //    unsigned v = m->_analysisTag;
+    //    printf("Requesting tag: %08x [%08x]\n",tag,v);
+    if (otag && tag!=otag+1)
+      printf("Requesting tag: %08x [%08x]\n",tag,otag);
+    otag = tag;
+  }
+
+  printf("Done handling requests\n");
+  return 0;
+}
+  
+  

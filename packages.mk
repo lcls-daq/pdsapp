@@ -20,3 +20,6 @@ endif
 #  LCLS-II development
 #
 packages := tools dev devtest config control mon monobs
+ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
+packages += test
+endif

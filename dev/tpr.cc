@@ -187,7 +187,6 @@ int main(int argc, char** argv) {
 
     { printf("sizeof(TprReg): %08x\n", unsigned(sizeof(TprReg)));
       TprReg* r = 0;
-      printf("xbar  [%p]\n",&r->xbar);
       printf("tpr   [%p]\n",&r->tpr);
       printf("dma   [%p]\n",&r->dma);
       printf("ring0 [%p]\n",&r->ring0);

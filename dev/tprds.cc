@@ -16,6 +16,7 @@
 #include <semaphore.h>
 #include <poll.h>
 #include <signal.h>
+#include <arpa/inet.h>
 
 #include "evgr/evr/evr.hh"
 
@@ -34,18 +35,20 @@ extern int optind;
 
 static const unsigned NCHANNELS = 14;
 static const unsigned NTRIGGERS = 12;
+static const unsigned short port_req = 11000;
 
 class ThreadArgs {
 public:
   int fd;
   unsigned busyTime;
   sem_t sem;
+  int reqfd;
 };
 
 
 class DaqStats {
 public:
-  DaqStats() : _values(5) {
+  DaqStats() : _values(7) {
     for(unsigned i=0; i<_values.size(); i++)
       _values[i]=0;
   }
@@ -58,6 +61,8 @@ public:
   unsigned& repeatFrames() { return _values[2]; }
   unsigned& tagMisses   () { return _values[3]; }
   unsigned& corrupt     () { return _values[4]; }
+  unsigned& anaTags     () { return _values[5]; }
+  unsigned& anaErrs     () { return _values[6]; }
 private:
   std::vector<unsigned> _values;
 };  
@@ -67,7 +72,9 @@ const char** DaqStats::names() {
                                  "dropFrames",
                                  "repeatFrames",
                                  "tagMisses",
-                                 "corrupt" };
+                                 "corrupt",
+                                 "anaTags",
+                                 "anaErrs" };
   return _names;
 }
 
@@ -167,13 +174,14 @@ int main(int argc, char** argv) {
   unsigned fullThr=-1U;
   unsigned length=16;  // transfer is +6 words (up to 28)
   unsigned rate=6;
+  const char* addr_req = 0;
   ThreadArgs args;
   args.fd = -1;
   args.busyTime = 0;
   
   int c;
   bool lUsage = false;
-  while ( (c=getopt( argc, argv, "r:v:S:B:E:F:R:P:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "r:v:S:B:E:F:R:P:T:h")) != EOF ) {
     switch(c) {
     case 'r':
       evrid  = optarg[0];
@@ -199,6 +207,9 @@ int main(int argc, char** argv) {
       break;
     case 'P':
       partition = strtoul(optarg,NULL,0);
+      break;
+    case 'T':
+      addr_req = optarg;
       break;
     case 'v':
       nPrint = strtoul(optarg,NULL,0);
@@ -263,6 +274,30 @@ int main(int argc, char** argv) {
   }
 
   //
+  //  Setup request pipeline
+  //
+  if (addr_req) {
+    int fd = ::socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd<0) { 
+      perror("Error opening analysis tag request socket");
+      return 0;
+    }
+    
+    struct sockaddr_in addr;
+    bzero(&addr, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr=inet_addr(addr_req);
+    addr.sin_port=htons(port_req);
+
+    connect(fd, (sockaddr*)&addr, sizeof(addr));
+
+    args.reqfd = fd;
+    printf("Opened socket %d to %s\n",fd, addr_req);
+  }
+  else
+    args.reqfd = -1;
+
+  //
   //  Configure channels, event selection
   //
     char evrdev[16];
@@ -304,7 +339,7 @@ int main(int argc, char** argv) {
       pollfd pfd;
       pfd.fd = args.fd;
       pfd.events = POLLIN;
-      while(poll(&pfd,1,100)>0) { 
+      while(poll(&pfd,1,0)>0) { 
         read(args.fd, desc, sizeof(*desc));
         nflush++;
       }
@@ -390,6 +425,8 @@ void* read_thread(void* arg)
   
   unsigned ntag = 0;
   uint64_t opid = 0;
+  unsigned anaw = 0;
+  unsigned anar = -1;
   ssize_t nb;
 
   //  sem_post(&targs.sem);
@@ -413,6 +450,14 @@ void* read_thread(void* arg)
   }
 
   uint64_t pid_busy = opid+(1ULL<<20);
+
+  if (targs.reqfd>=0) {
+    for(unsigned i=0; i<128; i++) {
+      unsigned v = anaw | (0xffff<<16);
+      send(targs.reqfd, &v, sizeof(v), 0);
+      anaw++;
+    }
+  }
 
   while (1) {
     if ((nb = read(targs.fd, desc, sizeof(*desc)))<0)
@@ -455,6 +500,33 @@ void* read_thread(void* arg)
             daqStats.tagMisses() += ((tag-ntag)&0x1f);
         }
       }
+
+      if (targs.reqfd>=0) {
+        unsigned anatag = pword>>16;
+        if (anar == -1 && anatag == 0xffff)
+          printf("Tag %04x\n",anatag);
+        else if (anatag != ((anar+1)&0xffff)) {
+          printf("Tag %04x [%04x] [%04x]\n",anatag,(anar+1)&0xffff, anaw);
+          daqStats.anaErrs()++;
+          if (daqStats.anaErrs()>256)
+            exit(1);
+        }
+        else {
+          daqStats.anaTags()++;
+          anar++;
+        }
+
+        // Test what happens when the analysis tag FIFO underruns
+        //        if ((tag&0x1f)==0)
+        //          ;
+        //        else {
+        {
+          unsigned v = anaw | (0xffff<<16);
+          send(targs.reqfd, &v, sizeof(v), 0);
+          anaw++;
+        }
+      }
+
       opid = pid;
 
       ntag = (tag+1)&0x1f;

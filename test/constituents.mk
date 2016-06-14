@@ -41,3 +41,11 @@ tgtslib_sqlDbTest := rt
 tgtsrcs_timerResolution := timerResolution.cc
 tgtlibs_timerResolution :=
 tgtslib_timerResolution := dl pthread rt
+
+tgtnames := ibhosts
+tgtsrcs_ibhosts := ibhosts.cc
+tgtslib_ibhosts := ibverbs rt
+
+tgtnames := ibrdma
+tgtsrcs_ibrdma := ibrdma.cc
+tgtslib_ibrdma := ibverbs rt
