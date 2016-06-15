@@ -98,7 +98,8 @@ static const FrameFexConfigType _frameFexConfig(FrameFexConfigType::FullFrame, 1
                                                 Pds::Camera::FrameCoord(0,0),
                                                 Pds::Camera::FrameCoord(0,0),
                                                 0, 0, 0);
-static const Pds::BldBitMask ONE_BIT = Pds::BldBitMask(Pds::BldBitMask::ONE);
+static const Pds::BldBitMask ONE_BIT  = Pds::BldBitMask(Pds::BldBitMask::ONE);
+static const Pds::BldBitMask EMPTY    = Pds::BldBitMask();
 
 namespace Pds {
 
@@ -223,13 +224,14 @@ namespace Pds {
     ((ONE_BIT<<(BldInfo::MecXt2Pim03+1)) - (ONE_BIT<<BldInfo::XppMonPim0))  |
     ((ONE_BIT<<(BldInfo::Nh2Sb1Ipm02+1)) - (ONE_BIT<<BldInfo::Nh2Sb1Ipm02)) |
     ((ONE_BIT<<(BldInfo::XcsLamIpm01+1)) - (ONE_BIT<<BldInfo::XcsUsrIpm01));
-  BldBitMask PimMask =
-    ((ONE_BIT<<(BldInfo::HfxMonCam+1)) - (ONE_BIT<<BldInfo::HxxDg1Cam)) |
-    ((ONE_BIT<<(BldInfo::CxiDg3Pim+1)) - (ONE_BIT<<BldInfo::CxiDg1Pim));
+  BldBitMask PimMask = EMPTY;
   BldBitMask OpalMask = ONE_BIT<<BldInfo::CxiDg3Spec;
   BldBitMask SpecMask = (ONE_BIT<<BldInfo::FeeSpec0) |
     (ONE_BIT<<BldInfo::SxrSpec0) |
-    (ONE_BIT<<BldInfo::XppSpec0);
+    (ONE_BIT<<BldInfo::XppSpec0) |
+    ((ONE_BIT<<(BldInfo::HfxMonCam+1)) - (ONE_BIT<<BldInfo::HxxDg1Cam)) |
+    ((ONE_BIT<<(BldInfo::CxiDg3Pim+1)) - (ONE_BIT<<BldInfo::CxiDg1Pim)) |
+    ((ONE_BIT<<(BldInfo::MfxDg2Pim+1)) - (ONE_BIT<<BldInfo::MfxDg1Pim));
   BldBitMask AIMask = (ONE_BIT<<BldInfo::XppAin01) |
     (ONE_BIT<<BldInfo::XcsAin01) |
     (ONE_BIT<<BldInfo::AmoAin01);
