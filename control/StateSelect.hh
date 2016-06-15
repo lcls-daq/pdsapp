@@ -51,6 +51,7 @@ namespace Pds {
     QPalette*         _green;
     QPalette*         _yellow;
     Semaphore         _sem;
+    bool              _manual;
   };
 };
 
