@@ -287,22 +287,25 @@ void Reconfig_Ui::change_component()
 
             //  edit the contents of the file
             Parameter::allowEdit(true);
-            Dialog* d = new Dialog(this, *lookup(stype), qchoice,
-                                   payload, payload_sz, true);
-            if (d->exec()==QDialog::Accepted) {
+            Serializer* s = lookup(stype);
+            if (s) {
+              Dialog* d = new Dialog(this, *s, qchoice,
+                                     payload, payload_sz, true);
+              if (d->exec()==QDialog::Accepted) {
 
-              x.name = qPrintable(d->name());
-              db.begin();
-              db.setXTC(x, d->payload(), d->payload_size());
-              db.commit();
+                x.name = qPrintable(d->name());
+                db.begin();
+                db.setXTC(x, d->payload(), d->payload_size());
+                db.commit();
 
-              if (GlobalCfg::instance().contains(stype)) {
-                char* b = new char[d->payload_size()];
-                memcpy(b, d->payload(), d->payload_size());
-                GlobalCfg::instance().cache(stype,b);
+                if (GlobalCfg::instance().contains(stype)) {
+                  char* b = new char[d->payload_size()];
+                  memcpy(b, d->payload(), d->payload_size());
+                  GlobalCfg::instance().cache(stype,b);
+                }
               }
+              delete d;
             }
-            delete d;
             delete[] payload;
           }
         }
