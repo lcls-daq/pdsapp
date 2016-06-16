@@ -167,7 +167,7 @@ static int open_udp_socket(const char *host_and_port, bool verbose)
 
     if (rp == NULL) {               // No address succeeded
         fprintf(stderr, "%s: Could not open socket\n", __FUNCTION__);
-        return (-1);        // ERROR
+        sfd = -1;           // ERROR
     }
 
     freeaddrinfo(result);   // No longer needed
