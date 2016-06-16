@@ -31,7 +31,7 @@ ExportStatus::ExportStatus(RunStatus *runStatus, ConfigSelect *configSelect, Sta
   _running      (false)
 {
   /* open socket */
-  _sendFd = open_udp_socket(host_and_port, true);
+  _sendFd = open_udp_socket(host_and_port, false);
   if (_sendFd == -1) {
     fprintf(stderr, "%s: open_udp_socket() failed\n", __FUNCTION__);
   }
