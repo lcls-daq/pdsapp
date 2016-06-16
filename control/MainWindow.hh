@@ -36,7 +36,7 @@ namespace Pds {
                bool              verbose,
                const char*       controlrc,
                unsigned          experiment_number,
-               unsigned          status_port,
+               const char*       status_host_and_port,
                unsigned          pv_ignore_options);
     ~MainWindow();
 
@@ -73,7 +73,7 @@ namespace Pds {
     CfgClientNfs*     _config;
     PVManager*        _pvmanager;
     ExportStatus*     _exportstatus;
-    unsigned          _status_port;
+    const char*       _status_host_and_port;
     ControlLog*       _log;
     OfflineClient*    _offlineclient;
     RunAllocator*     _runallocator;

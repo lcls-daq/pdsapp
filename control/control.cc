@@ -36,7 +36,7 @@ static void usage(char *argv0)
    "         -o <options>              : partition options\n"
    "            1=CXI slow runningkludge\n"
    "            2=XPP short timeout on Disable\n"
-   "         -X <port_number>          : status export UDP port\n"
+   "         -X <host>:<port>          : status export host name and UDP port number\n"
    "         -I <ignore_options>       : ignore PV connection errors for IOC recorder\n"
    "            0=Do not ignore (default)\n"
    "            1=Ignore with message\n"
@@ -59,7 +59,7 @@ int main(int argc, char** argv)
   double nfs_log_threshold = -1;
   unsigned    sequencer_id = 0;
   unsigned    expnum = 0;
-  unsigned    status_port = 0;
+  const char* status_host_and_port = (char *)NULL;
   int         slowReadout = 0;
   unsigned key=0;
   int verbose = 0;
@@ -127,7 +127,9 @@ int main(int argc, char** argv)
       }
       break;
     case 'X':
-      if (!Pds::CmdLineTools::parseUInt(optarg, status_port)) {
+      if (strchr(optarg, ':')) {
+        status_host_and_port = optarg;
+      } else {
         printf("%s: option `-X' parsing error\n", argv[0]);
         lusage = true;
       }
@@ -224,7 +226,7 @@ int main(int argc, char** argv)
                                       (verbose > 0),
                                       controlrc,
                                       expnum,
-                                      status_port,
+                                      status_host_and_port,
                                       pv_ignore_options);
   window->override_errors(override);
   window->show();

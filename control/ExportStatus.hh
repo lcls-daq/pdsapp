@@ -26,6 +26,7 @@
         "\"run_mbytes\" : %llu,"      \
         "\"event_count\" : %llu,"     \
         "\"damage_count\" : %llu,"    \
+        "\"station\" : %u,"           \
         "\"control_state\" : \"%s\""  \
       "}"                             \
     "}"
@@ -39,6 +40,7 @@
         "\"running\" : 0,"            \
         "\"config_type\" : \"%s\","   \
         "\"recording\" : %u,"         \
+        "\"station\" : %u,"           \
         "\"control_state\" : \"%s\""  \
       "}"                             \
     "}"
@@ -53,14 +55,14 @@ namespace Pds {
   Q_OBJECT
 
   public:
-    ExportStatus(RunStatus *, ConfigSelect *, StateSelect *, unsigned);
+    ExportStatus(RunStatus *, ConfigSelect *, StateSelect *, const char *, const char *);
     ~ExportStatus() {}
     virtual void  expired();
     virtual Task* task();
     virtual unsigned duration() const;
     virtual unsigned repetitive() const;
     int update(void);
-    int send(char *msg);
+    int mysend(char *msg);
 
   public slots:
     void configured(bool vv);
@@ -74,11 +76,11 @@ namespace Pds {
     int             _period;
     int             _sendFd;
     struct sockaddr_in _sendAddr;
-    unsigned        _status_port;
     Semaphore       _sem;
     bool            _configured;
     bool            _running;
     std::string     _controlState;
+    unsigned        _station;
   };
 
 };
