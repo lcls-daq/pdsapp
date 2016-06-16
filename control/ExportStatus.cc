@@ -9,8 +9,9 @@
 #include "pds/service/TaskObject.hh"
 
 #include <strings.h>
-#include <string.h>
+#include <cstring>
 #include <stdlib.h>
+#include <unistd.h>   // for close()
 
 // forward declaration 
 static int open_udp_socket(const char *host_and_port, bool verbose);
@@ -37,7 +38,7 @@ ExportStatus::ExportStatus(RunStatus *runStatus, ConfigSelect *configSelect, Sta
   }
 
   /* init station from a string like "CXI:1" */
-  char *pColon = strchr(partition, ':');
+  const char *pColon = strchr(partition, ':');
   if (pColon) {
     _station = atoi(pColon+1);
   } else {
@@ -108,7 +109,7 @@ static int open_udp_socket(const char *host_and_port, bool verbose)
     struct addrinfo hints;
     struct addrinfo *result, *rp;
     int sfd, s;
-    char *portbuf = NULL;
+    const char *portbuf = NULL;
     char hostbuf[40];
 
     if (verbose) {
@@ -116,7 +117,7 @@ static int open_udp_socket(const char *host_and_port, bool verbose)
     }
 
     // parse host/port
-    char *pColon = strchr(host_and_port, ':');
+    const char *pColon = strchr(host_and_port, ':');
     if (pColon && ((pColon - host_and_port) < (int)sizeof(hostbuf))) {
       memset(hostbuf, 0, sizeof(hostbuf));
       strncpy(hostbuf, host_and_port, pColon - host_and_port);
