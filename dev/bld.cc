@@ -79,6 +79,9 @@ static Pds::TypeId _spectrometerType(Id_SpectrometerType,
 static Pds::TypeId _analogInputType(Pds::TypeId::Id_AnalogInput,
                                     AnalogInputType::Version);
 
+static Pds::TypeId _eOrbitsType(Pds::TypeId::Id_EOrbits,
+                                EOrbitsType::Version);
+
 //    typedef BldDataAcqADCV1 BldDataAcqADC;
 using Pds::Bld::BldDataPhaseCavity;
 using Pds::Bld::BldDataPimV1;
@@ -288,6 +291,7 @@ namespace Pds {
       }
       //      TEST_CACHE(AcqMask        ,Id_SharedAcq      ,BldDataAcqADC);
       TEST_CACHE(AIMask, _analogInputType, AnalogInputType);
+      TEST_CACHE(EOrbitsMask, _eOrbitsType, EOrbitsType);
     }
   }
 #undef TEST_CACHE
@@ -382,6 +386,7 @@ namespace Pds {
       REQUIRE(Opal1kConfig)
       REQUIRE(Spectrometer)
       REQUIRE(AnalogInput)
+      REQUIRE(EOrbits)
       default:
         _dg->insert(*xtc,xtc->payload());
         break;
@@ -434,6 +439,9 @@ namespace Pds {
     bool _require(const Xtc& xtc, const AcqConfigType& c)
     { return _require(xtc,&c,sizeof(c)); }
     bool _require(const Xtc& xtc, const AnalogInputType& c)
+    { _require(xtc,&c,sizeof(c));
+      return true; }
+    bool _require(const Xtc& xtc, const EOrbitsType& c)
     { _require(xtc,&c,sizeof(c));
       return true; }
 
