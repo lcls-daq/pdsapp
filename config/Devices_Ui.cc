@@ -396,29 +396,35 @@ void Devices_Ui::view_component()
     char* buff = new char[size];
     if (db.getXTC(entry,buff,size)==size) {
       db.commit();
-      Dialog* d = new Dialog(_cmpaddlist, lookup(UTypeName(utype),_edit), 
-                             entry.name.c_str(),
-                             buff, size, _edit);
-      if (d->exec()==QDialog::Accepted) {
-        bool ok;
-        QString file = QInputDialog::getText(this,"Configuration:","Name:",
-                                             QLineEdit::Normal,d->name(),&ok);
-        if (ok && !file.isEmpty()) {
-          entry.name = qPrintable(file);
-          db.begin();
-          db.setXTC(entry, d->payload(), d->payload_size());
-          db.commit();
+      Serializer *s = lookup(UTypeName(utype),_edit);
+      if (s) {
+        Dialog* d = new Dialog(_cmpaddlist, *s, 
+                               entry.name.c_str(),
+                               buff, size, _edit);
+        
+        if (d->exec()==QDialog::Accepted) {
+          bool ok;
+          QString file = QInputDialog::getText(this,"Configuration:","Name:",
+                                               QLineEdit::Normal,d->name(),&ok);
+          if (ok && !file.isEmpty()) {
+            entry.name = qPrintable(file);
+            db.begin();
+            db.setXTC(entry, d->payload(), d->payload_size());
+            db.commit();
 
-          QListWidgetItem* item;
-          item = _devlist->currentItem();
-          if (!item) return;
-          string det(qPrintable(item->text()));
-          
-          FileEntry entry(utype,qPrintable(d->name()));
-          _expt.device(det)->table().set_entry(utype,entry);
+            QListWidgetItem* item;
+            item = _devlist->currentItem();
+            if (!item) return;
+            string det(qPrintable(item->text()));
+            
+            FileEntry entry(utype,qPrintable(d->name()));
+            _expt.device(det)->table().set_entry(utype,entry);
+          }
         }
+        delete d;
+      } else {
+        lookup_warning();
       }
-      delete d;
     }
     delete[] buff;
   }
@@ -479,7 +485,12 @@ void Devices_Ui::add_component(const QString& type)
 
     string schoice(qPrintable(choice));
     if (schoice==create_str) {
-      d = new Dialog(_cmpaddlist, lookup(stype,true), "example.xtc", true);
+      Serializer *s = lookup(stype,true);
+      if (s) {
+        d = new Dialog(_cmpaddlist, *s, "example.xtc", true);
+      } else {
+        lookup_warning();
+      }
     }
     else if (schoice==import_str) {
       QString file = QFileDialog::getOpenFileName(_devlist,
@@ -500,9 +511,14 @@ void Devices_Ui::add_component(const QString& type)
             delete[] payload;
             payload = 0;
           }
-          d = new Dialog(_cmpaddlist, lookup(stype,true), 
-                         schoice.c_str(),
-                         payload, payload_sz, true);
+          Serializer *s = lookup(stype,true);
+          if (s) {
+            d = new Dialog(_cmpaddlist, *s, 
+                           schoice.c_str(),
+                           payload, payload_sz, true);
+          } else {
+            lookup_warning();
+          }
         }
       }
     }
@@ -516,9 +532,14 @@ void Devices_Ui::add_component(const QString& type)
       else {
         payload = new char[payload_sz];
         db.getXTC(x,payload,payload_sz);
-        d = new Dialog(_cmpaddlist, lookup(stype,true), 
-                       schoice.c_str(),
-                       payload, payload_sz, true);
+        Serializer *s = lookup(stype,true);
+        if (s) {
+          d = new Dialog(_cmpaddlist, *s, 
+                         schoice.c_str(),
+                         payload, payload_sz, true);
+        } else {
+          lookup_warning();
+        }
       }
     }
 
@@ -576,13 +597,21 @@ void Devices_Ui::remove_component(const QString& type)
 void Devices_Ui::expert_mode() { _expert_mode=true; }
 void Devices_Ui::user_mode  () { _expert_mode=false; }
 
-Serializer& Devices_Ui::lookup(const UTypeName& stype, bool edit)
+Serializer * Devices_Ui::lookup(const UTypeName& stype, bool edit)
 { 
   Parameter::allowEdit(edit);
-  Serializer& s = _expert_mode ?
-    *_xdict.lookup(*PdsDefs::typeId(stype)) :
-    *_dict .lookup(*PdsDefs::typeId(stype));
+  Serializer * s = _expert_mode ?
+    _xdict.lookup(*PdsDefs::typeId(stype)) :
+    _dict .lookup(*PdsDefs::typeId(stype));
   //  s.setPath(_expt.path());
   return s;
 }    
 
+void Devices_Ui::lookup_warning()
+{
+  if (_expert_mode) {
+    QMessageBox::warning(this, "Warning", "Serializer lookup failed (Expert mode)");
+  } else {
+    QMessageBox::warning(this, "Warning", "Serializer lookup failed (User mode)");
+  }
+}
