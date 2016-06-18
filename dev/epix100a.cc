@@ -127,6 +127,10 @@ void sigHandler( int signal ) {
   Pds::Epix100aServer* server = Pds::Epix100aServer::instance();
   psignal( signal, "Signal received by Epix100aApplication\n");
   if (server != 0) {
+	if (server->configurator()) {
+      server->configurator()->evrLaneEnable(false);
+      server->configurator()->enableExternalTrigger(false);
+	}
     server->disable();
   } else {
     printf("sigHandler found nil server 1!\n");
