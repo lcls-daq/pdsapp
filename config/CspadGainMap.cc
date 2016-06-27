@@ -181,7 +181,15 @@ using namespace Pds_ConfigDb;
 
 CspadGainMap::CspadGainMap() : _display(0) {}
 
-CspadGainMap::~CspadGainMap() { if (_display) delete _display; delete _quad; }
+CspadGainMap::~CspadGainMap() {
+  if (_display) {
+    delete _display;
+    delete _quad[0];
+    delete _quad[1];
+    delete _quad[2];
+    delete _quad[3];
+  }
+}
 
 void CspadGainMap::insert(Pds::LinkedList<Parameter>& pList) {
 }
