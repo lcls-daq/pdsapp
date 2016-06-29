@@ -15,6 +15,7 @@ class QGroupBox;
 class QPalette;
 class QCheckBox;
 class QComboBox;
+class QLabel;
 
 namespace Pds {
   class NodeTransientCb;
@@ -51,22 +52,29 @@ namespace Pds {
   private:
     void _read_pref(const QString&, QList<QString>&, QList<bool>&);
     void _read_pref(const QString&, QList<QString>&, QList<int>&, QList<bool>&);
+    void _read_pref(const QString&, QList<QString>&, QList<int>&, QList<bool>&, QList<bool>&);
   protected:
     QGroupBox*     _group;
     QButtonGroup*  _buttons;
     QList<NodeSelect> _nodes;
     QList<QString> _persist;
+    QList<QString> _notfound;
+    QLabel*        _notfoundlist;
+
     QList<int>     _persistGroup;
     QList<bool>    _persistTrans;
+    QList<bool>    _persistSelect;
     QList<QString> _require;
     QList<int>     _requireGroup;
     QList<bool>    _requireTrans;
     QPalette*      _ready;
     QPalette*      _notready;
+    QPalette*      _palette;
     QPalette*      _warn;
     unsigned       _platform;
   private:
     Node& node(int);
+    void _build_notfoundlist(const QString&);
 
     int               _useGroups;
     QCheckBox*        _enableGroups;
