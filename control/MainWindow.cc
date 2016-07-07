@@ -261,13 +261,14 @@ MainWindow::MainWindow(unsigned          platform,
                        bool              verbose,
                        const char*       controlrc,
                        unsigned          experiment_number,
-                       unsigned          status_port) :
+                       const char*       status_host_and_port,
+                       unsigned          pv_ignore_options) :
   QWidget(0),
   _controlcb(new CCallback(*this)),
   _control  (new QualifiedControl(platform, *_controlcb, new ControlTimeout(*this))),
   _icontrol (new IocControl),
   _config   (new CfgClientNfs(Node(Level::Control,platform).procInfo())),
-  _status_port(status_port),
+  _status_host_and_port(status_host_and_port),
   _override_errors(false)
 {
   setAttribute(Qt::WA_DeleteOnClose, true);
@@ -316,7 +317,7 @@ MainWindow::MainWindow(unsigned          platform,
 	experiment_label->setAlignment(Qt::AlignHCenter);
 
         delete _icontrol;
-        _icontrol = new IocControl(offlinerc,instname,station,experiment_number,controlrc);
+        _icontrol = new IocControl(offlinerc,instname,station,experiment_number,controlrc,pv_ignore_options);
       } else {
         // error: run number fixed at 0
         _runallocator = new RunAllocator;
@@ -352,8 +353,8 @@ MainWindow::MainWindow(unsigned          platform,
   layout->addWidget(_log      = new ControlLog, 1);
 
   _pvmanager = new PVManager(*pvs);
-  if (_status_port) {
-    _exportstatus = new ExportStatus(run, config, state, _status_port);
+  if (_status_host_and_port) {
+    _exportstatus = new ExportStatus(run, config, state, _status_host_and_port, partition);
   }
 
   //  the order matters
@@ -375,7 +376,7 @@ MainWindow::MainWindow(unsigned          platform,
 
   QObject::connect(state , SIGNAL(configured(bool)), config, SLOT(configured(bool)));
   QObject::connect(state , SIGNAL(state_changed(QString)), _partition, SLOT(change_state(QString)));
-  if (_status_port) {
+  if (_status_host_and_port) {
     QObject::connect(state , SIGNAL(configured(bool)),       _exportstatus, SLOT(configured(bool)));
     QObject::connect(state , SIGNAL(state_changed(QString)), _exportstatus, SLOT(change_state(QString)));
   }
@@ -402,7 +403,7 @@ MainWindow::MainWindow(unsigned          platform,
     snTerm = new QSocketNotifier(sigtermFd[1], QSocketNotifier::Read, this);
     connect(snTerm, SIGNAL(activated(int)), this, SLOT(handle_sigterm()));
   }
-  if (_status_port) {
+  if (_status_host_and_port) {
     _exportstatus->start();
   }
 }
@@ -419,7 +420,7 @@ MainWindow::~MainWindow()
   if (_offlineclient) {
     delete _offlineclient;
   }
-  if (_status_port) {
+  if (_status_host_and_port) {
     _exportstatus->cancel();
     delete _exportstatus;
   }

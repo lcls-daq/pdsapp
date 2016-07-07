@@ -31,7 +31,7 @@ class AndorCameraTest
 public:
   AndorCameraTest(int iCamera, double fExposureTime, int iReadoutPort, int iSpeedIndex, int iGainIndex,
     double fTemperature, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iTriggerMode,
-    char* sFnPrefix, int iNumImages, int iMenu, bool bTriggerFast);
+    char* sFnPrefix, int iNumImages, int iMenu, bool bTriggerFast, bool bCropMode);
 
   int init();
   int run();
@@ -59,6 +59,7 @@ private:
   int     _iNumImages;
   int     _iMenu;
   bool    _bTriggerFast;
+  bool    _bCropMode;
 
   int     _iOutImageIndex;
   at_32   _iCameraHandle;
@@ -73,11 +74,11 @@ private:
 
 AndorCameraTest::AndorCameraTest(int iCamera, double fExposureTime, int iReadoutPort, int iSpeedIndex,
   int iGainIndex, double fTemperature, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY,
-  int iTriggerMode, char* sFnPrefix, int iNumImages, int iMenu, bool bTriggerFast) :
+  int iTriggerMode, char* sFnPrefix, int iNumImages, int iMenu, bool bTriggerFast, bool bCropMode) :
   _iCamera(iCamera), _fExposureTime(fExposureTime), _iReadoutPort(iReadoutPort), _iSpeedIndex(iSpeedIndex),
   _iGainIndex(iGainIndex), _fTemperature(fTemperature), _iRoiX(iRoiX), _iRoiY(iRoiY), _iRoiW(iRoiW),
   _iRoiH(iRoiH), _iBinX(iBinX), _iBinY(iBinY),  _iTriggerMode(iTriggerMode),
-  _strFnPrefix(sFnPrefix), _iNumImages(iNumImages), _iMenu(iMenu), _bTriggerFast(bTriggerFast),
+  _strFnPrefix(sFnPrefix), _iNumImages(iNumImages), _iMenu(iMenu), _bTriggerFast(bTriggerFast), _bCropMode(bCropMode),
   _iOutImageIndex(0), _iCameraHandle(0), _iDetectorWidth(-1), _iDetectorHeight(-1), _iADChannel(0)
 {
 }
@@ -442,6 +443,7 @@ int AndorCameraTest::run()
     cout << "r. Set ROI" << endl;
     cout << "b. Set Binning" << endl;
     cout << "f. Set Fast Trigger Mode" << endl;
+    cout << "x. Set Isolated Crop Mode" << endl;
     cout << "q. Quit Program" << endl;
     cout << "====================================="  << endl;
     cout << "> ";
@@ -549,6 +551,12 @@ int AndorCameraTest::run()
     {
       cout << endl << "Enter new Fast Trigger Mode [true, false]> ";
       cin >> _bTriggerFast;
+      break;
+    }
+    case 'x':
+    {
+      cout << endl << "Enter new Crop Mode [true, false]> ";
+      cin >> _bCropMode;
       break;
     }
     case 'q': //Exit
@@ -723,11 +731,24 @@ int AndorCameraTest::_runAcquisition()
   }
   else if (iReadMode == 4)
   {
-    //Setup Image dimensions
-    printf("Setting Image ROI x %d y %d W %d H %d binX %d binY %d\n", _iRoiX, _iRoiY, _iRoiW, _iRoiH, _iBinX, _iBinY);
-    iError = SetImage(_iBinX, _iBinY, _iRoiX + 1, _iRoiX + _iRoiW, _iRoiY + 1, _iRoiY + _iRoiH);
-    if (!isAndorFuncOk(iError))
-      printf("SetImage(): %s\n", AndorErrorCodes::name(iError));
+    if (_bCropMode)
+    {
+      //Setup Isolated Crop Mode dimensions
+      printf("Setting Isolated Crop Dimensions W %d H %d binX %d binY %d\n", _iRoiW, _iRoiH, _iBinX, _iBinY);
+      iError = SetIsolatedCropMode(1, _iRoiH, _iRoiW, _iBinY, _iBinX);
+      if (!isAndorFuncOk(iError))
+        printf("SetIsolatedCropMode(): %s\n", AndorErrorCodes::name(iError));
+    }
+    else {
+      //Setup Image dimensions
+      printf("Setting Image ROI x %d y %d W %d H %d binX %d binY %d\n", _iRoiX, _iRoiY, _iRoiW, _iRoiH, _iBinX, _iBinY);
+      iError = SetIsolatedCropMode(0, _iRoiH, _iRoiW, _iBinY, _iBinX);
+      if (!isAndorFuncOk(iError))
+        printf("SetIsolatedCropMode(): %s\n", AndorErrorCodes::name(iError));
+      iError = SetImage(_iBinX, _iBinY, _iRoiX + 1, _iRoiX + _iRoiW, _iRoiY + 1, _iRoiY + _iRoiH);
+      if (!isAndorFuncOk(iError))
+        printf("SetImage(): %s\n", AndorErrorCodes::name(iError));
+    }
   }
   else if (iReadMode == 3) // single track
   {
@@ -1173,7 +1194,7 @@ static void showUsage()
       "    [-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (sec)>]\n"
       "    [-p|--port <readout port>] [-s|--speed <speed index>] [-g|--gain <gain index>]\n"
       "    [-t|--temp <temperature>] [-r|--roi <x,y,w,h>] [-b|--bin <xbin,ybin>] [-i <trigger mode>] [-f|--fast]\n"
-      "[-m|--menu]\n"
+      "    [-x|--crop] [-m|--menu]\n"
       "  Options:\n"
       "    -v|--version                      Show file version\n"
       "    -h|--help                         Show usage\n"
@@ -1189,7 +1210,8 @@ static void showUsage()
       "    -b|--bin       <xbin,ybin>        Binning of X/Y\n"
       "    -i|--trigger   <trigger mode>     0: Int, 1: Ext, 6: ExtStart, 7: Bulb,\n"
       "                                      9: ExtFvbEm, 10: Soft, 12: ExtChrgSht\n"
-      "    -f|--fast      <fast trigger>     Enable fast trigger mode - don't wait for clear cycle\n"
+      "    -f|--fast                         Enable fast trigger mode - don't wait for clear cycle\n"
+      "    -x|--crop                         Enable isolated crop mode\n"
       "    -m|--menu                         Show interactive menu\n"
     );
 }
@@ -1210,7 +1232,7 @@ void signalIntHandler(int iSignalNo)
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhc:w:n:e:p:s:g:t:r:b:i:fm";
+  const char*         strOptions  = ":vhc:w:n:e:p:s:g:t:r:b:i:fxm";
   const struct option loOptions[] =
   {
      {"ver",      0, 0, 'v'},
@@ -1227,6 +1249,7 @@ int main(int argc, char **argv)
      {"bin",      1, 0, 'b'},
      {"trigger",  1, 0, 'i'},
      {"fast",     0, 0, 'f'},
+     {"crop",     0, 0, 'x'},
      {"menu",     0, 0, 'm'},
      {0,          0, 0,  0 }
   };
@@ -1247,6 +1270,7 @@ int main(int argc, char **argv)
   int     iBinY         = 1;
   int     iTriggerMode  = 0;
   bool    bTriggerFast  = false;
+  bool    bCropMode     = false;
   int     iMenu         = 0;
 
   int iOptionIndex = 0;
@@ -1309,6 +1333,9 @@ int main(int argc, char **argv)
       case 'f':
           bTriggerFast    = true;
           break;
+      case 'x':
+          bCropMode       = true;
+          break;
       case 'm':
           iMenu = 1;
           break;
@@ -1344,7 +1371,7 @@ int main(int argc, char **argv)
 
   AndorCameraTest testCamera(iCamera, fExposureTime, iReadoutPort, iSpeedIndex, iGainIndex,
     fTemperature, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iTriggerMode, sFnPrefix, iNumImages, iMenu,
-    bTriggerFast);
+    bTriggerFast, bCropMode);
 
   int iError = testCamera.init();
   if (iError == 0)

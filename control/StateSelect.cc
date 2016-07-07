@@ -31,7 +31,8 @@ StateSelect::StateSelect(QWidget* parent,
   _control (control),
   _green   (new QPalette(Qt::green)),
   _yellow  (new QPalette(Qt::yellow)),
-  _sem     (Semaphore::EMPTY)
+  _sem     (Semaphore::EMPTY),
+  _manual  (true)
 {
   _display = new QLabel("-",this);
   _display->setAutoFillBackground(true);
@@ -83,8 +84,18 @@ StateSelect::~StateSelect()
 }
 
 bool StateSelect::control_enabled() const { return _select->isEnabled(); }
-void StateSelect::enable_control () { emit _enable_control(true); }
-void StateSelect::disable_control() { emit _enable_control(false); }
+void StateSelect::enable_control () 
+{
+  _manual=true;
+  _record->setEnabled (_manual);
+  emit _enable_control(_manual); 
+}
+void StateSelect::disable_control() 
+{ 
+  _manual=false;
+  _record->setEnabled (_manual);
+  emit _enable_control(_manual); 
+}
 bool StateSelect::record_state() const { return _record->isChecked(); }
 void StateSelect::set_record_state(bool r) { emit remote_record(r); qtsync(); }
 
@@ -100,7 +111,7 @@ void StateSelect::populate(QString label)
                                        _select->addItem(_Allocate);
 				       _select->addItem(_Begin_Running);
 				       emit configured(false);
-				       _record->setEnabled(true);
+				       _record->setEnabled(_manual);
 				       break;
   case PartitionControl::Mapped:
                                        emit configured(false);
@@ -110,7 +121,7 @@ void StateSelect::populate(QString label)
                                        _select->addItem(_Begin_Running);
 				       _select->addItem(_Shutdown);
 				       emit configured(true);
-				       _record->setEnabled(true);
+				       _record->setEnabled(_manual);
 				       break;
   case PartitionControl::Running :
                                        _select->addItem(_End_Running);

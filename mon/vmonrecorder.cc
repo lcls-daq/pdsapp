@@ -15,6 +15,8 @@
 
 void printHelp(const char* program);
 
+static const unsigned SUMCOUNT=60;
+
 namespace Pds {
   class MyDriver : public MonConsumerClient,
 		   public VmonClientManager,
@@ -25,6 +27,7 @@ namespace Pds {
              const char*   path) :
       VmonClientManager(platform, partition, *this),
       _recorder        (new VmonRecorder(path)),
+      _recsum          (new VmonRecorder(path,"vmon_sum")),
       _task            (new Task(TaskObject("VmonTmr")))
     {
       VmonClientManager::start();
@@ -33,38 +36,61 @@ namespace Pds {
 	exit(-1);
       }
       _recorder->enable();
+      _recsum  ->enable();
       Timer::start();
     }
-    ~MyDriver() { _recorder->disable(); }
+    ~MyDriver() { _recorder->disable(); _recsum->disable(); }
 
-    Task*    task() { return _task; }
+    Task*    task    () { return _task; }
     unsigned duration() const { return 1000; }
     void     expired() {
       _recorder->flush();
+      _recsum  ->flush();
+      if (++_sum >= SUMCOUNT)
+        _sum=0;
       request_payload();
     }
     unsigned repetitive() const { return 1; }
   public:
     void post(const Transition& tr) {
-      if (tr.id()==TransitionId::BeginRun) {
-        const unsigned MAX_RUNS=100000;
-        unsigned env = tr.env().value();
-        _recorder->begin(env < MAX_RUNS ? int(env) : -1);
-      }
-      else if (tr.id()==TransitionId::EndRun)
+      switch(tr.id()) {
+      case TransitionId::BeginRun:
+        { const unsigned MAX_RUNS=100000;
+          unsigned env = tr.env().value();
+          _recorder->begin(env < MAX_RUNS ? int(env) : -1);
+          _recsum  ->begin(-1);
+          _sum=-1;
+        } break;
+      case TransitionId::EndRun:
         _recorder->end();
+        break;
+      case TransitionId::Unmap:
+        _recsum  ->end();
+        break;
+      default:
+        break;
+      }
       VmonClientManager::post(tr);
     }
   private:
     // Implements MonConsumerClient
     void process(MonClient& client, MonConsumerClient::Type type, int result=0) {
-      if (type==MonConsumerClient::Description)  _recorder->description(client);
-      if (type==MonConsumerClient::Payload    )  _recorder->payload    (client);
+      if (type==MonConsumerClient::Description) {
+        _recorder->description(client);
+        _recsum  ->description(client);
+      }
+      else if (type==MonConsumerClient::Payload    ) {
+        _recorder->payload    (client);
+        if (_sum==0)
+          _recsum->payload    (client);
+      }
     }
     void add(Pds::MonClient&) {}
   private:
     VmonRecorder* _recorder;
+    VmonRecorder* _recsum;
     Task*         _task;
+    unsigned      _sum;
   };
 };
 

@@ -3,7 +3,7 @@
 #include "EventTest.hh"
 #include "EventOptions.hh"
 #include "DgSummary.hh"
-#include "MonReqServer.hh"
+#include "pds/monreq/MonReqServer.hh"
 
 #include "pds/management/PartitionMember.hh"
 #include "pds/utility/SetOfStreams.hh"
@@ -83,7 +83,7 @@ void EventTest::attached(SetOfStreams& streams)
 
  //(new MonReqServer)->connect(frmk->inlet());
   if (_options.monRequest)
-    (new MonReqServer(_options.sliceID))->connect(frmk->inlet()); 
+    (new MonReqServer(_options.sliceID, _options.platform))->connect(frmk->inlet()); 
 
 }
 

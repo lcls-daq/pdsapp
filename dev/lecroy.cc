@@ -81,10 +81,12 @@ namespace Pds {
       Seg(Task*           task,
         unsigned          platform,
         SegWireSettings&  settings,
-        LeCroy::Manager*  manager) :
+        LeCroy::Manager*  manager,
+        LeCroy::Server*  server) :
       _task(task),
       _platform(platform),
-      _manager(manager)
+      _manager(manager),
+      _server(server)
     {}
 
     virtual ~Seg() {
@@ -97,6 +99,7 @@ namespace Pds {
         printf("Seg connected to platform 0x%x\n",_platform);
         Stream* frmk = streams.stream(StreamParams::FrameWork);
         _manager->appliance().connect(frmk->inlet());
+        _server->waitForInit();
       }
 
       void failed(Reason reason) {
@@ -126,6 +129,7 @@ namespace Pds {
       Task*             _task;
       unsigned          _platform;
       LeCroy::Manager*  _manager;
+      LeCroy::Server*   _server;
   };
 }
 
@@ -282,7 +286,7 @@ int main(int argc, char** argv) {
 
   Task* task = new Task(Task::MakeThisATask);
   MySegWire settings(srv, detInfo, isTriggered, module, channel, uniqueid, max_length);
-  Seg* seg = new Seg(task, platform, settings, mgr);
+  Seg* seg = new Seg(task, platform, settings, mgr, srv);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0, slowReadout);
   seglevel->attach();
 

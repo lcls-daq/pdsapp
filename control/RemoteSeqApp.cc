@@ -340,7 +340,7 @@ void RemoteSeqApp::routine()
                     }
                   }
                   apcfg = new (new char[pcfg._sizeof()])
-                    PartitionConfigType(pcfg.bldMask(),pnsrcs,psrcs.data());
+                    PartitionConfigType(pcfg.numWords(),pnsrcs,pcfg.bldMask().data(),psrcs.data());
                 }
 
 #ifdef DBUG

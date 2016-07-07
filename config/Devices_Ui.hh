@@ -51,7 +51,8 @@ namespace Pds_ConfigDb {
   private:
     const Device* _device_c() const;
     Device* _device() const;
-    Serializer& lookup(const UTypeName&, bool);
+    Serializer * lookup(const UTypeName&, bool);
+    void lookup_warning(void);
   private:
     Experiment&  _expt;
     SerializerDictionary _dict;

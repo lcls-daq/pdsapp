@@ -4,6 +4,7 @@
 #include <QtGui/QWidget>
 #include <QtCore/QString>
 #include <new>
+#include <cassert>
 
 using namespace Pds_ConfigDb;
 
@@ -13,6 +14,7 @@ Serializer::~Serializer() {}
 
 void Serializer::initialize(QWidget* parent, QBoxLayout* layout)
 {
+  assert(this != NULL);
   Parameter* p = pList.forward();
   while( p != pList.empty() ) {
     layout->addLayout(p->initialize(parent));

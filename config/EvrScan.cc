@@ -51,7 +51,7 @@ EvrScan::EvrScan(QWidget* parent) :
   _delay_hi->setMaximumWidth(120);
 
   QGridLayout* layout1 = new QGridLayout;
-  layout1->addWidget(new QLabel("Pulse"),0,0,::Qt::AlignRight);
+  layout1->addWidget(new QLabel(QString::fromUtf8("Pulse \u21D2 Mod-Chan")),0,0,::Qt::AlignRight);
   layout1->addWidget(new QLabel("Width [s]"),0,2,::Qt::AlignRight);
   layout1->addWidget(new QLabel("Delay Begin [s]"),1,0,::Qt::AlignRight);
   layout1->addWidget(new QLabel("Delay End   [s]"),1,2,::Qt::AlignRight);
@@ -177,8 +177,15 @@ void EvrScan::read(const char* dbuf, int len)
 
   _pulse_id->clear();
 
-  for(unsigned i=0; i<cfg.npulses(); i++)
-    _pulse_id->addItem(QString::number(i));
+  for(unsigned i=0; i<cfg.npulses(); i++) {
+    QStringList outputs;
+    for(unsigned j=0; j<cfg.noutputs(); j++) {
+      const OutputMapType& om = cfg.output_maps()[j];
+      if ( om.source()==OutputMapType::Pulse && om.source_id()==i )
+        outputs.append(QString("%1-%2").arg(QString::number(om.module()), QString::number(om.conn_id())));
+    }
+    _pulse_id->addItem(QString("%1:  %2").arg(QString::number(i),outputs.join(", ")));
+  }
 
   connect(_pulse_id, SIGNAL(activated(int)), this, SLOT(set_pulse(int)));
 

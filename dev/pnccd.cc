@@ -11,6 +11,7 @@
 #include "pds/service/Task.hh"
 #include "pds/pnccd/pnCCDManager.hh"
 #include "pds/pnccd/pnCCDServer.hh"
+#include "pds/pnccd/pnCCDTrigMonitor.hh"
 #include "pds/config/CfgClientNfs.hh"
 
 #include <unistd.h>
@@ -19,6 +20,8 @@
 #include <signal.h>
 #include <string>
 #include <new>
+
+#include "cadef.h"
 
 namespace Pds
 {
@@ -219,6 +222,7 @@ void printUsage(char* s) {
       "    -i      Set device id                                [Default: 0]\n"
       "    -e      Set the maximum event depth                  [Default: 64]\n"
       "    -u      Set device alias                             [Default: none]\n"
+      "    -t      Set self-trigger pv name                     [Default: none]\n"
       "    -D      Set debug value                              [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offset and count calls\n"
@@ -247,6 +251,7 @@ int main( int argc, char** argv )
   unsigned            debug               = 0;
   unsigned            eventDepth          = 64;
   char*               uniqueid            = (char *)NULL;
+  char*               pvName              = (char *)NULL;
   std::string         sConfigFile;
   ::signal( SIGINT,  sigHandler );
   ::signal( SIGSEGV, sigHandler );
@@ -256,7 +261,7 @@ int main( int argc, char** argv )
 
    extern char* optarg;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:u:m:e:D:P:f:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:u:t:m:e:D:P:f:" ) ) != EOF ) {
      bool     found;
      unsigned index;
      switch(c) {
@@ -292,6 +297,9 @@ int main( int argc, char** argv )
            } else {
              uniqueid = optarg;
            }
+           break;
+         case 't':
+           pvName = optarg;
            break;
          case 'f':
            sConfigFile = optarg;
@@ -359,6 +367,9 @@ int main( int argc, char** argv )
    printf("Node node\n");
    Node node( Level::Source, platform );
 
+   //  EPICS thread initialization
+   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), "pnccd calling ca_context_create");
+
    printf("making task\n");
    Task* task = new Task( Task::MakeThisATask );
    pnCCDServer* pnccdServer;
@@ -375,6 +386,10 @@ int main( int argc, char** argv )
    cfgService = new CfgClientNfs(detInfo);
    printf("making pnCCDServer\n");
    pnccdServer = new pnCCDServer(detInfo, mask);
+   if (pvName) {
+     printf("making pnCCDTrigMonitor\n");
+     pnccdServer->attachTrigMonitor(new pnCCDTrigMonitor(pvName, pnccdServer, ca_current_context()));
+   }
    printf("setting pnCCDServer debug level\n");
    pnccdServer->debug(debug);
 
@@ -407,5 +422,8 @@ int main( int argc, char** argv )
      task->mainLoop();
      printf("exiting pnccd task main loop\n");
    }
+
+   ca_context_destroy();
+
    return 0;
 }

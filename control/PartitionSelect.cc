@@ -14,6 +14,7 @@
 #include "pds/config/XtcClient.hh"
 #include "pds/config/EvrConfigType.hh"
 #include "pds/xtc/XtcType.hh"
+#include "pds/service/BldBitMask.hh"
 
 #include <QtGui/QLabel>
 #include <QtGui/QHBoxLayout>
@@ -34,6 +35,8 @@ using std::vector;
 //#define DBUG
 
 using namespace Pds;
+
+static const BldBitMask ONE_BIT = BldBitMask(BldBitMask::ONE);
 
 PartitionSelect::PartitionSelect(QWidget*          parent,
                                  PartitionControl& control,
@@ -135,15 +138,15 @@ void PartitionSelect::select_dialog()
     for(int i=0; i<_iocs.size(); i++)
       inodes.push_back(_iocs[i]);
 
-    uint64_t bld_mask = 0 ;
+    BldBitMask bld_mask = BldBitMask();
     foreach(BldInfo n, _reporters) {
-      bld_mask |= 1ULL<<n.type();
+      bld_mask |= ONE_BIT<<n.type();
     }
 
-    uint64_t bld_mask_mon = 0 ;
+    BldBitMask bld_mask_mon = BldBitMask();
     QList<BldInfo> transients = dialog->transients();
     foreach(BldInfo n, transients) {
-      bld_mask_mon |= 1ULL<<n.type();
+      bld_mask_mon |= ONE_BIT<<n.type();
     }
 
     if (_validate(bld_mask)) {
@@ -207,11 +210,19 @@ void PartitionSelect::select_dialog()
 #endif
       }
 
-      unsigned sz = sizeof(Partition::ConfigV1)+isrc*sizeof(Partition::Source);
+      unsigned mask_num = PDS_BLD_MASKSIZE;
+      unsigned sz = sizeof(PartitionConfigType)+isrc*sizeof(Partition::Source)+mask_num*sizeof(uint32_t);
       char* buff = new char[sz];
 
+      BldBitMask cfg_mask = bld_mask&~bld_mask_mon;
+      uint32_t mask_vals[mask_num];
+      for (unsigned i=0; i<mask_num; i++) {
+        mask_vals[i] = cfg_mask.value(i);
+      }
+
       PartitionConfigType* cfg = new(buff)
-        PartitionConfigType(bld_mask&~bld_mask_mon,isrc,sources);
+        PartitionConfigType(mask_num,isrc,mask_vals,sources);
+
       {
 	char* partn = new char[cfg->_sizeof()];
 	new (partn) PartitionConfigType(*cfg);
@@ -220,17 +231,17 @@ void PartitionSelect::select_dialog()
 
       _icontrol.set_partition(inodes);
       _pcontrol.set_partition(_pt_name, _db_path,
-			      l3_path.c_str(),
+                              l3_path.c_str(),
                               _nodes  , _nnodes,
-			      masterid,
-                              bld_mask, bld_mask_mon,
+                              masterid,
+                              &bld_mask, &bld_mask_mon,
                               options, 
-			      l3_unbias,
-			      cfg,
-			      dialog->evrio  ().config(dialog->aliases(),cfg),
+                              l3_unbias,
+                              cfg,
+                              dialog->evrio  ().config(dialog->aliases(),cfg),
                               //  Monitoring needs the aliases for Monitor-only data
-			      //dialog->aliases().config(cfg));
-			      dialog->aliases().config());
+                              //dialog->aliases().config(cfg));
+                              dialog->aliases().config());
       _pcontrol.set_target_state(PartitionControl::Configured);
       
       _aliases = dialog->aliases();
@@ -271,7 +282,7 @@ const QList<ProcInfo>& PartitionSelect::segments () const { return _segments ; }
 
 const QList<BldInfo >& PartitionSelect::reporters() const { return _reporters ; }
 
-bool PartitionSelect::_validate(uint64_t bld_mask)
+bool PartitionSelect::_validate(const BldBitMask& bld_mask)
 {
   bool lError  =false;
   bool lWarning=false;
@@ -305,7 +316,7 @@ bool PartitionSelect::_validate(uint64_t bld_mask)
   }
 
   QString warnMsg;
-  if (!lBld && bld_mask) {
+  if (!lBld && bld_mask.isNotZero()) {
     lWarning = true;
     warnMsg += "Beamline Data selected but not BldEb.\n";
   }

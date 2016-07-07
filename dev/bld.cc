@@ -35,6 +35,7 @@
 #include "pds/management/VmonServerAppliance.hh"
 #include "pds/service/VmonSourceId.hh"
 #include "pds/service/BitList.hh"
+#include "pds/service/BldBitMask.hh"
 #include "pds/vmon/VmonEb.hh"
 #include "pds/xtc/XtcType.hh"
 #include "pdsdata/psddl/bld.ddl.h"
@@ -68,6 +69,7 @@ typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV2 BldDataGMD;
 typedef Pds::Bld::BldDataSpectrometerV1 SpectrometerType;
 typedef Pds::Bld::BldDataAnalogInputV1 AnalogInputType;
+typedef Pds::Bld::BldDataEOrbitsV0 EOrbitsType;
 
 static const Pds::TypeId::Type Id_SpectrometerType = 
   Pds::TypeId::Type(SpectrometerType::TypeId);
@@ -76,6 +78,9 @@ static Pds::TypeId _spectrometerType(Id_SpectrometerType,
 
 static Pds::TypeId _analogInputType(Pds::TypeId::Id_AnalogInput,
                                     AnalogInputType::Version);
+
+static Pds::TypeId _eOrbitsType(Pds::TypeId::Id_EOrbits,
+                                EOrbitsType::Version);
 
 //    typedef BldDataAcqADCV1 BldDataAcqADC;
 using Pds::Bld::BldDataPhaseCavity;
@@ -96,6 +101,8 @@ static const FrameFexConfigType _frameFexConfig(FrameFexConfigType::FullFrame, 1
                                                 Pds::Camera::FrameCoord(0,0),
                                                 Pds::Camera::FrameCoord(0,0),
                                                 0, 0, 0);
+static const Pds::BldBitMask ONE_BIT  = Pds::BldBitMask(Pds::BldBitMask::ONE);
+static const Pds::BldBitMask EMPTY    = Pds::BldBitMask();
 
 namespace Pds {
 
@@ -207,30 +214,32 @@ namespace Pds {
   //  Reset flag
   _reconfigure_requested = false;
   //  Map from BldInfo enumeration to Configuration data type
-  uint64_t
-    EBeamMask       = 1ULL<<BldInfo::EBeam,
-    PhaseCavityMask = 1ULL<<BldInfo::PhaseCavity,
-    FEEGasDetMask   = 1ULL<<BldInfo::FEEGasDetEnergy,
-    GMDMask         = 1ULL<<BldInfo::GMD;
-  uint64_t IpimbMask =
-    ((1ULL<<(BldInfo::HfxDg3Imb02+1)) - (1ULL<<BldInfo::Nh2Sb1Ipm01)) |
-    ((1ULL<<(BldInfo::MecHxmIpm01+1)) - (1ULL<<BldInfo::HfxMonImb01)) |
-    ((1ULL<<(BldInfo::CxiDg3Imb01+1)) - (1ULL<<BldInfo::CxiDg1Imb01)) |
-    ((1ULL<<(BldInfo::MecXt2Pim03+1)) - (1ULL<<BldInfo::XppMonPim0))  |
-    ((1ULL<<(BldInfo::Nh2Sb1Ipm02+1)) - (1ULL<<BldInfo::Nh2Sb1Ipm02)) |
-    ((1ULL<<(BldInfo::XcsLamIpm01+1)) - (1ULL<<BldInfo::XcsUsrIpm01));
-  uint64_t PimMask =
-    ((1ULL<<(BldInfo::HfxMonCam+1)) - (1ULL<<BldInfo::HxxDg1Cam)) |
-    ((1ULL<<(BldInfo::CxiDg3Pim+1)) - (1ULL<<BldInfo::CxiDg1Pim));
-  uint64_t OpalMask = 1ULL<<BldInfo::CxiDg3Spec;
-  uint64_t SpecMask = (1ULL<<BldInfo::FeeSpec0) |
-    (1ULL<<BldInfo::SxrSpec0) |
-    (1ULL<<BldInfo::XppSpec0);
-  uint64_t AIMask = (1ULL<<BldInfo::XppAin01) |
-    (1ULL<<BldInfo::XcsAin01) |
-    (1ULL<<BldInfo::AmoAin01);
+  BldBitMask
+    EBeamMask       = ONE_BIT<<BldInfo::EBeam,
+    PhaseCavityMask = ONE_BIT<<BldInfo::PhaseCavity,
+    FEEGasDetMask   = ONE_BIT<<BldInfo::FEEGasDetEnergy,
+    GMDMask         = ONE_BIT<<BldInfo::GMD,
+    EOrbitsMask     = ONE_BIT<<BldInfo::EOrbits;
+  BldBitMask IpimbMask =
+    ((ONE_BIT<<(BldInfo::HfxDg3Imb02+1)) - (ONE_BIT<<BldInfo::Nh2Sb1Ipm01)) |
+    ((ONE_BIT<<(BldInfo::MecHxmIpm01+1)) - (ONE_BIT<<BldInfo::HfxMonImb01)) |
+    ((ONE_BIT<<(BldInfo::CxiDg3Imb01+1)) - (ONE_BIT<<BldInfo::CxiDg1Imb01)) |
+    ((ONE_BIT<<(BldInfo::MecXt2Pim03+1)) - (ONE_BIT<<BldInfo::XppMonPim0))  |
+    ((ONE_BIT<<(BldInfo::Nh2Sb1Ipm02+1)) - (ONE_BIT<<BldInfo::Nh2Sb1Ipm02)) |
+    ((ONE_BIT<<(BldInfo::XcsLamIpm01+1)) - (ONE_BIT<<BldInfo::XcsUsrIpm01));
+  BldBitMask PimMask = EMPTY;
+  BldBitMask OpalMask = ONE_BIT<<BldInfo::CxiDg3Spec;
+  BldBitMask SpecMask = (ONE_BIT<<BldInfo::FeeSpec0) |
+    (ONE_BIT<<BldInfo::SxrSpec0) |
+    (ONE_BIT<<BldInfo::XppSpec0) |
+    ((ONE_BIT<<(BldInfo::HfxMonCam+1)) - (ONE_BIT<<BldInfo::HxxDg1Cam)) |
+    ((ONE_BIT<<(BldInfo::CxiDg3Pim+1)) - (ONE_BIT<<BldInfo::CxiDg1Pim)) |
+    ((ONE_BIT<<(BldInfo::MfxDg2Pim+1)) - (ONE_BIT<<BldInfo::MfxDg1Pim));
+  BldBitMask AIMask = (ONE_BIT<<BldInfo::XppAin01) |
+    (ONE_BIT<<BldInfo::XcsAin01) |
+    (ONE_BIT<<BldInfo::AmoAin01);
 #define TEST_CREAT(mask, idType, dataType)                  \
-  if (im & mask) {                                          \
+  if ((im & mask).isNotZero()) {                            \
     Xtc tc(TypeId(TypeId::idType,dataType::Version),        \
            BldInfo(_pid,BldInfo::Type(i)));                 \
     tc.extent += sizeof(dataType);                          \
@@ -242,7 +251,7 @@ namespace Pds {
   //  giving the expected size of these objects from this source.
   //
 #define TEST_CACHE(mask, idType, dataType)                        \
-  if (im & mask) {                                                \
+  if ((im & mask).isNotZero()) {                                  \
     Xtc tc(idType, BldInfo(_pid,BldInfo::Type(i)));               \
     char* p = _cache.fetch(tc);                                   \
     if (p) {                                                      \
@@ -253,34 +262,36 @@ namespace Pds {
   }
 
   for(unsigned i=0; i<BldInfo::NumberOf; i++) {
-    uint64_t im = 1ULL<<i;
-    if (im & _mask) {
+    BldBitMask im = ONE_BIT<<i;
+    if ((im & _mask).isNotZero()) {
       TEST_CREAT(EBeamMask      ,Id_EBeam            ,BldDataEBeam);
       TEST_CREAT(PhaseCavityMask,Id_PhaseCavity      ,BldDataPhaseCavity);
       TEST_CREAT(FEEGasDetMask  ,Id_FEEGasDetEnergy  ,BldDataFEEGasDetEnergy);
       TEST_CREAT(GMDMask        ,Id_GMD              ,BldDataGMD);
+      TEST_CREAT(EOrbitsMask    ,Id_EOrbits          ,EOrbitsType);
       TEST_CACHE(SpecMask       ,_spectrometerType   ,SpectrometerType);
       TEST_CACHE(IpimbMask      ,_ipimbConfigType    ,IpimbConfigType);
-      if (im & IpimbMask) {
+      if ((im & IpimbMask).isNotZero()) {
         Xtc tc(_ipmFexConfigType, BldInfo(_pid,BldInfo::Type(i)));
         tc.extent += sizeof(IpmFexConfigType);
         dg->insert(tc,_tc_init);
       }
       TEST_CACHE(PimMask        ,_tm6740ConfigType   ,TM6740ConfigType);
       TEST_CACHE(PimMask        ,_pimImageConfigType ,PimImageConfigType);
-      if (im & PimMask) {
+      if ((im & PimMask).isNotZero()) {
         Xtc tc(_frameFexConfigType, BldInfo(_pid,BldInfo::Type(i)));
         tc.extent += sizeof(FrameFexConfigType);
         dg->insert(tc,&_frameFexConfig);
       }
       TEST_CACHE(OpalMask       ,_opal1kConfigType   ,Opal1kConfigType);
-      if (im & OpalMask) {
+      if ((im & OpalMask).isNotZero()) {
         Xtc tc(_frameFexConfigType, BldInfo(_pid,BldInfo::Type(i)));
         tc.extent += sizeof(FrameFexConfigType);
         dg->insert(tc,&_frameFexConfig);
       }
       //      TEST_CACHE(AcqMask        ,Id_SharedAcq      ,BldDataAcqADC);
       TEST_CACHE(AIMask, _analogInputType, AnalogInputType);
+      TEST_CACHE(EOrbitsMask, _eOrbitsType, EOrbitsType);
     }
   }
 #undef TEST_CACHE
@@ -375,6 +386,7 @@ namespace Pds {
       REQUIRE(Opal1kConfig)
       REQUIRE(Spectrometer)
       REQUIRE(AnalogInput)
+      REQUIRE(EOrbits)
       default:
         _dg->insert(*xtc,xtc->payload());
         break;
@@ -429,6 +441,9 @@ namespace Pds {
     bool _require(const Xtc& xtc, const AnalogInputType& c)
     { _require(xtc,&c,sizeof(c));
       return true; }
+    bool _require(const Xtc& xtc, const EOrbitsType& c)
+    { _require(xtc,&c,sizeof(c));
+      return true; }
 
   private:
     void _reconfigure(const Xtc& xtc) {
@@ -451,7 +466,7 @@ namespace Pds {
     GenericPool _occ;
     BldConfigCache& _cache;
     CDatagram*  _dg;
-    uint64_t    _mask;
+    BldBitMask  _mask;
     bool        _reconfigure_requested;
     unsigned    _pid;
   };
@@ -487,7 +502,7 @@ namespace Pds {
   public:
     BldCallback(Task*      task,
                 unsigned   platform,
-                uint64_t   mask,
+                BldBitMask mask,
                 BldConfigCache& cache,
                 bool       lCompress) :
       _task    (task),
@@ -500,7 +515,7 @@ namespace Pds {
          DetInfo::BldEb, 0,
          DetInfo::NoDevice, 0));
       for(unsigned i=0; i<BldInfo::NumberOf; i++)
-        if ( (1ULL<<i)&mask )
+        if ( ((ONE_BIT<<i)&mask).isNotZero() )
           _sources.push_back(BldInfo(node.pid(),(BldInfo::Type)i));
     }
 
@@ -723,11 +738,11 @@ namespace Pds {
     }
     void allocated(const Allocation& alloc, unsigned index) {
       //  add segment level EVR
-      unsigned partition = alloc.partitionid();
-      unsigned nnodes    = alloc.nnodes();
-      uint64_t bldmask   = alloc.bld_mask();
-      uint64_t bldmaskt  = alloc.bld_mask_mon();
-      InletWire & inlet  = *_streams->wire(StreamParams::FrameWork);
+      unsigned partition  = alloc.partitionid();
+      unsigned nnodes     = alloc.nnodes();
+      BldBitMask bldmask  = alloc.bld_mask();
+      BldBitMask bldmaskt = alloc.bld_mask_mon();
+      InletWire & inlet   = *_streams->wire(StreamParams::FrameWork);
 
       for (unsigned n = 0; n < nnodes; n++) {
         const Node & node = *alloc.node(n);
@@ -758,12 +773,12 @@ namespace Pds {
       }
 
       for(int i=0; i<BldInfo::NumberOf; i++) {
-        if (bldmask & (1ULL<<i)) {
+        if ((bldmask & (ONE_BIT<<i)).isNotZero()) {
           Node node(Level::Reporter, 0);
           node.fixup(StreamPorts::bld(i).address(),Ether());
           Ins ins( node.ip(), StreamPorts::bld(0).portId());
 	  BldServer* srv;
-	  if (bldmaskt & (1ULL<<i))
+	  if ((bldmaskt & (ONE_BIT<<i)).isNotZero())
 	    srv = new BldServerTransient(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
 	  else
 	    srv = new BldServer(ins, BldInfo(0,(BldInfo::Type)i), MAX_EVENT_SIZE);
@@ -864,7 +879,7 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   unsigned platform = NO_PLATFORM;
   bool lCompress = false;
-  uint64_t mask = (1ULL<<BldInfo::NumberOf)-1;
+  BldBitMask mask = (ONE_BIT<<BldInfo::NumberOf) - ONE_BIT;
   EbBase::printSinks(false);
 
   extern char* optarg;
@@ -875,7 +890,7 @@ int main(int argc, char** argv) {
       platform = strtoul(optarg, NULL, 0);
       break;
     case 'm':
-      mask = strtoull(optarg, NULL, 0);
+      mask.read(optarg, NULL);
       break;
     case 'C':
       lCompress = true;

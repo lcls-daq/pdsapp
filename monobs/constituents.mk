@@ -1,4 +1,4 @@
-tgtnames := monobs monshm monshmserver monreqserver offlineobs sxrmon xppmon cximon xcsmon cspadmon
+tgtnames := monobs monshm monshmserver offlineobs sxrmon xppmon cximon xcsmon cspadmon
 #tgtnames += alive_mon
 ifneq ($(findstring x86_64,$(tgt_arch)),)
 else
@@ -8,7 +8,7 @@ libnames :=
 
 commonlibs := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/configdata pdsdata/xtcdata pdsdata/psddl_pdsdata
 #commonlibs += pds/pnccdFrameV0
-liblibs_tools := pdsdata/psddl_pdsdata
+liblibs_tools := pdsdata/psddl_pdsdata pds/monreq
 
 tgtsrcs_monobs := monobs.cc CamDisplay.cc AcqDisplay.cc
 tgtlibs_monobs += $(commonlibs) pds/mon

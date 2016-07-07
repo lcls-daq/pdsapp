@@ -91,7 +91,7 @@ using namespace Pds_ConfigDb;
 
 Cspad2x2GainMap::Cspad2x2GainMap() : _display(0) {}
 
-Cspad2x2GainMap::~Cspad2x2GainMap() { if (_display) delete _display; delete _quad; }
+Cspad2x2GainMap::~Cspad2x2GainMap() { if (_display) { delete _display; delete _quad[0]; } }
 
 void Cspad2x2GainMap::insert(Pds::LinkedList<Parameter>& pList) {
 }

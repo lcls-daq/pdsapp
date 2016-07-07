@@ -35,6 +35,8 @@ extern void remove_socket(int s);
 extern void begin_run(void);
 extern int record_cnt;
 extern int verbose;
+extern int quiet;
+extern int pvignore;
 extern std::string hostname;
 extern std::string prefix;
 extern std::string username;
@@ -58,6 +60,7 @@ extern void create_ca(std::string name, std::string detector, std::string camtyp
 extern void handle_ca(fd_set *rfds);
 extern void begin_run_ca(void);
 extern void cleanup_ca(void);
+extern char *connection_status(void);
 
 /* xtc.cc */
 extern void nofid(void);
