@@ -1,6 +1,4 @@
 #include "pdsdata/app/XtcMonitorServer.hh"
-#include "pdsapp/tools/PnccdShuffle.hh"
-#include "pdsapp/tools/CspadShuffle.hh"
 #include <errno.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -177,9 +175,6 @@ char buff[256];
   private:
     void _copyDatagram(Dgram* dg, char* b) {
     Datagram& dgrm = *reinterpret_cast<Datagram*>(dg);
-
-    PnccdShuffle::shuffle(dgrm);
-    CspadShuffle::shuffle(reinterpret_cast<Dgram&>(dgrm));
 
     //  write the datagram
     memcpy(b, &dgrm, sizeof(Datagram));

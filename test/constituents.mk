@@ -1,6 +1,6 @@
-libnames :=
+libnames := ibtest
 
-libsrcs_test :=
+libsrcs_ibtest := ibcommon.cc
 
 
 tgtnames := timestampReceiver sqlDbTest timerResolution
@@ -13,7 +13,7 @@ tgtnames += andorStandAlone
 tgtnames += andorDualStandAlone
 endif
 
-commonlibs := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
+commonlibs := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 
 tgtsrcs_princetonCameraTest := princetonCameraTest.cc
 tgtlibs_princetonCameraTest := pds/princetonutil pvcam/pvcam
@@ -46,6 +46,27 @@ tgtnames := ibhosts
 tgtsrcs_ibhosts := ibhosts.cc
 tgtslib_ibhosts := ibverbs rt
 
-tgtnames := ibrdma
 tgtsrcs_ibrdma := ibrdma.cc
-tgtslib_ibrdma := ibverbs rt
+tgtslib_ibrdma := ibverbs
+
+#
+#  ibv_reg_mr behaves differently if it is linked from a shared library!
+#
+tgtsrcs_ibrdmac := ibrdmac.cc ibcommon.cc
+#tgtlibs_ibrdmac := pdsapp/ibtest
+tgtslib_ibrdmac := ibverbs pthread
+
+tgtnames := iboutlet ibinlet ibrdma ibrdmac
+tgtsrcs_iboutlet := iboutlet.cc ibcommon.cc
+tgtincs_iboutlet := pdsdata/include ndarray/include boost/include
+tgtlibs_iboutlet := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility
+#tgtlibs_iboutlet += pdsapp/ibtest
+tgtslib_iboutlet := ibverbs rt pthread
+
+tgtsrcs_ibinlet := ibinlet.cc ibcommon.cc
+tgtincs_ibinlet := pdsdata/include ndarray/include boost/include
+tgtlibs_ibinlet := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility
+#tgtlibs_ibinlet += pdsapp/ibtest
+tgtslib_ibinlet := ibverbs rt pthread
+
+tgtnames := ibrdmac ibrdma ibinlet iboutlet
