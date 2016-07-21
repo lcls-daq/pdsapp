@@ -22,23 +22,12 @@ namespace Pds {
 	       QList<int>&, 
 	       QList<bool>&,
 	       const char*);
-    void read (QList<QString>&, 
-	       QList<int>&, 
-	       QList<bool>&,
-	       const char*,
-	       QList<bool>&,
-	       const char*);
-
     void write(const QString&);
     void write(const QString&,
 	       const char*);
     void write(const QString&, 
 	       int,
 	       const char*);
-    void write(const QString&, 
-	       int,
-	       const char*,
-               const char*);
   private:
     FILE* _f;
   };

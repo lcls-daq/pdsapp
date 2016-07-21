@@ -13,7 +13,6 @@
 #include <QtGui/QGroupBox>
 #include <QtGui/QCheckBox>
 #include <QtGui/QComboBox>
-#include <QtGui/QLabel>
 
 #include <errno.h>
 #include <stdio.h>
@@ -23,8 +22,6 @@ using namespace Pds;
 
 static const char* cTransient = "Monitor";
 static const char* cRecord    = "Record";
-static const char* cSelected    = "Selected";
-static const char* cNotSelected = "NotSelected";
 
 NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, int useGroups, bool useTransient) :
   QWidget  (parent),
@@ -32,34 +29,31 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, i
   _buttons (new QButtonGroup(parent)),
   _ready   (new QPalette(Qt::green)),
   _notready(new QPalette(Qt::red)),
-  _palette (new QPalette()),
   _platform(platform),
-  _useGroups(true),
+  _useGroups(useGroups),
   _useTransient    (useTransient)
 {
   //  Read persistent selected nodes
-  //printf("NodeGroup::NodeGroup useGroups %d\n",useGroups);
-
-  _read_pref(title(), _persist, _persistGroup, _persistTrans, _persistSelect);
-  //_read_pref(QString("%1 required").arg(title()), 
-         //_persist, _persistGroup, _persistTrans, _persistSelect);
-
-  _notfound = _persist;
+  printf("NodeGroup::NodeGroup useGroups %d\n",useGroups);
+  if (useGroups<=0) {
+    _read_pref(title(), 
+	       _persist, _persistTrans);
+    _read_pref(QString("%1 required").arg(title()), 
+	       _require, _requireTrans);
+  }
+  else {
+    if (_useGroups>=2) _useGroups=2;
+    _read_pref(title(), 
+	       _persist, _persistGroup, _persistTrans);
+    _read_pref(QString("%1 required").arg(title()), 
+	       _require, _requireGroup, _requireTrans);
+  }    
 
   _buttons->setExclusive(false);
 
   _group->setLayout(new QVBoxLayout);
   QVBoxLayout* l = new QVBoxLayout;
   l->addWidget(_group);
-  _notfoundlist = new QLabel;
-
-  _palette->setColor(QPalette::WindowText,Qt::red);
-  _notfoundlist->setPalette(*_palette);	
-
-  _build_notfoundlist(QString());
- 
-  l->addWidget(_notfoundlist);
-
   if (_useGroups) {
     l->addWidget(_enableGroups=new QCheckBox("Use Readout Groups"));
     _enableGroups->setChecked(_useGroups==2);
@@ -79,7 +73,7 @@ NodeGroup::~NodeGroup()
   delete _buttons; 
   delete _ready;
   delete _notready;
-  delete _palette;
+
   { NodeTransientCb* pCallback;
     foreach (pCallback, _lTransientCb)
       delete pCallback; }
@@ -126,9 +120,6 @@ void NodeGroup::add_node(int index)
     
   int indexPersist = _persist.indexOf(node.plabel());
   int indexRequire = _require.indexOf(node.plabel());
-
-  _build_notfoundlist(node.plabel());	
-
   button->setCheckState( (indexPersist>=0 || indexRequire>=0) ? Qt::Checked : Qt::Unchecked);
   button->setEnabled   ( indexRequire<0 );
   button->setPalette( node.ready() ? *_ready : *_notready );
@@ -143,12 +134,11 @@ void NodeGroup::add_node(int index)
   bool bEvrNode = (node.src().level() == Level::Source &&
 		   static_cast<const DetInfo&>(node.src()).device() == DetInfo::Evr);          
 
-  {
+  if (_useTransient) {
 
     QComboBox* transientBox = new QComboBox(this);
     transientBox->addItem("Rec");
     transientBox->addItem("Mon");
-    transientBox->setVisible(_useTransient);
     layoutButton->addStretch(1);
     layoutButton->addWidget(transientBox);
 
@@ -232,22 +222,6 @@ void NodeGroup::add_node(int index)
   emit list_changed();
 }
 
-//Takes a QString of node names, Checks to see if they are still available
-void NodeGroup::_build_notfoundlist(const QString& plabel) {
-
-        int indexNotfound = _notfound.indexOf(plabel);
-	if (indexNotfound != -1) {
-	  _notfound.removeAt(indexNotfound);
-	} 
-
-        QString changing_notfound;        
-        for(int k =0; k <_notfound.size();  k++){
-          changing_notfound.append(QString("Missing: %1\n").arg(_notfound.at(k)));
-	} 
-        _notfoundlist->setText(changing_notfound);
-}
-
-
 void NodeGroup::replace_node(int index)
 { 
   const NodeSelect& node = _nodes[index];
@@ -268,9 +242,6 @@ QList<Node> NodeGroup::selected()
   _persist.clear();
   _persistGroup.clear();
   _persistTrans.clear();
-
-  _persistSelect.clear();
-
   QList<Node> nodes;
   QList<QAbstractButton*> buttons = _buttons->buttons();
   Node* master_evr = 0;
@@ -281,12 +252,13 @@ QList<Node> NodeGroup::selected()
     if (_useTransient)
       _nodes[id].node().setTransient(_transients[id]->currentIndex()==1);
 
-    _persist.push_back(_nodes[id].plabel().replace('\n','\t'));
-    _persistGroup.push_back(_groups[id]->currentText().toUInt());
-    _persistTrans.push_back(_transients[id]->currentIndex()!=0);
-    _persistSelect.push_back(b->isChecked());
-
-    if (b->isChecked()) {    
+    if (b->isChecked()) {
+      _persist.push_back(_nodes[id].plabel().replace('\n','\t'));
+      _persistGroup.push_back(_useGroups ?_groups[id]->currentText().toUInt():0);
+      _persistTrans.push_back(_useTransient ?_transients[id]->currentIndex()!=0:0);
+      
+      //printf("node %d %s group %d\n", id, qPrintable(_persist[id]), _persistGroup[id]); //!!!debug
+      
       if (_nodes[id].det().device()==DetInfo::Evr) {
         if (_nodes[id].det().devId()==0)
           master_evr = new Node(_nodes[id].node());
@@ -306,16 +278,19 @@ QList<Node> NodeGroup::selected()
   //  Write persistent selected nodes
   Preferences pref(qPrintable(title()), _platform, "w");
   for (int iNode = 0; iNode < _persist.size(); ++iNode) {
+    if (_useGroups)
       pref.write(_persist[iNode],
 		 _persistGroup[iNode], 
-		 _persistTrans[iNode]?cTransient:cRecord,
-		 _persistSelect[iNode]?cSelected:cNotSelected);
+		 _persistTrans[iNode]?cTransient:cRecord);
+    else if (_useTransient)
+      pref.write(_persist[iNode],
+		 _persistTrans[iNode]?cTransient:cRecord);
+    else
+      pref.write(_persist[iNode]);      
   }
-
   _write_pref();
 
   return nodes;
-
 }
 
 std::set<std::string> NodeGroup::deviceNames()
@@ -335,11 +310,6 @@ std::set<std::string> NodeGroup::deviceNames()
 
 NodeGroup* NodeGroup::freeze()
 {
-
-  for(int k =0; k <_notfound.size();  k++){
-      printf("ERROR NOT FOUND: %s\n", qPrintable(_notfound[k]));
-      } 
-
   NodeGroup* g = new NodeGroup(title(),(QWidget*)this, _platform, _useGroups, _useTransient);
 
   {
@@ -395,16 +365,6 @@ void NodeGroup::_read_pref(const QString&  title,
 {
   Preferences pref(qPrintable(title), _platform, "r");
   pref.read(l,lg,lt,cTransient);
-}
-
-void NodeGroup::_read_pref(const QString&  title,
-                           QList<QString>& l, 
-                           QList<int>&     lg,
-			   QList<bool>&    lt,
-			   QList<bool>&    ls)
-{
-  Preferences pref(qPrintable(title), _platform, "r");
-  pref.read(l,lg,lt,cTransient,ls,cSelected);
 }
 
 
