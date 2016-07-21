@@ -271,6 +271,9 @@ int main(int argc, char** argv)
 
     const DetInfo detInfo( getpid(), Pds::DetInfo::EpicsArch, 0, DetInfo::NoDevice, iUnit);    
 
+    //  EPICS thread initialization
+    SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), "epicsArch calling ca_context_create" );
+
     Task* task = new Task(Task::MakeThisATask);
 
     // keep this: it's the "hook" into the configuration database
@@ -283,6 +286,8 @@ int main(int argc, char** argv)
     seglevel.attach();    
     //    if ( evtCBEpicsArch.IsAttached() )    
         task->mainLoop(); // Enter the event processing loop, and never returns (unless the program terminates)
+
+    ca_context_destroy();
         
     return 0;
 }
