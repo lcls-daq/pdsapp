@@ -211,7 +211,8 @@ tgtslib_phasics := $(commonslib)/rt
 tgtsrcs_epicsArch := epicsArch.cc
 tgtlibs_epicsArch := $(commonlibs) pds/epicsArch epics/ca epics/Com
 tgtslib_epicsArch := $(commonslib)
-tgtincs_epicsArch := pdsdata/include ndarray/include boost/include 
+tgtincs_epicsArch := pdsdata/include ndarray/include boost/include
+tgtincs_epicsArch += epics/include epics/include/os/Linux
 
 tgtsrcs_bld := bld.cc 
 tgtlibs_bld := $(commonlibs) 
