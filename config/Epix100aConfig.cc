@@ -192,22 +192,30 @@ namespace Pds_ConfigDb {
       printf("PrivateData::initialize: NumberOfRegisters %u\n", Epix100aConfigShadow::NumberOfRegisters);
 
       for(unsigned i=0; i<Epix100aConfigShadow::NumberOfRegisters; i++)
-        _reg[i]->enable(!(Epix100aConfigShadow::readOnly(Epix100aConfigShadow::Registers(i)) == Epix100aConfigShadow::ReadOnly));
+        if (Epix100aConfigShadow::readOnly(Epix100aConfigShadow::Registers(i)) != Epix100aConfigShadow::DoNotUse) {
+          _reg[i]->enable(!(Epix100aConfigShadow::readOnly(Epix100aConfigShadow::Registers(i)) == Epix100aConfigShadow::ReadOnly));
+        }
       return layout;
     }
     void update() {
       for(unsigned i=0; i<Epix100aConfigShadow::NumberOfRegisters; i++)
-        _reg[i]->update();
+        if (Epix100aConfigShadow::readOnly(Epix100aConfigShadow::Registers(i)) != Epix100aConfigShadow::DoNotUse) {
+          _reg[i]->update();
+        }
       _asicSet.update();
     }
     void flush () {
       for(unsigned i=0; i<Epix100aConfigShadow::NumberOfRegisters; i++)
-        _reg[i]->flush();
+        if (Epix100aConfigShadow::readOnly(Epix100aConfigShadow::Registers(i)) != Epix100aConfigShadow::DoNotUse) {
+          _reg[i]->flush();
+        }
       _asicSet.flush();
     }
     void enable(bool v) {
       for(unsigned i=0; i<Epix100aConfigShadow::NumberOfRegisters; i++)
-        _reg[i]->enable(v && (Epix100aConfigShadow::readOnly(Epix100aConfigShadow::Registers(i)) == Epix100aConfigShadow::ReadWrite));
+        if (Epix100aConfigShadow::readOnly(Epix100aConfigShadow::Registers(i)) != Epix100aConfigShadow::DoNotUse) {
+          _reg[i]->enable(v && (Epix100aConfigShadow::readOnly(Epix100aConfigShadow::Registers(i)) == Epix100aConfigShadow::ReadWrite));
+        }
       _asicSet.enable(v);
     }
   public:
