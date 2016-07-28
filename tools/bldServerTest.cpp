@@ -249,7 +249,7 @@ namespace Pds
 
 using namespace Pds::ConfigurationMulticast;
 void printData(	const std::vector<unsigned char>& vcBuffer, int iDataSize,
-				char * sTyDump, size_t cntDump, size_t offDump, bool quiet );
+				char * sTyDump, size_t cntDump, size_t offDump, bool showHdr, bool quiet );
 void printSummary();
 
 static void showUsage()
@@ -258,6 +258,7 @@ static void showUsage()
       " Options:\n"
       "   -v|--version                        Show file version\n"
       "   -h|--help                           Show Usage\n"
+      "   -H|--showHdr                        Show BLD Packet Header\n"
       "   -a|--address   <Ip Address>         Set the multicast address to be listened to. Default: %s\n"
       "   -p|--port      <Port>               Set the port to be listened to. Default: %u\n"
       "   -P|--PGPtest                        PGP card test with occasional summary of received packets\n"
@@ -291,7 +292,8 @@ long long unsigned packetCount = 0LL;
 long long unsigned dataTotal   = 0LL;
 bool     packetError           = false;
 
-void sigHandler( int signal ) {
+void sigHandler( int signal )
+{
   psignal( signal, "Signal received: ");
   printSummary();
   exit(0);
@@ -302,6 +304,7 @@ int main(int argc, char** argv)
   bool evrGapHunt = false;
   bool PGPcardTestSummary = false;
   bool evrFiducialGapCheck = false;
+  bool showHdr	= false;
   bool quiet	= false;
   int iOptionIndex = 0;
   struct option loOptions[] =
@@ -318,6 +321,7 @@ int main(int argc, char** argv)
       {"offDump",  1, 0, 'o'},
       {"evrGapHunt", 0, 0, 'e'},
       {"evrFiducialGapCheck", 0, 0, 'E'},
+      {"showHdr",  0, 0, 'H'},
       {"quiet",    0, 0, 'q'},
       {0,          0, 0,  0 }
   };
@@ -329,7 +333,7 @@ int main(int argc, char** argv)
   char		*	sTyDump		  = NULL;
   size_t		cntDump		  = 0;
   size_t		offDump		  = 0;
-  while ( int opt = getopt_long(argc, argv, ":vha:p:Pi:s:t:c:eEq", loOptions, &iOptionIndex ) )
+  while ( int opt = getopt_long(argc, argv, ":vhHa:p:Pi:s:t:c:eEq", loOptions, &iOptionIndex ) )
   {
     if ( opt == -1 ) break;
 
@@ -346,6 +350,9 @@ int main(int argc, char** argv)
         break;
       case 'P':
         PGPcardTestSummary = true;
+        break;
+      case 'H':
+        showHdr = true;
         break;
       case 'q':
         quiet = true;
@@ -402,7 +409,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  std::vector<unsigned char> vcFetchBuffer( uDefaultMaxDataSize );
+  std::vector<unsigned char> vcFetchBuffer( uMaxDataSize );
   Pds::EvrDatagram* dgram = (Pds::EvrDatagram*)&vcFetchBuffer[0];
 
   uint32_t* wp = (uint32_t*)dgram;
@@ -414,7 +421,7 @@ int main(int argc, char** argv)
   while (1) // Pds::ConsoleIO::kbhit(NULL) == 0 )
   {
     unsigned int iRecvDataSize = 0;
-    int iFail = bldServer.fetch(uDefaultMaxDataSize, &vcFetchBuffer[0], iRecvDataSize);
+    int iFail = bldServer.fetch(uMaxDataSize, &vcFetchBuffer[0], iRecvDataSize);
     if ( iFail != 0 )
     {
       printf( "bldServerTest:main(): bldServer.fetch() failed. Error Code = %d\n", iFail );
@@ -498,7 +505,7 @@ int main(int argc, char** argv)
             }
           }
         } else {
-          printData( vcFetchBuffer, iRecvDataSize, sTyDump, cntDump, offDump, quiet );
+          printData( vcFetchBuffer, iRecvDataSize, sTyDump, cntDump, offDump, showHdr, quiet );
         }
       }
     }
@@ -506,7 +513,8 @@ int main(int argc, char** argv)
   return 0;
 }
 
-void printSummary() {
+void printSummary()
+{
   printf("packetCount(%llu), eventCount(%u), lostPackets(%u), lostSegments(%u), lostEvents(%u)\n",
       packetCount, lastFrameNumber, lostPackets, lostSegments, lostEvents);
 }
@@ -519,6 +527,7 @@ void printData(
 	char		*	sTyDump,
 	size_t			cntDump,
 	size_t			offDump,
+	bool			showHdr,
   	bool			quiet
 	)
 {
@@ -563,8 +572,36 @@ void printData(
 	{
 	  const uint32_t	* pData       = (const uint32_t * ) &vcBuffer[0];
 
+	  if ( showHdr )
+	  {
+	  	const uint32_t	*	pUint       = (const uint32_t	* ) pData;
+	  	uint32_t			uVal;
+		uVal = *pUint++; printf( "\n uNanoSecs:   %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n uSecs:       %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n uMBZ1:       %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n uFidId:      %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n uMBZ2:       %10u (0x%08X)", uVal, uVal );
+
+		uVal = *pUint++; printf( "\n XTC1 Damage: %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n XTC1 Log ID: %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n XTC1 PhysID: %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n XTC1 TyData: %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n XTC1 ExtSiz: %10u (0x%08X)", uVal, uVal );
+
+		uVal = *pUint++; printf( "\n XTC2 Damage: %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n XTC2 Log ID: %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n XTC2 PhysID: %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n XTC2 TyData: %10u (0x%08X)", uVal, uVal );
+		uVal = *pUint++; printf( "\n XTC2 ExtSiz: %10u (0x%08X)", uVal, uVal );
+
+		printf( "\n" );
+	  }
+	  else
+	  {
+		  // Skip the 15 word header and requested dump offset (4 byte aligned)
+		  pData += 15;
+	  }
 	  // Skip the 15 word header and requested dump offset (4 byte aligned)
-	  pData += 15;
 	  pData += offDump/sizeof(uint32_t);
 
 	  const int			* pInt        = (const int		* ) pData;
@@ -573,6 +610,11 @@ void printData(
 	  printf( " Data: " );
 	  while ( cntDump > 0 )
 	  {
+	    if ( (const unsigned char *)pData >= &vcBuffer[iDataSize] )
+		{
+			printf( " <EndOfData>" );
+			break;
+		}
 		switch ( tyDump )
 		{
 		case TY_DUMP_NONE:
@@ -580,12 +622,15 @@ void printData(
 			break;
 		case TY_DUMP_INT:
 			printf( " %8d", *pInt++ );
+	  		pData = (const uint32_t *) pInt;
 			break;
 		case TY_DUMP_UINT:
 			printf( " %8u", *pUint++ );
+	  		pData = (const uint32_t *) pUint;
 			break;
 		case TY_DUMP_DOUBLE:
 			printf( " %.6e", *pDouble++ );
+	  		pData = (const uint32_t *) pDouble;
 			break;
 		}
 		cntDump--;
