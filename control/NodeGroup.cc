@@ -120,7 +120,22 @@ void NodeGroup::add_node(int index)
     
   int indexPersist = _persist.indexOf(node.plabel());
   int indexRequire = _require.indexOf(node.plabel());
-  button->setCheckState( (indexPersist>=0 || indexRequire>=0) ? Qt::Checked : Qt::Unchecked);
+
+
+	if ((indexPersist >= 0 && _persistSelect[indexPersist] == true) || indexRequire>=0)  {
+		button->setCheckState(Qt::Checked);
+	}
+	else 	{
+		button->setCheckState(Qt::Unchecked);
+	}
+	
+
+
+  _build_notfoundlist(node.plabel());	
+
+
+
+  //button->setCheckState( (_persistSelect>=0 || indexRequire>=0) ? Qt::Checked : Qt::Unchecked);
   button->setEnabled   ( indexRequire<0 );
   button->setPalette( node.ready() ? *_ready : *_notready );
   _buttons->addButton(button,index); 
