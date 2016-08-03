@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <memory.h>
+#include <pthread.h>
 #include <errno.h>
 #include <getopt.h>
 #include <string>
@@ -299,6 +300,49 @@ void sigHandler( int signal )
   exit(0);
 }
 
+void * watchDogTask( void * )
+{
+	long long unsigned	priorPacketCount	= packetCount - 1;
+	long unsigned int	nSecSincePacket		= 0;
+	time_t				timeLastPacket		= 0;
+
+	printf( "WatchDog: Monitoring packetCount ...\n" );
+	while( 1 )
+	{
+		sleep( 1 );
+
+		if ( priorPacketCount != packetCount )
+		{
+			nSecSincePacket		= 0;
+			priorPacketCount	= packetCount;
+			time( &timeLastPacket );
+		}
+		else
+		{
+			char	tmbuf[80];
+
+			nSecSincePacket++;
+			switch ( nSecSincePacket )
+			{
+			default:
+				break;
+			case	10:
+			case	20:
+			case	30:
+			case	40:
+			case	50:
+				printf( "WatchDog: No packets in last %lu seconds!\n", nSecSincePacket );
+				break;
+			case	60:
+				ctime_r( &timeLastPacket, tmbuf );
+				printf( "WatchDog: No packets since %s\n", tmbuf );
+				break;
+			}
+		}
+	}
+	return NULL;
+}
+
 int main(int argc, char** argv)
 {
   bool evrGapHunt = false;
@@ -333,6 +377,7 @@ int main(int argc, char** argv)
   char		*	sTyDump		  = NULL;
   size_t		cntDump		  = 0;
   size_t		offDump		  = 0;
+
   while ( int opt = getopt_long(argc, argv, ":vhHa:p:Pi:s:t:c:eEq", loOptions, &iOptionIndex ) )
   {
     if ( opt == -1 ) break;
@@ -415,6 +460,11 @@ int main(int argc, char** argv)
   uint32_t* wp = (uint32_t*)dgram;
   unsigned pcount       = 0;
   unsigned segmentMask  = 0;
+
+  // Launch a watchdog to let us know when packets were last received
+  pthread_t		watchDogThread;
+  if ( pthread_create( &watchDogThread, NULL, watchDogTask, 0 ) != 0 )
+  	printf( "Error: Unable to launch watchdog task!\n" );
 
   printf( "Beginning Multicast Server Testing. Press Ctrl-C to Exit...\n" );
 
