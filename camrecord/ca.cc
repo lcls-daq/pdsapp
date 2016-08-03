@@ -543,8 +543,11 @@ static void connection_handler(struct connection_handler_args args)
             }
         }
     } else {
+        if ( c->connected )
+			printf("%s (%s) has disconnected!\n", c->getname(), c->getpvname());
+		else
+			printf("%s unable to connect to PV (%s)!\n", c->getname(), c->getpvname());
         c->connected = 0;
-        printf("%s (%s) has disconnected!\n", c->getname(), c->getpvname());
     }
     fflush(stdout);
 }
