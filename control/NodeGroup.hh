@@ -15,6 +15,7 @@ class QGroupBox;
 class QPalette;
 class QCheckBox;
 class QComboBox;
+class QLabel;
 
 namespace Pds {
   class NodeTransientCb;
