@@ -26,6 +26,8 @@
         "\"run_mbytes\" : %llu,"      \
         "\"event_count\" : %llu,"     \
         "\"damage_count\" : %llu,"    \
+        "\"config_type\" : \"%s\","   \
+        "\"recording\" : %u,"         \
         "\"station\" : %u,"           \
         "\"control_state\" : \"%s\""  \
       "}"                             \
