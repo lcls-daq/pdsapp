@@ -84,7 +84,7 @@ static int64_t fsize = 0;      // The size of the current file, so far.
 static int64_t sfsize = 0;     // The size of the current small file, so far.
 static sigset_t blockset;
 static int started = 0;        // We are actually running.
-static int paused = 0;         // We are temporarily paused.
+static int paused = 1;         // We are temporarily paused.
 static int numsrc = 0;         // Total number of sources.
 static int critsrc = 0;        // Number of critical sources.
 static int syncsrc = 0;        // Number of synchronous sources.
@@ -437,6 +437,7 @@ static void write_xtc_config(void)
 
         begin_run();
         started = 1;
+        paused = 0;
     } else {
         /*
          * Replay what we've got so far!
