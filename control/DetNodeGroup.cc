@@ -12,7 +12,7 @@ using namespace Pds;
 DetNodeGroup::DetNodeGroup(const QString& label, 
 			   QWidget*       parent, 
 			   unsigned       platform, 
-			   int            useReadoutGroup, 
+			   bool           useReadoutGroup, 
 			   bool           useTransient) :
   NodeGroup(label, parent, platform,
 	    useReadoutGroup, useTransient)

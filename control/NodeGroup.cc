@@ -26,7 +26,7 @@ static const char* cRecord    = "Record";
 static const char* cSelected    = "Selected";
 static const char* cNotSelected = "NotSelected";
 
-NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, int useGroups, bool useTransient) :
+NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, bool useGroups, bool useTransient) :
   QWidget  (parent),
   _group   (new QGroupBox(label)),
   _buttons (new QButtonGroup(parent)),
@@ -34,11 +34,11 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, i
   _notready(new QPalette(Qt::red)),
   _palette (new QPalette()),
   _platform(platform),
-  _useGroups(true),
+  _useGroups(useGroups),
   _useTransient    (useTransient)
 {
   //  Read persistent selected nodes
-  //printf("NodeGroup::NodeGroup useGroups %d\n",useGroups);
+  //printf("NodeGroup::NodeGroup useGroups %c\n",useGroups?'t':'f');
 
   _read_pref(title(), _persist, _persistGroup, _persistTrans, _persistSelect);
   //_read_pref(QString("%1 required").arg(title()), 
@@ -60,11 +60,6 @@ NodeGroup::NodeGroup(const QString& label, QWidget* parent, unsigned platform, i
  
   l->addWidget(_notfoundlist);
 
-  if (_useGroups) {
-    l->addWidget(_enableGroups=new QCheckBox("Use Readout Groups"));
-    _enableGroups->setChecked(_useGroups==2);
-    _enableGroups->setEnabled(false);
-  }
   l->addStretch();
   setLayout(l);
 
@@ -180,7 +175,6 @@ void NodeGroup::add_node(int index)
     _transients[iNodeIndex] = transientBox;
   }
     
-  if (_useGroups)
   {    
     QComboBox* ciUseReadoutGroup = new QComboBox(this);
             
@@ -200,7 +194,7 @@ void NodeGroup::add_node(int index)
     }
     else
     {
-      iNodeGroup = ( indexPersist >= 0 && _useGroups>=2 ? _persistGroup[indexPersist] : 1 );            
+      iNodeGroup = ( indexPersist >= 0 ? _persistGroup[indexPersist] : 1 );            
       if (iNodeGroup == 0) {
         printf("NodeGroup::add_node _persistGroup=0 for non EVR/BLD node [%s].  Defaulting to group 1.\n",
                qPrintable(_persist[indexPersist]));
@@ -213,11 +207,10 @@ void NodeGroup::add_node(int index)
         
     layoutButton->addStretch();         
     layoutButton->addWidget(ciUseReadoutGroup); 
-    ciUseReadoutGroup->setVisible(_enableGroups->isChecked());
+    ciUseReadoutGroup->setVisible(_useGroups);
 
     this->node(iNodeIndex).setGroup(iNodeGroup);    
     
-    connect(_enableGroups, SIGNAL(toggled(bool)), ciUseReadoutGroup, SLOT(setVisible(bool)));
 #ifdef DBUG
     printf("Added node %s Group %d\n",qPrintable(node.plabel()), iNodeGroup);
 #endif
@@ -225,12 +218,6 @@ void NodeGroup::add_node(int index)
       _groups.push_back(0);
     _groups[iNodeIndex] = ciUseReadoutGroup;
   }
-  else
-  {
-#ifdef DBUG
-    printf("Added node %s\n",qPrintable(node.plabel()));
-#endif
-  }    
 
   static_cast<QBoxLayout*>(_group->layout())
     ->insertLayout(index,layoutButton); 
@@ -282,8 +269,7 @@ QList<Node> NodeGroup::selected()
   Node* master_evr = 0;
   foreach(QAbstractButton* b, buttons) {
     int id = _buttons->id(b);
-    if (_useGroups && _enableGroups->isChecked())
-      _nodes[id].node().setGroup(_groups[id]->currentText().toUInt());
+    _nodes[id].node().setGroup(_useGroups ? _groups[id]->currentText().toUInt(): 1);
     if (_useTransient)
       _nodes[id].node().setTransient(_transients[id]->currentIndex()==1);
 

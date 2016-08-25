@@ -36,14 +36,15 @@
 #include <stdio.h>
 #include <signal.h>
 
-static const unsigned MAX_EVENT_SIZE = 8*1024*1024;
-static const unsigned eb_depth = 32;
+static const unsigned MAX_EVENT_SIZE = 4*1024*1024;
+static const unsigned MAX_EVENT_DEPTH = 64;
 static const unsigned net_buf_depth = 16;
 static const unsigned EvrBufferDepth = 32;
-static const unsigned AppBufferDepth = eb_depth + 16;  // Handle
 
+#if 0
 namespace Pds {
 
+  // remove
   class MyEvrServer : public NullServer {
   public:
     MyEvrServer(const Ins& ins,
@@ -57,9 +58,12 @@ namespace Pds {
 
   static MyEvrServer* _evrServer = 0;
 
+  //  Replace with TaggedStreams
   class PvDaqStreams : public WiredStreams {
   public:
-    PvDaqStreams(PartitionMember& m) :
+    PvDaqStreams(PartitionMember& m,
+                 unsigned         max_event_size,
+                 unsigned         max_event_depth) :
       WiredStreams(VmonSourceId(m.header().level(), m.header().ip()))
     {
       unsigned max_size = MAX_EVENT_SIZE;
@@ -76,16 +80,19 @@ namespace Pds {
                                                max_size*net_buf_depth,
                                                m.occurrences());
 
-        _inlet_wires[s] = new EbS(src,
-                                           _xtcType,
-                                           level,
-                                           *stream(s)->inlet(),
-                                           *_outlets[s],
-                                           s,
-                                           ipaddress,
-                                  max_size, eb_depth, 0,
-                                           new VmonEb(src,32,eb_depth,(1<<23),(1<<22)));
-        
+        EbS* ebs = new EbS(src,
+                           _xtcType,
+                           level,
+                           *stream(s)->inlet(),
+                           *_outlets[s],
+                           s,
+                           ipaddress,
+                           max_event_size, max_event_depth, 0,
+                           new VmonEb(src,32,max_event_depth,(1<<23),max_event_size));
+        ebs->require_in_order(true);
+        ebs->printSinks(false); // these are routine
+        _inlet_wires[s] = ebs;
+
         (new VmonServerAppliance(src))->connect(stream(s)->inlet());
       }
     }
@@ -97,6 +104,7 @@ namespace Pds {
     }
   };
 
+  //  replace with SegmentLevel
   class PvDaqSegmentLevel : public SegmentLevel {
   public:
     PvDaqSegmentLevel(unsigned     platform,
@@ -108,7 +116,9 @@ namespace Pds {
     bool attach() {
       start();
       if (connect()) {
-        _streams = new PvDaqStreams(*this);  // specialized here
+        _streams = new PvDaqStreams(*this,
+                                    _settings.max_event_size(),
+                                    _settings.max_event_depth());  // specialized here
         _streams->connect();
 
         _callback.attached(*_streams);
@@ -188,14 +198,18 @@ namespace Pds {
       //  Assign traffic shaping phase
       //
       const int pid = getpid();
+      unsigned s=0;
       for(unsigned n=0; n<nnodes; n++) {
         const Node& node = *alloc.node(n);
-        if (node.level()==Level::Segment)
+        if (node.level()==Level::Segment) {
           if (node.pid()==pid) {
-            ToEventWireScheduler::setPhase  (n % vectorid);
+            ToEventWireScheduler::setPhase  (s % vectorid);
             ToEventWireScheduler::setMaximum(vectorid);
             ToEventWireScheduler::shapeTmo  (alloc.options()&Allocation::ShapeTmo);
+            break;
           }
+          s++;
+        }
       }
     }
     void dissolved() {
@@ -224,8 +238,8 @@ namespace Pds {
   private:
     std::list<Server*> _inputs;
   };
-
 }
+#endif
 
 using namespace Pds;
 
@@ -236,8 +250,10 @@ static void usage(const char* p)
          "Options:\n"
          "    -i <detinfo>                int/int/int/int or string/int/string/int\n"
          "                                  (e.g. XppEndStation/0/USDUSB/1 or 22/0/26/1)\n"
-         "    -b <pvbase>                 base string of PV name\n"
-         "    -p <platform>,<mod>,<chan>  platform number, EVR module, EVR channel\n"
+         "    -b <pvbase>                 base string of PV name; e.g. MFX:BMMON\n"
+         "    -p <platform>               platform number\n"
+         "    -z <eventsize>              maximum event size[bytes]\n"
+         "    -n <eventdepth>             event builder depth\n"
          "    -h                          print this message and exit\n", p);
 }
 
@@ -246,16 +262,18 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   const unsigned no_entry = -1U;
   unsigned platform = no_entry;
-  unsigned module=0, channel=0;
   const char* pvbase = 0;
   bool lUsage = false;
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NoDetector, 0, DetInfo::NoDevice, 0);
   char* uniqueid = (char *)NULL;
+  unsigned max_event_size = MAX_EVENT_SIZE;
+  unsigned max_event_depth = MAX_EVENT_DEPTH;
+  char buff[32];
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:b:p:u:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:b:p:u:z:n:h")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,detInfo)) {
@@ -267,7 +285,7 @@ int main(int argc, char** argv) {
       pvbase = optarg;
       break;
     case 'p':
-      if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
+      if (CmdLineTools::parseUInt(optarg,platform) != 1) {
         printf("%s: option `-p' parsing error\n", argv[0]);
         lUsage = true;
       }
@@ -279,6 +297,12 @@ int main(int argc, char** argv) {
       } else {
         uniqueid = optarg;
       }
+      break;
+    case 'z':
+      max_event_size = strtoul(optarg,NULL,0);
+      break;
+    case 'n':
+      max_event_depth = strtoul(optarg,NULL,0);
       break;
     case 'h': // help
       usage(argv[0]);
@@ -315,6 +339,27 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  { int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    sockaddr_in srv;
+    memset(&srv,0,sizeof(srv));
+    srv.sin_family = AF_INET;
+    srv.sin_addr.s_addr   = inet_addr("1.1.1.1");
+    srv.sin_port   = htons(53);
+    connect(fd, (sockaddr*)&srv, sizeof(srv));
+    sockaddr_in name;
+    socklen_t   name_sz = sizeof(name);
+    getsockname(fd, (sockaddr*)&name, &name_sz);
+    char dst[64];
+    inet_ntop(AF_INET,&name.sin_addr,dst,64);
+    printf("Setting EPICS_CA_ADDR_LIST %s\n",dst);
+    setenv("EPICS_CA_ADDR_LIST",dst,1);
+    close(fd); }
+
+  setenv("EPICS_CA_AUTO_ADDR_LIST","NO",1);
+
+  sprintf(buff,"%u",max_event_size);
+  setenv("EPICS_CA_MAX_ARRAY_BYTES",buff,1);
+
   //  EPICS thread initialization
   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), 
            "pvdaq calling ca_context_create" );
@@ -324,8 +369,10 @@ int main(int argc, char** argv) {
 
   Task* task = new Task(Task::MakeThisATask);
   EventAppCallback* seg = new EventAppCallback(task, platform, manager->appliance());
-  StdSegWire settings(*server, uniqueid, MAX_EVENT_SIZE);
-  PvDaqSegmentLevel* seglevel = new PvDaqSegmentLevel(platform, settings, *seg);
+  StdSegWire settings(*server, uniqueid, max_event_size, max_event_depth, false,
+                      0,0,true);
+  //PvDaqSegmentLevel* seglevel = new PvDaqSegmentLevel(platform, settings, *seg);
+  SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0, 0);
   seglevel->attach();
 
   task->mainLoop();

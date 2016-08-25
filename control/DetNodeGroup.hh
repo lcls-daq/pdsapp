@@ -10,7 +10,7 @@ namespace Pds {
     DetNodeGroup(const QString& label, 
 		 QWidget*       parent, 
 		 unsigned       platform, 
-		 int            iUseReadoutGroup=0, 
+		 bool           useReadoutGroup=false, 
 		 bool           useTransient=false);
     ~DetNodeGroup();
   public:
