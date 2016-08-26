@@ -209,17 +209,17 @@ int main(int argc, char** argv) {
       p->tpr.rxPolarity (lPolarity);
       p->tpr.resetCounts(); 
     }
+    if (lDumpRing) {
+      p->ring0.enable(false);
+      p->ring0.clear();
+      p->ring0.enable(true);
+      usleep(1000);
+      p->ring0.enable(false);
+      p->ring0.dump();
+      //p->ring0.dumpFrames();
+    }
     if (lTpg) {
       p->tpg.dump();
-      if (lDumpRing) {
-	p->ring0.enable(false);
-	p->ring0.clear();
-	p->ring0.enable(true);
-	usleep(1000);
-	p->ring0.enable(false);
-	p->ring0.dump();
-	//p->ring0.dumpFrames();
-      }
     }
     else if (lBsaTest) {
       { 

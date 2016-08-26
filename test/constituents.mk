@@ -1,7 +1,9 @@
-libnames := ibtest
+libnames := ibtest ibtestw
 
-libsrcs_ibtest := ibcommon.cc
+libsrcs_ibtest  := ibcommon.cc
 
+libsrcs_ibtestw := ibcommonw.cc
+libslib_ibtestw := ibverbs
 
 tgtnames := timestampReceiver sqlDbTest timerResolution
 ifneq ($(findstring i386-linux,$(tgt_arch)),)
@@ -70,3 +72,22 @@ tgtlibs_ibinlet := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pd
 tgtslib_ibinlet := ibverbs rt pthread
 
 tgtnames := ibrdmac ibrdma ibinlet iboutlet
+
+tgtsrcs_iboutletw := iboutletw.cc
+tgtincs_iboutletw := pdsdata/include ndarray/include boost/include
+tgtlibs_iboutletw := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility
+tgtlibs_iboutletw += pdsapp/ibtestw
+tgtslib_iboutletw := ibverbs rt pthread
+
+tgtsrcs_ibinletw := ibinletw.cc
+tgtincs_ibinletw := pdsdata/include ndarray/include boost/include
+tgtlibs_ibinletw := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility
+tgtlibs_ibinletw += pdsapp/ibtestw
+tgtslib_ibinletw := ibverbs rt pthread
+
+tgtsrcs_casttest := casttest.cc
+tgtlibs_casttest := pds/service
+tgtlibs_casttest += pdsdata/xtcdata
+tgtslib_casttest := rt
+
+tgtnames := ibinletw iboutletw casttest

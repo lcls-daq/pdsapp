@@ -20,7 +20,7 @@ extern int optind;
 using namespace Pds::Tpr;
 
 void usage(const char* p) {
-  printf("Usage: %s -r <a/b> -R <rate> [-I] [-f <input file> | -p<channel,delay,width,polarity]>\n",p);
+  printf("Usage: %s -r <a/b> -R <rate> [-I] [-f <input file> | -p<channel,delay,width,polarity,delayTap]>\n",p);
   printf("\t<rate>: {0=1MHz, 1=0.5MHz, 2=100kHz, 3=10kHz, 4=1kHz, 5=100Hz, 6=10Hz, 7=1Hz}\n");
 }
 
@@ -32,6 +32,7 @@ int main(int argc, char** argv) {
   std::vector<unsigned> delay;
   std::vector<unsigned> width;
   std::vector<unsigned> polarity;
+  std::vector<unsigned> delayTap;
   TprBase::FixedRate rate = TprBase::_1K;
   bool lInternal=false;
 
@@ -61,6 +62,7 @@ int main(int argc, char** argv) {
               delay   .push_back(strtoul(endptr+1,&endptr,0));
               width   .push_back(strtoul(endptr+1,&endptr,0));
               polarity.push_back(strtoul(endptr+1,&endptr,0));
+              delayTap.push_back(strtoul(endptr+1,&endptr,0));
             }
           }
           delete[] line;
@@ -75,6 +77,7 @@ int main(int argc, char** argv) {
       delay   .push_back(strtoul(endptr+1,&endptr,0));
       width   .push_back(strtoul(endptr+1,&endptr,0));
       polarity.push_back(strtoul(endptr+1,&endptr,0));
+      delayTap.push_back(strtoul(endptr+1,&endptr,0));
       break;
     case 'R':
       rate = (TprBase::FixedRate)strtoul(optarg,NULL,0);
@@ -163,7 +166,7 @@ int main(int argc, char** argv) {
     for(unsigned i=0; i<channel.size(); i++) {
       printf("Configure trigger %d for delay %d  width %d  polarity %d\n",
              channel[i],delay[i],width[i],polarity[i]);
-      p->base.setupTrigger(channel[i],1,polarity[i],delay[i],width[i]);
+      p->base.setupTrigger(channel[i],1,polarity[i],delay[i],width[i],delayTap[i]);
     }
     p->base.dump();
   }

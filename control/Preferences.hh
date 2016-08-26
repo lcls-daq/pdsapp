@@ -9,6 +9,10 @@
 namespace Pds {
   class Preferences {
   public:
+    Preferences(const char* partition,
+                const char* title,
+                unsigned    platform,
+                const char* mode);
     Preferences(const char* title,
                 unsigned    platform,
                 const char* mode);
@@ -40,7 +44,16 @@ namespace Pds {
 	       const char*,
                const char*);
   private:
+    void _write   (const std::string&);
+    void _nfsOpen (const char*);
+    void _nfsWrite(const char*); 
+    void _nfsClose();
+ private:
     FILE* _f;
+    FILE* _nfs;
+    friend class NfsOpen;
+    friend class NfsClose;
+    friend class NfsWrite;
   };
 };
 

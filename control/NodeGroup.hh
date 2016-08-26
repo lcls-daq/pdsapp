@@ -27,7 +27,7 @@ namespace Pds {
     NodeGroup(const QString& label, 
 	      QWidget*       parent, 
 	      unsigned       platform, 
-	      int            useGroups=0,
+	      bool           useGroups=false,
 	      bool           useTransient=false);
     ~NodeGroup();
   public slots:
@@ -76,7 +76,7 @@ namespace Pds {
     Node& node(int);
     void _build_notfoundlist(const QString&);
 
-    int               _useGroups;
+    bool              _useGroups;
     QCheckBox*        _enableGroups;
     QList<QComboBox*> _groups;
 

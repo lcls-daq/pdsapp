@@ -96,4 +96,4 @@ tgtincs_alive_mon += pdsdata/include
 #
 #  LCLS-II development
 #
-tgtnames := monshmserver
+tgtnames := 

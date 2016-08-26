@@ -9,7 +9,12 @@
 #include <QtGui/QTabWidget>
 
 namespace Pds_ConfigDb {
-  namespace Trigger { class FixedRate; }
+  namespace Trigger { 
+    class FixedRate;
+    class ACRate; 
+    class SeqSelect; 
+    class CodeSelect; 
+  }
 
   class L0Select : public QObject, public Parameter {
     Q_OBJECT
@@ -27,7 +32,10 @@ namespace Pds_ConfigDb {
     void flush();
     void enable(bool v);
   private:
-    Pds_ConfigDb::Trigger::FixedRate* _fixedRate;
+    Pds_ConfigDb::Trigger::FixedRate*  _fixedRate;
+    Pds_ConfigDb::Trigger::ACRate*     _acRate;
+    Pds_ConfigDb::Trigger::SeqSelect*  _seqSelect;
+    Pds_ConfigDb::Trigger::CodeSelect* _codeSelect;
     QTabWidget* _tab;
   };
 };

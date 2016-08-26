@@ -178,11 +178,13 @@ int main(int argc, char** argv) {
   ThreadArgs args;
   args.fd = -1;
   args.busyTime = 0;
-  
+  bool ldump=false;
+
   int c;
   bool lUsage = false;
-  while ( (c=getopt( argc, argv, "r:v:S:B:E:F:R:P:T:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "r:v:S:B:E:F:R:P:T:dh")) != EOF ) {
     switch(c) {
+    case 'd': ldump=true; break;
     case 'r':
       evrid  = optarg[0];
       if (strlen(optarg) != 1) {
@@ -330,7 +332,15 @@ int main(int argc, char** argv) {
     p->base.dump();
     p->dma.dump();
     p->tpr.dump();
-    
+
+    if (ldump) {
+      p->ring0.clear();
+      p->ring0.enable(true);
+      usleep(100);
+      p->ring0.enable(false);
+      p->ring0.dump();
+    }
+
     //  flush out all the old
     { printf("flushing\n");
       unsigned nflush=0;
@@ -381,6 +391,7 @@ int main(int argc, char** argv) {
 
   unsigned och0=0;
   unsigned otot=0;
+  unsigned rxErrs=0;
 
   while(1) {
     usleep(1000000);
@@ -395,12 +406,15 @@ int main(int argc, char** argv) {
       ostats.dump(stats);
       ostats = stats; }
 
-    printf("RxErrs/Resets: %08x/%08x\n", 
-           p->tpr.RxDecErrs+p->tpr.RxDspErrs,
-           p->tpr.RxRstDone);
+    { unsigned v = p->tpr.RxDecErrs+p->tpr.RxDspErrs;
+      printf("RxErrs/Resets: %08x/%08x [%x]\n", 
+             v,
+             p->tpr.RxRstDone,
+             v-rxErrs);
+      rxErrs=v; }
 
     { unsigned uch0 = p->base.channel[ 0].evtCount;
-      unsigned utot = p->base.channel[12].evtCount;
+      unsigned utot = p->base.frameCount;
       printf("eventCount: %08x:%08x [%d:%d]\n",uch0,utot,uch0-och0,utot-otot);
       och0 = uch0;
       otot = utot;
@@ -481,8 +495,8 @@ void* read_thread(void* arg)
       unsigned tag = (pword>>1)&0x1f;
 
       if (partition>=0 && tag != ntag) {
-        printf("Tag error: %x:%x  pid: %016lx:%016lx\n",
-               tag, ntag, pid, opid);
+        printf("Tag error: %02x:%02x  pid: %016lx:%016lx [%lu]\n",
+               tag, ntag, pid, opid, pid-opid);
         if (pid==opid) {
           daqStats.repeatFrames()++;
         }

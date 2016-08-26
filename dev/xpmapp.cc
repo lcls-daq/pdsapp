@@ -10,6 +10,8 @@
 #include "pds/xpm/Manager.hh"
 #include "pds/xpm/Module.hh"
 
+#include "cadef.h"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -110,6 +112,10 @@ int main(int argc, char** argv) {
   Xpm::Manager* manager = new Xpm::Manager(*m, *server,
                                            *new CfgClientNfs(info));
 
+//   //  EPICS thread initialization
+//   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), 
+//            "control calling ca_context_create" );
+
   Task* task = new Task(Task::MakeThisATask);
   EventAppCallback* seg = new EventAppCallback(task, platform, manager->appliance());
   FastSegWire settings(*server, -1, uniqueid, 1024);
@@ -119,5 +125,8 @@ int main(int argc, char** argv) {
   ::signal( SIGINT, sigHandler );
 
   task->mainLoop();
+
+  //  ca_context_destroy();
+
   return 0;
 }

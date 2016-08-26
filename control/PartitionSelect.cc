@@ -110,7 +110,9 @@ void PartitionSelect::select_dialog()
 
   bool bReadGroupEnable = _checkReadGroupEnable();
 
-  SelectDialog* dialog = new SelectDialog(this, _pcontrol, _icontrol, bReadGroupEnable, _autorun);
+  SelectDialog* dialog = new SelectDialog(this,
+                                          _pcontrol, _icontrol, 
+                                          bReadGroupEnable, _autorun);
   bool ok = dialog->exec();
   if (ok) {
     QList<Node> nodes = dialog->selected();
@@ -310,10 +312,10 @@ bool PartitionSelect::_validate(const BldBitMask& bld_mask)
     }
   }
 
-  if (!lEvr) {
-    lError = true;
-    errorMsg += "No EVR selected.\n";
-  }
+  // if (!lEvr) {
+  //   lError = true;
+  //   errorMsg += "No EVR selected.\n";
+  // }
 
   QString warnMsg;
   if (!lBld && bld_mask.isNotZero()) {

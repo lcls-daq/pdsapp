@@ -374,8 +374,10 @@ tgtslib_xpm := dl pthread rt
 
 tgtsrcs_xpmapp := xpmapp.cc
 tgtincs_xpmapp := pdsdata/include ndarray/include boost/include
+tgtincs_xpmapp += epics/include epics/include/os/Linux
 tgtlibs_xpmapp := pds/xpm pds/cphw
 tgtlibs_xpmapp += $(commonlibs)
+tgtlibs_xpmapp += pds/epicstools epics/ca epics/Com
 tgtslib_xpmapp := dl pthread rt
 
 tgtsrcs_xpmerr := xpmerr.cc 

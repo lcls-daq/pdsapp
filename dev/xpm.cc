@@ -12,7 +12,10 @@
 #include <new>
 
 #include "pds/xpm/Module.hh"
+//#include "pds/xpm/ClockControl.hh"
+//#include "pds/xpm/JitterCleaner.hh"
 #include "pds/cphw/RingBuffer.hh"
+#include "pds/cphw/AxiVersion.hh"
 
 #include <string>
 
@@ -28,7 +31,15 @@ extern int optind;
 using namespace Pds::Xpm;
 
 void usage(const char* p) {
-  printf("Usage: %s [-a <IP addr (dotted notation)>]\n",p);
+  printf("Usage: %s [options]\n",p);
+  printf("Options: -a <IP addr (dotted notation)> : Use network <IP>\n");
+  printf("         -F <fixed rate marker>         : Choose fixed rate trigger\n");
+  printf("         -L <rx link>                   : Select rx link for full feedback\n");
+  printf("         -D                             : Disable selected link\n");
+  printf("         -R                             : Reset selected link\n");
+  printf("         -r                             : Reset PLL\n");
+  printf("         -s <skew steps>                : Change PLL skew\n");
+  printf("         -b                             : Bypass PLL\n");
 }
 
 void sigHandler( int signal ) {
@@ -50,10 +61,17 @@ int main(int argc, char** argv) {
   unsigned short port = 8192;
   unsigned link = 0;
   int fixedRate=-1;
+  int skewSteps=0;
   bool lreset=false;
   bool lenable=true;
+  bool lloopback=false;
+  bool lPll=false;
+  bool lPllbypass=false;
+  int  ringChan=-1;
+  int  freqSel=-1;
+  int  bwSel=-1;
 
-  while ( (c=getopt( argc, argv, "a:F:L:RDh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:F:L:s:B:f:S:RbrDlh")) != EOF ) {
     switch(c) {
     case 'a':
       ip = ntohl(inet_addr(optarg)); break;
@@ -67,8 +85,29 @@ int main(int argc, char** argv) {
     case 'R':
       lreset = true;
       break;
+    case 'f':
+      freqSel = strtoul(optarg,NULL,0);
+      break;
+    case 'S':
+      bwSel = strtoul(optarg,NULL,0);
+      break;
+    case 'B':
+      ringChan = strtoul(optarg,NULL,0);
+      break;
+    case 'r':
+      lPll = true;
+      break;
+    case 'b':
+      lPllbypass = true;
+      break;
+    case 's':
+      skewSteps = atoi(optarg);
+      break;
     case 'D':
       lenable = false;
+      break;
+    case 'l':
+      lloopback = true;
       break;
     case '?':
     default:
@@ -84,25 +123,79 @@ int main(int argc, char** argv) {
 
   Pds::Cphw::Reg::set(ip, port, 0);
 
-  Module* m = new((void*)0x80000000) Module;
+  { Pds::Cphw::AxiVersion* vsn = new((void*)0) Pds::Cphw::AxiVersion;
+    printf("buildStamp %s\n",vsn->buildStamp().c_str()); }
 
-  
-  if (lreset) {
-    m->linkLoopback(link,false);
-    m->txLinkReset(link);
-    m->rxLinkReset(link);
+  Module*         m = new((void*)0x80000000) Module;
+  //  ClockControl*  cc = new((void*)0x81000000) ClockControl;
+  //  JitterCleaner* jc = new((void*)0x05000000) JitterCleaner;
+
+  printf("pllStatus 0x%x:%x\n",
+         unsigned(m->_pllStatus0),
+         unsigned(m->_pllStatus1));
+  printf("pllConfig 0x%x\n",
+         unsigned(m->_pllConfig0));
+
+  if (lPll) {
+    m->pllBwSel  (7);
+    m->pllRateSel(0xa);
+    m->pllFrqSel (0x692);
+    m->pllBypass (false);
+    m->pllReset  ();
+    usleep(10000);
+    printf("pllStatus 0x%x:%x\n",
+           unsigned(m->_pllStatus0),
+           unsigned(m->_pllStatus1));
   }
 
-#if 1
-  Pds::Cphw::RingBuffer* b = new((void*)0x80010000) Pds::Cphw::RingBuffer;
+  if (freqSel>=0) {
+    m->pllFrqSel(freqSel);
+    m->pllReset();
+  }
 
-  b->enable(false);
-  b->clear();
-  b->enable(true);
-  usleep(1000);
-  b->enable(false);
-  b->dump();
-#endif
+  if (bwSel>=0) {
+    m->pllBwSel(bwSel);
+    m->pllReset();
+  }
+
+  if (skewSteps)
+    m->pllSkew(skewSteps);
+
+  if (lPllbypass) {
+    m->pllBypass(true);
+    m->pllReset();
+  }
+
+  if (lreset) {
+    //    jc->init();
+    //    cc->init();
+    //    usleep(10000);
+    //    jc->dump();
+    //    cc->dump();
+    m->linkLoopback(link,lloopback);
+    m->txLinkReset(link);
+    m->rxLinkReset(link);
+    usleep(10000);
+  }
+  else {
+    m->linkLoopback(link,lloopback);
+    m->txLinkReset(link);
+    m->rxLinkReset(link);
+    usleep(100);
+  }
+
+  if (ringChan>=0) {
+    m->setRingBChan(ringChan);
+
+    Pds::Cphw::RingBuffer* b = new((void*)0x80010000) Pds::Cphw::RingBuffer;
+    
+    b->enable(false);
+    b->clear();
+    b->enable(true);
+    usleep(1000);
+    b->enable(false);
+    b->dump();
+  }
 
   m->setL0Enabled(false);
   if (fixedRate>=0)
