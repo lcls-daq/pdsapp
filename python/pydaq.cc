@@ -66,6 +66,7 @@ static PyObject* pdsdaq_stop     (PyObject* self);
 static PyObject* pdsdaq_endrun   (PyObject* self);
 static PyObject* pdsdaq_eventnum (PyObject* self);
 static PyObject* pdsdaq_l3eventnum(PyObject* self);
+static PyObject* pdsdaq_state    (PyObject* self);
 static PyObject* pdsdaq_rcv      (PyObject* self);
 static PyObject* pdsdaq_clear    (PyObject* self);
 
@@ -89,6 +90,7 @@ static PyMethodDef pdsdaq_methods[] = {
   {"l3eventnum", (PyCFunction)pdsdaq_l3eventnum, METH_NOARGS  , "Get current l3pass event number"},
   {"connect"   , (PyCFunction)pdsdaq_connect   , METH_NOARGS  , "Connect to control"},
   {"disconnect", (PyCFunction)pdsdaq_disconnect, METH_NOARGS  , "Disconnect from control"},
+  {"state"     , (PyCFunction)pdsdaq_state     , METH_NOARGS  , "Get the control state"},
   {NULL},
 };
 
@@ -903,9 +905,9 @@ PyObject* pdsdaq_endrun   (PyObject* self)
                                                       EndRunTime);
     ::write(daq->socket, buff, cfg->_sizeof());
     delete[] buff;
-  }
 
-  daq->state = Configured;
+    daq->state = Configured;
+  }
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -979,6 +981,22 @@ PyObject* pdsdaq_l3eventnum(PyObject* self)
   return PyLong_FromLong(iEventNum);
 }
 
+PyObject* pdsdaq_state(PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+
+  if (daq->state >= Configured) {
+    // Automatic Calib cycle transisitions may have left messages in socket
+    while (true) {
+      PyObject* o = pdsdaq_clear(self);
+      if (o == NULL) break;
+      Py_DECREF(o);
+    }
+  }
+
+  return PyInt_FromLong(daq->state);
+}
+
 PyObject* pdsdaq_rcv      (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
@@ -990,6 +1008,11 @@ PyObject* pdsdaq_rcv      (PyObject* self)
   Py_END_ALLOW_THREADS
   if (r<0) {
     PyErr_SetString(PyExc_ValueError,"pdsdaq_rcv interrupted");
+    return NULL;
+  }
+  else if (r==0) {
+    PyErr_SetString(PyExc_RuntimeError,"Remote DAQ has closed the connection... disconnecting.");
+    Py_DECREF(pdsdaq_disconnect(self));
     return NULL;
   }
   else if (result.damage()) {
