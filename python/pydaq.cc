@@ -992,6 +992,8 @@ PyObject* pdsdaq_state(PyObject* self)
       if (o == NULL) break;
       Py_DECREF(o);
     }
+    // Suppress the runtime warnings that asking for the state may generate
+    PyErr_Clear();
   }
 
   return PyInt_FromLong(daq->state);
