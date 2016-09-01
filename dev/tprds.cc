@@ -86,8 +86,8 @@ public:
       _values[i]=0;
   }
   DmaStats(TprBase& o) : _values(4) {
-    //    frameCount   () = o.frameCount;
-    frameCount   () = o.channel[1].evtCount;
+    frameCount   () = o.frameCount;
+    //frameCount   () = o.channel[1].evtCount;
     pauseCount   () = o.pauseCount;
     overflowCount() = o.overflowCount;
     idleCount    () = o.idleCount;

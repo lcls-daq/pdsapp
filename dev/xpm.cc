@@ -59,7 +59,8 @@ int main(int argc, char** argv) {
 
   unsigned ip = 0xc0a8020a;
   unsigned short port = 8192;
-  unsigned link = 0;
+  unsigned linkEnable   =0;
+  unsigned linkLoopback =0;
   int fixedRate=-1;
   int skewSteps=0;
   bool lreset=false;
@@ -71,7 +72,7 @@ int main(int argc, char** argv) {
   int  freqSel=-1;
   int  bwSel=-1;
 
-  while ( (c=getopt( argc, argv, "a:F:L:s:B:f:S:RbrDlh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:F:L:l:s:B:f:S:Rbrh")) != EOF ) {
     switch(c) {
     case 'a':
       ip = ntohl(inet_addr(optarg)); break;
@@ -80,7 +81,7 @@ int main(int argc, char** argv) {
       fixedRate = atoi(optarg);
       break;
     case 'L':
-      link = atoi(optarg);
+      linkEnable = strtoul(optarg,NULL,0);
       break;
     case 'R':
       lreset = true;
@@ -103,11 +104,8 @@ int main(int argc, char** argv) {
     case 's':
       skewSteps = atoi(optarg);
       break;
-    case 'D':
-      lenable = false;
-      break;
     case 'l':
-      lloopback = true;
+      linkLoopback = strtoul(optarg,NULL,0);
       break;
     case '?':
     default:
@@ -166,22 +164,21 @@ int main(int argc, char** argv) {
     m->pllReset();
   }
 
+  for(unsigned i=0; linkLoopback; i++)
+    if (linkLoopback&(1<<i)) {
+      m->linkLoopback(i,true);
+      linkLoopback &= ~(1<<i);
+    }
+
   if (lreset) {
-    //    jc->init();
-    //    cc->init();
-    //    usleep(10000);
-    //    jc->dump();
-    //    cc->dump();
-    m->linkLoopback(link,lloopback);
-    m->txLinkReset(link);
-    m->rxLinkReset(link);
-    usleep(10000);
-  }
-  else {
-    m->linkLoopback(link,lloopback);
-    m->txLinkReset(link);
-    m->rxLinkReset(link);
-    usleep(100);
+    unsigned linkReset=linkEnable;
+    for(unsigned i=0; linkReset; i++) 
+      if (linkReset&(1<<i)) {
+        m->txLinkReset(i);
+        m->rxLinkReset(i);
+        usleep(10000);
+        linkReset &= ~(1<<i);
+      }
   }
 
   if (ringChan>=0) {
@@ -200,7 +197,13 @@ int main(int argc, char** argv) {
   m->setL0Enabled(false);
   if (fixedRate>=0)
     m->setL0Select_FixedRate(fixedRate);
-  m->linkEnable(link,lenable);
+
+  m->clearLinks();
+  for(unsigned i=0; linkEnable; i++)
+    if (linkEnable&(1<<i)) {
+      m->linkEnable(i,true);
+      linkEnable &= ~(1<<i);
+    }
   L0Stats s = m->l0Stats();
   L0Stats s0 = s;
   m->setL0Enabled(true);
