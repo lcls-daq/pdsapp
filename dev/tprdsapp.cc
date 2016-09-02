@@ -37,6 +37,7 @@ static void usage(const char *p)
          "\t -p <platform>          platform number\n"
          "\t -r <evrid>             evr ID (e.g., a, b, c, or d) (default: a)\n"
          "\t -u <alias>             set device alias\n"
+         "\t -m                     enable monitor channel\n"
          "\t -h                     print this message and exit\n", p);
 }
 
@@ -47,6 +48,7 @@ int main(int argc, char** argv) {
   uint32_t  platform  = NO_PLATFORM;
   char*     evrid     = 0;
   bool      lUsage    = false;
+  bool      lMonitor  = false;
 
   Pds::DetInfo info(0,DetInfo::NoDetector,0,DetInfo::NoDevice,0);
 
@@ -54,7 +56,7 @@ int main(int argc, char** argv) {
   EventOptions options;
 
   int c;
-  while ( (c=getopt( argc, argv, "i:p:r:u:def:h")) != EOF) {
+  while ( (c=getopt( argc, argv, "i:p:r:u:def:mh")) != EOF) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,info)) {
@@ -85,6 +87,7 @@ int main(int argc, char** argv) {
     case 'd': options.mode = EventOptions::Display; break;
     case 'e': options.mode = EventOptions::Decoder; break;
     case 'f': options.outfile = optarg; break;
+    case 'm': lMonitor = true; break;
     case 'h':
       usage(argv[0]);
       return 0;
@@ -194,7 +197,8 @@ int main(int argc, char** argv) {
 
   TprDS::Server*  server  = new TprDS::Server (fd, src);
   TprDS::Manager* manager = new TprDS::Manager(*p, *server, 
-                                               *new CfgClientNfs(src));
+                                               *new CfgClientNfs(src),
+                                               lMonitor);
 
   Task* task = new Task(Task::MakeThisATask);
   std::list<Appliance*> apps;
