@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
   int c;
   bool lUsage = false;
 
-  unsigned ip = 0xc0a8020a;
+  const char* ip = "192.168.2.10";
   unsigned short port = 8192;
   unsigned linkEnable   =0;
   unsigned linkLoopback =0;
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
   while ( (c=getopt( argc, argv, "a:F:L:l:s:B:f:S:Rbrh")) != EOF ) {
     switch(c) {
     case 'a':
-      ip = ntohl(inet_addr(optarg)); break;
+      ip = optarg; break;
       break;
     case 'F':
       fixedRate = atoi(optarg);

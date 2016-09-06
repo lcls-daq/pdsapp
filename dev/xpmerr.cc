@@ -42,14 +42,14 @@ int main(int argc, char** argv) {
   int c;
   bool lUsage = false;
 
-  unsigned ip = 0xc0a8020a;
+  const char* ip = "192.168.2.10";
   unsigned short port = 8192;
   int fixedRate=-1;
 
   while ( (c=getopt( argc, argv, "a:F:h")) != EOF ) {
     switch(c) {
     case 'a':
-      ip = ntohl(inet_addr(optarg)); break;
+      ip = optarg; break;
       break;
     case 'F':
       fixedRate = atoi(optarg);

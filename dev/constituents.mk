@@ -315,6 +315,7 @@ ifneq ($(findstring rhel7,$(tgt_arch)),)
 endif
 
 tgtnames += evr
+tgtnames += xpmtest
 
 commonlibs += offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient
 commonlibs += pdsdata/indexdata pdsdata/smalldata
@@ -356,7 +357,7 @@ tgtslib_tprds := dl pthread rt
 
 tgtsrcs_tprdsapp := tprdsapp.cc
 tgtincs_tprdsapp := evgr offlinedb/include pdsdata/include ndarray/include boost/include
-tgtlibs_tprdsapp := evgr/evr pds/tpr pds/tprds 
+tgtlibs_tprdsapp := evgr/evr pds/tpr pds/tprds pds/tag
 tgtlibs_tprdsapp += $(commonlibs) pdsapp/tools
 tgtlibs_tprdsapp += pdsdata/xtcdata
 tgtslib_tprdsapp := dl pthread rt
@@ -369,19 +370,24 @@ tgtincs_pgpds_recv := pgpcard
 tgtslib_pgpds_recv := dl pthread rt
 
 tgtsrcs_xpm := xpm.cc 
-tgtlibs_xpm := pds/xpmbase pds/cphw
+tgtlibs_xpm := pds/xpmbase pds/cphw cpsw/cpsw yaml/yaml-cpp
 tgtslib_xpm := dl pthread rt
+
+tgtsrcs_xpmtest := xpmtest.cc 
+tgtlibs_xpmtest := pds/xpmbase pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_xpmtest := dl pthread rt
+tgtincs_xpmtest := cpsw/include cpsw_boost/include yaml/include
 
 tgtsrcs_xpmapp := xpmapp.cc
 tgtincs_xpmapp := pdsdata/include ndarray/include boost/include
 tgtincs_xpmapp += epics/include epics/include/os/Linux
-tgtlibs_xpmapp := pds/xpm pds/cphw
+tgtlibs_xpmapp := pds/xpm pds/cphw pds/tag cpsw/cpsw yaml/yaml-cpp
 tgtlibs_xpmapp += $(commonlibs)
 tgtlibs_xpmapp += pds/epicstools epics/ca epics/Com
 tgtslib_xpmapp := dl pthread rt
 
 tgtsrcs_xpmerr := xpmerr.cc 
-tgtlibs_xpmerr := pds/xpmbase pds/cphw
+tgtlibs_xpmerr := pds/xpmbase pds/cphw cpsw/cpsw yaml/yaml-cpp
 tgtslib_xpmerr := dl pthread rt
 
 tgtsrcs_simapp := simapp.cc 

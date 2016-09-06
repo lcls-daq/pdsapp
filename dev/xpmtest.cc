@@ -11,10 +11,15 @@
 #include <signal.h>
 #include <new>
 
+#include <cpsw_api_builder.h>
+#include <cpsw_mmio_dev.h>
+#include <cpsw_proto_mod_depack.h>
+
 #include "pds/xpm/Module.hh"
-#include "pds/xpm/RingBuffer.hh"
 
 #include <string>
+
+//#define USE_STREAM
 
 static inline double dtime(timespec& tsn, timespec& tso)
 {
@@ -23,16 +28,10 @@ static inline double dtime(timespec& tsn, timespec& tso)
 
 extern int optind;
 
-using namespace Xpm;
+using namespace Pds::Xpm;
 
 void usage(const char* p) {
   printf("Usage: %s [-a <IP addr (dotted notation)>]\n",p);
-}
-
-void sigHandler( int signal ) {
-  Xpm::Module* m = new(0) Xpm::Module;
-  m->setL0Enabled(false);
-  ::exit(signal);
 }
 
 int main(int argc, char** argv) {
@@ -42,7 +41,7 @@ int main(int argc, char** argv) {
   int c;
   bool lUsage = false;
 
-  unsigned ip = 0xc0a8020a;
+  const char* ip = "192.168.2.10";
   unsigned short port = 8192;
   int fixedRate=-1;
   bool lreset=false;
@@ -51,7 +50,7 @@ int main(int argc, char** argv) {
   while ( (c=getopt( argc, argv, "a:F:RDh")) != EOF ) {
     switch(c) {
     case 'a':
-      ip = ntohl(inet_addr(optarg)); break;
+      ip = optarg; break;
       break;
     case 'F':
       fixedRate = atoi(optarg);
@@ -74,58 +73,67 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  Reg::set(ip, port, 0x80000000);
+  Pds::Cphw::Reg::set(ip, 8192, 0);
 
-  Xpm::Module* m = new(0) Xpm::Module;
+  Module* m = new((void*)0x80000000) Module;
 
-  if (lreset) 
-    m->rxLinkReset(0);
+#ifdef USE_STREAM
+  NetIODev  root = INetIODev::create("fpga", ip);
 
-#if 1
-  Xpm::RingBuffer* b = new((void*)0x10000) Xpm::RingBuffer;
+  {  //  Register access                                                        
+    INetIODev::PortBuilder bldr = INetIODev::createPortBuilder();
+    bldr->setSRPVersion              ( INetIODev::SRP_UDP_V3 );
+    bldr->setUdpPort                 (                  8193 );
+    bldr->setUdpOutQueueDepth        (                    40 );
+    bldr->setUdpNumRxThreads         (                     4 );
+    bldr->setDepackOutQueueDepth     (                     5 );
+    bldr->setDepackLdFrameWinSize    (                     5 );
+    bldr->setDepackLdFragWinSize     (                     5 );
+    bldr->setSRPTimeoutUS            (                 90000 );
+    bldr->setSRPRetryCount           (                     5 );
+    bldr->setSRPMuxVirtualChannel    (                     0 );
+    bldr->useDepack                  (                  true );
+    bldr->useRssi                    (                  true );
+    bldr->setTDestMuxTDEST           (                  0xc0 );
 
-  b->enable(false);
-  b->clear();
-  b->enable(true);
-  usleep(1000);
-  b->enable(false);
-  b->dump();
+    Field f = IIntField::create("data");
+    root->addAtAddress( f, bldr);
+  }
+
+  Path strmPath = root->findByName("data");
+  Stream strm = IStream::create( strmPath );
 #endif
 
-  m->init();
-  printf("rx/tx Status: %08x/%08x\n", m->rxLinkStat(), m->txLinkStat());
+  for(unsigned i=0; i<10; i++) {
+    m->_analysisRst=0xffff;
+    m->_analysisRst=0;
 
-  m->setL0Enabled(false);
-  if (fixedRate>=0)
-    m->setL0Select_FixedRate(fixedRate);
-  L0Stats s = m->l0Stats();
-  L0Stats s0 = s;
-  m->linkEnable(0,lenable);
-  m->setL0Enabled(true);
-  
-  ::signal( SIGINT, sigHandler );
+    timespec begin, end;
+    clock_gettime(CLOCK_REALTIME,&begin);
 
-  while(1) {
-    usleep(1000000);
-    L0Stats n = m->l0Stats();
+#ifdef USE_STREAM
+    CAxisFrameHeader hdr;
+    uint8_t          buf[1500];
+    hdr.insert(buf, sizeof(buf));
+    hdr.iniTail(buf + hdr.getSize()+0x100);
+    unsigned sz = hdr.getSize()+hdr.getTailSize()+0x100;
+    uint32_t* bb = reinterpret_cast<uint32_t*>(&buf[hdr.getSize()]);
+    for(unsigned j=0; j<10000; j++) {
+      bb[j&0x3f] = (0xff0000|(j&0xff));
+      if ((j&0x3f)==0x3f)
+        strm->write( (uint8_t*)buf, sz);
+    }
+#else
+    for(unsigned j=0; j<10000; j++)
+      m->_analysisTag=(0xff0000|(j&0xff));
+#endif
 
-#define DSTAT(name,val) {                                             \
-      printf("%10.10s  : %16lx [%lu]\n", #name,                       \
-             (n.val-s0.val),                                          \
-             (n.val-s.val)); }
+    clock_gettime(CLOCK_REALTIME,&end);
 
-    printf("-------\n");
-    DSTAT(Enabled  ,l0Enabled);
-    DSTAT(Inhibited,l0Inhibited);
-    DSTAT(Num      ,numl0);
-    DSTAT(NumInh   ,numl0Inh);
-    DSTAT(NumAcc   ,numl0Acc);
-    printf("%10.10s  : %04x [%u]\n", "Rx0Errs",
-             (unsigned)(n.rx0Errs-s0.rx0Errs)&0x3fff,
-             (unsigned)(n.rx0Errs-s.rx0Errs)&0x3fff);
-#undef DSTAT
+    unsigned n = m->_analysisTagWr;
 
-    s = n;
+    printf("analysisTag n %u  dt %f\n",
+           n, dtime(end,begin));
   }
 
   return 0;

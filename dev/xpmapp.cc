@@ -35,7 +35,7 @@ static void usage(const char *p)
          "\n"
          "Options:\n"
          "\t -p <platform>          platform number\n"
-         "\t -a <ip addr>           xpm private ip address\n"
+         "\t -a <ip addr>           xpm private ip address (dotted notation)\n"
          "\t -u <alias>             set device alias\n"
          "\t -h                     print this message and exit\n", p);
 }
@@ -45,11 +45,11 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   const uint32_t NO_PLATFORM = uint32_t(-1UL);
   uint32_t  platform  = NO_PLATFORM;
-  unsigned  xpm_ip    = 0;
+  const char* xpm_ip  = 0;
   bool      lUsage    = false;
   int fixedRate=-1;
 
-  Pds::DetInfo info(getpid(),DetInfo::NoDetector,0,DetInfo::NoDevice,0);
+  Pds::DetInfo info(getpid(),DetInfo::NoDetector,0,DetInfo::Evr,0);
 
   char* uniqueid = (char *)NULL;
 
@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
   while ( (c=getopt( argc, argv, "a:p:u:F:h")) != EOF ) {
     switch(c) {
     case 'a':
-      xpm_ip = ntohl(inet_addr(optarg));
+      xpm_ip = optarg;
       break;
     case 'p':
       if (!CmdLineTools::parseUInt(optarg,platform)) {
