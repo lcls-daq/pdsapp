@@ -70,13 +70,15 @@ void printUsage(char* name) {
 			"                The format of the file consists of lines: 'Dest Addr Data'\n"
 			"                where Addr and Data are 32 bit unsigned integers, but the Dest is a\n"
 			"                four bit field where the bottom two bits are VC and The top two are Lane\n"
-	    "    -v      printk version\n"
+	    "    -v      printk version of pgpcard driver, check with dmesg\n"
 			"    -p      set print flag to value given\n",
 			name
 	);
 }
 
-enum Commands{none, writeCommand,readCommand,readAsyncCommand,dumpCommand,testCommand,loopWriteCommand,addPortsCommand,monitorTest,disMonitorTest,printkVersion,numberOfCommands};
+enum Commands{none, writeCommand, readCommand, readAsyncCommand,
+  dumpCommand, testCommand, loopWriteCommand, addPortsCommand,
+  monitorTest, disMonitorTest, printkVersion, numberOfCommands};
 
 int main( int argc, char** argv )
 {
