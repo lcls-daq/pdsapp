@@ -38,6 +38,9 @@
 #include "pds/mon/MonDescTH1F.hh"
 #include "pds/mon/MonDescScalar.hh"
 
+#include "pds/management/Query.hh"
+#include "pds/management/SourceLevel.hh"
+
 #include "pds/xtc/CDatagram.hh"
 #include "pdsdata/xtc/ClockTime.hh"
 #include "pdsdata/xtc/Src.hh"
@@ -73,7 +76,11 @@ namespace Pds {
       //
       int iip = -1;
       {
-        CollectionManager m(Level::Observer, 0, sizeof(Node), 250, 0);
+        CollectionManager m(Level::Observer, 
+                            0, 
+                            sizeof(PartitionAllocation), 
+                            250, 
+                            0);
         m.start();
         if (m.connect()) {
           iip = Route::interface();
