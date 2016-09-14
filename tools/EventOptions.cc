@@ -51,7 +51,8 @@ static void load_appliance(char*       arg,
 }
 
 static void load_filter(char*       arg,
-                        Appliance*& apps)
+                        Appliance*& apps,
+                        const char* expname)
 {
   {
     std::string p(arg);
@@ -80,7 +81,7 @@ static void load_filter(char*       arg,
         fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
       }
       else {
-        L3FilterThreads* driver = new L3FilterThreads(c_user, n);
+        L3FilterThreads* driver = new L3FilterThreads(c_user, n, expname);
         if (apps != NULL)
           driver->connect(apps);
         else
@@ -196,7 +197,7 @@ bool        EventOptions::parse_opt (int c)
     load_appliance(optarg, apps);
     break;
   case 'F':
-    load_filter   (optarg, apps);
+    load_filter   (optarg, apps, expname);
     break;
   default:
     return false;
