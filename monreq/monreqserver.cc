@@ -95,6 +95,11 @@ namespace Pds {
 
 ProcInfo  info(Level::Observer, getpid(), iip);
 char buff[256];
+char result[256];
+	gethostname(buff, sizeof(buff));
+	snprintf(result, 256, "monreqserver[%s]", buff);
+
+/*
       sprintf(buff,"%s[%d.%d.%d.%d : %d]",
               Level::name(info.level()),
               (info.ipAddr()>>24)&0xff,
@@ -102,7 +107,9 @@ char buff[256];
               (info.ipAddr()>> 8)&0xff,
               (info.ipAddr()>> 0)&0xff,
               info.processId());
-    VmonServerManager::instance(buff)->listen(info, vmon);
+*/
+
+    VmonServerManager::instance(result)->listen(info, vmon);
         MonGroup* group = new MonGroup("event_tracking");
   	VmonServerManager::instance()->cds().add(group);
   	
