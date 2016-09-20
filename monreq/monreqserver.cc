@@ -91,27 +91,27 @@ namespace Pds {
         m.cancel();
       }
    
- Ins vmon(StreamPorts::vmon(platform));
+      Ins vmon(StreamPorts::vmon(platform));
 
-ProcInfo  info(Level::Observer, getpid(), iip);
-char buff[256];
-char result[256];
-	gethostname(buff, sizeof(buff));
-	snprintf(result, 256, "monreqserver[%s]", buff);
+      ProcInfo  info(Level::Observer, getpid(), iip);
+      char buff[256];
+      char result[256];
+      gethostname(buff, sizeof(buff));
+      snprintf(result, 256, "monreqserver[%s]", buff);
 
-/*
-      sprintf(buff,"%s[%d.%d.%d.%d : %d]",
-              Level::name(info.level()),
-              (info.ipAddr()>>24)&0xff,
-              (info.ipAddr()>>16)&0xff,
-              (info.ipAddr()>> 8)&0xff,
-              (info.ipAddr()>> 0)&0xff,
-              info.processId());
-*/
+      /*
+        sprintf(buff,"%s[%d.%d.%d.%d : %d]",
+        Level::name(info.level()),
+        (info.ipAddr()>>24)&0xff,
+        (info.ipAddr()>>16)&0xff,
+        (info.ipAddr()>> 8)&0xff,
+        (info.ipAddr()>> 0)&0xff,
+        info.processId());
+      */
 
-    VmonServerManager::instance(result)->listen(info, vmon);
-        MonGroup* group = new MonGroup("event_tracking");
-  	VmonServerManager::instance()->cds().add(group);
+      VmonServerManager::instance(result)->listen(info, vmon);
+      MonGroup* group = new MonGroup("event_tracking");
+      VmonServerManager::instance()->cds().add(group);
   	
       //
       //  Start a thread to request connections to the servers
@@ -125,55 +125,55 @@ char result[256];
       while(1) {
 
 	int nfd=1+_receivers.size();
-    std::vector<pollfd> pfd(nfd);
-    pfd[0].fd=_connReq.socket();
-    pfd[0].events = POLLIN|POLLERR;
-    for(unsigned i=0; i<_receivers.size(); i++) {
-      pfd[i+1].fd = _receivers[i].socket();
-      pfd[i+1].events = POLLIN|POLLERR;
-    }
+        std::vector<pollfd> pfd(nfd);
+        pfd[0].fd=_connReq.socket();
+        pfd[0].events = POLLIN|POLLERR;
+        for(unsigned i=0; i<_receivers.size(); i++) {
+          pfd[i+1].fd = _receivers[i].socket();
+          pfd[i+1].events = POLLIN|POLLERR;
+        }
 
         int r;
 	r=poll(&pfd[0], pfd.size(), 1000);
 	
-		if(pfd[0].revents&POLLIN) { //add new connections to array
-			int fd=_connReq.receiveConnection();
-			if (fd <0) {
-			}
-			else {
-			_receivers.push_back(Pds::MonReq::ReceivingConnection(fd, group));
-			while (_initialRequests) { 
-			_receivers.back().request();
-			--_initialRequests;
-			}
-			}
-		}
+        if(pfd[0].revents&POLLIN) { //add new connections to array
+          int fd=_connReq.receiveConnection();
+          if (fd <0) {
+          }
+          else {
+            _receivers.push_back(Pds::MonReq::ReceivingConnection(fd, group));
+            while (_initialRequests) { 
+              _receivers.back().request();
+              --_initialRequests;
+            }
+          }
+        }
 
-		for(unsigned j=1; j<pfd.size(); j++) {
-			if(pfd[j].revents&POLLIN) {  //if there is new data from existing connection, recv it 
-				char* p= _receivers[j-1].receive();
-				if(p == 0) {
-					_receivers.erase(_receivers.begin()+j-1); 
-					pfd.erase(pfd.begin()+j);
-					continue;
-				}
+        for(unsigned j=1; j<pfd.size(); j++) {
+          if(pfd[j].revents&POLLIN) {  //if there is new data from existing connection, recv it 
+            char* p= _receivers[j-1].receive();
+            if(p == 0) {
+              _receivers.erase(_receivers.begin()+j-1); 
+              pfd.erase(pfd.begin()+j);
+              continue;
+            }
 				
-				Dgram* dg = ((Dgram*)p);
+            Dgram* dg = ((Dgram*)p);
 
-				if( !dg->seq.isEvent() && j != 1 ) {
-					 delete[] p;
-					}
-				else { 
-				if (XtcMonitorServer::events((Dgram*)p) == XtcMonitorServer::Deferred) {
-				continue;
-				} 
-				else {
-				delete[] p; 
-				}
-				}
-			}
+            if( !dg->seq.isEvent() && j != 1 ) {
+              delete[] p;
+            }
+            else { 
+              if (XtcMonitorServer::events((Dgram*)p) == XtcMonitorServer::Deferred) {
+                continue;
+              } 
+              else {
+                delete[] p; 
+              }
+            }
+          }
 
-		}
+        }
 	
       }
     }
@@ -183,29 +183,29 @@ char result[256];
       // Poll for new connections on listener and request new connections
       //
 
-     while(1) {
+      while(1) {
         _connReq.requestConnections();
         sleep(1);
-	}
-   }
+      }
+    }
   private:
     void _copyDatagram(Dgram* dg, char* b) {
-    Datagram& dgrm = *reinterpret_cast<Datagram*>(dg);
+      Datagram& dgrm = *reinterpret_cast<Datagram*>(dg);
 
-    PnccdShuffle::shuffle(dgrm);
-    CspadShuffle::shuffle(reinterpret_cast<Dgram&>(dgrm));
+      PnccdShuffle::shuffle(dgrm);
+      CspadShuffle::shuffle(reinterpret_cast<Dgram&>(dgrm));
 
-    //  write the datagram
-    memcpy(b, &dgrm, sizeof(Datagram));
-    //  write the payload
-    memcpy(b+sizeof(Datagram), dgrm.xtc.payload(), dgrm.xtc.sizeofPayload());
-	}
+      //  write the datagram
+      memcpy(b, &dgrm, sizeof(Datagram));
+      //  write the payload
+      memcpy(b+sizeof(Datagram), dgrm.xtc.payload(), dgrm.xtc.sizeofPayload());
+    }
 
     void _deleteDatagram(Dgram* dg) {
-	delete[] (char *)dg;
-	}
+      delete[] (char *)dg;
+    }
     void _requestDatagram() {
-	//printf("_requestDatagram\n");
+      //printf("_requestDatagram\n");
       if (_receivers.size()==0) {
 	_initialRequests++;
       }
@@ -223,16 +223,16 @@ char result[256];
 
         for(unsigned i=0; i<_receivers.size(); i++) {
 
-		pend = _receivers[i].ratio();
+          pend = _receivers[i].ratio();
 
-			if (i == 0) {
-			smallest_pending = pend;
-			}
+          if (i == 0) {
+            smallest_pending = pend;
+          }
 
-		if( pend < smallest_pending) {
-			smallest_pending = pend;
-			location = i;
-		}
+          if( pend < smallest_pending) {
+            smallest_pending = pend;
+            location = i;
+          }
 	}
 	_receivers[location].request();
 
@@ -260,7 +260,7 @@ int main(int argc, char** argv) {
   unsigned platform=NO_PLATFORM;
   const char* partition = 0;
   const char* tag = 0;
-const char* intf = 0;
+  const char* intf = 0;
   int numberOfBuffers = 0;
   unsigned sizeOfBuffers = 0;
   unsigned nevqueues = 1;
@@ -277,9 +277,9 @@ const char* intf = 0;
       platform = strtoul(optarg, &endPtr, 0);
       if (errno != 0 || endPtr == optarg) platform = NO_PLATFORM;
       break;
-case 'I':
-intf = optarg;
-break;
+    case 'I':
+      intf = optarg;
+      break;
     case 'i':
       node = strtoul(optarg, &endPtr, 0);
       break;
