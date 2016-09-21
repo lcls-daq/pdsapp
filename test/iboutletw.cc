@@ -276,9 +276,11 @@ int main(int argc, char* argv[])
 
   timespec tb; clock_gettime(CLOCK_REALTIME,&tb);
   uint64_t bb=0;
+  uint32_t ne=0;
 
   while ((cdg = iter.next())) {
     dump(cdg);
+    ne++;
     bb += cdg->xtc.sizeofPayload()+sizeof(*cdg);
     inlet->post(cdg);
   }
@@ -286,8 +288,8 @@ int main(int argc, char* argv[])
   timespec te; clock_gettime(CLOCK_REALTIME,&te);
 
   double td = tdiff(tb,te);
-  printf("--Total %lu bytes  %f sec  %f Gb/sec\n",
-         bb, td, 8.e-9*double(bb)/td);
+  printf("--Total %lu bytes  (%u dgs)  %f sec  %f Gb/sec\n",
+         bb, ne, td, 8.e-9*double(bb)/td);
 
   return 1;
 }

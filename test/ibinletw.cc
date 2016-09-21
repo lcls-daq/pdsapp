@@ -15,6 +15,17 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <time.h>
+#include <signal.h>
+#include <stdlib.h>
+
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/prctl.h>
+#include <sys/stat.h>
+
+#define PERMS (S_IRUSR|S_IRGRP|S_IROTH|S_IWUSR|S_IWGRP|S_IWOTH)
+#define PERMS_IN (S_IRUSR|S_IRGRP|S_IROTH)
+#define OFLAGS (O_CREAT|O_RDWR)
 
 using namespace Pds::IbW;
 
@@ -44,13 +55,24 @@ namespace Pds {
     SlaveCallback(const Ins& ins) :
       _poolv(12),
       _index( 0),
+      _bytes( 0),
       _decade(10)
       {
-        char* p = new char[max_payload_size*_poolv.size()];
+        //        char* p = new char[max_payload_size*_poolv.size()];
+        int shm = shm_open("/MattShm", OFLAGS, PERMS);
+
+        unsigned sz = max_payload_size*_poolv.size();
+        if ((ftruncate(shm, sz))<0) { perror("ftruncate"); return; }
+
+        char* p = (char*)mmap(NULL, sz, PROT_READ|PROT_WRITE,
+                              MAP_SHARED, 
+                              shm, 0);
+
+        printf("Mapped to %d %p [%u]\n",shm,p,sz);
+
         for(unsigned i=0; i<_poolv.size(); i++)
           _poolv[i] = p+max_payload_size*i;
 
-        unsigned sz = max_payload_size*_poolv.size();
         _rdma = new IbW::RdmaSlave(p, sz,
                                    _poolv,
                                    ins, *this);
@@ -74,10 +96,16 @@ namespace Pds {
         if ((_index%(10*_decade))==0)
           _decade*=10;
       }
+      _bytes += (char*)dg->xtc.next()-(char*)payload;
+    }
+    void dump() const 
+    {
+      printf("%u dgs  %lu bytes\n", _index, _bytes);
     }
   private:
     std::vector<char*> _poolv;
     unsigned           _index;
+    uint64_t           _bytes;
     unsigned           _decade;
     IbW::RdmaSlave*    _rdma;
   };
@@ -90,6 +118,13 @@ static void show_usage(const char* p)
   printf("Usage: %s -a <Server IP address: dotted notation> [-v]\n",p);
 }
 
+static SlaveCallback* cb = 0;
+
+void sigHandler( int signal ) {
+  cb->dump();
+  ::exit(signal);
+}
+  
 int main(int argc, char* argv[])
 {
   const char* addr = "192.168.0.1";
@@ -111,10 +146,12 @@ int main(int argc, char* argv[])
     }
   }
 
+  ::signal( SIGINT, sigHandler );
+
   in_addr ia;
   inet_aton(addr,&ia);
 
-  SlaveCallback cb(Ins(ntohl(ia.s_addr),outlet_port));
+  cb = new SlaveCallback(Ins(ntohl(ia.s_addr),outlet_port));
   
   while(1) {
     sleep(1);
