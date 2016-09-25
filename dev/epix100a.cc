@@ -237,6 +237,7 @@ void printUsage(char* s) {
       "                For a G3 card, the top nybble is the index of the bottom port in use, with the\n"
       "                index of 1 for the first port\n"
       "    -G      Use if pgpcard is a G3 card\n"
+      "    -T      Use if pgpcard is a G3 card and you want the triggering to be done over the fiber\n"
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
       "    -m <B>  Set flag to maintain or not maintain lost run triggers (turn off for slow running\n"
