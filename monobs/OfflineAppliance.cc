@@ -83,21 +83,19 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
   LusiTime::Time now;
   int errs;
 
-  if ((tr->id()==TransitionId::BeginRun) &&
-      (tr->size() == sizeof(Transition))) {
-    // no RunInfo
-    _run_number = NotRecording;
-    return tr;
-  }
-
   if (tr->id()==TransitionId::BeginRun) {
+    RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
+    if (!rinfo.recording()) {
+      _run_number = NotRecording;
+      return tr;
+    }
+
     int parm_read_count = 0;
     int parm_save_count = 0;
     std::vector<string> vsPvValueList;
     string sConfigFileWarning;
 
     // retrieve run # that was allocated earlier
-    RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
     _run_number = rinfo.run();
     _experiment_number = rinfo.experiment();
     printf("Storing BeginRun LogBook information for %s:%u/%s Run #%u\n",
