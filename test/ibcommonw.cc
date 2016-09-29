@@ -167,10 +167,11 @@ void Rdma::_setup(const char* membase,
   qp_init_attr.sq_sig_all = 1;
   qp_init_attr.send_cq = _cq;
   qp_init_attr.recv_cq = _cq;
-  qp_init_attr.cap.max_send_wr = 16;
-  qp_init_attr.cap.max_recv_wr = 16;
+  qp_init_attr.cap.max_send_wr = 32;
+  qp_init_attr.cap.max_recv_wr = 32;
   qp_init_attr.cap.max_send_sge = 1;
   qp_init_attr.cap.max_recv_sge = 1;
+  qp_init_attr.cap.max_inline_data = 32*sizeof(unsigned);
 
   if ((_qp = ibv_create_qp(_pd,&qp_init_attr))==0) {
     perror("Failed to create QP");
@@ -293,8 +294,9 @@ void Rdma::poll()
   ibv_req_notify_cq(_cq,0);
   while( ibv_get_cq_event(_cc,&cq,&cq_ctx)>=0 ) {  // blocking operation
     if (cq == _cq) {
-      _handle_cc();
+      ibv_ack_cq_events(_cq,1);
       ibv_req_notify_cq(_cq,0);
+      _handle_cc();
     }
     else
       printf("Unexpected compl_queue %p\n",cq);
@@ -365,10 +367,8 @@ void RdmaMaster::req_write(void*    p,
 int RdmaMaster::_handle_cc()
 {
   // read from completion queue
-  unsigned n=0;
   ibv_wc wc;
   while( ibv_poll_cq(_cq, 1, &wc)==1 ) {
-    n++;
     if (wc.opcode != IBV_WC_RDMA_WRITE)
       printf("handle_cc received opcode %d\n",wc.opcode);
     else if (wc.status != IBV_WC_SUCCESS)
@@ -383,7 +383,6 @@ int RdmaMaster::_handle_cc()
       //      _cb.complete(_laddr[wc.wr_id>>32]);
     }
   }
-  ibv_ack_cq_events(_cq,n);
   return 1;
 }
 
@@ -396,7 +395,8 @@ RdmaSlave::RdmaSlave(const char*   base,
   _cb   (cb),
   _laddr(pool),
   _rimm (pool.size()),
-  _wr   (pool.size())
+  _wr   (pool.size()),
+  _nc   (0)
 {
   //  Send indexed list of target addresses to master
   unsigned nmem = pool.size();
@@ -437,10 +437,8 @@ RdmaSlave::~RdmaSlave()
 int RdmaSlave::_handle_cc()
 {
   // read from completion queue
-  unsigned n=0;
   ibv_wc wc;
   while( ibv_poll_cq(_cq, 1, &wc) ) {
-    n++;
     if (wc.opcode != IBV_WC_RECV_RDMA_WITH_IMM)
       printf("handle_cc received opcode %d\n",wc.opcode);
     else if (wc.status != IBV_WC_SUCCESS)
@@ -460,9 +458,11 @@ int RdmaSlave::_handle_cc()
       ::write(_fd, &wc.imm_data, sizeof(unsigned));
     }
   }
-  ibv_ack_cq_events(_cq,n);
+  _nc++;
   return 1;
 }
+
+void RdmaSlave::dump() const { printf("%u callbacks\n",_nc); }
 
 void* rdmaReadThread(void* p)
 {

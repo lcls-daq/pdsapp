@@ -52,8 +52,9 @@ namespace Pds {
 
   class SlaveCallback : public IbW::RdmaSlaveCb {
   public:
-    SlaveCallback(const Ins& ins) :
-      _poolv(12),
+    SlaveCallback(const Ins& ins,
+                  unsigned   nbuff) :
+      _poolv(nbuff),
       _index( 0),
       _bytes( 0),
       _decade(10)
@@ -89,7 +90,7 @@ namespace Pds {
       }
       Dgram* dg = (Dgram*)payload;
       uint32_t index = reinterpret_cast<uint32_t*>((char*)dg->xtc.next())[-1];
-      if (index!=(_index%12))
+      if (index!=(_index%_poolv.size()))
         printf("Expected %x, found %x\n",_index,index);
       if ((++_index%_decade)==0) {
         printf("Evt %u  [extent 0x%x] idx %u\n",_index,dg->xtc.extent,index);
@@ -101,6 +102,7 @@ namespace Pds {
     void dump() const 
     {
       printf("%u dgs  %lu bytes\n", _index, _bytes);
+      _rdma->dump();
     }
   private:
     std::vector<char*> _poolv;
@@ -128,11 +130,16 @@ void sigHandler( int signal ) {
 int main(int argc, char* argv[])
 {
   const char* addr = "192.168.0.1";
+  unsigned    nbuff = 12;
+
   int c;
-  while ( (c=getopt( argc, argv, "a:hv")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:n:hv")) != EOF ) {
     switch(c) {
     case 'a':
       addr = optarg;
+      break;
+    case 'n':
+      nbuff = atoi(optarg);
       break;
     case 'h':
       show_usage(argv[0]);
@@ -151,7 +158,8 @@ int main(int argc, char* argv[])
   in_addr ia;
   inet_aton(addr,&ia);
 
-  cb = new SlaveCallback(Ins(ntohl(ia.s_addr),outlet_port));
+  cb = new SlaveCallback(Ins(ntohl(ia.s_addr),outlet_port),
+                         nbuff);
   
   while(1) {
     sleep(1);

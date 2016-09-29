@@ -71,6 +71,7 @@ namespace Pds {
                  RdmaMasterCb& cb);
       ~RdmaMaster();
     public:
+      unsigned nbuff    () const { return _raddr.size(); }
       void     req_write(void*    payload,
                          unsigned size,
                          unsigned index);
@@ -95,6 +96,8 @@ namespace Pds {
                 const Ins&                remote,
                 RdmaSlaveCb&              cb);
       ~RdmaSlave();
+    public:
+      void dump() const;
     private:
       int      _handle_cc();
       void     _post_wr  (unsigned);
@@ -103,6 +106,7 @@ namespace Pds {
       std::vector<char*>       _laddr;
       std::vector<uint32_t*>   _rimm;
       std::vector<ibv_recv_wr> _wr;
+      unsigned                 _nc;
     };
   };
 };

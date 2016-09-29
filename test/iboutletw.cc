@@ -162,12 +162,14 @@ namespace Pds {
                        public RdmaMasterCb {
   public:
     IbOutletWire(Outlet& o,
-                 const XtcFileIteratorC& iter) :
+                 const XtcFileIteratorC& iter,
+                 unsigned delay) :
       OutletWire(o),
       _rdma(new RdmaMaster(iter.poolBegin(),
                            iter.poolSize (),
                            Ins(outlet_port),
                            *this)),
+      _delay(0),
       _index(0)
     {
     }
@@ -186,7 +188,9 @@ namespace Pds {
       _rdma->req_write((void*)(&dg->datagram()),
                        dg->datagram().xtc.sizeofPayload()+sizeof(Datagram)+_tare,
                        _index++);
-      if (_index==12) _index=0;
+      if (_index==_rdma->nbuff()) _index=0;
+      if (_delay)
+        usleep(_delay);
       return (InDatagram*)Appliance::DontDelete;
     }
 
@@ -209,6 +213,7 @@ namespace Pds {
     RdmaMaster* _rdma;
     Ins     _bcast;
     int     _control;
+    unsigned    _delay;
     unsigned    _index;
   };
 
@@ -227,10 +232,10 @@ int main(int argc, char* argv[])
 {
   const char* filename = 0;
   unsigned   partition = 0;
-
+  unsigned   delay     = 0;
   int c;
   //  bool lUsage = false;
-  while ( (c=getopt( argc, argv, "f:p:t:xh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "f:p:d:t:xh")) != EOF ) {
     switch(c) {
     case 'f':
       filename = optarg;
@@ -241,6 +246,9 @@ int main(int argc, char* argv[])
     case 'h':
       show_usage(argv[0]);
       return 0;
+    case 'd':
+      delay = strtoul(optarg,NULL,0);
+      break;
     case 't':
       _tare = strtoul(optarg,NULL,0);
       break;
@@ -266,7 +274,7 @@ int main(int argc, char* argv[])
   Inlet*      inlet = new Inlet;
   Outlet*    outlet = new Outlet;
   outlet->connect(inlet);
-  IbOutletWire* o = new IbOutletWire(*outlet, iter);
+  IbOutletWire* o = new IbOutletWire(*outlet, iter, delay);
 
   o->bind(OutletWire::Bcast, StreamPorts::bcast(partition,
                                                 Level::Control,
