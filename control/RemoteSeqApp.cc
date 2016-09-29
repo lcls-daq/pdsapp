@@ -460,10 +460,7 @@ Transition* RemoteSeqApp::transitions(Transition* tr)
 {
   if (_socket >= 0) {
     if (tr->id()==TransitionId::BeginRun) {
-      if (tr->size() == sizeof(Transition))
-        _last_run = RunInfo(0,0);
-      else
-        _last_run = *reinterpret_cast<RunInfo*>(tr);
+      _last_run = *reinterpret_cast<RunInfo*>(tr);
     }
     else if (tr->id()==TransitionId::BeginCalibCycle) {
       _pvmanager.configure(*reinterpret_cast<ControlConfigType*>(_cfgmon_buffer));

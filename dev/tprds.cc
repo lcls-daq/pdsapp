@@ -473,7 +473,16 @@ void* read_thread(void* arg)
     }
   }
 
+  pollfd pfd;
+  pfd.fd      = targs.fd;
+  pfd.events  = POLLIN | POLLERR;
+  pfd.revents = 0;
+
   while (1) {
+#if 1
+    while (::poll(&pfd, 1, 1000)<=0)
+      ;
+#endif
     if ((nb = read(targs.fd, desc, sizeof(*desc)))<0)
       break;
 

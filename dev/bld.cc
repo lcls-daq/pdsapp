@@ -580,7 +580,7 @@ namespace Pds {
      unsigned eventsize,
      unsigned eventpooldepth,
      VmonEb* vmoneb=0) :
-      EbS(id, ctns, level, inlet, outlet, stream, ipaddress, eventsize, eventpooldepth, 0 /* slow readout = 0 */, vmoneb) {}
+      EbS(id, ctns, level, inlet, outlet, stream, ipaddress, eventsize, eventpooldepth, vmoneb) {}
     ~BldEvBuilder() {}
   public:
     int processIo(Server* s) { EbS::processIo(s); return 1; }
@@ -616,14 +616,14 @@ namespace Pds {
 
       if (depth<=1) _flushOne(); // keep one buffer for recopy possibility
 
-      CDatagram* datagram = new(&_datagrams) CDatagram(_ctns, _id);
+      CDatagram* datagram = new(&_datagrams) CDatagram(Datagram(_ctns, _id));
       EbSequenceKey* key = new(&_keys) EbSequenceKey(const_cast<Datagram&>(datagram->datagram()));
       return new(&_events) EbEvent(serverId, _clients, datagram, key);
     }
     EbEventBase* _new_event  ( const EbBitMask& serverId,
              char*            payload,
              unsigned         sizeofPayload ) {
-      CDatagram* datagram = new(&_datagrams) CDatagram(_ctns, _id);
+      CDatagram* datagram = new(&_datagrams) CDatagram(Datagram(_ctns, _id));
       EbSequenceKey* key = new(&_keys) EbSequenceKey(const_cast<Datagram&>(datagram->datagram()));
       EbEvent* event = new(&_events) EbEvent(serverId, _clients, datagram, key);
       event->allocated().insert(serverId);
@@ -710,7 +710,7 @@ namespace Pds {
   public:
     BldSegmentLevel(unsigned     platform,
                     BldCallback& cb) :
-      SegmentLevel(platform, cb, cb, 0) {}
+      SegmentLevel(platform, cb, cb) {}
     ~BldSegmentLevel() {}
   public:
     bool attach() {

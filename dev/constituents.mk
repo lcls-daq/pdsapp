@@ -307,7 +307,7 @@ tgtincs_pimax := pdsdata/include ndarray/include boost/include
 #  LCLS-II development
 #
 
-tgtnames := tpr tprclk tprbsa tprtrg xpm xpmapp xpmerr tprx tprds tprdsapp simapp 
+tgtnames := tpr tprclk tprbsa tprtrg xpm xpmapp xpmerr tprx tprds tprdsapp simapp xpmsim
 
 ifneq ($(findstring rhel7,$(tgt_arch)),)
 #  tprdaq only builds on RHEL7 daq machine with AgMD2 library
@@ -386,6 +386,14 @@ tgtlibs_xpmapp += $(commonlibs)
 tgtlibs_xpmapp += pds/epicstools epics/ca epics/Com
 tgtslib_xpmapp := dl pthread rt
 
+tgtsrcs_xpmsim := xpmsim.cc
+tgtincs_xpmsim := pdsdata/include ndarray/include boost/include
+tgtincs_xpmsim += epics/include epics/include/os/Linux
+tgtlibs_xpmsim := pds/tag
+tgtlibs_xpmsim += $(commonlibs) pdsapp/tools
+tgtlibs_xpmsim += pds/epicstools epics/ca epics/Com
+tgtslib_xpmsim := dl pthread rt
+
 tgtsrcs_xpmerr := xpmerr.cc 
 tgtlibs_xpmerr := pds/xpmbase pds/cphw cpsw/cpsw yaml/yaml-cpp
 tgtslib_xpmerr := dl pthread rt
@@ -402,4 +410,3 @@ tgtlibs_evr := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/configdata
 tgtlibs_evr += evgr/evr evgr/evg 
 tgtlibs_evr += $(commonlibs) pds/evgr 
 tgtslib_evr := $(commonslib)
-

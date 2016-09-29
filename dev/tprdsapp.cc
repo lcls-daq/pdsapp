@@ -191,8 +191,6 @@ int main(int argc, char** argv) {
   Pds::DetInfo src(p->base.partitionAddr,
                    info.detector(),info.detId(),
                    info.device  (),info.devId());
-
-  Node node(Level::Segment, platform);
   printf("Using %s\n",Pds::DetInfo::name(src));
 
   TprDS::Server*  server  = new TprDS::Server (fd, src);
@@ -222,7 +220,7 @@ int main(int argc, char** argv) {
   apps.push_back(&manager->appliance());
   EventAppCallback* seg = new EventAppCallback(task, platform, apps);
   FastSegWire settings(*server, p->base.partitionAddr, uniqueid, 
-                       (1<<12), 16, (1<<12));
+                       (1<<12), 16, (1<<15));
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg);
   seglevel->attach();
 

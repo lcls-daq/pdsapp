@@ -125,7 +125,8 @@ namespace Pds {
     {
       unsigned runNumber = 0;
       if (tr->id()==TransitionId::BeginRun) {
-        if (tr->size() == sizeof(Transition)) {  // No RunInfo
+        RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
+        if (!rinfo.recording()) {
           char fname[256];
           sprintf(fname, "e%d/e%d-r%04d-sNN-cNN.xtc",
                   0, 0, tr->env().value());
@@ -134,7 +135,6 @@ namespace Pds {
                           .arg(fname));
         }
         else {
-          RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
           runNumber = rinfo.run();
           char fname[256];
           sprintf(fname, "e%d/e%d-r%04d-s00-c00.xtc",
@@ -187,9 +187,9 @@ namespace Pds {
     Transition* transitions(Transition* tr)
     {
       if (tr->id()==TransitionId::BeginRun) {
-        if (tr->size() > sizeof(Transition)) {
+        RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
+        if (rinfo.recording()) {
           // RunInfo
-          RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
           _experiment = rinfo.experiment();
           _run = rinfo.run();
           std::vector<std::string> names;
