@@ -373,15 +373,15 @@ Transition* Recorder::transitions(Transition* tr) {
     }
   }
   else if (tr->id()==TransitionId::BeginRun) {
-    if (tr->size() == sizeof(Transition)) {  // No RunInfo
+    RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
+    if (!rinfo.recording()) {  // Not recording
       _f = 0;
-      printf("No RunInfo.  Not recording.\n");
+      printf("Not recording.\n");
       // ignore file writing errors when not recording
       _path_error = false;
       _open_data_file_error = false;
     }
     else {
-      RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
       _experiment = rinfo.experiment();
       _run = rinfo.run();
       _chunk = 0;

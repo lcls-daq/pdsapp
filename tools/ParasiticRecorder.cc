@@ -82,8 +82,7 @@ namespace Pds {
     {
       if (tr->id()==TransitionId::BeginRun) {
 	_task->call(new CleanupRoutine(_path,_lifetime_sec)); 
-	if (tr->size()==sizeof(Transition))
-	  return new(&_pool) RunInfo(tr->env().value(),0);
+        return new(&_pool) RunInfo(std::list<SegPayload>(), tr->env().value(),0);
       }
       return tr; 
     }

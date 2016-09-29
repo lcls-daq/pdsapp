@@ -23,7 +23,7 @@ public:
   const char* arpsuidprocess;
   const char* outfile;
 
-  enum Mode {Counter, Decoder, Display};
+  enum Mode {None, Counter, Decoder, Display};
   Mode mode;
   uint64_t chunkSize;
   bool     delayXfer;

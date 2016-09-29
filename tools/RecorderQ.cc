@@ -1,6 +1,6 @@
 #include "RecorderQ.hh"
 #include "pds/service/Routine.hh"
-#include "pds/service/Task.hh"
+#include "pds/service/SpinTask.hh"
 #include "pds/service/TaskObject.hh"
 
 #include "pds/vmon/VmonServerManager.hh"
@@ -41,7 +41,7 @@ using namespace Pds;
 
 RecorderQ::RecorderQ(const char* fname, uint64_t chunkSize, unsigned uSizeThreshold, bool delay_xfer, OfflineClient *offlineclient, const char* expname) :
    Recorder(fname, chunkSize, delay_xfer, offlineclient, expname, uSizeThreshold),
-  _task(new Task(TaskObject("RecEvt"))),
+   _task(new SpinTask(TaskObject("RecEvt"))),
   _sem (Semaphore::EMPTY)
 {
   MonGroup* group = new MonGroup("RecQ");
@@ -66,7 +66,12 @@ RecorderQ::RecorderQ(const char* fname, uint64_t chunkSize, unsigned uSizeThresh
 InDatagram* RecorderQ::events(InDatagram* in) 
 {
   if (in->datagram().seq.service()==TransitionId::L1Accept) {
+#if 0
+    QueuedActionR* a = new QueuedActionR(in,*this);
+    a->routine();
+#else
     _task->call(new QueuedActionR(in,*this));
+#endif
   }
   else {
     _task->call(new QueuedActionR(in,*this,&_sem));
