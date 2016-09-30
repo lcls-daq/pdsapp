@@ -67,6 +67,7 @@ typedef Pds::Bld::BldDataEBeamV7 BldDataEBeam;
 typedef Pds::Bld::BldDataFEEGasDetEnergyV1 BldDataFEEGasDetEnergy;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataGMDV2 BldDataGMD;
+typedef Pds::Bld::BldDataBeamMonitorV1 BldDataBeamMonitor;
 typedef Pds::Bld::BldDataSpectrometerV1 SpectrometerType;
 typedef Pds::Bld::BldDataAnalogInputV1 AnalogInputType;
 typedef Pds::Bld::BldDataEOrbitsV0 EOrbitsType;
@@ -238,6 +239,7 @@ namespace Pds {
   BldBitMask AIMask = (ONE_BIT<<BldInfo::XppAin01) |
     (ONE_BIT<<BldInfo::XcsAin01) |
     (ONE_BIT<<BldInfo::AmoAin01);
+  BldBitMask BeamMonitorMask = ONE_BIT<<BldInfo::MfxBeamMon01;
 #define TEST_CREAT(mask, idType, dataType)                  \
   if ((im & mask).isNotZero()) {                            \
     Xtc tc(TypeId(TypeId::idType,dataType::Version),        \
@@ -264,13 +266,13 @@ namespace Pds {
   for(unsigned i=0; i<BldInfo::NumberOf; i++) {
     BldBitMask im = ONE_BIT<<i;
     if ((im & _mask).isNotZero()) {
-      TEST_CREAT(EBeamMask      ,Id_EBeam            ,BldDataEBeam);
-      TEST_CREAT(PhaseCavityMask,Id_PhaseCavity      ,BldDataPhaseCavity);
-      TEST_CREAT(FEEGasDetMask  ,Id_FEEGasDetEnergy  ,BldDataFEEGasDetEnergy);
-      TEST_CREAT(GMDMask        ,Id_GMD              ,BldDataGMD);
-      TEST_CREAT(EOrbitsMask    ,Id_EOrbits          ,EOrbitsType);
-      TEST_CACHE(SpecMask       ,_spectrometerType   ,SpectrometerType);
-      TEST_CACHE(IpimbMask      ,_ipimbConfigType    ,IpimbConfigType);
+      TEST_CREAT(EBeamMask      ,Id_EBeam             ,BldDataEBeam);
+      TEST_CREAT(PhaseCavityMask,Id_PhaseCavity       ,BldDataPhaseCavity);
+      TEST_CREAT(FEEGasDetMask  ,Id_FEEGasDetEnergy   ,BldDataFEEGasDetEnergy);
+      TEST_CREAT(GMDMask        ,Id_GMD               ,BldDataGMD);
+      TEST_CREAT(BeamMonitorMask,Id_BeamMonitorBldData,BldDataBeamMonitor);
+      TEST_CACHE(SpecMask       ,_spectrometerType    ,SpectrometerType);
+      TEST_CACHE(IpimbMask      ,_ipimbConfigType     ,IpimbConfigType);
       if ((im & IpimbMask).isNotZero()) {
         Xtc tc(_ipmFexConfigType, BldInfo(_pid,BldInfo::Type(i)));
         tc.extent += sizeof(IpmFexConfigType);
