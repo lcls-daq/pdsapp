@@ -4,6 +4,7 @@
 #include <QtGui/QWidget>
 
 #include "pdsapp/config/SerializerDictionary.hh"
+#include "pdsapp/config/ExpertDictionary.hh"
 
 #include <string>
 using std::string;
@@ -25,7 +26,7 @@ namespace Pds_ConfigDb {
   class Xtc_Ui : public QWidget {
     Q_OBJECT
   public:
-    Xtc_Ui(QWidget*);
+    Xtc_Ui(QWidget*, bool expert=false);
     ~Xtc_Ui();
   public slots:
     void update_device_list();
@@ -43,12 +44,14 @@ namespace Pds_ConfigDb {
     char*                _cfgdg_buffer;
     char*                _l1adg_buffer;
     SerializerDictionary _dict;
+    ExpertDictionary     _edict;
     QLabel*      _runInfo;
     QListWidget* _devlist;
     QListWidget* _cmplist;
     Pds::XtcFileIterator*          _fiter;
     std::vector<char*>             _cycle;
     int                            _icycle;
+    bool                           _expert;
   };
 };
 
