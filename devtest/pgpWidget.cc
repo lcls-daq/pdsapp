@@ -33,7 +33,7 @@ Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
-	printf( "Usage: %s [-h]  -P <pgpcardNumb> [-G] [-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-S detID,sharedMemoryTag,nclients][-a n,m,o][-o maxPrint][-s filename][-D <debug>][-m vcmask][M vcmask][-f <runTimeConfigName>][-v][-p pf]\n"
+	printf( "Usage: %s [-h]  -P <pgpcardNumb> [-G][-A n][-w dest,addr,data][-W dest,addr,data,count,delay][-r dest,addr][-d dest,addr,count][-t dest,addr,count][-R][-S detID,sharedMemoryTag,nclients][-a n,m,o][-o maxPrint][-s filename][-D <debug>][-m vcmask][M vcmask][-f <runTimeConfigName>][-v][-p pf]\n"
 			"    -h      Show usage\n"
 			"    -P      Set pgpcard index number                 [Default: 0]\n"
 			"                The format of the index number is a one byte number with the bottom nybble being\n"
@@ -44,6 +44,7 @@ void printUsage(char* name) {
 			"                For a G3 card, the top nybble is the index of the bottom port in use, with the\n"
 			"                index of 1 for the first port\n"
 			"    -G      Use if pgpcard is a G3 card\n"
+	    "    -A      If G3 card, add number of ports specified to this command\n"
 			"    -w      Write register to destination, reply will be send to standard output\n"
 			"                The format of the paraemeters are: 'dest addr data'\n"
 			"                where addr and Data are 32 bit unsigned integers, but the Dest is a\n"
@@ -108,6 +109,7 @@ int main( int argc, char** argv )
 	unsigned            scounter            = 0;
 	serrHisto = (unsigned*) calloc(100, sizeof(unsigned));
 	bool                cardGiven           = false;
+	bool                addNPorts           = false;
 	unsigned            debug               = 0;
 	unsigned            idx                 = 0;
 	unsigned            portsToAdd[3]       = {0,0,0};
@@ -125,7 +127,7 @@ int main( int argc, char** argv )
 	char*               endptr;
 	extern char*        optarg;
 	int c;
-	while( ( c = getopt( argc, argv, "hP:Gw:W:D:r:d:RS:o:s:f:p:t:a:m:M:v" ) ) != EOF ) {
+	while( ( c = getopt( argc, argv, "hP:GA:w:W:D:r:d:RS:o:s:f:p:t:a:m:M:v" ) ) != EOF ) {
 		switch(c) {
 		case 'P':
 			pgpcard = strtoul(optarg, NULL, 0);
@@ -140,6 +142,10 @@ int main( int argc, char** argv )
 		case 'f':
 			strcpy(runTimeConfigname, optarg);
 			break;
+		case 'A':
+		  portsToAdd[0] = strtoul(optarg  ,&endptr,0);
+		  addNPorts = true;
+		  break;
 		case 'w':
 			command = writeCommand;
 			d = strtoul(optarg  ,&endptr,0);
@@ -276,6 +282,7 @@ int main( int argc, char** argv )
 		printUsage(argv[0]);
 		return 1;
 	}
+	bool G3Flag = strlen(g3) != 0;
 	unsigned ports = (pgpcard >> 4) & 0xf;
 	char devName[128];
 	char err[128];
@@ -295,7 +302,7 @@ int main( int argc, char** argv )
 		return 1;
 	}
 
-	unsigned limit = strlen(g3) ? 8 : 4;
+	unsigned limit = G3Flag ? 8 : 4;
 	unsigned offset = 0;
 	while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
 		offset += 1;
@@ -304,8 +311,11 @@ int main( int argc, char** argv )
 	Pds::Pgp::Pgp::portOffset(offset);
 
 	pgp = new Pds::Pgp::Pgp::Pgp(fd, debug != 0);
+  if (G3Flag && addNPorts) {
+    pgp->IoctlCommand(IOCTL_Add_More_Ports, portsToAdd[0]);
+  }
 	dest = new Pds::Pgp::Destination::Destination(d);
-	if (debug & 1) printf("Destination %s\n", dest->name());
+	if (debug & 1) printf("Destination %s Offset %u\n", dest->name(), offset);
 
 	if (writing) {
 		//    char path[512];
