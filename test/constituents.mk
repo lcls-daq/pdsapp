@@ -85,4 +85,4 @@ tgtlibs_ibinletw := pdsdata/xtcdata pds/service pds/collection pds/xtc pds/mon p
 tgtlibs_ibinletw += pdsapp/ibtestw
 tgtslib_ibinletw := ibverbs rt pthread
 
-tgtnames := ibinletw iboutletw casttest
+tgtnames := ibinletw iboutletw
