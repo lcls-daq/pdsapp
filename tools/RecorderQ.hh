@@ -7,7 +7,7 @@
 
 namespace Pds {
 
-  class SpinTask;
+  class Task;
   class MonEntryTH1F;
   class ClockTime;
 
@@ -23,7 +23,7 @@ namespace Pds {
     InDatagram* events     (InDatagram* in);
     void        record_time(double, const ClockTime&);
   private:
-    SpinTask*  _task;
+    Task*  _task;
     Semaphore  _sem;
     MonEntryTH1F* _rec_time;
     MonEntryTH1F* _rec_time_log;
