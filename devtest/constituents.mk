@@ -159,8 +159,18 @@ tgtslib_netlink := ${USRLIBDIR}/rt
 tgtincs_netlink := 
 
 libnames :=
-tgtnames := tasktest xcasttest
+tgtnames := tasktest xcasttest quadadc quadadc_dma
 
 tgtsrcs_tasktest := tasktest.cc
 tgtlibs_tasktest := pds/service pdsdata/xtcdata
 tgtslib_tasktest := $(USRLIBDIR)/rt
+
+tgtsrcs_quadadc := quadadc.cc
+tgtlibs_quadadc := pds/quadadc pds/tpr
+tgtincs_quadadc := evgr
+tgtslib_quadadc := $(USRLIBDIR)/rt
+
+tgtsrcs_quadadc_dma := quadadc_dma.cc
+tgtlibs_quadadc_dma := pds/quadadc pds/tprdsbase pds/tpr pds/service pdsdata/xtcdata
+tgtincs_quadadc_dma := evgr
+tgtslib_quadadc_dma := $(USRLIBDIR)/rt pthread
