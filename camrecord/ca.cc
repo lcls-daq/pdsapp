@@ -64,7 +64,7 @@ DetInfo::Device find_device(const char *name, int &version)
     return (DetInfo::Device)i;
 }
 
-static int read_ca_long(char *name, unsigned int *value)
+static int read_ca(char *name, void *value, int dbrtype)
 {
     int result;
     chid chan;
@@ -79,7 +79,7 @@ static int read_ca_long(char *name, unsigned int *value)
         fprintf(stderr, "CA error %s while connecting to %s!\n", ca_message(result), name);
         return 1;
     }
-    result = ca_array_get(DBR_LONG, 1, chan, value);
+    result = ca_array_get(dbrtype, 1, chan, value);
     if (result != ECA_NORMAL) {
         fprintf(stderr, "CA error %s while reading %s!\n", ca_message(result), name);
         return 1;
@@ -92,44 +92,27 @@ static int read_ca_long(char *name, unsigned int *value)
     return 0;
 }
 
-static int get_image_size(const char *image, const char *xname, const char *yname, unsigned int *x, unsigned int *y)
-{
-    char buf[256], *s;
-
-    strncpy(buf, image, sizeof(buf));
-    if (!(s = rindex(buf, ':')))
-        return 1;
-    strcpy(s, xname);
-    *x = 0;
-    if (read_ca_long(buf, x))
-        return 1;
-    strcpy(s, yname);
-    *y = 0;
-    if (read_ca_long(buf, y))
-        return 1;
-    printf("get_image_size finds %u by %u.\n", *x, *y);
-    return 0;
-}
-
 class caconn {
  public:
     caconn(string _name, string _det, string _camtype, string _pvname,
-           int _binned, int _strict)
+           int _flags, int _strict)
         : name(_name), detector(_det), camtype(_camtype), pvname(_pvname),
-          connected(0), nelem(-1), event(0), binned(_binned), strict(_strict) {
+          connected(0), nelem(-1), event(0), flags(_flags), strict(_strict) {
         const char       *ds  = detector.c_str();
-        int               bld = !strncmp(ds, "BLD-", 4);
         int               detversion = 0;
-        DetInfo::Detector det = bld ? DetInfo::BldEb : find_detector(ds, detversion);
+        DetInfo::Detector det = find_detector(ds, detversion);
         int               devversion = 0;
-        DetInfo::Device   ctp = find_device(camtype.c_str(), devversion);
-        DetInfo::Device   dev = bld ? DetInfo::NoDevice : ctp;
+        DetInfo::Device   dev = find_device(camtype.c_str(), devversion);
         char             *buf = NULL;
         char             *bf2 = NULL;
         Xtc              *cfg = NULL;
         Xtc              *frm = NULL;
         Camera::FrameV1  *f   = NULL;
         unsigned int     w = 0, h = 0, d = 0;
+        double           gain = -1;
+        double           exposure = -1;
+        char             model[40] = "Unknown";
+        char             manufacturer[40] = "Unknown";
 
         if (det == DetInfo::NumDetector || (det != DetInfo::EpicsArch && dev == DetInfo::NumDevice)) {
             printf("Cannot find (%s, %s) values!\n", detector.c_str(), camtype.c_str());
@@ -137,13 +120,13 @@ class caconn {
                     detector.c_str(), camtype.c_str());
             exit(1);
         }
-        bld = bld ? atoi(ds + 4) : -1;
 
         num = conns.size();
         conns.push_back(this);
-        xid = register_xtc(strict, name, det != DetInfo::EpicsArch,
-                           det != DetInfo::EpicsArch); // PVs -> not critical or big
-                                                       // cameras -> critical and big
+        xid = register_xtc(strict, name,  // PVs -> not critical or big, cameras -> critical and big
+                           det != DetInfo::EpicsArch,  
+                           det != DetInfo::EpicsArch);
+                                                       
         if (det == DetInfo::EpicsArch) {
             DetInfo sourceInfo(getpid(), DetInfo::EpicsArch, 0, DetInfo::NoDevice, streamno);
             
@@ -176,133 +159,108 @@ class caconn {
         } else
             is_cam = 1;
 
-        /* Set default camera size */
-        switch (ctp) {
-        case DetInfo::TM6740:
-            w = 640;
-            h = 480;
-            d = 10;
-            break;
-        case DetInfo::Opal1000:
-            w = 1024;
-            h = 1024;
-            d = 12;
-            break;
-        case DetInfo::OrcaFl40:
-            w = 2048;
-            h = 2048;
-            d = 16;
-            break;
-        default:
-            /* This is bad. We should probably print something. */
-            fprintf(stderr, "error Unknown camera type %d.\n", ctp);
-            exit(0);
-            break;
+        /* Retrieve the camera parameters based on the PV name. */
+        char pv[256];
+        strcpy(pv, pvname.c_str());
+        int pvlen = strlen(pv);
+        if (!strcmp(pv + pvlen - 10, ":ArrayData")) {
+            /* An area detector camera */
+            pvlen -= 10;
+            strcpy(pv + pvlen, ":ArraySize0_RBV");
+            read_ca(pv, &w, DBR_LONG);
+            strcpy(pv + pvlen, ":ArraySize1_RBV");
+            read_ca(pv, &h, DBR_LONG);
+            strcpy(pv + pvlen, ":BitsPerPixel_RBV");
+            if (read_ca(pv, &d, DBR_LONG)) {
+                /* Sigh.  It could be either way... */
+                strcpy(pv + pvlen, ":BIT_DEPTH");
+                read_ca(pv, &d, DBR_LONG);
+            }
+            while (--pvlen > 0 && pv[pvlen] != ':');
+            strcpy(pv + pvlen, ":Gain_RBV");
+            read_ca(pv, &gain, DBR_DOUBLE);
+            strcpy(pv + pvlen, ":AcquireTime_RBV");
+            read_ca(pv, &exposure, DBR_DOUBLE);
+            strcpy(pv + pvlen, ":Model_RBV");
+            read_ca(pv, model, DBR_STRING);
+            strcpy(pv + pvlen, ":Manufacturer_RBV");
+            read_ca(pv, manufacturer, DBR_STRING);
+        } else if (!strcmp(pv + pvlen - 5, ".IRAW")) {
+            /* A Dehong framegrabber camera */
+            pvlen -= 5;
+            strcpy(pv + pvlen, ".NROW");
+            read_ca(pv, &w, DBR_LONG);
+            strcpy(pv + pvlen, ".NCOL");
+            read_ca(pv, &h, DBR_LONG);
+            strcpy(pv + pvlen, ".NBIT");
+            read_ca(pv, &d, DBR_LONG);
+        } else if (!strcmp(pv + pvlen - 16, ":LIVE_IMAGE_FAST")) {
+            /* A unixCam camera */
+            pvlen -= 16;
+            strcpy(pv + pvlen, ":N_OF_ROW");
+            read_ca(pv, &w, DBR_LONG);
+            strcpy(pv + pvlen, ":N_OF_COL");
+            read_ca(pv, &h, DBR_LONG);
+            strcpy(pv + pvlen, ":N_OF_BITS");
+            read_ca(pv, &d, DBR_LONG);
+            strcpy(pv + pvlen, ":Gain");
+            read_ca(pv, &gain, DBR_DOUBLE);
+            strcpy(pv + pvlen, ":Model");
+            read_ca(pv, model, DBR_STRING);
+            strcpy(pv + pvlen, ":ID");
+            read_ca(pv, manufacturer, DBR_STRING);
+        } else if (!strcmp(pv + pvlen - 11, ":IMAGE_CMPX")) {
+            /* A unixCam camera with ROI */
+            pvlen -= 11;
+            strcpy(pv + pvlen, ":ROI_XNP");
+            read_ca(pv, &w, DBR_LONG);
+            strcpy(pv + pvlen, ":ROI_YNP");
+            read_ca(pv, &h, DBR_LONG);
+            strcpy(pv + pvlen, ":ROI_BITS");
+            read_ca(pv, &d, DBR_LONG);
+            strcpy(pv + pvlen, ":Gain");
+            read_ca(pv, &gain, DBR_DOUBLE);
+            strcpy(pv + pvlen, ":Model");
+            read_ca(pv, model, DBR_STRING);
+            strcpy(pv + pvlen, ":ID");
+            read_ca(pv, manufacturer, DBR_STRING);
+        } else {
+            /* WTF?!? */
+            fprintf(stderr, "warn Unknown camera type for PV %s!\n", pv);
+            return;
         }
 
-        /* Now find the real camera size. */
-        unsigned int hh, ww;
-        switch (CAMERA_FLAGS(binned)) {
-        case CAMERA_NONE:
-            break;
-        case CAMERA_BINNED:
-            switch (ctp) {
-            case DetInfo::TM6740:
-                w = 320;
-                h = 240;
-                d = 8;
-                break;
-            case DetInfo::Opal1000:
-                w = 1024;
-                h = 256;
-                break;
-            case DetInfo::OrcaFl40:
-                /* MCB ??? */
-                w = 2048;
-                h = 2048;
-                break;
-            default:
-                break;
-            }
-            break;
-        case CAMERA_ROI:
-            if (!get_image_size(pvname.c_str(), ":ROI_XNP", ":ROI_YNP", &ww, &hh)) {
-                w = ww;
-                h = hh;
-            } else {
-                /* Print an error? */
-            }
-            break;
-        case CAMERA_SIZE:
-            if (!get_image_size(pvname.c_str(), ":N_OF_COL", ":N_OF_ROW", &ww, &hh)) {
-                w = ww;
-                h = hh;
-            } else {
-                /* Print an error? */
-            }
-            break;
-        case CAMERA_ADET:
-            if (!get_image_size(pvname.c_str(), ":ArraySize0_RBV", ":ArraySize1_RBV", &ww, &hh)) {
-                w = ww;
-                h = hh;
-            } else {
-                /* Print an error? */
-            }
-            if (CAMERA_DEPTH(binned))
-                d = CAMERA_DEPTH(binned);
-            break;
-        }
+        if (CAMERA_DEPTH(flags)) 
+            d = CAMERA_DEPTH(flags);
         nelem = w * h;
 
         int               pid = getpid(), size;
         DetInfo sourceInfo(pid, det, detversion, dev, devversion);
-        ProcInfo bldInfo(Level::Reporter, pid, bld);
         Camera::FrameCoord origin(0, 0);
 
-        if (bld < 0)
-            register_alias(name, sourceInfo);
+        register_alias(name, sourceInfo);
 
-        switch (ctp) {
+        switch (dev) {
         case DetInfo::TM6740:
-            size = ((bld < 0) ? 2 : 3) * sizeof(Xtc) + sizeof(Pulnix::TM6740ConfigV2) +
+            size = 2 * sizeof(Xtc) + sizeof(Pulnix::TM6740ConfigV2) +
                 sizeof(Camera::FrameFexConfigV1);
             buf = (char *) calloc(1, size);
-            if (bld < 0) {
-                cfg = new (buf) Xtc(TypeId(TypeId::Id_TM6740Config, 2), sourceInfo);
-            } else {
-                cfg = new (buf) Xtc(TypeId(TypeId::Id_Xtc, 1), sourceInfo);
-                cfg = new ((char *)cfg->alloc(size - sizeof(Xtc)))
-                          Xtc(TypeId(TypeId::Id_TM6740Config, 2), bldInfo);
-            }
+            cfg = new (buf) Xtc(TypeId(TypeId::Id_TM6740Config, 2), sourceInfo);
             // Fake a configuration!
             // black_level_a = black_level_b = 32, gaina = gainb = 0x1e8 (max, min is 0x42),
             // gain_balance = false, Depth = 10 bit, hbinning = vbinning = x1, LookupTable = linear.
-            if (CAMERA_FLAGS(binned) == CAMERA_BINNED)
-                new ((void *)cfg->alloc(sizeof(Pulnix::TM6740ConfigV2)))
-                    Pulnix::TM6740ConfigV2(32, 32, 0x1e8, 0x1e8, false,
-                                           Pulnix::TM6740ConfigV2::Eight_bit,
-                                           Pulnix::TM6740ConfigV2::x2,
-                                           Pulnix::TM6740ConfigV2::x2,
-                                           Pulnix::TM6740ConfigV2::Linear);
-            else
-                new ((void *)cfg->alloc(sizeof(Pulnix::TM6740ConfigV2)))
-                    Pulnix::TM6740ConfigV2(32, 32, 0x1e8, 0x1e8, false,
-                                           Pulnix::TM6740ConfigV2::Ten_bit,
-                                           Pulnix::TM6740ConfigV2::x1,
-                                           Pulnix::TM6740ConfigV2::x1,
-                                           Pulnix::TM6740ConfigV2::Linear);
+            new ((void *)cfg->alloc(sizeof(Pulnix::TM6740ConfigV2)))
+                Pulnix::TM6740ConfigV2(32, 32, 0x1e8, 0x1e8, false,
+                                       Pulnix::TM6740ConfigV2::Ten_bit,
+                                       Pulnix::TM6740ConfigV2::x1,
+                                       Pulnix::TM6740ConfigV2::x1,
+                                       Pulnix::TM6740ConfigV2::Linear);
             break;
         case DetInfo::Opal1000:
-            size = ((bld < 0) ? 2 : 3) * sizeof(Xtc) + sizeof(Opal1k::ConfigV1) +
+            size = 2 * sizeof(Xtc) + sizeof(Opal1k::ConfigV1) +
                 sizeof(Camera::FrameFexConfigV1);
             buf = (char *) calloc(1, size);
-            if (bld < 0) {
-                cfg = new (buf) Xtc(TypeId(TypeId::Id_Opal1kConfig, 1), sourceInfo);
-            } else {
-                cfg = new (buf) Xtc(TypeId(TypeId::Id_Xtc, 1), sourceInfo);
-                cfg = new ((char *)cfg->alloc(size - sizeof(Xtc)))
-                           Xtc(TypeId(TypeId::Id_Opal1kConfig, 2), bldInfo);
-            }
+            cfg = new (buf) Xtc(TypeId(TypeId::Id_Opal1kConfig, 1), sourceInfo);
             // Fake a configuration!
             // black = 32, gain = 100, Depth = 12 bit, binning = x1, mirroring = None,
             // vertical_remap = true, enable_pixel_creation = false.
@@ -311,31 +269,32 @@ class caconn {
                                  Opal1k::ConfigV1::None, true, false, false, 0, 0, 0);
             break;
         case DetInfo::OrcaFl40:
-            size = ((bld < 0) ? 2 : 3) * sizeof(Xtc) + sizeof(Orca::ConfigV1) +
+            size = 2 * sizeof(Xtc) + sizeof(Orca::ConfigV1) +
                 sizeof(Camera::FrameFexConfigV1);
             buf = (char *) calloc(1, size);
-            if (bld < 0) {
-                cfg = new (buf) Xtc(TypeId(TypeId::Id_OrcaConfig, 1), sourceInfo);
-            } else {
-                cfg = new (buf) Xtc(TypeId(TypeId::Id_Xtc, 1), sourceInfo);
-                cfg = new ((char *)cfg->alloc(size - sizeof(Xtc)))
-                          Xtc(TypeId(TypeId::Id_OrcaConfig, 1), bldInfo);
-            }
+            cfg = new (buf) Xtc(TypeId(TypeId::Id_OrcaConfig, 1), sourceInfo);
             // Fake a configuration!
             // readoutmode = Subarray, cooling = off, defect pixel correction = on, and rows = h.
             new ((void *)cfg->alloc(sizeof(Orca::ConfigV1)))
                 Orca::ConfigV1(Orca::ConfigV1::Subarray, Orca::ConfigV1::Off, 1, h);
             break;
+        case DetInfo::ControlsCamera:
+            size = 2 * sizeof(Xtc) + sizeof(Camera::ControlsCameraConfigV1) +
+                sizeof(Camera::FrameFexConfigV1);
+            buf = (char *) calloc(1, size);
+            cfg = new (buf) Xtc(TypeId(TypeId::Id_ControlsCameraConfig, 1), sourceInfo);
+            // Wow, an *actual* configuration!!
+            new ((void *)cfg->alloc(sizeof(Camera::ControlsCameraConfigV1)))
+                Camera::ControlsCameraConfigV1(w, h, d, Camera::ControlsCameraConfigV1::Mono,
+                                               exposure, gain, manufacturer, model);
+            break;
         default:
-            printf("Unknown device: %s!\n", DetInfo::name(ctp));
-            fprintf(stderr, "error Unknown device %s\n", DetInfo::name(ctp));
+            printf("Unknown device: %s!\n", DetInfo::name(dev));
+            fprintf(stderr, "error Unknown device %s\n", DetInfo::name(dev));
             exit(1);
         }
         // This is on every camera.
-        if (bld < 0)
-            cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), sourceInfo);
-        else
-            cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), bldInfo);
+        cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), sourceInfo);
         new ((void *)cfg->alloc(sizeof(Camera::FrameFexConfigV1)))
             Camera::FrameFexConfigV1(Camera::FrameFexConfigV1::FullFrame, 1,
                                      Camera::FrameFexConfigV1::NoProcessing, origin, origin, 0, 0, 0);
@@ -349,8 +308,6 @@ class caconn {
         f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, d, 32);
 
         frm->alloc(f->_sizeof()-sizeof(*f));
-        if (bld >= 0)
-          hdr->alloc(f->_sizeof()-sizeof(*f));
         free(buf); /* We're done with r, which lives in buf. */
 
         int result = ca_create_channel(pvname.c_str(),
@@ -412,7 +369,7 @@ class caconn {
     int    xid;
     Xtc   *hdr;
     int    hdrlen;
-    int    binned;
+    int    flags;
     int    strict;
     int    is_cam;
     int    caid;
@@ -566,9 +523,9 @@ void initialize_ca(void)
     ca_context_create(ca_disable_preemptive_callback);
 }
 
-void create_ca(string name, string detector, string camtype, string pvname, int binned, int strict)
+void create_ca(string name, string detector, string camtype, string pvname, int flags, int strict)
 {
-    new caconn(name, detector, camtype, pvname, binned, strict);
+    new caconn(name, detector, camtype, pvname, flags, strict);
 }
 
 void handle_ca(fd_set *rfds)

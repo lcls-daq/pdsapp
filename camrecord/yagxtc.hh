@@ -15,10 +15,6 @@
 
 /* Flags that can modify cameras */
 #define CAMERA_NONE    0
-#define CAMERA_BINNED  1    /* The image is binned in a standard way. */
-#define CAMERA_ROI     2    /* The image has a size described by :ROI_YNP and :ROI_XNP. */
-#define CAMERA_SIZE    4    /* The image has a size described by :N_OF_ROW and :N_OF_COL. */
-#define CAMERA_ADET    8    /* The image has a size described by :ArraySize0_RBV and :ArraySize1_RBV */
 #define CAMERA_FLAG_MASK    0x0000ffff
 #define CAMERA_DEPTH_MASK   0x00ff0000
 #define CAMERA_DEPTH_OFFSET 16
@@ -56,7 +52,7 @@ extern void cleanup_bld(void);
 /* ca.cc */
 extern void initialize_ca(void);
 extern void create_ca(std::string name, std::string detector, std::string camtype,
-                      std::string pvname, int binned, int strict);
+                      std::string pvname, int flags, int strict);
 extern void handle_ca(fd_set *rfds);
 extern void begin_run_ca(void);
 extern void cleanup_ca(void);

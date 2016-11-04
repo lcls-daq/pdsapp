@@ -23,9 +23,9 @@ class symbol {
  public:
     enum symtype { CAMERA_TYPE, BLD_TYPE, PV_TYPE };
     /* Camera */
-    symbol(string _name, string _det, string _camtype, string _pvname, int _binned)
+    symbol(string _name, string _det, string _camtype, string _pvname, int _flags)
         : name(_name), detector(_det), camtype(_camtype), pvname(_pvname),
-          address(-1), stype(CAMERA_TYPE), binned(_binned) {
+          address(-1), stype(CAMERA_TYPE), flags(_flags) {
         syms.push_back(this);
     };
     /* BLD */
@@ -56,7 +56,7 @@ class symbol {
     string pvname;
     int address;
     enum symtype stype;
-    int binned;
+    int flags;
     int revtime;
     int strict;
 };
@@ -190,7 +190,7 @@ static void record(string name, const char *arg)
         if (!strncmp(s->pvname.c_str(), "DUMMY:", 6)) {
             printf("Fake symbol, not recording!\n");
         } else {
-            create_ca(s->name, s->detector, s->camtype, s->pvname, s->binned, 1);
+            create_ca(s->name, s->detector, s->camtype, s->pvname, s->flags, 1);
         }
         break;
     case symbol::PV_TYPE:
@@ -344,25 +344,18 @@ static void read_config_file(const char *name)
                 read_config_file(NULL);
         } else if (arrayTokens[0] == "camera") {
             if (arrayTokens.size() >= 5) {
-                int binned = 0;
+                int flags = 0;
                 if (arrayTokens.size() >= 6) {
-                    if (arrayTokens[5] == "binned")
-                        binned |= CAMERA_BINNED;
-                    if (arrayTokens[5] == "roi")
-                        binned |= CAMERA_ROI;
-                    if (arrayTokens[5] == "size")
-                        binned |= CAMERA_SIZE;
-                    if (!strncmp(arrayTokens[5].c_str(), "areadet", 7)) {
-                        binned |= CAMERA_ADET;
-                        if (arrayTokens[5].length() != 7) {
-                            int bd = atoi(arrayTokens[5].c_str() + 7);
+                    if (!strncmp(arrayTokens[5].c_str(), "depth:", 6)) {
+                        if (arrayTokens[5].length() != 6) {
+                            int bd = atoi(arrayTokens[5].c_str() + 6);
                             if (bd)
-                                binned |= bd << CAMERA_DEPTH_OFFSET;
+                                flags |= bd << CAMERA_DEPTH_OFFSET;
                         }
                     }
                 }
-                printf("New symbol %s, binned = %d\n", arrayTokens[1].c_str(), binned);
-                new symbol(arrayTokens[1], arrayTokens[2], arrayTokens[3], arrayTokens[4], binned);
+                printf("New symbol %s, flags = %d\n", arrayTokens[1].c_str(), flags);
+                new symbol(arrayTokens[1], arrayTokens[2], arrayTokens[3], arrayTokens[4], flags);
             }
         } else if (arrayTokens[0] == "pv") {
             if (arrayTokens.size() >= 3) {
