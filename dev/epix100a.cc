@@ -25,11 +25,33 @@ namespace Pds
 {
    class MySegWire;
    class Seg;
+   class DoNoSegWire;
+   class DoNoSeg;
 }
 
 //
 //  This class creates the server when the streams are connected.
 //
+
+class Pds::DoNoSegWire : public SegWireSettings {
+  public:
+    DoNoSegWire() : _epix100aServer(0), _sources(0), _aliases(0) {};
+    void connect( InletWire& wire,
+                  StreamParams::StreamType s,
+                  int interface ) {};
+
+    const std::list<Src>& sources() const { return _sources; }
+
+    const std::list<SrcAlias>* pAliases() const
+    { return (_aliases.size() > 0) ? &_aliases : NULL; }
+
+    bool     is_triggered() const { return true; }
+
+    Epix100aServer* _epix100aServer;
+    std::list<Src> _sources;
+    std::list<SrcAlias> _aliases;
+};
+
 class Pds::MySegWire
    : public SegWireSettings
 {
@@ -73,6 +95,18 @@ class Pds::MySegWire
 //  Implements the callbacks for attaching/dissolving.
 //  Appliances can be added to the stream here.
 //
+
+class Pds::DoNoSeg : public EventCallback {
+  public:
+    DoNoSeg() {};
+    bool didYouFail() {return false; }
+  private:
+    // Implements EventCallback
+    void attached( SetOfStreams& streams ) {};
+    void failed( Reason reason ) {};
+    void dissolved( const Node& who ) {};
+};
+
 class Pds::Seg
    : public EventCallback
 {
@@ -402,6 +436,7 @@ int main( int argc, char** argv )
    epix100aServer->debug(debug);
 
    printf("MySegWire settings\n");
+//   DoNoSegWire settings();
    MySegWire settings(epix100aServer, module, channel, uniqueid);
    settings.max_event_depth(eventDepth);
    settings.fiberTriggering(G3Flag && triggerOverFiber);
@@ -441,6 +476,7 @@ int main( int argc, char** argv )
    epix100aServer->fiberTriggering(G3Flag && triggerOverFiber);
 
    printf("making Seg\n");
+//   DoNoSeg* seg = new DoNoSeg();
    Seg* seg = new Seg( task,
                        platform,
                        cfgService,
