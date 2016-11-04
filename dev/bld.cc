@@ -238,7 +238,8 @@ namespace Pds {
     ((ONE_BIT<<(BldInfo::MfxDg2Pim+1)) - (ONE_BIT<<BldInfo::MfxDg1Pim));
   BldBitMask AIMask = (ONE_BIT<<BldInfo::XppAin01) |
     (ONE_BIT<<BldInfo::XcsAin01) |
-    (ONE_BIT<<BldInfo::AmoAin01);
+    (ONE_BIT<<BldInfo::AmoAin01) |
+    (ONE_BIT<<BldInfo::SxrAin01);
   BldBitMask BeamMonitorMask = ONE_BIT<<BldInfo::MfxBeamMon01;
 #define TEST_CREAT(mask, idType, dataType)                  \
   if ((im & mask).isNotZero()) {                            \
