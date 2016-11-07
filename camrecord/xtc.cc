@@ -1,5 +1,6 @@
-#define EXACT_TS_MATCH       0
-#define FIDUCIAL_MATCH       1
+#define DUPLICATE_SUPPRESSION
+#define EXACT_TS_MATCH          0
+#define FIDUCIAL_MATCH          1
 //#define TRACE
 #include<stdio.h>
 #include<signal.h>
@@ -677,6 +678,15 @@ void send_event(struct event *ev)
         dnsec = ev->nsec;
         return;
     }
+#ifdef DUPLICATE_SUPPRESSION
+    if (dsec == ev->sec && dnsec == ev->nsec) {
+        /* Do nothing if this is exactly what we just sent! */
+#ifdef TRACE
+        printf("%08x:%08x X event %d\n", ev->sec, ev->nsec, ev->id);
+#endif
+        return;
+    }
+#endif /* DUPLICATE_SUPPRESSION */
     // When do we *not* send an event?
     // If we have any critical sources in the event, we always send it, even if damaged.
     // But if nothing is critical, we send it if it is complete.  We know we have asynchronous
