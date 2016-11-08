@@ -1,4 +1,4 @@
-#define DUPLICATE_SUPPRESSION
+//#define DUPLICATE_SUPPRESSION
 #define EXACT_TS_MATCH          0
 #define FIDUCIAL_MATCH          1
 //#define TRACE
