@@ -124,9 +124,9 @@ class caconn {
         num = conns.size();
         conns.push_back(this);
         xid = register_xtc(strict, name,  // PVs -> not critical or big, cameras -> critical and big
-                           det != DetInfo::EpicsArch,  
+                           det != DetInfo::EpicsArch,
                            det != DetInfo::EpicsArch);
-                                                       
+
         if (det == DetInfo::EpicsArch) {
             DetInfo sourceInfo(getpid(), DetInfo::EpicsArch, 0, DetInfo::NoDevice, streamno);
             
@@ -230,7 +230,7 @@ class caconn {
             return;
         }
 
-        if (CAMERA_DEPTH(flags)) 
+        if (CAMERA_DEPTH(flags))
             d = CAMERA_DEPTH(flags);
         nelem = w * h;
 
@@ -299,6 +299,16 @@ class caconn {
             Camera::FrameFexConfigV1(Camera::FrameFexConfigV1::FullFrame, 1,
                                      Camera::FrameFexConfigV1::NoProcessing, origin, origin, 0, 0, 0);
 
+        // setup hdf5 datasets
+        if (write_hdf) {
+            int hid = -1;
+            if (is_cam) {
+                hid = register_hdf_image(name, w, h, dbrtype, 0, 0);
+            } else {
+                hid = register_hdf_pv(name, nelem, dbrtype, 0, 0);
+            }
+            register_hdf_writer(xid, hid);
+        }
         configure_xtc(xid, buf, size, 0, 0);
 
         hdrlen = sizeof(Xtc) + sizeof(Camera::FrameV1);
@@ -501,9 +511,9 @@ static void connection_handler(struct connection_handler_args args)
         }
     } else {
         if ( c->connected )
-			printf("%s (%s) has disconnected!\n", c->getname(), c->getpvname());
-		else
-			printf("%s unable to connect to PV (%s)!\n", c->getname(), c->getpvname());
+            printf("%s (%s) has disconnected!\n", c->getname(), c->getpvname());
+        else
+            printf("%s unable to connect to PV (%s)!\n", c->getname(), c->getpvname());
         c->connected = 0;
     }
     fflush(stdout);

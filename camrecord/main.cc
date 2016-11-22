@@ -76,6 +76,7 @@ int verbose = 1;
 int quiet = 0;
 int pvignore = 0;
 static char *outfile = NULL;
+static char *hdfoutfile = NULL;
 string hostname = "";
 string prefix = "";
 string username = "";
@@ -102,6 +103,8 @@ static string lb_params[LCPARAMS] = { /* This is the order of parameters to LogB
 int start_sec = 0, start_nsec = 0;
 int end_sec = 0, end_nsec = 0;
 int streamno = 0;
+bool write_hdf = true;
+bool write_xtc = true;
 static const char *defether = "eth0";
 
 static void int_handler(int signal)
@@ -324,6 +327,13 @@ static void read_config_file(const char *name)
             if (s && s[1] == 's') {
                 streamno = atoi(s + 2);
             }
+        } else if (arrayTokens[0] == "hdfoutput") {
+            char *s;
+            hdfoutfile = strdup(arrayTokens[1].c_str());
+            s = rindex(hdfoutfile, '-');
+            if (s && s[1] == 's') {
+                streamno = atoi(s + 2);
+            }
         } else if (arrayTokens[0] == "hostname") {
             hostname = arrayTokens[1];
             if (!haveH)
@@ -400,6 +410,7 @@ static void usage(void)
     printf("    -b ethX, --bldif ethX            = Specify the BLD interface.\n");
     printf("    -c FILE, --config FILE           = Specify the configuration file.\n");
     printf("    -o FILE, --output FILE           = The name of the XTC file to be saved.\n");
+    printf("    -O FILE, --hdfoutput FILE        = The name of the HDF5 file to be saved.\n");
     printf("    -t SECS, --timeout SECS          = Seconds to record after connecting.\n");
     printf("    -d DIRECTORY                     = Change to the specified directory.\n");
     printf("    -k SECS, --keepalive SECS        = Seconds to wait for input before closing down.\n");
@@ -419,26 +430,45 @@ static void initialize(char *config)
     initialize_ca();
     read_logbook_file();
     read_config_file(config);
-    if (!outfile) {
+    if (!outfile && !hdfoutfile) {
         printf("No output file specified!\n\n");
         usage();
         /* No return! */
+    } else if (!outfile) {
+        printf("No xtc output file specified! Disabling xtc output.\n\n");
+        write_xtc = false;
+    } else if (!hdfoutfile) {
+        printf("No hdf5 output file specified! Disabling hdf5 output.\n\n");
+        write_hdf = false;
     }
     if (expid == -1) {
         /* No dbinfo --> running as a non-authorized user, put it in tmp! */
         chdir("../tmp");
     }
-    if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
+    if (outfile) {
+        if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
+            char buf[1024];
+            *s = 0;
+            sprintf(buf, "umask %s; mkdir -p %s/index %s/smalldata", 
+                    expid == -1 ? "0" : "2", outfile, outfile);
+            *s = '/';
+            system(buf);
+        } else {
+            system(expid == -1 ? "umask 0; mkdir index smalldata" 
+                               : "umask 2; mkdir index smalldata");
+        }
+    }
+    if (hdfoutfile) {
+      if ((s = rindex(hdfoutfile, '/'))) { /* Make sure the directory exists! */
         char buf[1024];
         *s = 0;
-        sprintf(buf, "umask %s; mkdir -p %s/index %s/smalldata", 
-                expid == -1 ? "0" : "2", outfile, outfile);
+        sprintf(buf, "umask %s; mkdir -p %s",
+                  expid == -1 ? "0" : "2", hdfoutfile);
         *s = '/';
         system(buf);
-    } else {
-        system(expid == -1 ? "umask 0; mkdir index smalldata" 
-                           : "umask 2; mkdir index smalldata");
+      }
     }
+    initialize_hdf(hdfoutfile);
     initialize_xtc(outfile);
 }
 
@@ -567,6 +597,7 @@ void cleanup(void)
     cleanup_ca();
     cleanup_xtc();
     cleanup_index();
+    cleanup_hdf();
 
     if (running) {
         runtime = (1000000LL * stop.tv_sec + stop.tv_usec) - 
@@ -593,6 +624,7 @@ int main(int argc, char **argv)
         {"bldif",     1, 0, 'b'},
         {"config",    1, 0, 'c'},
         {"output",    1, 0, 'o'},
+        {"hdfoutput", 1, 0, 'O'},
         {"timeout",   1, 0, 't'},
         {"directory", 1, 0, 'd'},
         {"silent",    0, 0, 's'},
@@ -604,7 +636,7 @@ int main(int argc, char **argv)
 
     bool helpFlag = false;
     bool parseErr = false;
-    while ((c = getopt_long(argc, argv, "hb:c:o:t:d:snk:H:", long_options, &idx)) != -1) {
+    while ((c = getopt_long(argc, argv, "hb:c:o:O:t:d:snk:H:", long_options, &idx)) != -1) {
         switch (c) {
         case 'h':
             helpFlag = true;
@@ -618,6 +650,16 @@ int main(int argc, char **argv)
         case 'o': {
             outfile = strdup(optarg);
             char *s = rindex(outfile, '-');
+            if (s && s[1] == 's') {
+                if (!Pds::CmdLineTools::parseInt(s+2, streamno)) {
+                    parseErr= true;
+                }
+            }
+            break;
+        }
+        case 'O': {
+            hdfoutfile = strdup(optarg);
+            char *s = rindex(hdfoutfile, '-');
             if (s && s[1] == 's') {
                 if (!Pds::CmdLineTools::parseInt(s+2, streamno)) {
                     parseErr= true;

@@ -45,15 +45,17 @@ struct event;
 class xtcsrc {
  public:
     xtcsrc(int _id, int _sync, string _name, int _crit, int _isbig)
-        : id(_id), sync(_sync), name(_name), cnt(0), val(NULL),
-          len(0), ref(NULL), sec(0), nsec(0), ev(NULL), critical(_crit),
+        : id(_id), hdf_id(-1), sync(_sync), name(_name), cnt(0), val(NULL),
+          len(0), hdrlen(0), ref(NULL), sec(0), nsec(0), ev(NULL), critical(_crit),
           damagecnt(0), isbig(_isbig) {};
     int   id;
+    int   hdf_id;
     int   sync;                   // Is this a synchronous source?
     string name;
     int   cnt;
     unsigned char *val;
     int   len;
+    int   hdrlen;                 // header length for this value
     int  *ref;                    // Reference count of this value (if asynchronous!)
     unsigned int sec, nsec;       // Timestamp of this value
     struct event *ev;             // Event for this value (if asynchronous!)
@@ -103,6 +105,7 @@ static unsigned int cfid = 0;
 static unsigned int dsec = 0;  // Last data timestamp.
 static unsigned int dnsec = 0;
 static int havetransitions = 0;
+static int isinit = 0;
 static vector<xtcsrc *> src;
 static vector<Alias::SrcAlias *> alias;
 static DetInfo pvinfo;
@@ -312,24 +315,28 @@ static void write_datagram(TransitionId::Value val, int extra, int diff)
     dg->xtc.extent += extra;
 
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
-    if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
-        printf("Write failed!\n");
-        fprintf(stderr, "error Write to %s failed.\n", fname);
-        exit(1);
+    if (write_xtc) {
+        if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
+            printf("Write failed!\n");
+            fprintf(stderr, "error Write to %s failed.\n", fname);
+            exit(1);
+        }
+        fsize += sizeof(Dgram) + sizeof(Xtc);
+        fflush(fp);
     }
-    fsize += sizeof(Dgram) + sizeof(Xtc);
-    fflush(fp);
 
     seg->extent    += diff;
     dg->xtc.extent += diff;
 
-    if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, sfp)) {
-        printf("Write failed!\n");
-        fprintf(stderr, "error Write to %s failed.\n", fname);
-        exit(1);
+    if (write_xtc) {
+        if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, sfp)) {
+            printf("Write failed!\n");
+            fprintf(stderr, "error Write to %s failed.\n", fname);
+            exit(1);
+        }
+        sfsize += sizeof(Dgram) + sizeof(Xtc);
+        fflush(fp);
     }
-    sfsize += sizeof(Dgram) + sizeof(Xtc);
-    fflush(fp);
 
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
 }
@@ -370,64 +377,80 @@ static void write_xtc_config(void)
         cfid = start_nsec & 0x1ffff;
     }
 
-    int cnt = alias.size();
-    if (cnt) {
-        int len = 2 * sizeof(Xtc) + sizeof(Alias::ConfigV1) + alias.size() * sizeof(Alias::SrcAlias);
-        xtc1 = new ((char *) malloc(len)) Xtc(TypeId(TypeId::Id_Xtc, 1), *ctrlInfo);
-        xtc1->extent = len;
-        xtc = new ((char *) (xtc1+1)) Xtc(TypeId(TypeId::Id_AliasConfig, 1), *ctrlInfo);
-        totalcfglen += len;
-        printf("Alias info = %d bytes\n", len);
-    } else
-        printf("No alias info!\n");
-    int pvcnt = pvalias.size();
-    if (pvcnt) {
-        int len = sizeof(Xtc) + sizeof(Epics::ConfigV1) + pvalias.size() * sizeof(Epics::PvConfigV1);
-        xtcpv = new ((char *) malloc(len)) Xtc(TypeId(TypeId::Id_EpicsConfig, 1), pvinfo);
-        totalcfglen += len;
-        printf("PV Alias info = %d bytes\n", len);
-    } else
-        printf("No PV alias info!\n");
+    if (write_hdf) {
+        for (i = 0; i < numsrc; i++) {
+            if (src[i]->hdf_id >= 0)
+                configure_hdf(src[i]->hdf_id, 0, 0);
+        }
+    }
 
-    write_datagram(TransitionId::Configure, totalcfglen, SML_CONFIG_SIZE);
-    if (pvcnt) {
-        *reinterpret_cast<uint32_t *>(xtcpv->alloc(sizeof(uint32_t))) = pvcnt;
-        for (vector<Epics::PvConfigV1 *>::iterator it = pvalias.begin(); it != pvalias.end(); it++) {
-            new (xtcpv->alloc(sizeof(Epics::PvConfigV1))) Epics::PvConfigV1(**it);
+    if (write_xtc) {
+        int cnt = alias.size();
+        if (cnt) {
+            int len = 2 * sizeof(Xtc) + sizeof(Alias::ConfigV1) + alias.size() * sizeof(Alias::SrcAlias);
+            xtc1 = new ((char *) malloc(len)) Xtc(TypeId(TypeId::Id_Xtc, 1), *ctrlInfo);
+            xtc1->extent = len;
+            xtc = new ((char *) (xtc1+1)) Xtc(TypeId(TypeId::Id_AliasConfig, 1), *ctrlInfo);
+            totalcfglen += len;
+            printf("Alias info = %d bytes\n", len);
+        } else
+            printf("No alias info!\n");
+        int pvcnt = pvalias.size();
+        if (pvcnt) {
+            int len = sizeof(Xtc) + sizeof(Epics::ConfigV1) + pvalias.size() * sizeof(Epics::PvConfigV1);
+            xtcpv = new ((char *) malloc(len)) Xtc(TypeId(TypeId::Id_EpicsConfig, 1), pvinfo);
+            totalcfglen += len;
+            printf("PV Alias info = %d bytes\n", len);
+        } else
+            printf("No PV alias info!\n");
+
+        write_datagram(TransitionId::Configure, totalcfglen, SML_CONFIG_SIZE);
+        if (pvcnt) {
+            *reinterpret_cast<uint32_t *>(xtcpv->alloc(sizeof(uint32_t))) = pvcnt;
+            for (vector<Epics::PvConfigV1 *>::iterator it = pvalias.begin(); it != pvalias.end(); it++) {
+                new (xtcpv->alloc(sizeof(Epics::PvConfigV1))) Epics::PvConfigV1(**it);
+            }
+            if (!myfwrite(xtcpv, xtcpv->extent)) {
+                printf("Cannot write to file!\n");
+                fprintf(stderr, "error Write to %s failed.\n", fname);
+                exit(1);
+            }
         }
-        if (!myfwrite(xtcpv, xtcpv->extent)) {
+        for (i = 0; i < numsrc; i++) {
+            if (!myfwrite(src[i]->val, src[i]->len)) {
+                printf("Cannot write to file!\n");
+                fprintf(stderr, "error Write to %s failed.\n", fname);
+                exit(1);
+            }
+            delete src[i]->val;
+            src[i]->val = NULL;
+            src[i]->len = 0;
+        }
+        if (cnt) {
+            *reinterpret_cast<uint32_t *>(xtc->alloc(sizeof(uint32_t))) = cnt;
+            for (vector<Alias::SrcAlias *>::iterator it = alias.begin(); it != alias.end(); it++) {
+                new (xtc->alloc(sizeof(Alias::SrcAlias))) Alias::SrcAlias(**it);
+            }
+            if (!myfwrite(xtc1, xtc1->extent)) {
+                printf("Cannot write to file!\n");
+                fprintf(stderr, "error Write to %s failed.\n", fname);
+                exit(1);
+            }
+        }
+        if (!fwrite(get_sml_config(1024), SML_CONFIG_SIZE, 1, sfp)) {
             printf("Cannot write to file!\n");
-            fprintf(stderr, "error Write to %s failed.\n", fname);
+            fprintf(stderr, "error Write to %s failed.\n", sfname);
             exit(1);
         }
-    }
-    for (i = 0; i < numsrc; i++) {
-        if (!myfwrite(src[i]->val, src[i]->len)) {
-            printf("Cannot write to file!\n");
-            fprintf(stderr, "error Write to %s failed.\n", fname);
-            exit(1);
-        }
-        delete src[i]->val;
-        src[i]->val = NULL;
-        src[i]->len = 0;
-    }
-    if (cnt) {
-        *reinterpret_cast<uint32_t *>(xtc->alloc(sizeof(uint32_t))) = cnt;
-        for (vector<Alias::SrcAlias *>::iterator it = alias.begin(); it != alias.end(); it++) {
-            new (xtc->alloc(sizeof(Alias::SrcAlias))) Alias::SrcAlias(**it);
-        }
-        if (!myfwrite(xtc1, xtc1->extent)) {
-            printf("Cannot write to file!\n");
-            fprintf(stderr, "error Write to %s failed.\n", fname);
-            exit(1);
+        sfsize += SML_CONFIG_SIZE;
+    } else {
+        // if we aren't writing XTC still cleanup config objects
+        for (i = 0; i < numsrc; i++) {
+            delete src[i]->val;
+            src[i]->val = NULL;
+            src[i]->len = 0;
         }
     }
-    if (!fwrite(get_sml_config(1024), SML_CONFIG_SIZE, 1, sfp)) {
-        printf("Cannot write to file!\n");
-        fprintf(stderr, "error Write to %s failed.\n", sfname);
-        exit(1);
-    }
-    sfsize += SML_CONFIG_SIZE;
 
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
 
@@ -484,51 +507,55 @@ void initialize_xtc(char *outfile)
     /*
      * outfile can either end in ".xtc" or not.  Strip this off.
      */
-    i = strlen(outfile);
-    if (i >= 4 && !strcmp(outfile + i - 4, ".xtc")) {
-        i -= 4;
-        outfile[i] = 0;
+    if (write_xtc) {
+        i = strlen(outfile);
+        if (i >= 4 && !strcmp(outfile + i - 4, ".xtc")) {
+            i -= 4;
+            outfile[i] = 0;
+        }
+
+        fname = new char[i + 8]; // Add space for "-cNN.xtc"
+        sprintf(fname, "%s-c00.xtc", outfile);
+        cpos = fname + i;
+        base = rindex(fname, '/');
+
+        sfname = new char[i + 22]; // Add space for "smalldata/" and "-cNN.smd.xtc"
+        if (base) {
+            *base++ = 0;
+            sprintf(sfname, "%s/smalldata/%s", fname, base);
+            *--base = '/';
+        } else {
+            sprintf(sfname, "smalldata/%s", fname);
+        }
+        strcpy(sfname + i + 10, "-c00.smd.xtc");
+        cspos = sfname + i + 10;
+
+        if (!(fp = myfopen(fname, "w", 1))) {
+            printf("Cannot open %s for output!\n", fname);
+            fprintf(stderr, "error Open %s failed.\n", fname);
+            exit(0);
+        } else
+            printf("Opened %s for writing.\n", fname);
+        if (!(sfp = myfopen(sfname, "w", 0))) {
+            printf("Cannot open %s for output!\n", sfname);
+            fprintf(stderr, "error Open %s failed.\n", sfname);
+            exit(0);
+        } else
+            printf("Opened %s for writing.\n", sfname);
+        iname = new char[i + 25];
+        if (base) {
+            *base++ = 0;
+            sprintf(iname, "%s/index/%s.idx", fname, base);
+            *--base = '/';
+        } else {
+            sprintf(iname, "index/%s.idx", fname);
+        }
+        cipos = iname + strlen(iname) - 12; // "-c00.xtc.idx"
+        _indexList.reset();
+        _indexList.setXtcFilename(fname);
     }
 
-    fname = new char[i + 8]; // Add space for "-cNN.xtc"
-    sprintf(fname, "%s-c00.xtc", outfile);
-    cpos = fname + i;
-    base = rindex(fname, '/');
-
-    sfname = new char[i + 22]; // Add space for "smalldata/" and "-cNN.smd.xtc"
-    if (base) {
-        *base++ = 0;
-        sprintf(sfname, "%s/smalldata/%s", fname, base);
-        *--base = '/';
-    } else {
-        sprintf(sfname, "smalldata/%s", fname);
-    }
-    strcpy(sfname + i + 10, "-c00.smd.xtc");
-    cspos = sfname + i + 10;
-
-    if (!(fp = myfopen(fname, "w", 1))) {
-        printf("Cannot open %s for output!\n", fname);
-        fprintf(stderr, "error Open %s failed.\n", fname);
-        exit(0);
-    } else
-        printf("Opened %s for writing.\n", fname);
-    if (!(sfp = myfopen(sfname, "w", 0))) {
-        printf("Cannot open %s for output!\n", sfname);
-        fprintf(stderr, "error Open %s failed.\n", sfname);
-        exit(0);
-    } else
-        printf("Opened %s for writing.\n", sfname);
-    iname = new char[i + 25];
-    if (base) {
-        *base++ = 0;
-        sprintf(iname, "%s/index/%s.idx", fname, base);
-        *--base = '/';
-    } else {
-        sprintf(iname, "index/%s.idx", fname);
-    }
-    cipos = iname + strlen(iname) - 12; // "-c00.xtc.idx"
-    _indexList.reset();
-    _indexList.setXtcFilename(fname);
+    isinit = 1; // finished xtc initialization
 
     sigemptyset(&blockset);
     sigaddset(&blockset, SIGALRM);
@@ -547,6 +574,7 @@ void initialize_xtc(char *outfile)
  */
 int register_xtc(int sync, string name, int critical, int isbig)
 {
+    string dname = name;
     // Make all of the names equal length!
     if (name.length() > maxname) {
         maxname = name.length();
@@ -565,6 +593,14 @@ int register_xtc(int sync, string name, int critical, int isbig)
     if (critical)
         critsrc++;
     return numsrc++;
+}
+
+/*
+ * Add a unique hdf5 writer id to this source.
+ */
+void register_hdf_writer(int id, int hid)
+{
+    src[id]->hdf_id = hid;
 }
 
 /*
@@ -617,7 +653,7 @@ void configure_xtc(int id, char *xtc, int size, unsigned int secs, unsigned int 
      * If we have already finished initialization and were waiting for this,
      * write the configuration!
      */
-    if (fp != NULL && cfgcnt == numsrc && csec != 0) {
+    if (isinit && cfgcnt == numsrc && csec != 0) {
         write_xtc_config();
     }
     pthread_mutex_unlock(&datalock);
@@ -731,43 +767,61 @@ void send_event(struct event *ev)
     dnsec = ev->nsec;
 
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
-    _indexList.startNewNode(*dg, fsize, bInvalidData);
 
-    int64_t svoff = fsize;
+    /* Write hdf5 first before */
+    if (write_hdf) {
+        for (int i = 0; i < numsrc; i++) {
+            if (src[i]->hdf_id < 0) continue;
 
-    if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
-        printf("Write failed!\n");
-        fprintf(stderr, "error Write to %s failed.\n", fname);
-        exit(1);
-    }
-    fsize += sizeof(Dgram) + sizeof(Xtc);
-
-    uint32_t svext = dg->xtc.extent;
-
-    /* Remove the full size, add in the small size. */
-    seg->extent    += totalsdlen - totaldlen;
-    dg->xtc.extent += totalsdlen - totaldlen;
-    if (damagesize) {
-        seg->extent    += damagesize - sdamagesize;
-        dg->xtc.extent += damagesize - sdamagesize;
+            if (ev->data[i]) {
+                data_hdf(src[i]->hdf_id, ev->sec, ev->nsec, &ev->data[i][src[i]->hdrlen]);
+            } else {
+                //TODO damage
+            }
+        }
     }
 
-    if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, sfp)) {
-        printf("Write failed!\n");
-        fprintf(stderr, "error Write to %s failed.\n", fname);
-        exit(1);
-    }
-    sfsize += sizeof(Dgram) + sizeof(Xtc);
+    /* Now write out the xtc */
+    if (write_xtc) {
+        _indexList.startNewNode(*dg, fsize, bInvalidData);
 
-    if (!fwrite(get_sml_offset(svoff, svext), SML_OFFSET_SIZE, 1, sfp)) {
-        printf("Cannot write to file!\n");
-        fprintf(stderr, "error Write to %s failed.\n", sfname);
-        exit(1);
-    }
-    sfsize += SML_OFFSET_SIZE;
+        int64_t svoff = fsize;
 
-    if (!bInvalidData)
-        _indexList.updateSegment(*seg);
+        if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
+            printf("Write failed!\n");
+            fprintf(stderr, "error Write to %s failed.\n", fname);
+            exit(1);
+        }
+        fsize += sizeof(Dgram) + sizeof(Xtc);
+
+        uint32_t svext = dg->xtc.extent;
+
+        /* Remove the full size, add in the small size. */
+        seg->extent    += totalsdlen - totaldlen;
+        dg->xtc.extent += totalsdlen - totaldlen;
+        if (damagesize) {
+            seg->extent    += damagesize - sdamagesize;
+            dg->xtc.extent += damagesize - sdamagesize;
+        }
+
+        if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, sfp)) {
+            printf("Write failed!\n");
+            fprintf(stderr, "error Write to %s failed.\n", fname);
+            exit(1);
+        }
+        sfsize += sizeof(Dgram) + sizeof(Xtc);
+
+        if (!fwrite(get_sml_offset(svoff, svext), SML_OFFSET_SIZE, 1, sfp)) {
+            printf("Cannot write to file!\n");
+            fprintf(stderr, "error Write to %s failed.\n", sfname);
+            exit(1);
+        }
+        sfsize += SML_OFFSET_SIZE;
+
+        if (!bInvalidData)
+            _indexList.updateSegment(*seg);
+
+    }
 
     /* Restore the datagram! */
     seg->extent = segext;
@@ -777,48 +831,50 @@ void send_event(struct event *ev)
         dg->xtc.damage  = 0;
     }
 
-    for (int i = 0; i < numsrc; i++) {
-        if (ev->data[i]) {
-            if (!bInvalidData && !bStopUpdate)
-                _indexList.updateSource(*(Xtc *)ev->data[i], bStopUpdate);
-            if (src[i]->isbig) {
-                if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
-                    printf("Write failed!\n");
-                    fprintf(stderr, "error Write to %s failed.\n", sfname);
-                    exit(1);
+    if (write_xtc) {
+        for (int i = 0; i < numsrc; i++) {
+            if (ev->data[i]) {
+                if (!bInvalidData && !bStopUpdate)
+                    _indexList.updateSource(*(Xtc *)ev->data[i], bStopUpdate);
+                if (src[i]->isbig) {
+                    if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
+                        printf("Write failed!\n");
+                        fprintf(stderr, "error Write to %s failed.\n", sfname);
+                        exit(1);
+                    }
+                    if (!fwrite(get_sml_proxy(fsize, src[i]->len, src[i]->src), SML_PROXY_SIZE, 1, sfp)) {
+                        printf("Write failed!\n");
+                        fprintf(stderr, "error Write to %s failed.\n", sfname);
+                        exit(1);
+                    }
+                    fsize += src[i]->len;
+                    sfsize += SML_PROXY_SIZE;
+                } else {
+                    if (!myfwrite(ev->data[i], src[i]->len)) {
+                        printf("Write failed!\n");
+                        fprintf(stderr, "error Write to %s failed.\n", fname);
+                        exit(1);
+                    }
                 }
-                if (!fwrite(get_sml_proxy(fsize, src[i]->len, src[i]->src), SML_PROXY_SIZE, 1, sfp)) {
-                    printf("Write failed!\n");
-                    fprintf(stderr, "error Write to %s failed.\n", sfname);
-                    exit(1);
-                }
-                fsize += src[i]->len;
-                sfsize += SML_PROXY_SIZE;
             } else {
-                if (!myfwrite(ev->data[i], src[i]->len)) {
+                damagextc.src = src[i]->src;
+                if (!bInvalidData && !bStopUpdate)
+                    _indexList.updateSource(damagextc, bStopUpdate);
+                if (!myfwrite(&damagextc, sizeof(Xtc))) {
                     printf("Write failed!\n");
                     fprintf(stderr, "error Write to %s failed.\n", fname);
                     exit(1);
                 }
             }
-        } else {
-            damagextc.src = src[i]->src;
-            if (!bInvalidData && !bStopUpdate)
-                _indexList.updateSource(damagextc, bStopUpdate);
-            if (!myfwrite(&damagextc, sizeof(Xtc))) {
-                printf("Write failed!\n");
-                fprintf(stderr, "error Write to %s failed.\n", fname);
-                exit(1);
-            }
         }
+        if (!bInvalidData) {
+            bool bPrintNode = false;
+            _indexList.finishNode(bPrintNode);
+        }
+        fflush(fp);
     }
-    if (!bInvalidData) {
-        bool bPrintNode = false;
-        _indexList.finishNode(bPrintNode);
-    }
-    fflush(fp);
     sigprocmask(SIG_SETMASK, &oldsig, NULL);
-    if (fsize >= CHUNK_SIZE) { /* Next chunk! */
+    if (fsize >= CHUNK_SIZE && write_xtc) { /* Next chunk! */
         write_idx_file();
         fclose(fp);
         fclose(sfp);
@@ -949,11 +1005,11 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
         /*
          * Only BLD configurations give us a timestamp.  So if we are only recording
          * cameras and PVs, we have delayed writing the configuration until now.
-         * In this case, we have finished with initialize_xtc (fp != NULL) and
+         * In this case, we have finished with initialize_xtc (isinit) and
          * we have all of the configuration information (cfgcnt == numsrc), but
          * we don't have a timestamp (csec == 0).
          */
-        if (fp != NULL && cfgcnt == numsrc && csec == 0) {
+        if (isinit && cfgcnt == numsrc && csec == 0) {
             if (!havetransitions || !transidx) {
                 csec = sec;
                 cnsec = nsec;
@@ -988,6 +1044,7 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
 
     if (!s->len) { // First time we've seen this data!
         s->len = hdr->extent;
+        s->hdrlen = hdrlen;
         totaldlen += hdr->extent;
         if (s->isbig)
             totalsdlen += SML_PROXY_SIZE;
