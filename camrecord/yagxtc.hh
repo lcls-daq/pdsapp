@@ -2,6 +2,7 @@
 #include"pdsdata/xtc/DetInfo.hh"
 #include<string>
 #include<iostream>
+#include<sys/select.h>
 
 #define DEFAULT_CRED "/reg/g/pcds/controls/camrecord/CONFIG/DEFAULT"
 #define DEFAULT_CFG  ".camrecord"

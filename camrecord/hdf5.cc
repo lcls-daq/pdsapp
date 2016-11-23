@@ -8,7 +8,7 @@
 #include "hdf5.h"
 
 #define IMAGE_CHUNK 1
-#define PV_CHUNK 10
+#define PV_CHUNK 1024
 #define TIME_DIM 2
 #define MAX_DATA_DIM 3
 
@@ -56,6 +56,35 @@ hid_t type_convert(long dbrtype)
     }
 
     return h5type;
+}
+
+int get_pv_chunk(long dbrtype, int nelem)
+{
+    int chunk = PV_CHUNK;
+
+    switch(dbrtype) {
+    case DBR_TIME_STRING:
+        chunk /= MAX_STRING_SIZE;
+        break;
+    case DBR_TIME_CHAR:
+        chunk /= sizeof(char);
+        break;
+    case DBR_TIME_ENUM:
+    case DBR_TIME_INT:
+        chunk /= sizeof(int16_t);
+        break;
+    case DBR_TIME_LONG:
+        chunk /= sizeof(int32_t);
+        break;
+    case DBR_TIME_FLOAT:
+        chunk /= sizeof(float);
+        break;
+    case DBR_TIME_DOUBLE:
+        chunk /= sizeof(double);
+        break;    
+    }
+
+    return chunk;
 }
 
 class hdfsrc {
@@ -262,7 +291,7 @@ int register_hdf_image(string name, int width, int height, const long& dbrtype, 
 {
     if (!write_hdf) return -1;
 
-    hsize_t dims[] = {height, width};
+    hsize_t dims[] = {(hsize_t) height, (hsize_t) width};
 
     src_hdf.push_back(new hdfsrc(numsrc_hdf, name, IMAGE_CHUNK, 3, dims, dbrtype, groupIdCam));
 
@@ -273,9 +302,9 @@ int register_hdf_pv(string name, int nelem, const long& dbrtype, unsigned int /*
 {
     if (!write_hdf) return -1;
 
-    hsize_t dims[] = {nelem, 0};
+    hsize_t dims[] = {(hsize_t) nelem, 0};
 
-    src_hdf.push_back(new hdfsrc(numsrc_hdf, name, PV_CHUNK, nelem>1?2:1, dims, dbrtype, groupIdPv));
+    src_hdf.push_back(new hdfsrc(numsrc_hdf, name, get_pv_chunk(dbrtype, nelem), nelem>1?2:1, dims, dbrtype, groupIdPv));
 
     return numsrc_hdf++;
 }
