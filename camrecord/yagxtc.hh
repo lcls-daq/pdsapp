@@ -79,8 +79,7 @@ extern char *damage_report(void);
 
 /* hdf5.cc */
 extern void initialize_hdf(char *outfile);
-extern int register_hdf_image(std::string name, int width, int height, const long& dbrtype, unsigned int secs, unsigned int nsecs);
-extern int register_hdf_pv(std::string name, int nelem, const long& dbrtype, unsigned int secs, unsigned int nsecs);
+extern int register_hdf(std::string name, const int is_cam, const int width, const int height, const int& nelem, const long& dbrtype, unsigned int secs, unsigned int nsecs);
 extern void configure_hdf(int id, unsigned int secs, unsigned int nsecs);
 extern void data_hdf(int id, unsigned int secs, unsigned int nsecs, void *data);
 extern void cleanup_hdf(void);

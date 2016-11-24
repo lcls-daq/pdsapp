@@ -155,6 +155,8 @@ class caconn {
                 }
             }
             ca_poll();
+            // Do this for non-cameras here
+            if (write_hdf) register_hdf_writer(xid, register_hdf(name, 0, 0, 0, nelem, dbrtype, 0, 0));
             return;
         } else
             is_cam = 1;
@@ -301,13 +303,7 @@ class caconn {
 
         // setup hdf5 datasets
         if (write_hdf) {
-            int hid = -1;
-            if (is_cam) {
-                hid = register_hdf_image(name, w, h, dbrtype, 0, 0);
-            } else {
-                hid = register_hdf_pv(name, nelem, dbrtype, 0, 0);
-            }
-            register_hdf_writer(xid, hid);
+            register_hdf_writer(xid, register_hdf(name, is_cam, w, h, nelem, dbrtype, 0, 0));
         }
         configure_xtc(xid, buf, size, 0, 0);
 

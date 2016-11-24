@@ -26,6 +26,13 @@
 
 using namespace std;
 
+
+static char* hname;                 // The current output file name.
+static hid_t fileId;
+static hid_t groupIdCam;
+static hid_t groupIdPv;
+
+
 hid_t type_convert(long dbrtype)
 {
     hid_t h5type;
@@ -64,33 +71,34 @@ int get_pv_chunk(long dbrtype, int nelem)
 
     switch(dbrtype) {
     case DBR_TIME_STRING:
-        chunk /= MAX_STRING_SIZE;
+        chunk /= (MAX_STRING_SIZE * nelem);
         break;
     case DBR_TIME_CHAR:
-        chunk /= sizeof(char);
+        chunk /= (sizeof(char) * nelem);
         break;
     case DBR_TIME_ENUM:
     case DBR_TIME_INT:
-        chunk /= sizeof(int16_t);
+        chunk /= (sizeof(int16_t) * nelem);
         break;
     case DBR_TIME_LONG:
-        chunk /= sizeof(int32_t);
+        chunk /= (sizeof(int32_t) * nelem);
         break;
     case DBR_TIME_FLOAT:
-        chunk /= sizeof(float);
+        chunk /= (sizeof(float) * nelem);
         break;
     case DBR_TIME_DOUBLE:
-        chunk /= sizeof(double);
+        chunk /= (sizeof(double) * nelem);
         break;    
     }
 
-    return chunk;
+    return chunk>0?chunk:1;
 }
 
 class hdfsrc {
  public:
-    hdfsrc(int _id, string _name, int _chunk, int _rank, hsize_t* _dims, const long& _dbrtype, hid_t& _parent)
-        : id(_id), name(_name), chunk(_chunk), rank(_rank), parent(_parent), cnt(0), damagecnt(0), open(false), dbrtype(_dbrtype) {
+    hdfsrc(int _id, string _name, const int _is_cam, const int _width, const int _height, const int& _nelem, const long& _dbrtype)
+        : id(_id), name(_name), chunk(0), rank(0), parent(0), cnt(0), damagecnt(0), open(false),
+          is_cam(_is_cam), width(_width), height(_height), nelem(_nelem), dbrtype(_dbrtype) {
 
         /* initialize offsets */
         FILLDIM(offsetsTime, TIME_DIM, 0);
@@ -102,15 +110,30 @@ class hdfsrc {
         TIMEDIM(elementTime, 1, 3);
         TIMEDIM(currentTimeDims, cnt, 3);
         TIMEDIM(maximumTimeDims, H5S_UNLIMITED, 3);
-        TIMEDIM(chunkTimeDims, chunk, 3);
-
-        DATADIM(element, _dims, 1);
-        DATADIM(currentDims, _dims, cnt);
-        DATADIM(maximumDims, _dims, H5S_UNLIMITED);
-        DATADIM(chunkDims, _dims, chunk);
     };
 
     bool initialize() {
+        // initialize config data from PVs
+        hsize_t dims[] = {0, 0};
+        if (is_cam) {
+            rank = 3;
+            chunk = IMAGE_CHUNK;
+            dims[0] = (hsize_t) height;
+            dims[1] = (hsize_t) width;
+            parent = groupIdCam;
+        } else {
+            rank = nelem>1?2:1;
+            chunk = get_pv_chunk(dbrtype, nelem);
+            dims[0] = (hsize_t) nelem;
+            parent = groupIdPv;
+        }
+
+        DATADIM(element, dims, 1);
+        DATADIM(currentDims, dims, cnt);
+        DATADIM(maximumDims, dims, H5S_UNLIMITED);
+        DATADIM(chunkDims, dims, chunk);
+        TIMEDIM(chunkTimeDims, chunk, 3);
+
         dataType = type_convert(dbrtype);
         CHECK(dataType, "Data source is an unsupported epics dbr type: %ld\n", dbrtype);
 
@@ -227,11 +250,15 @@ class hdfsrc {
     string  name;
     int     chunk;
     int     rank;
-    hid_t&  parent;
+    hid_t   parent;
     hid_t   group;
     int     cnt;
     int     damagecnt;
     bool    open;
+    const int  is_cam; 
+    const int  width;
+    const int  height;
+    const int&  nelem;
     const long& dbrtype;
     hsize_t elementTime[TIME_DIM];
     hsize_t currentTimeDims[TIME_DIM];
@@ -250,12 +277,8 @@ class hdfsrc {
 };
 
 
-static char* hname;                 // The current output file name.
 static int numsrc_hdf = 0;          // Total number of sources.
 static vector<hdfsrc *> src_hdf;    // List of HDF5 dataset objects
-static hid_t fileId;
-static hid_t groupIdCam;
-static hid_t groupIdPv;
 
 
 void initialize_hdf(char *outfile)
@@ -287,24 +310,11 @@ void initialize_hdf(char *outfile)
     }
 }
 
-int register_hdf_image(string name, int width, int height, const long& dbrtype, unsigned int /*secs*/, unsigned int /*nsecs*/)
+int register_hdf(std::string name, const int is_cam, const int width, const int height, const int& nelem, const long& dbrtype, unsigned int /*secs*/, unsigned int /*nsecs*/)
 {
     if (!write_hdf) return -1;
 
-    hsize_t dims[] = {(hsize_t) height, (hsize_t) width};
-
-    src_hdf.push_back(new hdfsrc(numsrc_hdf, name, IMAGE_CHUNK, 3, dims, dbrtype, groupIdCam));
-
-    return numsrc_hdf++;
-}
-
-int register_hdf_pv(string name, int nelem, const long& dbrtype, unsigned int /*secs*/, unsigned int /*nsecs*/)
-{
-    if (!write_hdf) return -1;
-
-    hsize_t dims[] = {(hsize_t) nelem, 0};
-
-    src_hdf.push_back(new hdfsrc(numsrc_hdf, name, get_pv_chunk(dbrtype, nelem), nelem>1?2:1, dims, dbrtype, groupIdPv));
+    src_hdf.push_back(new hdfsrc(numsrc_hdf, name, is_cam, width, height, nelem, dbrtype));
 
     return numsrc_hdf++;
 }
