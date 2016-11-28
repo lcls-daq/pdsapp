@@ -159,7 +159,7 @@ tgtslib_netlink := ${USRLIBDIR}/rt
 tgtincs_netlink := 
 
 libnames :=
-tgtnames := tasktest xcasttest quadadc quadadc_dma
+tgtnames := tasktest xcasttest quadadc quadadc_dma amctiming
 
 tgtsrcs_tasktest := tasktest.cc
 tgtlibs_tasktest := pds/service pdsdata/xtcdata
@@ -174,3 +174,7 @@ tgtsrcs_quadadc_dma := quadadc_dma.cc
 tgtlibs_quadadc_dma := pds/quadadc pds/tprdsbase pds/tpr pds/service pdsdata/xtcdata
 tgtincs_quadadc_dma := evgr
 tgtslib_quadadc_dma := $(USRLIBDIR)/rt pthread
+
+tgtsrcs_amctiming := amctiming.cc
+tgtlibs_amctiming := pds/cphw cpsw/cpsw yaml/yaml-cpp
+tgtslib_amctiming := dl pthread rt

@@ -1,8 +1,4 @@
 //
-//  Run LCLS-II EVR in DAQ mode
-//    L0T from partition word
-//    No BSA
-//    N trigger channels
 //
 
 #include <stdio.h>
@@ -42,6 +38,7 @@ public:
   unsigned busyTime;
   sem_t sem;
   int reqfd;
+  int rate;
 };
 
 
@@ -139,16 +136,27 @@ private:
   
 
 static DaqStats  daqStats;
-static Pds::Histogram readSize(10,1);
+static Pds::Histogram readSize(8,1);
+static uint64_t opid = 0;
+static Module::TestPattern pattern = Module::Flash11;
+static QABase::Interleave qI=QABase::Q_NONE;
 
 static unsigned nPrint = 20;
 
 static void* read_thread(void*);
+static bool checkFlash11_interleaved(uint32_t* p);
 
 void usage(const char* p) {
-  printf("Usage: %s -r <evr a/b> [-T|-L]\n",p);
-  printf("\t-L program xbar for nearend loopback\n");
-  printf("\t-T accesses TPR (BAR1)\n");
+  printf("Usage: %s [options]\n",p);
+  printf("Options:\n");
+  printf("\t-I interleave\n");
+  printf("\t-B busyTime : Sleeps for busytime seconds each read\n");
+  printf("\t-E emptyThr : Set empty threshold for flow control\n");
+  printf("\t-B fullThr  : \n");
+  printf("\t-R rate     : Set trigger rate [0:929kHz, 1:71kHz, 2:10kHz, 3:1kHz, 4:100Hz, 5:10Hz\n");
+  printf("\t-P partition: Set trigger source to partition\n");
+  printf("\t-v nPrint   : Set number of events to dump out");
+  printf("\t-V          : Dump out all events");
 }
 
 static Module* reg=0;
@@ -157,8 +165,10 @@ static int partition = -1;
 void sigHandler( int signal ) {
   if (reg) {
     reg->base.stop();
+    reg->dma_core.dump();
   }
   readSize.dump();
+  printf("Last pid: %016lx\n",opid);
 
   ::exit(signal);
 }
@@ -168,17 +178,16 @@ int main(int argc, char** argv) {
   char evrid='a';
   unsigned emptyThr=2;
   unsigned fullThr=-1U;
-  unsigned length=16;  // transfer is +6 words (up to 28)
-  unsigned rate=6;
-  QABase::Interleave qI=QABase::Q_NONE;
+  unsigned length=16;  // multiple of 16
   ThreadArgs args;
   args.fd = -1;
   args.busyTime = 0;
   args.reqfd = -1;
+  args.rate = 6;
 
   int c;
   bool lUsage = false;
-  while ( (c=getopt( argc, argv, "Ir:v:S:B:E:F:R:P:Vh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "Ir:v:S:B:E:F:R:P:T:Vh")) != EOF ) {
     switch(c) {
     case 'I':
       qI=QABase::Q_ABCD;
@@ -203,10 +212,13 @@ int main(int argc, char** argv) {
       length = strtoul(optarg,NULL,0);
       break;
     case 'R':
-      rate = strtoul(optarg,NULL,0);
+      args.rate = strtoul(optarg,NULL,0);
       break;
     case 'P':
       partition = strtoul(optarg,NULL,0);
+      break;
+    case 'T':
+      pattern = (Module::TestPattern)strtoul(optarg,NULL,0);
       break;
     case 'v':
       nPrint = strtoul(optarg,NULL,0);
@@ -257,6 +269,12 @@ int main(int argc, char** argv) {
   }
 
   Module* p = reg = reinterpret_cast<Module*>(ptr);
+
+  p->i2c_sw_control.select(I2cSwitch::PrimaryFmc); 
+  p->disable_test_pattern();
+  p->enable_test_pattern(pattern);
+  //  p->enable_test_pattern(Module::DMA);
+
   p->base.init();
 
   //  p->dma_core.init(0x400);
@@ -311,7 +329,7 @@ int main(int argc, char** argv) {
   if (partition>=0)
     p->base.setupDaq (partition,length);
   else
-    p->base.setupRate(rate,length);
+    p->base.setupLCLS(args.rate,length);
 
   p->base.dump();
 
@@ -322,6 +340,9 @@ int main(int argc, char** argv) {
   unsigned och0  =0;
   unsigned otot  =0;
   unsigned rxErrs=0;
+  unsigned rxErrs0 = p->tpr.RxDecErrs+p->tpr.RxDspErrs;
+  unsigned rxRsts=0;
+  unsigned rxRsts0 = p->tpr.RxRstDone;
 
   p->base.start();
 
@@ -338,12 +359,14 @@ int main(int argc, char** argv) {
       ostats.dump(stats);
       ostats = stats; }
 
-    { unsigned v = p->tpr.RxDecErrs+p->tpr.RxDspErrs;
-      printf("RxErrs/Resets: %08x/%08x [%x]\n", 
+    { unsigned v = p->tpr.RxDecErrs+p->tpr.RxDspErrs - rxErrs0;
+      unsigned u = p->tpr.RxRstDone - rxRsts0;
+      printf("RxErrs/Resets: %08x/%08x [%x/%x]\n", 
              v,
-             p->tpr.RxRstDone,
-             v-rxErrs);
-      rxErrs=v; }
+             u,
+             v-rxErrs,
+             u-rxRsts);
+      rxErrs=v; rxRsts=u; }
 
     { unsigned uch0 = p->base.countAcquire;
       unsigned utot = p->base.countEnable;
@@ -365,15 +388,30 @@ void* read_thread(void* arg)
 {
   ThreadArgs targs = *reinterpret_cast<ThreadArgs*>(arg);
 
-  uint32_t* data = new uint32_t[1<<20];
+  uint32_t* data = new uint32_t[1<<24];
   
-  RxDesc* desc = new RxDesc(data,1024);
+  RxDesc* desc = new RxDesc(data,1<<20);
   
-  unsigned ntag = 0;
-  uint64_t opid = 0;
-  unsigned anaw = 0;
-  unsigned anar = -1;
   ssize_t nb;
+
+  uint64_t dpid;
+  switch(targs.rate) {
+  case 0: dpid = 1; break;
+  case 1: dpid = 13; break;
+  case 2: dpid = 91; break;
+  case 3: dpid = 910; break;
+  case 4: dpid = 9100; break;
+  case 5: dpid = 91000; break;
+  case 6: dpid = 910000; break;
+  case 40:dpid = 3 ; break;
+  case 41:dpid = 6 ; break;
+  case 42:dpid =12 ; break;
+  case 43:dpid =30 ; break;
+  case 44:dpid =60 ; break;
+  case 45:dpid =120; break;
+  case 46:dpid =240; break;
+  default: dpid = 1; break;
+  }
 
   //  sem_post(&targs.sem);
 
@@ -386,9 +424,8 @@ void* read_thread(void* arg)
           printf(" %08x",p[i]);
         printf("\n"); }
       uint32_t* p     = (uint32_t*)data;
-      if (((p[1]>>0)&0xffff)==0) {
+      if ((p[1]&0xffff)==0) {
         daqStats.eventFrames()++;
-        ntag = ((p[2]>>1)+1)&0x1f;
         opid = p[4];
         opid = (opid<<32) | p[3];
         break;
@@ -396,28 +433,32 @@ void* read_thread(void* arg)
     }
   }
 
-  uint64_t pid_busy = opid+(1ULL<<20);
-
+#if 0
   pollfd pfd;
   pfd.fd      = targs.fd;
   pfd.events  = POLLIN | POLLERR;
   pfd.revents = 0;
+#endif
 
   while (1) {
 #if 0
     while (::poll(&pfd, 1, 1000)<=0)
       ;
 #endif
-    if ((nb = read(targs.fd, desc, sizeof(*desc)))<0)
-      break;
+    if ((nb = read(targs.fd, desc, sizeof(*desc)))<0) {
+      //      perror("read error");
+      //      break;
+      //  timeout in driver
+      continue;
+    }
 
     readSize.bump(nb>>5);
 
     uint32_t* p     = (uint32_t*)data;
-    uint32_t  len   = p[0];
+    //    uint32_t  len   = p[0];
     uint32_t  etag  = p[1];
-    uint32_t  pword = p[2];
     uint64_t  pid   = p[4]; pid = (pid<<32)|p[3];
+    uint64_t  pid_busy = opid + (1ULL<<20);
 
     if (etag&(1ULL<<30)) {
       daqStats.dropFrames()++;
@@ -426,76 +467,93 @@ void* read_thread(void* arg)
     if ((etag&0xffff)==0) {
       daqStats.eventFrames()++;
 
-      unsigned tag = (pword>>1)&0x1f;
-
-      if (partition>=0 && tag != ntag) {
-        printf("Tag error: %02x:%02x  pid: %016lx:%016lx [%lu]\n",
-               tag, ntag, pid, opid, pid-opid);
-        if (pid==opid) {
-          daqStats.repeatFrames()++;
-        }
-        else {
-          //          if ((p[2]>>48)==1) {
-          if (0) {
-            daqStats.corrupt()++;
-            printf("corrupt [%zd]: ",nb);
-            uint32_t* p32 = (uint32_t*)data;
-            for(unsigned i=0; i<15; i++)
-              printf(" %08x",p32[i]);
-            printf("\n"); 
-          }
-          else
-            daqStats.tagMisses() += ((tag-ntag)&0x1f);
-        }
+      if (pid==opid) {
+        daqStats.repeatFrames()++;
+        printf("repeat  [%zd]: exp %016lx: ",nb,opid+dpid);
+        uint32_t* p32 = (uint32_t*)data;
+        for(unsigned i=0; i<8; i++)
+          printf(" %08x",p32[i]);
+        printf("\n"); 
+      }
+      else if (pid-opid != dpid) {
+        daqStats.corrupt()++;
+        printf("corrupt [%zd]: exp %016lx: ",nb,opid+dpid);
+        uint32_t* p32 = (uint32_t*)data;
+        for(unsigned i=0; i<8; i++)
+          printf(" %08x",p32[i]);
+        printf("\n"); 
       }
 
-      if (targs.reqfd>=0) {
-        unsigned anatag = pword>>16;
-        if (anar == -1 && anatag == 0xffff)
-          printf("Tag %04x\n",anatag);
-        else if (anatag != ((anar+1)&0xffff)) {
-          printf("Tag %04x [%04x] [%04x]\n",anatag,(anar+1)&0xffff, anaw);
-          daqStats.anaErrs()++;
-          if (daqStats.anaErrs()>256)
-            exit(1);
-        }
-        else {
-          daqStats.anaTags()++;
-          anar++;
-        }
-
-        // Test what happens when the analysis tag FIFO underruns
-        //        if ((tag&0x1f)==0)
-        //          ;
-        //        else {
-        {
-          unsigned v = anaw | (0xffff<<16);
-          send(targs.reqfd, &v, sizeof(v), 0);
-          anaw++;
-        }
+      switch(pattern) {
+      case Module::Flash11:
+        if (qI==QABase::Q_ABCD)
+          if (!checkFlash11_interleaved(p))
+            daqStats.corrupt()++;
+        break;
+      default:
+        break;
       }
 
       opid = pid;
-
-      ntag = (tag+1)&0x1f;
-
+      
       if (nPrint) {
         nPrint--;
-	printf("EVENT  [0x%x]:",(etag&0xffff));
+        printf("EVENT  [0x%x]:",(etag&0xffff));
         unsigned ilimit = lVerbose ? nb : 16;
         for(unsigned i=0; i<ilimit; i++)
           printf(" %08x",p[i]);
         printf("\n");
       }
-
+    
       if (targs.busyTime && opid > pid_busy) {
         usleep(targs.busyTime);
         pid_busy = opid + (1ULL<<20);
       }
+    }
+    else if ((etag&0xffff)==1) {
+      printf("DMA FULL:\n");
+      unsigned sz = p[0]&0xffffff;
+      for(unsigned i=0; i<sz-2; i++)
+        printf("%08x%c",p[2+i],(i%10)==9 ? '\n':' ');
+      printf("\n");
     }
   }
 
   printf("read_thread done\n");
 
   return 0;
+}
+
+bool checkFlash11_interleaved(uint32_t* p)
+{
+  unsigned nb = p[0]&0xffffff;
+
+  unsigned s=0;
+  for(unsigned i=8; i<8+11*2; i++) {
+    if (p[i]==0) continue;
+    if (p[i]==0x07ff07ff) {
+      s=i; break;
+    }
+    printf("Unexpected data [%08x] at word %u\n",
+           p[i], i);
+    return false;
+  }
+  if (s==0) {
+    printf("No pattern found\n");
+    return false;
+  }
+
+  for(unsigned i=30; i<nb; i++) {
+    if ((((i-s)/2)%11)==0) {
+      if (p[i] != 0x07ff07ff) {
+        printf("Unexpected data %08x [%08x] at word %u:%u\n", p[i], 0x07ff07ff, i, (i-s)%22);
+        return false;
+      }
+    }
+    else if (p[i] != 0) {
+      printf("Unexpected data %08x [%08x] at word %u:%u\n", p[i],0,i,(i-s)%22);
+        return false;
+    }
+  }
+  return true;
 }

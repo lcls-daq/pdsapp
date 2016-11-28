@@ -12,6 +12,7 @@
 #include <new>
 
 #include "pds/quadadc/Module.hh"
+#include "pds/quadadc/Globals.hh"
 
 #include <string>
 
@@ -35,6 +36,7 @@ void usage(const char* p) {
 int main(int argc, char** argv) {
 
   extern char* optarg;
+  char* endptr;
 
   char qadc='a';
   int c;
@@ -46,12 +48,22 @@ int main(int argc, char** argv) {
   bool lRing0 = false;
   bool lRing1 = false;
   bool lDumpAlign = false;
+  bool lTrain = false;
+  bool lSetPhase = false;
+  const char* fWrite=0;
+  unsigned delay_int=0, delay_frac=0;
+  unsigned alignTarget = 16;
+  int      alignRstLen = -1;
+
   int  regTest=-1, regValu=-1;
 
-  while ( (c=getopt( argc, argv, "CRXPA01d:hT:V:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "CRXPA:01D:d:hTW:")) != EOF ) {
     switch(c) {
     case 'A':
       lDumpAlign = true;
+      alignTarget = strtoul(optarg,&endptr,0);
+      if (endptr[0])
+        alignRstLen = strtoul(endptr+1,NULL,0);
       break;
     case 'C':
       lSetupClkSynth = true;
@@ -75,10 +87,17 @@ int main(int argc, char** argv) {
       qadc = optarg[0];
       break;
     case 'T':
-      regTest = strtoul(optarg,NULL,0);
+      lTrain = true;
       break;
-    case 'V':
-      regValu = strtoul(optarg,NULL,0);
+    case 'D':
+      lSetPhase = true;
+      delay_int  = strtoul(optarg,&endptr,0);
+      if (endptr[0]) {
+        delay_frac = strtoul(endptr+1,&endptr,0);
+      }
+      break;
+    case 'W':
+      fWrite = optarg;
       break;
     case '?':
     default:
@@ -111,33 +130,63 @@ int main(int argc, char** argv) {
   printf("Axi Version [%p]: BuildStamp[%p]: %s\n", 
          &(p->version), &(p->version.BuildStamp[0]), p->version.buildStamp().c_str());
 
+  p->i2c_sw_control.select(I2cSwitch::LocalBus);
+  p->i2c_sw_control.dump();
+  
+  printf("Local CPLD revision: 0x%x\n", p->local_cpld.revision());
+  printf("Local CPLD GAaddr  : 0x%x\n", p->local_cpld.GAaddr  ());
+  p->local_cpld.GAaddr(0);
+
+  printf("vtmon1 mfg:dev %x:%x\n", p->vtmon1.manufacturerId(), p->vtmon1.deviceId());
+  printf("vtmon2 mfg:dev %x:%x\n", p->vtmon2.manufacturerId(), p->vtmon2.deviceId());
+  printf("vtmon3 mfg:dev %x:%x\n", p->vtmon3.manufacturerId(), p->vtmon3.deviceId());
+
+  printf("FMC A [%p]: %s present power %s\n",
+         &p->fmc_core,
+         p->fmc_core.present() ? "":"not",
+         p->fmc_core.powerGood() ? "up":"down");
+  printf("AdcCore[%p]\n",&p->adc_core);
+  printf("FmcCore[%p]\n",&p->fmc_core);
+
+  p->i2c_sw_control.select(I2cSwitch::PrimaryFmc); 
+  p->i2c_sw_control.dump();
+
+  printf("vtmona mfg:dev %x:%x\n", p->vtmona.manufacturerId(), p->vtmona.deviceId());
+
+  if (lTrain) {
+    p->fmc_init();
+    p->train_io();
+  }
+
+  p->base.dump();
+#if 0
+  if (lSetPhase) {
+    printf("QABase adcSync %x\n", p->base.adcSync);
+    if (lLCLS)
+      p->setClockLCLS  (delay_int,delay_frac);
+    else
+      p->setClockLCLSII(delay_int,delay_frac);
+    printf("QABase adcSync %x\n", p->base.adcSync);
+  }
+  else {
+    printf("QABase clock %s\n", p->base.clockLocked() ? "locked" : "not locked");
+    printf("QABase adcSync %x\n", p->base.adcSync);
+  }
+#endif
+
+  for(unsigned i=0; i<8; i++) {
+    p->fmc_core.selectClock(i);
+    usleep(100000);
+    printf("Clock [%i]: rate %f MHz\n", i, p->fmc_core.clockRate()*1.e-6);
+  }
+
   p->dma_core.init(0);
   p->dma_core.dump();
 
   p->phy_core.dump();
 
-  p->i2c_sw_control = 8;
-  printf("I2C Switch: %x\n", p->i2c_sw_control);
-
-  //  p->clksynth.dump();
-
-  if (regTest>=0) {
-    if (regTest>255)
-      p->clksynth._reg[255]=0x1;
-    else
-      p->clksynth._reg[255]=0x0;
-    printf("Reading register 0x%x\n",regTest&0xff);
-    unsigned qq = -1;
-    while(1) {
-      unsigned q = p->clksynth._reg[regTest&0xff];
-      if (qq != q) {
-        printf(":%02x\n",q);
-        qq=q;
-      }
-      if (regValu>=0)
-        p->clksynth._reg[regTest&0xff] = regValu&0xff;
-    }
-  }
+  p->i2c_sw_control.select(I2cSwitch::LocalBus);  // ClkSynth is on local bus
+  p->i2c_sw_control.dump();
 
   if (lSetupClkSynth) {
     p->clksynth.setup();
@@ -149,8 +198,14 @@ int main(int argc, char** argv) {
   }
 
   if (lResetRx) {
+#ifdef LCLSII
+    p->tpr.setLCLSII();
+#else
+    p->tpr.setLCLS();
+#endif
     p->tpr.resetRxPll();
     usleep(10000);
+    p->tpr.resetRx();
   }
 
   if (lReset) {
@@ -204,15 +259,25 @@ int main(int argc, char** argv) {
     p->ring1.enable(false);
     p->ring1.clear();
     p->ring1.enable(true);
-    usleep(1000);
+    usleep(100000);
     p->ring1.enable(false);
     p->ring1.dump();
   }
 
   if (lDumpAlign) {
-    for(unsigned i=0; i<20; i++)
-      printf(" %04x",(p->gthAlign[i/10] >> (16*(i&1)))&0xffff);
-    printf("\nTarget: %u\n",p->gthAlignTarget);
+    p->dumpRxAlign();
+    if (alignTarget < 128)
+      p->setRxAlignTarget(alignTarget);
+    if (alignRstLen > 0)
+      p->setRxResetLength(alignRstLen);
+  }
+
+  if (fWrite) {
+    FILE* f = fopen(fWrite,"r");
+    if (f)
+      p->flash.write(f);
+    else 
+      perror("Failed opening prom file\n");
   }
 
   return 0;
