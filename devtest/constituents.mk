@@ -169,11 +169,15 @@ tgtsrcs_quadadc := quadadc.cc
 tgtlibs_quadadc := pds/quadadc pds/tpr
 tgtincs_quadadc := evgr
 tgtslib_quadadc := $(USRLIBDIR)/rt
+tgtlibs_quadadc += pds/epicstools epics/ca epics/Com
+tgtincs_quadadc += epics/include epics/include/os/Linux
 
 tgtsrcs_quadadc_dma := quadadc_dma.cc
 tgtlibs_quadadc_dma := pds/quadadc pds/tprdsbase pds/tpr pds/service pdsdata/xtcdata
 tgtincs_quadadc_dma := evgr
 tgtslib_quadadc_dma := $(USRLIBDIR)/rt pthread
+tgtlibs_quadadc_dma += pds/epicstools epics/ca epics/Com
+tgtincs_quadadc_dma += epics/include epics/include/os/Linux
 
 tgtsrcs_amctiming := amctiming.cc
 tgtlibs_amctiming := pds/cphw cpsw/cpsw yaml/yaml-cpp

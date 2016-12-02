@@ -145,6 +145,7 @@ static unsigned nPrint = 20;
 
 static void* read_thread(void*);
 static bool checkFlash11_interleaved(uint32_t* p);
+static bool checkFlash11(uint32_t* p);
 
 void usage(const char* p) {
   printf("Usage: %s [options]\n",p);
@@ -394,6 +395,8 @@ void* read_thread(void* arg)
   
   ssize_t nb;
 
+  static bool lLCLSII = targs.rate<9;
+
   uint64_t dpid;
   switch(targs.rate) {
   case 0: dpid = 1; break;
@@ -406,10 +409,10 @@ void* read_thread(void* arg)
   case 40:dpid = 3 ; break;
   case 41:dpid = 6 ; break;
   case 42:dpid =12 ; break;
-  case 43:dpid =30 ; break;
-  case 44:dpid =60 ; break;
-  case 45:dpid =120; break;
-  case 46:dpid =240; break;
+  case 43:dpid =36 ; break;
+  case 44:dpid =72 ; break;
+  case 45:dpid =360; break;
+  case 46:dpid =720; break;
   default: dpid = 1; break;
   }
 
@@ -427,7 +430,8 @@ void* read_thread(void* arg)
       if ((p[1]&0xffff)==0) {
         daqStats.eventFrames()++;
         opid = p[4];
-        opid = (opid<<32) | p[3];
+        if (lLCLSII)
+          opid = (opid<<32) | p[3];
         break;
       }
     }
@@ -457,8 +461,10 @@ void* read_thread(void* arg)
     uint32_t* p     = (uint32_t*)data;
     //    uint32_t  len   = p[0];
     uint32_t  etag  = p[1];
-    uint64_t  pid   = p[4]; pid = (pid<<32)|p[3];
-    uint64_t  pid_busy = opid + (1ULL<<20);
+    uint64_t  pid   = p[4]; 
+    if (lLCLSII)
+      pid = (pid<<32)|p[3];
+    uint64_t  pid_busy = lLCLSII ? (opid + (1ULL<<20)) : (opid + 360);
 
     if (etag&(1ULL<<30)) {
       daqStats.dropFrames()++;
@@ -486,9 +492,14 @@ void* read_thread(void* arg)
 
       switch(pattern) {
       case Module::Flash11:
-        if (qI==QABase::Q_ABCD)
+        if (qI==QABase::Q_ABCD) {
           if (!checkFlash11_interleaved(p))
             daqStats.corrupt()++;
+        }
+        else {
+          if (!checkFlash11(p))
+            daqStats.corrupt()++;
+        }
         break;
       default:
         break;
@@ -507,7 +518,7 @@ void* read_thread(void* arg)
     
       if (targs.busyTime && opid > pid_busy) {
         usleep(targs.busyTime);
-        pid_busy = opid + (1ULL<<20);
+        pid_busy = lLCLSII ? (opid + (1ULL<<20)) : (opid + 360);
       }
     }
     else if ((etag&0xffff)==1) {
@@ -553,6 +564,46 @@ bool checkFlash11_interleaved(uint32_t* p)
     else if (p[i] != 0) {
       printf("Unexpected data %08x [%08x] at word %u:%u\n", p[i],0,i,(i-s)%22);
         return false;
+    }
+  }
+  return true;
+}
+
+bool checkFlash11(uint32_t* p)
+{
+  unsigned nb = p[0]&0xffffff;
+
+  const uint16_t* q = reinterpret_cast<const uint16_t*>(p+8);
+
+  int s=-1;
+  for(unsigned i=0; i<11; i++) {
+    if (q[i]==0) continue;
+    if (q[i]==0x07ff) {
+      s=i; break;
+    }
+    printf("Unexpected data [%04x] at word %u\n",
+           q[i], i);
+    return false;
+  }
+  if (s==-1) {
+    printf("No pattern found\n");
+    return false;
+  }
+
+  nb = (nb-8)/2;
+
+  for(unsigned j=0; j<4; j++, q+=nb) {
+    for(unsigned i=s; i<nb; i++) {
+      if (((i-s)%11)==0) {
+        if (q[i] != 0x07ff) {
+          printf("Unexpected data %04x [%04x] at word %u.%u:%u\n", q[i], 0x07ff, j, i, s);
+          return false;
+        }
+      }
+      else if (q[i] != 0) {
+        printf("Unexpected data %04x [%04x] at word %u.%u:%u\n", q[i],0,j,i,s);
+        return false;
+      }
     }
   }
   return true;

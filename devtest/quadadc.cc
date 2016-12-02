@@ -8,17 +8,19 @@
 #include <fcntl.h>
 #include <time.h>
 #include <arpa/inet.h>
+#include <poll.h>
 #include <signal.h>
 #include <new>
 
-#include "pds/quadadc/Module.hh"
 #include "pds/quadadc/Globals.hh"
+#include "pds/quadadc/Module.hh"
 
 #include <string>
 
 extern int optind;
 
 using namespace Pds::QuadAdc;
+using Pds::Tpr::RxDesc;
 
 void usage(const char* p) {
   printf("Usage: %s [options]\n",p);
@@ -50,6 +52,9 @@ int main(int argc, char** argv) {
   bool lDumpAlign = false;
   bool lTrain = false;
   bool lSetPhase = false;
+  bool lTestSync = false;
+  unsigned syncDelay[4] = {0,0,0,0};
+
   const char* fWrite=0;
   unsigned delay_int=0, delay_frac=0;
   unsigned alignTarget = 16;
@@ -57,7 +62,7 @@ int main(int argc, char** argv) {
 
   int  regTest=-1, regValu=-1;
 
-  while ( (c=getopt( argc, argv, "CRXPA:01D:d:hTW:")) != EOF ) {
+  while ( (c=getopt( argc, argv, "CRS:XPA:01D:d:hTW:")) != EOF ) {
     switch(c) {
     case 'A':
       lDumpAlign = true;
@@ -73,6 +78,12 @@ int main(int argc, char** argv) {
       break;
     case 'R':
       lReset = true;
+      break;
+    case 'S':
+      lTestSync = true;
+      syncDelay[0] = strtoul(optarg,&endptr,0);
+      for(unsigned i=1; i<4; i++)
+        syncDelay[i] = strtoul(endptr+1,&endptr,0);
       break;
     case 'X':
       lResetRx = true;
@@ -180,7 +191,7 @@ int main(int argc, char** argv) {
     printf("Clock [%i]: rate %f MHz\n", i, p->fmc_core.clockRate()*1.e-6);
   }
 
-  p->dma_core.init(0);
+  p->dma_core.init(1<<20);
   p->dma_core.dump();
 
   p->phy_core.dump();
@@ -262,6 +273,49 @@ int main(int argc, char** argv) {
     usleep(100000);
     p->ring1.enable(false);
     p->ring1.dump();
+  }
+
+  if (lTestSync) {
+    uint32_t* data = new uint32_t[1<<20];
+    RxDesc* desc = new RxDesc(data,1<<20);
+    pollfd pfd;
+    pfd.fd = fd;
+    pfd.events = POLLIN;
+    unsigned n=0;
+    while(poll(&pfd,1,0)>0) { 
+      n++;
+      read(fd, desc, sizeof(*desc));
+    }
+    printf("flushed %u\n",n);
+
+    p->dma_core.init(32+32*48);
+    p->adc_sync.set_delay(syncDelay);
+    p->adc_sync.start_training();
+    p->base.init();
+    p->base.setupLCLS(9,32);
+    p->base.start();
+
+    struct timespec tv;
+    clock_gettime(CLOCK_REALTIME,&tv);
+
+    n=0;
+    while(poll(&pfd,1,1000)>0) { 
+      n++;
+      read(fd, desc, sizeof(*desc));
+      struct timespec ts;
+      clock_gettime(CLOCK_REALTIME,&ts);
+      if (ts.tv_sec > tv.tv_sec+1)
+        break;
+    }
+    printf("Read %x events\n",n);
+    p->base.stop();
+    p->adc_sync.stop_training();
+    p->adc_sync.dump_status();
+    while(poll(&pfd,1,0)>0) { 
+      read(fd, desc, sizeof(*desc));
+    }
+    delete desc;
+    delete[] data;
   }
 
   if (lDumpAlign) {
