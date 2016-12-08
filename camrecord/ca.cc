@@ -8,6 +8,7 @@
 #include"pdsdata/psddl/camera.ddl.h"
 #include"pdsdata/psddl/lusi.ddl.h"
 #include"pdsdata/psddl/epics.ddl.h"
+#include"pdsdata/psddl/generic1d.ddl.h"
 #include"yagxtc.hh"
 
 #include <stdio.h>
@@ -23,6 +24,11 @@ using namespace Pds;
 
 using Pds::Epics::EpicsPvCtrlHeader;
 using Pds::Epics::EpicsPvHeader;
+
+typedef Pds::Generic1D::ConfigV0 G1DCfg;
+#define NCHANNELS 16
+static uint32_t _SampleType[NCHANNELS]= {G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16, G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32};
+static double _Period[NCHANNELS]= {8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7};
 
 static void connection_handler(struct connection_handler_args args);
 
@@ -111,6 +117,9 @@ class caconn {
         unsigned int     w = 0, h = 0, d = 0;
         double           gain = -1;
         double           exposure = -1;
+        int              data_size = 0;
+        uint32_t         nsamp[NCHANNELS];
+        int32_t          offset[NCHANNELS];
         char             model[40] = "Unknown";
         char             manufacturer[40] = "Unknown";
 
@@ -133,6 +142,7 @@ class caconn {
             caid = nxtcaid++;
             register_pv_alias(name, caid, sourceInfo);
             is_cam = 0;
+            is_wv8 = 0;
             int result = ca_create_channel(pvname.c_str(),
                                            connection_handler,
                                            this,
@@ -158,14 +168,39 @@ class caconn {
             // Do this for non-cameras here
             if (write_hdf) register_hdf_writer(xid, register_hdf(name, 0, 0, 0, nelem, dbrtype, 0, 0));
             return;
-        } else
-            is_cam = 1;
+        }
+
+        is_cam = 1;
+        is_wv8 = 0;
+        cmask = 0;
 
         /* Retrieve the camera parameters based on the PV name. */
         char pv[256];
         strcpy(pv, pvname.c_str());
         int pvlen = strlen(pv);
-        if (!strcmp(pv + pvlen - 10, ":ArrayData")) {
+        if (!strcmp(pv + pvlen - 4, ":RAW")) {
+            /* NOT a camera, a wave8!! */
+            is_wv8 = 1;
+            pvlen -= 4;
+            nelem = 15; /* Header + Footer */
+            strcpy(pv + pvlen, ":ChanEnable_RBV");
+            read_ca(pv, &cmask, DBR_LONG);
+            printf("cmask = 0x%x\n", cmask);
+            for (int i = 0; i < NCHANNELS; i++) {
+                if (cmask & (1 << i)) {
+                    sprintf(pv + pvlen, ":NumberOfSamples%d_RBV", i);
+                    read_ca(pv, &nsamp[i], DBR_LONG);
+                    sprintf(pv + pvlen, ":Delay%d_RBV", i);
+                    read_ca(pv, &offset[i], DBR_LONG);
+                    nelem += 1 + ((i < 8) ? (nsamp[i] / 2) : nsamp[i]);
+                    data_size += ((i < 8) ? 2 : 4) * nsamp[i];
+                } else {
+                    nsamp[i] = 0;
+                    offset[i] = 0;
+                }
+            }
+            printf("Wave8: data_size %d bytes, nelem = %d\n", data_size, nelem);
+        } else if (!strcmp(pv + pvlen - 10, ":ArrayData")) {
             /* An area detector camera */
             pvlen -= 10;
             strcpy(pv + pvlen, ":ArraySize0_RBV");
@@ -232,9 +267,11 @@ class caconn {
             return;
         }
 
-        if (CAMERA_DEPTH(flags))
-            d = CAMERA_DEPTH(flags);
-        nelem = w * h;
+        if (!is_wv8) {
+            if (CAMERA_DEPTH(flags))
+                d = CAMERA_DEPTH(flags);
+            nelem = w * h;
+        }
 
         int               pid = getpid(), size;
         DetInfo sourceInfo(pid, det, detversion, dev, devversion);
@@ -290,31 +327,54 @@ class caconn {
                 Camera::ControlsCameraConfigV1(w, h, d, Camera::ControlsCameraConfigV1::Mono,
                                                exposure, gain, manufacturer, model);
             break;
+        case DetInfo::Wave8:
+            size = 2 * sizeof(Xtc) + sizeof(Generic1D::ConfigV0) + NCHANNELS * (3 * sizeof(int32_t) + sizeof(double));
+            buf = (char *) calloc(1, size);
+            cfg = new (buf) Xtc(TypeId(TypeId::Id_Generic1DConfig, 0), sourceInfo);
+            new ((void *)cfg->alloc(size - 2 * sizeof(Xtc)))
+                Generic1D::ConfigV0(NCHANNELS, nsamp, _SampleType, offset, _Period);
+            break;
         default:
             printf("Unknown device: %s!\n", DetInfo::name(dev));
             fprintf(stderr, "error Unknown device %s\n", DetInfo::name(dev));
             exit(1);
         }
-        // This is on every camera.
-        cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), sourceInfo);
-        new ((void *)cfg->alloc(sizeof(Camera::FrameFexConfigV1)))
-            Camera::FrameFexConfigV1(Camera::FrameFexConfigV1::FullFrame, 1,
-                                     Camera::FrameFexConfigV1::NoProcessing, origin, origin, 0, 0, 0);
+        if (!is_wv8) {
+            // This is on every camera.
+            cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), sourceInfo);
+            new ((void *)cfg->alloc(sizeof(Camera::FrameFexConfigV1)))
+                Camera::FrameFexConfigV1(Camera::FrameFexConfigV1::FullFrame, 1,
+                                         Camera::FrameFexConfigV1::NoProcessing, origin, origin, 0, 0, 0);
 
-        // setup hdf5 datasets
-        if (write_hdf) {
-            register_hdf_writer(xid, register_hdf(name, is_cam, w, h, nelem, dbrtype, 0, 0));
+            // setup hdf5 datasets
+            if (write_hdf) {
+                register_hdf_writer(xid, register_hdf(name, is_cam, w, h, nelem, dbrtype, 0, 0));
+            }
+            configure_xtc(xid, buf, size, 0, 0);
+
+            hdrlen = sizeof(Xtc) + sizeof(Camera::FrameV1);
+            bf2 = (char *) calloc(1, hdrlen);
+            frm = hdr = new (bf2) Xtc(TypeId(TypeId::Id_Frame, 1), sourceInfo);
+
+            f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, d, 32);
+
+            frm->alloc(f->_sizeof()-sizeof(*f));
+            free(buf);
+        } else {
+            /* MCB - Dan, add HDF for wave8 here? */
+            configure_xtc(xid, buf, size, 0, 0);
+
+            hdrlen = sizeof(Xtc) + sizeof(Generic1D::DataV0);
+            bf2 = (char *) calloc(1, hdrlen);
+            frm = hdr = new (bf2) Xtc(TypeId(TypeId::Id_Generic1DData, 0), sourceInfo);
+
+            uint32_t *dataptr = 
+                reinterpret_cast<uint32_t*>
+                    (new ((char *)frm->alloc(sizeof(Generic1D::DataV0) + data_size))
+                         Generic1D::DataV0);
+            *dataptr = data_size;
+            free(buf);
         }
-        configure_xtc(xid, buf, size, 0, 0);
-
-        hdrlen = sizeof(Xtc) + sizeof(Camera::FrameV1);
-        bf2 = (char *) calloc(1, hdrlen);
-        frm = hdr = new (bf2) Xtc(TypeId(TypeId::Id_Frame, 1), sourceInfo);
-
-        f = new ((char *)frm->alloc(sizeof(Camera::FrameV1))) Camera::FrameV1(w, h, d, 32);
-
-        frm->alloc(f->_sizeof()-sizeof(*f));
-        free(buf); /* We're done with r, which lives in buf. */
 
         int result = ca_create_channel(pvname.c_str(),
                                        connection_handler,
@@ -378,6 +438,8 @@ class caconn {
     int    flags;
     int    strict;
     int    is_cam;
+    int    is_wv8;
+    int32_t cmask;
     int    caid;
     chid   chan;
 };
@@ -392,11 +454,32 @@ static void event_handler(struct event_handler_args args)
     if (args.status != ECA_NORMAL) {
         printf("Bad status: %d\n", args.status);
     } else if (args.type == c->dbrtype && args.count == c->nelem) {
-        struct dbr_time_short *d = (struct dbr_time_short *) args.dbr;
-        if (c->is_cam) {
+        if (c->is_wv8) {
+            struct dbr_time_long *d = (struct dbr_time_long *) args.dbr;
+            int32_t *in = &d->value + 14;
+            int32_t *out = &d->value;
+            
+            /* Strip out all of the headers!! */
+            for (int i = 0; i < 16; i++) {
+                if (c->cmask & (1 << i)) {
+                    int len = ((*in++ >> 8) & 0x1fff) + 1;
+                    if (i < 8)
+                        len /= 2;
+                    while (len--) {
+                        *out++ = *in++;
+                    }
+                }
+            }
+
+            data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
+                     c->hdr, c->hdrlen, &d->value);
+        } else if (c->is_cam) {
+            struct dbr_time_short *d = (struct dbr_time_short *) args.dbr;
+
             data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
                      c->hdr, c->hdrlen, &d->value);
         } else {
+            struct dbr_time_short *d = (struct dbr_time_short *) args.dbr;
             /*
              * This is totally cheating, since we aren't looking at the actual dbr_time_* type.
              * But we know they all start status, severity, stamp, so...
@@ -474,6 +557,8 @@ static void connection_handler(struct connection_handler_args args)
         c->dbftype = ca_field_type(args.chid);
         if (c->dbftype == DBF_LONG && c->is_cam)
             c->dbrtype = DBR_TIME_SHORT;             /* Force this, since we know the cameras are at most 16 bit!!! */
+        else if (c->dbftype == DBF_DOUBLE && c->is_wv8)
+            c->dbrtype = DBR_TIME_LONG;              /* Force this, since we know the wave8 is really uint32!!! */
         else
             c->dbrtype = dbf_type_to_DBR_TIME(c->dbftype);
         c->size = dbr_size_n(c->dbrtype, c->nelem);
