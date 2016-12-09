@@ -134,7 +134,8 @@ class caconn {
         conns.push_back(this);
         xid = register_xtc(strict, name,  // PVs -> not critical or big, cameras -> critical and big
                            det != DetInfo::EpicsArch,
-                           det != DetInfo::EpicsArch);
+                           det != DetInfo::EpicsArch,
+                           dev == DetInfo::Wave8);
 
         if (det == DetInfo::EpicsArch) {
             DetInfo sourceInfo(getpid(), DetInfo::EpicsArch, 0, DetInfo::NoDevice, streamno);
@@ -328,10 +329,10 @@ class caconn {
                                                exposure, gain, manufacturer, model);
             break;
         case DetInfo::Wave8:
-            size = 2 * sizeof(Xtc) + sizeof(Generic1D::ConfigV0) + NCHANNELS * (3 * sizeof(int32_t) + sizeof(double));
+            size = sizeof(Xtc) + sizeof(Generic1D::ConfigV0) + NCHANNELS * (3 * sizeof(int32_t) + sizeof(double));
             buf = (char *) calloc(1, size);
             cfg = new (buf) Xtc(TypeId(TypeId::Id_Generic1DConfig, 0), sourceInfo);
-            new ((void *)cfg->alloc(size - 2 * sizeof(Xtc)))
+            new ((void *)cfg->alloc(size - sizeof(Xtc)))
                 Generic1D::ConfigV0(NCHANNELS, nsamp, _SampleType, offset, _Period);
             break;
         default:
@@ -669,9 +670,15 @@ char *connection_status(void)
     char *s = buf;
     int i, j;
     caconn *c;
+    static int first = 1;
 
     for (i = 0, j=0, c = caconn::index(i); c; c = caconn::index(++i)) {
         j += c->connected;
+    }
+    // MCB - This is bad, this is wrong, this is evil...
+    if (first) {
+        j = i;
+        first = 0;
     }
 
     sprintf(s, "cstat %d %d", i, j);

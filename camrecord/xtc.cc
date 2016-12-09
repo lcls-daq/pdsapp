@@ -44,10 +44,10 @@ struct event;
 
 class xtcsrc {
  public:
-    xtcsrc(int _id, int _sync, string _name, int _crit, int _isbig)
+    xtcsrc(int _id, int _sync, string _name, int _crit, int _isbig, int _iswv8)
         : id(_id), hdf_id(-1), sync(_sync), name(_name), cnt(0), val(NULL),
           len(0), hdrlen(0), ref(NULL), sec(0), nsec(0), ev(NULL), critical(_crit),
-          damagecnt(0), isbig(_isbig) {};
+          damagecnt(0), isbig(_isbig), iswv8(_iswv8) {};
     int   id;
     int   hdf_id;
     int   sync;                   // Is this a synchronous source?
@@ -65,6 +65,7 @@ class xtcsrc {
                                   // throw away partials.
     int   damagecnt;
     int   isbig;
+    int   iswv8;
 };
 
 #define SML_CONFIG_SIZE (sizeof(Xtc) + sizeof(SmlData::ConfigV1))
@@ -280,13 +281,13 @@ static char *get_sml_offset(int64_t offset, uint32_t extent)
     return buf;
 }
 
-static char *get_sml_proxy(int64_t offset, uint32_t extent, Src &src) 
+static char *get_sml_proxy(int64_t offset, uint32_t extent, Src &src, int iswv8) 
 {
     static char buf[SML_PROXY_SIZE];
     memset(buf, 0, sizeof(buf));
     Xtc *xtc = new ((char *) buf) Xtc(TypeId(TypeId::Id_SmlDataProxy, 1), src);
     new (xtc->alloc(sizeof(SmlData::ProxyV1)))
-         SmlData::ProxyV1(offset, TypeId(TypeId::Id_Frame, 1), extent);
+        SmlData::ProxyV1(offset, iswv8 ? TypeId(TypeId::Id_Generic1DData, 0) : TypeId(TypeId::Id_Frame, 1), extent);
     return buf;
 }
 
@@ -572,7 +573,7 @@ void initialize_xtc(char *outfile)
 /*
  * Generate a unique id for this source.
  */
-int register_xtc(int sync, string name, int critical, int isbig)
+int register_xtc(int sync, string name, int critical, int isbig, int iswv8)
 {
     string dname = name;
     // Make all of the names equal length!
@@ -585,7 +586,7 @@ int register_xtc(int sync, string name, int critical, int isbig)
     }
     while (name.length() != maxname)
         name.append(" ");
-    src.push_back(new xtcsrc(numsrc, sync, name, critical, isbig));
+    src.push_back(new xtcsrc(numsrc, sync, name, critical, isbig, iswv8));
     if (sync)
         syncsrc++;
     else
@@ -842,7 +843,8 @@ void send_event(struct event *ev)
                         fprintf(stderr, "error Write to %s failed.\n", sfname);
                         exit(1);
                     }
-                    if (!fwrite(get_sml_proxy(fsize, src[i]->len, src[i]->src), SML_PROXY_SIZE, 1, sfp)) {
+                    if (!fwrite(get_sml_proxy(fsize, src[i]->len, src[i]->src, src[i]->iswv8),
+                                SML_PROXY_SIZE, 1, sfp)) {
                         printf("Write failed!\n");
                         fprintf(stderr, "error Write to %s failed.\n", sfname);
                         exit(1);
