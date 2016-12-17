@@ -3,7 +3,7 @@ libnames :=
 libsrcs_test :=
 
 
-tgtnames := timestampReceiver sqlDbTest timerResolution
+tgtnames := timestampReceiver sqlDbTest timerResolution archonStandAlone jungfrauStandAlone
 ifneq ($(findstring i386-linux,$(tgt_arch)),)
 tgtnames += princetonCameraTest
 endif
@@ -13,7 +13,19 @@ tgtnames += andorStandAlone
 tgtnames += andorDualStandAlone
 endif
 
-commonlibs := pdsdata/xtcdata pdsdata/aliasdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
+commonlibs	:= pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
+commonlibs	+= pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
+commonlibs	+= pds/config pds/configdbc pds/confignfs pds/configsql
+commonlibs	+= offlinedb/mysqlclient
+
+tgtsrcs_archonStandAlone := archonStandAlone.cc
+tgtlibs_archonStandAlone := $(commonlibs) pds/archon
+tgtslib_archonStandAlone := dl pthread rt
+
+tgtsrcs_jungfrauStandAlone := jungfrauStandAlone.cc
+tgtincs_jungfrauStandAlone := pdsdata/include ndarray/include boost/include
+tgtlibs_jungfrauStandAlone := $(commonlibs) pds/jungfrau slsdet/SlsDetector
+tgtslib_jungfrauStandAlone := dl pthread rt
 
 tgtsrcs_princetonCameraTest := princetonCameraTest.cc
 tgtlibs_princetonCameraTest := pds/princetonutil pvcam/pvcam

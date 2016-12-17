@@ -15,6 +15,7 @@ tgtnames += rayonix udpcam
 tgtnames += oceanoptics
 tgtnames += lecroy
 tgtnames += pvdaq
+tgtnames += archon
 
 ifneq ($(findstring i386,$(tgt_arch)),)
 tgtnames +=  acq \
@@ -29,18 +30,18 @@ tgtnames +=  acq \
 endif
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames += camedt fli andor andordual
+tgtnames += camedt fli andor andordual jungfrau
   ifeq ($(build_extra),$(true))
     tgtnames += phasics xamps fexamp
   endif
 endif
 
 ifneq ($(findstring x86_64-rhel6,$(tgt_arch)),)
-tgtnames += pimax fli andor andordual
+tgtnames += pimax fli andor andordual jungfrau
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += camedt
+tgtnames += camedt jungfrau
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -145,6 +146,16 @@ tgtincs_lecroy += epics/include epics/include/os/Linux
 tgtlibs_lecroy := $(commonlibs) pds/lecroy
 tgtlibs_lecroy += pds/epicstools epics/ca epics/Com
 tgtslib_lecroy := $(commonslib)
+
+tgtsrcs_archon := archon.cc
+tgtincs_archon := pdsdata/include ndarray/include boost/include
+tgtlibs_archon := $(commonlibs) pds/archon
+tgtslib_archon := $(commonslib)
+
+tgtsrcs_jungfrau := jungfrau.cc
+tgtincs_jungfrau := pdsdata/include ndarray/include boost/include
+tgtlibs_jungfrau := $(commonlibs) pds/jungfrau slsdet/SlsDetector
+tgtslib_jungfrau := $(commonslib)
 
 tgtsrcs_evr := evr.cc
 tgtincs_evr := evgr pdsdata/include ndarray/include boost/include  
