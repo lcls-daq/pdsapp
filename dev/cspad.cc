@@ -61,6 +61,10 @@ class Pds::MySegWire
     unsigned max_event_size () const { return 8*1024*1024; }
     unsigned max_event_depth() const { return _max_event_depth; }
     void max_event_depth(unsigned d) { _max_event_depth = d; }
+    bool has_fiducial() const {
+      printf("has_fiducial returning %s\n", _cspadServer->sequenceServer() ? "true" : "false");
+      return _cspadServer->sequenceServer();
+    }
         private:
     CspadServer* _cspadServer;
     std::list<Src> _sources;
@@ -243,6 +247,7 @@ void printUsage(char* s) {
       "                index of 1 for the first port, i.e. 1,2,3,4,5,6,7 or 8\n"
       "    -G      Use if pgpcard is a G3 card\n"
       "    -e <N>  Set the maximum event depth, default is 64\n"
+      "    -t      Use a sequence server rather than the count server\n"
       "    -C <N> or \"<N>,<T>\"  Compress and copy every Nth event (and use <T> threads)\n"
       "    -u      Set device alias                         [Default: none]\n"
       "    -D      Set debug value                          [Default: 0]\n"
@@ -286,6 +291,7 @@ int main( int argc, char** argv )
   bool                platformMissing     = true;
   bool                compressFlag        = false;
   bool                bUsage              = false;
+  bool                sequenceServ        = false;
   unsigned            compressThreads     = 0;
   unsigned            uu1, uu2, uu3;
   AppList user_apps;
@@ -293,7 +299,7 @@ int main( int argc, char** argv )
   extern char* optarg;
   char* uniqueid = (char *)NULL;
   int c;
-  while( ( c = getopt( argc, argv, "hd:i:p:m:e:C:D:xL:P:r:u:G" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hd:i:p:m:e:tC:D:xL:P:r:u:G" ) ) != EOF ) {
     bool     found;
     unsigned index;
     switch(c) {
@@ -344,6 +350,9 @@ int main( int argc, char** argv )
         break;
       case 'G':
         strcpy(g3, "G3");
+        break;
+      case 't':
+        sequenceServ = true;
         break;
       case 'e':
         if (!CmdLineTools::parseUInt(optarg,eventDepth)) {
@@ -461,7 +470,16 @@ int main( int argc, char** argv )
   TypeId typeId( type, Pds::CsPad::DataV1::Version );
 
   cfgService = new CfgClientNfs(detInfo);
-  cspadServer = new CspadServer(detInfo, typeId, mask);
+  printf("making CspadServer");
+  if (sequenceServ) {
+    printf("Sequence\n");
+    cspadServer = new CspadServerSequence(detInfo, typeId, mask);
+    cspadServer->sequenceServer(true);
+  } else {
+    printf("Count\n");
+    cspadServer = new CspadServerCount(detInfo, typeId, mask);
+  }
+
   cspadServer->debug(debug);
   cspadServer->runTimeConfigName(runTimeConfigname);
 
