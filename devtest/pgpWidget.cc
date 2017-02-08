@@ -282,16 +282,16 @@ int main( int argc, char** argv )
 		printUsage(argv[0]);
 		return 1;
 	}
-	bool G3Flag = strlen(g3) != 0;
-	unsigned ports = (pgpcard >> 4) & 0xf;
-	char devName[128];
-	char err[128];
-	if (ports == 0) {
-		ports = 15;
-		sprintf(devName, "/dev/pgpcard%s%u", g3, pgpcard);
-	} else {
-		sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
-	}
+  bool G3Flag = strlen(g3) != 0;
+  unsigned ports = (pgpcard >> 4) & 0xf;
+  char devName[128];
+//  printf("%s pgpcard 0x%x, ports %d\n", argv[0], pgpcard, ports);
+  char err[128];
+  if ((ports == 0) && !G3Flag) {
+    ports = 15;
+  }
+  sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
+
 
 	int fd = open( devName,  O_RDWR );
 	if (debug & 1) printf("%s using %s\n", argv[0], devName);
@@ -302,11 +302,16 @@ int main( int argc, char** argv )
 		return 1;
 	}
 
-	unsigned limit = G3Flag ? 8 : 4;
-	unsigned offset = 0;
-	while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
-		offset += 1;
-	}
+  unsigned limit =  4;
+  unsigned offset = 0;
+
+  if ( !G3Flag ) {  // G2 or lower
+    while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
+      offset += 1;
+    }
+  } else {  // G3 card
+    offset = ports -1;
+  }
 
 	Pds::Pgp::Pgp::portOffset(offset);
 
@@ -456,7 +461,7 @@ int main( int argc, char** argv )
 	  tx.pgpVc = 3;
 	  tx.size = 1;
 	  tx.data = &one;
-	  printf("monitorTest write 1 to lane %d vc %d\n", tx.pgpLane, tx.pgpVc);
+	  printf("monitorTest write 1 to lane %d vc %d, offset %d\n", tx.pgpLane, tx.pgpVc, pgp->portOffset());
 	  write(fd, &tx, sizeof(tx));
 	  //fall through to readAsync ...
 	case readAsyncCommand:
