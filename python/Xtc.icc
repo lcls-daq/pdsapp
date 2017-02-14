@@ -28,7 +28,7 @@ void pdsxtc_dealloc(pdsxtc* self)
     delete[] self->payload;
   }
 
-  self->ob_type->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 PyObject* pdsxtc_new(PyTypeObject* type, PyObject* args, PyObject* kwds)

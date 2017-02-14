@@ -3,7 +3,7 @@ static PyObject* pds_UsdUsbFexConfig_set      (PyObject*   self, PyObject* args)
 
 static PyMethodDef pds_UsdUsbFexConfig_methods[] = {
   {"get"        , (PyCFunction)pds_UsdUsbFexConfig_get   , METH_NOARGS  , "Output the configuration"},
-  {"set"        , (PyCFunction)pds_UsdUsbFexConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"set"        , (PyCFunction)pds_UsdUsbFexConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {NULL},
 };
 

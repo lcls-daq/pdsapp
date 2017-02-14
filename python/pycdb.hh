@@ -24,8 +24,7 @@ typedef struct {
 
 #define DefineXtcType(name)                                             \
   static PyTypeObject pds_ ## name ## _type = {                         \
-    PyObject_HEAD_INIT(NULL)                                            \
-    0,                          /* ob_size */                           \
+    PyVarObject_HEAD_INIT(NULL, 0)                                      \
     "pycdb." #name,             /* tp_name */                           \
     sizeof(pdsxtc),             /* tp_basicsize */                      \
     0,                          /* tp_itemsize */                       \

@@ -1,7 +1,8 @@
 libnames := pycdb pydaq
 
 libsrcs_pycdb := pycdb.cc
-libincs_pycdb := python/include/python2.5 pdsdata/include ndarray/include boost/include  
+libincs_pycdb := python/include/python3.6m python/include/python2.5 
+libincs_pycdb += pdsdata/include ndarray/include boost/include  
 liblibs_pycdb := pdsdata/xtcdata pdsdata/psddl_pdsdata
 liblibs_pycdb += pds/service pds/utility pds/xtc pds/collection pds/vmon pds/mon
 liblibs_pycdb += pds/configdata pds/config
@@ -11,6 +12,7 @@ libslib_pycdb := $(USRLIBDIR)/rt
 CPPFLAGS += -fno-strict-aliasing
 
 libsrcs_pydaq := pydaq.cc
-libincs_pydaq := python/include/python2.5 pdsdata/include ndarray/include boost/include  
+libincs_pydaq := python/include/python3.6m python/include/python2.5
+libincs_pydaq += pdsdata/include ndarray/include boost/include  
 liblibs_pydaq += pdsdata/xtcdata pdsdata/psddl_pdsdata pds/configdata
 libslib_pydaq := $(USRLIBDIR)/rt

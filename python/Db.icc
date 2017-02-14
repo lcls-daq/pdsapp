@@ -37,13 +37,13 @@ static PyObject* pdsdb_evolve (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdb_unlock (PyObject* self, PyObject* args, PyObject* kwds);
 
 static PyMethodDef pdsdb_methods[] = {
-  {"get"       , (PyCFunction)pdsdb_get    , METH_KEYWORDS, "Return the xtc data"},
-  {"set"       , (PyCFunction)pdsdb_set    , METH_KEYWORDS, "Insert the xtc data"},
-  {"substitute", (PyCFunction)pdsdb_sub    , METH_KEYWORDS, "Replace the xtc data"},
+  {"get"       , (PyCFunction)pdsdb_get    , METH_VARARGS|METH_KEYWORDS, "Return the xtc data"},
+  {"set"       , (PyCFunction)pdsdb_set    , METH_VARARGS|METH_KEYWORDS, "Insert the xtc data"},
+  {"substitute", (PyCFunction)pdsdb_sub    , METH_VARARGS|METH_KEYWORDS, "Replace the xtc data"},
   {"sync"      , (PyCFunction)pdsdb_sync   , METH_NOARGS  , "Abandon changes and reread db"},
   {"commit"    , (PyCFunction)pdsdb_commit , METH_NOARGS  , "Commit changes and update db"},
   {"clone"     , (PyCFunction)pdsdb_clone  , METH_VARARGS , "Clone a key"},
-  {"get_key"   , (PyCFunction)pdsdb_get_key, METH_KEYWORDS, "Return the current key for an alias"},
+  {"get_key"   , (PyCFunction)pdsdb_get_key, METH_VARARGS|METH_KEYWORDS, "Return the current key for an alias"},
   {"evolve"    , (PyCFunction)pdsdb_evolve , METH_VARARGS , "Upgrade xtc container to another version"},
   {"unlock"    , (PyCFunction)pdsdb_unlock , METH_NOARGS  , "Release the database"},
   {NULL},
@@ -57,8 +57,7 @@ static PyMemberDef pdsdb_members[] = {
 };
 
 static PyTypeObject pdsdb_type = {
-  PyObject_HEAD_INIT(NULL)
-    0,                         /* ob_size */
+    PyVarObject_HEAD_INIT(NULL, 0)
     "pycdb.Db",                /* tp_name */
     sizeof(pdsdb),             /* tp_basicsize */
     0,                         /* tp_itemsize */
@@ -173,7 +172,7 @@ void pdsdb_dealloc(pdsdb* self)
     delete self->expt;
   }
 
-  self->ob_type->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 PyObject* pdsdb_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
@@ -384,7 +383,7 @@ PyObject* pdsdb_set(PyObject* self_o, PyObject* args, PyObject* kwds)
     return NULL;
   }
 
-  if (o->ob_type->tp_new!=pdsxtc_new) {
+  if (Py_TYPE(o)->tp_new!=pdsxtc_new) {
     printf("TypeCheck failed\n");
     return NULL;
   }
@@ -461,7 +460,7 @@ PyObject* pdsdb_sub(PyObject* self_o, PyObject* args, PyObject* kwds)
     return NULL;
   }
 
-  if (o->ob_type->tp_new!=pdsxtc_new) {
+  if (Py_TYPE(o)->tp_new!=pdsxtc_new) {
     printf("TypeCheck failed\n");
     return NULL;
   }
@@ -565,7 +564,7 @@ PyObject* pdsdb_evolve(PyObject* self_o, PyObject* args, PyObject* kwds)
     return NULL;
   }
 
-  if (o->ob_type->tp_new!=pdsxtc_new) {
+  if (Py_TYPE(o)->tp_new!=pdsxtc_new) {
     printf("TypeCheck failed\n");
     return NULL;
   }

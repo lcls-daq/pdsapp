@@ -7,7 +7,7 @@ static PyObject* pds_EvrConfig_set    (PyObject*   self, PyObject* args);
 
 static PyMethodDef pds_EvrConfig_methods[] = {
   {"get"   , (PyCFunction)pds_EvrConfig_get   , METH_NOARGS  , "Output the configuration"},
-  {"set"   , (PyCFunction)pds_EvrConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"set"   , (PyCFunction)pds_EvrConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {NULL},
 };
 

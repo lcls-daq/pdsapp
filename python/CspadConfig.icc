@@ -6,8 +6,8 @@ static PyObject* pds_CspadConfig_set    (PyObject*   self, PyObject* args);
 static unsigned  pds_CspadConfig_size   (PyObject*   self);
 
 static PyMethodDef pds_CspadConfig_methods[] = {
-  {"get"   , (PyCFunction)pds_CspadConfig_get   , METH_KEYWORDS, "Output the configuration"},
-  {"set"   , (PyCFunction)pds_CspadConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"get"   , (PyCFunction)pds_CspadConfig_get   , METH_VARARGS|METH_KEYWORDS, "Output the configuration"},
+  {"set"   , (PyCFunction)pds_CspadConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {NULL},
 };
 

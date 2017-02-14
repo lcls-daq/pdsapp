@@ -6,7 +6,7 @@ static PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args);
 
 static PyMethodDef pds_AndorConfig_methods[] = {
   {"get"   , (PyCFunction)pds_AndorConfig_get   , METH_NOARGS  , "Output the configuration"},
-  {"set"   , (PyCFunction)pds_AndorConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"set"   , (PyCFunction)pds_AndorConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {NULL},
 };
 

@@ -7,7 +7,7 @@ static PyObject* pds_TimeToolConfig_enum     (PyObject*   self, PyObject* args);
 
 static PyMethodDef pds_TimeToolConfig_methods[] = {
   {"get"        , (PyCFunction)pds_TimeToolConfig_get   , METH_NOARGS  , "Output the configuration"},
-  {"set"        , (PyCFunction)pds_TimeToolConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"set"        , (PyCFunction)pds_TimeToolConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {"get_enums"  , (PyCFunction)pds_TimeToolConfig_enum  , METH_NOARGS  , "Output enum constants"},
   {NULL},
 };

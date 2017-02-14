@@ -6,8 +6,8 @@ static PyObject* pds_EpixConfig_set    (PyObject*   self, PyObject* args);
 static unsigned  pds_EpixConfig_size   (PyObject*   self);
 
 static PyMethodDef pds_EpixConfig_methods[] = {
-  {"get"   , (PyCFunction)pds_EpixConfig_get   , METH_KEYWORDS, "Output the configuration"},
-  {"set"   , (PyCFunction)pds_EpixConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"get"   , (PyCFunction)pds_EpixConfig_get   , METH_VARARGS|METH_KEYWORDS, "Output the configuration"},
+  {"set"   , (PyCFunction)pds_EpixConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {NULL},
 };
 

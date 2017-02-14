@@ -6,6 +6,7 @@
 
 #include <Python.h>
 #include <structmember.h>
+#include "p3compat.h"
 
 #define MyArg_ParseTupleAndKeywords(args,kwds,fmt,kwlist,...) PyArg_ParseTupleAndKeywords(args,kwds,fmt,const_cast<char**>(kwlist),__VA_ARGS__)
 
@@ -44,75 +45,92 @@ static PyMethodDef PycdbMethods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
+#ifdef IS_PY3K
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "pycdb",
+        NULL,
+        -1,
+        PycdbMethods,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+};
+#endif
+
 //
 //  Module initialization
 //
-PyMODINIT_FUNC
-initpycdb(void) 
+DECLARE_INIT(pycdb)
 {
   if (PyType_Ready(&pdsdb_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_Xtc_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_DiodeFexConfig_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_CspadConfig_type) < 0)
-    return; 
+    INITERROR; 
   
   if (PyType_Ready(&pds_Cspad2x2Config_type) < 0)
-    return;
+    INITERROR;
 
   if (PyType_Ready(&pds_EpixConfig_type) < 0)
-    return;
+    INITERROR;
 
   if (PyType_Ready(&pds_Epix10kConfig_type) < 0)
-    return;
+    INITERROR;
 
   if (PyType_Ready(&pds_Epix100aConfig_type) < 0)
-    return;
+    INITERROR;
 
  if (PyType_Ready(&pds_IpmFexConfig_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_IpimbConfig_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_PrincetonConfig_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_EvrConfig_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_FliConfig_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_AndorConfig_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_Andor3dConfig_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_PimaxConfig_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_RayonixConfig_type) < 0)
-    return; 
+    INITERROR; 
 
   if (PyType_Ready(&pds_AcqirisConfig_type) < 0)
-    return;
+    INITERROR;
 
   if (PyType_Ready(&pds_TimeToolConfig_type) < 0)
-    return;
+    INITERROR;
 
   if (PyType_Ready(&pds_UsdUsbFexConfig_type) < 0)
-    return;
+    INITERROR;
 
+#ifdef IS_PY3K
+  PyObject *m = PyModule_Create(&moduledef);
+#else
   PyObject *m = Py_InitModule("pycdb", PycdbMethods);
+#endif
   if (m == NULL)
-    return;
+    INITERROR;
 
   Py_INCREF(&pdsdb_type);
   PyModule_AddObject(m, "Db" , (PyObject*)&pdsdb_type);
@@ -173,4 +191,8 @@ initpycdb(void)
 
   Py_INCREF(&pds_UsdUsbFexConfig_type);
   PyModule_AddObject(m, "UsdUsbFexConfig", (PyObject*)&pds_UsdUsbFexConfig_type);
+
+#ifdef IS_PY3K
+  return m;
+#endif
 }

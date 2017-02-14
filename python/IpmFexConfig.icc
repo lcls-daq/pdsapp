@@ -7,7 +7,7 @@ static PyObject* pds_IpmFexConfig_set    (PyObject*   self, PyObject* args);
 
 static PyMethodDef pds_IpmFexConfig_methods[] = {
   {"get"   , (PyCFunction)pds_IpmFexConfig_get   , METH_NOARGS  , "Output the configuration"},
-  {"set"   , (PyCFunction)pds_IpmFexConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"set"   , (PyCFunction)pds_IpmFexConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {NULL},
 };
 

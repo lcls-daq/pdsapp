@@ -6,7 +6,7 @@ static PyObject* pds_RayonixConfig_set    (PyObject*   self, PyObject* args);
 
 static PyMethodDef pds_RayonixConfig_methods[] = {
   {"get"   , (PyCFunction)pds_RayonixConfig_get   , METH_NOARGS  , "Output the configuration"},
-  {"set"   , (PyCFunction)pds_RayonixConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"set"   , (PyCFunction)pds_RayonixConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {NULL},
 };
 

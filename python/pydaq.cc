@@ -8,7 +8,7 @@
 
 #include <Python.h>
 #include <structmember.h>
-
+#include "p3compat.h"
 #include "pdsapp/python/pydaq.hh"
 #include "pdsapp/control/RemoteSeqCmd.hh"
 #include "pdsapp/control/RemoteSeqResponse.hh"
@@ -81,8 +81,8 @@ static PyMethodDef pdsdaq_methods[] = {
   {"detectors" , (PyCFunction)pdsdaq_detectors , METH_NOARGS  , "Get the detector names"},
   {"devices"   , (PyCFunction)pdsdaq_devices   , METH_NOARGS  , "Get the device names"},
   {"types"     , (PyCFunction)pdsdaq_types     , METH_NOARGS  , "Get the type names"},
-  {"configure" , (PyCFunction)pdsdaq_configure , METH_KEYWORDS, "Configure the scan"},
-  {"begin"     , (PyCFunction)pdsdaq_begin     , METH_KEYWORDS, "Configure the cycle"},
+  {"configure" , (PyCFunction)pdsdaq_configure , METH_VARARGS|METH_KEYWORDS, "Configure the scan"},
+  {"begin"     , (PyCFunction)pdsdaq_begin     , METH_VARARGS|METH_KEYWORDS, "Configure the cycle"},
   {"end"       , (PyCFunction)pdsdaq_end       , METH_NOARGS  , "Wait for the cycle end"},
   {"stop"      , (PyCFunction)pdsdaq_stop      , METH_NOARGS  , "End the current cycle"},
   {"endrun"    , (PyCFunction)pdsdaq_endrun    , METH_NOARGS  , "End the current run"},
@@ -102,8 +102,7 @@ static PyMemberDef pdsdaq_members[] = {
 };
 
 static PyTypeObject pdsdaq_type = {
-  PyObject_HEAD_INIT(NULL)
-    0,                          /* ob_size */
+    PyVarObject_HEAD_INIT(NULL, 0)
     "pydaq.Control",            /* tp_name */
     sizeof(pdsdaq),             /* tp_basicsize */
     0,                          /* tp_itemsize */
@@ -160,7 +159,7 @@ void pdsdaq_dealloc(pdsdaq* self)
     delete[] self->buffer;
   }
 
-  self->ob_type->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
@@ -1064,19 +1063,40 @@ static PyMethodDef PydaqMethods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
+#ifdef IS_PY3K
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "pydaq",
+        NULL,
+        -1,
+        PydaqMethods,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+};
+#endif
+
 //
 //  Module initialization
 //
-PyMODINIT_FUNC
-initpydaq(void)
+DECLARE_INIT(pydaq)
 {
   if (PyType_Ready(&pdsdaq_type) < 0)
-    return;
+    INITERROR;
 
+#ifdef IS_PY3K
+  PyObject *m = PyModule_Create(&moduledef);
+#else
   PyObject *m = Py_InitModule("pydaq", PydaqMethods);
+#endif
   if (m == NULL)
-    return;
+    INITERROR;
 
   Py_INCREF(&pdsdaq_type);
   PyModule_AddObject(m, "Control" , (PyObject*)&pdsdaq_type);
+
+#ifdef IS_PY3K
+  return m;
+#endif
 }

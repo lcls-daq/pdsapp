@@ -6,7 +6,7 @@ static PyObject* pds_FliConfig_set    (PyObject*   self, PyObject* args);
 
 static PyMethodDef pds_FliConfig_methods[] = {
   {"get"   , (PyCFunction)pds_FliConfig_get   , METH_NOARGS  , "Output the configuration"},
-  {"set"   , (PyCFunction)pds_FliConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"set"   , (PyCFunction)pds_FliConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {NULL},
 };
 

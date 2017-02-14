@@ -6,7 +6,7 @@ static PyObject* pds_IpimbConfig_set    (PyObject*   self, PyObject* args);
 
 static PyMethodDef pds_IpimbConfig_methods[] = {
   {"get"   , (PyCFunction)pds_IpimbConfig_get   , METH_NOARGS  , "Output the configuration"},
-  {"set"   , (PyCFunction)pds_IpimbConfig_set   , METH_KEYWORDS, "Input the configuration"},
+  {"set"   , (PyCFunction)pds_IpimbConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {NULL},
 };
 
