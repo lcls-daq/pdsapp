@@ -131,6 +131,8 @@ libsrcs_configdbg += QtConcealer.cc QtConcealer_moc.cc
 libsrcs_configdbg += Parameters.cc
 libsrcs_configdbg += BitCount.cc
 libsrcs_configdbg += templates.cc
+libsrcs_configdbg += QuadAdcChannelMask.cc QuadAdcChannelMask_moc.cc
+libsrcs_configdbg += QuadAdcConfig.cc
 libincs_configdbg := $(qtincdir) pdsdata/include ndarray/include boost/include   
 libincs_configdbg += configdb/include
 

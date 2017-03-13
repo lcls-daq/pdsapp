@@ -71,6 +71,7 @@
 #include "pdsapp/config/Andor3dConfig.hh"
 #include "pdsapp/config/ArchonConfig.hh"
 #include "pdsapp/config/JungfrauConfig.hh"
+#include "pdsapp/config/QuadAdcConfig.hh"
 
 #include "pds/config/AliasConfigType.hh"
 #include "pds/config/EvsConfigType.hh"
@@ -111,6 +112,7 @@
 #include "pds/config/ArchonConfigType.hh"
 #include "pds/config/JungfrauConfigType.hh"
 #include "pds/config/PdsDefs.hh"
+#include "pds/config/QuadAdcConfigType.hh"
 
 #include "pdsdata/psddl/lusi.ddl.h"
 
@@ -181,6 +183,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_andor3dConfigType     ,new Andor3dConfig);
   enroll(_archonConfigType      ,new ArchonConfig);
   enroll(_jungfrauConfigType    ,new JungfrauConfig);
+  enroll(_QuadAdcConfigType     ,new QuadAdcConfig);
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_Cspad2x2Config,1),new Cspad2x2Config_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,4) , new CspadConfig_V4);
