@@ -237,7 +237,7 @@ int main(int argc, char **argv)
   size_t event_sz = PIXELS_PER_PACKET * PACKETS_PER_FRAME + header_sz;
   size_t  data_sz = numImages * event_sz;
   uint16_t* data = new uint16_t[data_sz];
-  int16_t frame = -1;
+  int32_t frame = -1;
 
   if (det->start()) {
     for(int i=0; i<numImages; i++) {
