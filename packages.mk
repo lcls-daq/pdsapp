@@ -8,7 +8,7 @@ packages := tools monreq config dev devtest mon monobs control python epics blv 
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-packages := tools config mon monobs control epics python test camrecord
+packages := tools monreq config dev devtest mon monobs control python epics blv bldIpimb test camrecord
 endif
 
 ifneq ($(findstring ppc-rtems-rce,$(tgt_arch)),)

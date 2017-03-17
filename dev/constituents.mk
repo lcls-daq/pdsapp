@@ -41,7 +41,7 @@ tgtnames += pimax fli andor andordual jungfrau
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += camedt jungfrau
+tgtnames += camedt andor andordual jungfrau
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata

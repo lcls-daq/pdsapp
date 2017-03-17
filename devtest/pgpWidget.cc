@@ -315,11 +315,11 @@ int main( int argc, char** argv )
 
 	Pds::Pgp::Pgp::portOffset(offset);
 
-	pgp = new Pds::Pgp::Pgp::Pgp(fd, debug != 0);
+	pgp = new Pds::Pgp::Pgp(fd, debug != 0);
   if (G3Flag && addNPorts) {
     pgp->IoctlCommand(IOCTL_Add_More_Ports, portsToAdd[0]);
   }
-	dest = new Pds::Pgp::Destination::Destination(d);
+	dest = new Pds::Pgp::Destination(d);
 	if (debug & 1) printf("Destination %s Offset %u\n", dest->name(), offset);
 
 	if (writing) {
