@@ -10,6 +10,7 @@ using namespace Pds_ConfigDb;
 #include <QtGui/QComboBox>
 #include <QtGui/QButtonGroup>
 #include <QtGui/QStackedWidget>
+#include <stdio.h>
 
 QuadAdcChannelMask::QuadAdcChannelMask(const char* label, unsigned val) :
   NumericInt<unsigned>  (label, val, 1, (1<<(Channels*Modules))-1,Hex)

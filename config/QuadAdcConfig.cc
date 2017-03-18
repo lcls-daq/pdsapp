@@ -6,7 +6,9 @@
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 #include "pdsdata/xtc/TypeId.hh"
-#include "/reg/neh/home4/tookey/myrelease/pdsdata/psddl/quadadc.ddl.h"
+#include "pdsdata/psddl/quadadc.ddl.h"
+
+#include <stdio.h>
 
 #include <new>
 
