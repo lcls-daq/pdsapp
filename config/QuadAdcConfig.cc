@@ -155,12 +155,12 @@ namespace Pds_ConfigDb {
     }
 
   public:
+    QuadAdcChannelMask            _channelMask;
+    BitCount                      _numChan;
+
     NumericFloat<double>          _Delay_NS;
     NumericInt<unsigned short>    _NSamples;
     NumericInt<unsigned short>    _Evt_Code;
-   
-    QuadAdcChannelMask            _channelMask;
-    BitCount                      _numChan; 
 
   };
 };
