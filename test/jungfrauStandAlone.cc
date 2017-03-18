@@ -26,6 +26,7 @@ static void showUsage(const char* p)
          "    -w|--write    <filename prefix>         output filename prefix\n"
          "    -n|--number   <number of images>        number of images to be captured (default: 1)\n"
          "    -e|--exposure <exposure time>           exposure time (sec) (default: 0.00001 sec)\n"
+         "    -E|--period   <exposure period>         exposure period (sec) (default: 0.00001 sec)\n"
          "    -b|--bias     <bias>                    the bias voltage to apply to the sensor in volts (default: 200)\n"
          "    -g|--gain     <gain 0-5>                the gain mode of the detector (default: Normal - 0)\n"
          "    -S|--speed    <speed 0-1>               the clock speed mode of the detector (default: Quarter - 0)\n"
@@ -42,7 +43,7 @@ static void showUsage(const char* p)
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhc:w:n:e:b:g:S:H:P:m:d:s:t:r";
+  const char*         strOptions  = ":vhc:w:n:e:E:b:g:S:H:P:m:d:s:t:r";
   const struct option loOptions[] =
   {
     {"ver",         0, 0, 'v'},
@@ -51,6 +52,7 @@ int main(int argc, char **argv)
     {"write",       1, 0, 'w'},
     {"number",      1, 0, 'n'},
     {"exposure",    1, 0, 'e'},
+    {"period",      1, 0, 'E'},
     {"bias",        1, 0, 'b'},
     {"gain",        1, 0, 'g'},
     {"speed",       1, 0, 'S'},
@@ -69,6 +71,7 @@ int main(int argc, char **argv)
   int numImages = 1;
   unsigned bias = 200;
   double exposureTime = 0.00001;
+  double exposurePeriod = 0.2;
   double triggerDelay = 0.000238;
   bool lUsage = false;
   bool configReceiver = false;
@@ -105,6 +108,9 @@ int main(int argc, char **argv)
         break;
       case 'e':
         exposureTime = strtod(optarg, NULL);
+        break;
+      case 'E':
+        exposurePeriod = strtod(optarg, NULL);
         break;
       case 'b':
         bias = strtoul(optarg, NULL, 0);
@@ -228,8 +234,19 @@ int main(int argc, char **argv)
   }
 
   Pds::Jungfrau::Driver* det = new Pds::Jungfrau::Driver(camera, sSlsHost, sHost, port, sMac, sDetIp, configReceiver);
-  
-  det->configure(numImages, gain, speed, triggerDelay, exposureTime, bias);
+ 
+  Pds::Jungfrau::DacsConfig dacs_config(
+    1000, // vb_ds
+    1220, // vb_comp
+    750,  // vb_pixbuf
+    480,  // vref_ds
+    420,  // vref_comp
+    1450, // vref_prech
+    1053, // vin_com
+    3000  // vdd_prot
+  );
+ 
+  det->configure(numImages, gain, speed, triggerDelay, exposureTime, exposurePeriod, bias, dacs_config);
 
   sleep(1);
 
