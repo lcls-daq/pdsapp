@@ -45,27 +45,27 @@ tgtincs_control := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_source := source.cc
 tgtlibs_source := $(commonlibs)
-tgtslib_source := $(USRLIBDIR)/rt
+tgtslib_source := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
 tgtincs_source := pdsdata/include
 
 tgtsrcs_sourcetest := sourcetest.cc
 tgtlibs_sourcetest := $(commonlibs)
-tgtslib_sourcetest := $(USRLIBDIR)/rt
+tgtslib_sourcetest := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
 tgtincs_sourcetest := pdsdata/include
 
 tgtsrcs_bldtest := bldtest.cc
 tgtlibs_bldtest := $(commonlibs)
-tgtslib_bldtest := $(USRLIBDIR)/rt
+tgtslib_bldtest := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
 tgtincs_bldtest := pdsdata/include
 
 tgtsrcs_montest := montest.cc
 tgtlibs_montest := $(commonlibs) pds/mon
-tgtslib_montest := $(USRLIBDIR)/rt
+tgtslib_montest := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
 tgtincs_montest := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_showPartitions := showPartitions.cc
 tgtlibs_showPartitions := $(commonlibs)
-tgtslib_showPartitions := $(USRLIBDIR)/rt
+tgtslib_showPartitions := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
 tgtincs_showPartitions := pdsdata/include
 
 tgtsrcs_killPartition := killPartition.cc
@@ -75,18 +75,18 @@ tgtincs_killPartition := pdsdata/include
 
 tgtsrcs_showPlatform := showPlatform.cc
 tgtlibs_showPlatform := $(commonlibs)
-tgtslib_showPlatform := $(USRLIBDIR)/rt
+tgtslib_showPlatform := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
 tgtincs_showPlatform := pdsdata/include ndarray/include boost/include
 
 
 tgtsrcs_bldClientTest := bldClientTest.cc bldClientTest.hh
 tgtlibs_bldClientTest := pds/service pdsdata/xtcdata
-tgtslib_bldClientTest := $(USRLIBDIR)/rt
+tgtslib_bldClientTest := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
 
 tgtsrcs_bldServerTest := bldServerTest.cpp bldServerTest.h
 tgtlibs_bldServerTest := pds/service
 tgtlibs_bldServerTest += $(commonlibs)
-tgtslib_bldServerTest := $(USRLIBDIR)/rt
+tgtslib_bldServerTest := $(USRLIBDIR)/rt $(USRLIBDIR)/pthread
 tgtincs_bldServerTest := pdsdata/include
 
 tgtsrcs_bldMonitor := bldMonitor.cc bldMonitor.hh 
