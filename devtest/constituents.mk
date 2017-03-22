@@ -160,3 +160,12 @@ tgtlibs_netlink := pds/collection pds/service pdsdata/xtcdata
 tgtslib_netlink := ${USRLIBDIR}/rt
 tgtincs_netlink := 
 
+tgtsrcs_quadadc_mon := quadadc_mon.cc
+tgtlibs_quadadc_mon := pds/service 
+tgtlibs_quadadc_mon += hsd/hsd
+tgtlibs_quadadc_mon += pdsdata/xtcdata pdsdata/psddl_pdsdata pdsapp/padmon pdsdata/appdata
+tgtincs_quadadc_mon := pdsdata/include ndarray/include boost/include evgr
+tgtslib_quadadc_mon := $(USRLIBDIR)/rt pthread
+tgtincs_quadadc_mon += hsd/include
+
+tgtnames += quadadc_mon
