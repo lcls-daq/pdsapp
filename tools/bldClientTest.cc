@@ -208,7 +208,7 @@ extern "C"
 // forward declaration
 int BldClientTestSendInterface(int iDataSeed, char* sInterfaceIp, int iNumPackets);
 int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort, 
-      unsigned int uMaxDataSize, int iDataSeed, char* sInterfaceIp, int iNumPackets);
+      unsigned int uMaxDataSize, int iDataSeed, char* sInterfaceIp, int iNumPackets, unsigned int uRate = 120);
   
 /**
  * Bld Client basic test function
@@ -253,7 +253,7 @@ int BldClientTestSendInterface(int iDataSeed, char* sInterfaceIp, int iNumPacket
  * running from CExp Command Line.
  */
 int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort, 
-      unsigned int uMaxDataSize, int iDataSeed, char* sInterfaceIp, int iNumPackets)
+      unsigned int uMaxDataSize, int iDataSeed, char* sInterfaceIp, int iNumPackets, unsigned int uRate)
 {
   EpicsBld::BldClientInterface* pBldClient = 
     EpicsBld::BldClientFactory::createBldClient(uAddr, uPort, 
@@ -313,6 +313,8 @@ int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort,
 
   timespec tv_begin;
   clock_gettime(CLOCK_REALTIME,&tv_begin);
+  unsigned plusCount = 0;
+  unsigned minusCount = 0;
 
   int iPacketsSent = 0;
   while ( true )  
@@ -352,22 +354,42 @@ int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort,
     timespec tv_end;
     clock_gettime(CLOCK_REALTIME,&tv_end);
 
-    double t_rem = double(iPacketsSent)/120. -
-      double(tv_end.tv_sec-tv_begin.tv_sec) -
-      1.e-9*double(int(tv_end.tv_nsec-tv_begin.tv_nsec));
+    double dRate = (uRate * 1.0);
+
+    double t_rem = double(iPacketsSent)/dRate -
+        double(tv_end.tv_sec-tv_begin.tv_sec) -
+        1.e-9*double(int(tv_end.tv_nsec-tv_begin.tv_nsec));
+
+//    printf("[%d] \trem[%f] end[%lu.%09ld]\n",
+//        iPacketsSent, t_rem, tv_end.tv_sec, tv_end.tv_nsec);
 
     if (t_rem > 0) {
       tv_end.tv_sec  = unsigned(t_rem);
       tv_end.tv_nsec = unsigned(1.e9*(t_rem-double(tv_end.tv_sec)));
-
-      //printf("[%d] \trem %f s [%lu.%09ld]\n", iPacketsSent, t_rem, 
-      //tv_end.tv_sec, tv_end.tv_nsec);
-
+      plusCount++;
       nanosleep(&tv_end,0);
     }
-    else
+    else {
+      minusCount++;
       ; // printf("[%d] \trem %f s\n", iPacketsSent, t_rem);
+    }
+    long long int diff;
+    diff =  (tv_end.tv_sec - tv_begin.tv_sec) * 1000000000LL;
+    diff += tv_end.tv_nsec;
+    diff -= tv_begin.tv_nsec;
+    double actualRate = double(iPacketsSent)/double(1.e-9*diff);
 
+
+    if ((iPacketsSent % (uRate*10))==0) {
+//      printf("Sleep ratio ");
+//      if (minusCount) {
+//        printf("%f   ", plusCount*1.0/minusCount);
+//      } else {
+//        printf("1.0   ");
+//      }
+      if (actualRate > 0) printf("actual rate %f\n", actualRate);
+      /*else*/ printf("\n");
+    }
 
     // Waiting for keyboard interrupt to break the infinite loop
   } 
@@ -460,6 +482,7 @@ static void showUsage()
       "   -z|--size      <Buffer Size>        Set the max data size for allocating buffer. Default: %u\n"
       "   -i|--interface <Interface Name/IP>  Set the network interface for receiving multicast. Use ether IP address (xxx.xx.xx.xx) or name (eth0, eth1,...)\n"
       "   -n|--number    <Number of packets>  Number of packets to be sent (0: Keep sending packets and wait for Ctrl-C to quit)\n"
+      "   -r|--rate      <desired rate>       The number of packets per second.  Default 120"
       "   <Data Seed>                         Same as -s flag above. *This is an argument without the option (-s) flag\n"
       "   <Interface Name/IP>                 Same as -i flag above. *This is an argument without the option (-i) flag\n",
       EpicsBld::addressToStr(uDefaultAddr).c_str(), uDefaultPort, EpicsBld::iDefaultDataSeed, uDefaultMaxDataSize
@@ -477,7 +500,7 @@ static void showVersion()
 int main(int argc, char** argv)
 {  
   int iOptionIndex = 0;
-  const char*         sOptions    = ":vha:p:i:s:z:n:";
+  const char*         sOptions    = ":vha:p:i:s:z:n:r:";
   const struct option loOptions[] = 
   {
      {"ver",      0, 0, 'v'},
@@ -487,15 +510,17 @@ int main(int argc, char** argv)
      {"seed",     1, 0, 's'},
      {"size",     1, 0, 'z'},
      {"interface",1, 0, 'i'},            
-     {"number",   1, 0, 'n'},            
+     {"number",   1, 0, 'n'},
+     {"rate",     1, 0, 'r'},
      {0,          0, 0,  0 }
   };    
     
   unsigned int  uAddr         = uDefaultAddr;
   unsigned int  uPort         = uDefaultPort;
-  unsigned int  uMaxDataSize  = uDefaultMaxDataSize;  
+  unsigned int  uMaxDataSize  = uDefaultMaxDataSize;
   int           iDataSeed     = EpicsBld::iDefaultDataSeed;
   int           iNumPackets   = 0;
+  unsigned int  uRate         = 120;
   char*         sInterfaceIp  = NULL;      
   while ( int opt = getopt_long(argc, argv, sOptions, loOptions, &iOptionIndex ) )
   {
@@ -523,7 +548,10 @@ int main(int argc, char** argv)
           break;            
       case 'n':
           iNumPackets  = strtoul(optarg, NULL, 0);
-          break;            
+          break;
+      case 'r':
+          uRate = strtoul(optarg, NULL, 0);
+          break;
       case '?':               /* Terse output mode */
           printf( "bldClientTest:main(): Unknown option: %c\n", optopt );
           break;
@@ -547,7 +575,7 @@ int main(int argc, char** argv)
   if (argc >= 2 )    
     sInterfaceIp = argv[1];
     
-  return BldClientTestSendAddr( uAddr, uPort, uMaxDataSize, iDataSeed, sInterfaceIp, iNumPackets );
+  return BldClientTestSendAddr( uAddr, uPort, uMaxDataSize, iDataSeed, sInterfaceIp, iNumPackets, uRate );
 }
 
 } // extern "C" 
