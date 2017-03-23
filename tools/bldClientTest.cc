@@ -388,7 +388,7 @@ int BldClientTestSendAddr(unsigned int uAddr, unsigned int uPort,
 //        printf("1.0   ");
 //      }
       if (actualRate > 0) printf("actual rate %f\n", actualRate);
-      /*else*/ printf("\n");
+//      else printf("\n");
     }
 
     // Waiting for keyboard interrupt to break the infinite loop
