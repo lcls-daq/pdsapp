@@ -149,6 +149,8 @@ int main(int argc, char** argv) {
           printf("%s: Unknown option: %c\n", argv[0], optopt);
         else
           printf("%s: Unknown option: %s\n", argv[0], argv[optind-1]);
+        lUsage = true;
+        break;
       case ':':
         printf("%s: Missing argument for %c\n", argv[0], optopt);
       default:
