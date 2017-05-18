@@ -16,15 +16,15 @@ tgtnames += oceanoptics
 tgtnames += lecroy
 tgtnames += pvdaq
 tgtnames += archon
+tgtnames += gsc16ai
+tgtnames += usdusb
 
 ifneq ($(findstring i386,$(tgt_arch)),)
 tgtnames +=  acq \
     encoder \
     princeton \
     princetonsim \
-    gsc16ai  \
     cam \
-    usdusb \
     fli andor \
 	andordual
 endif
@@ -138,7 +138,7 @@ tgtsrcs_usdusb := usdusb.cc
 tgtincs_usdusb := usdusb4/include libusb/include/libusb-1.0 
 tgtincs_usdusb += pdsdata/include ndarray/include boost/include 
 tgtlibs_usdusb := $(commonlibs) pds/usdusb usdusb4/usdusb4 libusb/usb-1.0
-tgtslib_usdusb := $(commonslib) 
+tgtslib_usdusb := $(commonslib) pthread
 
 tgtsrcs_lecroy := lecroy.cc
 tgtincs_lecroy := pdsdata/include ndarray/include boost/include
