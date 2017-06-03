@@ -17,7 +17,6 @@ tgtnames += lecroy
 tgtnames += pvdaq
 tgtnames += archon
 tgtnames += gsc16ai
-tgtnames += usdusb
 
 ifneq ($(findstring i386,$(tgt_arch)),)
 tgtnames +=  acq \
@@ -25,8 +24,9 @@ tgtnames +=  acq \
     princeton \
     princetonsim \
     cam \
+    usdusb \
     fli andor \
-	andordual
+    andordual
 endif
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
@@ -41,7 +41,7 @@ tgtnames += pimax fli andor andordual jungfrau
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += camedt andor andordual jungfrau
+tgtnames += camedt andor andordual jungfrau usdusb
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
