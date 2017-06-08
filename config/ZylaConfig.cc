@@ -69,31 +69,31 @@ class Pds_ConfigDb::ZylaConfig::Private_Data : public Parameter {
 };
 
 const char* Pds_ConfigDb::ZylaConfig::Private_Data::lsEnumATBool[] = { "Disabled", "Enabled", NULL };
-const char* Pds_ConfigDb::ZylaConfig::Private_Data::lsEnumFanSpeed[] = { "Off", "Low", "On", NULL };
+const char* Pds_ConfigDb::ZylaConfig::Private_Data::lsEnumFanSpeed[] = { "Off", "Low (Neo Only)", "On", NULL };
 const char* Pds_ConfigDb::ZylaConfig::Private_Data::lsEnumReadoutRate[] = { "280 MHz", "200 MHz", "100 MHz", "10 MHz", NULL };
 const char* Pds_ConfigDb::ZylaConfig::Private_Data::lsEnumGainMode[] = { "HighWellCap12Bit", "LowNoise12Bit", "LowNoiseHighWellCap16Bit", NULL };
 const char* Pds_ConfigDb::ZylaConfig::Private_Data::lsEnumCoolingSetpoint[] = { "0 C", "-5 C", "-10 C", "-15 C", "-20 C", "-25 C", "-30 C", "-35 C", "-40 C", NULL };
 
 Pds_ConfigDb::ZylaConfig::Private_Data::Private_Data() :
-  _cooling                  ("Sensor Cooling",            ZylaConfigType::True,             lsEnumATBool),
+  _cooling                  ("Sensor Cooling",              ZylaConfigType::True,             lsEnumATBool),
   _overlap                  (ZylaConfigType::False),
-  _noiseFilter              ("Noise Filter",              ZylaConfigType::False,            lsEnumATBool),
-  _blemishCorrection        ("Blemish Correction",        ZylaConfigType::False,            lsEnumATBool),
+  _noiseFilter              ("Noise Filter",                ZylaConfigType::False,            lsEnumATBool),
+  _blemishCorrection        ("Blemish Correction",          ZylaConfigType::False,            lsEnumATBool),
   _shutter                  (ZylaConfigType::Global),
-  _fanSpeed                 ("Fan Speed",                 ZylaConfigType::On,               lsEnumFanSpeed),
-  _readoutRate              ("Readout Rate",              ZylaConfigType::Rate280MHz,       lsEnumReadoutRate),
+  _fanSpeed                 ("Fan Speed",                   ZylaConfigType::On,               lsEnumFanSpeed),
+  _readoutRate              ("Readout Rate",                ZylaConfigType::Rate280MHz,       lsEnumReadoutRate),
   _triggerMode              (ZylaConfigType::External),
-  _gainMode                 ("Gain Mode",                 ZylaConfigType::HighWellCap12Bit, lsEnumGainMode),
-  _setpoint                 ("Cooling Setpoint",          ZylaConfigType::Temp_0C,          lsEnumCoolingSetpoint),
-  _width                    ("Width",                     2560,   1,        CAMERA_MAX_WIDTH),
-  _height                   ("Height",                    2160,   1,        CAMERA_MAX_HEIGHT),
-  _boxROI                   ("Centered ROI",              true),
-  _orgX                     ("Origin X",                  1,      1,        CAMERA_MAX_WIDTH),
-  _orgY                     ("Origin Y",                  1,      1,        CAMERA_MAX_HEIGHT),
-  _binX                     ("Binning X",                 1,      1,        CAMERA_MAX_WIDTH),
-  _binY                     ("Binning Y",                 1,      1,        CAMERA_MAX_HEIGHT),
-  _exposureTime             ("Exposure Time (sec)",       0.001,  1.0E-05,  30.0),
-  _triggerDelay             ("External Trigger Delay",    0.0,    0.0,      19841.5)
+  _gainMode                 ("Gain Mode",                   ZylaConfigType::HighWellCap12Bit, lsEnumGainMode),
+  _setpoint                 ("Cooling Setpoint (Neo Only)", ZylaConfigType::Temp_0C,          lsEnumCoolingSetpoint),
+  _width                    ("Width",                       2560,   1,        CAMERA_MAX_WIDTH),
+  _height                   ("Height",                      2160,   1,        CAMERA_MAX_HEIGHT),
+  _boxROI                   ("Centered ROI",                true),
+  _orgX                     ("Origin X",                    1,      1,        CAMERA_MAX_WIDTH),
+  _orgY                     ("Origin Y",                    1,      1,        CAMERA_MAX_HEIGHT),
+  _binX                     ("Binning X",                   1,      1,        CAMERA_MAX_WIDTH),
+  _binY                     ("Binning Y",                   1,      1,        CAMERA_MAX_HEIGHT),
+  _exposureTime             ("Exposure Time (sec)",         0.001,  1.0E-05,  30.0),
+  _triggerDelay             ("External Trigger Delay",      0.0,    0.0,      19841.5)
 {
   pList.insert( &_cooling );
   pList.insert( &_noiseFilter );
@@ -291,32 +291,32 @@ class Pds_ConfigDb::ZylaExpertConfig::Private_Data : public Parameter {
 
 const char* Pds_ConfigDb::ZylaExpertConfig::Private_Data::lsEnumATBool[] = { "Disabled", "Enabled", NULL };
 const char* Pds_ConfigDb::ZylaExpertConfig::Private_Data::lsEnumShutteringMode[] = { "Rolling", "Global", NULL };
-const char* Pds_ConfigDb::ZylaExpertConfig::Private_Data::lsEnumFanSpeed[] = { "Off", "Low", "On", NULL };
+const char* Pds_ConfigDb::ZylaExpertConfig::Private_Data::lsEnumFanSpeed[] = { "Off", "Low (Neo Only)", "On", NULL };
 const char* Pds_ConfigDb::ZylaExpertConfig::Private_Data::lsEnumReadoutRate[] = { "280 MHz", "200 MHz", "100 MHz", "10 MHz", NULL };
 const char* Pds_ConfigDb::ZylaExpertConfig::Private_Data::lsEnumGainMode[] = { "HighWellCap12Bit", "LowNoise12Bit", "LowNoiseHighWellCap16Bit", NULL };
 const char* Pds_ConfigDb::ZylaExpertConfig::Private_Data::lsEnumCoolingSetpoint[] = { "0 C", "-5 C", "-10 C", "-15 C", "-20 C", "-25 C", "-30 C", "-35 C", "-40 C", NULL };
 
 Pds_ConfigDb::ZylaExpertConfig::Private_Data::Private_Data() :
-  _cooling                  ("Sensor Cooling",            ZylaConfigType::True,             lsEnumATBool),
-  _overlap                  ("Overlap Acquistion Mode",   ZylaConfigType::False,            lsEnumATBool),
-  _noiseFilter              ("Noise Filter",              ZylaConfigType::False,            lsEnumATBool),
-  _blemishCorrection        ("Blemish Correction",        ZylaConfigType::False,            lsEnumATBool),
-  _shutter                  ("Shuttering Mode",           ZylaConfigType::Global,           lsEnumShutteringMode),
-  _fanSpeed                 ("Fan Speed",                 ZylaConfigType::On,               lsEnumFanSpeed),
-  _readoutRate              ("Readout Rate",              ZylaConfigType::Rate280MHz,       lsEnumReadoutRate),
+  _cooling                  ("Sensor Cooling",              ZylaConfigType::True,             lsEnumATBool),
+  _overlap                  ("Overlap Acquistion Mode",     ZylaConfigType::False,            lsEnumATBool),
+  _noiseFilter              ("Noise Filter",                ZylaConfigType::False,            lsEnumATBool),
+  _blemishCorrection        ("Blemish Correction",          ZylaConfigType::False,            lsEnumATBool),
+  _shutter                  ("Shuttering Mode",             ZylaConfigType::Global,           lsEnumShutteringMode),
+  _fanSpeed                 ("Fan Speed",                   ZylaConfigType::On,               lsEnumFanSpeed),
+  _readoutRate              ("Readout Rate",                ZylaConfigType::Rate280MHz,       lsEnumReadoutRate),
   _triggerMode              (ZylaConfigType::External),
-  _gainMode                 ("Gain Mode",                 ZylaConfigType::HighWellCap12Bit, lsEnumGainMode),
-  _setpoint                 ("Cooling Setpoint",          ZylaConfigType::Temp_0C,          lsEnumCoolingSetpoint),
-  _width                    ("Width",                     2560,   1,        CAMERA_MAX_WIDTH),
-  _height                   ("Height",                    2160,   1,        CAMERA_MAX_HEIGHT),
-  _boxROI                   ("Centered ROI",              true),
-  _orgX                     ("Origin X",                  1,      1,        CAMERA_MAX_WIDTH),
-  _orgY                     ("Origin Y",                  1,      1,        CAMERA_MAX_HEIGHT),
-  _binX                     ("Binning X",                 1,      1,        CAMERA_MAX_WIDTH),
-  _binY                     ("Binning Y",                 1,      1,        CAMERA_MAX_HEIGHT),
-  _boxTrigger               ("Exposure from Trigger",     false),
-  _exposureTime             ("Exposure Time (sec)",       0.001,  1.0E-05,  30.0),
-  _triggerDelay             ("External Trigger Delay",    0.0,    0.0,      19841.5)
+  _gainMode                 ("Gain Mode",                   ZylaConfigType::HighWellCap12Bit, lsEnumGainMode),
+  _setpoint                 ("Cooling Setpoint (Neo Only)", ZylaConfigType::Temp_0C,          lsEnumCoolingSetpoint),
+  _width                    ("Width",                       2560,   1,        CAMERA_MAX_WIDTH),
+  _height                   ("Height",                      2160,   1,        CAMERA_MAX_HEIGHT),
+  _boxROI                   ("Centered ROI",                true),
+  _orgX                     ("Origin X",                    1,      1,        CAMERA_MAX_WIDTH),
+  _orgY                     ("Origin Y",                    1,      1,        CAMERA_MAX_HEIGHT),
+  _binX                     ("Binning X",                   1,      1,        CAMERA_MAX_WIDTH),
+  _binY                     ("Binning Y",                   1,      1,        CAMERA_MAX_HEIGHT),
+  _boxTrigger               ("Exposure from Trigger",       false),
+  _exposureTime             ("Exposure Time (sec)",         0.001,  1.0E-05,  30.0),
+  _triggerDelay             ("External Trigger Delay",      0.0,    0.0,      19841.5)
 {
   pList.insert( &_cooling );
   pList.insert( &_overlap );
