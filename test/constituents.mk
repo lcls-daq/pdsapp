@@ -12,6 +12,10 @@ ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
 tgtnames += andorStandAlone andorDualStandAlone archonStandAlone jungfrauStandAlone 
 endif
 
+ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
+tgtnames += zylaStandAlone
+endif
+
 commonlibs	:= pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 commonlibs	+= pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs	+= pds/config pds/configdbc pds/confignfs pds/configsql
@@ -38,6 +42,11 @@ tgtslib_andorStandAlone := dl pthread rt
 tgtsrcs_andorDualStandAlone := andorDualStandAlone.cc
 tgtlibs_andorDualStandAlone := pds/andorutil andor/andor
 tgtslib_andorDualStandAlone := dl pthread rt
+
+tgtsrcs_zylaStandAlone := zylaStandAlone.cc
+tgtincs_zylaStandAlone := pdsdata/include ndarray/include boost/include
+tgtlibs_zylaStandAlone := $(commonlibs) pds/zyla andor3/atcore andor3/atutility
+tgtslib_zylaStandAlone := dl pthread rt
 
 tgtsrcs_timestampReceiver := timestampReceiver.cc
 

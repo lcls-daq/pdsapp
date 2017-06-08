@@ -44,6 +44,7 @@ libsrcs_configdbg += Andor3dConfig.cc
 libsrcs_configdbg += ArchonConfig.cc
 libsrcs_configdbg += JungfrauConfig.cc
 libsrcs_configdbg += JungfrauConfig_V1.cc
+libsrcs_configdbg += ZylaConfig.cc
 #libsrcs_configdbg += ProjectionConfig.cc ProjectionConfigQ.cc ProjectionConfigQ_moc.cc
 libsrcs_configdbg += EvrOutputMap.cc EvrOutputMap_V1.cc
 libsrcs_configdbg += EvrPulseConfig.cc EvrPulseConfig_V1.cc EvrEventCodeV3.cc EvrEventCode.cc
