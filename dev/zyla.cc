@@ -47,14 +47,15 @@ static void zylaUsage(const char* p)
          "                                            (e.g. XppEndStation/0/Zyla/1 or 22/0/44/1)\n"
          "    -p|--platform <platform>,<mod>,<chan>   platform number, EVR module, EVR channel\n"
          "    -u|--uniqueid <alias>                   set device alias\n"
-         "    -c|--camera   [0-9]                     select the camera device index. (default: 0)\n"
+         "    -c|--camera   [0-9]                     select the camera device index (default: 0)\n"
+         "    -b|--buffers  <buffers>                 the number of frame buffers to provide to the Andor SDK (default: 5)\n"
          "    -w|--wait                               wait for camera temperature to stabilize before running\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char** argv) {
 
-  const char*   strOptions    = ":hp:i:u:c:w";
+  const char*   strOptions    = ":hp:i:u:c:b:w";
   const struct option loOptions[]   =
     {
        {"help",        0, 0, 'h'},
@@ -62,6 +63,7 @@ int main(int argc, char** argv) {
        {"id",          1, 0, 'i'},
        {"uniqueid",    1, 0, 'u'},
        {"camera",      1, 0, 'c'},
+       {"buffers",     1, 0, 'b'},
        {"wait",        0, 0, 'w'},
        {0,             0, 0,  0 }
     };
@@ -71,6 +73,7 @@ int main(int argc, char** argv) {
   unsigned platform = no_entry;
   unsigned module = 0;
   unsigned channel = 0;
+  unsigned num_buffers = 5;
   int camera = 0;
   bool lUsage = false;
   bool isTriggered = false;
@@ -118,6 +121,12 @@ int main(int argc, char** argv) {
       case 'c':
         if (!CmdLineTools::parseInt(optarg,camera)) {
           printf("%s: option `-c' parsing error\n", argv[0]);
+          lUsage = true;
+        }
+        break;
+      case 'b':
+        if (!CmdLineTools::parseUInt(optarg,num_buffers)) {
+          printf("%s: option `-b' parsing error\n", argv[0]);
           lUsage = true;
         }
         break;
@@ -198,7 +207,7 @@ int main(int argc, char** argv) {
   if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 )
     printf("Cannot register signal handler for SIGTERM\n");
 
-  Zyla::Driver* drv = new Zyla::Driver(Handle);
+  Zyla::Driver* drv = new Zyla::Driver(Handle, num_buffers);
   if (!drv->is_present()) {
     printf("Camera is not present!\n");
     AT_Close(Handle);
