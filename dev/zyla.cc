@@ -19,6 +19,7 @@
 
 #include <list>
 
+static const unsigned AT_MAX_MSG_LEN = 256;
 static const unsigned EVENT_SIZE_EXTRA = 0x10000;
 static const unsigned MAX_EVENT_SIZE = 2*2560*2160 + EVENT_SIZE_EXTRA;
 static const unsigned MAX_EVENT_DEPTH = 64;
@@ -205,6 +206,28 @@ int main(int argc, char** argv) {
     AT_FinaliseLibrary();
     return 1;
   }
+
+  // Print out basic camera info
+  AT_WC wc_buffer[AT_MAX_MSG_LEN];
+  printf("Camera information:\n");
+  drv->get_model(wc_buffer, AT_MAX_MSG_LEN);
+  printf(" Camera model: %ls\n", wc_buffer);
+  drv->get_name(wc_buffer, AT_MAX_MSG_LEN);
+  printf(" Camera name: %ls\n", wc_buffer);
+  drv->get_family(wc_buffer, AT_MAX_MSG_LEN);
+  printf(" Camera family: %ls\n", wc_buffer);
+  drv->get_serial(wc_buffer, AT_MAX_MSG_LEN);
+  printf(" Camera serial number: %ls\n", wc_buffer);
+  drv->get_firmware(wc_buffer, AT_MAX_MSG_LEN);
+  printf(" Camera firmware revision: %ls\n", wc_buffer);
+  drv->get_interface_type(wc_buffer, AT_MAX_MSG_LEN);
+  printf(" Camera interface type: %ls\n", wc_buffer);
+  drv->get_sdk_version(wc_buffer, AT_MAX_MSG_LEN);
+  printf(" Andor sdk version: %ls\n", wc_buffer);
+  printf(" Camera sensor width in pixels: %lld\n", drv->sensor_width());
+  printf(" Camera sensor height in pixels: %lld\n", drv->sensor_height());
+  printf(" Camera pixel width (um): %g\n", drv->pixel_width());
+  printf(" Camera pixel height (um): %g\n", drv->pixel_height());
 
   std::list<EbServer*>      servers;
   std::list<Zyla::Manager*> managers;
