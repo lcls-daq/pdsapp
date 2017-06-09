@@ -98,7 +98,8 @@ namespace Pds_ConfigDb {
 
   class Epix100aConfig::PrivateData : public Parameter {
   public:
-    PrivateData() :
+    PrivateData(bool expert) :
+      _expert(expert),
       _count(Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerRow) *
           Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerColumn)),
       _asicSet("ASICs", _asicArgs, _count, targets(_asic)),
@@ -128,7 +129,7 @@ namespace Pds_ConfigDb {
       Epix100aConfigShadow::defaultValue(Epix100aConfigShadow::NumberOfAsicsPerColumn); i++) {
         _asicArgs[i].insert(&_asic[i]);
       }
-      _asicSet.name("ASIC:");
+      if (_expert) _asicSet.name("ASIC:");
       uint16_t* b = (uint16_t*)_pixelArray.begin();
       unsigned count = 0;
       while (b!=_pixelArray.end()) {
@@ -143,51 +144,68 @@ namespace Pds_ConfigDb {
   public:
     QLayout* initialize(QWidget* p) {
       QHBoxLayout* layout = new QHBoxLayout;
-      { QVBoxLayout* l = new QVBoxLayout;
-      for (unsigned i=Epix100aConfigShadow::Version; i<Epix100aConfigShadow::NumberOfRegisters; i++) {
-        if (Epix100aConfigShadow::readOnly((Epix100aConfigShadow::Registers)i) == Epix100aConfigShadow::ReadOnly) {
-          l->addLayout(_reg[i]->initialize(0));
+      if (_expert) {
+        { QVBoxLayout* l = new QVBoxLayout;
+        for (unsigned i=Epix100aConfigShadow::Version; i<Epix100aConfigShadow::NumberOfRegisters; i++) {
+          if (Epix100aConfigShadow::readOnly((Epix100aConfigShadow::Registers)i) == Epix100aConfigShadow::ReadOnly) {
+            l->addLayout(_reg[i]->initialize(0));
+          }
         }
-      }
-      l->addStretch();
-      for (unsigned i=Epix100aConfigShadow::Version; i<Epix100aConfigShadow::NumberOfRegisters; i++) {
-        if (Epix100aConfigShadow::readOnly((Epix100aConfigShadow::Registers)i) == Epix100aConfigShadow::UseOnly) {
-          l->addLayout(_reg[i]->initialize(0));
+        l->addStretch();
+        for (unsigned i=Epix100aConfigShadow::Version; i<Epix100aConfigShadow::NumberOfRegisters; i++) {
+          if (Epix100aConfigShadow::readOnly((Epix100aConfigShadow::Registers)i) == Epix100aConfigShadow::UseOnly) {
+            l->addLayout(_reg[i]->initialize(0));
+          }
         }
-      }
-      l->addStretch();
-//      layout->addStretch();
-      l->addLayout(_asicSet.initialize(0));
-      l->addWidget(_mapButton);
-      l->addWidget(_calibButton);
-      l->addStretch();
-      layout->addLayout(l);
-      }
-      layout->addStretch();
-      { QVBoxLayout* l = new QVBoxLayout;
-      for (unsigned i=Epix100aConfigShadow::Version; i<Epix100aConfigShadow::prepulseR0En; i++) {
-        if (Epix100aConfigShadow::readOnly((Epix100aConfigShadow::Registers)i) == Epix100aConfigShadow::ReadWrite) {
-          l->addLayout(_reg[i]->initialize(0));
+        l->addStretch();
+//        layout->addStretch();
+        l->addLayout(_asicSet.initialize(0));
+        l->addWidget(_mapButton);
+        l->addWidget(_calibButton);
+        l->addStretch();
+        layout->addLayout(l);
         }
-      }
-      layout->addLayout(l);
-      }
-      { QVBoxLayout* l = new QVBoxLayout;
-      for (unsigned i=Epix100aConfigShadow::prepulseR0En; i<Epix100aConfigShadow::SyncWidth; i++) {
-        if (Epix100aConfigShadow::readOnly((Epix100aConfigShadow::Registers)i) == Epix100aConfigShadow::ReadWrite) {
-          l->addLayout(_reg[i]->initialize(0));
+        layout->addStretch();
+        { QVBoxLayout* l = new QVBoxLayout;
+        for (unsigned i=Epix100aConfigShadow::Version; i<Epix100aConfigShadow::prepulseR0En; i++) {
+          if (Epix100aConfigShadow::readOnly((Epix100aConfigShadow::Registers)i) == Epix100aConfigShadow::ReadWrite) {
+            l->addLayout(_reg[i]->initialize(0));
+          }
         }
-      }
-      layout->addLayout(l);
-      }
-      layout->addStretch();
-      { QVBoxLayout* l = new QVBoxLayout;
-      for (unsigned i=Epix100aConfigShadow::SyncWidth; i<Epix100aConfigShadow::NumberOfRegisters; i++) {
-        if (Epix100aConfigShadow::readOnly((Epix100aConfigShadow::Registers)i) == Epix100aConfigShadow::ReadWrite) {
-          l->addLayout(_reg[i]->initialize(0));
+        layout->addLayout(l);
         }
+        { QVBoxLayout* l = new QVBoxLayout;
+        for (unsigned i=Epix100aConfigShadow::prepulseR0En; i<Epix100aConfigShadow::SyncWidth; i++) {
+          if (Epix100aConfigShadow::readOnly((Epix100aConfigShadow::Registers)i) == Epix100aConfigShadow::ReadWrite) {
+            l->addLayout(_reg[i]->initialize(0));
+          }
+        }
+        layout->addLayout(l);
+        }
+        layout->addStretch();
+        { QVBoxLayout* l = new QVBoxLayout;
+        for (unsigned i=Epix100aConfigShadow::SyncWidth; i<Epix100aConfigShadow::NumberOfRegisters; i++) {
+          if (Epix100aConfigShadow::readOnly((Epix100aConfigShadow::Registers)i) == Epix100aConfigShadow::ReadWrite) {
+            l->addLayout(_reg[i]->initialize(0));
+          }
+        }
+        layout->addLayout(l); }
+      } else {
+        // On the non-expert config screen only show the trigger related registers of the EPIX
+        { QVBoxLayout* l = new QVBoxLayout;
+          for (unsigned i=Epix100aConfigShadow::Version; i<Epix100aConfigShadow::EvrRunCode; i++) {
+            _reg[i]->initialize(0); // initialize but don't show
+          }
+          for (unsigned i=Epix100aConfigShadow::EvrRunCode; i<Epix100aConfigShadow::DacSetting; i++) {
+            l->addLayout(_reg[i]->initialize(0));
+          }
+          for (unsigned i=Epix100aConfigShadow::DacSetting; i<Epix100aConfigShadow::NumberOfRegisters; i++) {
+            _reg[i]->initialize(0); // initialize but don't show
+          }
+          layout->addLayout(l);
+        }
+        _asicSet.initialize(0);
       }
-      layout->addLayout(l); }
 
       printf("PrivateData::initialize: NumberOfRegisters %u\n", Epix100aConfigShadow::NumberOfRegisters);
 
@@ -195,6 +213,7 @@ namespace Pds_ConfigDb {
         if (Epix100aConfigShadow::readOnly(Epix100aConfigShadow::Registers(i)) != Epix100aConfigShadow::DoNotUse) {
           _reg[i]->enable(!(Epix100aConfigShadow::readOnly(Epix100aConfigShadow::Registers(i)) == Epix100aConfigShadow::ReadOnly));
         }
+
       return layout;
     }
     void update() {
@@ -294,6 +313,7 @@ namespace Pds_ConfigDb {
       return size;
     }
   private:
+    bool                        _expert;
     NumericInt<uint32_t>*       _reg[Epix100aConfigShadow::NumberOfRegisters];
     Epix100aSimpleCount         _count;
     Epix100aASICdata            _asic    [Epix100aConfigShadow::NumberOfAsics];
@@ -339,9 +359,9 @@ int Epix100aASICdata::push(void* to) {
   return sizeof(Epix100aASIC_ConfigShadow);
 }
 
-Epix100aConfig::Epix100aConfig() :
+Epix100aConfig::Epix100aConfig(bool expert) :
   Serializer("Epix100a_Config"),
-  _private(new PrivateData)
+  _private(new PrivateData(expert))
 {
   name("EPIX100a Configuration");
   pList.insert(_private);
@@ -363,6 +383,5 @@ int Epix100aConfig::writeParameters(void* to) {
 int Epix100aConfig::dataSize() const {
   return _private->dataSize();
 }
-
 
 #include "Parameters.icc"

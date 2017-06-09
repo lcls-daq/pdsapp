@@ -7,7 +7,7 @@ namespace Pds_ConfigDb {
 
   class Epix100aConfig : public Serializer {
   public:
-    Epix100aConfig();
+    Epix100aConfig(bool expert=false);
     ~Epix100aConfig();
   public:
     int  readParameters (void* from);

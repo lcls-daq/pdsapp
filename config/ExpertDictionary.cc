@@ -31,7 +31,7 @@ Serializer* ExpertDictionary::lookup(const Pds::TypeId& type)
 #define enroll(_type, v) { if (type.value()==_type.value()) return v; }
   enroll(_timepixConfigType   ,new TimepixExpertConfig);
   enroll(_rayonixConfigType   ,new RayonixExpertConfig);
-  enroll(_epix100aConfigType  ,new Epix100aConfig);
+  enroll(_epix100aConfigType  ,new Epix100aConfig(true));
   enroll(_zylaConfigType      ,new ZylaExpertConfig);
 #ifdef BUILD_EXTRA
   enroll(_PhasicsConfigType   ,new PhasicsExpertConfig);
