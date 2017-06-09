@@ -32,7 +32,7 @@ Serializer* ExpertDictionary::lookup(const Pds::TypeId& type)
   enroll(_timepixConfigType   ,new TimepixExpertConfig);
   enroll(_rayonixConfigType   ,new RayonixExpertConfig);
   enroll(_epix100aConfigType  ,new Epix100aConfig(true));
-  enroll(_zylaConfigType      ,new ZylaExpertConfig);
+  enroll(_zylaConfigType      ,new ZylaConfig(true));
 #ifdef BUILD_EXTRA
   enroll(_PhasicsConfigType   ,new PhasicsExpertConfig);
 #endif
