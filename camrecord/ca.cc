@@ -277,6 +277,7 @@ class caconn {
         int               pid = getpid(), size;
         DetInfo sourceInfo(pid, det, detversion, dev, devversion);
         Camera::FrameCoord origin(0, 0);
+        Camera::FrameCoord bottom(w, h);
 
         register_alias(name, sourceInfo);
 
@@ -345,7 +346,7 @@ class caconn {
             cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), sourceInfo);
             new ((void *)cfg->alloc(sizeof(Camera::FrameFexConfigV1)))
                 Camera::FrameFexConfigV1(Camera::FrameFexConfigV1::FullFrame, 1,
-                                         Camera::FrameFexConfigV1::NoProcessing, origin, origin, 0, 0, 0);
+                                         Camera::FrameFexConfigV1::NoProcessing, origin, bottom, 0, 0, 0);
 
             // setup hdf5 datasets
             if (write_hdf) {
