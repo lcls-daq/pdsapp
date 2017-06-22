@@ -50,6 +50,8 @@
 #include "pds/config/TM6740ConfigType.hh"
 #include "pds/config/PimImageConfigType.hh"
 #include "pds/config/FrameFexConfigType.hh"
+#include "pds/config/UsdUsbConfigType.hh"
+#include "pds/config/UsdUsbFexConfigType.hh"
 #include "pdsdata/psddl/camera.ddl.h"
 
 #include "pds/config/EvrConfigType.hh"
@@ -66,6 +68,7 @@
 typedef Pds::Bld::BldDataEBeamV7 BldDataEBeam;
 typedef Pds::Bld::BldDataFEEGasDetEnergyV1 BldDataFEEGasDetEnergy;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
+typedef Pds::Bld::BldDataUsdUsbV1 BldDataUsdUsb;
 typedef Pds::Bld::BldDataGMDV2 BldDataGMD;
 typedef Pds::Bld::BldDataBeamMonitorV1 BldDataBeamMonitor;
 typedef Pds::Bld::BldDataSpectrometerV1 SpectrometerType;
@@ -242,6 +245,7 @@ namespace Pds {
     (ONE_BIT<<BldInfo::SxrAin01);
   BldBitMask BeamMonitorMask = (ONE_BIT<<BldInfo::MfxBeamMon01) |
     (ONE_BIT<<BldInfo::Hx2BeamMon01);
+  BldBitMask UsbEncoder = ((ONE_BIT<<(BldInfo::CxiUsbEncoder01+1)) - (ONE_BIT<<BldInfo::XrtUsbEncoder01));
 #define TEST_CREAT(mask, idType, dataType)                  \
   if ((im & mask).isNotZero()) {                            \
     Xtc tc(TypeId(TypeId::idType,dataType::Version),        \
@@ -293,6 +297,8 @@ namespace Pds {
         tc.extent += sizeof(FrameFexConfigType);
         dg->insert(tc,&_frameFexConfig);
       }
+      TEST_CACHE(UsbEncoder     ,_usdusbConfigType    ,UsdUsbConfigType);
+      TEST_CACHE(UsbEncoder     ,_usdusbFexConfigType ,UsdUsbFexConfigType);
       //      TEST_CACHE(AcqMask        ,Id_SharedAcq      ,BldDataAcqADC);
       TEST_CACHE(AIMask, _analogInputType, AnalogInputType);
       TEST_CACHE(EOrbitsMask, _eOrbitsType, EOrbitsType);
@@ -368,6 +374,19 @@ namespace Pds {
         else
           _abort(xtc->contains);
         break;
+      case TypeId::Id_SharedUsdUsb:
+        if (xtc->contains.version() == BldDataUsdUsb::Version) {
+          const BldDataUsdUsb* c = reinterpret_cast<const BldDataUsdUsb*>(xtc->payload());
+          if (_require(Xtc(_usdusbConfigType,xtc->src),c->config()))
+            INSERT(UsdUsbConfig,c->config());
+          if (_require(Xtc(_usdusbFexConfigType,xtc->src),c->fexConfig()))
+            INSERT(UsdUsbFexConfig,c->fexConfig());
+          INSERT(UsdUsbData,c->data());
+          INSERT(UsdUsbFexData,c->fexData());
+        }
+        else
+          _abort(xtc->contains);
+        break;
 #if 0
       case TypeId::Id_SharedAcqADC:
         if (xtc->contains.version() == BldDataAcqADC::Version) {
@@ -385,6 +404,8 @@ namespace Pds {
         //
       REQUIRE(AcqConfig   )
       REQUIRE(IpimbConfig )
+      REQUIRE(UsdUsbConfig)
+      REQUIRE(UsdUsbFexConfig)
       REQUIRE(TM6740Config)
       REQUIRE(PimImageConfig)
       REQUIRE(Opal1kConfig)
@@ -428,6 +449,10 @@ namespace Pds {
     }
 
     bool _require(const Xtc& xtc, const IpimbConfigType& c)
+    { return _require_nz(xtc,&c,sizeof(c)); }
+    bool _require(const Xtc& xtc, const UsdUsbConfigType& c)
+    { return _require_nz(xtc,&c,sizeof(c)); }
+    bool _require(const Xtc& xtc, const UsdUsbFexConfigType& c)
     { return _require_nz(xtc,&c,sizeof(c)); }
     bool _require(const Xtc& xtc, const PimImageConfigType& c)
     { return _require_nz(xtc,&c,sizeof(c)); }
