@@ -46,6 +46,7 @@ namespace Pds {
                        numberofClients),
       _sizeofBuffers(sizeofBuffers)
     {
+      _init();
     }
     ~MyMonitorServer() 
     {
