@@ -13,7 +13,7 @@ tgtnames += andorStandAlone andorDualStandAlone archonStandAlone jungfrauStandAl
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += zylaStandAlone
+tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone
 endif
 
 commonlibs	:= pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
