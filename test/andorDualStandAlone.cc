@@ -19,6 +19,8 @@ using namespace std;
 
 static const char sAndorCameraTestVersion[] = "1.20";
 static const int iAcquisitionDelayTime = 15; // in ms
+static const int iReadoutBackoffTime = 100; // in ms
+static const int iMaxReadoutAttempts = 10;
 static const int iMaxCamera = 2;
 int closeCamera();
 int _closeCamera(int iCamera);
@@ -1130,54 +1132,65 @@ int AndorCameraTest::_retrieveData(int iCamera, uint16_t* liImageData, int iImag
   //if (!bExtTrigger)
   //  iError = GetAcquiredData16(liImageData, iAcqBufferSize);
   //else
-  iError = GetOldestImage16(liImageData, iAcqBufferSize);
+  int iAttempts = 0;
+  while (iAttempts < iMaxReadoutAttempts) {
+    iError = GetOldestImage16(liImageData, iAcqBufferSize);
+    if (!isAndorFuncOk(iError))
+    {
+      iAttempts++;
+      timeval timeSleepMicro = {0, iAttempts * iReadoutBackoffTime * 1000}; // in milliseconds
+      // use select() to simulate nanosleep(), because experimentally select() controls the sleeping time more precisely
+      select( 0, NULL, NULL, NULL, &timeSleepMicro);
+    }
+    else
+    {
+      if (!bExtTrigger)
+      {
+        const uint16_t*     pPixel     = liImageData;
+        const uint16_t*     pEnd       = pPixel + iImageWidth*iImageHeight;
+        const uint64_t      uNumPixels = (uint64_t) (iImageWidth*iImageHeight);
+
+        uint64_t            uSum    = 0;
+        uint64_t            uSumSq  = 0;
+        for ( ; pPixel < pEnd; pPixel++ )
+        {
+          uSum   += *pPixel;
+          uSumSq += ((uint32_t)*pPixel) * ((uint32_t)*pPixel);
+        }
+
+        printf( " Avg %.2lf Std %.2lf",
+          (double) uSum / (double) uNumPixels,
+          sqrt( (uNumPixels * uSumSq - uSum * uSum) / (double)(uNumPixels*uNumPixels)) );
+
+        char* pByte;
+        for ( pByte = (char*)( liImageData + iTestBufferSizeIn16 ) - 1;
+              pByte >= (char*)liImageData && *pByte == uTestByte; --pByte )
+          ;
+        printf( " Image size (bytes): %ld\n", (long) (pByte - (char*) liImageData) + 1 );
+      }
+
+      if ( !_strFnPrefix.empty() )
+      {
+        ++_iOutImageIndex;
+
+        char sFnOut[32];
+        sprintf(sFnOut, "%s_cam%02d_%03d.raw", _strFnPrefix.c_str(), iCamera, (_iOutImageIndex+1)/_iCamera);
+
+        printf("Writing to image file %s...", sFnOut);
+        fflush(NULL);
+        printf("done.\n");
+
+        int fdImage = ::open(sFnOut, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
+        ::write(fdImage, liImageData, iImageWidth*iImageHeight*sizeof(liImageData[0]));
+        ::close(fdImage);
+      }
+      break;
+    }
+  }
   if (!isAndorFuncOk(iError))
   {
     printf("GetOldestImage16(): %s\n", AndorErrorCodes::name(iError));
     return 2;
-  }
-  else
-  {
-    if (!bExtTrigger)
-    {
-      const uint16_t*     pPixel     = liImageData;
-      const uint16_t*     pEnd       = pPixel + iImageWidth*iImageHeight;
-      const uint64_t      uNumPixels = (uint64_t) (iImageWidth*iImageHeight);
-
-      uint64_t            uSum    = 0;
-      uint64_t            uSumSq  = 0;
-      for ( ; pPixel < pEnd; pPixel++ )
-      {
-        uSum   += *pPixel;
-        uSumSq += ((uint32_t)*pPixel) * ((uint32_t)*pPixel);
-      }
-
-      printf( " Avg %.2lf Std %.2lf",
-        (double) uSum / (double) uNumPixels,
-        sqrt( (uNumPixels * uSumSq - uSum * uSum) / (double)(uNumPixels*uNumPixels)) );
-
-      char* pByte;
-      for ( pByte = (char*)( liImageData + iTestBufferSizeIn16 ) - 1;
-            pByte >= (char*)liImageData && *pByte == uTestByte; --pByte )
-        ;
-      printf( " Image size (bytes): %ld\n", (long) (pByte - (char*) liImageData) + 1 );
-    }
-
-    if ( !_strFnPrefix.empty() )
-    {
-      ++_iOutImageIndex;
-
-      char sFnOut[32];
-      sprintf(sFnOut, "%s_cam%02d_%03d.raw", _strFnPrefix.c_str(), iCamera, (_iOutImageIndex+1)/_iCamera);
-
-      printf("Writing to image file %s...", sFnOut);
-      fflush(NULL);
-      printf("done.\n");
-
-      int fdImage = ::open(sFnOut, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
-      ::write(fdImage, liImageData, iImageWidth*iImageHeight*sizeof(liImageData[0]));
-      ::close(fdImage);
-    }
   }
   //fstream fout("image.txt", ios::out);
   //for(int i=0;i<_iDetectorWidth*_iDetectorHeight;i++) fout << imageData[i] << endl;
