@@ -32,7 +32,7 @@
 
 extern int optind;
 
-static EvrBldManager* evrBldMgr = NULL; 
+static Pds::EvrBldManager* evrBldMgr = NULL; 
 
 static int openFifo(const char* name, int flags, unsigned index) {
   char path[128];
@@ -215,7 +215,7 @@ int main(int argc, char** argv) {
   DetInfo det(node.pid(), 
               (DetInfo::Detector)detector, detector_id,
               DetInfo::Evr, device_id);
-  evrBldMgr = new EvrBldManager(det,evrid,evr_write_fd);
+  evrBldMgr = new Pds::EvrBldManager(det,evrid,evr_write_fd);
   evrBldMgr->appliance().connect(idle->inlet());
 
   idle->set_inlet_wire(iwire);

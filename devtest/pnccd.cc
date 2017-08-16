@@ -15,6 +15,8 @@
 #include "pds/xtc/Datagram.hh"
 #include "pds/xtc/XtcType.hh"
 
+using namespace Pds;
+
 Datagram* outdg;
 int       Filedes = -1;           // file descriptor
 unsigned char fileHeaderBuffer[1024];

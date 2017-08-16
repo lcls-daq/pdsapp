@@ -11,6 +11,8 @@
 #include "pdsdata/psddl/pnccd.ddl.h"
 #include "pdsapp/tools/PnccdFrameDetail.hh"
 
+using namespace Pds;
+
 static PNCCD::ConfigV1 cfg(0,0);
 
 static unsigned short expectedPattern[] = {0xfedc,0xba98,0x7654,0};

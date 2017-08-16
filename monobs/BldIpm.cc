@@ -12,6 +12,7 @@ typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 #include <string.h>
 #include <stdio.h>
 
+using namespace Pds;
 using namespace PdsCas;
 
 using Pds_Epics::PVWriter;

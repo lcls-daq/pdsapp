@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 
+using namespace Pds;
 using namespace PdsCas;
 using Pds_Epics::PVWriter;
 using Pds_Epics::PVMonitor;

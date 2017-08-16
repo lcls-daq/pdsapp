@@ -14,6 +14,8 @@
 #include "pds/service/GenericPool.hh"
 #include "pds/xtc/Datagram.hh"
 
+using namespace Pds;
+
 void usage(char* progname) {
   fprintf(stderr,"Usage: %s [-h] -n <numbXTCs> -f <filename> -o <outFilename>\n", progname);
 }

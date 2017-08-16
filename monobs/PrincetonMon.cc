@@ -11,6 +11,7 @@
 #include <math.h>
 #include <string.h>
 
+using namespace Pds;
 using Pds_Epics::PVWriter;
 
 namespace PdsCas {

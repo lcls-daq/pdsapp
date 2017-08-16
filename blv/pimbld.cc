@@ -39,7 +39,7 @@ public:
 
 static Pds::CameraDriver* _driver(int id)
 {
-  return new PdsLeutron::PicPortCL(*new TM6740Camera, id);
+  return new PdsLeutron::PicPortCL(*new Pds::TM6740Camera, id);
 }
 
 static void *thread_signals(void*)

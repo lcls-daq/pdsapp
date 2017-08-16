@@ -38,6 +38,8 @@ static int openFifo(const char* name, int flags, unsigned index) {
   return result;
 }
 
+using namespace Pds;
+
 class SimApp : public Appliance {
 public:
   SimApp(const std::vector<IpmParams>& ipms) :

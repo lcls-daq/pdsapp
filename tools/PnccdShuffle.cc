@@ -16,6 +16,8 @@
 #include <vector>
 #include <new>
 
+using namespace Pds;
+
 static std::vector<PNCCD::ConfigV2> _config;
 static std::vector<Pds::DetInfo>    _info;
 

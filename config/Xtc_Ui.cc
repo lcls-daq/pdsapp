@@ -27,6 +27,7 @@
 #include <list>
 
 using std::list;
+using namespace Pds;
 
 static QString sname(const Pds::Src& src)
 {

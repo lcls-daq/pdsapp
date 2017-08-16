@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+using namespace Pds;
 using Pds_Epics::PVWriter;
 
 static const unsigned MaxSections=32;

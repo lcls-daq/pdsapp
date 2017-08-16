@@ -18,6 +18,8 @@
 
 #include <boost/shared_ptr.hpp>
 
+using namespace Pds;
+
 static void Destroy(Xtc*) {}
 
 namespace PdsCas {

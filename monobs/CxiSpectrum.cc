@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <math.h>
 
+using namespace Pds;
 using namespace PdsCas;
 using Pds_Epics::PVWriter;
 using Pds_Epics::PVMonitor;

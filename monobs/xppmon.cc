@@ -13,6 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 
+using namespace Pds;
 using namespace PdsCas;
 
 void usage(const char* p)
