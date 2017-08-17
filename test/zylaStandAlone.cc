@@ -7,6 +7,7 @@
 #include <signal.h>
 
 static AT_H Handle = AT_HANDLE_UNINITIALISED;
+static const int MAX_CONN_RETRY = 10;
 
 static void close_camera(int isig)
 {
@@ -197,9 +198,21 @@ int main(int argc, char **argv)
     printf("Cannot register signal handler for SIGTERM\n");
 
   Pds::Zyla::Driver* camera = new Pds::Zyla::Driver(Handle);
-  if (!camera->is_present()) {
+  bool cam_timeout = false;
+  int retry_count = 0;
+  printf("Waiting to camera to initialize ...");
+  while(!camera->is_present()) {
+    if (retry_count > MAX_CONN_RETRY) break;
+    printf(".");
+    sleep(1);
+    retry_count++;
+  }
+  if (cam_timeout) {
+    printf(" timeout!\n");
     printf("Camera is not present!\n");
     return 1;
+  } else {
+    printf(" done!\n");
   }
 
   AT_WC buffer[256];

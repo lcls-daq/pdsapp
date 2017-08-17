@@ -27,6 +27,7 @@ static const unsigned MAX_EVENT_DEPTH = 64;
 using namespace Pds;
 
 static AT_H Handle = AT_HANDLE_UNINITIALISED;
+static const int MAX_CONN_RETRY = 10;
 
 static void close_camera(int isig)
 {
@@ -208,12 +209,24 @@ int main(int argc, char** argv) {
     printf("Cannot register signal handler for SIGTERM\n");
 
   Zyla::Driver* drv = new Zyla::Driver(Handle, num_buffers);
-  if (!drv->is_present()) {
+  bool cam_timeout = false;
+  int retry_count = 0;
+  printf("Waiting to camera to initialize ...");
+  while(!drv->is_present()) {
+    if (retry_count > MAX_CONN_RETRY) break;
+    printf(".");
+    sleep(1);
+    retry_count++;
+  }
+  if (cam_timeout) {
+    printf(" timeout!\n");
     printf("Camera is not present!\n");
     AT_Close(Handle);
     AT_FinaliseUtilityLibrary();
     AT_FinaliseLibrary();
     return 1;
+  } else {
+    printf(" done!\n");
   }
 
   // Print out basic camera info

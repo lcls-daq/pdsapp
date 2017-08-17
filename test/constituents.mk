@@ -45,7 +45,7 @@ tgtslib_andorDualStandAlone := dl pthread rt
 
 tgtsrcs_zylaStandAlone := zylaStandAlone.cc
 tgtincs_zylaStandAlone := pdsdata/include ndarray/include boost/include
-tgtlibs_zylaStandAlone := $(commonlibs) pds/zyla andor3/atcore andor3/atutility
+tgtlibs_zylaStandAlone := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.05
 tgtslib_zylaStandAlone := dl pthread rt
 
 tgtsrcs_timestampReceiver := timestampReceiver.cc
