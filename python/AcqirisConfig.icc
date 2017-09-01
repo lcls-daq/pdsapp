@@ -279,7 +279,6 @@ PyObject* pds_AcqirisConfig_set    (PyObject*   self, PyObject* args)
     SetDictMember(nbrConvertersPerChannel);
     SetDictMember(channelMask);
     SetDictMember(nbrBanks);
-    SetDictMember(nbrChannels);
 
     Pds::Acqiris::VertV1 vert_chans[max_channels];
     ndarray<const Pds::Acqiris::VertV1, 1> vert_cfs = cfg->vert();

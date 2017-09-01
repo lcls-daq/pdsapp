@@ -90,17 +90,36 @@ PyObject* pds_AndorConfig_get (PyObject*   self, PyObject* args)
 
 
 //  Retrieve configuration data from a Python Dictionary
-#define SetDictMember(name)                                          \
-  double name;                                                       \
-  { PyObject* i = PyDict_GetItemString(o,#name);                     \
-    if (i) {                                                         \
-      if(PyFloat_Check(i))  name = PyFloat_AsDouble(i);              \
-      else if (PyInt_CheckExact(i)) name = (double) PyInt_AsLong(i); \
-      else  name = (double) PyLong_AsUnsignedLong(i);                \
-    }                                                                \
-    else { \
-  printf("Unknown %s\n",#name); \
-  name = (double) cfg->name();  } }              
+#define GetDictEnum(name,type)                                          \
+  type name;                                                            \
+  { PyObject* i = PyDict_GetItemString(o,#name);                        \
+    if (i) {                                                            \
+      if (PyInt_CheckExact(i))  name = (type) PyInt_AsLong(i);          \
+      else if (PyLong_CheckExact(i)) name = (type) PyLong_AsLong(i);    \
+      else name = (type) cfg->name();                                   \
+    }                                                                   \
+    else name = cfg->name(); }
+
+
+#define GetDictLong(name)                                         \
+  unsigned long name;                                             \
+  { PyObject* i = PyDict_GetItemString(o,#name);                  \
+    if (i) {                                                      \
+      if (PyLong_Check(i)) name = PyLong_AsUnsignedLong(i);       \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);            \
+      else name = cfg->name();                                    \
+    }                                                             \
+    else name = cfg->name(); }
+
+
+#define GetDictFloat(name)                              \
+  double name;                                          \
+  { PyObject* i = PyDict_GetItemString(o,#name);        \
+    if (i) {                                            \
+      if (PyFloat_Check(i)) name = PyFloat_AsDouble(i); \
+      else name = cfg->name();                          \
+    }                                                   \
+    else name = cfg->name(); }
 
 
 PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
@@ -114,21 +133,21 @@ PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
     const Pds::Andor::ConfigV1* cfg = 
       reinterpret_cast<const Pds::Andor::ConfigV1*>(xtc->payload);
 
-    SetDictMember(width);
-    SetDictMember(height);
-    SetDictMember(orgX);
-    SetDictMember(orgY);
-    SetDictMember(binX);
-    SetDictMember(binY);
-    SetDictMember(exposureTime);
-    SetDictMember(coolingTemp);
-    SetDictMember(fanMode);
-    SetDictMember(baselineClamp);
-    SetDictMember(highCapacity);
-    SetDictMember(gainIndex);
-    SetDictMember(readoutSpeedIndex);
-    SetDictMember(exposureEventCode);
-    SetDictMember(numDelayShots);
+    GetDictLong(width);
+    GetDictLong(height);
+    GetDictLong(orgX);
+    GetDictLong(orgY);
+    GetDictLong(binX);
+    GetDictLong(binY);
+    GetDictFloat(exposureTime);
+    GetDictFloat(coolingTemp);
+    GetDictEnum(fanMode,Pds::Andor::ConfigV1::EnumFanMode);
+    GetDictLong(baselineClamp);
+    GetDictLong(highCapacity);
+    GetDictLong(gainIndex);
+    GetDictLong(readoutSpeedIndex);
+    GetDictLong(exposureEventCode);
+    GetDictLong(numDelayShots);
     new(xtc->payload) Pds::Andor::ConfigV1((uint32_t) width,
                       (uint32_t)  height,
                       (uint32_t)  orgX,
@@ -137,7 +156,7 @@ PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
                       (uint32_t)  binY,
                       (float)     exposureTime,
                       (float)     coolingTemp,
-                      Pds::Andor::ConfigV1::EnumFanMode(fanMode),
+                      fanMode,
                       (uint8_t)   baselineClamp,
                       (uint8_t)   highCapacity,
                       (uint8_t)   gainIndex,
@@ -151,22 +170,22 @@ PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
     const Pds::Andor::ConfigV2* cfg =
       reinterpret_cast<const Pds::Andor::ConfigV2*>(xtc->payload);
 
-    SetDictMember(width);
-    SetDictMember(height);
-    SetDictMember(orgX);
-    SetDictMember(orgY);
-    SetDictMember(binX);
-    SetDictMember(binY);
-    SetDictMember(exposureTime);
-    SetDictMember(coolingTemp);
-    SetDictMember(fanMode);
-    SetDictMember(cropMode);
-    SetDictMember(baselineClamp);
-    SetDictMember(highCapacity);
-    SetDictMember(gainIndex);
-    SetDictMember(readoutSpeedIndex);
-    SetDictMember(exposureEventCode);
-    SetDictMember(numDelayShots);
+    GetDictLong(width);
+    GetDictLong(height);
+    GetDictLong(orgX);
+    GetDictLong(orgY);
+    GetDictLong(binX);
+    GetDictLong(binY);
+    GetDictFloat(exposureTime);
+    GetDictFloat(coolingTemp);
+    GetDictEnum(fanMode,Pds::Andor::ConfigV2::EnumFanMode);
+    GetDictEnum(cropMode,Pds::Andor::ConfigV2::EnumCropMode);
+    GetDictLong(baselineClamp);
+    GetDictLong(highCapacity);
+    GetDictLong(gainIndex);
+    GetDictLong(readoutSpeedIndex);
+    GetDictLong(exposureEventCode);
+    GetDictLong(numDelayShots);
     new(xtc->payload) Pds::Andor::ConfigV2((uint32_t) width,
                       (uint32_t)  height,
                       (uint32_t)  orgX,
@@ -175,8 +194,8 @@ PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
                       (uint32_t)  binY,
                       (float)     exposureTime,
                       (float)     coolingTemp,
-                      Pds::Andor::ConfigV2::EnumFanMode(fanMode),
-                      Pds::Andor::ConfigV2::EnumCropMode(cropMode),
+                      fanMode,
+                      cropMode,
                       (uint8_t)   baselineClamp,
                       (uint8_t)   highCapacity,
                       (uint8_t)   gainIndex,
@@ -193,5 +212,6 @@ PyObject* pds_AndorConfig_set    (PyObject*   self, PyObject* args)
 
 }
 
-#undef SetDictMember
-
+#undef GetDictEnum
+#undef GetDictLong
+#undef GetDictFloat
