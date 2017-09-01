@@ -5,6 +5,8 @@
 #include <getopt.h>
 #include "pds/jungfrau/Driver.hh"
 
+#include <vector>
+
 #define PIXELS_PER_PACKET 4096
 #define PACKETS_PER_FRAME 128
 
@@ -17,12 +19,11 @@ static void showVersion(const char* p)
 
 static void showUsage(const char* p)
 {
-  printf("Usage: %s [-v|--version] [-h|--help] [-c|--camera <camera number>]\n"
+  printf("Usage: %s [-v|--version] [-h|--help]\n"
          "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (sec)>]\n"
          "[-b|--bias <bias>] [-g|--gain <gain>] [-S|--speed <speed>] [-t|--trigger <delay>] [-r|--receiver]\n"
          "-H|--host <host> [-P|--port <port>] -m|--mac <mac> -d|--detip <detip> -s|--sls <sls>\n"
          " Options:\n"
-         "    -c|--camera   [0-9]                     select the slsDetector device id. (default: 0)\n"
          "    -w|--write    <filename prefix>         output filename prefix\n"
          "    -n|--number   <number of images>        number of images to be captured (default: 1)\n"
          "    -e|--exposure <exposure time>           exposure time (sec) (default: 0.00001 sec)\n"
@@ -30,25 +31,24 @@ static void showUsage(const char* p)
          "    -b|--bias     <bias>                    the bias voltage to apply to the sensor in volts (default: 200)\n"
          "    -g|--gain     <gain 0-5>                the gain mode of the detector (default: Normal - 0)\n"
          "    -S|--speed    <speed 0-1>               the clock speed mode of the detector (default: Quarter - 0)\n"
-         "    -H|--host     <host>                    set the receiver host ip\n"
          "    -P|--port     <port>                    set the receiver udp port number (default: 32410)\n"
+         "    -H|--host     <host>                    set the receiver host ip\n"
          "    -m|--mac      <mac>                     set the receiver mac address\n"
          "    -d|--detip    <detip>                   set the detector ip address\n"
          "    -s|--sls      <sls>                     set the hostname of the slsDetector interface\n"
          "    -t|--trigger  <delay>                   the internal acquisition start delay to use with an external trigger is seconds (default: 0.000238)\n"
-         "    -r|--receiver                           attempt to configure ip settings of the receiver (default: false)\n"
+         "    -r|--receiver                           do not attempt to configure ip settings of the receiver (default: true)\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhc:w:n:e:E:b:g:S:H:P:m:d:s:t:r";
+  const char*         strOptions  = ":vhw:n:e:E:b:g:S:P:H:m:d:s:t:r";
   const struct option loOptions[] =
   {
     {"ver",         0, 0, 'v'},
     {"help",        0, 0, 'h'},
-    {"camera",      1, 0, 'c'},
     {"write",       1, 0, 'w'},
     {"number",      1, 0, 'n'},
     {"exposure",    1, 0, 'e'},
@@ -56,8 +56,8 @@ int main(int argc, char **argv)
     {"bias",        1, 0, 'b'},
     {"gain",        1, 0, 'g'},
     {"speed",       1, 0, 'S'},
-    {"host",        1, 0, 'H'},
     {"port",        1, 0, 'P'},
+    {"host",        1, 0, 'H'},
     {"mac",         1, 0, 'm'},
     {"detip",       1, 0, 'd'},
     {"sls",         1, 0, 's'},
@@ -67,22 +67,22 @@ int main(int argc, char **argv)
   };
 
   unsigned port  = 32410;
-  int camera = 0;
+  unsigned num_modules = 0;
   int numImages = 1;
   unsigned bias = 200;
   double exposureTime = 0.00001;
   double exposurePeriod = 0.2;
   double triggerDelay = 0.000238;
   bool lUsage = false;
-  bool configReceiver = false;
+  bool configReceiver = true;
   unsigned gain_value = 0;
   unsigned speed_value = 0;
   JungfrauConfigType::GainMode gain = JungfrauConfigType::Normal;
   JungfrauConfigType::SpeedMode speed = JungfrauConfigType::Quarter;
-  char* sHost    = (char *)NULL;
-  char* sMac     = (char *)NULL;
-  char* sDetIp   = (char *)NULL;
-  char* sSlsHost = (char *)NULL;
+  std::vector<char*> sHost;
+  std::vector<char*> sMac;
+  std::vector<char*> sDetIp;
+  std::vector<char*> sSlsHost;
   char* fileName = (char *)NULL;
 
   int optionIndex  = 0;
@@ -96,9 +96,6 @@ int main(int argc, char **argv)
       case 'v':               /* Print usage */
         showVersion(argv[0]);
         return 0;
-      case 'c':
-        camera = strtol(optarg, NULL, 0);
-        break;
       case 'w':
         fileName = new char[strlen(optarg)+6];
         sprintf(fileName, "%s.data", optarg);
@@ -122,22 +119,23 @@ int main(int argc, char **argv)
         speed_value = strtoul(optarg, NULL, 0);
         break;
       case 'H':
-        sHost = optarg;
+        sHost.push_back(optarg);
         break;
       case 'P':
         port = strtoul(optarg, NULL, 0);
         break;
       case 'm':
-        sMac = optarg;
+        sMac.push_back(optarg);
         break;
       case 'd':
-        sDetIp = optarg;
+        sDetIp.push_back(optarg);
         break;
       case 's':
-        sSlsHost = optarg;
+        sSlsHost.push_back(optarg);
+        num_modules++;
         break;
       case 'r':
-        configReceiver = true;
+        configReceiver = false;
         break;
       case 'D':
         triggerDelay = strtod(optarg, NULL);
@@ -155,23 +153,28 @@ int main(int argc, char **argv)
     }
   }
 
-  if(!sHost) {
-    printf("%s: receiver hostname is required\n", argv[0]);
+  if(num_modules == 0) {
+    printf("%s: at least one module is required\n", argv[0]);
     lUsage = true;
   }
 
-  if(!sMac) {
-    printf("%s: receiver mac address is required\n", argv[0]);
+  if(sHost.size() != num_modules) {
+    printf("%s: receiver hostname for each module is required\n", argv[0]);
     lUsage = true;
   }
 
-  if(!sDetIp) {
-    printf("%s: detector ip address is required\n", argv[0]);
+  if(sMac.size() != num_modules) {
+    printf("%s: receiver mac address for each module is required\n", argv[0]);
     lUsage = true;
   }
 
-  if(!sSlsHost) {
-    printf("%s: slsDetector interface hostname is required\n", argv[0]);
+  if(sDetIp.size() != num_modules) {
+    printf("%s: detector ip address for each module is required\n", argv[0]);
+    lUsage = true;
+  }
+
+  if(sSlsHost.size() != num_modules) {
+    printf("%s: slsDetector interface hostname for each module is required\n", argv[0]);
     lUsage = true;
   }
 
@@ -233,7 +236,11 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  Pds::Jungfrau::Driver* det = new Pds::Jungfrau::Driver(camera, sSlsHost, sHost, port, sMac, sDetIp, configReceiver);
+  std::vector<Pds::Jungfrau::Module*> modules(num_modules);
+  for (unsigned i=0; i<num_modules; i++) {
+    modules[i] = new Pds::Jungfrau::Module(i, sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
+  }
+  Pds::Jungfrau::Detector* det = new Pds::Jungfrau::Detector(modules);
  
   Pds::Jungfrau::DacsConfig dacs_config(
     1000, // vb_ds
@@ -250,20 +257,25 @@ int main(int argc, char **argv)
 
   sleep(1);
 
-  size_t header_sz = sizeof(uint32_t)/sizeof(uint16_t);
+  size_t header_sz = sizeof(uint64_t)/sizeof(uint16_t);
   size_t event_sz = PIXELS_PER_PACKET * PACKETS_PER_FRAME + header_sz;
   size_t  data_sz = numImages * event_sz;
   uint16_t* data = new uint16_t[data_sz];
-  int32_t frame = -1;
+  uint64_t frame = 0;
 
   if (det->start()) {
     for(int i=0; i<numImages; i++) {
-      frame = det->get_frame(&data[i*event_sz + header_sz]);
-      printf("got frame: %d\n", frame);
-      *((uint32_t*) &data[i*event_sz]) = frame;
+      if (det->get_frame(&frame, &data[i*event_sz + header_sz])) {
+        printf("got frame: %lu\n", frame);
+        *((uint64_t*) &data[i*event_sz]) = frame;
+      } else {
+        printf("failed to retrieve frame: %lu\n", frame);
+      }
     }
     det->stop();
     sleep(1);
+  } else {
+    printf("failed to start detector!\n");
   }
 
   if (fileName) {

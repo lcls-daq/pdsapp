@@ -18,6 +18,7 @@
 #include <signal.h>
 
 #include <list>
+#include <vector>
 
 static const unsigned EVENT_SIZE_EXTRA = 0x10000;
 static const unsigned MAX_EVENT_SIZE = 2*512*1024 + EVENT_SIZE_EXTRA;
@@ -34,28 +35,26 @@ static void jungfrauUsage(const char* p)
          "                                            (e.g. XppEndStation/0/Jungfrau/1 or 22/0/43/1)\n"
          "    -p|--platform <platform>,<mod>,<chan>   platform number, EVR module, EVR channel\n"
          "    -u|--uniqueid <alias>                   set device alias\n"
-         "    -c|--camera   [0-9]                     select the slsDetector device id. (default: 0)\n"
-         "    -H|--host     <host>                    set the receiver host ip\n"
          "    -P|--port     <port>                    set the receiver udp port number (default: 32410)\n"
+         "    -H|--host     <host>                    set the receiver host ip\n"
          "    -m|--mac      <mac>                     set the receiver mac address\n"
          "    -d|--detip    <detip>                   set the detector ip address\n"
          "    -s|--sls      <sls>                     set the hostname of the slsDetector interface\n"
-         "    -r|--receiver                           attempt to configure ip settings of the receiver (default: false)\n"
+         "    -r|--receiver                           do not attempt to configure ip settings of the receiver (default: true)\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char** argv) {
 
-  const char*   strOptions    = ":hp:i:u:c:H:P:m:d:s:r";
+  const char*   strOptions    = ":hp:i:u:P:H:m:d:s:r";
   const struct option loOptions[]   =
     {
        {"help",        0, 0, 'h'},
        {"platform",    1, 0, 'p'},
        {"id",          1, 0, 'i'},
        {"uniqueid",    1, 0, 'u'},
-       {"camera",      1, 0, 'c'},
-       {"host",        1, 0, 'H'},
        {"port",        1, 0, 'P'},
+       {"host",        1, 0, 'H'},
        {"mac",         1, 0, 'm'},
        {"detip",       1, 0, 'd'},
        {"sls",         1, 0, 's'},
@@ -69,17 +68,17 @@ int main(int argc, char** argv) {
   unsigned module = 0;
   unsigned channel = 0;
   unsigned port  = 32410;
-  int camera = 0;
+  unsigned num_modules = 0;
   bool lUsage = false;
   bool isTriggered = false;
-  bool configReceiver = false;
+  bool configReceiver = true;
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::Jungfrau, 0);
   char* uniqueid = (char *)NULL;
-  char* sHost    = (char *)NULL;
-  char* sMac     = (char *)NULL;
-  char* sDetIp   = (char *)NULL;
-  char* sSlsHost = (char *)NULL;
+  std::vector<char*> sHost;
+  std::vector<char*> sMac;
+  std::vector<char*> sDetIp;
+  std::vector<char*> sSlsHost;
   
   int optionIndex  = 0;
   while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &optionIndex ) ) {
@@ -117,14 +116,8 @@ int main(int argc, char** argv) {
           uniqueid = optarg;
         }
         break;
-      case 'c':
-        if (!CmdLineTools::parseInt(optarg,camera)) {
-          printf("%s: option `-c' parsing error\n", argv[0]);
-          lUsage = true;
-        }
-        break;
       case 'H':
-        sHost = optarg;
+        sHost.push_back(optarg);
         break;
       case 'P':
         if (!CmdLineTools::parseUInt(optarg,port)) {
@@ -133,16 +126,17 @@ int main(int argc, char** argv) {
         }
         break;
       case 'm':
-        sMac = optarg;
+        sMac.push_back(optarg);
         break;
       case 'd':
-        sDetIp = optarg;
+        sDetIp.push_back(optarg);
         break;
       case 's':
-        sSlsHost = optarg;
+        sSlsHost.push_back(optarg);
+        num_modules++;
         break;
       case 'r':
-        configReceiver = true;
+        configReceiver = false;
         break;
       case '?':
         if (optopt)
@@ -159,23 +153,28 @@ int main(int argc, char** argv) {
     }
   }
 
-  if(!sHost) {
-    printf("%s: receiver hostname is required\n", argv[0]);
+  if(num_modules == 0) {
+    printf("%s: at least one module is required\n", argv[0]);
     lUsage = true;
   }
 
-  if(!sMac) {
-    printf("%s: receiver mac address is required\n", argv[0]);
+  if(sHost.size() != num_modules) {
+    printf("%s: receiver hostname for each module is required\n", argv[0]);
     lUsage = true;
   }
 
-  if(!sDetIp) {
-    printf("%s: detector ip address is required\n", argv[0]);
+  if(sMac.size() != num_modules) {
+    printf("%s: receiver mac address for each module is required\n", argv[0]);
     lUsage = true;
   }
 
-  if(!sSlsHost) {
-    printf("%s: slsDetector interface hostname is required\n", argv[0]);
+  if(sDetIp.size() != num_modules) {
+    printf("%s: detector ip address for each module is required\n", argv[0]);
+    lUsage = true;
+  }
+
+  if(sSlsHost.size() != num_modules) {
+    printf("%s: slsDetector interface hostname for each module is required\n", argv[0]);
     lUsage = true;
   }
 
@@ -201,13 +200,17 @@ int main(int argc, char** argv) {
 
   std::list<EbServer*>        servers;
   std::list<Jungfrau::Manager*> managers;
+  std::vector<Jungfrau::Module*> modules(num_modules);
 
   CfgClientNfs* cfg = new CfgClientNfs(detInfo);
   
   Jungfrau::Server* srv = new Jungfrau::Server(detInfo);
   servers   .push_back(srv);
-  Jungfrau::Driver* drv = new Jungfrau::Driver(camera, sSlsHost, sHost, port, sMac, sDetIp, configReceiver);
-  Jungfrau::Manager* mgr = new Jungfrau::Manager(*drv, *srv, *cfg);
+  for (unsigned i=0; i<num_modules; i++) {
+    modules[i] = new Jungfrau::Module(i, sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
+  }
+  Jungfrau::Detector* det = new Jungfrau::Detector(modules);
+  Jungfrau::Manager* mgr = new Jungfrau::Manager(*det, *srv, *cfg);
   managers.push_back(mgr);
 
   StdSegWire settings(servers, uniqueid, MAX_EVENT_SIZE, MAX_EVENT_DEPTH, isTriggered, module, channel);

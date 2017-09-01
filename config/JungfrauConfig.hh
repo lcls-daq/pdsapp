@@ -7,7 +7,7 @@ namespace Pds_ConfigDb {
 
   class JungfrauConfig : public Serializer {
   public:
-    JungfrauConfig();
+    JungfrauConfig(bool expert_mode=false);
     ~JungfrauConfig() {}
 
     int  readParameters (void* from);

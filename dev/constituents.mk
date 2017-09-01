@@ -154,7 +154,8 @@ tgtslib_archon := $(commonslib)
 
 tgtsrcs_jungfrau := jungfrau.cc
 tgtincs_jungfrau := pdsdata/include ndarray/include boost/include
-tgtlibs_jungfrau := $(commonlibs) pds/jungfrau slsdet/SlsDetector
+tgtlibs_jungfrau := $(commonlibs) pds/configdata
+tgtlibs_jungfrau += pds/jungfrau slsdet/SlsDetector
 tgtslib_jungfrau := $(commonslib)
 
 tgtsrcs_zyla :=	zyla.cc

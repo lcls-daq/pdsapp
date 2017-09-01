@@ -4,6 +4,7 @@
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
+#include "pdsapp/config/QtConcealer.hh"
 #include "pds/config/JungfrauConfigType.hh"
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QLabel>
@@ -21,7 +22,7 @@ class Pds_ConfigDb::JungfrauConfig::Private_Data : public Parameter {
   static const char*  lsEnumGainMode[];
   static const char*  lsEnumSpeedMode[];
  public:
-   Private_Data();
+   Private_Data(bool expert_mode);
   ~Private_Data();
 
    QLayout* initialize( QWidget* p );
@@ -37,6 +38,7 @@ class Pds_ConfigDb::JungfrauConfig::Private_Data : public Parameter {
       { for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->enable(l); }
 
   Pds::LinkedList<Parameter> pList;
+  bool _expert_mode;
   NumericInt<uint32_t> _numberOfModules;
   NumericInt<uint32_t> _numberOfRowsPerModule;
   NumericInt<uint32_t> _numberOfColumnsPerModule;
@@ -54,12 +56,14 @@ class Pds_ConfigDb::JungfrauConfig::Private_Data : public Parameter {
   NumericInt<uint16_t> _vref_prech;
   NumericInt<uint16_t> _vin_com;
   NumericInt<uint16_t> _vdd_prot;
+  QtConcealer          _concealerExpert;
 };
 
 const char* Pds_ConfigDb::JungfrauConfig::Private_Data::lsEnumGainMode[] = { "Normal", "FixedGain1", "FixedGain2", "ForcedGain1", "ForcedGain2", "HighGain0", NULL};
 const char* Pds_ConfigDb::JungfrauConfig::Private_Data::lsEnumSpeedMode[] = { "Quarter", "Half", NULL};
 
-Pds_ConfigDb::JungfrauConfig::Private_Data::Private_Data() :
+Pds_ConfigDb::JungfrauConfig::Private_Data::Private_Data(bool expert_mode) :
+  _expert_mode              (expert_mode),
   _numberOfModules          ("Number of Modules",         1,    1,      4),
   _numberOfRowsPerModule    ("Number of Rows",            512,  1,      512),
   _numberOfColumnsPerModule ("Number of Columns",         1024, 1,      1024),
@@ -104,9 +108,9 @@ QLayout* Pds_ConfigDb::JungfrauConfig::Private_Data::initialize(QWidget* p)
 {
   QVBoxLayout* layout = new QVBoxLayout;
   { QVBoxLayout* m = new QVBoxLayout;
-    m->addLayout(_numberOfModules          .initialize(p));
-    m->addLayout(_numberOfRowsPerModule    .initialize(p));
-    m->addLayout(_numberOfColumnsPerModule .initialize(p));
+    m->addLayout(_concealerExpert.add(_numberOfModules          .initialize(p)));
+    m->addLayout(_concealerExpert.add(_numberOfRowsPerModule    .initialize(p)));
+    m->addLayout(_concealerExpert.add(_numberOfColumnsPerModule .initialize(p)));
     m->setSpacing(5);
     layout->addLayout(m); }
   layout->addStretch();
@@ -157,6 +161,9 @@ int Pds_ConfigDb::JungfrauConfig::Private_Data::pull( void* from )
   _vref_prech.value               = cfg.vref_prech();
   _vin_com.value                  = cfg.vin_com();
   _vdd_prot.value                 = cfg.vdd_prot();
+
+  _concealerExpert.show(_expert_mode);
+
   return sizeof(JungfrauConfigType);
 }
   
@@ -185,9 +192,9 @@ int Pds_ConfigDb::JungfrauConfig::Private_Data::push(void* to)
   return sizeof(JungfrauConfigType);
 }
  
-Pds_ConfigDb::JungfrauConfig::JungfrauConfig() :
+Pds_ConfigDb::JungfrauConfig::JungfrauConfig(bool expert_mode) :
   Serializer("JungfrauConfig"),
-  _private_data( new Private_Data )
+  _private_data( new Private_Data(expert_mode) )
 {
   pList.insert(_private_data);
 }

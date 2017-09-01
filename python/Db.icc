@@ -159,6 +159,9 @@ static PyObject* _new_xtc(Pds::TypeId& contains)
           case Pds::TypeId::Id_UsdUsbFexConfig:
             o = _PyObject_New(&pds_UsdUsbFexConfig_type);
             break;
+          case Pds::TypeId::Id_JungfrauConfig:
+            o = _PyObject_New(&pds_JungfrauConfig_type);
+            break;
           default:
             o = _PyObject_New(&pds_Xtc_type);
             break;

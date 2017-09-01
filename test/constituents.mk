@@ -27,7 +27,8 @@ tgtslib_archonStandAlone := dl pthread rt
 
 tgtsrcs_jungfrauStandAlone := jungfrauStandAlone.cc
 tgtincs_jungfrauStandAlone := pdsdata/include ndarray/include boost/include
-tgtlibs_jungfrauStandAlone := $(commonlibs) pds/jungfrau slsdet/SlsDetector
+tgtlibs_jungfrauStandAlone := $(commonlibs) pds/configdata
+tgtlibs_jungfrauStandAlone += pds/jungfrau slsdet/SlsDetector
 tgtslib_jungfrauStandAlone := dl pthread rt
 
 tgtsrcs_princetonCameraTest := princetonCameraTest.cc

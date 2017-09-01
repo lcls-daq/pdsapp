@@ -31,6 +31,7 @@
 #include "pdsapp/python/AcqirisConfig.icc"
 #include "pdsapp/python/TimeToolConfig.icc"
 #include "pdsapp/python/UsdUsbFexConfig.icc"
+#include "pdsapp/python/JungfrauConfig.icc"
 #include "pdsapp/python/Db.icc"
 #include "pdsapp/python/pycdbHelp.icc"
 
@@ -124,6 +125,9 @@ DECLARE_INIT(pycdb)
   if (PyType_Ready(&pds_UsdUsbFexConfig_type) < 0)
     INITERROR;
 
+  if (PyType_Ready(&pds_JungfrauConfig_type) < 0)
+    INITERROR;
+
 #ifdef IS_PY3K
   PyObject *m = PyModule_Create(&moduledef);
 #else
@@ -191,6 +195,9 @@ DECLARE_INIT(pycdb)
 
   Py_INCREF(&pds_UsdUsbFexConfig_type);
   PyModule_AddObject(m, "UsdUsbFexConfig", (PyObject*)&pds_UsdUsbFexConfig_type);
+
+  Py_INCREF(&pds_JungfrauConfig_type);
+  PyModule_AddObject(m, "JungfrauConfig", (PyObject*)&pds_JungfrauConfig_type);
 
 #ifdef IS_PY3K
   return m;

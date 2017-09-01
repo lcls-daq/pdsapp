@@ -4,6 +4,7 @@
 #include "pdsapp/config/TimepixConfig.hh"
 #include "pdsapp/config/RayonixConfig.hh"
 #include "pdsapp/config/Epix100aConfig.hh"
+#include "pdsapp/config/JungfrauConfig.hh"
 #include "pdsapp/config/ZylaConfig.hh"
 
 #ifdef BUILD_EXTRA
@@ -14,6 +15,7 @@
 #include "pds/config/TimepixConfigType.hh"
 #include "pds/config/RayonixConfigType.hh"
 #include "pds/config/EpixConfigType.hh"
+#include "pds/config/JungfrauConfigType.hh"
 #include "pds/config/ZylaConfigType.hh"
 
 using namespace Pds_ConfigDb;
@@ -33,6 +35,7 @@ Serializer* ExpertDictionary::lookup(const Pds::TypeId& type)
   enroll(_rayonixConfigType   ,new RayonixExpertConfig);
   enroll(_epix100aConfigType  ,new Epix100aConfig(true));
   enroll(_zylaConfigType      ,new ZylaConfig(true));
+  enroll(_jungfrauConfigType  ,new JungfrauConfig(true));
 #ifdef BUILD_EXTRA
   enroll(_PhasicsConfigType   ,new PhasicsExpertConfig);
 #endif
