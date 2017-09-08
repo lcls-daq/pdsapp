@@ -68,7 +68,7 @@ class Pds::MySegWire
    const std::list<SrcAlias>* pAliases() const
    { return (_aliases.size() > 0) ? &_aliases : NULL; }
 
-   bool     is_triggered() const { return true; }
+   bool     is_triggered() const { return !_fiberTriggering; }
    unsigned module      () const { return _module; }
    unsigned channel     () const { return _channel; }
 
@@ -306,6 +306,7 @@ int main( int argc, char** argv )
   unsigned            resetOnEveryConfig   = 0;
   bool                maintainRunTrig     = false;
   bool                triggerOverFiber    = false;
+  bool                evrModChannelSet    = false;
   char                runTimeConfigname[256] = {""};
   char                g3[16]              = {""};
   ::signal( SIGINT,  sigHandler );
@@ -341,9 +342,16 @@ int main( int argc, char** argv )
            }
            break;
          case 'p':
-           if (CmdLineTools::parseUInt(optarg,platform,module,channel) != 3) {
-             printf("%s: option `-p' parsing error\n", argv[0]);
-             return 0;
+           switch (CmdLineTools::parseUInt(optarg,platform,module,channel)) {
+             case 1:
+               evrModChannelSet = false;
+               break;
+             case 3:
+               evrModChannelSet = true;
+               break;
+             default:
+               printf("%s: option `-p' parsing error\n", argv[0]);
+               return 0; 
            }
            break;
          case 'i':
@@ -393,6 +401,11 @@ int main( int argc, char** argv )
            return 0;
            break;
       }
+   }
+
+   if (!triggerOverFiber && !evrModChannelSet) {
+     printf("Error: When using TTL triggering an evr module and channel must be set!\n") ;
+     return 0;
    }
 
    printf("Node node\n");
