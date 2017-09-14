@@ -370,7 +370,7 @@ int main(int argc, char** argv) {
   Task* task = new Task(Task::MakeThisATask);
   EventAppCallback* seg = new EventAppCallback(task, platform, manager->appliance());
   StdSegWire settings(*server, uniqueid, max_event_size, max_event_depth, false,
-                      0,0,true);
+                      0,0,true,true);
   //PvDaqSegmentLevel* seglevel = new PvDaqSegmentLevel(platform, settings, *seg);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0, 0);
   seglevel->attach();
