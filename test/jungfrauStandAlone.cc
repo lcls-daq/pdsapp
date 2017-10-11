@@ -7,9 +7,6 @@
 
 #include <vector>
 
-#define PIXELS_PER_PACKET 4096
-#define PACKETS_PER_FRAME 128
-
 static const char sJungfrauTestVersion[] = "1.0";
 
 static void showVersion(const char* p)
@@ -37,6 +34,8 @@ static void showUsage(const char* p)
          "    -d|--detip    <detip>                   set the detector ip address\n"
          "    -s|--sls      <sls>                     set the hostname of the slsDetector interface\n"
          "    -t|--trigger  <delay>                   the internal acquisition start delay to use with an external trigger is seconds (default: 0.000238)\n"
+         "    -T|--external                           use an external trigger for acquistion (default: false)\n"
+         "    -M|--threaded                           use the multithreaded version of the Jungfrau detector driver (default: false)\n"
          "    -r|--receiver                           do not attempt to configure ip settings of the receiver (default: true)\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
@@ -44,7 +43,7 @@ static void showUsage(const char* p)
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhw:n:e:E:b:g:S:P:H:m:d:s:t:r";
+  const char*         strOptions  = ":vhw:n:e:E:b:g:S:P:H:m:d:s:t:TMr";
   const struct option loOptions[] =
   {
     {"ver",         0, 0, 'v'},
@@ -62,6 +61,8 @@ int main(int argc, char **argv)
     {"detip",       1, 0, 'd'},
     {"sls",         1, 0, 's'},
     {"trigger",     1, 0, 't'},
+    {"external",    0, 0, 'T'},
+    {"threaded",    0, 0, 'M'},
     {"receiver",    0, 0, 'r'},
     {0,             0, 0,  0 }
   };
@@ -75,6 +76,8 @@ int main(int argc, char **argv)
   double triggerDelay = 0.000238;
   bool lUsage = false;
   bool configReceiver = true;
+  bool external = false;
+  bool threaded = false;
   unsigned gain_value = 0;
   unsigned speed_value = 0;
   JungfrauConfigType::GainMode gain = JungfrauConfigType::Normal;
@@ -137,8 +140,14 @@ int main(int argc, char **argv)
       case 'r':
         configReceiver = false;
         break;
-      case 'D':
+      case 't':
         triggerDelay = strtod(optarg, NULL);
+        break;
+      case 'T':
+        external = true;
+        break;
+      case 'M':
+        threaded = true;
         break;
       case '?':
         if (optopt)
@@ -240,7 +249,7 @@ int main(int argc, char **argv)
   for (unsigned i=0; i<num_modules; i++) {
     modules[i] = new Pds::Jungfrau::Module(i, sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
   }
-  Pds::Jungfrau::Detector* det = new Pds::Jungfrau::Detector(modules);
+  Pds::Jungfrau::Detector* det = new Pds::Jungfrau::Detector(modules, threaded);
  
   Pds::Jungfrau::DacsConfig dacs_config(
     1000, // vb_ds
@@ -253,12 +262,12 @@ int main(int argc, char **argv)
     3000  // vdd_prot
   );
  
-  det->configure(numImages, gain, speed, triggerDelay, exposureTime, exposurePeriod, bias, dacs_config);
+  det->configure(external ? 0 : numImages, gain, speed, triggerDelay, exposureTime, exposurePeriod, bias, dacs_config);
 
   sleep(1);
 
   size_t header_sz = sizeof(uint64_t)/sizeof(uint16_t);
-  size_t event_sz = PIXELS_PER_PACKET * PACKETS_PER_FRAME + header_sz;
+  size_t event_sz = det->get_num_pixels() + header_sz;
   size_t  data_sz = numImages * event_sz;
   uint16_t* data = new uint16_t[data_sz];
   uint64_t frame = 0;
@@ -298,6 +307,3 @@ int main(int argc, char **argv)
 
   return 0;
 }
-
-#undef PIXELS_PER_PACKET
-#undef PACKETS_PER_FRAME

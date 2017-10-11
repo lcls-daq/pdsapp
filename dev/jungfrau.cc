@@ -21,7 +21,7 @@
 #include <vector>
 
 static const unsigned EVENT_SIZE_EXTRA = 0x10000;
-static const unsigned MAX_EVENT_SIZE = 2*512*1024 + EVENT_SIZE_EXTRA;
+static const unsigned MAX_MODULE_SIZE = 2*512*1024;
 static const unsigned MAX_EVENT_DEPTH = 128;
 
 using namespace Pds;
@@ -41,12 +41,13 @@ static void jungfrauUsage(const char* p)
          "    -d|--detip    <detip>                   set the detector ip address\n"
          "    -s|--sls      <sls>                     set the hostname of the slsDetector interface\n"
          "    -r|--receiver                           do not attempt to configure ip settings of the receiver (default: true)\n"
+         "    -M|--threaded                           use the multithreaded version of the Jungfrau detector driver (default: false)\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char** argv) {
 
-  const char*   strOptions    = ":hp:i:u:P:H:m:d:s:r";
+  const char*   strOptions    = ":hp:i:u:P:H:m:d:s:rM";
   const struct option loOptions[]   =
     {
        {"help",        0, 0, 'h'},
@@ -59,6 +60,7 @@ int main(int argc, char** argv) {
        {"detip",       1, 0, 'd'},
        {"sls",         1, 0, 's'},
        {"receiver",    0, 0, 'r'},
+       {"threaded",    0, 0, 'M'},
        {0,             0, 0,  0 }
     };
 
@@ -71,6 +73,7 @@ int main(int argc, char** argv) {
   unsigned num_modules = 0;
   bool lUsage = false;
   bool isTriggered = false;
+  bool isThreaded = false;
   bool configReceiver = true;
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::Jungfrau, 0);
@@ -137,6 +140,9 @@ int main(int argc, char** argv) {
         break;
       case 'r':
         configReceiver = false;
+        break;
+      case 'M':
+        isThreaded = true;
         break;
       case '?':
         if (optopt)
@@ -207,13 +213,13 @@ int main(int argc, char** argv) {
   Jungfrau::Server* srv = new Jungfrau::Server(detInfo);
   servers   .push_back(srv);
   for (unsigned i=0; i<num_modules; i++) {
-    modules[i] = new Jungfrau::Module(i, sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
+    modules[i] = new Jungfrau::Module(i+detInfo.devId(), sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
   }
-  Jungfrau::Detector* det = new Jungfrau::Detector(modules);
+  Jungfrau::Detector* det = new Jungfrau::Detector(modules, isThreaded);
   Jungfrau::Manager* mgr = new Jungfrau::Manager(*det, *srv, *cfg);
   managers.push_back(mgr);
 
-  StdSegWire settings(servers, uniqueid, MAX_EVENT_SIZE, MAX_EVENT_DEPTH, isTriggered, module, channel);
+  StdSegWire settings(servers, uniqueid, MAX_MODULE_SIZE*num_modules + EVENT_SIZE_EXTRA, MAX_EVENT_DEPTH, isTriggered, module, channel);
 
   Task* task = new Task(Task::MakeThisATask);
   EventAppCallback* seg = new EventAppCallback(task, platform, managers.front()->appliance());
