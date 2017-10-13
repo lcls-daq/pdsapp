@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
   Jungfrau::Server* srv = new Jungfrau::Server(detInfo);
   servers   .push_back(srv);
   for (unsigned i=0; i<num_modules; i++) {
-    modules[i] = new Jungfrau::Module(i+detInfo.devId(), sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
+    modules[i] = new Jungfrau::Module(((detInfo.devId()&0xff)<<8) | (i&0xff), sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
   }
   Jungfrau::Detector* det = new Jungfrau::Detector(modules, isThreaded);
   Jungfrau::Manager* mgr = new Jungfrau::Manager(*det, *srv, *cfg);
