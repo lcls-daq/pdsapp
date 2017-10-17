@@ -210,7 +210,7 @@ static void *getstdin(char *buf, int n)
     int c, i;
     for (i = 0; i < n-1;) {
         c = read(0, &buf[i], 1);  /* This will hang.  But that's OK. */
-        if (c < 0)
+        if (c <= 0)
             return NULL; /* EOF! */
         if (buf[i++] == '\n') {
             buf[i] = 0;

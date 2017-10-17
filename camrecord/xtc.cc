@@ -715,15 +715,13 @@ void send_event(struct event *ev)
         dnsec = ev->nsec;
         return;
     }
-#ifdef DUPLICATE_SUPPRESSION
     if (dsec == ev->sec && dnsec == ev->nsec) {
+        printf("%08x:%08x Sending duplicate data id=%d\n", ev->sec, ev->nsec, ev->id);
+#ifdef DUPLICATE_SUPPRESSION
         /* Do nothing if this is exactly what we just sent! */
-#ifdef TRACE
-        printf("%08x:%08x X event %d\n", ev->sec, ev->nsec, ev->id);
-#endif
         return;
-    }
 #endif /* DUPLICATE_SUPPRESSION */
+    }
     // When do we *not* send an event?
     // If we have any critical sources in the event, we always send it, even if damaged.
     // But if nothing is critical, we send it if it is complete.  We know we have asynchronous
@@ -1084,7 +1082,9 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
     }
     if (ev->data[id]) {
         /* Duplicate data.  This is *not* good. */
-#if 0
+#if 1
+        printf("%08x:%08x received duplicate data (id=%d, ev->id=%d)\n", sec, nsec, id, ev->id);
+#else
         printf("%08x:%08x S%d -> DUPLICATE event %d\n", sec, nsec, id, ev->id);
         printf("OLD: %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\n",
                ev->data[id][0], ev->data[id][1], ev->data[id][2], ev->data[id][3], 
