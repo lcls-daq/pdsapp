@@ -262,6 +262,18 @@ class caconn {
             read_ca(pv, model, DBR_STRING);
             strcpy(pv + pvlen, ":ID");
             read_ca(pv, manufacturer, DBR_STRING);
+        } else if (!strcmp(pv + pvlen - 3, ":WF")) {
+            /* The NFOV.  Does anything else do this?!? */
+            pvlen -= 3;
+            strcpy(pv + pvlen, ":RawNx");
+            read_ca(pv, &w, DBR_LONG);
+            strcpy(pv + pvlen, ":RawNy");
+            read_ca(pv, &h, DBR_LONG);
+            d = 16;  /* This isn't in a PV, boo hiss! */
+            strcpy(pv + pvlen, ":CamModel");
+            read_ca(pv, model, DBR_STRING);
+            strcpy(pv + pvlen, ":CamMaker");
+            read_ca(pv, manufacturer, DBR_STRING);
         } else {
             /* WTF?!? */
             fprintf(stderr, "warn Unknown camera type for PV %s!\n", pv);
