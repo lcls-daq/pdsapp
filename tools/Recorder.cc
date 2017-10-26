@@ -377,6 +377,17 @@ Transition* Recorder::transitions(Transition* tr) {
     }
   }
   else if (tr->id()==TransitionId::BeginRun) {
+    if (_f) { // check to make sure files from previous run were closed!
+      // This can happen if the EndRun transistion was missed for some reason
+      // like spamming begin and end run from the python interface
+      // This should prevent leaving the files from runs that didn't end cleanly
+      // in a locked state.
+      printf("File from previous run still open - cleaning up after failed endrun!\n");
+      if (_closeOutputFile() != 0) {
+        printf("Error closing files from previous run!\n");
+      }
+      _f = 0;
+    } // check old files
     if (tr->size() == sizeof(Transition)) {  // No RunInfo
       _f = 0;
       printf("No RunInfo.  Not recording.\n");
