@@ -119,6 +119,8 @@ static ProcInfo *segInfo = NULL;
 static ProcInfo *ctrlInfo = NULL;
 static Xtc    damagextc(TypeId(TypeId::Any, 1));
 static pthread_mutex_t datalock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t fdlock   = PTHREAD_MUTEX_INITIALIZER;
+static int lasttrans = -1;
 
 #define MAX_EVENTS    128
 static struct event {
@@ -709,7 +711,7 @@ void send_event(struct event *ev)
     if (paused || (ev->nsec & 0x1ffff) == 0x1ffff) {
         /* Do nothing if we are paused or if the fiducial is bad! */
 #ifdef TRACE
-        printf("%08x:%08x D event %d\n", ev->sec, ev->nsec, ev->id);
+        printf("%08x:%08x D1 event %d\n", ev->sec, ev->nsec, ev->id);
 #endif
         dsec = ev->sec;
         dnsec = ev->nsec;
@@ -746,7 +748,18 @@ void send_event(struct event *ev)
             src[i]->damagecnt++;
         }
     }
+    pthread_mutex_lock(&fdlock);
+    if (paused) {   // OOPS, lost the race!
+        pthread_mutex_unlock(&fdlock);
+#ifdef TRACE
+        printf("%08x:%08x D2 event %d\n", ev->sec, ev->nsec, ev->id);
+#endif
+        dsec = ev->sec;
+        dnsec = ev->nsec;
+        return;
+    }
 
+    // OK, from here on out it's write or die!
     segext = seg->extent;
     dgxext = dg->xtc.extent;
     if (damagesize) {
@@ -898,6 +911,7 @@ void send_event(struct event *ev)
         fsize = 0;
     }
     record_cnt++;
+    pthread_mutex_unlock(&fdlock);   // I guess it was write. :-)
 }
 
 static struct event *find_event(unsigned int sec, unsigned int nsec)
@@ -1201,6 +1215,46 @@ void xtc_stats(void)
     fflush(stderr);
 }
 
+char *trans_name(int state)
+{
+    switch (state) {
+    case -1:
+        return "startup";
+    case TransitionId::Configure:
+        return "Configure";
+    case TransitionId::BeginCalibCycle:
+        return "BeginCalibCycle";
+    case TransitionId::BeginRun:
+        return "BeginRun";
+    case TransitionId::Enable:
+        return "Enable";
+    case TransitionId::Disable:
+        return "Disable";
+    case TransitionId::EndRun:
+        return "EndRun";
+    case TransitionId::EndCalibCycle:
+        return "EndCalibCycle";
+    case TransitionId::Unconfigure:
+        return "Unconfigure";
+    default:
+        return "Unknown";
+    }
+}
+
+#define TRANS_ERROR_BODY                                                 \
+        fprintf(stderr, "error Received %s (%d) transition after %s!\n", \
+                trans_name(id), id, trans_name(lasttrans));              \
+        exit(1);                                                         \
+    } else {                                                             \
+        lasttrans = id;                                                  \
+    }
+
+#define TRANS_ERROR1(ex1)                                                \
+    if (lasttrans != (ex1)) { TRANS_ERROR_BODY
+
+#define TRANS_ERROR2(ex1,ex2)                                            \
+    if (lasttrans != (ex1) && lasttrans != (ex2)) { TRANS_ERROR_BODY
+
 void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int fid, int force)
 {
     havetransitions = 1;
@@ -1217,8 +1271,10 @@ void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int f
     csec = secs;
     cnsec = nsecs;
     cfid = fid;
+    pthread_mutex_lock(&fdlock);    // Can't be in the middle of an L1Accept after this!
     switch (id) {
     case TransitionId::Configure:
+        TRANS_ERROR1(-1);
         /*
          * We don't have to do anything, since we are breaking out of
          * read_config_file and will immediately call initialize_xtc,
@@ -1226,12 +1282,16 @@ void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int f
          */
         break;
     case TransitionId::BeginRun:
+        write_datagram(TransitionId::BeginRun, 0, 0);
+        TRANS_ERROR2(TransitionId::Configure, TransitionId::EndRun);
+        break;
     case TransitionId::BeginCalibCycle:
-    case TransitionId::EndCalibCycle:
-        write_datagram((TransitionId::Value) id, 0, 0);
+        write_datagram(TransitionId::BeginCalibCycle, 0, 0);
+        TRANS_ERROR2(TransitionId::BeginRun, TransitionId::EndCalibCycle);
         break;
     case TransitionId::Enable:
         write_datagram(TransitionId::Enable, 0, 0);
+        TRANS_ERROR2(TransitionId::BeginCalibCycle, TransitionId::Disable);
         if (!started)
             begin_run();
         if (havedata == numsrc) {
@@ -1245,15 +1305,21 @@ void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int f
         break;
     case TransitionId::Disable:
         write_datagram(TransitionId::Disable, 0, 0);
+        TRANS_ERROR1(TransitionId::Enable);
         paused = 1;
+        break;
+    case TransitionId::EndCalibCycle:
+        write_datagram(TransitionId::EndCalibCycle, 0, 0);
+        TRANS_ERROR2(TransitionId::BeginCalibCycle, TransitionId::Disable);
         break;
     case TransitionId::EndRun:
         write_datagram(TransitionId::EndRun, 0, 0);
-        // write_datagram(TransitionId::Unconfigure, 0, 0);
+        TRANS_ERROR2(TransitionId::BeginRun, TransitionId::EndCalibCycle);
         cleanup_ca();
         cleanup_index();
         exit(0);
     }
+    pthread_mutex_unlock(&fdlock);
 }
 
 char *damage_report(void)
