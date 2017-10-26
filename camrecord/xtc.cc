@@ -1219,25 +1219,25 @@ char *trans_name(int state)
 {
     switch (state) {
     case -1:
-        return "startup";
+        return (char *) "startup";
     case TransitionId::Configure:
-        return "Configure";
+        return (char *) "Configure";
     case TransitionId::BeginCalibCycle:
-        return "BeginCalibCycle";
+        return (char *) "BeginCalibCycle";
     case TransitionId::BeginRun:
-        return "BeginRun";
+        return (char *) "BeginRun";
     case TransitionId::Enable:
-        return "Enable";
+        return (char *) "Enable";
     case TransitionId::Disable:
-        return "Disable";
+        return (char *) "Disable";
     case TransitionId::EndRun:
-        return "EndRun";
+        return (char *) "EndRun";
     case TransitionId::EndCalibCycle:
-        return "EndCalibCycle";
+        return (char *) "EndCalibCycle";
     case TransitionId::Unconfigure:
-        return "Unconfigure";
+        return (char *) "Unconfigure";
     default:
-        return "Unknown";
+        return (char *) "Unknown";
     }
 }
 
