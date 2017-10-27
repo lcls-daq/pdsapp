@@ -9,7 +9,7 @@ tgtnames += princetonCameraTest andorStandAlone andorDualStandAlone archonStandA
 endif
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames += andorStandAlone andorDualStandAlone archonStandAlone jungfrauStandAlone 
+tgtnames += andorStandAlone andorDualStandAlone archonStandAlone
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)

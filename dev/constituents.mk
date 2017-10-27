@@ -30,14 +30,14 @@ tgtnames +=  acq \
 endif
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames += camedt fli andor andordual jungfrau
+tgtnames += camedt fli andor andordual
   ifeq ($(build_extra),$(true))
     tgtnames += phasics xamps fexamp
   endif
 endif
 
 ifneq ($(findstring x86_64-rhel6,$(tgt_arch)),)
-tgtnames += pimax fli andor andordual jungfrau
+tgtnames += pimax fli andor andordual
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
