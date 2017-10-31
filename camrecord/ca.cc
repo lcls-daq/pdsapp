@@ -226,18 +226,18 @@ class caconn {
         } else if (!strcmp(pv + pvlen - 5, ".IRAW")) {
             /* A Dehong framegrabber camera */
             pvlen -= 5;
-            strcpy(pv + pvlen, ".NROW");
-            read_ca(pv, &w, DBR_LONG);
             strcpy(pv + pvlen, ".NCOL");
+            read_ca(pv, &w, DBR_LONG);
+            strcpy(pv + pvlen, ".NROW");
             read_ca(pv, &h, DBR_LONG);
             strcpy(pv + pvlen, ".NBIT");
             read_ca(pv, &d, DBR_LONG);
         } else if (!strcmp(pv + pvlen - 16, ":LIVE_IMAGE_FAST")) {
             /* A unixCam camera */
             pvlen -= 16;
-            strcpy(pv + pvlen, ":N_OF_ROW");
-            read_ca(pv, &w, DBR_LONG);
             strcpy(pv + pvlen, ":N_OF_COL");
+            read_ca(pv, &w, DBR_LONG);
+            strcpy(pv + pvlen, ":N_OF_ROW");
             read_ca(pv, &h, DBR_LONG);
             strcpy(pv + pvlen, ":N_OF_BITS");
             read_ca(pv, &d, DBR_LONG);
