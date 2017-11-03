@@ -254,6 +254,7 @@ static void usage(const char* p)
          "    -p <platform>               platform number\n"
          "    -z <eventsize>              maximum event size[bytes]\n"
          "    -n <eventdepth>             event builder depth\n"
+         "    -r                          allow connections to PVs on remote machines\n"
          "    -h                          print this message and exit\n", p);
 }
 
@@ -264,6 +265,8 @@ int main(int argc, char** argv) {
   unsigned platform = no_entry;
   const char* pvbase = 0;
   bool lUsage = false;
+  bool local_ioc = true;
+  unsigned flags = 0;
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NoDetector, 0, DetInfo::NoDevice, 0);
   char* uniqueid = (char *)NULL;
@@ -273,7 +276,7 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:b:p:u:z:n:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:b:p:u:z:n:f:rh")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,detInfo)) {
@@ -303,6 +306,15 @@ int main(int argc, char** argv) {
       break;
     case 'n':
       max_event_depth = strtoul(optarg,NULL,0);
+      break;
+    case 'f':
+      if (CmdLineTools::parseUInt(optarg,flags) != 1) {
+        printf("%s: option `-f' parsing error\n", argv[0]);
+        lUsage = true;
+      }
+      break;
+    case 'r':
+      local_ioc = false;
       break;
     case 'h': // help
       usage(argv[0]);
@@ -339,7 +351,8 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  { int fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (local_ioc) {
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
     sockaddr_in srv;
     memset(&srv,0,sizeof(srv));
     srv.sin_family = AF_INET;
@@ -353,9 +366,10 @@ int main(int argc, char** argv) {
     inet_ntop(AF_INET,&name.sin_addr,dst,64);
     printf("Setting EPICS_CA_ADDR_LIST %s\n",dst);
     setenv("EPICS_CA_ADDR_LIST",dst,1);
-    close(fd); }
+    close(fd);
 
-  setenv("EPICS_CA_AUTO_ADDR_LIST","NO",1);
+    setenv("EPICS_CA_AUTO_ADDR_LIST","NO",1);
+  }
 
   sprintf(buff,"%u",max_event_size);
   setenv("EPICS_CA_MAX_ARRAY_BYTES",buff,1);
@@ -364,7 +378,7 @@ int main(int argc, char** argv) {
   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), 
            "pvdaq calling ca_context_create" );
 
-  PvDaq::Server*  server  = PvDaq::Server::lookup(pvbase, detInfo);
+  PvDaq::Server*  server  = PvDaq::Server::lookup(pvbase, detInfo, max_event_size, flags);
   PvDaq::Manager* manager = new PvDaq::Manager(*server);
 
   Task* task = new Task(Task::MakeThisATask);
