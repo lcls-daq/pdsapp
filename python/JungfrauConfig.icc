@@ -58,6 +58,19 @@ static PyObject* get_gainV2_enum()
   return gain_enum;
 }
 
+static PyObject* get_gainV3_enum()
+{
+  PyObject* gain_enum = PyDict_New();
+  SetEnum(Normal,ConfigV3,gain_enum);
+  SetEnum(FixedGain1,ConfigV3,gain_enum);
+  SetEnum(FixedGain2,ConfigV3,gain_enum);
+  SetEnum(ForcedGain1,ConfigV3,gain_enum);
+  SetEnum(ForcedGain2,ConfigV3,gain_enum);
+  SetEnum(HighGain0,ConfigV3,gain_enum);
+
+  return gain_enum;
+}
+
 static PyObject* get_speedV1_enum()
 {
   PyObject* speed_enum = PyDict_New();
@@ -72,6 +85,15 @@ static PyObject* get_speedV2_enum()
   PyObject* speed_enum = PyDict_New();
   SetEnum(Quarter,ConfigV2,speed_enum);
   SetEnum(Half,ConfigV2,speed_enum);
+
+  return speed_enum;
+}
+
+static PyObject* get_speedV3_enum()
+{
+  PyObject* speed_enum = PyDict_New();
+  SetEnum(Quarter,ConfigV3,speed_enum);
+  SetEnum(Half,ConfigV3,speed_enum);
 
   return speed_enum;
 }
@@ -94,6 +116,13 @@ PyObject* pds_JungfrauConfig_enum (PyObject*   self, PyObject* args)
 
     return o;
   }
+  else if (xtc->contains.version()==3) {
+
+    SetEnumDict(GainMode,get_gainV3_enum());
+    SetEnumDict(SpeedMode,get_speedV3_enum());
+
+    return o;
+  }
   else {
     Py_DECREF(o);
     printf("get(): Unsupported JungfrauConfig Version= %u \n",xtc->contains.version());
@@ -106,20 +135,43 @@ PyObject* pds_JungfrauConfig_enum (PyObject*   self, PyObject* args)
 #undef SetEnumDict
 
 
-//  Return a dictionary of configuration data
-#define SetDictMember(name,isFloat,isEnum)                \
-  { PyObject* v = NULL;                                   \
-    if (isFloat)                                          \
-      v = PyFloat_FromDouble(cfg->name());                \
-    else if (isEnum)                                      \
-      v = PyInt_FromLong((signed)cfg->name());            \
-    else                                                  \
-      v = PyLong_FromUnsignedLong((unsigned)cfg->name()); \
-    if (v) {                                              \
-      PyDict_SetItemString(o,#name,v);                    \
-      Py_DECREF(v);                                       \
-    }                                                     \
+//  Add an item to the configuraion dictionary
+#define SetDictMember(name,isFloat,isEnum,isLongLong)                   \
+  { PyObject* v = NULL;                                                 \
+    if (isFloat)                                                        \
+      v = PyFloat_FromDouble(cfg->name());                              \
+    else if (isEnum)                                                    \
+      v = PyInt_FromLong((signed)cfg->name());                          \
+    else if (isLongLong)                                                \
+      v = PyLong_FromUnsignedLongLong((unsigned long long)cfg->name()); \
+    else                                                                \
+      v = PyLong_FromUnsignedLong((unsigned long)cfg->name());          \
+    if (v) {                                                            \
+      PyDict_SetItemString(o,#name,v);                                  \
+      Py_DECREF(v);                                                     \
+    }                                                                   \
   }
+
+// Add a sub-dictionary as an item to the configuraion dictionary
+#define SetDictSubMember(name, func)    \
+  { PyObject* obj = func(cfg);          \
+    PyDict_SetItemString(o,#name,obj);  \
+    Py_DECREF(obj); }
+
+static PyObject* get_module_config(const Pds::Jungfrau::ConfigV3* modcfg)
+{
+  PyObject* modcfg_list = PyList_New(modcfg->numberOfModules());
+  for (unsigned i=0; i<modcfg->numberOfModules(); i++) {
+    const Pds::Jungfrau::ModuleConfigV1* cfg = &modcfg->moduleConfig(i);
+    PyObject* o = PyDict_New();
+    SetDictMember(serialNumber,false,false,true);
+    SetDictMember(moduleVersion,false,false,true);
+    SetDictMember(firmwareVersion,false,false,true);
+    PyList_SetItem(modcfg_list, i, o);
+  }
+
+  return modcfg_list;
+}
 
 PyObject* pds_JungfrauConfig_get  (PyObject*   self, PyObject* args)
 {
@@ -130,14 +182,14 @@ PyObject* pds_JungfrauConfig_get  (PyObject*   self, PyObject* args)
       reinterpret_cast<const Pds::Jungfrau::ConfigV1*>(xtc->payload);
 
     
-    SetDictMember(numberOfModules,false,false);
-    SetDictMember(numberOfRowsPerModule,false,false);
-    SetDictMember(numberOfColumnsPerModule,false,false);
-    SetDictMember(biasVoltage,false,false);
-    SetDictMember(gainMode,false,true);
-    SetDictMember(speedMode,false,true);
-    SetDictMember(triggerDelay,true,false);
-    SetDictMember(exposureTime,true,false);
+    SetDictMember(numberOfModules,false,false,false);
+    SetDictMember(numberOfRowsPerModule,false,false,false);
+    SetDictMember(numberOfColumnsPerModule,false,false,false);
+    SetDictMember(biasVoltage,false,false,false);
+    SetDictMember(gainMode,false,true,false);
+    SetDictMember(speedMode,false,true,false);
+    SetDictMember(triggerDelay,true,false,false);
+    SetDictMember(exposureTime,true,false,false);
 
     return o;
   }
@@ -145,23 +197,48 @@ PyObject* pds_JungfrauConfig_get  (PyObject*   self, PyObject* args)
     const Pds::Jungfrau::ConfigV2* cfg =
       reinterpret_cast<const Pds::Jungfrau::ConfigV2*>(xtc->payload);
 
-    SetDictMember(numberOfModules,false,false);
-    SetDictMember(numberOfRowsPerModule,false,false);
-    SetDictMember(numberOfColumnsPerModule,false,false);
-    SetDictMember(biasVoltage,false,false);
-    SetDictMember(gainMode,false,true);
-    SetDictMember(speedMode,false,true);
-    SetDictMember(triggerDelay,true,false);
-    SetDictMember(exposureTime,true,false);
-    SetDictMember(exposurePeriod,true,false);
-    SetDictMember(vb_ds,false,false);
-    SetDictMember(vb_comp,false,false);
-    SetDictMember(vb_pixbuf,false,false);
-    SetDictMember(vref_ds,false,false);
-    SetDictMember(vref_comp,false,false);
-    SetDictMember(vref_prech,false,false);
-    SetDictMember(vin_com,false,false);
-    SetDictMember(vdd_prot,false,false);
+    SetDictMember(numberOfModules,false,false,false);
+    SetDictMember(numberOfRowsPerModule,false,false,false);
+    SetDictMember(numberOfColumnsPerModule,false,false,false);
+    SetDictMember(biasVoltage,false,false,false);
+    SetDictMember(gainMode,false,true,false);
+    SetDictMember(speedMode,false,true,false);
+    SetDictMember(triggerDelay,true,false,false);
+    SetDictMember(exposureTime,true,false,false);
+    SetDictMember(exposurePeriod,true,false,false);
+    SetDictMember(vb_ds,false,false,false);
+    SetDictMember(vb_comp,false,false,false);
+    SetDictMember(vb_pixbuf,false,false,false);
+    SetDictMember(vref_ds,false,false,false);
+    SetDictMember(vref_comp,false,false,false);
+    SetDictMember(vref_prech,false,false,false);
+    SetDictMember(vin_com,false,false,false);
+    SetDictMember(vdd_prot,false,false,false);
+
+    return o;
+  }
+  else if (xtc->contains.version()==3) {
+    const Pds::Jungfrau::ConfigV3* cfg =
+      reinterpret_cast<const Pds::Jungfrau::ConfigV3*>(xtc->payload);
+
+    SetDictMember(numberOfModules,false,false,false);
+    SetDictMember(numberOfRowsPerModule,false,false,false);
+    SetDictMember(numberOfColumnsPerModule,false,false,false);
+    SetDictMember(biasVoltage,false,false,false);
+    SetDictMember(gainMode,false,true,false);
+    SetDictMember(speedMode,false,true,false);
+    SetDictMember(triggerDelay,true,false,false);
+    SetDictMember(exposureTime,true,false,false);
+    SetDictMember(exposurePeriod,true,false,false);
+    SetDictMember(vb_ds,false,false,false);
+    SetDictMember(vb_comp,false,false,false);
+    SetDictMember(vb_pixbuf,false,false,false);
+    SetDictMember(vref_ds,false,false,false);
+    SetDictMember(vref_comp,false,false,false);
+    SetDictMember(vref_prech,false,false,false);
+    SetDictMember(vin_com,false,false,false);
+    SetDictMember(vdd_prot,false,false,false);
+    SetDictSubMember(moduleConfig, get_module_config);
 
     return o;
   }
@@ -172,6 +249,7 @@ PyObject* pds_JungfrauConfig_get  (PyObject*   self, PyObject* args)
   }
 }
 #undef SetDictMember
+#undef SetDictSubMember
 
 //  Retrieve configuration data from a Python Dictionary
 #define GetDictEnum(name,type)                                          \
@@ -194,6 +272,16 @@ PyObject* pds_JungfrauConfig_get  (PyObject*   self, PyObject* args)
     }                                                             \
     else name = cfg->name(); }
 
+#define GetDictLongLong(name)                                     \
+  unsigned long long name;                                        \
+  { PyObject* i = PyDict_GetItemString(o,#name);                  \
+    if (i) {                                                      \
+      if (PyLong_Check(i)) name = PyLong_AsUnsignedLongLong(i);   \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);            \
+      else name = cfg->name();                                    \
+    }                                                             \
+    else name = cfg->name(); }
+
 #define GetDictFloat(name)                              \
   double name;                                          \
   { PyObject* i = PyDict_GetItemString(o,#name);        \
@@ -202,6 +290,31 @@ PyObject* pds_JungfrauConfig_get  (PyObject*   self, PyObject* args)
       else name = cfg->name();                          \
     }                                                   \
     else name = cfg->name(); }
+
+#define GetModuleConfigArray(name,size,version)           \
+  Pds::Jungfrau::ModuleConfigV##version name[size];       \
+  { PyObject* i = PyDict_GetItemString(o,#name);          \
+    if (i && PyList_Check(i)) {                           \
+      fill_module_config_v##version(i,name);              \
+    }                                                     \
+    else {                                                \
+      for (unsigned i=0; i<cfg->numberOfModules(); i++)   \
+        name[i] = cfg->name(i);                           \
+    }                                                     \
+  }
+
+
+static void fill_module_config_v1(PyObject* l, Pds::Jungfrau::ModuleConfigV1* cfg)
+{
+  Py_ssize_t num = PyList_Size(l);
+  for (unsigned i=0; i<num; i++) {
+    PyObject* o = PyList_GetItem(l,i);
+    GetDictLongLong(serialNumber);
+    GetDictLongLong(moduleVersion);
+    GetDictLongLong(firmwareVersion);
+    new(&cfg[i]) Pds::Jungfrau::ModuleConfigV1(serialNumber, moduleVersion, firmwareVersion);
+  }
+}
 
 PyObject* pds_JungfrauConfig_set  (PyObject*   self, PyObject* args)
 {
@@ -276,6 +389,51 @@ PyObject* pds_JungfrauConfig_set  (PyObject*   self, PyObject* args)
     Py_INCREF(Py_None);
     return Py_None;
   }
+  else if (xtc->contains.version()==3) {
+    const Pds::Jungfrau::ConfigV3* cfg =
+      reinterpret_cast<const Pds::Jungfrau::ConfigV3*>(xtc->payload);
+
+    GetDictLong(numberOfModules);
+    GetDictLong(numberOfRowsPerModule);
+    GetDictLong(numberOfColumnsPerModule);
+    GetDictLong(biasVoltage);
+    GetDictEnum(gainMode,Pds::Jungfrau::ConfigV3::GainMode);
+    GetDictEnum(speedMode,Pds::Jungfrau::ConfigV3::SpeedMode);
+    GetDictFloat(triggerDelay);
+    GetDictFloat(exposureTime);
+    GetDictFloat(exposurePeriod);
+    GetDictLong(vb_ds);
+    GetDictLong(vb_comp);
+    GetDictLong(vb_pixbuf);
+    GetDictLong(vref_ds);
+    GetDictLong(vref_comp);
+    GetDictLong(vref_prech);
+    GetDictLong(vin_com);
+    GetDictLong(vdd_prot);
+    GetModuleConfigArray(moduleConfig, Pds::Jungfrau::ConfigV3::MaxModulesPerDetector, 1);
+
+    new(xtc->payload) Pds::Jungfrau::ConfigV3((uint32_t) numberOfModules,
+                                              (uint32_t) numberOfRowsPerModule,
+                                              (uint32_t) numberOfColumnsPerModule,
+                                              (uint32_t) biasVoltage,
+                                              gainMode,
+                                              speedMode,
+                                              triggerDelay,
+                                              exposureTime,
+                                              exposurePeriod,
+                                              (uint16_t) vb_ds,
+                                              (uint16_t) vb_comp,
+                                              (uint16_t) vb_pixbuf,
+                                              (uint16_t) vref_ds,
+                                              (uint16_t) vref_comp,
+                                              (uint16_t) vref_prech,
+                                              (uint16_t) vin_com,
+                                              (uint16_t) vdd_prot,
+                                              moduleConfig);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
   else {
     printf("set(): Unsupported JungfrauConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception
@@ -283,4 +441,6 @@ PyObject* pds_JungfrauConfig_set  (PyObject*   self, PyObject* args)
 }
 #undef GetDictEnum
 #undef GetDictLong
+#undef GetDictLongLong
 #undef GetDictFloat
+#undef GetModuleConfigArray

@@ -1,11 +1,11 @@
 #define __STDC_LIMIT_MACROS
 
-#include "JungfrauConfig.hh"
+#include "JungfrauConfig_V2.hh"
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 #include "pdsapp/config/QtConcealer.hh"
-#include "pds/config/JungfrauConfigType.hh"
+#include "pdsdata/psddl/jungfrau.ddl.h"
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QLabel>
 
@@ -18,7 +18,7 @@
 
 using namespace Pds_ConfigDb;
 
-class Pds_ConfigDb::JungfrauConfig::Private_Data : public Parameter {
+class Pds_ConfigDb::JungfrauConfig_V2::Private_Data : public Parameter {
   static const char*  lsEnumGainMode[];
   static const char*  lsEnumSpeedMode[];
  public:
@@ -29,7 +29,7 @@ class Pds_ConfigDb::JungfrauConfig::Private_Data : public Parameter {
    int pull( void* from );
    int push( void* to );
    int dataSize() const
-      { return sizeof(JungfrauConfigType); }
+      { return sizeof(Pds::Jungfrau::ConfigV2); }
    void flush ()
       { for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->flush(); }
    void update()
@@ -43,8 +43,8 @@ class Pds_ConfigDb::JungfrauConfig::Private_Data : public Parameter {
   NumericInt<uint32_t> _numberOfRowsPerModule;
   NumericInt<uint32_t> _numberOfColumnsPerModule;
   NumericInt<uint32_t> _biasVoltage;
-  Enumerated<JungfrauConfigType::GainMode> _gainMode;
-  Enumerated<JungfrauConfigType::SpeedMode> _speedMode;
+  Enumerated<Pds::Jungfrau::ConfigV2::GainMode> _gainMode;
+  Enumerated<Pds::Jungfrau::ConfigV2::SpeedMode> _speedMode;
   NumericFloat<double> _triggerDelay;
   NumericFloat<double> _exposureTime;
   NumericFloat<double> _exposurePeriod;
@@ -57,20 +57,19 @@ class Pds_ConfigDb::JungfrauConfig::Private_Data : public Parameter {
   NumericInt<uint16_t> _vin_com;
   NumericInt<uint16_t> _vdd_prot;
   QtConcealer          _concealerExpert;
-  JungfrauModConfigType _module_config[JungfrauConfigType::MaxModulesPerDetector];
 };
 
-const char* Pds_ConfigDb::JungfrauConfig::Private_Data::lsEnumGainMode[] = { "Normal", "FixedGain1", "FixedGain2", "ForcedGain1", "ForcedGain2", "HighGain0", NULL};
-const char* Pds_ConfigDb::JungfrauConfig::Private_Data::lsEnumSpeedMode[] = { "Quarter", "Half", NULL};
+const char* Pds_ConfigDb::JungfrauConfig_V2::Private_Data::lsEnumGainMode[] = { "Normal", "FixedGain1", "FixedGain2", "ForcedGain1", "ForcedGain2", "HighGain0", NULL};
+const char* Pds_ConfigDb::JungfrauConfig_V2::Private_Data::lsEnumSpeedMode[] = { "Quarter", "Half", NULL};
 
-Pds_ConfigDb::JungfrauConfig::Private_Data::Private_Data(bool expert_mode) :
+Pds_ConfigDb::JungfrauConfig_V2::Private_Data::Private_Data(bool expert_mode) :
   _expert_mode              (expert_mode),
-  _numberOfModules          ("Number of Modules",         1,    1,      JungfrauConfigType::MaxModulesPerDetector),
-  _numberOfRowsPerModule    ("Number of Rows",            512,  1,      JungfrauConfigType::MaxRowsPerModule),
-  _numberOfColumnsPerModule ("Number of Columns",         1024, 1,      JungfrauConfigType::MaxColumnsPerModule),
+  _numberOfModules          ("Number of Modules",         1,    1,      4),
+  _numberOfRowsPerModule    ("Number of Rows",            512,  1,      512),
+  _numberOfColumnsPerModule ("Number of Columns",         1024, 1,      1024),
   _biasVoltage              ("Bias Voltage (V)",          200,  0,      500),
-  _gainMode                 ("Gain Mode",                 JungfrauConfigType::Normal, lsEnumGainMode),
-  _speedMode                ("Speed Mode",                JungfrauConfigType::Quarter, lsEnumSpeedMode),
+  _gainMode                 ("Gain Mode",                 Pds::Jungfrau::ConfigV2::Normal, lsEnumGainMode),
+  _speedMode                ("Speed Mode",                Pds::Jungfrau::ConfigV2::Quarter, lsEnumSpeedMode),
   _triggerDelay             ("Trigger Delay (s)",         0.000238, 0., 10.),
   _exposureTime             ("Exposure Time (s)",         0.000010, 0., 120.),
   _exposurePeriod           ("Exposure Period (s)",       0.005,    0., 120.),
@@ -83,10 +82,6 @@ Pds_ConfigDb::JungfrauConfig::Private_Data::Private_Data(bool expert_mode) :
   _vin_com                  ("vin_com",                   1053,     0,  4095),
   _vdd_prot                 ("vdd_prot",                  3000,     0,  4095)
 {
-  for (unsigned i=0; i<JungfrauConfigType::MaxModulesPerDetector; i++) {
-    _module_config[i] = JungfrauModConfigType(0,0,0);
-  }
-
   pList.insert( &_numberOfModules );
   pList.insert( &_numberOfRowsPerModule );
   pList.insert( &_numberOfColumnsPerModule );
@@ -106,10 +101,10 @@ Pds_ConfigDb::JungfrauConfig::Private_Data::Private_Data(bool expert_mode) :
   pList.insert( &_vdd_prot );
 }
 
-Pds_ConfigDb::JungfrauConfig::Private_Data::~Private_Data() 
+Pds_ConfigDb::JungfrauConfig_V2::Private_Data::~Private_Data() 
 {}
 
-QLayout* Pds_ConfigDb::JungfrauConfig::Private_Data::initialize(QWidget* p)
+QLayout* Pds_ConfigDb::JungfrauConfig_V2::Private_Data::initialize(QWidget* p)
 {
   QVBoxLayout* layout = new QVBoxLayout;
   { QVBoxLayout* m = new QVBoxLayout;
@@ -146,15 +141,15 @@ QLayout* Pds_ConfigDb::JungfrauConfig::Private_Data::initialize(QWidget* p)
   return layout;
 }
 
-int Pds_ConfigDb::JungfrauConfig::Private_Data::pull( void* from )
+int Pds_ConfigDb::JungfrauConfig_V2::Private_Data::pull( void* from )
 {
-  JungfrauConfigType& cfg = * new (from) JungfrauConfigType;
+  Pds::Jungfrau::ConfigV2& cfg = * new (from) Pds::Jungfrau::ConfigV2;
   _numberOfModules.value          = cfg.numberOfModules();
   _numberOfRowsPerModule.value    = cfg.numberOfRowsPerModule();
   _numberOfColumnsPerModule.value = cfg.numberOfColumnsPerModule();
   _biasVoltage.value              = cfg.biasVoltage();
-  _gainMode.value                 = (JungfrauConfigType::GainMode) cfg.gainMode();
-  _speedMode.value                = (JungfrauConfigType::SpeedMode) cfg.speedMode();
+  _gainMode.value                 = (Pds::Jungfrau::ConfigV2::GainMode) cfg.gainMode();
+  _speedMode.value                = (Pds::Jungfrau::ConfigV2::SpeedMode) cfg.speedMode();
   _triggerDelay.value             = cfg.triggerDelay();
   _exposureTime.value             = cfg.exposureTime();
   _exposurePeriod.value           = cfg.exposurePeriod();
@@ -167,18 +162,14 @@ int Pds_ConfigDb::JungfrauConfig::Private_Data::pull( void* from )
   _vin_com.value                  = cfg.vin_com();
   _vdd_prot.value                 = cfg.vdd_prot();
 
-  for (unsigned i=0; i<cfg.numberOfModules(); i++) {
-    _module_config[i] = cfg.moduleConfig(i);
-  }
-
   _concealerExpert.show(_expert_mode);
 
-  return sizeof(JungfrauConfigType);
+  return sizeof(Pds::Jungfrau::ConfigV2);
 }
   
-int Pds_ConfigDb::JungfrauConfig::Private_Data::push(void* to)
+int Pds_ConfigDb::JungfrauConfig_V2::Private_Data::push(void* to)
 {
-  new (to) JungfrauConfigType(
+  new (to) Pds::Jungfrau::ConfigV2(
     _numberOfModules.value,
     _numberOfRowsPerModule.value,
     _numberOfColumnsPerModule.value,
@@ -195,31 +186,30 @@ int Pds_ConfigDb::JungfrauConfig::Private_Data::push(void* to)
     _vref_comp.value,
     _vref_prech.value,
     _vin_com.value,
-    _vdd_prot.value,
-    _module_config
+    _vdd_prot.value
   );
   
-  return sizeof(JungfrauConfigType);
+  return sizeof(Pds::Jungfrau::ConfigV2);
 }
  
-Pds_ConfigDb::JungfrauConfig::JungfrauConfig(bool expert_mode) :
-  Serializer("JungfrauConfig"),
+Pds_ConfigDb::JungfrauConfig_V2::JungfrauConfig_V2(bool expert_mode) :
+  Serializer("JungfrauConfig_V2"),
   _private_data( new Private_Data(expert_mode) )
 {
   pList.insert(_private_data);
 }
 
-int Pds_ConfigDb::JungfrauConfig::readParameters (void* from)
+int Pds_ConfigDb::JungfrauConfig_V2::readParameters (void* from)
 {
   return _private_data->pull(from);
 }
 
-int Pds_ConfigDb::JungfrauConfig::writeParameters(void* to)
+int Pds_ConfigDb::JungfrauConfig_V2::writeParameters(void* to)
 {
   return _private_data->push(to);
 }
 
-int Pds_ConfigDb::JungfrauConfig::dataSize() const
+int Pds_ConfigDb::JungfrauConfig_V2::dataSize() const
 {
   return _private_data->dataSize();
 }
