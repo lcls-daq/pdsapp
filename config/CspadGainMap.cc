@@ -147,7 +147,7 @@ namespace Pds_ConfigDb {
       ndarray<const uint16_t,2> gm = map->gainMap();
       for(unsigned col=0; col<COLS; col++) {
         for(unsigned row=0; row<ROWS; row++) {
-          uint16_t v = gm[col][row];
+          uint16_t v = gm(col,row);
           fg = (v&(1<<(asic0))) ? qRgb(255,255,255) : qRgb(0,0,0);
           painter.setPen(QColor(fg));
           painter.drawPoint(col+col0,row0-row);
@@ -347,7 +347,7 @@ void CspadGainMap::export_()
         fprintf(f,"# Quad %d  ASIC %d  Column 0\n", q, s);
         for(unsigned c=0; c<COLS; c++) {
           for(unsigned r=0; r<ROWS; r++) {
-            fprintf(f," %d",((map[c][r])>>s)&1);
+            fprintf(f," %d",((map(c,r))>>s)&1);
           }
           fprintf(f,"\n");
         }
@@ -370,7 +370,7 @@ void CspadGainMap::set_asic0()
   ndarray<uint16_t,2> map = make_ndarray(const_cast<uint16_t*>(imap.data()), imap.shape()[0], imap.shape()[1]);
   for(unsigned col=0; col<COLS; col++)
     for(unsigned row=0; row<ROWS; row++)
-      map[col][row] |= m;
+      map(col,row) |= m;
 
   _display->update_map(_quad[_q]->gainMap(), _q, _s);
 }
@@ -385,7 +385,7 @@ void CspadGainMap::set_asic1()
   ndarray<uint16_t,2> map = make_ndarray(const_cast<uint16_t*>(imap.data()), imap.shape()[0], imap.shape()[1]);
   for(unsigned col=0; col<COLS; col++)
     for(unsigned row=0; row<ROWS; row++)
-      map[col][row] |= m;
+      map(col,row) |= m;
 
   _display->update_map(_quad[_q]->gainMap(), _q, _s);
 }
@@ -400,7 +400,7 @@ void CspadGainMap::clear_asic0()
   ndarray<uint16_t,2> map = make_ndarray(const_cast<uint16_t*>(imap.data()), imap.shape()[0], imap.shape()[1]);
   for(unsigned col=0; col<COLS; col++)
     for(unsigned row=0; row<ROWS; row++)
-      map[col][row] &= ~m;
+      map(col,row) &= ~m;
 
   _display->update_map(_quad[_q]->gainMap(), _q, _s);
 }
@@ -415,7 +415,7 @@ void CspadGainMap::clear_asic1()
   ndarray<uint16_t,2> map = make_ndarray(const_cast<uint16_t*>(imap.data()), imap.shape()[0], imap.shape()[1]);
   for(unsigned col=0; col<COLS; col++)
     for(unsigned row=0; row<ROWS; row++)
-      map[col][row] &= ~m;
+      map(col,row) &= ~m;
 
   _display->update_map(_quad[_q]->gainMap(), _q, _s);
 }

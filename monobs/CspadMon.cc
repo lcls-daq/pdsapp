@@ -104,7 +104,7 @@ namespace PdsCas {
           ndarray<const int16_t,3> a = elem.data(_config);
           for(unsigned i=0; i<a.shape()[0]; i++) {
             unsigned section_id = elem.quad()*8 + i;
-            ndarray<const int16_t,2> s = make_ndarray(&a[i][0][0],a.shape()[1],a.shape()[2]);
+            ndarray<const int16_t,2> s = make_ndarray(&a(i,0,0),a.shape()[1],a.shape()[2]);
             try {
               float mean_rms = _getPedestalConsistency(s, _offsets[section_id], _status[section_id]);
               //  Fill a PV array with these values?
@@ -178,7 +178,7 @@ namespace PdsCas {
       for(unsigned col=0; col<s.shape()[0]; col++) {
         for(unsigned row=0; row<s.shape()[1]; row++) {
           if (not m.ok(col, row)) continue; // simple if slow
-          float val = float(s[col][row]) - o[col][row];
+          float val = float(s(col,row)) - o[col][row];
           s0++;
           s1 += val;
           s2 += val*val;

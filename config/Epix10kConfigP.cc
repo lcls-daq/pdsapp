@@ -280,7 +280,7 @@ int Epix10kConfigP::pull(void* from) {
     _reg[i]->value = epixConfShadow.get((Epix10kConfigShadow::Registers) i);
     //      printf("%s0x%x",  i%16==0 ? "\n\t" : " ", epixConfShadow.get((Epix10kConfigShadow::Registers) i));
   }
-  _pixel = epixConf.asicPixelConfigArray()[0][0][0];
+  _pixel = epixConf.asicPixelConfigArray()(0,0,0);
   pixel2bits();
   //    printf("\n returning size(%u), from %u %u %u %u\n",
   //       epixConf._sizeof(),

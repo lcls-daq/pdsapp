@@ -62,7 +62,7 @@ static PyObject* get_quad(const Pds::CsPad2x2::ConfigV1QuadReg* cfg)
   for(unsigned i=0; i<Pds::CsPad2x2::ColumnsPerASIC; i++) {
     PyObject* row = PyList_New(Pds::CsPad2x2::MaxRowsPerASIC);
     for(unsigned j=0; j<Pds::CsPad2x2::MaxRowsPerASIC; j++)
-      PyList_SetItem(row,j,PyLong_FromLong(cfg->gm().gainMap()[i][j]));
+      PyList_SetItem(row,j,PyLong_FromLong(cfg->gm().gainMap()(i,j)));
     PyList_SetItem(columns,i,row); 
   }
   PyDict_SetItemString(o,"gain",columns); }
@@ -109,7 +109,7 @@ static PyObject* get_quad(const Pds::CsPad2x2::ConfigV2QuadReg* cfg)
   for(unsigned i=0; i<Pds::CsPad2x2::ColumnsPerASIC; i++) {
     PyObject* row = PyList_New(Pds::CsPad2x2::MaxRowsPerASIC);
     for(unsigned j=0; j<Pds::CsPad2x2::MaxRowsPerASIC; j++)
-      PyList_SetItem(row,j,PyLong_FromLong(cfg->gm().gainMap()[i][j]));
+      PyList_SetItem(row,j,PyLong_FromLong(cfg->gm().gainMap()(i,j)));
     PyList_SetItem(columns,i,row); 
   }
   PyDict_SetItemString(o,"gain",columns); }
@@ -249,7 +249,7 @@ static bool set_quad(Pds::CsPad2x2::ConfigV1QuadReg* cfg,
     for(unsigned i=0; i<Pds::CsPad2x2::ColumnsPerASIC; i++) {
       PyObject* row = PyList_GetItem(l,i);
       for(unsigned j=0; j<Pds::CsPad2x2::MaxRowsPerASIC; j++)
-        gainmap[i][j] = PyLong_AsLong(PyList_GetItem(row,j));
+        gainmap(i,j) = PyLong_AsLong(PyList_GetItem(row,j));
     }
 
   *cfg= Pds::CsPad2x2::ConfigV1QuadReg(shiftSelect,
@@ -319,7 +319,7 @@ static bool set_quad(Pds::CsPad2x2::ConfigV2QuadReg* cfg,
     for(unsigned i=0; i<Pds::CsPad2x2::ColumnsPerASIC; i++) {
       PyObject* row = PyList_GetItem(l,i);
       for(unsigned j=0; j<Pds::CsPad2x2::MaxRowsPerASIC; j++)
-        gainmap[i][j] = PyLong_AsLong(PyList_GetItem(row,j));
+        gainmap(i,j) = PyLong_AsLong(PyList_GetItem(row,j));
     }
 
 

@@ -148,8 +148,8 @@ int EpixASICdata::pull(const EpixASIC_ConfigShadow& epixASIC_ConfigShadow,
   for (uint32_t i=0; i<EpixASIC_ConfigShadow::NumberOfRegisters; i++) {
     _reg[i]->value = epixASIC_ConfigShadow.get((EpixASIC_ConfigShadow::Registers) i);
   }
-  _mask = (mask[0][0]!=0);
-  _test = (test[0][0]!=0);
+  _mask = (mask(0,0)!=0);
+  _test = (test(0,0)!=0);
   return true;
 }
 

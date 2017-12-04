@@ -207,8 +207,8 @@ namespace Pds_ConfigDb {
         }
         for (unsigned i=0; i<Pds::Epix::RepeatControlCount; i++)
           cs.write( Pds::Epix::WritePixelCommand+a, 0 );
-        unsigned test = e.asicPixelTestArray()[index][0][0];
-        unsigned mask = e.asicPixelMaskArray()[index][0][0];
+        unsigned test = e.asicPixelTestArray()(index,0,0);
+        unsigned mask = e.asicPixelMaskArray()(index,0,0);
         uint32_t bits = (test ? 1 : 0) | (mask ? 2 : 0);
         for (unsigned i=0; i<Pds::Epix::RepeatControlCount; i++)
           cs.write( Pds::Epix::GloalPixelCommand+a, bits );

@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
   delete cfgt;
 
   const size_t sz = Epix100aDataType::_sizeof(*cfg);
-  printf("data type sz [%d]: asics per row [%d]: asics per col [%d]: rows [%d]: cols [%d]\n",
+  printf("data type sz [%lu]: asics per row [%d]: asics per col [%d]: rows [%d]: cols [%d]\n",
          sz, cfg->numberOfAsicsPerRow(), cfg->numberOfAsicsPerColumn(),
          cfg->numberOfRowsPerAsic(), cfg->numberOfPixelsPerAsicRow());
   printf("calib rows [%d]: env rows [%d]\n",cfg->numberOfCalibrationRows(),cfg->numberOfEnvironmentalRows());
@@ -177,8 +177,8 @@ int main(int argc, char* argv[]) {
         ndarray<const uint16_t,2> iframe = e->frame(*cfg);
         ndarray<const uint16_t,2> oframe = q->frame(*cfg);
         for(unsigned i=0; i<nrows; i++) {
-          memcpy(const_cast<uint16_t*>(&oframe[nrows+i+0][0]), &iframe[2*i+0][0], cfg->numberOfColumns()*sizeof(uint16_t));
-          memcpy(const_cast<uint16_t*>(&oframe[nrows-i-1][0]), &iframe[2*i+1][0], cfg->numberOfColumns()*sizeof(uint16_t));
+          memcpy(const_cast<uint16_t*>(&oframe(nrows+i+0,0)), &iframe(2*i+0,0), cfg->numberOfColumns()*sizeof(uint16_t));
+          memcpy(const_cast<uint16_t*>(&oframe(nrows-i-1,0)), &iframe(2*i+1,0), cfg->numberOfColumns()*sizeof(uint16_t));
         }
 
         //  after frame data

@@ -279,19 +279,19 @@ public:
           unsigned j;
           { double sigm = double(offset/8);
             for(j=0; j<f->width()/2; j++)
-              fdata[i][j] = rangss(offset,sigm,0xff); }
+              fdata(i,j) = rangss(offset,sigm,0xff); }
           { double sigm = double(offset/6);
             for(; j<f->width(); j++)
-              fdata[i][j] = rangss(offset,sigm,0xff); }
+              fdata(i,j) = rangss(offset,sigm,0xff); }
         }
         for(; i<f->height(); i++) {
           unsigned j;
           { double sigm = double(offset/6);
             for(j=0; j<f->width()/2; j++)
-              fdata[i][j] = rangss(offset,sigm,0xff); }
+              fdata(i,j) = rangss(offset,sigm,0xff); }
           { double sigm = double(offset/8);
             for(; j<f->width(); j++)
-              fdata[i][j] = rangss(offset,sigm,0xff); }
+              fdata(i,j) = rangss(offset,sigm,0xff); }
 	}
       }
       else if (depth<=16) {
@@ -302,19 +302,19 @@ public:
           unsigned j;
           { double sigm = double(offset/8);
             for(j=0; j<f->width()/2; j++)
-              fdata[i][j] = rangss(offset,sigm,0xff); }
+              fdata(i,j) = rangss(offset,sigm,0xff); }
           { double sigm = double(offset/6);
             for(; j<f->width(); j++)
-              fdata[i][j] = rangss(offset,sigm,0xff); }
+              fdata(i,j) = rangss(offset,sigm,0xff); }
         }
         for(; i<f->height(); i++) {
           unsigned j;
           { double sigm = double(offset/6);
             for(j=0; j<f->width()/2; j++)
-              fdata[i][j] = rangss(offset,sigm,0xff); }
+              fdata(i,j) = rangss(offset,sigm,0xff); }
           { double sigm = double(offset/8);
             for(; j<f->width(); j++)
-              fdata[i][j] = rangss(offset,sigm,0xff); }
+              fdata(i,j) = rangss(offset,sigm,0xff); }
         }
       }
       else
@@ -489,7 +489,7 @@ public:
     ndarray<uint16_t,2> gm(shape);
     for(unsigned x=32; x<40; x++)
       for(unsigned y=32; y<40; y++)
-        gm[x][y] = 0x3;
+        gm(x,y) = 0x3;
     Pds::CsPad2x2::CsPad2x2GainMapCfg        gainmap(gm.data());
 
     Pds::CsPad2x2::ConfigV2QuadReg quad(0, 0, 0, 0, 0,

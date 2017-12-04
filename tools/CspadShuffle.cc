@@ -133,7 +133,7 @@ private:
               
 	      for(unsigned id=0; id<p.shape()[0]; id++)
 		if (smask&(1<<id))
-		  _write(&p[id][0][0],p.strides()[0]*sizeof(int16_t));
+		  _write(&p(id,0,0),p.strides()[0]*sizeof(int16_t));
 
 	      //  Copy the quadrant trailer
 	      _write(p.data()+p.size(),2*sizeof(uint16_t));

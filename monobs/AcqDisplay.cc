@@ -206,7 +206,7 @@ int AcqDisplayL1Action::process(const Xtc& xtc,
       MonEntryWaveform* entry = (MonEntryWaveform*)(_disp.entry(xtc.src,i));
       MonEntryProf* profentry = (MonEntryProf*)(_dispprofile.entry(xtc.src,i));
       for (unsigned j=0;j<wfs.shape()[1];j++) {
-        int16_t data = wfs[0][j];
+        int16_t data = wfs(0,j);
         //        data = (data&0xff<<8) | (data&0xff00>>8);
         double val = data*slope-offset;
         entry    ->content(val,j);

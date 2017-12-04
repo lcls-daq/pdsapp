@@ -274,10 +274,10 @@ void EpixWriter::fill_event(Xtc& xtc) const
       printf("\n == [%f,%f] [%d,%d] [%d,%d] [%d,%d] == \n",
 	     x,y,ix,iy,bx,by,idx,idy);
 
-    q[iy ][ix]   += _e0*_ctr[by][bx];
-    q[idy][ix]   += _e0*_ey [by][bx];
-    q[iy ][idx]  += _e0*_ex [by][bx];
-    q[idy][idx]  += _e0*_ez [by][bx];
+    q(iy ,ix)   += _e0*_ctr[by][bx];
+    q(idy,ix)   += _e0*_ey [by][bx];
+    q(iy ,idx)  += _e0*_ex [by][bx];
+    q(idy,idx)  += _e0*_ez [by][bx];
 
 #ifdef DBUG
     printf(" (%.2f,%.2f)%c",x,y,(i%6)==5 ?'\n':' ');
@@ -286,9 +286,9 @@ void EpixWriter::fill_event(Xtc& xtc) const
 
   const double doffset = double(0x1000);
   for(unsigned i=0; i<nrows; i++) {
-    uint16_t* pf = const_cast<uint16_t*>(&f[i][0]);
+    uint16_t* pf = const_cast<uint16_t*>(&f(i,0));
     for(unsigned j=0; j<ncols; j++) {
-      pf[j] = unsigned(q[i][j] + doffset + _sigE*rangss());
+      pf[j] = unsigned(q(i,j) + doffset + _sigE*rangss());
     }
   }
 

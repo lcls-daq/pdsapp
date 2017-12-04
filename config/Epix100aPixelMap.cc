@@ -46,7 +46,7 @@ namespace Pds_ConfigDb {
         QPainter painter(pixmap);
         for(unsigned row=0; row<_rows; row++) {
           for(unsigned col=0; col<_cols; col++) {
-            painter.setPen(QColor(fg[_map[row][col]&3]));
+            painter.setPen(QColor(fg[_map(row,col)&3]));
             painter.drawPoint(col,row);
           }
         }
@@ -82,7 +82,7 @@ namespace Pds_ConfigDb {
             } while(lptr[0]=='#');
             for(unsigned col=0; col<_cols; col++) {
               v = strtoul(lptr,&lptr,0);
-              _map[row][col] = v&3;
+              _map(row,col) = v&3;
             }
           }
           if (line) {
@@ -107,7 +107,7 @@ namespace Pds_ConfigDb {
           for(unsigned row=0; row<_rows; row++) {
             fprintf(f,"#0  Epix100a row %u\n", row);
             for(unsigned col=0; col<_cols; col++) {
-              fprintf(f," %d", _map[row][col]);
+              fprintf(f," %d", _map(row,col));
             }
             fprintf(f,"\n");
           }

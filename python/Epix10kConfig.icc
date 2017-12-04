@@ -82,7 +82,7 @@ PyObject* pds_Epix10kConfig_get    (PyObject*   self, PyObject* args)
         for (unsigned j=0; j<a.shape()[1]; j++) {
           PyObject* pixels = PyList_New(a.shape()[2]);
           for (unsigned k=0; k<a.shape()[2]; k++) {
-            PyList_SetItem(pixels, k, PyLong_FromLong(a[i][j][k]));
+            PyList_SetItem(pixels, k, PyLong_FromLong(a(i,j,k)));
           }
           PyList_SetItem(rows, j, pixels);
         }
@@ -199,7 +199,7 @@ PyObject* pds_Epix10kConfig_set    (PyObject*   self, PyObject* args)
         for (unsigned j=0; j<PyList_Size(pta); j++) {
           PyObject* row = PyList_GetItem(pta, j);
           for (unsigned k=0; k<PyList_Size(row); k++) {
-            uint16_t* ncptr = (uint16_t*)&(cfg->asicPixelConfigArray()[i][j][k]);
+            uint16_t* ncptr = (uint16_t*)&(cfg->asicPixelConfigArray()(i,j,k));
             *ncptr = PyLong_AsLong(PyList_GetItem(row, k));
           }
         }

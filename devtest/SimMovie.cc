@@ -55,11 +55,11 @@ int SimMovie::process(Xtc* xtc)
       }
       unsigned col = (_next % (f.shape()[1]/scale))*scale;
       for(unsigned j=0; j<scale; j++) {
-	uint16_t* p = const_cast<uint16_t*>(&f[row+j][col]);
+	uint16_t* p = const_cast<uint16_t*>(&f(row+j,col));
 	for(unsigned k=0; k<scale; k++)
 	  p[k] = 0x1ff;
       }
-      *const_cast<uint16_t*>(&f[row][col]) = 0x3ff;
+      *const_cast<uint16_t*>(&f(row,col)) = 0x3ff;
       _next++;
     }
     break;

@@ -85,7 +85,7 @@ PyObject* pds_EpixConfig_get    (PyObject*   self, PyObject* args)
         for (unsigned j=0; j<r; j++) {
           PyObject* pixels = PyList_New(p);
           for (unsigned k=0; k<p; k++) {
-            PyList_SetItem(pixels, k, PyLong_FromLong(cfg->asicPixelTestArray()[i][j][k]));
+            PyList_SetItem(pixels, k, PyLong_FromLong(cfg->asicPixelTestArray()(i,j,k)));
           }
           PyList_SetItem(rows, j, pixels);
         }
@@ -101,7 +101,7 @@ PyObject* pds_EpixConfig_get    (PyObject*   self, PyObject* args)
         for (unsigned j=0; j<r; j++) {
           PyObject* pixels = PyList_New(p);
           for (unsigned k=0; k<p; k++) {
-            PyList_SetItem(pixels, k, PyLong_FromLong(cfg->asicPixelMaskArray()[i][j][k]));
+            PyList_SetItem(pixels, k, PyLong_FromLong(cfg->asicPixelMaskArray()(i,j,k)));
           }
           PyList_SetItem(rows, j, pixels);
         }
@@ -218,7 +218,7 @@ PyObject* pds_EpixConfig_set    (PyObject*   self, PyObject* args)
         for (unsigned j=0; j<r; j++) {
           PyObject* row = PyList_GetItem(pta, j);
           for (unsigned k=0; k<p; k++) {
-            uint32_t* ncptr = (uint32_t*)&(cfg->asicPixelTestArray()[i][j][k]);
+            uint32_t* ncptr = (uint32_t*)&(cfg->asicPixelTestArray()(i,j,k));
             *ncptr = PyLong_AsLong(PyList_GetItem(row, k));
           }
         }
@@ -234,7 +234,7 @@ PyObject* pds_EpixConfig_set    (PyObject*   self, PyObject* args)
         for (unsigned j=0; j<r; j++) {
           PyObject* row = PyList_GetItem(pma, j);
           for (unsigned k=0; k<p; k++) {
-            uint32_t* ncptr = (uint32_t*)&(cfg->asicPixelMaskArray()[i][j][k]);
+            uint32_t* ncptr = (uint32_t*)&(cfg->asicPixelMaskArray()(i,j,k));
             *ncptr = PyLong_AsLong(PyList_GetItem(row, k));
           }
         }

@@ -146,7 +146,7 @@ static void _add_laser(ndarray<uint16_t,3> a,
     unsigned edge = (rand()>>4)%(a.shape()[2]);
     printf("edge[%u] = %u\n",i,edge);
     for(unsigned iy=200; iy<400; iy++) {
-      uint16_t* p=&a[i][iy][0];
+      uint16_t* p=&a(i,iy,0);
       double ampl = AMPL*(1-tloss);
       for(unsigned ix=0; ix<edge; ix++)
 	*p++ += int(ampl*vx[ix]);
@@ -154,7 +154,7 @@ static void _add_laser(ndarray<uint16_t,3> a,
 	*p++ += int(AMPL*vx[ix]);
     }
     for(unsigned iy=800; iy<1000; iy++) {
-      uint16_t* p=&a[i][iy][0];
+      uint16_t* p=&a(i,iy,0);
       for(unsigned ix=0; ix<a.shape()[2]; ix++)
 	*p++ += int(AMPL*vx[ix]);
     }
@@ -289,15 +289,15 @@ int SimTimeTool::process(Xtc* xtc)
 	unsigned seed = rand()%NBuffers;
 	if (!laserOn)
 	  memcpy(const_cast<uint16_t*>(d.data16().data()),
-		 &_laseroff[seed][0][0],
+		 &_laseroff(seed,0,0),
 		 d.data16().size()*sizeof(uint16_t));
 	else if (!beamOn)
 	  memcpy(const_cast<uint16_t*>(d.data16().data()),
-		 &_beamoff[seed][0][0],
+		 &_beamoff(seed,0,0),
 		 d.data16().size()*sizeof(uint16_t));
 	else
 	  memcpy(const_cast<uint16_t*>(d.data16().data()),
-		 &_beamon[seed][0][0],
+		 &_beamon(seed,0,0),
 		 d.data16().size()*sizeof(uint16_t));
       }
     }
