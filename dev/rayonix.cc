@@ -4,12 +4,9 @@
 
 #include "pds/service/CmdLineTools.hh"
 #include "pds/management/SegmentLevel.hh"
-#include "pds/management/EventCallback.hh"
-#include "pds/collection/Arp.hh"
+#include "pds/management/EventAppCallback.hh"
+#include "pds/management/StdSegWire.hh"
 
-#include "pds/management/SegStreams.hh"
-#include "pds/utility/SegWireSettings.hh"
-#include "pds/utility/InletWire.hh"
 #include "pds/service/Task.hh"
 #include "pds/rayonix/RayonixManager.hh"
 #include "pds/rayonix/RayonixServer.hh"
@@ -36,159 +33,10 @@ static void usage(const char *p)
          "    -h                          print this message and exit\n");
 }
 
-namespace Pds
-{
-  class MySegWire;
-  class Seg;
-}
-
-//
-//  This class creates the server when the streams are connected.
-//
-class Pds::MySegWire
-   : public SegWireSettings
-{
-  public:
-    MySegWire(RayonixServer* rayonixServer,
-              unsigned       module,
-              unsigned       channel,
-              const char*    aliasName);
-    virtual ~MySegWire() {}
-
-    void connect( InletWire& wire,
-                  StreamParams::StreamType s,
-                  int interface );
-
-    const std::list<Src>& sources() const { return _sources; }
-
-    const std::list<SrcAlias>* pAliases() const
-    {
-      return (_aliases.size() > 0) ? &_aliases : NULL;
-    }
-    bool     is_triggered() const { return true; }
-    unsigned module      () const { return _module; }
-    unsigned channel     () const { return _channel; }
-
-  private:
-    RayonixServer* _rayonixServer;
-    std::list<Src> _sources;
-    std::list<SrcAlias> _aliases;
-    unsigned       _module;
-    unsigned       _channel;
-};
-
-//
-//  Implements the callbacks for attaching/dissolving.
-//  Appliances can be added to the stream here.
-//
-class Pds::Seg : public EventCallback
-{
-  public:
-    Seg( Task* task,
-         unsigned platform,
-         CfgClientNfs* cfgService,
-         SegWireSettings& settings,
-         Arp* arp,
-         RayonixServer* rayonixServer );
-
-    virtual ~Seg();
-
-  private:
-    // Implements EventCallback
-    void attached( SetOfStreams& streams );
-    void failed( Reason reason );
-    void dissolved( const Node& who );
-
-    Task* _task;
-    unsigned _platform;
-    CfgClientNfs* _cfg;
-    RayonixServer* _rayonixServer;
-};
-
-
-Pds::MySegWire::MySegWire( RayonixServer* rayonixServer,
-                           unsigned module,
-                           unsigned channel,
-                           const char* aliasName) :
-     _rayonixServer(rayonixServer),
-     _module   (module),
-     _channel  (channel)
-{
-  _sources.push_back(rayonixServer->client());
-  if (aliasName) {
-    SrcAlias tmpAlias(rayonixServer->client(), aliasName);
-    _aliases.push_back(tmpAlias);
-  }
-}
-
-void Pds::MySegWire::connect( InletWire& wire,
-                              StreamParams::StreamType s,
-                              int interface )
-{
-  printf("Adding input of server, fd %d\n", _rayonixServer->fd() );
-  wire.add_input( _rayonixServer );
-}
-
-
-Pds::Seg::Seg( Task* task,
-               unsigned platform,
-               CfgClientNfs* cfgService,
-               SegWireSettings& settings,
-               Arp* arp,
-               RayonixServer* rayonixServer )
-  : _task(task),
-    _platform(platform),
-    _cfg   (cfgService),
-    _rayonixServer(rayonixServer)
-{}
-
-Pds::Seg::~Seg()
-{
-  _task->destroy();
-}
-
-void Pds::Seg::attached( SetOfStreams& streams )
-{
-  printf("Seg connected to platform 0x%x\n",
-         _platform);
-
-  Stream* frmk = streams.stream(StreamParams::FrameWork);
-  RayonixManager& rayonixMgr = * new RayonixManager( _rayonixServer,
-                                                      _cfg );
-  rayonixMgr.appliance().connect( frmk->inlet() );
-}
-
-void Pds::Seg::failed( Reason reason )
-{
-  static const char* reasonname[] = { "platform unavailable",
-                                      "crates unavailable",
-                                      "fcpm unavailable" };
-  printf( "Seg: unable to allocate crates on platform 0x%x : %s\n",
-          _platform, reasonname[reason]);
-  delete this;
-}
-
-void Pds::Seg::dissolved( const Node& who )
-{
-  const unsigned userlen = 12;
-  char username[userlen];
-  Node::user_name( who.uid(),
-                   username,userlen );
-
-  const unsigned iplen = 64;
-  char ipname[iplen];
-  Node::ip_name( who.ip(),
-                 ipname, iplen );
-
-  printf( "Seg: platform 0x%x dissolved by user %s, pid %d, on node %s",
-          who.platform(), username, who.pid(), ipname);
-
-  delete this;
-}
-
 using namespace Pds;
 
-static RayonixServer* rayonixServer;
+static const unsigned MAX_EVENT_SIZE = 16*1024*1024;
+static const unsigned MAX_EVENT_DEPTH = 32;
 
 int main( int argc, char** argv )
 {
@@ -196,7 +44,6 @@ int main( int argc, char** argv )
   unsigned platform = UINT_MAX;
   unsigned module = 0;
   unsigned channel = 0;
-  Arp* arp = 0;
   unsigned verbosity = 0;
   bool helpFlag = false;
   char* uniqueid = (char *)NULL;
@@ -263,6 +110,8 @@ int main( int argc, char** argv )
   Task* task = new Task( Task::MakeThisATask );
 
   CfgClientNfs* cfgService;
+  std::list<EbServer*> servers;
+  std::list<RayonixManager*> managers;
 
   DetInfo detInfo( node.pid(),
                    (Pds::DetInfo::Detector) detid,
@@ -272,21 +121,14 @@ int main( int argc, char** argv )
 
   cfgService = new CfgClientNfs(detInfo);
 
-  rayonixServer = new RayonixServer(detInfo, verbosity);
+  RayonixServer* rayonixServer = new RayonixServer(detInfo, verbosity);
+  servers.push_back(rayonixServer);
+  RayonixManager* rayonixMgr = new RayonixManager(rayonixServer, cfgService);
+  managers.push_back(rayonixMgr);
 
-  MySegWire settings(rayonixServer, module, channel, uniqueid);
-
-  Seg* seg = new Seg( task,
-                       platform,
-                       cfgService,
-                       settings,
-                       arp,
-                       rayonixServer );
-
-  SegmentLevel* seglevel = new SegmentLevel( platform,
-                                              settings,
-                                              *seg,
-                                              arp );
+  StdSegWire settings(servers, uniqueid, MAX_EVENT_SIZE, MAX_EVENT_DEPTH, true, module, channel);
+  EventAppCallback* seg = new EventAppCallback(task, platform, managers.front()->appliance());
+  SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
 
   if (seglevel->attach()) {
     printf("entering rayonix task main loop\n");
