@@ -36,6 +36,7 @@ static void usage(char *argv0)
    "         -o <options>              : partition options\n"
    "            1=CXI slow runningkludge\n"
    "            2=XPP short timeout on Disable\n"
+   "            16=XPP long timeout on Disable\n"
    "         -X <host>:<port>          : status export host name and UDP port number\n"
    "         -I <ignore_options>       : ignore PV connection errors for IOC recorder\n"
    "            0=Do not ignore (default)\n"
