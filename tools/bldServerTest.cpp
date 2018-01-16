@@ -646,12 +646,11 @@ void printData(
 
 		printf( "\n" );
 	  }
-	  else
-	  {
-		  // Skip the 15 word header and requested dump offset (4 byte aligned)
-		  pData += 15;
-	  }
+
 	  // Skip the 15 word header and requested dump offset (4 byte aligned)
+	  pData += 15;
+
+	  // Skip the requested dump offset (4 byte aligned)
 	  pData += offDump/sizeof(uint32_t);
 
 	  const int			* pInt        = (const int		* ) pData;
