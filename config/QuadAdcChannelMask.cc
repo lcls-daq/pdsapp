@@ -12,6 +12,8 @@ using namespace Pds_ConfigDb;
 #include <QtGui/QStackedWidget>
 #include <stdio.h>
 
+enum sample_rate_enum { G1_25, M625, M312_5, M156_25 };
+
 QuadAdcChannelMask::QuadAdcChannelMask(const char* label, unsigned val) :
   NumericInt<unsigned>  (label, val, 1, (1<<(Channels*Modules))-1,Hex)
 {
@@ -49,13 +51,46 @@ void QuadAdcChannelMask::setinterleave(int interleave){
 
 
 
-int QuadAdcChannelMask::samplerate() const {
-  return _rateBox->currentIndex();
+double QuadAdcChannelMask::samplerate() const {
+
+  double sr = 5.e9;
+
+  if (!interleave()) {
+    int index = _rateBox->currentIndex();
+    switch(index) {
+    case G1_25 :
+      sr = 1.25e9;
+      break;
+    case M625 :
+      sr = 625e6;
+      break;
+    case M312_5 :
+      sr = 312.5e6;
+      break;
+    default:
+      sr = 156.25e6/double(index-M156_25+1);
+      break;
+    }
+  }
+
+  return sr;
 }
 
 
-void QuadAdcChannelMask::setsamplerate(int samplerate){
-  _rateBox->setCurrentIndex(samplerate);
+void QuadAdcChannelMask::setsamplerate(double samplerate){
+
+  int index = 0;
+  if (samplerate>1.24e9)
+    index = G1_25;
+  else if (samplerate>620e6)
+    index = M625;
+  else if (samplerate>312e6)
+    index = M312_5;
+  else {
+    index = M156_25 + int(156.25e6/samplerate -0.5);
+  }
+
+  _rateBox->setCurrentIndex(index);
 }
 
 
@@ -105,7 +140,12 @@ QLayout* QuadAdcChannelMask::initialize(QWidget* parent)
 
   //Sample Rate Stacked Widget//
   QStringList rate_names;
-  rate_names << "1.25 GHz" << "625 MHz" << "250 MHz" << "125 MHz" << "62.5 MHz" << "41.7 MHz" << "31.3 MHz" << "25 MHz" << "20.8 MHz" << "17.9 MHz" << "15.6 MHz" ;
+  rate_names << "1250 MHz" << "625 MHz" << "312.5 MHz";
+  for(unsigned i=1; i<8; i++) {
+    char buff[16];
+    sprintf(buff, "%5.2f MHz", 156.25/double(i));
+    rate_names << buff;
+  }
 
   QStackedWidget* sw = new QStackedWidget;
   _rateBox = new QComboBox;
@@ -113,7 +153,7 @@ QLayout* QuadAdcChannelMask::initialize(QWidget* parent)
 
  
   sw->addWidget(_rateBox);
-  sw->addWidget(new QLabel("5 MHz"));
+  sw->addWidget(new QLabel("5000 MHz"));
 
   QObject::connect(combobox,SIGNAL(currentIndexChanged(int)), sw, SLOT(setCurrentIndex(int)));
   grid->addWidget(sw, 2, 1,1,4, ::Qt::AlignHCenter);

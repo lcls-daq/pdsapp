@@ -169,3 +169,10 @@ tgtslib_quadadc_mon := $(USRLIBDIR)/rt pthread
 tgtincs_quadadc_mon += hsd/include
 
 tgtnames += quadadc_mon
+
+tgtsrcs_quadadc_xtc := quadadc_xtc.cc
+tgtlibs_quadadc_xtc += pdsdata/xtcdata pdsdata/psddl_pdsdata
+tgtincs_quadadc_xtc := pdsdata/include ndarray/include boost/include
+tgtslib_quadadc_xtc := $(USRLIBDIR)/rt
+
+tgtnames += quadadc_xtc

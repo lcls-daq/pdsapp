@@ -20,8 +20,8 @@ namespace Pds_ConfigDb {
     void     flush     ();
     void     setinterleave(int);
     int      interleave() const;
-    void     setsamplerate(int);
-    int      samplerate() const;
+    void     setsamplerate(double);
+    double   samplerate() const;
   public slots:
     void boxChanged(int);
     void modeChanged(int);
