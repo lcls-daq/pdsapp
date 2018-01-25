@@ -24,7 +24,17 @@ static const unsigned EVENT_SIZE_EXTRA = 0x10000;
 static const unsigned MAX_MODULE_SIZE = 2*512*1024;
 static const unsigned MAX_EVENT_DEPTH = 128;
 
+static Pds::Jungfrau::Detector* det = NULL;
+
 using namespace Pds;
+
+static void shutdown(int signal)
+{
+  if (det) {
+    det->shutdown();
+  }
+  exit(signal);
+}
 
 static void jungfrauUsage(const char* p)
 {
@@ -204,18 +214,38 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  /*
+   * Register singal handler
+   */
+  struct sigaction sigActionSettings;
+  sigemptyset(&sigActionSettings.sa_mask);
+  sigActionSettings.sa_handler = shutdown;
+  sigActionSettings.sa_flags   = SA_RESTART;
+
+  if (sigaction(SIGINT, &sigActionSettings, 0) != 0 )
+    printf("Cannot register signal handler for SIGINT\n");
+  if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 )
+    printf("Cannot register signal handler for SIGTERM\n");
+
   std::list<EbServer*>        servers;
   std::list<Jungfrau::Manager*> managers;
   std::vector<Jungfrau::Module*> modules(num_modules);
 
   CfgClientNfs* cfg = new CfgClientNfs(detInfo);
   
-  Jungfrau::Server* srv = new Jungfrau::Server(detInfo);
-  servers   .push_back(srv);
   for (unsigned i=0; i<num_modules; i++) {
     modules[i] = new Jungfrau::Module(((detInfo.devId()&0xff)<<8) | (i&0xff), sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
   }
-  Jungfrau::Detector* det = new Jungfrau::Detector(modules, isThreaded);
+  det = new Jungfrau::Detector(modules, isThreaded);
+  if (!det->connected()) {
+    printf("Aborting: Failed to connect to the Jungfrau detector, please check that it is present and powered!\n");
+    delete det;
+    det = 0;
+    return 1;
+  }
+
+  Jungfrau::Server* srv = new Jungfrau::Server(detInfo);
+  servers   .push_back(srv);
   Jungfrau::Manager* mgr = new Jungfrau::Manager(*det, *srv, *cfg);
   managers.push_back(mgr);
 
@@ -224,7 +254,9 @@ int main(int argc, char** argv) {
   Task* task = new Task(Task::MakeThisATask);
   EventAppCallback* seg = new EventAppCallback(task, platform, managers.front()->appliance());
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
-  seglevel->attach();
+  if (seglevel->attach()) {
+    task->mainLoop();
+  }
 
-  task->mainLoop();
+  return 0;
 }
