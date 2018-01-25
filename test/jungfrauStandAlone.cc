@@ -262,7 +262,14 @@ int main(int argc, char **argv)
     3000  // vdd_prot
   );
  
-  det->configure(external ? 0 : numImages, gain, speed, triggerDelay, exposureTime, exposurePeriod, bias, dacs_config);
+  if (!det->configure(external ? 0 : numImages, gain, speed, triggerDelay, exposureTime, exposurePeriod, bias, dacs_config)) {
+    printf("failed to configure the detector!\n");
+    if (det && configReceiver) {
+      delete det;
+      det = 0;
+    }
+    return 1;
+  }
 
   sleep(1);
 
