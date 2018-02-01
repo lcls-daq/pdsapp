@@ -24,6 +24,8 @@ static const unsigned EVENT_SIZE_EXTRA = 0x10000;
 static const unsigned MAX_EVENT_SIZE = 2*2560*2160 + EVENT_SIZE_EXTRA;
 static const unsigned MAX_EVENT_DEPTH = 64;
 
+static const AT_WC* AT3_SIMCAM_ID = L"SIMCAM CMOS";
+
 using namespace Pds;
 
 static AT_H Handle = AT_HANDLE_UNINITIALISED;
@@ -230,10 +232,15 @@ int main(int argc, char** argv) {
   }
 
   // Print out basic camera info
+  bool isSimCam = false;
   AT_WC wc_buffer[AT_MAX_MSG_LEN];
   printf("Camera information:\n");
   drv->get_model(wc_buffer, AT_MAX_MSG_LEN);
   printf(" Camera model: %ls\n", wc_buffer);
+  // Check if the camera is a simcam
+  if (wcscmp(AT3_SIMCAM_ID, wc_buffer) == 0) {
+    isSimCam = true;
+  }
   drv->get_name(wc_buffer, AT_MAX_MSG_LEN);
   printf(" Camera name: %ls\n", wc_buffer);
   drv->get_family(wc_buffer, AT_MAX_MSG_LEN);
@@ -251,29 +258,34 @@ int main(int argc, char** argv) {
   printf(" Camera pixel width (um): %g\n", drv->pixel_width());
   printf(" Camera pixel height (um): %g\n", drv->pixel_height());
 
-  std::list<EbServer*>      servers;
-  std::list<Zyla::Manager*> managers;
+  if (isSimCam) {
+    // If all we find is a simcam this means the Andor SDK didn't find any real cameras connected to the machine
+    printf("Aborting: Failed to find any Zyla/Neo cameras, please check that it is present and powered!\n");
+  } else {
+    std::list<EbServer*>      servers;
+    std::list<Zyla::Manager*> managers;
 
-  CfgClientNfs* cfg = new CfgClientNfs(detInfo);
+    CfgClientNfs* cfg = new CfgClientNfs(detInfo);
   
-  Zyla::Server* srv = new Zyla::Server(detInfo);
-  servers.push_back(srv);
-  Zyla::Manager* mgr = new Zyla::Manager(*drv, *srv, *cfg, waitCooling);
-  managers.push_back(mgr);
+    Zyla::Server* srv = new Zyla::Server(detInfo);
+    servers.push_back(srv);
+    Zyla::Manager* mgr = new Zyla::Manager(*drv, *srv, *cfg, waitCooling);
+    managers.push_back(mgr);
 
-  StdSegWire settings(servers, uniqueid, MAX_EVENT_SIZE, MAX_EVENT_DEPTH, isTriggered, module, channel);
+    StdSegWire settings(servers, uniqueid, MAX_EVENT_SIZE, MAX_EVENT_DEPTH, isTriggered, module, channel);
 
-  Task* task = new Task(Task::MakeThisATask);
-  EventAppCallback* seg = new EventAppCallback(task, platform, managers.front()->appliance());
-  SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
-  seglevel->attach();
-
-  task->mainLoop();
+    Task* task = new Task(Task::MakeThisATask);
+    EventAppCallback* seg = new EventAppCallback(task, platform, managers.front()->appliance());
+    SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
+    if (seglevel->attach()) {
+      task->mainLoop();
+    }
+  }
 
   // Clean up camera
   drv->close();
   AT_FinaliseUtilityLibrary();
   AT_FinaliseLibrary();
 
-  return 0;
+  return isSimCam?1:0;
 }
