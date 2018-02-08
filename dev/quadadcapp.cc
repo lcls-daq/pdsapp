@@ -184,7 +184,7 @@ int main(int argc, char** argv) {
   // p->i2c_sw_control.select(I2cSwitch::PrimaryFmc); 
   // p->i2c_sw_control.dump();
       
-  static const DetInfo  src  (0,DetInfo::XppEndstation,0,DetInfo::Wave8      ,0);
+  static const DetInfo  src (info);
 
       // Pds::DetInfo src(p->base.partitionAddr,
       //	   info.detector(),info.detId(),
