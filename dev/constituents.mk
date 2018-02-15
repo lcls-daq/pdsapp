@@ -17,6 +17,7 @@ tgtnames += lecroy
 tgtnames += pvdaq
 tgtnames += archon
 tgtnames += gsc16ai
+tgtnames += quadadc
 
 ifneq ($(findstring i386,$(tgt_arch)),)
 tgtnames +=  acq \
@@ -320,3 +321,14 @@ tgtlibs_pimax += pds/pdspimax pds/configdata
 tgtlibs_pimax +=  $(libPicam)
 tgtslib_pimax := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
 tgtincs_pimax := pdsdata/include ndarray/include boost/include
+
+tgtsrcs_quadadc := quadadcapp.cc
+tgtlibs_quadadc := $(commonlibs)
+#tgtlibs_quadadc += pds/quadadc pds/quadadcbase hsd/hsd
+tgtlibs_quadadc += pds/quadadc hsd/hsd
+tgtslib_quadadc := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
+tgtincs_quadadc := pdsdata/include ndarray/include boost/include hsd/include
+
+tgtlibs_quadadc += pds/service
+tgtlibs_quadadc += pdsdata/xtcdata pdsdata/psddl_pdsdata pdsapp/padmon pdsdata/appdata
+tgtincs_quadadc += evgr
