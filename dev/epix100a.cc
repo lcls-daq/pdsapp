@@ -258,7 +258,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: epix100a [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-m <bool>] [-r <runTimeConfigName>] [-D <debug>] [-P <pgpcardNumb>] [-G] [-T] [-A]\n"
+  printf( "Usage: epix100a [-h] [-d <detector>] [-i <deviceID>] [-e <numb>] [-R <bool>] [-m <bool>] [-r <runTimeConfigName>] [-D <debug>] [-P <pgpcardNumb>] [-G] [-T]\n"
       "    -h      Show usage\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
@@ -272,7 +272,6 @@ void printUsage(char* s) {
       "                index of 1 for the first port\n"
       "    -G      Use if pgpcard is a G3 card\n"
       "    -T      Use if pgpcard is a G3 card and you want the triggering to be done over the fiber\n"
-      "    -A      Use if the AES pgpcard driver is being used\n"
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
       "    -m <B>  Set flag to maintain or not maintain lost run triggers (turn off for slow running\n"
@@ -386,9 +385,6 @@ int main( int argc, char** argv )
          case 'T':
            triggerOverFiber = true;
            break;
-         case 'A':
-           useAesDriver = true;
-           break;
          case 'h':
            printUsage(argv[0]);
            return 0;
@@ -472,6 +468,21 @@ int main( int argc, char** argv )
      sprintf(devName, "/dev/pgpcard_%u", card);
    } else {
      sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, card, ports);
+   }
+   // Check what driver the card is using
+   sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, card, ports);
+   if ( access( devName, F_OK ) != -1 ) {
+     useAesDriver = false;
+     if (debug & 1) printf("%s found %s - using legacy pgpcard driver\n", argv[0], devName);
+   } else {
+     sprintf(devName, "/dev/pgpcard_%u", card);
+     if ( access( devName, F_OK ) != -1 ) {
+       useAesDriver = true;
+       if (debug & 1) printf("%s found %s - using aes pgpcard driver\n", argv[0], devName);
+     } else {
+       fprintf(stderr, "%s unable to deterime pgpcard driver type", argv[0]);
+       return 1;
+     }
    }
 
    int fd = open( devName,  O_RDWR | O_NONBLOCK );
