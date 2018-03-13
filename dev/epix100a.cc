@@ -464,11 +464,6 @@ int main( int argc, char** argv )
      ports = 15;
    }
    
-   if (useAesDriver) {
-     sprintf(devName, "/dev/pgpcard_%u", card);
-   } else {
-     sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, card, ports);
-   }
    // Check what driver the card is using
    sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, card, ports);
    if ( access( devName, F_OK ) != -1 ) {
