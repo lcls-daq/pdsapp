@@ -265,8 +265,8 @@ void printUsage(char* s) {
       "    -P      Set pgpcard and port number  [Default: 0]\n"
       "                The format of the index number is a one byte number with the bottom nybble being\n"
       "                the index of the card and the top nybble being index of the port in use with the"
-      "                first port being ZERO.  For the G3 card this could be a number from 0 to 7, for the\n"
-      "                G2 card, this could be a number from 0 to 3.\n"
+      "                first port being ONE.  For the G3 card this could be a number from 1 to 8, for the\n"
+      "                G2 card, this could be a number from 1 to 4.\n"
       "    -T      Use if pgpcard is a G3 card and you want the triggering to be done over the fiber\n"
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
@@ -446,7 +446,8 @@ int main( int argc, char** argv )
    settings.fiberTriggering(triggerOverFiber);
 
    unsigned card = pgpcard & 0xf;
-   unsigned lane = (pgpcard >> 4) & 0xf;
+   unsigned port = (pgpcard >> 4) & 0xf;
+   unsigned lane = port - 1;
    printf("%s pgpcard %d, lane %d\n", argv[0], card, lane);
    char devName[128];
    char err[128];
