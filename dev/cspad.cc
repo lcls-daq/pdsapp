@@ -292,6 +292,7 @@ int main( int argc, char** argv )
   bool                compressFlag        = false;
   bool                bUsage              = false;
   bool                sequenceServ        = false;
+  bool                useAesDriver        = false;
   unsigned            compressThreads     = 0;
   unsigned            uu1, uu2, uu3;
   AppList user_apps;
@@ -487,6 +488,7 @@ int main( int argc, char** argv )
   settings.max_event_depth(eventDepth);
 
   bool G3Flag = strlen(g3) != 0;
+  unsigned card = pgpcard & 0xf;
   unsigned ports = (pgpcard >> 4) & 0xf;
   char devName[128];
 //  printf("%s pgpcard 0x%x, ports %d\n", argv[0], pgpcard, ports);
@@ -494,7 +496,22 @@ int main( int argc, char** argv )
   if ((ports == 0) && !G3Flag) {
     ports = 15;
   }
-  sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, pgpcard & 0xf, ports);
+
+  // Check what driver the card is using
+  sprintf(devName, "/dev/pgpcard%s_%u_%u", g3, card, ports);
+  if ( access( devName, F_OK ) != -1 ) {
+    useAesDriver = false;
+    if (debug & 1) printf("%s found %s - using legacy pgpcard driver\n", argv[0], devName);
+  } else {
+    sprintf(devName, "/dev/pgpcard_%u", card);
+    if ( access( devName, F_OK ) != -1 ) {
+      useAesDriver = true;
+      if (debug & 1) printf("%s found %s - using aes pgpcard driver\n", argv[0], devName);
+    } else {
+      fprintf(stderr, "%s unable to deterime pgpcard driver type", argv[0]);
+      return 1;
+    }
+  }
 
   int fd = open( devName,  O_RDWR | O_NONBLOCK );
   if (debug & 1) printf("%s using %s\n", argv[0], devName);
@@ -507,7 +524,7 @@ int main( int argc, char** argv )
   unsigned limit =  4;
   unsigned offset = 0;
 
-  if ( !G3Flag ) {  // G2 or lower
+  if ( !G3Flag && !useAesDriver ) {  // G2 or lower
     while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
       offset += 1;
     }
@@ -518,7 +535,7 @@ int main( int argc, char** argv )
   printf("%s pgpcard opened as fd %d, offset %d, ports %d\n", argv[0], fd, offset, ports);
 
   Pds::Pgp::Pgp::portOffset(offset);
-  cspadServer->setCspad(fd);
+  cspadServer->setCspad(fd, useAesDriver);
 
   printf("making Seg\n");
   Seg* seg = new Seg( task,

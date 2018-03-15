@@ -450,7 +450,7 @@ int main( int argc, char** argv )
    unsigned limit =  4;
    unsigned offset = 0;
 
-   if ( !G3Flag && !useAesDriver) { // G2 or lower
+   if ( !G3Flag && !useAesDriver ) { // G2 or lower
      while ((((ports>>offset) & 1) == 0) && (offset < limit)) {
        offset += 1;
      }
