@@ -229,7 +229,8 @@ int main(int argc, char **argv)
 
   camera->set_image(width, height, orgX, orgY, binX, binY, noise_filter, blemish_correction);
   camera->set_readout(shutter, readout_rate, gain);
-  camera->set_trigger(trigger, 0.0, exposure, overlap);
+  camera->set_trigger(trigger, 0.0, overlap);
+  camera->set_exposure(exposure);
   camera->set_cooling(enable_cooling, cooling_spt, fan_speed);
   camera->configure(num_frames);
 
