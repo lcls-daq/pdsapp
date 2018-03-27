@@ -1,11 +1,10 @@
 #include "pdsapp/tools/PadMonServer.hh"
 #include "pdsdata/psddl/epix.ddl.h"
 #include "pdsdata/psddl/epixsampler.ddl.h"
-#include "pds/pgpaes/Pgp.hh"
-#include "pds/pgpaes/Destination.hh"
-#include "pds/pgpaes/DataImportFrame.hh"
-#include "pgpcard/PgpDriver.h"
-#include "pgpcard/DmaDriver.h"
+#include "pds/pgp/Pgp.hh"
+#include "pds/pgp/Destination.hh"
+#include "pds/pgp/DataImportFrame.hh"
+#include <PgpDriver.h>
 #include <strings.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -29,9 +28,9 @@ void sigHandler( int signal ) {
 
 using namespace Pds;
 
-PgpAes::Destination* dest;
-PgpAes::Pgp* pgp;
-Pds::PgpAes::RegisterSlaveImportFrame* rsif;
+Pgp::Destination* dest;
+Pgp::Pgp* pgp;
+Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 int printMyStatus (int s) {
    PgpInfo        info;
@@ -355,9 +354,9 @@ int main( int argc, char** argv ) {
     return 1;
   }
 
-  Pds::PgpAes::Pgp::portOffset(offset);
-  pgp = new Pds::PgpAes::Pgp(fd, debug != 0);
-  dest = new Pds::PgpAes::Destination(lvcNumb);
+  Pds::Pgp::Pgp::portOffset(offset);
+  pgp = new Pds::Pgp::Pgp(fd, debug != 0);
+  dest = new Pds::Pgp::Destination(lvcNumb);
   pgp->allocateVC(1<<(lvcNumb&3), 1<<(lvcNumb>>2));
 
   if (debug & 1) printf("Destination %s Offset %u\n", dest->name(), offset);
@@ -378,7 +377,7 @@ int main( int argc, char** argv ) {
 
   if (strlen(runTimeConfigname)) {
     FILE* f;
-    PgpAes::Destination _d;
+    Pgp::Destination _d;
     unsigned maxCount = 1024;
     //    char path[240];
     //    char* home = getenv("HOME");
@@ -425,7 +424,7 @@ int main( int argc, char** argv ) {
 //      pgp->status()->print();
 //      break;
     case writeCommand:
-      pgp->writeRegister(dest, addr, data, printFlag, Pds::PgpAes::PgpRSBits::Waiting);
+      pgp->writeRegister(dest, addr, data, printFlag, Pds::Pgp::PgpRSBits::Waiting);
       rsif = pgp->read();
       if (rsif) {
         if (printFlag) rsif->print();
@@ -437,7 +436,7 @@ int main( int argc, char** argv ) {
       //      printf("\n");
       idx = 0;
       while (count--) {
-        pgp->writeRegister(dest, addr, data, printFlag & 1, Pds::PgpAes::PgpRSBits::Waiting);
+        pgp->writeRegister(dest, addr, data, printFlag & 1, Pds::Pgp::PgpRSBits::Waiting);
         usleep(delay);
         rsif = pgp->read();
         if (rsif) {
@@ -499,7 +498,7 @@ int main( int argc, char** argv ) {
       //fall through to readAsync ...
     case readAsyncCommand:
       enum {BufferWords = 1<<24};
-      Pds::PgpAes::DataImportFrame* inFrame;
+      Pds::Pgp::DataImportFrame* inFrame;
       DmaReadData       pgpCardRx;
       pgpCardRx.data    = (uint64_t)malloc(BufferWords);
       pgpCardRx.dest    = dest->dest();
@@ -511,7 +510,7 @@ int main( int argc, char** argv ) {
       int readRet;
       while (keepGoing) {
         if ((readRet = ::read(fd, &pgpCardRx, sizeof(DmaReadData))) > 0) {
-          inFrame = (Pds::PgpAes::DataImportFrame*) pgpCardRx.data;
+          inFrame = (Pds::Pgp::DataImportFrame*) pgpCardRx.data;
           if (shm) {
             switch(typ) {
               case PadMonServer::Epix:
@@ -527,7 +526,7 @@ int main( int argc, char** argv ) {
           } else if ((debug & 1) || (readRet <= 4)) {
             printf("read returned %u, DataImportFrame lane(%u) vc(%u) pgpCardRx lane(%u), vc(%u)\n",
                 readRet, inFrame->lane(), inFrame->vc(),
-                pgpGetLane(pgpCardRx.dest)-Pds::PgpAes::Pgp::portOffset(), pgpGetVc(pgpCardRx.dest));
+                pgpGetLane(pgpCardRx.dest)-Pds::Pgp::Pgp::portOffset(), pgpGetVc(pgpCardRx.dest));
           } else {
             uint32_t* u32p = (uint32_t*) pgpCardRx.data;
             int*      i32p = (int*) pgpCardRx.data;

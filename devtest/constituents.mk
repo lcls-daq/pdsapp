@@ -32,7 +32,7 @@ liblibs_epixsim := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata
 liblibs_epixsim += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
 libincs_epixsim := pdsdata/include ndarray/include boost/include 
 
-tgtnames    := evgr evg pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget xtccamfix compressstat epixwriter microspin xtcwriter  epix100abintoxtc
+tgtnames    := evgr evg pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget pgpaeswidget xtccamfix compressstat epixwriter microspin xtcwriter  epix100abintoxtc
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
@@ -113,6 +113,11 @@ tgtsrcs_pnccdwidget := pnccdWidget.cc
 tgtlibs_pnccdwidget := pds/pgp
 tgtslib_pnccdwidget := $(USRLIB)/rt
 tgtincs_pnccdwidget := pdsdata/include 
+
+tgtsrcs_pgpaeswidget := pgpAesWidget.cc
+tgtlibs_pgpaeswidget := pds/pgp pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
+tgtslib_pgpaeswidget := $(USRLIB)/rt
+tgtincs_pgpaeswidget := pdsdata/include ndarray/include boost/include aesdriver/include
 
 tgtsrcs_fccdwidget := fccdWidget.cc
 tgtslib_fccdwidget := $(USRLIB)/rt
