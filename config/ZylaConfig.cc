@@ -157,7 +157,7 @@ QLayout* Pds_ConfigDb::ZylaConfig::Private_Data::initialize(QWidget* p)
     d->addLayout(_concealerExpert.add(_shutter.initialize(p)));
     d->addLayout(_gainMode      .initialize(p));
     d->addLayout(_readoutRate   .initialize(p));
-    d->addLayout(_concealerExpert.add(_overlap.initialize(p)));
+    d->addLayout(_overlap.initialize(p));
     d->addLayout(_concealerExpert.add(_boxTrigger.initialize(p)));
     d->addLayout(_concealerTrigger.add(_exposureTime.initialize(p)));
     d->addLayout(_triggerDelay  .initialize(p));
