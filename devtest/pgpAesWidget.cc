@@ -355,7 +355,7 @@ int main( int argc, char** argv ) {
   }
 
   Pds::Pgp::Pgp::portOffset(offset);
-  pgp = new Pds::Pgp::Pgp(fd, debug != 0);
+  pgp = new Pds::Pgp::Pgp(true, fd, debug != 0);
   dest = new Pds::Pgp::Destination(lvcNumb);
   pgp->allocateVC(1<<(lvcNumb&3), 1<<(lvcNumb>>2));
 
