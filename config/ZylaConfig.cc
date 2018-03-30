@@ -7,6 +7,7 @@
 #include "pdsapp/config/QtConcealer.hh"
 #include "pds/config/ZylaConfigType.hh"
 #include <QtGui/QVBoxLayout>
+#include <QtGui/QMessageBox>
 #include <QtGui/QCheckBox>
 #include <QtGui/QLabel>
 
@@ -30,6 +31,9 @@ class Pds_ConfigDb::ZylaConfig::Private_Data : public Parameter {
   static const char*  lsEnumReadoutRate[];
   static const char*  lsEnumGainMode[];
   static const char*  lsEnumCoolingSetpoint[];
+  static const double ReadoutTimeRow[];
+  static const int    ReadoutExtraRows;
+  static const int    ReadoutExtraRowsOverlap;
  public:
    Private_Data(bool expert_mode);
   ~Private_Data();
@@ -43,11 +47,14 @@ class Pds_ConfigDb::ZylaConfig::Private_Data : public Parameter {
       { for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->flush(); }
    void update()
       { for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->update(); }
-    void enable(bool l)
+   void enable(bool l)
       { for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->enable(l); }
+   bool   validate();
+   double readoutTime(bool overlap) const;
 
   Pds::LinkedList<Parameter> pList;
   bool _expert_mode;
+  bool _short_exposure_mode;
   Enumerated<ZylaConfigType::ATBool> _cooling;
   Enumerated<ZylaConfigType::ATBool> _overlap;
   Enumerated<ZylaConfigType::ATBool> _noiseFilter;
@@ -79,9 +86,13 @@ const char* Pds_ConfigDb::ZylaConfig::Private_Data::lsEnumFanSpeed[] = { "Off", 
 const char* Pds_ConfigDb::ZylaConfig::Private_Data::lsEnumReadoutRate[] = { "280 MHz", "200 MHz", "100 MHz", "10 MHz", NULL };
 const char* Pds_ConfigDb::ZylaConfig::Private_Data::lsEnumGainMode[] = { "HighWellCap12Bit", "LowNoise12Bit", "LowNoiseHighWellCap16Bit", NULL };
 const char* Pds_ConfigDb::ZylaConfig::Private_Data::lsEnumCoolingSetpoint[] = { "0 C", "-5 C", "-10 C", "-15 C", "-20 C", "-25 C", "-30 C", "-35 C", "-40 C", NULL };
+const double Pds_ConfigDb::ZylaConfig::Private_Data::ReadoutTimeRow[] = { 9.24E-6, 0.0, 25.41e-6, 0.0 };
+const int    Pds_ConfigDb::ZylaConfig::Private_Data::ReadoutExtraRows = 4;
+const int    Pds_ConfigDb::ZylaConfig::Private_Data::ReadoutExtraRowsOverlap = 10;
 
 Pds_ConfigDb::ZylaConfig::Private_Data::Private_Data(bool expert_mode) :
   _expert_mode              (expert_mode),
+  _short_exposure_mode      (false),
   _cooling                  ("Sensor Cooling",              ZylaConfigType::True,             lsEnumATBool),
   _overlap                  ("Overlap Acquistion Mode",     ZylaConfigType::False,            lsEnumATBool),
   _noiseFilter              ("Noise Filter",                ZylaConfigType::False,            lsEnumATBool),
@@ -157,7 +168,7 @@ QLayout* Pds_ConfigDb::ZylaConfig::Private_Data::initialize(QWidget* p)
     d->addLayout(_concealerExpert.add(_shutter.initialize(p)));
     d->addLayout(_gainMode      .initialize(p));
     d->addLayout(_readoutRate   .initialize(p));
-    d->addLayout(_overlap.initialize(p));
+    d->addLayout(_concealerExpert.add(_overlap.initialize(p)));
     d->addLayout(_concealerExpert.add(_boxTrigger.initialize(p)));
     d->addLayout(_concealerTrigger.add(_exposureTime.initialize(p)));
     d->addLayout(_triggerDelay  .initialize(p));
@@ -200,25 +211,13 @@ int Pds_ConfigDb::ZylaConfig::Private_Data::pull( void* from )
   _concealerROI.show(!_boxROI.value);
   _concealerTrigger.show(!_boxTrigger.value);
   _concealerExpert.show(_expert_mode);
+  _short_exposure_mode = _exposureTime.value < readoutTime(_overlap.value);
 
   return sizeof(ZylaConfigType);
 }
   
 int Pds_ConfigDb::ZylaConfig::Private_Data::push(void* to)
 {
-  if (_boxROI.value) {
-    // using a centered ROI
-    _orgX.value = (CAMERA_MAX_WIDTH  - _width.value ) / 2 + 1;
-    _orgY.value = (CAMERA_MAX_HEIGHT - _height.value) / 2 + 1;
-  }
-  if (_boxTrigger.value) {
-    // external exposure trigger mode
-    _exposureTime.value = 0.0;
-    _triggerMode = ZylaConfigType::ExternalExposure;
-  } else {
-    _triggerMode = ZylaConfigType::External;
-  }
-
   new (to) ZylaConfigType(
     _cooling.value,
     _overlap.value,
@@ -242,6 +241,80 @@ int Pds_ConfigDb::ZylaConfig::Private_Data::push(void* to)
   
   return sizeof(ZylaConfigType);
 }
+
+double Pds_ConfigDb::ZylaConfig::Private_Data::readoutTime(bool overlap) const
+{
+  int idx = (int) _readoutRate.value;
+  unsigned rb = (CAMERA_MAX_HEIGHT / 2) - (_orgY.value - 1);
+  unsigned rt = (_orgY.value - 1 + _height.value) - (CAMERA_MAX_HEIGHT / 2);
+  return ReadoutTimeRow[idx]*((rb > rt ? rb : rt) + (overlap ? ReadoutExtraRowsOverlap : ReadoutExtraRows));
+}
+
+bool Pds_ConfigDb::ZylaConfig::Private_Data::validate()
+{
+  // make sure all the values are updated
+  if (_boxROI.value) {
+    // using a centered ROI
+    _orgX.value = (CAMERA_MAX_WIDTH  - _width.value ) / 2 + 1;
+    _orgY.value = (CAMERA_MAX_HEIGHT - _height.value) / 2 + 1;
+  }
+  if (_boxTrigger.value) {
+    // external exposure trigger mode
+    _exposureTime.value = 0.0;
+    _triggerMode = ZylaConfigType::ExternalExposure;
+  } else {
+    _triggerMode = ZylaConfigType::External;
+  }
+
+  if ((_readoutRate.value != ZylaConfigType::Rate280MHz) && (_readoutRate.value != ZylaConfigType::Rate100MHz)) {
+    QString msg = QString("The camera does not support the %1 readout speed setting!")
+      .arg(lsEnumReadoutRate[_readoutRate.value]);
+    QMessageBox::critical(0, "Invalid Readout Speed", msg);
+    return false;
+  }
+
+  double readout_time = readoutTime(_overlap.value);
+
+  if (_triggerMode == ZylaConfigType::ExternalExposure) {
+    return true;
+  } else if (_overlap.value) {
+    if (_exposureTime.value < readout_time) {
+      QString msg = QString("The selected exposure time of %1 sec is shorter than the camera readout time of %2 sec!\n\nOverlap mode does not support short exposures.\n")
+        .arg(_exposureTime.value)
+        .arg(readout_time);
+        QMessageBox::critical(0, "Invalid Exposure Time", msg);
+        return false;
+    } else {
+      return true;
+    }
+  } else {
+    if (_exposureTime.value < readout_time ? _short_exposure_mode : !_short_exposure_mode) return true;
+    QString msg;
+    const char* base_msg = "The selected exposure time of %1 sec is %3er than the camera readout time of %2 sec!\n\n%4\n\nMove camera to %3 exposure mode?";
+    if (_exposureTime.value < readout_time) {
+      msg = QString(base_msg)
+        .arg(_exposureTime.value)
+        .arg(readout_time)
+        .arg("short")
+        .arg("This requires triggering on an earlier fiducial than the beam!");
+    } else {
+      msg = QString(base_msg)
+        .arg(_exposureTime.value)
+        .arg(readout_time)
+        .arg("long")
+        .arg("This requires triggering on the same fiducial as the beam!");
+    }
+    switch (QMessageBox::warning(0,"Confirm Exposure Mode Change", msg, "Confirm", "Cancel", 0, 0, 1))
+      {
+      case 0:
+        return true;
+      case 1:
+        return false;
+      }
+  }
+
+  return false;
+}
  
 Pds_ConfigDb::ZylaConfig::ZylaConfig(bool expert_mode) :
   Serializer("ZylaConfig"),
@@ -263,6 +336,11 @@ int Pds_ConfigDb::ZylaConfig::writeParameters(void* to)
 int Pds_ConfigDb::ZylaConfig::dataSize() const
 {
   return _private_data->dataSize();
+}
+
+bool Pds_ConfigDb::ZylaConfig::validate()
+{
+  return _private_data->validate();
 }
 
 #undef CAMERA_MAX_WIDTH
