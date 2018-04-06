@@ -1,7 +1,7 @@
 #include "pdsapp/control/MainWindow.hh"
 #include "pdsapp/control/SelectDialog.hh"
-#include "pdsapp/control/EventcodeQuery.hh"
 #include "pdsapp/config/Experiment.hh"
+#include "pds/epicstools/EventcodeQuery.hh"
 #include "pds/utility/Transition.hh"
 #include "pds/service/CmdLineTools.hh"
 

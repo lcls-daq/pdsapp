@@ -9,6 +9,7 @@
 #include "pds/utility/SegWireSettings.hh"
 #include "pds/utility/InletWire.hh"
 #include "pds/service/Task.hh"
+#include "pds/epicstools/EventcodeQuery.hh"
 #include "pds/epix100a/Epix100aManager.hh"
 #include "pds/epix100a/Epix100aServer.hh"
 #include "pds/config/CfgClientNfs.hh"
@@ -433,6 +434,10 @@ int main( int argc, char** argv )
      printf("N.B. fiber triggering option will not work if not a G3 pgpcard !!!\n");
    }
 
+   //  EPICS thread initialization
+   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ),
+            "epix10ka calling ca_context_create" );
+   EventcodeQuery::execute();
 
    printf("making Epix100aServer");
    if (G3Flag && triggerOverFiber) {
@@ -531,5 +536,8 @@ int main( int argc, char** argv )
      task->mainLoop();
      printf("exiting %s task main loop\n", argv[0]);
    }
+
+   ca_context_destroy();
+
    return 0;
 }

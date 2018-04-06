@@ -8,8 +8,7 @@
 #include "evgr/evr/evr.hh"
 #include "pds/evgr/EvgrBoardInfo.hh"
 #include "pds/service/CmdLineTools.hh"
-#include "pdsapp/config/EventcodeTiming.hh"
-#include "pdsapp/config/EventcodeTiming.cc"
+#include "pds/config/EventcodeTiming.hh"
 
 extern int optind;
 

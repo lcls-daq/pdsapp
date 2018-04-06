@@ -2,7 +2,7 @@
 #include "pdsapp/config/EvrEventCodeTable.hh"
 #include "pdsapp/config/EvrPulseTable.hh"
 #include "pdsapp/config/SequencerConfig.hh"
-#include "pdsapp/config/EventcodeTiming.hh"
+#include "pds/config/EventcodeTiming.hh"
 #include "pdsapp/config/GlobalCfg.hh"
 #include "pds/config/EvrIOConfigType.hh"
 

@@ -39,7 +39,7 @@
 
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Table.hh"
-#include "pdsapp/config/EventcodeTiming.hh"
+#include "pds/config/EventcodeTiming.hh"
 
 #include "EvrConfigType.hh" 
 

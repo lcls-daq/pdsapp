@@ -3,8 +3,7 @@
 #include "pds/evgr/EvgrManager.hh"
 #include "pds/evgr/EvgrPulseParams.hh"
 #include "pds/evgr/EvgMasterTiming.hh"
-#include "pdsapp/config/EventcodeTiming.hh"
-#include "pdsapp/config/EventcodeTiming.cc"
+#include "pds/config/EventcodeTiming.hh"
 
 #include <unistd.h>
 #include <stdlib.h>

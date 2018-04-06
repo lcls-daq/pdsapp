@@ -23,7 +23,7 @@ DefineXtcType(EvrConfig) ;
 
 #include "pdsdata/psddl/evr.ddl.h"
 
-#include "pdsapp/config/EventcodeTiming.cc"
+#include "pds/config/EventcodeTiming.cc"
 
 #include <vector>
 

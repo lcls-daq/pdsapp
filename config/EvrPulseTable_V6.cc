@@ -4,7 +4,7 @@
 #include "pdsapp/config/GlobalCfg.hh"
 #include "pdsapp/config/PolarityButton.hh"
 #include "pdsapp/config/EvrEventCodeTable_V6.hh"
-#include "pdsapp/config/EventcodeTiming.hh"
+#include "pds/config/EventcodeTiming.hh"
 #include "pdsdata/psddl/evr.ddl.h"
 
 #include <QtGui/QButtonGroup>

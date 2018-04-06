@@ -1,8 +1,7 @@
 #include "pds/evgr/EvgrBoardInfo.hh"
 #include "pds/evgr/EvgManager.hh"
 #include "pds/evgr/EvgMasterTiming.hh"
-#include "pdsapp/config/EventcodeTiming.hh"
-#include "pdsapp/config/EventcodeTiming.cc"
+#include "pds/config/EventcodeTiming.hh"
 
 #include <unistd.h>
 #include <stdlib.h>

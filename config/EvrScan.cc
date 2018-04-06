@@ -1,6 +1,6 @@
 #include "pdsapp/config/EvrScan.hh"
 
-#include "pdsapp/config/EventcodeTiming.hh"
+#include "pds/config/EventcodeTiming.hh"
 #include "pds/config/EvrConfigType.hh"
 #include "pds/config/ControlConfigType.hh"
 #include "pdsdata/psddl/control.ddl.h"
