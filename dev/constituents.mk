@@ -82,6 +82,7 @@ tgtsrcs_epix100a := epix100a.cc
 tgtlibs_epix100a := $(commonlibs) pds/epix100a pds/pgp pds/configdata
 tgtlibs_epix100a += evgr/evr evgr/evg
 tgtlibs_epix100a += pds/evgr
+tgtlibs_epix100a += pdsapp/configdb
 tgtslib_epix100a := $(commonslib)
 tgtincs_epix100a := pdsdata/include ndarray/include boost/include
 
@@ -89,6 +90,7 @@ tgtsrcs_epix10ka := epix10ka.cc
 tgtlibs_epix10ka := $(commonlibs) pds/epix10ka pds/pgp pds/configdata
 tgtlibs_epix10ka += evgr/evr evgr/evg
 tgtlibs_epix10ka += pds/evgr
+tgtlibs_epix10ka += pdsapp/configdb
 tgtslib_epix10ka := $(commonslib)
 tgtincs_epix10ka := pdsdata/include ndarray/include boost/include
 
