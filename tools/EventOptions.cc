@@ -223,7 +223,7 @@ int EventOptions::validate(const char* arg0) const
      "         -E <experimentname>\n"
      "         -L <plugin>\n"
      "         -F <L3 filter plugin>\n"
-     "         -w <0/1> : enable slow readout support\n"
+     "         -w <0/1/2> : readout mode (0) normal, (1) slow readout, or (2) slow config\n"
      "         -t <smldata size threshold>\n"
      "         -r enable mon request server\n"
      " Use \'-F VETO[plugin]\' to enable veto\n",

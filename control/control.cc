@@ -32,7 +32,10 @@ static void usage(char *argv0)
    "         -O                        : override errors\n"
    "         -T                        : collect transient data\n"
    "         -t <interval>             : traffic shaping interval[sec]\n"
-   "         -w <0/1>                  : slow readout\n"
+   "         -w <0/1/2>                : readout timeout mode\n"
+   "            0=normal (default)\n"
+   "            1=slow readout\n"
+   "            2=slow configure only\n"
    "         -o <options>              : partition options\n"
    "            1=CXI slow runningkludge\n"
    "            2=XPP short timeout on Disable\n"
@@ -145,7 +148,7 @@ int main(int argc, char** argv)
       if (!Pds::CmdLineTools::parseInt(optarg, slowReadout)) {
         printf("%s: option `-w' parsing error\n", argv[0]);
         lusage = true;
-      } else if ((slowReadout != 0) && (slowReadout != 1)) {
+      } else if ((slowReadout != 0) && (slowReadout != 1) && (slowReadout != 2)) {
         printf("%s: option `-w' out of range\n", argv[0]);
         lusage = true;
       }

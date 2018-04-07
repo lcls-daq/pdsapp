@@ -147,7 +147,7 @@ static void usage(const char* p) {
          "    -u|--uniqueid   <alias>                     Set device alias.\n"
          "    -b|--base       <pvbase>                    Set base string of PV name\n"
          "    -m|--max        <max_length>                Set max length of scope traces (default: 100000)\n"
-         "    -w|--wait       <0/1>                       Set slow readout mode (default: 1)\n", p);
+         "    -w|--wait       <0/1/2>                     Set slow readout mode (default: 1)\n", p);
 }
 
 int main(int argc, char** argv) {
@@ -228,7 +228,7 @@ int main(int argc, char** argv) {
         if (!CmdLineTools::parseInt(optarg,slowReadout)) {
           printf("%s: option `-w' parsing error\n", argv[0]);
           lUsage = true;
-        } else if ((slowReadout != 0) && (slowReadout != 1)) {
+        } else if ((slowReadout != 0) && (slowReadout != 1) && (slowReadout != 2)) {
           printf("%s: option `-w' out of range\n", argv[0]);
           lUsage = true;
         }

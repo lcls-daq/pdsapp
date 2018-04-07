@@ -67,7 +67,7 @@ void usage(char* progname) {
   printf("  -g        Use %%g format for floating point PVs\n");
   printf("  -h        Print help message and exit\n");
   printf("  -v        Be verbose\n");
-  printf("  -w        Slow readout (0 or 1, default=0)\n");
+  printf("  -w        Slow readout (0, 1, or 2, default=0)\n");
 }
 
 // Appliance* app;
@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
       if (!CmdLineTools::parseInt(optarg, slowReadout)) {
         parseErr = true;
       }
-      if ((slowReadout != 0) && (slowReadout != 1)) {
+      if ((slowReadout != 0) && (slowReadout != 1) && (slowReadout != 2)) {
         parseErr = true;
       }
       break;
