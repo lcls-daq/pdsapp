@@ -83,7 +83,6 @@ tgtlibs_epix100a := $(commonlibs) pds/epix100a pds/pgp pds/configdata
 tgtlibs_epix100a += evgr/evr evgr/evg
 tgtlibs_epix100a += pds/evgr
 tgtlibs_epix100a += pds/eventcodetools pds/epicstools epics/ca epics/Com
-tgtlibs_epix100a += pdsapp/configdb
 tgtslib_epix100a := $(commonslib)
 tgtincs_epix100a := pdsdata/include ndarray/include boost/include
 tgtincs_epix100a += epics/include epics/include/os/Linux
