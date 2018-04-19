@@ -173,6 +173,7 @@ void sigHandler( int signal ) {
       server->configurator()->waitForFiducialMode(false);
       server->configurator()->evrLaneEnable(false);
       server->configurator()->enableExternalTrigger(false);
+      server->configurator()->cleanupEvr(1);
     }
     server->disable();
   } else {
