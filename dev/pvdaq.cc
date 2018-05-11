@@ -256,6 +256,7 @@ static void usage(const char* p)
          "    -z <eventsize>              maximum event size[bytes]\n"
          "    -n <eventdepth>             event builder depth\n"
          "    -r                          allow connections to PVs on remote machines\n"
+         "    -w <0/1/2>                  set slow readout mode (default: 0)\n"
          "    -h                          print this message and exit\n", p);
 }
 
@@ -266,6 +267,7 @@ int main(int argc, char** argv) {
   unsigned platform = no_entry;
   const char* pvbase = 0;
   const char* iocbase = 0;
+  int slowReadout = 0;
   bool lUsage = false;
   bool local_ioc = true;
   unsigned flags = 0;
@@ -278,7 +280,7 @@ int main(int argc, char** argv) {
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:b:B:p:u:z:n:f:rh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:b:B:p:u:z:n:f:rw:h")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,detInfo)) {
@@ -321,6 +323,15 @@ int main(int argc, char** argv) {
     case 'r':
       local_ioc = false;
       break;
+    case 'w':
+      if (!CmdLineTools::parseInt(optarg,slowReadout)) {
+        printf("%s: option `-w' parsing error\n", argv[0]);
+        lUsage = true;
+      } else if ((slowReadout != 0) && (slowReadout != 1) && (slowReadout != 2)) {
+        printf("%s: option `-w' out of range\n", argv[0]);
+        lUsage = true;
+      }
+      break;
     case 'h': // help
       usage(argv[0]);
       return 0;
@@ -361,6 +372,12 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  if(slowReadout==0) {
+    printf("Setting normal readout mode for pvdaq process!\n");
+  } else {
+    printf("Setting slow readout mode for pvdaq process.\n");
+  }
+
   if (local_ioc) {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     sockaddr_in srv;
@@ -396,7 +413,7 @@ int main(int argc, char** argv) {
   StdSegWire settings(*server, uniqueid, max_event_size, max_event_depth, false,
                       0,0,true,true);
   //PvDaqSegmentLevel* seglevel = new PvDaqSegmentLevel(platform, settings, *seg);
-  SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0, 0);
+  SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0, slowReadout);
   seglevel->attach();
 
   task->mainLoop();
