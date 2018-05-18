@@ -38,11 +38,11 @@ tgtnames += camedt fli andor andordual
 endif
 
 ifneq ($(findstring x86_64-rhel6,$(tgt_arch)),)
-tgtnames += pimax fli andor andordual
+tgtnames += fli andor andordual
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += camedt fli andor andordual jungfrau usdusb zyla
+tgtnames += pimax camedt fli andor andordual jungfrau usdusb zyla
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -320,10 +320,12 @@ tgtlibs_andordual += epics/ca epics/Com
 tgtslib_andordual := $(commonslib) ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
 tgtincs_andordual := pdsdata/include ndarray/include boost/include epics/include epics/include/os/Linux
 
-libPicam := picam/picam picam/GenApi_gcc40_v2_2 picam/GCBase_gcc40_v2_2 picam/MathParser_gcc40_v2_2 picam/log4cpp_gcc40_v2_2 picam/Log_gcc40_v2_2
-libPicam += picam/pidi picam/picc picam/pida picam/PvBase picam/PvDevice picam/PvBuffer picam/PvPersistence
-libPicam += picam/PvStreamRaw picam/PvStream picam/PvGenICam picam/PvSerial picam/PtUtilsLib picam/EbNetworkLib
-libPicam += picam/PtConvertersLib picam/EbTransportLayerLib picam/log4cxx
+libPicam := picam/picam picam/GenApi_gcc40_v2_4 picam/GCBase_gcc40_v2_4 picam/MathParser_gcc40_v2_4 picam/log4cpp_gcc40_v2_4 picam/Log_gcc40_v2_4
+libPicam += picam/piac picam/pidi picam/picc picam/pida picam/PvBase picam/PvDevice picam/PvBuffer picam/PvPersistence picam/ftd2xx
+libPicam += picam/PvStream picam/PvGenICam picam/PvSerial picam/PtUtilsLib picam/EbUtilsLib
+libPicam += picam/PtConvertersLib picam/EbTransportLayerLib
+
+incPicam := picam/include
 
 tgtsrcs_pimax := pimax.cc
 tgtlibs_pimax := $(commonlibs)
@@ -332,6 +334,7 @@ tgtlibs_pimax += pds/pdspimax pds/configdata
 tgtlibs_pimax +=  $(libPicam)
 tgtslib_pimax := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
 tgtincs_pimax := pdsdata/include ndarray/include boost/include
+tgtincs_pimax += $(incPicam)
 
 tgtsrcs_quadadc := quadadcapp.cc
 tgtlibs_quadadc := $(commonlibs)
