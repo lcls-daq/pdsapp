@@ -244,7 +244,8 @@ namespace Pds {
     (ONE_BIT<<BldInfo::AmoAin01) |
     (ONE_BIT<<BldInfo::SxrAin01) |
     (ONE_BIT<<BldInfo::MfxAin01) |
-    (ONE_BIT<<BldInfo::MecAin01);
+    (ONE_BIT<<BldInfo::MecAin01) |
+    (ONE_BIT<<BldInfo::FeeAin01);
   BldBitMask BeamMonitorMask = (ONE_BIT<<BldInfo::MfxBeamMon01) |
     (ONE_BIT<<BldInfo::Hx2Sb1BeamMon) |
     ((ONE_BIT<<(BldInfo::MfxDg2BeamMon+1)) - (ONE_BIT<<BldInfo::XcsSndDio));
