@@ -16,7 +16,7 @@ static void showUsage(const char* p)
 {
   printf("Usage: %s [-v|--version] [-h|--help]\n"
          "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (msec)>]\n"
-         "-c|--config <config> -H|--host <host> [-P|--port <port>]\n"
+         "[-C|--clear] -c|--config <config> -H|--host <host> [-P|--port <port>]\n"
          " Options:\n"
          "    -w|--write    <filename prefix>         output filename prefix\n"
          "    -n|--number   <number of images>        number of images to be captured (default: 1)\n"
@@ -24,12 +24,13 @@ static void showUsage(const char* p)
          "    -P|--port     <port>                    set the Archon controller tcp port number (default: 4242)\n"
          "    -H|--host     <host>                    set the Archon controller host ip\n"
          "    -c|--config   <config>                  the path to an Archon configuration file to use\n"
+         "    -C|--clear                              clear the CCD before acquiring each frame\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char *argv[]) {
-  const char*         strOptions  = ":vhw:n:e:P:H:c:";
+  const char*         strOptions  = ":vhw:n:e:P:H:c:C";
   const struct option loOptions[] =
   {
     {"version",     0, 0, 'v'},
@@ -40,6 +41,7 @@ int main(int argc, char *argv[]) {
     {"port",        1, 0, 'P'},
     {"host",        1, 0, 'H'},
     {"config",      1, 0, 'c'},
+    {"clear",       0, 0, 'C'},
     {0,             0, 0,  0 }
   };
 
@@ -47,6 +49,7 @@ int main(int argc, char *argv[]) {
   unsigned num_images = 1;
   unsigned exposure_time = 10000; // 10 sec
   bool lUsage = false;
+  bool use_clear = false;
   char* filename = (char *)NULL;
   char* file_prefix = (char *)NULL;
   char* config = (char *)NULL;
@@ -82,6 +85,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'c':
         config = optarg;
+        break;
+      case 'C':
+        use_clear = true;
         break;
       case '?':
         if (optopt)
@@ -122,8 +128,29 @@ int main(int argc, char *argv[]) {
 
   Pds::Archon::Driver drv = Pds::Archon::Driver(hostname, port);
   if(drv.configure(config)) {
+    const Pds::Archon::System& system = drv.system();
     const Pds::Archon::Status& status = drv.status();
     const Pds::Archon::BufferInfo& info = drv.buffer_info();
+    if(drv.fetch_system()) {
+      printf("Number of modules: %d\n", system.num_modules());
+      printf("Backplane info:\n");
+      printf(" Type: %u\n", system.type());
+      printf(" Rev:  %u\n", system.rev());
+      printf(" Ver:  %s\n", system.version().c_str());
+      printf(" ID:   %#06x\n", system.id());
+      printf(" Module present mask: %#06x\n", system.present());
+      printf("Module Info:\n");
+      for (unsigned i=0; i<16; i++) {
+        if (system.module_present(i)) {
+          printf(" Module %u:\n", i+1);
+          printf("  Type: %u\n", system.module_type(i));
+          printf("  Rev:  %u\n", system.module_rev(i));
+          printf("  Ver:  %s\n", system.module_version(i).c_str());
+          printf("  ID:   %#06x\n", system.module_id(i));
+        }
+      }
+    }
+
     if (drv.fetch_status()) {
       if(status.is_valid()) {
         printf("Valid status returned by controller\n");
@@ -147,6 +174,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    drv.set_preframe_clear(use_clear);
     drv.set_integration_time(exposure_time);
 
     Pds::Archon::FrameMetaData frame_meta;
