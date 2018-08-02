@@ -279,6 +279,8 @@ int main(int argc, char **argv)
   uint16_t* data = new uint16_t[data_sz];
   uint64_t frame = 0;
 
+  det->sync_nframes();
+
   if (det->start()) {
     for(int i=0; i<numImages; i++) {
       if (det->get_frame(&frame, &data[i*event_sz + header_sz])) {
