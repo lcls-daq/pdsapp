@@ -27,7 +27,7 @@ static void showUsage(const char* p)
          "    -E|--period   <exposure period>         exposure period (sec) (default: 0.00001 sec)\n"
          "    -b|--bias     <bias>                    the bias voltage to apply to the sensor in volts (default: 200)\n"
          "    -g|--gain     <gain 0-5>                the gain mode of the detector (default: Normal - 0)\n"
-         "    -S|--speed    <speed 0-1>               the clock speed mode of the detector (default: Quarter - 0)\n"
+         "    -S|--speed    <speed 0-1>               the clock speed mode of the detector (default: Half - 1)\n"
          "    -P|--port     <port>                    set the receiver udp port number (default: 32410)\n"
          "    -H|--host     <host>                    set the receiver host ip\n"
          "    -m|--mac      <mac>                     set the receiver mac address\n"
@@ -79,9 +79,9 @@ int main(int argc, char **argv)
   bool external = false;
   bool threaded = false;
   unsigned gain_value = 0;
-  unsigned speed_value = 0;
+  unsigned speed_value = 1;
   JungfrauConfigType::GainMode gain = JungfrauConfigType::Normal;
-  JungfrauConfigType::SpeedMode speed = JungfrauConfigType::Quarter;
+  JungfrauConfigType::SpeedMode speed = JungfrauConfigType::Half;
   std::vector<char*> sHost;
   std::vector<char*> sMac;
   std::vector<char*> sDetIp;
