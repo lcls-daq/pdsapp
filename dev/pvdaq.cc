@@ -251,7 +251,7 @@ static void usage(const char* p)
          "    -i <detinfo>                int/int/int/int or string/int/string/int\n"
          "                                  (e.g. XppEndStation/0/USDUSB/1 or 22/0/26/1)\n"
          "    -b <pvbase>                 base name string of PVs; e.g. MFX:BMMON\n"
-         "    -B <iocbase>                base name string of IOC PVs; e.g. IOC:MFX:BMMON\n"
+         "    -B <pvbase>                 secondary base name string for PVs; e.g. IOC:MFX:BMMON\n"
          "    -p <platform>               platform number\n"
          "    -z <eventsize>              maximum event size[bytes]\n"
          "    -n <eventdepth>             event builder depth\n"
@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
   const unsigned no_entry = -1U;
   unsigned platform = no_entry;
   const char* pvbase = 0;
-  const char* iocbase = 0;
+  const char* pvbase_alt = 0;
   int slowReadout = 0;
   bool lUsage = false;
   bool local_ioc = true;
@@ -292,7 +292,7 @@ int main(int argc, char** argv) {
       pvbase = optarg;
       break;
     case 'B':
-      iocbase = optarg;
+      pvbase_alt = optarg;
       break;
     case 'p':
       if (CmdLineTools::parseUInt(optarg,platform) != 1) {
@@ -357,11 +357,6 @@ int main(int argc, char** argv) {
     lUsage = true;
   }
 
-  if (!iocbase) {
-    printf("%s: iocbase is required\n", argv[0]);
-    lUsage = true;
-  }
-
   if (optind < argc) {
     printf("%s: invalid argument -- %s\n",argv[0], argv[optind]);
     lUsage = true;
@@ -405,7 +400,7 @@ int main(int argc, char** argv) {
   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), 
            "pvdaq calling ca_context_create" );
 
-  PvDaq::Server*  server  = PvDaq::Server::lookup(pvbase, iocbase, detInfo, max_event_size, flags);
+  PvDaq::Server*  server  = PvDaq::Server::lookup(pvbase, pvbase_alt, detInfo, max_event_size, flags);
   PvDaq::Manager* manager = new PvDaq::Manager(*server);
 
   Task* task = new Task(Task::MakeThisATask);
