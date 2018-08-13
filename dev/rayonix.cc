@@ -35,7 +35,7 @@ static void usage(const char *p)
 
 using namespace Pds;
 
-static const unsigned MAX_EVENT_SIZE = 16*1024*1024;
+static const unsigned MAX_EVENT_SIZE = 128*1024*1024;
 static const unsigned MAX_EVENT_DEPTH = 32;
 
 int main( int argc, char** argv )
