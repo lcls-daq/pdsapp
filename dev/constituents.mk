@@ -276,7 +276,7 @@ tgtslib_gsc16ai := $(commonslib)
 tgtincs_gsc16ai := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_rayonix := rayonix.cc
-tgtlibs_rayonix := $(commonlibs) pds/rayonix
+tgtlibs_rayonix := $(commonlibs) pds/rayonix pds/configdata
 tgtslib_rayonix := $(commonslib)
 tgtincs_rayonix := pdsdata/include ndarray/include boost/include 
 
