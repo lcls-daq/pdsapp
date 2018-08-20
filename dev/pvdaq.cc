@@ -386,6 +386,13 @@ int main(int argc, char** argv) {
     getsockname(fd, (sockaddr*)&name, &name_sz);
     char dst[64];
     inet_ntop(AF_INET,&name.sin_addr,dst,64);
+    int count = 0;
+    char* p = strchr(dst, '.');
+    while (p!=NULL && count < 2) {
+      p=strchr(p+1, '.');
+      count++;
+    }
+    if (p) strcpy(p+1, "255");
     printf("Setting EPICS_CA_ADDR_LIST %s\n",dst);
     setenv("EPICS_CA_ADDR_LIST",dst,1);
     close(fd);
