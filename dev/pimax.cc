@@ -20,8 +20,8 @@
 #include "pds/client/Action.hh"
 #include "pds/config/CfgClientNfs.hh"
 #include "pds/service/CmdLineTools.hh"
-#include "pds/pimax/PimaxManager.hh"
-#include "pds/pimax/PimaxServer.hh"
+#include "pds/picam/PimaxManager.hh"
+#include "pds/picam/PimaxServer.hh"
 
 using std::string;
 
@@ -96,7 +96,7 @@ private:
         _pimaxManager = new PimaxManager(_cfg, _iCamera, _bDelayMode, _bInitTest, _sConfigDb, _iSleepInt, _iDebugLevel);
         _pimaxManager->initServer();
         }
-        catch ( PimaxManagerException& eManager )
+        catch ( PicamManagerException& eManager )
         {
           printf( "EventCallBackPimax::attached(): PimaxManager init failed, error message = \n  %s\n", eManager.what() );
           return;
