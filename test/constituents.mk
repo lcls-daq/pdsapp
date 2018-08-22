@@ -57,7 +57,8 @@ libPicam += picam/PtConvertersLib picam/EbTransportLayerLib
 incPicam := picam/include
 
 tgtsrcs_picamStandAlone := picamStandAlone.cc
-tgtlibs_picamStandAlone +=  $(libPicam)
+tgtlibs_picamStandAlone := $(commonlibs)
+tgtlibs_picamStandAlone += $(libPicam) pds/picamutils
 tgtslib_picamStandAlone := dl pthread rt
 tgtincs_picamStandAlone += $(incPicam)
 
