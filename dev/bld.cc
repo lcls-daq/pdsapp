@@ -248,7 +248,8 @@ namespace Pds {
     (ONE_BIT<<BldInfo::FeeAin01);
   BldBitMask BeamMonitorMask = (ONE_BIT<<BldInfo::MfxBeamMon01) |
     (ONE_BIT<<BldInfo::Hx2Sb1BeamMon) |
-    ((ONE_BIT<<(BldInfo::MfxDg2BeamMon+1)) - (ONE_BIT<<BldInfo::XcsSndDio));
+    ((ONE_BIT<<(BldInfo::MfxDg2BeamMon+1)) - (ONE_BIT<<BldInfo::XcsSndDio)) |
+    ((ONE_BIT<<(BldInfo::MecXt2BeamMon03+1)) - (ONE_BIT<<BldInfo::MecXt2BeamMon02));
   BldBitMask UsbEncoder = ((ONE_BIT<<(BldInfo::CxiUsbEncoder01+1)) - (ONE_BIT<<BldInfo::XrtUsbEncoder01));
 #define TEST_CREAT(mask, idType, dataType)                  \
   if ((im & mask).isNotZero()) {                            \
