@@ -924,6 +924,7 @@ int main(int argc, char** argv) {
       platform = strtoul(optarg, NULL, 0);
       break;
     case 'm':
+      mask.clearAll();
       mask.read(optarg, NULL);
       break;
     case 'C':
