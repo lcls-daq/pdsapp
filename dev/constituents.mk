@@ -42,7 +42,7 @@ tgtnames += fli andor andordual
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += pimax camedt fli andor andordual jungfrau usdusb zyla
+tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -335,6 +335,15 @@ tgtlibs_pimax +=  $(libPicam)
 tgtslib_pimax := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
 tgtincs_pimax := pdsdata/include ndarray/include boost/include
 tgtincs_pimax += $(incPicam)
+
+tgtsrcs_pixis := pixis.cc
+tgtlibs_pixis := $(commonlibs)
+tgtlibs_pixis += pdsapp/configdb
+tgtlibs_pixis += pds/pdspicam pds/picamutils pds/configdata
+tgtlibs_pixis +=  $(libPicam)
+tgtslib_pixis := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
+tgtincs_pixis := pdsdata/include ndarray/include boost/include
+tgtincs_pixis += $(incPicam)
 
 tgtsrcs_quadadc := quadadcapp.cc
 tgtlibs_quadadc := $(commonlibs)

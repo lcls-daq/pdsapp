@@ -1,0 +1,276 @@
+//
+//  pds_PixisConfig class methods
+//
+static PyObject* pds_PixisConfig_get    (PyObject*   self, PyObject* args);
+static PyObject* pds_PixisConfig_set    (PyObject*   self, PyObject* args);
+static PyObject* pds_PixisConfig_enum   (PyObject*   self, PyObject* args);
+
+static PyMethodDef pds_PixisConfig_methods[] = {
+  {"get"        , (PyCFunction)pds_PixisConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"set"        , (PyCFunction)pds_PixisConfig_set   , METH_VARARGS|METH_KEYWORDS, "numIntegrationShotsInput the configuration"},
+  {"get_enums"  , (PyCFunction)pds_PixisConfig_enum  , METH_NOARGS  , "Output enum constants"},
+  {NULL},
+};
+
+DefineXtcType(PixisConfig) ;
+
+#include "pdsdata/psddl/pixis.ddl.h"
+#include <new>
+
+
+// Return a dictionary of enum types in config
+#define SetEnum(name,type,dict)                           \
+  { PyObject* v = PyInt_FromLong(Pds::Pixis::type::name); \
+    if (v) {                                              \
+      PyDict_SetItemString(dict,#name,v);                 \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
+
+#define SetEnumDict(name,dict)              \
+  { PyDict_SetItemString(o,#name,dict);     \
+    Py_DECREF(dict); }
+
+static PyObject* get_pixis_gainV1_enum()
+{
+  PyObject* gain_enum = PyDict_New();
+  SetEnum(Low,ConfigV1,gain_enum);
+  SetEnum(Medium,ConfigV1,gain_enum);
+  SetEnum(High,ConfigV1,gain_enum);
+
+  return gain_enum;
+}
+
+static PyObject* get_pixis_adcV1_enum()
+{
+  PyObject* adc_enum = PyDict_New();
+  SetEnum(LowNoise,ConfigV1,adc_enum);
+  SetEnum(HighCapacity,ConfigV1,adc_enum);
+
+  return adc_enum;
+}
+
+static PyObject* get_pixis_triggerV1_enum()
+{
+  PyObject* trigger_enum = PyDict_New();
+  SetEnum(Software,ConfigV1,trigger_enum);
+  SetEnum(External,ConfigV1,trigger_enum);
+  SetEnum(ExternalWithCleaning,ConfigV1,trigger_enum);
+
+  return trigger_enum;
+}
+
+PyObject* pds_PixisConfig_enum (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+
+    SetEnumDict(GainMode,get_pixis_gainV1_enum());
+    SetEnumDict(AdcMode,get_pixis_adcV1_enum());
+    SetEnumDict(TriggerMode,get_pixis_triggerV1_enum());
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported PixisfrauConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+
+#undef SetEnum
+#undef SetEnumDict
+
+
+//  Return a dictionary of configuration data
+#define SetDictMember(name,isFloat,isEnum,isSigned)       \
+  { PyObject* v = NULL;                                   \
+    if (isFloat)                                          \
+      v = PyFloat_FromDouble(cfg->name());                \
+    else if (isEnum)                                      \
+      v = PyInt_FromLong((signed)cfg->name());            \
+    else if (isSigned)                                    \
+      v = PyLong_FromLong((signed)cfg->name());           \
+    else                                                  \
+      v = PyLong_FromUnsignedLong((unsigned)cfg->name()); \
+    if (v) {                                              \
+      PyDict_SetItemString(o,#name,v);                    \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
+
+PyObject* pds_PixisConfig_get (PyObject*   self, PyObject* args) 
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();  
+  if (xtc->contains.version()==1) { 
+    const Pds::Pixis::ConfigV1* cfg = 
+      reinterpret_cast<const Pds::Pixis::ConfigV1*>(xtc->payload);
+
+    SetDictMember(width,false,false,false);
+    SetDictMember(height,false,false,false);
+    SetDictMember(orgX,false,false,false);
+    SetDictMember(orgY,false,false,false); 
+    SetDictMember(binX,false,false,false);
+    SetDictMember(binY,false,false,false);
+    SetDictMember(exposureTime,true,false,false);
+    SetDictMember(coolingTemp,true,false,false);
+    SetDictMember(readoutSpeed,true,false,false);
+    SetDictMember(gainMode,false,true,false);
+    SetDictMember(adcMode,false,true,false);
+    SetDictMember(triggerMode,false,true,false);
+    SetDictMember(activeWidth,false,false,false);
+    SetDictMember(activeHeight,false,false,false);
+    SetDictMember(activeTopMargin,false,false,false);
+    SetDictMember(activeBottomMargin,false,false,false);
+    SetDictMember(activeLeftMargin,false,false,false);
+    SetDictMember(activeRightMargin,false,false,false);
+    SetDictMember(cleanCycleCount,false,false,false);
+    SetDictMember(cleanCycleHeight,false,false,false);
+    SetDictMember(cleanFinalHeight,false,false,false);
+    SetDictMember(cleanFinalHeightCount,false,false,false);
+    SetDictMember(maskedHeight,false,false,false);
+    SetDictMember(kineticHeight,false,false,false);
+    SetDictMember(vsSpeed,true,false,false);
+    SetDictMember(infoReportInterval,false,false,true);
+    SetDictMember(exposureEventCode,false,false,false);
+    SetDictMember(numIntegrationShots,false,false,false);
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported PixisConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+
+}
+#undef SetDictMember
+
+
+//  Retrieve configuration data from a Python Dictionary
+#define GetDictEnum(name,type)                                          \
+  type name;                                                            \
+  { PyObject* i = PyDict_GetItemString(o,#name);                        \
+    if (i) {                                                            \
+      if (PyInt_CheckExact(i))  name = (type) PyInt_AsLong(i);          \
+      else if (PyLong_CheckExact(i)) name = (type) PyLong_AsLong(i);    \
+      else name = (type) cfg->name();                                   \
+    }                                                                   \
+    else name = cfg->name(); }
+
+#define GetDictLong(name)                                         \
+  unsigned long name;                                             \
+  { PyObject* i = PyDict_GetItemString(o,#name);                  \
+    if (i) {                                                      \
+      if (PyLong_Check(i)) name = PyLong_AsUnsignedLong(i);       \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);            \
+      else name = cfg->name();                                    \
+    }                                                             \
+    else name = cfg->name(); }
+
+#define GetDictSignedLong(name)                                   \
+  long name;                                                      \
+  { PyObject* i = PyDict_GetItemString(o,#name);                  \
+    if (i) {                                                      \
+      if (PyLong_Check(i)) name = PyLong_AsLong(i);               \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);            \
+      else name = cfg->name();                                    \
+    }                                                             \
+    else name = cfg->name(); }
+
+#define GetDictFloat(name)                              \
+  double name;                                          \
+  { PyObject* i = PyDict_GetItemString(o,#name);        \
+    if (i) {                                            \
+      if (PyFloat_Check(i)) name = PyFloat_AsDouble(i); \
+      else name = cfg->name();                          \
+    }                                                   \
+    else name = cfg->name(); }
+
+
+PyObject* pds_PixisConfig_set    (PyObject*   self, PyObject* args)
+{
+  PyObject* o = 0;
+  if (PyArg_ParseTuple(args,"O",&o)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==1) { 
+    const Pds::Pixis::ConfigV1* cfg = 
+      reinterpret_cast<const Pds::Pixis::ConfigV1*>(xtc->payload);
+
+    GetDictLong(width);
+    GetDictLong(height);
+    GetDictLong(orgX);
+    GetDictLong(orgY);
+    GetDictLong(binX);
+    GetDictLong(binY);
+    GetDictFloat(exposureTime);
+    GetDictFloat(coolingTemp);
+    GetDictFloat(readoutSpeed);
+    GetDictEnum(gainMode,Pds::Pixis::ConfigV1::GainMode);
+    GetDictEnum(adcMode,Pds::Pixis::ConfigV1::AdcMode);
+    GetDictEnum(triggerMode,Pds::Pixis::ConfigV1::TriggerMode);
+    GetDictLong(activeWidth);
+    GetDictLong(activeHeight);
+    GetDictLong(activeTopMargin);
+    GetDictLong(activeBottomMargin);
+    GetDictLong(activeLeftMargin);
+    GetDictLong(activeRightMargin);
+    GetDictLong(cleanCycleCount);
+    GetDictLong(cleanCycleHeight);
+    GetDictLong(cleanFinalHeight);
+    GetDictLong(cleanFinalHeightCount);
+    GetDictLong(maskedHeight);
+    GetDictLong(kineticHeight);
+    GetDictFloat(vsSpeed);
+    GetDictSignedLong(infoReportInterval);
+    GetDictLong(exposureEventCode);
+    GetDictLong(numIntegrationShots);
+    new(xtc->payload) Pds::Pixis::ConfigV1((uint32_t) width,
+                      (uint32_t) height,
+                      (uint32_t) orgX,
+                      (uint32_t) orgY,
+                      (uint32_t) binX,
+                      (uint32_t) binY,
+                      (float) exposureTime,
+                      (float) coolingTemp,
+                      (float) readoutSpeed,
+                      gainMode,
+                      adcMode,
+                      triggerMode,
+                      (uint32_t) activeWidth,
+                      (uint32_t) activeHeight,
+                      (uint32_t) activeTopMargin,
+                      (uint32_t) activeBottomMargin,
+                      (uint32_t) activeLeftMargin,
+                      (uint32_t) activeRightMargin,
+                      (uint32_t) cleanCycleCount,
+                      (uint32_t) cleanCycleHeight,
+                      (uint32_t) cleanFinalHeight,
+                      (uint32_t) cleanFinalHeightCount,
+                      (uint32_t) maskedHeight,
+                      (uint32_t) kineticHeight,
+                      (float) vsSpeed,
+                      (int16_t) infoReportInterval,
+                      (uint16_t) exposureEventCode,
+                      (uint32_t) numIntegrationShots);
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else {
+    printf("set(): Unsupported PixisConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+
+#undef GetDictEnum
+#undef GetDictLong
+#undef GetDictSignedLong
+#undef GetDictFloat
+

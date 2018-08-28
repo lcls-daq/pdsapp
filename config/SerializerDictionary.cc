@@ -67,6 +67,7 @@
 #include "pdsapp/config/AndorConfig.hh"
 #include "pdsapp/config/AndorConfig_V1.hh"
 #include "pdsapp/config/PimaxConfig.hh"
+#include "pdsapp/config/PixisConfig.hh"
 #include "pdsapp/config/TimeToolConfig.hh"
 #include "pdsapp/config/TimeToolConfig_V1.hh"
 #include "pdsapp/config/Andor3dConfig.hh"
@@ -111,6 +112,7 @@
 #include "pds/config/FliConfigType.hh"
 #include "pds/config/AndorConfigType.hh"
 #include "pds/config/PimaxConfigType.hh"
+#include "pds/config/PixisConfigType.hh"
 #include "pds/config/TimeToolConfigType.hh"
 #include "pds/config/Andor3dConfigType.hh"
 #include "pds/config/ArchonConfigType.hh"
@@ -185,6 +187,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_fliConfigType         ,new FliConfig);  
   enroll(_andorConfigType       ,new AndorConfig);
   enroll(_pimaxConfigType       ,new PimaxConfig);
+  enroll(_pixisConfigType       ,new PixisConfig);
   enroll(_timetoolConfigType    ,new TimeToolConfig);
   enroll(_andor3dConfigType     ,new Andor3dConfig);
   enroll(_archonConfigType      ,new ArchonConfig);

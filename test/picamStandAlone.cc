@@ -54,6 +54,8 @@ static void show_usage(const char* p)
          "    -b|--binning  <x,y>                     the pixel binning of the camera (default: 1,1)\n"
          "    -e|--exposure <exposure>                the exposure time for images in milliseconds (default: 100)\n"
          "    -C|--cooling  <temp>                    enable cooling of the camera\n"
+         "    -a|--adcspeed <speed>                   the ADC speed of the camera (default: 2 MHz)\n"
+         "    -s|--vspeed   <speed>                   vertical shift speed of the camera (default: 30.2)\n"
          "    -t|--trigger                            use an external trigger instead for acquistion\n"
          "    -l|--list                               list all parameters of the camera\n"
          "    -h|--help                               print this message and exit\n", p);
@@ -63,7 +65,7 @@ using namespace PiUtils;
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":hc:n:w:r:b:e:C:tl";
+  const char*         strOptions  = ":hc:n:w:r:b:e:C:a:s:tl";
   const struct option loOptions[] = {
     {"help",     0, 0, 'h'},
     {"camera",   1, 0, 'c'},
@@ -73,6 +75,8 @@ int main(int argc, char **argv)
     {"binning",  1, 0, 'b'},
     {"exposure", 1, 0, 'e'},
     {"cooling",  1, 0, 'C'},
+    {"adcspeed", 1, 0, 'a'},
+    {"vspeed",   1, 0, 's'},
     {"trigger",  0, 0, 't'},
     {"list",     0, 0, 'l'},
     {0,          0, 0,  0 }
@@ -95,6 +99,8 @@ int main(int argc, char **argv)
   piint binY = 1;
   double exposure = 100.0;
   double cooling_setpoint = 25.0;
+  double vertical_shift_speed = 30.2;
+  double adc_frequency = 2.0; // 2.0 MHz
   char* file_prefix = (char *)NULL;
   char fname[128];
   float fTemperature = 999;
@@ -158,6 +164,16 @@ int main(int argc, char **argv)
           lUsage = true;
         }
         break;
+      case 'a':
+        if (!Pds::CmdLineTools::parseDouble(optarg,adc_frequency)) {
+          printf("%s: option `-a' parsing error\n", argv[0]);
+          lUsage = true;
+        }
+      case 's':
+        if (!Pds::CmdLineTools::parseDouble(optarg,vertical_shift_speed)) {
+          printf("%s: option `-s' parsing error\n", argv[0]);
+          lUsage = true;
+        }
       case 't':
         external_trigger = true;
         break;
@@ -293,12 +309,28 @@ int main(int argc, char **argv)
 
   // set external trigger if requested
   if (external_trigger) {
-    iError = Picam_SetParameterIntegerValue(
-      camera,
-      PicamParameter_TriggerSource,
-      PicamTriggerSource_External
-    );
-    PRINT_PICAM_ERROR(iError, "Picam_SetParameterIntegerValue(PicamParameter_TriggerSource)");
+    pibln exists;
+    Picam_DoesParameterExist(camera, PicamParameter_TriggerResponse, &exists);
+    if (exists) {
+      iError = Picam_SetParameterIntegerValue(
+        camera,
+        PicamParameter_TriggerResponse,
+        PicamTriggerResponse_ReadoutPerTrigger
+      );
+      PRINT_PICAM_ERROR(iError, "Picam_SetParameterIntegerValue(PicamParameter_TriggerResponse)");
+
+      Picam_DoesParameterExist(camera, PicamParameter_TriggerDetermination, &exists);
+      if (exists) {
+        iError = Picam_SetParameterIntegerValue(
+          camera,
+          PicamParameter_TriggerDetermination,
+          PicamTriggerDetermination_PositivePolarity
+        );
+      PRINT_PICAM_ERROR(iError, "Picam_SetParameterIntegerValue(PicamParameter_TriggerDetermination)");
+      }
+    } else {
+      printf("Requested external trigger but this not supported by the camera!\n");
+    }
   }
 
   if (enable_cooling) {
@@ -310,8 +342,14 @@ int main(int argc, char **argv)
     PRINT_PICAM_ERROR(iError, "Picam_SetParameterFloatingPointValue(PicamParameter_SensorTemperatureSetPoint)");
   }
 
-  iError = Picam_SetParameterFloatingPointValue(camera, PicamParameter_ExposureTime, exposure);
-  PRINT_PICAM_ERROR(iError, "Picam_SetParameterFloatingPointValue(PicamParameter_ExposureTime)");
+  iError = piSetParameterToIncrement(camera, PicamParameter_ExposureTime, exposure);
+  PRINT_PICAM_ERROR(iError, "piSetParameterToIncrement(PicamParameter_ExposureTime)");
+
+  iError = piSetParameterToCollection(camera, PicamParameter_AdcSpeed, adc_frequency);
+  PRINT_PICAM_ERROR(iError, "piSetParameterToCollection(PicamParameter_AdcSpeed)");
+
+  iError = piSetParameterToCollection(camera, PicamParameter_VerticalShiftRate, vertical_shift_speed);
+  PRINT_PICAM_ERROR(iError, "piSetParameterToCollection(PicamParameter_VerticalShiftRate)");
 
   // commit all the parameter changes
   iError = piCommitParameters(camera);

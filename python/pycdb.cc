@@ -28,6 +28,7 @@
 #include "pdsapp/python/AndorConfig.icc"
 #include "pdsapp/python/Andor3dConfig.icc"
 #include "pdsapp/python/PimaxConfig.icc"
+#include "pdsapp/python/PixisConfig.icc"
 #include "pdsapp/python/RayonixConfig.icc"
 #include "pdsapp/python/AcqirisConfig.icc"
 #include "pdsapp/python/TimeToolConfig.icc"
@@ -117,6 +118,9 @@ DECLARE_INIT(pycdb)
   if (PyType_Ready(&pds_PimaxConfig_type) < 0)
     INITERROR; 
 
+  if (PyType_Ready(&pds_PixisConfig_type) < 0)
+    INITERROR;
+
   if (PyType_Ready(&pds_RayonixConfig_type) < 0)
     INITERROR; 
 
@@ -190,6 +194,9 @@ DECLARE_INIT(pycdb)
 
   Py_INCREF(&pds_PimaxConfig_type);
   PyModule_AddObject(m, "PimaxConfig", (PyObject*)&pds_PimaxConfig_type);       
+
+  Py_INCREF(&pds_PixisConfig_type);
+  PyModule_AddObject(m, "PixisConfig", (PyObject*)&pds_PixisConfig_type);
 
   Py_INCREF(&pds_RayonixConfig_type);
   PyModule_AddObject(m, "RayonixConfig", (PyObject*)&pds_RayonixConfig_type);
