@@ -342,7 +342,7 @@ int main(int argc, char** argv)
     SegWireSettingsPixis settings(detInfo, sUniqueId);
 
     EventCallBackPixis  eventCallBackPixis(iPlatform, cfgService, iCamera, bDelayMode, bInitTest, sConfigDb, iSleepInt, iDebugLevel);
-    SegmentLevel segmentLevel(iPlatform, settings, eventCallBackPixis, NULL);
+    SegmentLevel segmentLevel(iPlatform, settings, eventCallBackPixis, NULL, 0);
 
     segmentLevel.attach();
     if ( eventCallBackPixis.IsAttached() )

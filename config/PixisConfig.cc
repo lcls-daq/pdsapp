@@ -7,6 +7,7 @@
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QLabel>
 
+#include <math.h>
 #include <new>
 
 using namespace Pds_ConfigDb;
@@ -79,11 +80,11 @@ const char*   Pds_ConfigDb::PixisConfig::Private_Data::lsGainMode[]     = { "Low
 const char*   Pds_ConfigDb::PixisConfig::Private_Data::lsAdcMode[]      = { "Low Noise", "High Capacity", NULL };
 const char*   Pds_ConfigDb::PixisConfig::Private_Data::lsTriggerMode[]  = { "Software", "External", "External + Clean", NULL };
 const char*   Pds_ConfigDb::PixisConfig::Private_Data::lsVsSpeed[]      = {
-  "3.2", "6.2", "9.2", "12.2", "15.2", "18.2", "21.2", "24.2", "27.2", "30.2", "33.2", "36.2", "39.2", "42.2", "45.2", "48.2", NULL
+  "5", "9.8", "14.6", "19.4", "24.2", "29", "33.8", "38.6", "43.4", "48.2", "53", "57.8", "62.6", "67.4", "72.2", "77", NULL
 };
 const float   Pds_ConfigDb::PixisConfig::Private_Data::lfReadoutSpeed[] = { 2.0, 0.1 };
-const float   Pds_ConfigDb::PixisConfig::Private_Data::lfVsSpeed[]      = { 
-  3.2, 6.2, 9.2, 12.2, 15.2, 18.2, 21.2, 24.2, 27.2, 30.2, 33.2, 36.2, 39.2, 42.2, 45.2, 48.2
+const float   Pds_ConfigDb::PixisConfig::Private_Data::lfVsSpeed[]      = {
+  5, 9.8, 14.6, 19.4, 24.2, 29, 33.8, 38.6, 43.4, 48.2, 53, 57.8, 62.6, 67.4, 72.2, 77
 };
 const PixisConfigType::GainMode  Pds_ConfigDb::PixisConfig::Private_Data::luGainMode[] = {
   PixisConfigType::Low, PixisConfigType::Medium, PixisConfigType::High
@@ -116,7 +117,7 @@ Pds_ConfigDb::PixisConfig::Private_Data::Private_Data(bool expert_mode) :
   _uCleanFinalHeight        ("Clean Final Height",    2,    1,    2053),
   _uCleanFinalHeightCount   ("Clean Final Height Count",  512, 1, 2053),
   // skip _u32MaskedHeight, _u32KineticHeight
-  _enumVsSpeed              ("Vertical Shift Speed",  9,    lsVsSpeed),
+  _enumVsSpeed              ("Vertical Shift Speed",  10,   lsVsSpeed),
   _i16InfoReportInterval    ("Info Report Interval",  1,    0,    10000),
   _u16ExposureEventCode     ("Exposure Event Code",   1,    1,    255),
   _u32NumIntegrationShots   ("Num Integration Shots", 1,    0,    0x7FFFFFFF),
@@ -243,20 +244,36 @@ int Pds_ConfigDb::PixisConfig::Private_Data::pull(void* from) {
 
 int Pds_ConfigDb::PixisConfig::Private_Data::readoutSpeedToEnum(float fReadoutSpeed)
 {
-  for (unsigned i=0; i< sizeof(lfReadoutSpeed) / sizeof(lfReadoutSpeed[0]); ++i)
-    if (fReadoutSpeed == lfReadoutSpeed[i])
-      return i;
+  unsigned index = 0;
+  float min_delta = 0.0;
+  for (unsigned i=0; i< sizeof(lfReadoutSpeed) / sizeof(lfReadoutSpeed[0]); ++i) {
+    float delta = fabs(lfReadoutSpeed[i] - fReadoutSpeed);
+    if (i==0) {
+      min_delta = delta;
+    } else if (delta < min_delta) {
+      index = i;
+      min_delta = delta;
+    }
+  }
 
-  return 0;
+  return index;
 }
 
 int Pds_ConfigDb::PixisConfig::Private_Data::vsSpeedToEnum(float fVsSpeed)
 {
-  for (unsigned i=0; i< sizeof(lfVsSpeed) / sizeof(lfVsSpeed[0]); ++i)
-    if (fVsSpeed == lfVsSpeed[i])
-      return i;
+  unsigned index = 0;
+  float min_delta = 0.0;
+  for (unsigned i=0; i< sizeof(lfVsSpeed) / sizeof(lfVsSpeed[0]); ++i) {
+    float delta = fabs(lfVsSpeed[i] - fVsSpeed);
+    if (i==0) {
+       min_delta = delta;
+    } else if (delta < min_delta) {
+      index = i;
+      min_delta = delta;
+    }
+  }
 
-  return 0;
+  return index;
 }
 
 int Pds_ConfigDb::PixisConfig::Private_Data::push(void* to) {
