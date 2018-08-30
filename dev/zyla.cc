@@ -52,13 +52,14 @@ static void zylaUsage(const char* p)
          "    -u|--uniqueid <alias>                   set device alias\n"
          "    -c|--camera   [0-9]                     select the camera device index (default: 0)\n"
          "    -b|--buffers  <buffers>                 the number of frame buffers to provide to the Andor SDK (default: 5)\n"
-         "    -w|--wait                               wait for camera temperature to stabilize before running\n"
+         "    -W|--wait                               wait for camera temperature to stabilize before running\n"
+         "    -w|--sloweb   <0/1/2>                   set slow readout mode (default: 0)\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char** argv) {
 
-  const char*   strOptions    = ":hp:i:u:c:b:w";
+  const char*   strOptions    = ":hp:i:u:c:b:Ww:";
   const struct option loOptions[]   =
     {
        {"help",        0, 0, 'h'},
@@ -67,7 +68,8 @@ int main(int argc, char** argv) {
        {"uniqueid",    1, 0, 'u'},
        {"camera",      1, 0, 'c'},
        {"buffers",     1, 0, 'b'},
-       {"wait",        0, 0, 'w'},
+       {"wait",        0, 0, 'W'},
+       {"sloweb",      1, 0, 'w'},
        {0,             0, 0,  0 }
     };
 
@@ -78,6 +80,7 @@ int main(int argc, char** argv) {
   unsigned channel = 0;
   unsigned num_buffers = 5;
   int camera = 0;
+  int slowReadout = 0;
   bool lUsage = false;
   bool isTriggered = false;
   bool waitCooling = false;
@@ -133,9 +136,18 @@ int main(int argc, char** argv) {
           lUsage = true;
         }
         break;
-      case 'w':
+      case 'W':
         waitCooling = true;
         break;
+      case 'w':
+        if (!CmdLineTools::parseInt(optarg,slowReadout)) {
+          printf("%s: option `-w' parsing error\n", argv[0]);
+          lUsage = true;
+        } else if ((slowReadout != 0) && (slowReadout != 1) && (slowReadout != 2)) {
+          printf("%s: option `-w' out of range\n", argv[0]);
+          lUsage = true;
+        }
+      break;
       case '?':
         if (optopt)
           printf("%s: Unknown option: %c\n", argv[0], optopt);
@@ -169,6 +181,12 @@ int main(int argc, char** argv) {
   if (lUsage) {
     zylaUsage(argv[0]);
     return 1;
+  }
+
+  if(slowReadout==0) {
+    printf("Setting normal readout mode for zyla process.\n");
+  } else {
+    printf("Setting slow readout mode for zyla process!\n");
   }
 
   // Initialize Andor SDK
@@ -276,7 +294,7 @@ int main(int argc, char** argv) {
 
     Task* task = new Task(Task::MakeThisATask);
     EventAppCallback* seg = new EventAppCallback(task, platform, managers.front()->appliance());
-    SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0);
+    SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0, slowReadout);
     if (seglevel->attach()) {
       task->mainLoop();
     }
