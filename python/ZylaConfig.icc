@@ -1,0 +1,344 @@
+//
+//  pds_ZylaConfig class methods
+//
+static PyObject* pds_ZylaConfig_get    (PyObject*   self, PyObject* args);
+static PyObject* pds_ZylaConfig_set    (PyObject*   self, PyObject* args);
+static PyObject* pds_ZylaConfig_enum   (PyObject*   self, PyObject* args);
+
+static PyMethodDef pds_ZylaConfig_methods[] = {
+  {"get"        , (PyCFunction)pds_ZylaConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"set"        , (PyCFunction)pds_ZylaConfig_set   , METH_VARARGS|METH_KEYWORDS, "Set the configuration"},
+  {"get_enums"  , (PyCFunction)pds_ZylaConfig_enum  , METH_NOARGS  , "Output enum constants"},
+  {NULL},
+};
+
+DefineXtcType(ZylaConfig) ;
+
+#include "pdsdata/psddl/zyla.ddl.h"
+#include <new>
+
+
+// Return a dictionary of enum types in config
+#define SetEnum(name,type,dict)                           \
+  { PyObject* v = PyInt_FromLong(Pds::Zyla::type::name);  \
+    if (v) {                                              \
+      PyDict_SetItemString(dict,#name,v);                 \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
+
+#define SetEnumDict(name,dict)              \
+  { PyDict_SetItemString(o,#name,dict);     \
+    Py_DECREF(dict); }
+
+static PyObject* get_zyla_atbool_enum(pdsxtc* xtc)
+{
+  PyObject* atbool_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(False,ConfigV1,atbool_enum);
+    SetEnum(True,ConfigV1,atbool_enum);
+
+    return atbool_enum;
+  } else {
+    Py_DECREF(atbool_enum);
+    printf("get_enums(): Unsupported ZylaConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+static PyObject* get_zyla_shutter_enum(pdsxtc* xtc)
+{
+  PyObject* shutter_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(Rolling,ConfigV1,shutter_enum);
+    SetEnum(Global,ConfigV1,shutter_enum);
+
+    return shutter_enum;
+  } else {
+    Py_DECREF(shutter_enum);
+    printf("get_enums(): Unsupported ZylaConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+static PyObject* get_zyla_fan_enum(pdsxtc* xtc)
+{
+  PyObject* fan_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(Off,ConfigV1,fan_enum);
+    SetEnum(Low,ConfigV1,fan_enum);
+    SetEnum(On,ConfigV1,fan_enum);
+
+    return fan_enum;
+  } else {
+    Py_DECREF(fan_enum);
+    printf("get_enums(): Unsupported ZylaConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+static PyObject* get_zyla_readout_enum(pdsxtc* xtc)
+{
+  PyObject* readout_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(Rate280MHz,ConfigV1,readout_enum);
+    SetEnum(Rate200MHz,ConfigV1,readout_enum);
+    SetEnum(Rate100MHz,ConfigV1,readout_enum);
+    SetEnum(Rate10MHz,ConfigV1,readout_enum);
+  
+    return readout_enum;
+  } else {
+    Py_DECREF(readout_enum);
+    printf("get_enums(): Unsupported ZylaConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  } 
+}
+
+static PyObject* get_zyla_trigger_enum(pdsxtc* xtc)
+{   
+  PyObject* trigger_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(Internal,ConfigV1,trigger_enum);
+    SetEnum(ExternalLevelTransition,ConfigV1,trigger_enum);
+    SetEnum(ExternalStart,ConfigV1,trigger_enum);
+    SetEnum(ExternalExposure,ConfigV1,trigger_enum);
+    SetEnum(Software,ConfigV1,trigger_enum);
+    SetEnum(Advanced,ConfigV1,trigger_enum);
+    SetEnum(External,ConfigV1,trigger_enum);
+
+    return trigger_enum;
+  } else {
+    Py_DECREF(trigger_enum);
+    printf("get_enums(): Unsupported ZylaConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  } 
+}
+
+static PyObject* get_zyla_gain_enum(pdsxtc* xtc)
+{   
+  PyObject* gain_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(HighWellCap12Bit,ConfigV1,gain_enum);
+    SetEnum(LowNoise12Bit,ConfigV1,gain_enum);
+    SetEnum(LowNoiseHighWellCap16Bit,ConfigV1,gain_enum);
+
+    return gain_enum;
+  } else {
+    Py_DECREF(gain_enum);
+    printf("get_enums(): Unsupported ZylaConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+static PyObject* get_zyla_setpoint_enum(pdsxtc* xtc)
+{   
+  PyObject* setpoint_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(Temp_0C,ConfigV1,setpoint_enum);
+    SetEnum(Temp_Neg5C,ConfigV1,setpoint_enum);
+    SetEnum(Temp_Neg10C,ConfigV1,setpoint_enum);
+    SetEnum(Temp_Neg15C,ConfigV1,setpoint_enum);
+    SetEnum(Temp_Neg20C,ConfigV1,setpoint_enum);
+    SetEnum(Temp_Neg25C,ConfigV1,setpoint_enum);
+    SetEnum(Temp_Neg30C,ConfigV1,setpoint_enum);
+    SetEnum(Temp_Neg35C,ConfigV1,setpoint_enum);
+    SetEnum(Temp_Neg40C,ConfigV1,setpoint_enum);
+
+    return setpoint_enum;
+  } else {
+    Py_DECREF(setpoint_enum);
+    printf("get_enums(): Unsupported ZylaConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+PyObject* pds_ZylaConfig_enum (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+
+    SetEnumDict(cooling,get_zyla_atbool_enum(xtc));
+    SetEnumDict(overlap,get_zyla_atbool_enum(xtc));
+    SetEnumDict(noiseFilter,get_zyla_atbool_enum(xtc));
+    SetEnumDict(blemishCorrection,get_zyla_atbool_enum(xtc));
+
+    SetEnumDict(shutter,get_zyla_shutter_enum(xtc));
+    SetEnumDict(fanSpeed,get_zyla_fan_enum(xtc));
+    SetEnumDict(readoutRate,get_zyla_readout_enum(xtc));
+    SetEnumDict(triggerMode,get_zyla_trigger_enum(xtc));
+    SetEnumDict(gainMode,get_zyla_gain_enum(xtc));
+    SetEnumDict(setpoint,get_zyla_setpoint_enum(xtc));
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get_enums(): Unsupported ZylaConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+
+#undef SetEnum
+#undef SetEnumDict
+
+
+//  Return a dictionary of configuration data
+#define SetDictMember(name,isFloat,isEnum,isSigned)       \
+  { PyObject* v = NULL;                                   \
+    if (isFloat)                                          \
+      v = PyFloat_FromDouble(cfg->name());                \
+    else if (isEnum)                                      \
+      v = PyInt_FromLong((signed)cfg->name());            \
+    else if (isSigned)                                    \
+      v = PyLong_FromLong((signed)cfg->name());           \
+    else                                                  \
+      v = PyLong_FromUnsignedLong((unsigned)cfg->name()); \
+    if (v) {                                              \
+      PyDict_SetItemString(o,#name,v);                    \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
+
+PyObject* pds_ZylaConfig_get (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+    const Pds::Zyla::ConfigV1* cfg =
+      reinterpret_cast<const Pds::Zyla::ConfigV1*>(xtc->payload);
+
+    SetDictMember(cooling,false,true,false);
+    SetDictMember(overlap,false,true,false);
+    SetDictMember(noiseFilter,false,true,false);
+    SetDictMember(blemishCorrection,false,true,false);
+    SetDictMember(shutter,false,true,false);
+    SetDictMember(fanSpeed,false,true,false);
+    SetDictMember(readoutRate,false,true,false);
+    SetDictMember(triggerMode,false,true,false);
+    SetDictMember(gainMode,false,true,false);
+    SetDictMember(setpoint,false,true,false);
+    SetDictMember(width,false,false,false);
+    SetDictMember(height,false,false,false);
+    SetDictMember(orgX,false,false,false);
+    SetDictMember(orgY,false,false,false);
+    SetDictMember(binX,false,false,false);
+    SetDictMember(binY,false,false,false);
+    SetDictMember(exposureTime,true,false,false);
+    SetDictMember(triggerDelay,true,false,false);
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported ZylaConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+#undef SetDictMember
+
+
+//  Retrieve configuration data from a Python Dictionary
+#define GetDictEnum(name,type)                                          \
+  type name;                                                            \
+  { PyObject* i = PyDict_GetItemString(o,#name);                        \
+    if (i) {                                                            \
+      if (PyInt_CheckExact(i))  name = (type) PyInt_AsLong(i);          \
+      else if (PyLong_CheckExact(i)) name = (type) PyLong_AsLong(i);    \
+      else name = (type) cfg->name();                                   \
+    }                                                                   \
+    else name = cfg->name(); }
+
+#define GetDictLong(name)                                         \
+  unsigned long name;                                             \
+  { PyObject* i = PyDict_GetItemString(o,#name);                  \
+    if (i) {                                                      \
+      if (PyLong_Check(i)) name = PyLong_AsUnsignedLong(i);       \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);            \
+      else name = cfg->name();                                    \
+    }                                                             \
+    else name = cfg->name(); }
+
+#define GetDictSignedLong(name)                                   \
+  long name;                                                      \
+  { PyObject* i = PyDict_GetItemString(o,#name);                  \
+    if (i) {                                                      \
+      if (PyLong_Check(i)) name = PyLong_AsLong(i);               \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);            \
+      else name = cfg->name();                                    \
+    }                                                             \
+    else name = cfg->name(); }
+
+#define GetDictFloat(name)                              \
+  double name;                                          \
+  { PyObject* i = PyDict_GetItemString(o,#name);        \
+    if (i) {                                            \
+      if (PyFloat_Check(i)) name = PyFloat_AsDouble(i); \
+      else name = cfg->name();                          \
+    }                                                   \
+    else name = cfg->name(); }
+
+PyObject* pds_ZylaConfig_set    (PyObject*   self, PyObject* args)
+{
+  PyObject* o = 0;
+  if (PyArg_ParseTuple(args,"O",&o)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==1) {
+    const Pds::Zyla::ConfigV1* cfg =
+      reinterpret_cast<const Pds::Zyla::ConfigV1*>(xtc->payload);
+
+    GetDictEnum(cooling,Pds::Zyla::ConfigV1::ATBool);
+    GetDictEnum(overlap,Pds::Zyla::ConfigV1::ATBool);
+    GetDictEnum(noiseFilter,Pds::Zyla::ConfigV1::ATBool);
+    GetDictEnum(blemishCorrection,Pds::Zyla::ConfigV1::ATBool);
+    GetDictEnum(shutter,Pds::Zyla::ConfigV1::ShutteringMode);
+    GetDictEnum(fanSpeed,Pds::Zyla::ConfigV1::FanSpeed);
+    GetDictEnum(readoutRate,Pds::Zyla::ConfigV1::ReadoutRate);
+    GetDictEnum(triggerMode,Pds::Zyla::ConfigV1::TriggerMode);
+    GetDictEnum(gainMode,Pds::Zyla::ConfigV1::GainMode);
+    GetDictEnum(setpoint,Pds::Zyla::ConfigV1::CoolingSetpoint);
+    GetDictLong(width);
+    GetDictLong(height);
+    GetDictLong(orgX);
+    GetDictLong(orgY);
+    GetDictLong(binX);
+    GetDictLong(binY);
+    GetDictFloat(exposureTime);
+    GetDictFloat(triggerDelay);
+    new(xtc->payload) Pds::Zyla::ConfigV1(cooling,
+                      overlap,
+                      noiseFilter,
+                      blemishCorrection,
+                      shutter,
+                      fanSpeed,
+                      readoutRate,
+                      triggerMode,
+                      gainMode,
+                      setpoint,
+                      (uint32_t) width,
+                      (uint32_t) height,
+                      (uint32_t) orgX,
+                      (uint32_t) orgY,
+                      (uint32_t) binX,
+                      (uint32_t) binY,
+                      exposureTime,
+                      triggerDelay);
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else {
+    printf("set(): Unsupported ZylaConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+
+#undef GetDictEnum
+#undef GetDictLong
+#undef GetDictSignedLong
+#undef GetDictFloat
+

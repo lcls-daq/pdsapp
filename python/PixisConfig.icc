@@ -74,7 +74,7 @@ PyObject* pds_PixisConfig_enum (PyObject*   self, PyObject* args)
   }
   else {
     Py_DECREF(o);
-    printf("get(): Unsupported PixisfrauConfig Version= %u \n",xtc->contains.version());
+    printf("get(): Unsupported PixisConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception
   }
 
