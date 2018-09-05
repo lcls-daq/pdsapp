@@ -16,6 +16,8 @@
 #include "pds/config/Opal1kConfigType.hh"
 #include "pds/config/QuartzConfigType.hh"
 #include "pds/config/FccdConfigType.hh"
+#include "pds/config/ZylaConfigType.hh"
+#include "pds/config/ZylaDataType.hh"
 #include "pds/config/CsPadConfigType.hh"
 #include "pds/config/CsPadDataType.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
@@ -367,6 +369,101 @@ private:
   unsigned _ibuffer;
 };
 
+
+class SimZyla : public SimApp {
+  enum { CfgSize = sizeof(ZylaConfigType)+sizeof(Xtc) };
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    switch(info.device()) {
+    case DetInfo::Zyla:
+      return true;
+    default:
+      break;
+    }
+    return false;
+  }
+public:
+  SimZyla(const Src& src)
+  {
+    _cfgpayload = new char[CfgSize];
+    _cfgtc = new(_cfgpayload) Xtc(_zylaConfigType,src);
+    ZylaConfigType* cfg = new (_cfgtc->next()) ZylaConfigType(ZylaConfigType::True, ZylaConfigType::False,
+                                                             ZylaConfigType::False, ZylaConfigType::False,
+                                                             ZylaConfigType::Global, ZylaConfigType::On,
+                                                             ZylaConfigType::Rate280MHz, ZylaConfigType::External,
+                                                             ZylaConfigType::HighWellCap12Bit, ZylaConfigType::Temp_0C,
+                                                             2560, 2160, 1, 1, 1, 1, 0.001, 0.0);
+    _cfgtc->extent += cfg->_sizeof();
+    unsigned depth  = 16;
+    unsigned offset = 32;
+
+    unsigned evtsz = (sizeof(Xtc) + Zyla::FrameV1::_sizeof(*cfg));
+    unsigned evtst = (evtsz+3)&~3;
+    _evtpayload = new char[NBuffers*evtst];
+    memset(_evtpayload, 0, NBuffers*evtst);
+
+    for(unsigned i=0; i<NBuffers; i++) {
+      _evttc[i] = new(_evtpayload+i*evtst) Xtc(_zylaDataType,src);
+      ZylaDataType* f = new(_evttc[i]->next()) ZylaDataType(i);
+      if (depth<=16) {
+        ndarray<const uint16_t, 2> idata = f->data(*cfg);
+        ndarray<uint16_t, 2> fdata = make_ndarray(const_cast<uint16_t*>(idata.data()), idata.shape()[0], idata.shape()[1]);
+        unsigned i;
+        for(i=0; i<cfg->height()/2; i++) {
+          unsigned j;
+          { double sigm = double(offset/8);
+            for(j=0; j<cfg->width()/2; j++)
+              fdata(i,j) = rangss(offset,sigm,0xff); }
+          { double sigm = double(offset/6);
+            for(; j<cfg->width(); j++)
+              fdata(i,j) = rangss(offset,sigm,0xff); }
+        }
+        for(; i<cfg->height(); i++) {
+          unsigned j;
+          { double sigm = double(offset/6);
+            for(j=0; j<cfg->width()/2; j++)
+              fdata(i,j) = rangss(offset,sigm,0xff); }
+          { double sigm = double(offset/8);
+            for(; j<cfg->width(); j++)
+              fdata(i,j) = rangss(offset,sigm,0xff); }
+        }
+      }
+      else
+        ;
+      _evttc[i]->extent += (f->_sizeof(*cfg)+3)&~3;
+    }
+  }
+  ~SimZyla()
+  {
+    delete[] _cfgpayload;
+    delete[] _evtpayload;
+  }
+private:
+  void _execute_configure()
+  {
+    _ibuffer = 0;
+  }
+  void _insert_configure(InDatagram* dg)
+  {
+    dg->insert(*_cfgtc,_cfgtc->payload());
+  }
+  void _insert_event(InDatagram* dg)
+  {
+    dg->insert(*_evttc[_ibuffer],_evttc[_ibuffer]->payload());
+    if (++_ibuffer==NBuffers) _ibuffer=0;
+  }
+public:
+  size_t max_size() const { return _evttc[0]->sizeofPayload(); }
+private:
+  char* _cfgpayload;
+  char* _evtpayload;
+  Xtc*  _cfgtc;
+
+  enum { NBuffers=16 };
+  Xtc*  _evttc[NBuffers];
+  unsigned _ibuffer;
+};
 
 class SimCspad : public SimApp {
   enum { CfgSize = sizeof(CsPadConfigType)+sizeof(Xtc) };
@@ -1184,6 +1281,8 @@ public:
       _app = new SimEpix100a(src);
     else if (SimEpixSampler::handles(src))
       _app = new SimEpixSampler(src);
+    else if (SimZyla::handles(src))
+      _app = new SimZyla(src);
     else {
       const DetInfo& printInfo = static_cast<const DetInfo&>(src);
       fprintf(stderr,"Unsupported2 camera %s\n",Pds::DetInfo::name(printInfo.device()));
