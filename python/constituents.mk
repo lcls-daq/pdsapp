@@ -1,4 +1,5 @@
-libnames := pycdb pydaq py3cdb py3daq
+libnames := pycdb pydaq py3cdb py3daq pymonshm
+#libnames := pymonshm
 
 libsrcs_pycdb := pycdb.cc
 libincs_pycdb := python/include/python2.5
@@ -33,3 +34,9 @@ libincs_py3daq := python3/include/python3.6m
 libincs_py3daq += pdsdata/include ndarray/include boost/include
 liblibs_py3daq += pdsdata/xtcdata pdsdata/psddl_pdsdata pds/configdata
 libslib_py3daq := $(USRLIBDIR)/rt
+
+libsrcs_pymonshm := pymonshm.cc
+libincs_pymonshm := python3/include/python3.6m
+libincs_pymonshm += pdsdata/include ndarray/include boost/include
+liblibs_pymonshm += pdsdata/appdata pdsdata/xtcdata pdsdata/psddl_pdsdata
+libslib_pymonshm := $(USRLIBDIR)/rt
