@@ -9,11 +9,11 @@ tgtnames += princetonCameraTest andorStandAlone andorDualStandAlone archonStandA
 endif
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames += andorStandAlone andorDualStandAlone archonStandAlone
+tgtnames += andorStandAlone andorDualStandAlone archonStandAlone uxiStandAlone
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone archonStandAlone picamStandAlone
+tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone archonStandAlone picamStandAlone uxiStandAlone
 endif
 
 commonlibs	:= pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -24,6 +24,11 @@ commonlibs	+= offlinedb/mysqlclient
 tgtsrcs_archonStandAlone := archonStandAlone.cc
 tgtlibs_archonStandAlone := $(commonlibs) pds/archon
 tgtslib_archonStandAlone := dl pthread rt
+
+tgtsrcs_uxiStandAlone := uxiStandAlone.cc
+tgtlibs_uxiStandAlone := $(commonlibs) pds/configdata
+tgtlibs_uxiStandAlone += pds/uxi zeromq/zmq
+tgtslib_uxiStandAlone := dl pthread rt
 
 tgtsrcs_jungfrauStandAlone := jungfrauStandAlone.cc
 tgtincs_jungfrauStandAlone := pdsdata/include ndarray/include boost/include

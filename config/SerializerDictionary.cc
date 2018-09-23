@@ -68,6 +68,7 @@
 #include "pdsapp/config/AndorConfig_V1.hh"
 #include "pdsapp/config/PimaxConfig.hh"
 #include "pdsapp/config/PixisConfig.hh"
+#include "pdsapp/config/UxiConfig.hh"
 #include "pdsapp/config/TimeToolConfig.hh"
 #include "pdsapp/config/TimeToolConfig_V1.hh"
 #include "pdsapp/config/Andor3dConfig.hh"
@@ -113,6 +114,7 @@
 #include "pds/config/AndorConfigType.hh"
 #include "pds/config/PimaxConfigType.hh"
 #include "pds/config/PixisConfigType.hh"
+#include "pds/config/UxiConfigType.hh"
 #include "pds/config/TimeToolConfigType.hh"
 #include "pds/config/Andor3dConfigType.hh"
 #include "pds/config/ArchonConfigType.hh"
@@ -194,6 +196,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_jungfrauConfigType    ,new JungfrauConfig);
   enroll(_QuadAdcConfigType     ,new QuadAdcConfig);
   enroll(_zylaConfigType        ,new ZylaConfig);
+  enroll(_uxiConfigType         ,new UxiConfig);
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_Cspad2x2Config,1),new Cspad2x2Config_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,4) , new CspadConfig_V4);

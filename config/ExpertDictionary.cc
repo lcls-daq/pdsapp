@@ -8,6 +8,7 @@
 #include "pdsapp/config/JungfrauConfig.hh"
 #include "pdsapp/config/ZylaConfig.hh"
 #include "pdsapp/config/PixisConfig.hh"
+#include "pdsapp/config/UxiConfig.hh"
 
 #ifdef BUILD_EXTRA
 #include "pdsapp/config/PhasicsConfig.hh"
@@ -20,6 +21,7 @@
 #include "pds/config/JungfrauConfigType.hh"
 #include "pds/config/ZylaConfigType.hh"
 #include "pds/config/PixisConfigType.hh"
+#include "pds/config/UxiConfigType.hh"
 
 using namespace Pds_ConfigDb;
 
@@ -41,6 +43,7 @@ Serializer* ExpertDictionary::lookup(const Pds::TypeId& type)
   enroll(_zylaConfigType      ,new ZylaConfig(true));
   enroll(_jungfrauConfigType  ,new JungfrauConfig(true));
   enroll(_pixisConfigType     ,new PixisConfig(true));
+  enroll(_uxiConfigType       ,new UxiConfig(true));
 #ifdef BUILD_EXTRA
   enroll(_PhasicsConfigType   ,new PhasicsExpertConfig);
 #endif
