@@ -119,7 +119,7 @@ int main(int argc, char **argv)
         break;
       case 'e':
         if (!Pds::CmdLineTools::parseDouble(optarg,exposure)) {
-          printf("%s: option `-n' parsing error\n", argv[0]);
+          printf("%s: option `-e' parsing error\n", argv[0]);
           lUsage = true;
         }
         break;
