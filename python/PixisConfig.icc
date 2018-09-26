@@ -7,7 +7,7 @@ static PyObject* pds_PixisConfig_enum   (PyObject*   self, PyObject* args);
 
 static PyMethodDef pds_PixisConfig_methods[] = {
   {"get"        , (PyCFunction)pds_PixisConfig_get   , METH_NOARGS  , "Output the configuration"},
-  {"set"        , (PyCFunction)pds_PixisConfig_set   , METH_VARARGS|METH_KEYWORDS, "numIntegrationShotsInput the configuration"},
+  {"set"        , (PyCFunction)pds_PixisConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {"get_enums"  , (PyCFunction)pds_PixisConfig_enum  , METH_NOARGS  , "Output enum constants"},
   {NULL},
 };
