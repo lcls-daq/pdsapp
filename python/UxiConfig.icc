@@ -1,0 +1,201 @@
+//
+//  pds_UxiConfig class methods
+//
+static PyObject* pds_UxiConfig_get    (PyObject*   self, PyObject* args);
+static PyObject* pds_UxiConfig_set    (PyObject*   self, PyObject* args);
+
+static PyMethodDef pds_UxiConfig_methods[] = {
+  {"get"        , (PyCFunction)pds_UxiConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"set"        , (PyCFunction)pds_UxiConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
+  {NULL},
+};
+
+DefineXtcType(UxiConfig) ;
+
+#include "pdsdata/psddl/uxi.ddl.h"
+#include <new>
+
+
+//  Return a dictionary of configuration data
+#define SetDictMember(name,isFloat,isEnum,isSigned)       \
+  { PyObject* v = NULL;                                   \
+    if (isFloat)                                          \
+      v = PyFloat_FromDouble(cfg->name());                \
+    else if (isEnum)                                      \
+      v = PyInt_FromLong((signed)cfg->name());            \
+    else if (isSigned)                                    \
+      v = PyLong_FromLong((signed)cfg->name());           \
+    else                                                  \
+      v = PyLong_FromUnsignedLong((unsigned)cfg->name()); \
+    if (v) {                                              \
+      PyDict_SetItemString(o,#name,v);                    \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
+
+#define SetDictMemberArray(name,ntype,ptype)      \
+  { ndarray<const ntype, 1> values = cfg->name(); \
+    PyObject* v = PyList_New(values.size());      \
+    for (unsigned i=0; i<values.size(); i++) {    \
+       PyList_SetItem(v, i, ptype(values[i]));    \
+    }                                             \
+    PyDict_SetItemString(o,#name,v);              \
+    Py_DECREF(v);                                 \
+  }
+
+
+PyObject* pds_UxiConfig_get (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+     const Pds::Uxi::ConfigV1* cfg =
+      reinterpret_cast<const Pds::Uxi::ConfigV1*>(xtc->payload);
+
+    SetDictMember(width,false,false,false);
+    SetDictMember(height,false,false,false);
+    SetDictMember(numberOfFrames,false,false,false);
+    SetDictMember(numberOFBytesPerPixel,false,false,false);
+    SetDictMember(sensorType,false,false,false);
+    SetDictMemberArray(timeOn,uint32_t,PyLong_FromUnsignedLong);
+    SetDictMemberArray(timeOff,uint32_t,PyLong_FromUnsignedLong);
+    SetDictMemberArray(delay,uint32_t,PyLong_FromUnsignedLong);
+    { PyObject* v = PyList_New(Pds::Uxi::ConfigV1::NumberOfPots);
+      for (unsigned i=0; i<Pds::Uxi::ConfigV1::NumberOfPots; i++) {
+        PyObject* ro = cfg->potIsReadOnly(i) ? Py_True : Py_False;
+        Py_INCREF(o);
+        PyList_SetItem(v, i, ro);
+      }
+      PyDict_SetItemString(o,"readOnlyPots",v);
+      Py_DECREF(v);
+    }
+    SetDictMemberArray(pots,double,PyFloat_FromDouble);
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported UxiConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+#undef SetDictMember
+#undef SetDictMemberArray
+
+
+//  Retrieve configuration data from a Python Dictionary
+#define GetDictLong(name)                                         \
+  unsigned long name;                                             \
+  { PyObject* i = PyDict_GetItemString(o,#name);                  \
+    if (i) {                                                      \
+      if (PyLong_Check(i)) name = PyLong_AsUnsignedLong(i);       \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);            \
+      else name = cfg->name();                                    \
+    }                                                             \
+    else name = cfg->name(); }
+
+#define GetDictFloat(name)                              \
+  double name;                                          \
+  { PyObject* i = PyDict_GetItemString(o,#name);        \
+    if (i) {                                            \
+      if (PyFloat_Check(i)) name = PyFloat_AsDouble(i); \
+      else name = cfg->name();                          \
+    }                                                   \
+    else name = cfg->name(); }
+
+#define GetDictLongArray(name,maxlen)                             \
+  uint32_t name[maxlen];                                          \
+  { PyObject* l = PyDict_GetItemString(o,#name);                  \
+    if (l) {                                                      \
+      Py_ssize_t num = PyList_Size(l);                            \
+      for (unsigned i=0; i<(maxlen > num ? num : maxlen); i++) {  \
+        PyObject* n = PyList_GetItem(l,i);                        \
+        if (PyLong_Check(n)) name[i] = PyLong_AsUnsignedLong(n);  \
+        else if (PyInt_Check(n)) name[i] = PyInt_AsLong(n);       \
+        else name[i] = 0;                                         \
+      }                                                           \
+    }                                                             \
+    else {                                                        \
+      unsigned i=0;                                               \
+      ndarray<const uint32_t, 1> v = cfg->name();                 \
+      for (const uint32_t* val = v.begin(); val!=v.end(); val++)  \
+        name[i++] = *val;                                         \
+    }                                                             \
+  }
+
+#define GetDictFloatArray(name,maxlen)                            \
+  double name[maxlen];                                            \
+  { PyObject* l = PyDict_GetItemString(o,#name);                  \
+    if (l) {                                                      \
+      Py_ssize_t num = PyList_Size(l);                            \
+      for (unsigned i=0; i<(maxlen > num ? num : maxlen); i++) {  \
+        PyObject* n = PyList_GetItem(l,i);                        \
+        if (PyFloat_Check(n)) name[i] = PyFloat_AsDouble(n);      \
+        else name[i] = 0.0;                                       \
+      }                                                           \
+    }                                                             \
+    else {                                                        \
+      unsigned i=0;                                               \
+      ndarray<const double, 1> v = cfg->name();                   \
+      for (const double* val = v.begin(); val!=v.end(); val++)    \
+        name[i++] = *val;                                         \
+    }                                                             \
+  }
+
+PyObject* pds_UxiConfig_set    (PyObject*   self, PyObject* args)
+{
+  PyObject* o = 0;
+  if (PyArg_ParseTuple(args,"O",&o)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==1) {
+    const Pds::Uxi::ConfigV1* cfg =
+      reinterpret_cast<const Pds::Uxi::ConfigV1*>(xtc->payload);
+
+    GetDictLong(width);
+    GetDictLong(height);
+    GetDictLong(numberOfFrames);
+    GetDictLong(numberOFBytesPerPixel);
+    GetDictLong(sensorType);
+    GetDictLongArray(timeOn,Pds::Uxi::ConfigV1::NumberOfSides);
+    GetDictLongArray(timeOff,Pds::Uxi::ConfigV1::NumberOfSides);
+    GetDictLongArray(delay,Pds::Uxi::ConfigV1::NumberOfSides);
+    uint32_t readOnlyPots = 0;
+    { PyObject* l = PyDict_GetItemString(o,"readOnlyPots");
+      if (l) {
+        Py_ssize_t num = PyList_Size(l);
+        int maxlen = Pds::Uxi::ConfigV1::NumberOfPots;
+        for (unsigned i=0; i<(maxlen > num ? num : maxlen); i++) {
+          PyObject* n = PyList_GetItem(l,i);
+          if (PyObject_IsTrue(n)) {
+            readOnlyPots |= (1<<i);
+          }
+        }
+      } else readOnlyPots = cfg->readOnlyPots();
+    }
+    GetDictFloatArray(pots,Pds::Uxi::ConfigV1::NumberOfPots);
+    new(xtc->payload) Pds::Uxi::ConfigV1((uint32_t) width,
+                                         (uint32_t) height,
+                                         (uint32_t) numberOfFrames,
+                                         (uint32_t) numberOFBytesPerPixel,
+                                         (uint32_t) sensorType,
+                                         timeOn,
+                                         timeOff,
+                                         delay,
+                                         readOnlyPots,
+                                         pots);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+   else {
+    printf("set(): Unsupported UxiConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+#undef GetDictLong
+#undef GetDictFloat
+#undef GetDictLongArray
+#undef GetDictFloatArray

@@ -171,6 +171,9 @@ static PyObject* _new_xtc(Pds::TypeId& contains)
           case Pds::TypeId::Id_ZylaConfig:
             o = _PyObject_New(&pds_ZylaConfig_type);
             break;
+          case Pds::TypeId::Id_UxiConfig:
+            o = _PyObject_New(&pds_UxiConfig_type);
+            break;
           default:
             o = _PyObject_New(&pds_Xtc_type);
             break;
