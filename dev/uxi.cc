@@ -47,7 +47,7 @@ static void uxiUsage(const char* p)
          "    -p|--platform <platform>,<mod>,<chan>   platform number, EVR module, EVR channel\n"
          "    -u|--uniqueid <alias>                   set device alias\n"
          "    -P|--port     <portset>                 set the UXI detector server port set (default: 0)\n"
-         "    -H|--host     <host>                    set the UXI detector server host ip\n"
+         "    -H|--host     <host>                    set the UXI detector server host ip (default: 10.0.0.10)\n"
          "    -m|--max      <max_frames>              set the maximum number of frames to expect per event (default: 8)"
          "    -h|--help                               print this message and exit\n", p);
 }
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::Uxi, 0);
   char* uniqueid = (char *)NULL;
-  const char* default_host = "localhost";
+  const char* default_host = "10.0.0.10";
   char* hostname = (char *)NULL;
 
   int optionIndex  = 0;
