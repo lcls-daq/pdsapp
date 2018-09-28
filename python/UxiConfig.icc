@@ -60,6 +60,7 @@ PyObject* pds_UxiConfig_get (PyObject*   self, PyObject* args)
     SetDictMemberArray(timeOn,uint32_t,PyLong_FromUnsignedLong);
     SetDictMemberArray(timeOff,uint32_t,PyLong_FromUnsignedLong);
     SetDictMemberArray(delay,uint32_t,PyLong_FromUnsignedLong);
+    // Get the readonly status of the pots
     { PyObject* v = PyList_New(Pds::Uxi::ConfigV1::NumberOfPots);
       for (unsigned i=0; i<Pds::Uxi::ConfigV1::NumberOfPots; i++) {
         PyObject* ro = cfg->potIsReadOnly(i) ? Py_True : Py_False;
@@ -67,6 +68,16 @@ PyObject* pds_UxiConfig_get (PyObject*   self, PyObject* args)
         PyList_SetItem(v, i, ro);
       }
       PyDict_SetItemString(o,"readOnlyPots",v);
+      Py_DECREF(v);
+    }
+    // Get the tune status of the pots
+    { PyObject* v = PyList_New(Pds::Uxi::ConfigV1::NumberOfPots);
+      for (unsigned i=0; i<Pds::Uxi::ConfigV1::NumberOfPots; i++) {
+        PyObject* ro = cfg->potIsTuned(i) ? Py_True : Py_False;
+        Py_INCREF(o);
+        PyList_SetItem(v, i, ro);
+      }
+      PyDict_SetItemString(o,"tunedPots",v);
       Py_DECREF(v);
     }
     SetDictMemberArray(pots,double,PyFloat_FromDouble);
@@ -162,6 +173,7 @@ PyObject* pds_UxiConfig_set    (PyObject*   self, PyObject* args)
     GetDictLongArray(timeOff,Pds::Uxi::ConfigV1::NumberOfSides);
     GetDictLongArray(delay,Pds::Uxi::ConfigV1::NumberOfSides);
     uint32_t readOnlyPots = 0;
+    // Set the readonly pot bits
     { PyObject* l = PyDict_GetItemString(o,"readOnlyPots");
       if (l) {
         Py_ssize_t num = PyList_Size(l);
@@ -170,6 +182,19 @@ PyObject* pds_UxiConfig_set    (PyObject*   self, PyObject* args)
           PyObject* n = PyList_GetItem(l,i);
           if (PyObject_IsTrue(n)) {
             readOnlyPots |= (1<<i);
+          }
+        }
+      } else readOnlyPots = cfg->readOnlyPots();
+    }
+    // Set the tuned pot bits
+    { PyObject* l = PyDict_GetItemString(o,"tunedPots");
+      if (l) {
+        Py_ssize_t num = PyList_Size(l);
+        int maxlen = Pds::Uxi::ConfigV1::NumberOfPots;
+        for (unsigned i=0; i<(maxlen > num ? num : maxlen); i++) {
+          PyObject* n = PyList_GetItem(l,i);
+          if (PyObject_IsTrue(n)) {
+            readOnlyPots |= (1<<(i+Pds::Uxi::ConfigV1::NumberOfPots));
           }
         }
       } else readOnlyPots = cfg->readOnlyPots();

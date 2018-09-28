@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::Uxi, 0);
   char* uniqueid = (char *)NULL;
-  const char* default_host = "10.0.0.10";
+  const char* default_host = "localhost";
   char* hostname = (char *)NULL;
 
   int optionIndex  = 0;

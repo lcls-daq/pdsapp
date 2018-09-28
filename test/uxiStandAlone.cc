@@ -179,12 +179,13 @@ int main(int argc, char *argv[]) {
   printf("Detector config:\n");
 
   uint32_t npots;
-  double pot;
+  double pot, pot_rbv;
   if (drv.num_pots(&npots)) {
     printf(" Pots:\n");
     for (unsigned i=1;i<=npots;i++) {
       drv.get_pot(i, &pot);
-      printf("  %d: %g\n", i, pot);
+      drv.get_mon(i, &pot_rbv);
+      printf("  %d: set %g, rbv %g\n", i, pot, pot_rbv);
     }
   }
   unsigned ton_rbv, toff_rbv, tdel_rbv;

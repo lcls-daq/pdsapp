@@ -40,6 +40,7 @@ public:
   NumericInt<uint32_t>* _timeOffSideParam[UxiConfigNumberOfSides];
   NumericInt<uint32_t>* _delaySideParam[UxiConfigNumberOfSides];
   NumericFloat<double>* _potsParam[UxiConfigNumberOfPots];
+  CheckValue*           _tunePotsParam[UxiConfigNumberOfPots];
   CheckValue*           _roPotsParam[UxiConfigNumberOfPots];
   QtConcealer           _concealerExpert;
   QtConcealer           _concealerNonExpert;
@@ -113,6 +114,8 @@ Pds_ConfigDb::UxiConfig::Private_Data::Private_Data(bool expert_mode) :
   for (unsigned ipot=0; ipot<UxiConfigNumberOfPots; ipot++) {
     _potsParam[ipot] = new NumericFloat<double>(potNames[ipot], initialPotValues[ipot], 0.0, 5.0);
     pList.insert( _potsParam[ipot] );
+    _tunePotsParam[ipot] = new CheckValue("Tune", _readOnlyPots & (1<<(ipot+UxiConfigNumberOfPots)));
+    pList.insert( _tunePotsParam[ipot] );
     _roPotsParam[ipot] = new CheckValue("Read Only", _readOnlyPots & (1<<ipot));
     pList.insert( _roPotsParam[ipot] );
   }
@@ -127,6 +130,7 @@ Pds_ConfigDb::UxiConfig::Private_Data::~Private_Data()
   }
   for (unsigned ipot=0; ipot<UxiConfigNumberOfPots; ipot++) {
     if (_potsParam[ipot]) delete _potsParam[ipot];
+    if (_tunePotsParam[ipot]) delete _tunePotsParam[ipot];
     if (_roPotsParam[ipot]) delete _roPotsParam[ipot];
   }
 }
@@ -155,7 +159,8 @@ QLayout* Pds_ConfigDb::UxiConfig::Private_Data::initialize(QWidget* p)
     QGridLayout* pgrid = new QGridLayout;
     for (unsigned ipot=0; ipot<UxiConfigNumberOfPots; ipot++) {
       pgrid->addLayout(_concealerReadOnly[ipot].add(_potsParam[ipot]->initialize(p)), ipot, 0);
-      pgrid->addLayout(_concealerExpert.add(_roPotsParam[ipot]->initialize(p)), ipot, 1);
+      pgrid->addLayout(_concealerReadOnly[ipot].add(_tunePotsParam[ipot]->initialize(p)), ipot, 1);
+      pgrid->addLayout(_concealerExpert.add(_roPotsParam[ipot]->initialize(p)), ipot, 2);
     }
     r->addLayout(pgrid);
     r->setSpacing(5);
@@ -177,6 +182,7 @@ int Pds_ConfigDb::UxiConfig::Private_Data::pull(void* from) {
   ndarray<const double, 1> pot_data = tc.pots();
   for (unsigned ipot=0; ipot<UxiConfigNumberOfPots; ipot++) {
     _potsParam[ipot]->value = pot_data[ipot];
+    _tunePotsParam[ipot]->value = _readOnlyPots & (1<<(ipot+UxiConfigNumberOfPots));
     _roPotsParam[ipot]->value = _readOnlyPots & (1<<ipot);
     _concealerReadOnly[ipot].show(!_roPotsParam[ipot]->value || _expert_mode);
   }
@@ -206,6 +212,8 @@ int Pds_ConfigDb::UxiConfig::Private_Data::push(void* to) {
     _pots[ipot] = _roPotsParam[ipot]->value ? 0.0 : _potsParam[ipot]->value;
     if (_roPotsParam[ipot]->value)
       _readOnlyPots |= (1<<ipot);
+    else if (_tunePotsParam[ipot]->value)
+      _readOnlyPots |= (1<<(ipot+UxiConfigNumberOfPots));
   }
 
   for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
@@ -240,10 +248,11 @@ bool Pds_ConfigDb::UxiConfig::Private_Data::validate()
 {
   // Check to see if we are trying to write non-zero values to read only pots
   bool set_read_only = false;
+  bool tune_read_only = false;
   unsigned bad_pot = 0;
   double bad_value = 0.0;
   for (unsigned ipot=0; ipot<UxiConfigNumberOfPots; ipot++) {
-    if ((_roPotsParam[ipot]->value != 0.0) && (_potsParam[ipot]->value)) {
+    if ((_roPotsParam[ipot]->value) && (_potsParam[ipot]->value != 0.0)) {
       set_read_only = true;
       bad_pot = ipot;
       bad_value = _potsParam[ipot]->value;
@@ -253,6 +262,20 @@ bool Pds_ConfigDb::UxiConfig::Private_Data::validate()
 
   if (set_read_only) {
     QString msg = QString("Attempting to save the value %1 to the %2 potentiometer, but it is set to read only! Is it okay to ignore this value?").arg(bad_value).arg(potNames[bad_pot]);
+    return !QMessageBox::warning(0,"Warning!", msg, "Ignore", "Cancel", 0, 0, 1);
+  }
+
+  // Check to see if we trying to tune read only pots
+  for (unsigned ipot=0; ipot<UxiConfigNumberOfPots; ipot++) {
+    if ((_roPotsParam[ipot]->value) && (_tunePotsParam[ipot]->value)) {
+      tune_read_only = true;
+      bad_pot = ipot;
+      break;
+    }
+  }
+
+  if (tune_read_only) {
+    QString msg = QString("Attempting to tune the %1 potentiometer, but it is set to read only! Is it okay to ignore this?").arg(potNames[bad_pot]);
     return !QMessageBox::warning(0,"Warning!", msg, "Ignore", "Cancel", 0, 0, 1);
   }
 
