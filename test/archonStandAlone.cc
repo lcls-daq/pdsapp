@@ -16,21 +16,27 @@ static void showUsage(const char* p)
 {
   printf("Usage: %s [-v|--version] [-h|--help]\n"
          "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (msec)>]\n"
-         "[-C|--clear] -c|--config <config> -H|--host <host> [-P|--port <port>]\n"
+         "[-N|--nonexp <non-exposure time>] [-b|--vbin <binning>] [-l|--lines <lines>] [-m|--max <max>]\n"
+         "[-C|--clear] [-t|--trigger] -c|--config <config> -H|--host <host> [-P|--port <port>]\n"
          " Options:\n"
          "    -w|--write    <filename prefix>         output filename prefix\n"
          "    -n|--number   <number of images>        number of images to be captured (default: 1)\n"
          "    -e|--exposure <exposure time>           exposure time (msec) (default: 10000 msec)\n"
+         "    -N|--nonexp   <non-exposure time>       non-exposure time (mesc) to wait after exposure (default: 100 msec)\n"
+         "    -b|--vbin     <vbinning>                the vertical binning (default: 1)\n"
+         "    -l|--lines    <lines>                   the number of lines (default: 300)\n"
+         "    -m|--max      <max>                     the maximum number of pixel values to print for each frame (default: 0)\n"
          "    -P|--port     <port>                    set the Archon controller tcp port number (default: 4242)\n"
          "    -H|--host     <host>                    set the Archon controller host ip\n"
          "    -c|--config   <config>                  the path to an Archon configuration file to use\n"
          "    -C|--clear                              clear the CCD before acquiring each frame\n"
+         "    -t|--trigger  <trigger>                 use external trigger to acquire each frame\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char *argv[]) {
-  const char*         strOptions  = ":vhw:n:e:P:H:c:C";
+  const char*         strOptions  = ":vhw:n:e:N:b:l:m:P:H:c:Ct";
   const struct option loOptions[] =
   {
     {"version",     0, 0, 'v'},
@@ -38,18 +44,28 @@ int main(int argc, char *argv[]) {
     {"write",       1, 0, 'w'},
     {"number",      1, 0, 'n'},
     {"exposure",    1, 0, 'e'},
+    {"nonexp",      1, 0, 'N'},
+    {"vbin",        1, 0, 'b'},
+    {"lines",       1, 0, 'l'},
+    {"max",         1, 0, 'm'},
     {"port",        1, 0, 'P'},
     {"host",        1, 0, 'H'},
     {"config",      1, 0, 'c'},
     {"clear",       0, 0, 'C'},
+    {"trigger",     0, 0, 't'},
     {0,             0, 0,  0 }
   };
 
   unsigned port = 4242;
   unsigned num_images = 1;
   unsigned exposure_time = 10000; // 10 sec
+  unsigned non_exposure_time = 100;
+  unsigned vertical_binning = 1;
+  unsigned lines = 300;
+  unsigned max_display = 0;
   bool lUsage = false;
   bool use_clear = false;
+  bool use_trigger = false;
   char* filename = (char *)NULL;
   char* file_prefix = (char *)NULL;
   char* config = (char *)NULL;
@@ -77,6 +93,9 @@ int main(int argc, char *argv[]) {
       case 'e':
         exposure_time = strtoul(optarg, NULL, 0);
         break;
+      case 'N':
+        non_exposure_time = strtoul(optarg, NULL, 0);
+        break;
       case 'H':
         hostname = optarg;
         break;
@@ -88,6 +107,18 @@ int main(int argc, char *argv[]) {
         break;
       case 'C':
         use_clear = true;
+        break;
+      case 't':
+        use_trigger = true;
+        break;
+      case 'b':
+        vertical_binning = strtoul(optarg, NULL, 0);
+        break;
+      case 'l':
+        lines = strtoul(optarg, NULL, 0);
+        break;
+      case 'm':
+        max_display = strtoul(optarg, NULL, 0);
         break;
       case '?':
         if (optopt)
@@ -131,6 +162,7 @@ int main(int argc, char *argv[]) {
     const Pds::Archon::System& system = drv.system();
     const Pds::Archon::Status& status = drv.status();
     const Pds::Archon::BufferInfo& info = drv.buffer_info();
+    const Pds::Archon::Config& config = drv.config();
     if(drv.fetch_system()) {
       printf("Number of modules: %d\n", system.num_modules());
       printf("Backplane info:\n");
@@ -167,18 +199,35 @@ int main(int argc, char *argv[]) {
       }
     }
 
-
     if (drv.fetch_buffer_info()) {
       for(unsigned i=1; i<=info.nbuffers(); i++) {
         printf("%u - frame number %u, %lu\n", i, info.frame_num(i), info.timestamp(i));
       }
     }
 
-    drv.set_preframe_clear(use_clear);
+    drv.set_vertical_binning(vertical_binning);
+    drv.set_number_of_lines(lines);
+    drv.set_preframe_clear(use_clear ? lines : 0);
     drv.set_integration_time(exposure_time);
+    drv.set_non_integration_time(non_exposure_time);
+    drv.set_idle_clear();
+    drv.set_external_trigger(use_trigger);
+    //drv.set_frame_poll_interval(10);
+
+    unsigned pixels_per_line = config.pixels_per_line();
+    unsigned num_lines = config.linecount();
+    unsigned num_pixels = config.total_pixels();
+    unsigned btyes_per_pixel = config.bytes_per_pixel();
+    unsigned frame_size = config.frame_size();
+    unsigned sample_mode = config.samplemode();
+
+    printf("Expected from size of the frame is %u bytes (%u pixels with %u bytes per pixel)\n", frame_size, num_pixels, btyes_per_pixel);
+    printf("Expected frame shape is %ux%u pixels\n", pixels_per_line, num_lines);
 
     Pds::Archon::FrameMetaData frame_meta;
-    char* data = new char[info.size()];
+    char* data = new char[frame_size];
+    uint16_t* data16 = (uint16_t*) data;
+    uint32_t* data32 = (uint32_t*) data;
 
     if (!drv.start_acquisition(num_images)) {
       printf("Failed to start acquisition!\n");
@@ -189,6 +238,15 @@ int main(int argc, char *argv[]) {
       printf("waiting for image: %u/%u\n", i+1, num_images);
       if (drv.wait_frame(data, &frame_meta)) {
         printf("frame number, ts, size: %u %lu %ld\n", frame_meta.number, frame_meta.timestamp, frame_meta.size);
+        if (max_display > 0) {
+          for (unsigned j=0; j<(max_display>num_pixels ? num_pixels : max_display); j++) {
+            if (sample_mode)
+              printf(" %u", data32[j]);
+            else
+              printf(" %u", data16[j]);
+          }
+          printf("\n");
+        }
         if (file_prefix) {
           sprintf(filename, "%s_%u.raw", file_prefix, frame_meta.number);
           printf("writing image %u to file: %s\n", i+1, filename);
@@ -196,15 +254,13 @@ int main(int argc, char *argv[]) {
           fwrite(data, sizeof(char), frame_meta.size, f);
           fclose(f);
         }
-        //for (int i=0; i<100; i++) {
-        //    printf("%u ", data[i]);
-        //  }
-        //  printf("\n");
       }
     }
 
     delete[] data;
     if (filename) delete[] filename;
+
+    //drv.power_off();
 
   }
 

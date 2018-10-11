@@ -5,6 +5,7 @@
 
 #include "pdsapp/config/ParameterCount.hh"
 #include "pdsapp/config/PolyDialog.hh"
+#include "pdsapp/config/FilterDialog.hh"
 
 #include <vector>
 
@@ -20,6 +21,7 @@ class QCheckBox;
 
 namespace Pds_ConfigDb {
   class PolyDialog;
+  class FilterDialog;
 
   class Enums {
   public:
@@ -180,6 +182,33 @@ namespace Pds_ConfigDb {
     QLineEdit* _input;
     unsigned   _size;
     QLabel*    _display;
+  };
+
+  class TextFileParameter: public ParameterFile {
+  public:
+    TextFileParameter(const char* label, unsigned maxsize);
+    TextFileParameter(const char* label, unsigned maxsize, const char* filter);
+    ~TextFileParameter();
+
+    QLayout* initialize(QWidget*);
+    void     update();
+    void     flush ();
+    void     enable(bool);
+
+    void     mport(const QString&);
+    void     xport(const QString&) const;
+
+    void     set_value(const char* text);
+    unsigned length() const;
+  public:
+    char*          value;
+    unsigned       size;
+    const char*    _filter;
+    unsigned       _maxsize;
+    QLabel*        _display;
+    FilterDialog*  _dialog;
+    QPushButton*   _import;
+    QPushButton*   _export;
   };
 
   template <class T, int N>

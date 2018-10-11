@@ -1,19 +1,19 @@
-#ifndef ArchonConfig_hh
-#define ArchonConfig_hh
+#ifndef ArchonConfig_V1_hh
+#define ArchonConfig_V1_hh
 
 #include "pdsapp/config/Serializer.hh"
 
 namespace Pds_ConfigDb {
 
-  class ArchonConfig : public Serializer {
+  class ArchonConfig_V1 : public Serializer {
   public:
-    ArchonConfig(bool expert_mode=false);
-    ~ArchonConfig() {}
+    ArchonConfig_V1();
+    ~ArchonConfig_V1() {}
 
     int  readParameters (void* from);
     int  writeParameters(void* to);
     int  dataSize       () const;
-    bool validate();
+
   private:
     class Private_Data;
     Private_Data* _private_data;

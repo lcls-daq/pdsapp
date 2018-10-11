@@ -5,6 +5,7 @@
 #include <QtGui/QLineEdit>
 #include <QtGui/QFileDialog>
 #include <QtGui/QCheckBox>
+#include <QtGui/QPushButton>
 
 #include <string.h>
 
@@ -91,6 +92,126 @@ PolyDialog::PolyDialog(ParameterFile& p) :
   _p(p),
   _d(new QFileDialog)
 {
+}
+
+FilterDialog::FilterDialog(ParameterFile& p) :
+  _p(p),
+  _d(new QFileDialog)
+{
+}
+
+FilterDialog::FilterDialog(ParameterFile& p, const QString& filter, const QString& caption, const QString& directory) :
+  _p(p),
+  _d(new QFileDialog(0, caption, directory, filter))
+{
+}
+
+TextFileParameter::TextFileParameter(const char* label, unsigned maxsize) :
+  ParameterFile(label),
+  size(0),
+  _filter(0),
+  _maxsize(maxsize)
+{
+  value = new char[_maxsize];
+}
+
+TextFileParameter::TextFileParameter(const char* label, unsigned maxsize, const char* filter) :
+  ParameterFile(label),
+  size(0),
+  _filter(filter),
+  _maxsize(maxsize)
+{
+  value = new char[_maxsize];
+}
+
+TextFileParameter::~TextFileParameter()
+{
+  delete _dialog;
+  delete[] value;
+}
+
+QLayout* TextFileParameter::initialize(QWidget*)
+{
+  QGridLayout* l = new QGridLayout;
+  l->addWidget(_display = new QLabel(QString("%1 (%2)")
+             .arg(_label)
+             .arg(size)),
+         0,0,1,2,Qt::AlignHCenter);
+  l->addWidget(_import = new QPushButton("Import"),1,0);
+  l->addWidget(_export = new QPushButton("Export"),1,1);
+
+  if (_filter)
+    _dialog = new FilterDialog(*this, _filter);
+  else
+    _dialog = new FilterDialog(*this);
+
+  QObject::connect(_import, SIGNAL(clicked()), _dialog, SLOT(mport()));
+  QObject::connect(_export, SIGNAL(clicked()), _dialog, SLOT(xport()));
+
+  return l;
+}
+
+void TextFileParameter::update() {}
+
+void TextFileParameter::flush()
+{
+  _display->setText(QString("%1 (%2)")
+                    .arg(_label)
+                    .arg(size));
+}
+
+void TextFileParameter::enable(bool v)
+{
+  _import->setEnabled(v);
+  _export->setEnabled(v);
+}
+
+void TextFileParameter::mport(const QString& fname)
+{
+  FILE* f = fopen(qPrintable(fname), "r");
+  if (f) {
+    ssize_t ret = 0;
+    size_t bytes_read = 0;
+    do {
+      bytes_read += (unsigned) ret;
+      ret = ::fread(value+bytes_read, sizeof(char), _maxsize-bytes_read, f);
+    } while(ret > 0);
+
+    if (ret < 0) {
+      value[0] = 0;
+      size = 0;
+    } else {
+      size = bytes_read;
+      if (size < _maxsize) {
+        value[size] = 0;
+      } else {
+        value[_maxsize - 1] = 0;
+      }
+    }
+
+    _display->setText(QString("%1 (%2)")
+                      .arg(_label)
+                      .arg(size));
+  }
+}
+
+void TextFileParameter::xport(const QString& fname) const
+{
+  FILE* f = fopen(qPrintable(fname), "w");
+  if (f) {
+    ::fwrite(value, sizeof(char), size, f);
+  }
+}
+
+void TextFileParameter::set_value(const char* text)
+{
+  strncpy(value, text, _maxsize);
+  size = strlen(value);
+}
+
+unsigned TextFileParameter::length() const
+{
+  return size + 1;
 }
 
 CheckValue::CheckValue(const char* label,

@@ -73,6 +73,7 @@
 #include "pdsapp/config/TimeToolConfig_V1.hh"
 #include "pdsapp/config/Andor3dConfig.hh"
 #include "pdsapp/config/ArchonConfig.hh"
+#include "pdsapp/config/ArchonConfig_V1.hh"
 #include "pdsapp/config/JungfrauConfig.hh"
 #include "pdsapp/config/JungfrauConfig_V1.hh"
 #include "pdsapp/config/JungfrauConfig_V2.hh"
@@ -224,6 +225,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_AndorConfig,1),  new AndorConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_JungfrauConfig,1), new JungfrauConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_JungfrauConfig,2), new JungfrauConfig_V2);
+  enroll(Pds::TypeId(Pds::TypeId::Id_ArchonConfig,1)  , new ArchonConfig_V1);
   //  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
 
   if (Parameter::readFromData())
