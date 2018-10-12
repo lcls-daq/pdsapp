@@ -1,0 +1,29 @@
+template<class T>
+static void PyDict_Set2dArray(PyObject* oe, const char* name, const ndarray<T,2>& array)
+{
+  PyObject* rows = PyList_New(array.shape()[0]);
+  for(unsigned i=0; i<array.shape()[0]; i++) {
+    PyObject* row = PyList_New(array.shape()[1]);
+    for(unsigned j=0; j<array.shape()[1]; j++)
+      PyList_SetItem(row,j,PyLong_FromLong(array(i,j)));
+    PyList_SetItem(rows,i,row);
+  }
+  PyDict_SetItemString(oe, name, rows);
+}
+
+template<class T>
+static void PyDict_Get2dArray(PyObject* oe, const char* name, T* p)
+{
+  PyObject* rows = PyDict_GetItemString(oe, name);
+
+  unsigned strides[2];
+  strides[0] = PyList_Size(rows);
+  strides[1] = PyList_Size( PyList_GetItem(rows,0) );
+  ndarray<T,2> array(p, strides);
+
+  for(unsigned i=0; i<array.shape()[0]; i++) {
+    PyObject* row = PyList_GetItem(rows, i);
+    for(unsigned j=0; j<array.shape()[1]; j++)
+      array(i,j) = PyLong_AsLong(PyList_GetItem(row,j));
+  }
+}

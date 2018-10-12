@@ -3,6 +3,7 @@
 #include "pdsapp/config/ParameterSet.hh"
 #include "pdsapp/config/BitCount.hh"
 #include "pdsapp/config/Epix10kaCopyAsicDialog.hh"
+#include "pdsapp/config/Epix10kaASICdata.hh"
 #include "pdsapp/config/Epix10kaPixelMap.hh"
 #include "pdsapp/config/Epix10kaCalibMap.hh"
 #include "ndarray/ndarray.h"
@@ -34,58 +35,6 @@ namespace Pds_ConfigDb {
     bool connect(ParameterSet&) { return false; }
     unsigned count() { return mycount; }
     unsigned mycount;
-  };
-
-  class Epix10kaASICdata : public Epix10kaCopyTarget,
-                       public Parameter {
-  public:
-    Epix10kaASICdata();
-    ~Epix10kaASICdata() {};
-  public:
-    void copy(const Epix10kaCopyTarget& s) {
-      const Epix10kaASICdata& src = static_cast<const Epix10kaASICdata&>(s);
-      for(unsigned i=0; i<Epix10kaASIC_ConfigShadow::NumberOfRegisters; i++) {
-        if (Epix10kaASIC_ConfigShadow::doNotCopy(Epix10kaASIC_ConfigShadow::Registers(i)) == Epix10kaASIC_ConfigShadow::DoCopy) {
-          _reg[i]->value = src._reg[i]->value;
-        }
-        else {
-        	printf("Epix10kaASICdata::copy did not copy %s\n", Epix10kaASIC_ConfigShadow::name(Epix10kaASIC_ConfigShadow::Registers(i)));
-        }
-      }
-    }
-  public:
-    QLayout* initialize(QWidget*) {
-      QVBoxLayout* l = new QVBoxLayout;
-      { QGridLayout* layout = new QGridLayout;
-        unsigned mod = ( Epix10kaASIC_ConfigShadow::NumberOfRegisters + 2) / 3;
-        for(unsigned i=0; i<Epix10kaASIC_ConfigShadow::NumberOfRegisters; i++)
-          layout->addLayout(_reg[i]->initialize(0), i%mod, i/mod);
-        l->addLayout(layout);
-      }
-
-      for(unsigned i=0; i<Epix10kaASIC_ConfigShadow::NumberOfRegisters; i++)
-        _reg[i]->enable((!Epix10kaASIC_ConfigShadow::readOnly(Epix10kaASIC_ConfigShadow::Registers(i))) ||
-            (Epix10kaASIC_ConfigShadow::readOnly(Epix10kaASIC_ConfigShadow::Registers(i))==Epix10kaASIC_ConfigShadow::WriteOnly));
-      return l;
-    }
-    void update() {
-      for(unsigned i=0; i<Epix10kaASIC_ConfigShadow::NumberOfRegisters; i++)
-        _reg[i]->update();
-    }
-    void flush () {
-      for(unsigned i=0; i<Epix10kaASIC_ConfigShadow::NumberOfRegisters; i++)
-        _reg[i]->flush();
-    }
-    void enable(bool v) {
-      for(unsigned i=0; i<Epix10kaASIC_ConfigShadow::NumberOfRegisters; i++)
-        _reg[i]->enable(v && ((!Epix10kaASIC_ConfigShadow::readOnly(Epix10kaASIC_ConfigShadow::Registers(i))) ||
-            (Epix10kaASIC_ConfigShadow::readOnly(Epix10kaASIC_ConfigShadow::Registers(i))==Epix10kaASIC_ConfigShadow::WriteOnly)));
-    }
-  public:
-    int pull(const Epix10kaASIC_ConfigShadow&);
-    int push(void*);
-  public:
-    NumericInt<uint32_t>*       _reg[Epix10kaASIC_ConfigShadow::NumberOfRegisters];
   };
 
   static std::vector<Epix10kaCopyTarget*> targets(Epix10kaASICdata* a)
@@ -333,34 +282,6 @@ namespace Pds_ConfigDb {
 
 using namespace Pds_ConfigDb;
 
-Epix10kaASICdata::Epix10kaASICdata() {
-  for (unsigned i=0; i<Epix10kaASIC_ConfigShadow::NumberOfRegisters; i++){
-    _reg[i] = new NumericInt<uint32_t>(
-                                       Epix10kaASIC_ConfigShadow::name((Epix10kaASIC_ConfigShadow::Registers) i),
-                                       Epix10kaASIC_ConfigShadow::defaultValue((Epix10kaASIC_ConfigShadow::Registers) i),
-                                       Epix10kaASIC_ConfigShadow::rangeLow((Epix10kaASIC_ConfigShadow::Registers) i),
-                                       Epix10kaASIC_ConfigShadow::rangeHigh((Epix10kaASIC_ConfigShadow::Registers) i),
-                                       Hex
-                                       );
-  }
-}
-
-int Epix10kaASICdata::pull(const Epix10kaASIC_ConfigShadow& epixASIC_ConfigShadow) { // pull "from xtc"
-  for (uint32_t i=0; i<Epix10kaASIC_ConfigShadow::NumberOfRegisters; i++) {
-    _reg[i]->value = epixASIC_ConfigShadow.get((Epix10kaASIC_ConfigShadow::Registers) i);
-  }
-  return true;
-}
-
-int Epix10kaASICdata::push(void* to) {
-  Epix10kaASIC_ConfigShadow& epixASIC_ConfigShadow = *new(to) Epix10kaASIC_ConfigShadow(true);
-  for (uint32_t i=0; i<Epix10kaASIC_ConfigShadow::NumberOfRegisters; i++) {
-    epixASIC_ConfigShadow.set((Epix10kaASIC_ConfigShadow::Registers) i, _reg[i]->value);
-  }
-  
-  return sizeof(Epix10kaASIC_ConfigShadow);
-}
-
 Epix10kaConfig::Epix10kaConfig(bool expert) :
   Serializer("Epix10ka_Config"),
   _private(new PrivateData(expert))
@@ -386,4 +307,3 @@ int Epix10kaConfig::dataSize() const {
   return _private->dataSize();
 }
 
-#include "Parameters.icc"

@@ -317,4 +317,4 @@ int GenericEpix10kConfig::dataSize() const {
 }
 
 
-#include "Parameters.icc"
+

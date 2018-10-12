@@ -26,8 +26,8 @@ namespace Pds_ConfigDb {
       Epix10kaCalibDisplay(ndarray<uint8_t, 2>& m) : _map(m)
     {
         setFrameStyle(QFrame::NoFrame);
-        _rows = Epix10kaConfigShadow::CalibrationRowCountPerAsic * Epix10kaConfigShadow::ASICsPerCol / 2;
-        _cols = Epix10kaConfigShadow::ColsPerAsic * Epix10kaConfigShadow::ASICsPerRow;
+        _rows = m.shape()[0]; // Epix10kaConfigShadow::CalibrationRowCountPerAsic * Epix10kaConfigShadow::ASICsPerCol / 2;
+        _cols = m.shape()[1]; // Epix10kaConfigShadow::ColsPerAsic * Epix10kaConfigShadow::ASICsPerRow;
         pixmap = new QPixmap(_cols, _rows);
     }
 
@@ -127,7 +127,7 @@ namespace Pds_ConfigDb {
   Epix10kaCalibMapDialog::Epix10kaCalibMapDialog(ndarray<uint8_t, 2>& m, QWidget *parent)
     : QDialog(parent), _map(m), _display(new Epix10kaCalibDisplay(_map))
   {
-    char foo[80];
+    char foo[80]; 
     clearButton  =  new QPushButton(tr("&Clear"));
     exportButton =  new QPushButton(tr("&Export Text File for Calib/Test Map"));
     importButton =  new QPushButton(tr("&Import Text File for Calib/Test Map"));
@@ -171,31 +171,26 @@ namespace Pds_ConfigDb {
 
   void Epix10kaCalibMapDialog::inQTthreadPlease()
   {
-    printf("inQTthreadPlease()\n");
     _display->update_map();
   }
 
   void Epix10kaCalibMapDialog::clearClicked()
   {
-    printf("clearClicked()\n");
     _display->clear();
   }
 
   void Epix10kaCalibMapDialog::exportClicked()
   {
-    printf("exportClicked()\n");
     _display->export_();
   }
 
   void Epix10kaCalibMapDialog::importClicked()
   {
-    printf("importClicked()\n");
     _display->import_();
   }
 
   void Epix10kaCalibMapDialog::show_map()
   {
-    printf("show_map()\n");
     _display->update_map();
   }
 

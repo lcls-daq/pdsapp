@@ -1,0 +1,328 @@
+//
+//  pds_Epix10ka2MConfig class methods
+//
+static PyObject* pds_Epix10ka2MConfig_get    (PyObject*   self, PyObject* args);
+static PyObject* pds_Epix10ka2MConfig_set    (PyObject*   self, PyObject* args);
+static unsigned  pds_Epix10ka2MConfig_size   (PyObject*   self);
+
+static PyMethodDef pds_Epix10ka2MConfig_methods[] = {
+  {"get"   , (PyCFunction)pds_Epix10ka2MConfig_get   , METH_VARARGS|METH_KEYWORDS, "Output the configuration"},
+  {"set"   , (PyCFunction)pds_Epix10ka2MConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
+  {NULL},
+};
+
+DefineXtcType(Epix10ka2MConfig) ;
+
+  
+#include "pdsdata/psddl/epix.ddl.h"
+#include "pds/config/EpixConfigType.hh"
+#include <new>
+
+using namespace Pds::Epix;
+
+#define ADD_MEMBER(d,cfg,s) { PyDict_SetItemString(d, #s, PyLong_FromLong(cfg.s())); }
+
+#if 1
+#define GET_MEMBER(d,s) PyLong_AsLong(PyDict_GetItemString(d,#s))
+#else
+static unsigned get_member(PyObject* d, const char* s)
+{
+   PyObject* o = PyDict_GetItemString(d,s);
+   if (!o) {
+    printf("Error in PyDictGetItemString(%s)\n",s);
+    return 0;
+   }
+   return PyLong_AsLong(o);
+}    
+#define GET_MEMBER(d,s) get_member(d,#s)
+#endif
+
+//
+//  Return a dictionary of configuration data
+//
+
+PyObject* pds_Epix10ka2MConfig_get    (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+ 
+  int icycle;
+  if (PyArg_ParseTuple(args,"I",&icycle)==0)
+    icycle = 0;
+
+  unsigned isize = pds_Epix10ka2MConfig_size(self);
+  unsigned usize = isize*(icycle+1);
+
+  if (xtc->extent < usize)
+    return NULL;
+
+  char* ubegin = xtc->payload + isize*icycle;
+
+  if(xtc->contains.version()==1) {
+    const Config10ka2MV1* cfg = 
+      reinterpret_cast<const Config10ka2MV1*>(ubegin);
+
+    PyObject* o = PyDict_New();
+    { const PgpEvrConfig& pevr = cfg->evr();
+      PyObject* evr = PyDict_New();
+      ADD_MEMBER(evr, pevr, enable);
+      ADD_MEMBER(evr, pevr, runCode);
+      ADD_MEMBER(evr, pevr, daqCode);
+      ADD_MEMBER(evr, pevr, runDelay);
+      PyDict_SetItemString(o,"evr",evr); }
+
+    { PyObject* quads = PyList_New(4);
+      for(unsigned q=0; q<4; q++) {
+        const Config10kaQuadV1& pquad = cfg->quad(q);
+        PyObject* quad = PyDict_New();
+        ADD_MEMBER(quad, pquad, baseClockFrequency);
+        ADD_MEMBER(quad, pquad, enableAutomaticRunTrigger);
+        ADD_MEMBER(quad, pquad, numberOf125MhzTicksPerRunTrigger);
+        ADD_MEMBER(quad, pquad, dcdcEn);
+        ADD_MEMBER(quad, pquad, asicAnaEn);
+        ADD_MEMBER(quad, pquad, asicDigEn);
+        ADD_MEMBER(quad, pquad, ddrVttEn);
+        ADD_MEMBER(quad, pquad, trigSrcSel);
+        ADD_MEMBER(quad, pquad, acqToAsicR0Delay);
+        ADD_MEMBER(quad, pquad, asicR0Width);
+        ADD_MEMBER(quad, pquad, asicR0ToAsicAcq);
+        ADD_MEMBER(quad, pquad, asicAcqWidth);
+        ADD_MEMBER(quad, pquad, asicAcqLToPPmatL);
+        ADD_MEMBER(quad, pquad, asicPPmatToReadout);
+        ADD_MEMBER(quad, pquad, asicRoClkHalfT);
+        ADD_MEMBER(quad, pquad, asicAcqForce);
+        ADD_MEMBER(quad, pquad, asicAcqValue);
+        ADD_MEMBER(quad, pquad, asicR0Force);
+        ADD_MEMBER(quad, pquad, asicR0Value);
+        ADD_MEMBER(quad, pquad, asicPPmatForce);
+        ADD_MEMBER(quad, pquad, asicPPmatValue);
+        ADD_MEMBER(quad, pquad, asicSyncForce);
+        ADD_MEMBER(quad, pquad, asicSyncValue);
+        ADD_MEMBER(quad, pquad, asicRoClkForce);
+        ADD_MEMBER(quad, pquad, asicRoClkValue);
+        ADD_MEMBER(quad, pquad, adcPipelineDelay);
+        ADD_MEMBER(quad, pquad, testData);
+        ADD_MEMBER(quad, pquad, scopeEnable);
+        ADD_MEMBER(quad, pquad, scopeTrigEdge);
+        ADD_MEMBER(quad, pquad, scopeTrigChan);
+        ADD_MEMBER(quad, pquad, scopeTrigMode);
+        ADD_MEMBER(quad, pquad, scopeADCThreshold);
+        ADD_MEMBER(quad, pquad, scopeTrigHoldoff);
+        ADD_MEMBER(quad, pquad, scopeTrigOffset);
+        ADD_MEMBER(quad, pquad, scopeTraceLength);
+        ADD_MEMBER(quad, pquad, scopeADCsamplesToSkip);
+        ADD_MEMBER(quad, pquad, scopeChanAwaveformSelect);
+        ADD_MEMBER(quad, pquad, scopeChanBwaveformSelect);
+        ADD_MEMBER(quad, pquad, scopeTrigDelay);
+
+        PyObject* adc = PyList_New(10);
+        { for(unsigned a=0; a<10; a++) {
+            const Ad9249Config& padc = pquad.adc(a);
+            PyObject* oa = PyDict_New();
+            ADD_MEMBER(oa, padc, chipId);
+            ADD_MEMBER(oa, padc, devIndexMask);
+            ADD_MEMBER(oa, padc, devIndexMaskDcoFco);
+            ADD_MEMBER(oa, padc, extPwdnMode);
+            ADD_MEMBER(oa, padc, intPwdnMode);
+            ADD_MEMBER(oa, padc, chopMode);
+            ADD_MEMBER(oa, padc, dutyCycleStab);
+            ADD_MEMBER(oa, padc, outputInvert);
+            ADD_MEMBER(oa, padc, outputFormat);
+            ADD_MEMBER(oa, padc, clockDivide);
+            ADD_MEMBER(oa, padc, userTestMode);
+            ADD_MEMBER(oa, padc, outputTestMode);
+            ADD_MEMBER(oa, padc, offsetAdjust);
+            { PyObject* cd = PyList_New(8);
+              for(unsigned c=0; c<8; c++)
+                PyList_SetItem(cd, c, PyLong_FromLong(padc.channelDelay()[c]));
+              PyDict_SetItemString(oa, "channelDelay", cd); }
+            ADD_MEMBER(oa, padc, frameDelay); 
+            PyList_SetItem(adc, a, oa);
+          }
+          PyDict_SetItemString(quad, "adc", adc);
+        }
+        ADD_MEMBER(quad, pquad, testChannel);
+        ADD_MEMBER(quad, pquad, testDataMask);
+        ADD_MEMBER(quad, pquad, testPattern);
+        ADD_MEMBER(quad, pquad, testSamples);
+        ADD_MEMBER(quad, pquad, testTimeout);
+        ADD_MEMBER(quad, pquad, testRequest);
+        PyList_SetItem(quads, q, quad);
+      }
+      PyDict_SetItemString(o, "quads", quads);
+    }
+
+    { PyObject* elems = PyList_New(16);
+      for(unsigned e=0; e<16; e++) {
+        const Config10ka& elem = cfg->elemCfg(e);
+        PyObject* oe = PyDict_New();
+        ADD_MEMBER(oe, elem, carrierId0); 
+        ADD_MEMBER(oe, elem, carrierId1); 
+        ADD_MEMBER(oe, elem, asicMask); 
+
+        { PyObject* l = PyList_New(4);
+          for(unsigned i=0; i<4; i++)
+            PyList_SetItem(l,i,get_asic(&elem.asics(i)));
+          PyDict_SetItemString(oe,"asics",l); }
+        
+        PyDict_Set2dArray<const uint16_t>(oe, "asicPixelConfigArray", elem.asicPixelConfigArray());
+
+        PyDict_Set2dArray<const uint8_t >(oe, "calibPixelConfigArray", elem.calibPixelConfigArray());
+        PyList_SetItem(elems, e, oe);
+      }
+      PyDict_SetItemString(o, "elemCfg", elems);
+    }
+    
+    return o;
+  }
+
+  //  Throw an exception
+  return NULL;
+}
+
+//
+//  Retrieve configuration data from a Python Dictionary
+//
+PyObject* pds_Epix10ka2MConfig_set    (PyObject*   self, PyObject* args)
+{
+  PyObject* o = 0;
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"O|I",&o,&icycle)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+      
+  unsigned isize = Config10ka2MV1::_sizeof();
+  unsigned usize = isize*(icycle+1);
+
+  if (xtc->extent < usize) {
+    char* p = new char[usize];
+    memcpy(p, xtc->payload, xtc->extent);
+    delete[] xtc->payload;
+    xtc->payload = p;
+    xtc->extent  = usize;
+  }
+
+  char* ubegin = xtc->payload + icycle*isize;
+
+  if (xtc->contains.version()==1) {
+    Config10ka2MV1* cfg = reinterpret_cast<Config10ka2MV1*>(ubegin);
+    
+    { PyObject* evr = PyDict_GetItemString(o, "evr");
+      *new (reinterpret_cast<void*>(const_cast<PgpEvrConfig*>(&cfg->evr())))
+        PgpEvrConfig(GET_MEMBER(evr,enable),
+                     GET_MEMBER(evr,runCode),
+                     GET_MEMBER(evr,daqCode),
+                     GET_MEMBER(evr,runDelay)); }
+
+    for(unsigned q=0; q<4; q++) {
+      const Config10kaQuadV1* pquad = &cfg->quad(q);
+      PyObject* quad = PyList_GetItem(PyDict_GetItemString(o, "quads"), q);
+      for(unsigned a=0; a<10; a++) {
+        PyObject* adc = PyList_GetItem(PyDict_GetItemString(quad, "adc"), a);
+        uint32_t* channelDelay = new (const_cast<uint32_t*>(pquad->adc(a).channelDelay().data())) uint32_t[8];
+        { PyObject* cd  = PyDict_GetItemString(adc, "channelDelay");
+          for(unsigned d=0; d<8; d++)
+            channelDelay[d] = PyLong_AsLong(PyList_GetItem(cd,d)); }
+        *new (reinterpret_cast<void*>(const_cast<Ad9249Config*>(&pquad->adc(a))))
+           Ad9249Config(GET_MEMBER(adc,chipId),
+                        GET_MEMBER(adc,devIndexMask),
+                        GET_MEMBER(adc,devIndexMaskDcoFco),
+                        GET_MEMBER(adc,extPwdnMode),
+                        GET_MEMBER(adc,intPwdnMode),
+                        GET_MEMBER(adc,chopMode),
+                        GET_MEMBER(adc,dutyCycleStab),
+                        GET_MEMBER(adc,outputInvert),
+                        GET_MEMBER(adc,outputFormat),
+                        GET_MEMBER(adc,clockDivide),
+                        GET_MEMBER(adc,userTestMode),
+                        GET_MEMBER(adc,outputTestMode),
+                        GET_MEMBER(adc,offsetAdjust),
+                        0,
+                        GET_MEMBER(adc,frameDelay));
+      }
+      *new (reinterpret_cast<void*>(const_cast<Config10kaQuadV1*>(pquad)))
+        Config10kaQuadV1(GET_MEMBER(quad,baseClockFrequency),
+                         GET_MEMBER(quad,enableAutomaticRunTrigger),
+                         GET_MEMBER(quad,numberOf125MhzTicksPerRunTrigger),
+                         GET_MEMBER(quad,dcdcEn),
+                         GET_MEMBER(quad,asicAnaEn),
+                         GET_MEMBER(quad,asicDigEn),
+                         GET_MEMBER(quad,ddrVttEn),
+                         GET_MEMBER(quad,trigSrcSel),
+                         GET_MEMBER(quad,acqToAsicR0Delay),
+                         GET_MEMBER(quad,asicR0Width),
+                         GET_MEMBER(quad,asicR0ToAsicAcq),
+                         GET_MEMBER(quad,asicAcqWidth),
+                         GET_MEMBER(quad,asicAcqLToPPmatL),
+                         GET_MEMBER(quad,asicPPmatToReadout),
+                         GET_MEMBER(quad,asicRoClkHalfT),
+                         GET_MEMBER(quad,asicAcqForce),
+                         GET_MEMBER(quad,asicR0Force),
+                         GET_MEMBER(quad,asicPPmatForce),
+                         GET_MEMBER(quad,asicRoClkForce),
+                         GET_MEMBER(quad,asicSyncForce),
+                         GET_MEMBER(quad,asicAcqValue),
+                         GET_MEMBER(quad,asicR0Value),
+                         GET_MEMBER(quad,asicPPmatValue),
+                         GET_MEMBER(quad,asicSyncValue),
+                         GET_MEMBER(quad,asicRoClkValue),
+                         GET_MEMBER(quad,adcPipelineDelay),
+                         GET_MEMBER(quad,testData),
+                         GET_MEMBER(quad,scopeEnable),
+                         GET_MEMBER(quad,scopeTrigEdge),
+                         GET_MEMBER(quad,scopeTrigChan),
+                         GET_MEMBER(quad,scopeTrigMode),
+                         GET_MEMBER(quad,scopeADCThreshold),
+                         GET_MEMBER(quad,scopeTrigHoldoff),
+                         GET_MEMBER(quad,scopeTrigOffset),
+                         GET_MEMBER(quad,scopeTraceLength),
+                         GET_MEMBER(quad,scopeADCsamplesToSkip),
+                         GET_MEMBER(quad,scopeChanAwaveformSelect),
+                         GET_MEMBER(quad,scopeChanBwaveformSelect),
+                         GET_MEMBER(quad,scopeTrigDelay),
+                         (const Ad9249Config*)0,
+                         GET_MEMBER(quad,testChannel),
+                         GET_MEMBER(quad,testDataMask),
+                         GET_MEMBER(quad,testPattern),
+                         GET_MEMBER(quad,testSamples),
+                         GET_MEMBER(quad,testTimeout),
+                         GET_MEMBER(quad,testRequest));
+    }
+    for(unsigned e=0; e<16; e++) {
+      const Config10ka* pelem = &cfg->elemCfg(e);
+      PyObject* elem = PyList_GetItem(PyDict_GetItemString(o, "elemCfg"), e);
+      for(unsigned a=0; a<4; a++) {
+        Asic10kaConfigV1& asic = const_cast<Asic10kaConfigV1&>(pelem->asics(a));
+        set_asic(&asic,PyList_GetItem(PyDict_GetItemString(elem,"asics"),a));
+      }
+      PyDict_Get2dArray(elem, "asicPixelConfigArray", const_cast<uint16_t*>(pelem->asicPixelConfigArray().data()));
+      PyDict_Get2dArray(elem, "calibPixelConfigArray", const_cast<uint8_t*>(pelem->calibPixelConfigArray().data()));
+      *new (reinterpret_cast<void*>(const_cast<Config10ka*>(pelem)))
+        Config10ka(GET_MEMBER(elem,carrierId0),
+                   GET_MEMBER(elem,carrierId1),
+                   GET_MEMBER(elem,asicMask), 
+                   0, 0, 0);
+    }
+  }
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+#undef GET_MEMBER
+#undef ADD_MEMBER
+
+unsigned pds_Epix10ka2MConfig_size(PyObject* self)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.id() == Pds::TypeId::Id_Epix10ka2MConfig) {
+    switch(xtc->contains.version()) {
+      case 1:  return reinterpret_cast<Pds::Epix::Config10ka2MV1*>(xtc->payload)->_sizeof();
+     default: break;
+    }
+  }
+
+  return 0;
+}
+
+

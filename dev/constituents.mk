@@ -9,6 +9,7 @@ CPPFLAGS += -fno-strict-aliasing
 tgtnames := evr evrstandalone evrsnoop
 tgtnames += epicsArch bld cspad cspad2x2
 tgtnames += imp pnccd epix epixsampler epix10k epix100a epix10ka genericpgp
+tgtnames += epix10ka2m
 tgtnames += simcam
 tgtnames += ipimb lusidiag
 tgtnames += rayonix udpcam
@@ -94,6 +95,15 @@ tgtlibs_epix10ka += pds/eventcodetools pds/epicstools epics/ca epics/Com
 tgtslib_epix10ka := $(commonslib)
 tgtincs_epix10ka := pdsdata/include ndarray/include boost/include
 tgtincs_epix10ka += epics/include epics/include/os/Linux
+
+tgtsrcs_epix10ka2m := epix10ka2m.cc
+tgtlibs_epix10ka2m := $(commonlibs) pds/epix10ka2m pds/pgp pds/configdata
+tgtlibs_epix10ka2m += evgr/evr evgr/evg
+tgtlibs_epix10ka2m += pds/evgr
+tgtlibs_epix10ka2m += pds/eventcodetools pds/epicstools epics/ca epics/Com
+tgtslib_epix10ka2m := $(commonslib)
+tgtincs_epix10ka2m := pdsdata/include ndarray/include boost/include
+tgtincs_epix10ka2m += epics/include epics/include/os/Linux
 
 tgtsrcs_genericpgp := genericpgp.cc
 tgtlibs_genericpgp := $(commonlibs) pds/genericpgp pds/pgp pds/configdata

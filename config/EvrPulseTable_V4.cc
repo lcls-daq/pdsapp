@@ -559,4 +559,4 @@ void EvrPulseTable_V4Q::update_terminator(int i) { _table.update_terminator(i); 
 void EvrPulseTable_V4Q::update_output    (int i) { _table.update_output(i); }
 void EvrPulseTable_V4Q::update_eventcode ()      { _table.update_eventcode(); }
 
-#include "Parameters.icc"
+

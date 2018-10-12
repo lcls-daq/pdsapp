@@ -348,4 +348,3 @@ void Epix10kConfigP::pixel2bits() {
          _g ?"true":"false",_ga ?"true":"false");
 }
 
-#include "Parameters.icc"

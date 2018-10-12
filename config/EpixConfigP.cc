@@ -314,4 +314,3 @@ int EpixConfigP::dataSize() const {
   return size;
 }
 
-#include "Parameters.icc"

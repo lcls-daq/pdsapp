@@ -352,4 +352,3 @@ namespace Pds_ConfigDb {
   } // namespace V1
 } //namespace Pds_ConfigDb
 
-#include "Parameters.icc"

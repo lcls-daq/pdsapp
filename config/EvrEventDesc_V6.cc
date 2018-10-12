@@ -180,4 +180,4 @@ void EvrEventDesc::push(Pds::EvrData::EventCodeV5* c) const
 
 void EvrEventDesc::set_enable(bool v) { _enable->setChecked(v); }
 
-#include "Parameters.icc"
+

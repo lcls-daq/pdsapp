@@ -16,184 +16,6 @@
 using namespace Pds_ConfigDb;
 
 template <class T>
-NumericInt<T>::NumericInt(const char* label, T val, T vlo, T vhi, IntMode mo, double sca) :
-  Parameter(label),
-  value(val),
-  mode (mo),
-  scale(sca)
-{
-  range[0]=vlo;
-  range[1]=vhi;
-}
-
-template <class T>
-NumericInt<T>::~NumericInt() 
-{
-}
-
-template <class T>
-QLayout* NumericInt<T>::initialize(QWidget* parent)  
-{
-  QHBoxLayout* layout = new QHBoxLayout;
-  if (_label)
-    layout->addWidget(new QLabel(_label));             
-  if (allowEdit()) {
-    layout->addWidget(_input = new QLineEdit(parent));  
-    _input->setReadOnly(!allowEdit());
-    flush();
-    switch(mode) {
-    case Decimal:
-      _input->setValidator(new IntValidator( *this, *_input, range[0], range[1]));
-      break;
-    case Hex:
-      _input->setValidator(new HexValidator( *this, *_input, range[0], range[1]));
-      break;
-    default:
-      _input->setValidator(new DoubleValidator( *this, *_input, range[0]*scale, range[1]*scale));
-    }
-  }
-  else {
-    switch(mode) {
-    case Decimal: _display = new QLabel(QString::number(value,10)); break;
-    case Hex:     _display = new QLabel(QString::number(value,16)); break;
-    default:      _display = new QLabel(QString::number(double(value)*scale)); break;
-    }
-    _display->setFrameShape(QFrame::Box);
-    layout->addWidget(_display);
-  }
-  layout->setContentsMargins(0,0,0,0);               
-  return layout;                                     
-}
-
-template <class T>
-void NumericInt<T>::update()
-{
-  if (allowEdit()) {
-    bool ok;
-    switch(mode) {
-    case Decimal:  value = _input->text().toInt(); break;
-    case Hex:      value = _input->text().toUInt(&ok,16); break;
-    default:       value = int(_input->text().toDouble(&ok)/scale + 0.5); break;
-    }
-  }
-}
-
-template <class T>
-void NumericInt<T>::flush()
-{
-  QString v;
-  switch(mode) {
-    case Decimal: v = QString::number(value,10); break;
-    case Hex:	  v = QString::number(value,16); break;
-    default:      v = QString::number(double(value)*scale); break;
-  }
-
-  if (allowEdit())
-    _input->setText(v);
-  else
-    _display->setText(v);
-}
-
-template <class T>
-void NumericInt<T>::enable(bool v)
-{
-  if (allowEdit())
-    _input->setReadOnly(!v);
-}
-
-template <class T>
-bool NumericInt<T>::connect(ParameterSet& set)
-{
-  return QObject::connect(_input, SIGNAL(editingFinished()),
-	 	          set._qset, SLOT(membersChanged()));
-}
-
-template <class T>
-unsigned NumericInt<T>::count()
-{
-  return value;
-}
-
-template <class T>
-QWidget* NumericInt<T>::widget()
-{
-  return allowEdit() ? static_cast<QWidget*>(_input) : static_cast<QWidget*>(_display);
-}
-
-
-template <class T>
-NumericFloat<T>::NumericFloat() {}
-
-template <class T>
-NumericFloat<T>::NumericFloat(const char* label, T val, T vlo, T vhi) :
-  Parameter(label),
-  value(val) 
-{
-  range[0] = vlo;
-  range[1] = vhi;
-}
-
-template <class T>
-NumericFloat<T>::~NumericFloat() 
-{
-}
-
-template <class T>
-NumericFloat<T>& NumericFloat<T>::operator=(const NumericFloat<T>& c)
-{
-  _label   = c._label;
-  value    = c.value;
-  range[0] = c.range[0];
-  range[1] = c.range[1];
-  return *this;
-}
-
-template <class T>
-QLayout* NumericFloat<T>::initialize(QWidget* parent)  
-{
-  QHBoxLayout* layout = new QHBoxLayout;
-  if (_label)
-    layout->addWidget(new QLabel(_label));             
-  if (allowEdit()) {
-    layout->addWidget(_input = new QLineEdit(parent));  
-    _input->setReadOnly(!allowEdit());
-    flush();
-    _input->setValidator( new DoubleValidator( *this, *_input,
-	  				       range[0], range[1]) );
-  }
-  else {
-    _display = new QLabel(QString::number(value));
-    _display->setFrameShape(QFrame::Box);
-    layout->addWidget(_display);
-  }
-  layout->setContentsMargins(0,0,0,0);               
-  return layout;                                     
-}
-
-template <class T>
-void NumericFloat<T>::update()
-{
-  if (allowEdit())
-    value = _input->text().toDouble();
-}
-
-template <class T>
-void NumericFloat<T>::flush()
-{
-  if (allowEdit())
-    _input->setText(QString::number(value));
-  else
-    _display->setText(QString::number(value));
-}
-
-template <class T>
-void NumericFloat<T>::enable(bool v)
-{
-  if (allowEdit())
-    _input->setReadOnly(!v);
-}
-
-template <class T>
 Enumerated<T>::Enumerated(const char* label, T val,
                           const char** strlist) :
   Parameter(label),
@@ -286,12 +108,21 @@ void Enumerated<T>::enable(bool v)
     _input->setEnabled(v);
 }
 
+template <class T>
+Enumerated<T>& Enumerated<T>::operator=(const Enumerated<T>& o)
+{
+  value = o.value;
+  flush();
+  return *this;
+}
 
 template <class T, int N>
-NumericIntArray<T,N>::NumericIntArray(const char* label, T val, T vlo, T vhi, IntMode mo, double sca) :
+NumericIntArray<T,N>::NumericIntArray(const char* label, T val, T vlo, T vhi, 
+                                      IntMode mo, double sca, unsigned row) :
   Parameter(label),
   mode (mo),
-  scale(sca)
+  scale(sca),
+  rows(row)
 {
   for(int i=0; i<N; i++) value[i]=val;
   range[0]=vlo;
@@ -306,16 +137,35 @@ NumericIntArray<T,N>::~NumericIntArray()
 template <class T, int N>
 QLayout* NumericIntArray<T,N>::initialize(QWidget* parent)  
 {
+  QLayout* ret = 0;
+  if (rows>1) {
+    QVBoxLayout* vl = new QVBoxLayout;
+    for(unsigned r=0; r<rows; r++)
+      vl->addLayout(initialize(parent,r));
+    vl->setContentsMargins(0,0,0,0);               
+    ret = vl;
+  }
+  else
+    ret = initialize(parent,0);
+  return ret;
+}
+
+template <class T, int N>
+QLayout* NumericIntArray<T,N>::initialize(QWidget* parent, unsigned row)  
+{
+  const unsigned ilo = row*N/rows;
+  const unsigned ihi = (row+1)*N/rows;
   QHBoxLayout* layout = new QHBoxLayout;
   if (_label)
     layout->addWidget(new QLabel(_label));             
   if (allowEdit()) {
-    for(int i=0; i<N; i++) {
+    for(int i=ilo; i<ihi; i++) {
       layout->addWidget(_input[i] = new QLineEdit(parent));  
       _input[i]->setReadOnly(!allowEdit());
     }
-    flush();
-    for(int i=0; i<N; i++) {
+    if (row == rows-1)
+      flush();
+    for(int i=ilo; i<ihi; i++) {
       switch(mode) {
       case Decimal:
         _input[i]->setValidator(new IntValidator( *this, *_input[i], range[0], range[1]));
@@ -329,7 +179,7 @@ QLayout* NumericIntArray<T,N>::initialize(QWidget* parent)
     }
   }
   else {
-    for(int i=0; i<N; i++) {
+    for(int i=ilo; i<ihi; i++) {
       switch(mode) {
       case Decimal: _display[i] = new QLabel(QString::number(value[i],10)); break;
       case Hex:     _display[i] = new QLabel(QString::number(value[i],16)); break;
@@ -392,73 +242,13 @@ void NumericIntArray<T,N>::setWidth(unsigned w)
   }
 }
 
-template <class T>
-Poly<T>::Poly(const char* label) : ParameterFile(label) {}
-
-template <class T>
-Poly<T>::~Poly() { delete _dialog; }
-
-template <class T>
-QLayout* Poly<T>::initialize(QWidget*)
+template <class T, int N>
+NumericIntArray<T,N>& NumericIntArray<T,N>::operator=(const NumericIntArray<T,N>& o)
 {
-  QGridLayout* l = new QGridLayout;
-  l->addWidget(_display = new QLabel(QString("%1 (%2)")
-				     .arg(_label)
-				     .arg(value.size())),
-	       0,0,1,2,Qt::AlignHCenter);
-  l->addWidget(_import = new QPushButton("Import"),1,0);
-  l->addWidget(_export = new QPushButton("Export"),1,1);
-
-  _dialog = new PolyDialog(*this);
-
-  QObject::connect(_import, SIGNAL(clicked()), _dialog, SLOT(mport()));
-  QObject::connect(_export, SIGNAL(clicked()), _dialog, SLOT(xport()));
-
-  return l;
+  for(int i=0; i<N; i++)
+    value[i] = o.value[i];
+  flush();
+  return *this;
 }
 
-template <class T>
-void Poly<T>::update() {}
 
-template <class T>
-void Poly<T>::flush() 
-{
-  _display->setText(QString("%1 (%2)")
-                    .arg(_label)
-                    .arg(value.size()));
-}
-
-template <class T>
-void Poly<T>::enable(bool v)
-{
-  _import->setEnabled(v);
-  _export->setEnabled(v);
-}
-
-template <class T>
-void Poly<T>::mport(const QString& fname)
-{
-  std::ifstream f(qPrintable(fname));
-  if (f.good()) {
-    std::vector<T> a;
-    T v;
-    while(1) {
-      f >> v; 
-      if (!f.good()) break;
-      a.push_back(v); }
-    value = a;
-    _display->setText(QString("%1 (%2)")
-                      .arg(_label)
-                      .arg(value.size()));
-  }
-}
-
-template <class T>
-void Poly<T>::xport(const QString& fname) const
-{
-  std::ofstream f(qPrintable(fname));
-  if (f.good()) {
-    for(unsigned i=0; i<value.size(); i++)
-      f << value[i] << ' ';
-  }
-}

@@ -377,4 +377,4 @@ EvrPulseTableQ::EvrPulseTableQ(EvrPulseTable& table,QWidget* parent) : QObject(p
 void EvrPulseTableQ::update_enable    (int i) { _table.update_enable(i); }
 void EvrPulseTableQ::update_output    (int i) { _table.update_output(i); }
 
-#include "Parameters.icc"
+

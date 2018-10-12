@@ -64,4 +64,3 @@ void DiodeFexItem::insert(Pds::LinkedList<Parameter>& pList) {
   }
 }
 
-#include "Parameters.icc"

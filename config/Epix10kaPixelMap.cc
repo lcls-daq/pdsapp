@@ -26,8 +26,8 @@ namespace Pds_ConfigDb {
       Epix10kaPixelDisplay(ndarray<uint16_t, 2>& m) : _map(m)
     {
         setFrameStyle(QFrame::NoFrame);
-        _rows = Epix10kaConfigShadow::RowsPerAsic * Epix10kaConfigShadow::ASICsPerCol;
-        _cols = Epix10kaConfigShadow::ColsPerAsic * Epix10kaConfigShadow::ASICsPerRow;
+        _rows = m.shape()[0]; // Epix10kaConfigShadow::RowsPerAsic * Epix10kaConfigShadow::ASICsPerCol;
+        _cols = m.shape()[1]; // Epix10kaConfigShadow::ColsPerAsic * Epix10kaConfigShadow::ASICsPerRow;
         pixmap = new QPixmap(_cols, _rows);
     }
 
@@ -173,31 +173,26 @@ namespace Pds_ConfigDb {
 
   void Epix10kaPixelMapDialog::inQTthreadPlease()
   {
-    printf("inQTthreadPlease()\n");
     _display->update_map();
   }
 
   void Epix10kaPixelMapDialog::clearClicked()
   {
-    printf("clearClicked()\n");
     _display->clear();
   }
 
   void Epix10kaPixelMapDialog::exportClicked()
   {
-    printf("exportClicked()\n");
     _display->export_();
   }
 
   void Epix10kaPixelMapDialog::importClicked()
   {
-    printf("importClicked()\n");
     _display->import_();
   }
 
   void Epix10kaPixelMapDialog::show_map()
   {
-    printf("show_map()\n");
     _display->update_map();
   }
 

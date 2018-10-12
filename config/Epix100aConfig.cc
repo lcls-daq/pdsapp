@@ -384,4 +384,3 @@ int Epix100aConfig::dataSize() const {
   return _private->dataSize();
 }
 
-#include "Parameters.icc"

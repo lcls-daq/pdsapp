@@ -12,6 +12,9 @@
 
 #include "pdsapp/python/pycdb.hh"
 
+#include "ndarray/ndarray.h"
+
+#include "pdsapp/python/pyUtils.icc"
 #include "pdsapp/python/Xtc.icc"
 #include "pdsapp/python/DiodeFexConfig.icc"
 #include "pdsapp/python/CspadConfig.icc"
@@ -20,6 +23,7 @@
 #include "pdsapp/python/Epix10kConfig.icc"
 #include "pdsapp/python/Epix100aConfig.icc"
 #include "pdsapp/python/Epix10kaConfig.icc"
+#include "pdsapp/python/Epix10ka2MConfig.icc"
 #include "pdsapp/python/IpmFexConfig.icc"
 #include "pdsapp/python/IpimbConfig.icc"
 #include "pdsapp/python/PrincetonConfig.icc"
@@ -95,6 +99,9 @@ DECLARE_INIT(pycdb)
     INITERROR;
 
   if (PyType_Ready(&pds_Epix10kaConfig_type) < 0)
+    INITERROR;
+
+  if (PyType_Ready(&pds_Epix10ka2MConfig_type) < 0)
     INITERROR;
 
  if (PyType_Ready(&pds_IpmFexConfig_type) < 0)
@@ -180,8 +187,11 @@ DECLARE_INIT(pycdb)
   Py_INCREF(&pds_Epix100aConfig_type);
   PyModule_AddObject(m, "Epix100aConfig", (PyObject*)&pds_Epix100aConfig_type);
 
-  Py_INCREF(&pds_Epix100aConfig_type);
+  Py_INCREF(&pds_Epix10kaConfig_type);
   PyModule_AddObject(m, "Epix10kaConfig", (PyObject*)&pds_Epix10kaConfig_type);
+
+  Py_INCREF(&pds_Epix10ka2MConfig_type);
+  PyModule_AddObject(m, "Epix10ka2MConfig", (PyObject*)&pds_Epix10ka2MConfig_type);
 
   Py_INCREF(&pds_IpmFexConfig_type);
   PyModule_AddObject(m, "IpmFexConfig", (PyObject*)&pds_IpmFexConfig_type);

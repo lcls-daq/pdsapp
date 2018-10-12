@@ -53,6 +53,7 @@ void printUsage(char* name) {
       "                The format of the parameters is: 'addr'\n"
       "                where addr is a 32 bit unsigned integer\n"
       "    -t      Test registers, loop from addr counting up count times\n"
+      "    -T      Dump memory mapped Tx buffers\n"
       "    -d      Dump count registers starting at addr\n"
       "    -m      Monitor testing -  write enable and then loop reading\n"
       "    -M      Disable monitor output, write disable"
@@ -118,14 +119,16 @@ int main( int argc, char** argv ) {
   char                devName[128] = {""};
   PadMonServer*       shm                 = 0;
   PadMonServer::PadType typ               = PadMonServer::NumberOf;
+  unsigned            dumpTxBuffers = 0;
   DmaWriteData           tx;
   ::signal( SIGINT, sigHandler );
 
   char*               endptr;
   extern char*        optarg;
   int c;
-  while( ( c = getopt( argc, argv, "hP:w:W:D:r:d:RS:o:s:f:p:t:mMX:x" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hP:w:W:D:r:d:RS:o:s:f:p:t:T:mMX:x3" ) ) != EOF ) {
     switch(c) {
+      case 'T': dumpTxBuffers = strtoul(optarg, &endptr,0); break;
       case 'P':
         pgpcard = strtoul(optarg  ,&endptr,0);
         lvcNumb = strtoul(endptr+1,&endptr,0);
@@ -250,6 +253,7 @@ int main( int argc, char** argv ) {
       case 'p':
         printFlag = strtoul(optarg, NULL, 0);
         break;
+      case '3':        Pgp::Pgp::srpVersion(3);        break;
       case 'h':
         printUsage(argv[0]);
         return 0;
@@ -278,6 +282,18 @@ int main( int argc, char** argv ) {
   pgp = new Pds::Pgp::Pgp(true, fd, debug != 0);
   dest = new Pds::Pgp::Destination(lvcNumb);
   pgp->allocateVC(1<<(lvcNumb&3), 1<<(lvcNumb>>2));
+
+  if (dumpTxBuffers) {
+    // memory map
+    unsigned txCount, txSize;
+    void** txBuffers = dmaMapDma(fd, &txCount, &txSize);
+    for(unsigned i=0; i<txCount; i++) {
+      printf("[%02u]",i);
+      for(unsigned j=0; j<dumpTxBuffers; j++)
+        printf(" %08x",reinterpret_cast<uint32_t*>(txBuffers[i])[j]);
+      printf("\n");
+    }
+  }
 
   if (debug & 1) printf("Destination %s Offset %u\n", dest->name(), offset);
 
@@ -345,10 +361,12 @@ int main( int argc, char** argv ) {
 //      break;
     case writeCommand:
       pgp->writeRegister(dest, addr, data, printFlag, Pds::Pgp::PgpRSBits::Waiting);
-      rsif = pgp->read();
-      if (rsif) {
-        if (printFlag) rsif->print();
-        printf("%s write returned 0x%x\n", argv[0], rsif->_data);
+      if (Pgp::Pgp::srpVersion()!=3) {
+        rsif = pgp->read();
+        if (rsif) {
+          if (printFlag) rsif->print();
+          printf("%s write returned 0x%x\n", argv[0], rsif->_data);
+        }
       }
       break;
     case loopWriteCommand:
@@ -358,10 +376,12 @@ int main( int argc, char** argv ) {
       while (count--) {
         pgp->writeRegister(dest, addr, data, printFlag & 1, Pds::Pgp::PgpRSBits::Waiting);
         usleep(delay);
-        rsif = pgp->read();
-        if (rsif) {
-          if (printFlag & 1) rsif->print();
-          if (printFlag & 2) printf("\tcycle %u\n", idx++);
+        if (Pgp::Pgp::srpVersion()!=3) {
+          rsif = pgp->read();
+          if (rsif) {
+            if (printFlag & 1) rsif->print();
+            if (printFlag & 2) printf("\tcycle %u\n", idx++);
+          }
         }
       }
       break;
@@ -372,7 +392,7 @@ int main( int argc, char** argv ) {
     case dumpCommand:
       printf("%s reading %u registers at %x\n", argv[0], count, (unsigned)addr);
       for (unsigned i=0; i<count; i++) {
-        pgp->readRegister(dest, addr+i,0x2dbeef, &data);
+        pgp->readRegister(dest, addr, 0x2dbeef+i, &data);
         printf("\t%s0x%x - 0x%x\n", addr+i < 0x10 ? " " : "", addr+i, data);
       }
       break;

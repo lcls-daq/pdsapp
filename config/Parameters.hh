@@ -29,11 +29,13 @@ namespace Pds_ConfigDb {
     enum Polarity { Pos, Neg };
     enum Enabled  { Enable, Disable };
     enum Disabled { Disabled_Disable, Disabled_Enable };
+    enum OnOff    { On, Off };
 
     static const char* Bool_Names[];
     static const char* Polarity_Names[];
     static const char* Enabled_Names[];
     static const char* Disabled_Names[];
+    static const char* OnOff_Names[];
   };
 
   class Parameter : public Pds::LinkedList<Parameter> {
@@ -96,6 +98,8 @@ namespace Pds_ConfigDb {
     double  scale;
     QLineEdit* _input;
     QLabel*    _display;
+  public:
+    NumericInt& operator=(const NumericInt& o);
   };
 
   template <class T>
@@ -144,6 +148,8 @@ namespace Pds_ConfigDb {
     PolyDialog*    _dialog;
     QPushButton*   _import;
     QPushButton*   _export;
+  public:
+    Poly& operator=(const Poly& o);
   };
 
   template <class T>
@@ -163,6 +169,8 @@ namespace Pds_ConfigDb {
     QComboBox*   _input;
     QLabel*      _display;
     const T*     values;
+  public:
+    Enumerated& operator=(const Enumerated& o);
   };
 
   class TextParameter : public Parameter {
@@ -182,6 +190,8 @@ namespace Pds_ConfigDb {
     QLineEdit* _input;
     unsigned   _size;
     QLabel*    _display;
+  public:
+    TextParameter& operator=(const TextParameter& o);
   };
 
   class TextFileParameter: public ParameterFile {
@@ -216,22 +226,26 @@ namespace Pds_ConfigDb {
   template <class T, int N>
   class NumericIntArray : public Parameter {
   public:
-    NumericIntArray(const char* label, T val, T vlo, T vhi, IntMode mo=Decimal, double sca=1.);
+    NumericIntArray(const char* label, T val, T vlo, T vhi, IntMode mo=Decimal, double sca=1., unsigned rows=1);
     ~NumericIntArray();
 
     QLayout* initialize(QWidget*);
+    QLayout* initialize(QWidget*,unsigned);
     void     update();
     void     flush ();
     void     enable(bool);
   public:
     void     setWidth(unsigned);
   public:
-    T       value[N];
-    T       range[2];
-    IntMode mode;
-    double  scale;
+    T          value[N];
+    T          range[2];
+    IntMode    mode;
+    double     scale;
+    unsigned   rows;
     QLineEdit* _input[N];
     QLabel*    _display[N];
+  public:
+    NumericIntArray& operator=(const NumericIntArray& o);
   };
 
   class CheckValue : public Parameter {
@@ -246,6 +260,8 @@ namespace Pds_ConfigDb {
   public:
     bool       value;
     QCheckBox* _input;
+  public:
+    CheckValue& operator=(const CheckValue& o);
   };
 };
 

@@ -223,5 +223,5 @@ void EvrEventDesc::update_group(int)
 		      _type->currentIndex()==Trigger));  
 }
 
-#include "Parameters.icc"
+
 
