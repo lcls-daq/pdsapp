@@ -17,7 +17,7 @@ static void showUsage(const char* p)
   printf("Usage: %s [-v|--version] [-h|--help]\n"
          "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (msec)>]\n"
          "[-N|--nonexp <non-exposure time>] [-b|--vbin <binning>] [-l|--lines <lines>] [-m|--max <max>]\n"
-         "[-C|--clear] [-t|--trigger] -c|--config <config> -H|--host <host> [-P|--port <port>]\n"
+         "[-C|--clear] [-o|--on] [-t|--trigger] -c|--config <config> -H|--host <host> [-P|--port <port>]\n"
          " Options:\n"
          "    -w|--write    <filename prefix>         output filename prefix\n"
          "    -n|--number   <number of images>        number of images to be captured (default: 1)\n"
@@ -30,13 +30,14 @@ static void showUsage(const char* p)
          "    -H|--host     <host>                    set the Archon controller host ip\n"
          "    -c|--config   <config>                  the path to an Archon configuration file to use\n"
          "    -C|--clear                              clear the CCD before acquiring each frame\n"
+         "    -o|--on                                 power on the CCD (default: false)\n"
          "    -t|--trigger  <trigger>                 use external trigger to acquire each frame\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char *argv[]) {
-  const char*         strOptions  = ":vhw:n:e:N:b:l:m:P:H:c:Ct";
+  const char*         strOptions  = ":vhw:n:e:N:b:l:m:P:H:c:Cot";
   const struct option loOptions[] =
   {
     {"version",     0, 0, 'v'},
@@ -52,6 +53,7 @@ int main(int argc, char *argv[]) {
     {"host",        1, 0, 'H'},
     {"config",      1, 0, 'c'},
     {"clear",       0, 0, 'C'},
+    {"on",          0, 0, 'o'},
     {"trigger",     0, 0, 't'},
     {0,             0, 0,  0 }
   };
@@ -66,6 +68,7 @@ int main(int argc, char *argv[]) {
   bool lUsage = false;
   bool use_clear = false;
   bool use_trigger = false;
+  bool power_on = false;
   char* filename = (char *)NULL;
   char* file_prefix = (char *)NULL;
   char* config = (char *)NULL;
@@ -107,6 +110,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'C':
         use_clear = true;
+        break;
+      case 'o':
+        power_on = true;
         break;
       case 't':
         use_trigger = true;
@@ -205,6 +211,24 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    // Power on the ccd
+    if (power_on) {
+      printf("Attempting to power on ccd\n");
+      if (!drv.power_on()) {
+        printf("Failure issuing power on command!\n");
+        return 1;
+      } else {
+        printf("Waiting for power to reach on state ...");
+        if(!drv.wait_power_mode(Pds::Archon::On)) {
+          printf(" failed to reach on state!\n");
+          drv.power_off();
+          return 1;
+        } else {
+          printf(" succeeded!\n");
+        }
+      }
+    }
+
     drv.set_vertical_binning(vertical_binning);
     drv.set_number_of_lines(lines);
     drv.set_preframe_clear(use_clear ? lines : 0);
@@ -217,11 +241,11 @@ int main(int argc, char *argv[]) {
     unsigned pixels_per_line = config.pixels_per_line();
     unsigned num_lines = config.linecount();
     unsigned num_pixels = config.total_pixels();
-    unsigned btyes_per_pixel = config.bytes_per_pixel();
+    unsigned bytes_per_pixel = config.bytes_per_pixel();
     unsigned frame_size = config.frame_size();
     unsigned sample_mode = config.samplemode();
 
-    printf("Expected from size of the frame is %u bytes (%u pixels with %u bytes per pixel)\n", frame_size, num_pixels, btyes_per_pixel);
+    printf("Expected from size of the frame is %u bytes (%u pixels with %u bytes per pixel)\n", frame_size, num_pixels, bytes_per_pixel);
     printf("Expected frame shape is %ux%u pixels\n", pixels_per_line, num_lines);
 
     Pds::Archon::FrameMetaData frame_meta;
@@ -231,6 +255,8 @@ int main(int argc, char *argv[]) {
 
     if (!drv.start_acquisition(num_images)) {
       printf("Failed to start acquisition!\n");
+      if (power_on)
+        drv.power_off();
       return 1;
     }
 
@@ -257,11 +283,13 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    if (power_on) {
+      printf("Powering off the ccd\n");
+      drv.power_off();
+    }
+
     delete[] data;
     if (filename) delete[] filename;
-
-    //drv.power_off();
-
   }
 
   return 0;

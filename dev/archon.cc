@@ -22,7 +22,17 @@
 static const unsigned MAX_EVENT_SIZE = 4*1024*1024;
 static const unsigned MAX_EVENT_DEPTH = 128;
 
+static Pds::Archon::Driver* drv = NULL;
+
 using namespace Pds;
+
+static void shutdown(int signal)
+{
+  if (drv) {
+    drv->disconnect();
+  }
+  exit(signal);
+}
 
 static void archonUsage(const char* p)
 {
@@ -148,6 +158,19 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  /*
+   * Register singal handler
+   */
+  struct sigaction sigActionSettings;
+  sigemptyset(&sigActionSettings.sa_mask);
+  sigActionSettings.sa_handler = shutdown;
+  sigActionSettings.sa_flags   = SA_RESTART;
+
+  if (sigaction(SIGINT, &sigActionSettings, 0) != 0 )
+    printf("Cannot register signal handler for SIGINT\n");
+  if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 )
+    printf("Cannot register signal handler for SIGTERM\n");
+
   std::list<EbServer*>        servers;
   std::list<Archon::Manager*> managers;
 
@@ -155,7 +178,7 @@ int main(int argc, char** argv) {
   
   Archon::Server* srv = new Archon::Server(detInfo);
   servers   .push_back(srv);
-  Archon::Driver* drv = new Archon::Driver(sHost, port);
+  drv = new Archon::Driver(sHost, port);
   Archon::Manager* mgr = new Archon::Manager(*drv, *srv, *cfg);
   managers.push_back(mgr);
 

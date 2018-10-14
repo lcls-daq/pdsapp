@@ -44,6 +44,7 @@ libsrcs_configdbg += FrameFexConfig.cc
 libsrcs_configdbg += Andor3dConfig.cc
 libsrcs_configdbg += ArchonConfig.cc
 libsrcs_configdbg += ArchonConfig_V1.cc
+libsrcs_configdbg += ArchonConfig_V2.cc
 libsrcs_configdbg += JungfrauConfig.cc
 libsrcs_configdbg += JungfrauConfig_V1.cc
 libsrcs_configdbg += JungfrauConfig_V2.cc

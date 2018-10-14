@@ -199,10 +199,12 @@ namespace Pds_ConfigDb {
     void     xport(const QString&) const;
 
     void     set_value(const char* text);
+    void     set_value(const char* text, unsigned new_version);
     unsigned length() const;
   public:
     char*          value;
     unsigned       size;
+    unsigned       version;
     const char*    _filter;
     unsigned       _maxsize;
     QLabel*        _display;

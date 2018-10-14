@@ -109,6 +109,7 @@ FilterDialog::FilterDialog(ParameterFile& p, const QString& filter, const QStrin
 TextFileParameter::TextFileParameter(const char* label, unsigned maxsize) :
   ParameterFile(label),
   size(0),
+  version(0),
   _filter(0),
   _maxsize(maxsize)
 {
@@ -155,9 +156,10 @@ void TextFileParameter::update() {}
 
 void TextFileParameter::flush()
 {
-  _display->setText(QString("%1 (%2)")
+  _display->setText(QString("%1 (%2) v%3")
                     .arg(_label)
-                    .arg(size));
+                    .arg(size)
+                    .arg(version));
 }
 
 void TextFileParameter::enable(bool v)
@@ -189,9 +191,12 @@ void TextFileParameter::mport(const QString& fname)
       }
     }
 
-    _display->setText(QString("%1 (%2)")
+    version++;
+
+    _display->setText(QString("%1 (%2) v%3")
                       .arg(_label)
-                      .arg(size));
+                      .arg(size)
+                      .arg(version));
   }
 }
 
@@ -207,6 +212,14 @@ void TextFileParameter::set_value(const char* text)
 {
   strncpy(value, text, _maxsize);
   size = strlen(value);
+  version++;
+}
+
+void TextFileParameter::set_value(const char* text, unsigned new_version)
+{
+  strncpy(value, text, _maxsize);
+  size = strlen(value);
+  version = new_version;
 }
 
 unsigned TextFileParameter::length() const

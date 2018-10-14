@@ -1,11 +1,10 @@
-#include "pdsapp/config/ArchonConfig.hh"
+#include "pdsapp/config/ArchonConfig_V2.hh"
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 #include "pdsapp/config/QtConcealer.hh"
-#include "pds/config/ArchonConfigType.hh"
+#include "pdsdata/psddl/archon.ddl.h"
 #include <QtGui/QVBoxLayout>
-#include <QtGui/QHBoxLayout>
 #include <QtGui/QMessageBox>
 #include <QtGui/QLabel>
 
@@ -18,7 +17,7 @@
 
 using namespace Pds_ConfigDb;
 
-class Pds_ConfigDb::ArchonConfig::Private_Data : public Parameter {
+class Pds_ConfigDb::ArchonConfig_V2::Private_Data : public Parameter {
 public:
   Private_Data(bool expert_mode);
   ~Private_Data();
@@ -27,7 +26,7 @@ public:
   int pull( void* from );
   int push( void* to );
   int dataSize() const
-     { ArchonConfigType cfg(_conf.length()); return cfg._sizeof(); }
+     { Pds::Archon::ConfigV2 cfg(_conf.length()); return cfg._sizeof(); }
   void flush ()
      { for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->flush(); }
   void update()
@@ -37,8 +36,7 @@ public:
   bool validate();
 
   Pds::LinkedList<Parameter> pList;
-  Enumerated<ArchonConfigType::ReadoutMode> _enumReadoutMode;
-  Enumerated<ArchonConfigType::Switch>      _enumPower;
+  Enumerated<Pds::Archon::ConfigV2::ReadoutMode>  _enumReadoutMode;
   NumericInt<uint16_t>  _exposureEventCode;
   NumericInt<uint32_t>  _preFrameSweepCount;
   NumericInt<uint32_t>  _idleSweepCount;
@@ -58,59 +56,23 @@ public:
   NumericInt<uint32_t>  _st;
   NumericInt<uint32_t>  _stm1;
   NumericInt<uint32_t>  _at;
-  //-------- Sensor Bias Parameters --------
-  CheckValue            _enableBias;
-  Enumerated<ArchonConfigType::BiasChannelId> _enumBiasChan;
-  NumericFloat<float>   _biasVoltage;
 
   TextFileParameter     _conf;
   QtConcealer           _concealerExpert;
 private:
   bool _expert_mode;
-  static const ArchonConfigType::BiasChannelId biasChannelIdVals[];
   static const char*  lsEnumReadoutMode[];
-  static const char*  lsEnumSwitch[];
-  static const char*  lsEnumBiasChannelId[];
 };
 
-const ArchonConfigType::BiasChannelId Pds_ConfigDb::ArchonConfig::Private_Data::biasChannelIdVals[] = {
-  ArchonConfigType::NV4,
-  ArchonConfigType::NV3,
-  ArchonConfigType::NV2,
-  ArchonConfigType::NV1,
-  ArchonConfigType::PV1,
-  ArchonConfigType::PV2,
-  ArchonConfigType::PV3,
-  ArchonConfigType::PV4,
-};
-
-const char* Pds_ConfigDb::ArchonConfig::Private_Data::lsEnumReadoutMode[] = {
-  "FreeRun",
+const char* Pds_ConfigDb::ArchonConfig_V2::Private_Data::lsEnumReadoutMode[] = {
+  "Single",
+  "Continuous",
   "Triggered",
   NULL
 };
 
-const char* Pds_ConfigDb::ArchonConfig::Private_Data::lsEnumSwitch[] = {
-  "Off",
-  "On",
-  NULL
-};
-
-const char* Pds_ConfigDb::ArchonConfig::Private_Data::lsEnumBiasChannelId[] = {
-  "NV4",
-  "NV3",
-  "NV2",
-  "NV1",
-  "PV1",
-  "PV2",
-  "PV3",
-  "PV4",
-  NULL
-};
-
-Pds_ConfigDb::ArchonConfig::Private_Data::Private_Data(bool expert_mode) :
-  _enumReadoutMode    ("Readout Mode",          ArchonConfigType::Triggered,  lsEnumReadoutMode),
-  _enumPower          ("CCD Power",             ArchonConfigType::Off,        lsEnumSwitch),
+Pds_ConfigDb::ArchonConfig_V2::Private_Data::Private_Data(bool expert_mode) :
+  _enumReadoutMode    ("Readout Mode",          Pds::Archon::ConfigV2::Triggered, lsEnumReadoutMode),
   _exposureEventCode  ("Exposure Event Code",       1,    1,      255),
   _preFrameSweepCount ("Pre-Frame Clear Count",     0,    0,      0xFFFFF),
   _idleSweepCount     ("Idle Clear Count",          1,    0,      0xFFFFF),
@@ -127,14 +89,10 @@ Pds_ConfigDb::ArchonConfig::Private_Data::Private_Data(bool expert_mode) :
   _st                 ("ST",                        30,   0,      0xFFFFF),
   _stm1               ("STM1",                      29,   0,      0xFFFFF),
   _at                 ("AT",                        2000, 0,      0xFFFFF),
-  _enableBias         ("Enabled",                   true),
-  _enumBiasChan       ("Bias Channel",          ArchonConfigType::NV1,        lsEnumBiasChannelId, biasChannelIdVals),
-  _biasVoltage        ("Bias Voltage",              -40.0,  -100.0, 100.0),
-  _conf               ("Archon Configuration File", ArchonConfigMaxFileLength, "Archon Configuration Files (*.acf)"),
+  _conf               ("Archon Configuration File", Pds::Archon::ConfigV2::MaxConfigLines * Pds::Archon::ConfigV2::MaxConfigLineLength, "Archon Configuration Files (*.acf)"),
   _expert_mode        (expert_mode)
 {
   pList.insert( &_enumReadoutMode );
-  pList.insert( &_enumPower );
   pList.insert( &_exposureEventCode );
   pList.insert( &_preFrameSweepCount );
   pList.insert( &_idleSweepCount );
@@ -151,17 +109,14 @@ Pds_ConfigDb::ArchonConfig::Private_Data::Private_Data(bool expert_mode) :
   pList.insert( &_st );
   pList.insert( &_stm1 );
   pList.insert( &_at );
-  pList.insert( &_enableBias );
-  pList.insert( &_enumBiasChan );
-  pList.insert( &_biasVoltage );
   pList.insert( &_conf);
 }
 
-Pds_ConfigDb::ArchonConfig::Private_Data::~Private_Data()
+Pds_ConfigDb::ArchonConfig_V2::Private_Data::~Private_Data()
 {
 }
 
-QLayout* Pds_ConfigDb::ArchonConfig::Private_Data::initialize(QWidget* p)
+QLayout* Pds_ConfigDb::ArchonConfig_V2::Private_Data::initialize(QWidget* p)
 {
   QVBoxLayout* layout = new QVBoxLayout;
   { QVBoxLayout* e = new QVBoxLayout;
@@ -195,16 +150,6 @@ QLayout* Pds_ConfigDb::ArchonConfig::Private_Data::initialize(QWidget* p)
     t->addLayout(_at  .initialize(p));
     t->setSpacing(5);
     layout->addLayout(t); }
-  { QVBoxLayout* pow = new QVBoxLayout;
-    pow->addWidget(new QLabel("Power settings: "));
-    pow->addLayout(_enumPower   .initialize(p));
-    { QHBoxLayout* b = new QHBoxLayout;
-      b->addLayout(_biasVoltage .initialize(p));
-      b->addLayout(_enableBias  .initialize(p));
-      pow->addLayout(b); }
-    pow->addLayout(_concealerExpert.add(_enumBiasChan.initialize(p)));
-    pow->setSpacing(5);
-    layout->addLayout(pow); }
   { QVBoxLayout* x = new QVBoxLayout;
     x->addWidget(new QLabel("Expert settings: "));
     x->addLayout(_enumReadoutMode   .initialize(p));
@@ -217,11 +162,10 @@ QLayout* Pds_ConfigDb::ArchonConfig::Private_Data::initialize(QWidget* p)
   return layout;
 }
 
-int Pds_ConfigDb::ArchonConfig::Private_Data::pull( void* from )
+int Pds_ConfigDb::ArchonConfig_V2::Private_Data::pull( void* from )
 {
-  ArchonConfigType& cfg = * new (from) ArchonConfigType;
-  _enumReadoutMode.value    = (ArchonConfigType::ReadoutMode) cfg.readoutMode();
-  _enumPower.value          = (ArchonConfigType::Switch) cfg.power();
+  Pds::Archon::ConfigV2& cfg = * new (from) Pds::Archon::ConfigV2;
+  _enumReadoutMode.value    = (Pds::Archon::ConfigV2::ReadoutMode) cfg.readoutMode();
   _exposureEventCode.value  = cfg.exposureEventCode();
   _preFrameSweepCount.value = cfg.preFrameSweepCount();
   _idleSweepCount.value     = cfg.idleSweepCount();
@@ -238,21 +182,17 @@ int Pds_ConfigDb::ArchonConfig::Private_Data::pull( void* from )
   _st.value                 = cfg.st();
   _stm1.value               = cfg.stm1();
   _at.value                 = cfg.at();
-  _enableBias.value         = cfg.bias();
-  _enumBiasChan.value       = (ArchonConfigType::BiasChannelId) cfg.biasChan();
-  _biasVoltage.value        = cfg.biasVoltage();
-  _conf.set_value(cfg.config(), cfg.configVersion());
+  _conf.set_value(cfg.config());
 
   _concealerExpert.show(_expert_mode);
 
   return cfg._sizeof();
 }
   
-int Pds_ConfigDb::ArchonConfig::Private_Data::push(void* to)
+int Pds_ConfigDb::ArchonConfig_V2::Private_Data::push(void* to)
 {
-  ArchonConfigType& cfg = *new (to) ArchonConfigType(
+  Pds::Archon::ConfigV2& cfg = *new (to) Pds::Archon::ConfigV2(
     _enumReadoutMode.value,
-    _enumPower.value,
     _exposureEventCode.value,
     _conf.length(),
     _preFrameSweepCount.value,
@@ -270,44 +210,40 @@ int Pds_ConfigDb::ArchonConfig::Private_Data::push(void* to)
     _st.value,
     _stm1.value,
     _at.value,
-    _enableBias.value ? ArchonConfigType::On : ArchonConfigType::Off,
-    _enumBiasChan.value,
-    _biasVoltage.value,
-    _conf.version,
     _conf.value
   );
 
   return cfg._sizeof();
 }
 
-bool Pds_ConfigDb::ArchonConfig::Private_Data::validate()
+bool Pds_ConfigDb::ArchonConfig_V2::Private_Data::validate()
 {
   return true;
 }
  
-Pds_ConfigDb::ArchonConfig::ArchonConfig(bool expert_mode) :
-  Serializer("ArchonConfig"),
+Pds_ConfigDb::ArchonConfig_V2::ArchonConfig_V2(bool expert_mode) :
+  Serializer("ArchonConfig_V2"),
   _private_data( new Private_Data(expert_mode) )
 {
   pList.insert(_private_data);
 }
 
-int Pds_ConfigDb::ArchonConfig::readParameters (void* from)
+int Pds_ConfigDb::ArchonConfig_V2::readParameters (void* from)
 {
   return _private_data->pull(from);
 }
 
-int Pds_ConfigDb::ArchonConfig::writeParameters(void* to)
+int Pds_ConfigDb::ArchonConfig_V2::writeParameters(void* to)
 {
   return _private_data->push(to);
 }
 
-int Pds_ConfigDb::ArchonConfig::dataSize() const
+int Pds_ConfigDb::ArchonConfig_V2::dataSize() const
 {
   return _private_data->dataSize();
 }
 
-bool Pds_ConfigDb::ArchonConfig::validate()
+bool Pds_ConfigDb::ArchonConfig_V2::validate()
 {
   return _private_data->validate();
 }
