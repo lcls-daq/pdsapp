@@ -119,6 +119,7 @@ TextFileParameter::TextFileParameter(const char* label, unsigned maxsize) :
 TextFileParameter::TextFileParameter(const char* label, unsigned maxsize, const char* filter) :
   ParameterFile(label),
   size(0),
+  version(0),
   _filter(filter),
   _maxsize(maxsize)
 {
