@@ -15,7 +15,6 @@ tgtnames += rayonix udpcam
 tgtnames += oceanoptics
 tgtnames += lecroy
 tgtnames += pvdaq
-tgtnames += archon
 tgtnames += gsc16ai
 tgtnames += quadadc
 
@@ -31,7 +30,7 @@ tgtnames +=  acq \
 endif
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames += camedt fli andor andordual
+tgtnames += camedt fli andor andordual archon
   ifeq ($(build_extra),$(true))
     tgtnames += phasics xamps fexamp
   endif
@@ -42,7 +41,7 @@ tgtnames += fli andor andordual
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi
+tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi archon
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata

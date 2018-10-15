@@ -5,7 +5,7 @@ libsrcs_test :=
 
 tgtnames := timestampReceiver sqlDbTest timerResolution
 ifneq ($(findstring i386-linux,$(tgt_arch)),)
-tgtnames += princetonCameraTest andorStandAlone andorDualStandAlone archonStandAlone
+tgtnames += princetonCameraTest andorStandAlone andorDualStandAlone
 endif
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
