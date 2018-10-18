@@ -148,8 +148,8 @@ QLayout* Pds_ConfigDb::ZylaConfig::Private_Data::initialize(QWidget* p)
     m->addLayout(_boxROI            .initialize(p));
     m->addLayout(_concealerROI.add(_orgX.initialize(p)));
     m->addLayout(_concealerROI.add(_orgY.initialize(p)));
-    m->addLayout(_binX              .initialize(p));
-    m->addLayout(_binY              .initialize(p));
+    m->addLayout(_concealerExpert.add(_binX.initialize(p)));
+    m->addLayout(_concealerExpert.add(_binY.initialize(p)));
     m->addLayout(_noiseFilter       .initialize(p));
     m->addLayout(_blemishCorrection .initialize(p));
     m->setSpacing(5);
