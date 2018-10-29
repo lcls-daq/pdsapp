@@ -48,6 +48,8 @@ PyObject* pds_EpixConfig_get    (PyObject*   self, PyObject* args)
   if (PyArg_ParseTuple(args,"I",&icycle)==0)
     icycle = 0;
 
+  PyErr_Clear();
+
   unsigned isize = pds_EpixConfig_size(self);
   unsigned usize = isize*(icycle+1);
 

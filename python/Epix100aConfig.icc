@@ -46,6 +46,8 @@ PyObject* pds_Epix100aConfig_get    (PyObject*   self, PyObject* args)
   if (PyArg_ParseTuple(args,"I",&icycle)==0)
     icycle = 0;
 
+  PyErr_Clear();
+
   unsigned isize = pds_Epix100aConfig_size(self);
   unsigned usize = isize*(icycle+1);
 
