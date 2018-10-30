@@ -1,0 +1,582 @@
+//
+//  pds_ArchonConfig class methods
+//
+static PyObject* pds_ArchonConfig_get   (PyObject*   self, PyObject* args);
+static PyObject* pds_ArchonConfig_set (PyObject*   self, PyObject* args);
+static PyObject* pds_ArchonConfig_enum  (PyObject*   self, PyObject* args);
+
+static PyMethodDef pds_ArchonConfig_methods[] = {
+  {"get"        , (PyCFunction)pds_ArchonConfig_get     , METH_VARARGS|METH_KEYWORDS  , "Output the configuration"},
+  {"set"        , (PyCFunction)pds_ArchonConfig_set     , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
+  {"get_enums"  , (PyCFunction)pds_ArchonConfig_enum    , METH_NOARGS  , "Output enum constants"},
+  {NULL},
+};
+
+DefineXtcType(ArchonConfig) ;
+
+#include "pdsdata/psddl/archon.ddl.h"
+#include <new>
+
+// Return a dictionary of enum types in config
+#define SetEnum(name,type,dict)                           \
+  { PyObject* v = PyInt_FromLong(Pds::Archon::type::name);\
+    if (v) {                                              \
+      PyDict_SetItemString(dict,#name,v);                 \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
+
+#define SetEnumDict(name,dict)              \
+  { PyDict_SetItemString(o,#name,dict);     \
+    Py_DECREF(dict); }
+
+static PyObject* get_archon_readout_enum(pdsxtc* xtc)
+{
+  PyObject* readout_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(Single,ConfigV1,readout_enum);
+    SetEnum(Continuous,ConfigV1,readout_enum);
+    SetEnum(Triggered,ConfigV1,readout_enum);
+
+    return readout_enum;
+  } else if (xtc->contains.version()==2) {
+    SetEnum(Single,ConfigV2,readout_enum);
+    SetEnum(Continuous,ConfigV2,readout_enum);
+    SetEnum(Triggered,ConfigV2,readout_enum);
+  
+    return readout_enum;
+  } else if (xtc->contains.version()==3) {
+    SetEnum(FreeRun,ConfigV3,readout_enum);
+    SetEnum(Triggered,ConfigV3,readout_enum);
+
+    return readout_enum;
+  } else {
+    Py_DECREF(readout_enum);
+    printf("get_enums(): Unsupported ArchonConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+static PyObject* get_archon_switch_enum(pdsxtc* xtc)
+{
+  PyObject* switch_enum = PyDict_New();
+  if (xtc->contains.version()==3) {
+    SetEnum(Off,ConfigV3,switch_enum);
+    SetEnum(On,ConfigV3,switch_enum);
+
+    return switch_enum;
+  } else {
+    Py_DECREF(switch_enum);
+    printf("get_enums(): Unsupported ArchonConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+static PyObject* get_archon_channel_enum(pdsxtc* xtc)
+{
+  PyObject* channel_enum = PyDict_New();
+  if (xtc->contains.version()==3) {
+    SetEnum(NV4,ConfigV3,channel_enum);
+    SetEnum(NV3,ConfigV3,channel_enum);
+    SetEnum(NV2,ConfigV3,channel_enum);
+    SetEnum(NV1,ConfigV3,channel_enum);
+    SetEnum(PV1,ConfigV3,channel_enum);
+    SetEnum(PV2,ConfigV3,channel_enum);
+    SetEnum(PV3,ConfigV3,channel_enum);
+    SetEnum(PV4,ConfigV3,channel_enum);
+
+    return channel_enum;
+  } else {
+    Py_DECREF(channel_enum);
+    printf("get_enums(): Unsupported ArchonConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+PyObject* pds_ArchonConfig_enum (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+
+    SetEnumDict(readoutMode,get_archon_readout_enum(xtc));
+
+    return o;
+  }
+  else if (xtc->contains.version()==2) {
+
+    SetEnumDict(readoutMode,get_archon_readout_enum(xtc));
+
+    return o;
+  }
+  else if (xtc->contains.version()==3) {
+
+    SetEnumDict(readoutMode,get_archon_readout_enum(xtc));
+    SetEnumDict(power,get_archon_switch_enum(xtc));
+    SetEnumDict(bias,get_archon_switch_enum(xtc));
+    SetEnumDict(biasChan,get_archon_channel_enum(xtc));
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get_enums(): Unsupported ArchonConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+
+#undef SetEnum
+#undef SetEnumDict
+
+
+//  Return a dictionary of configuration data
+#define SetDictMember(name,isFloat,isEnum,isSigned)       \
+  { PyObject* v = NULL;                                   \
+    if (isFloat)                                          \
+      v = PyFloat_FromDouble(cfg->name());                \
+    else if (isEnum)                                      \
+      v = PyInt_FromLong((signed)cfg->name());            \
+    else if (isSigned)                                    \
+      v = PyLong_FromLong((signed)cfg->name());           \
+    else                                                  \
+      v = PyLong_FromUnsignedLong((unsigned)cfg->name()); \
+    if (v) {                                              \
+      PyDict_SetItemString(o,#name,v);                    \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
+
+#define SetDictString(name)                         \
+  { PyObject* s = PyString_FromString(cfg->name()); \
+    PyDict_SetItemString(o,#name,s);                \
+    Py_DECREF(s); }
+
+PyObject* pds_ArchonConfig_get_acf (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==1) {                 
+    const Pds::Archon::ConfigV1* cfg =
+      reinterpret_cast<const Pds::Archon::ConfigV1*>(xtc->payload);
+    return PyString_FromString(cfg->config());
+  } else if (xtc->contains.version()==2) {
+    const Pds::Archon::ConfigV2* cfg =
+      reinterpret_cast<const Pds::Archon::ConfigV2*>(xtc->payload);
+    return PyString_FromString(cfg->config());
+  } else if (xtc->contains.version()==3) {
+    const Pds::Archon::ConfigV3* cfg =
+      reinterpret_cast<const Pds::Archon::ConfigV3*>(xtc->payload);
+    return PyString_FromString(cfg->config());
+  } else {
+    printf("get_acf(): Unsupported ArchonConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+PyObject* pds_ArchonConfig_get (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  
+  int get_acf = 0;
+  if(!PyArg_ParseTuple(args,"|i",&get_acf)) {
+    return NULL;
+  }
+
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+    const Pds::Archon::ConfigV1* cfg =
+      reinterpret_cast<const Pds::Archon::ConfigV1*>(xtc->payload);
+
+    SetDictMember(readoutMode,false,true,false);
+    SetDictMember(sweepCount,false,false,false);
+    SetDictMember(integrationTime,false,false,false);
+    SetDictMember(nonIntegrationTime,false,false,false);
+    SetDictMember(preSkipPixels,false,false,false);
+    SetDictMember(pixels,false,false,false);
+    SetDictMember(postSkipPixels,false,false,false);
+    SetDictMember(overscanPixels,false,false,false);
+    SetDictMember(preSkipLines,false,false,false);
+    SetDictMember(lines,false,false,false);
+    SetDictMember(postSkipLines,false,false,false);
+    SetDictMember(overScanLines,false,false,false);
+    SetDictMember(horizontalBinning,false,false,false);
+    SetDictMember(verticalBinning,false,false,false);
+    SetDictMember(rgh,false,false,false);
+    SetDictMember(rgl,false,false,false);
+    SetDictMember(shp,false,false,false);
+    SetDictMember(shd,false,false,false);
+    SetDictMember(st,false,false,false);
+    SetDictMember(stm1,false,false,false);
+    SetDictMember(at,false,false,false);
+    SetDictMember(dwell1,false,false,false);
+    SetDictMember(dwell2,false,false,false);
+    SetDictMember(rgHigh,false,false,true);
+    SetDictMember(rgLow,false,false,true);
+    SetDictMember(sHigh,false,false,true);
+    SetDictMember(sLow,false,false,true);
+    SetDictMember(aHigh,false,false,true);
+    SetDictMember(aLow,false,false,true);
+    SetDictMember(rgSlew,false,false,true);
+    SetDictMember(sSlew,false,false,true);
+    SetDictMember(aSlew,false,false,true);
+    if (get_acf) {
+      SetDictString(config);
+    }
+
+    return o;
+  } else if (xtc->contains.version()==2) {
+    const Pds::Archon::ConfigV2* cfg =
+      reinterpret_cast<const Pds::Archon::ConfigV2*>(xtc->payload);
+
+    SetDictMember(readoutMode,false,true,false);
+    SetDictMember(exposureEventCode,false,false,false);
+    SetDictMember(configSize,false,false,false);
+    SetDictMember(preFrameSweepCount,false,false,false);
+    SetDictMember(idleSweepCount,false,false,false);
+    SetDictMember(integrationTime,false,false,false);
+    SetDictMember(nonIntegrationTime,false,false,false);
+    SetDictMember(batches,false,false,false);
+    SetDictMember(pixels,false,false,false);
+    SetDictMember(lines,false,false,false);
+    SetDictMember(horizontalBinning,false,false,false);
+    SetDictMember(verticalBinning,false,false,false);
+    SetDictMember(sensorPixels,false,false,false);
+    SetDictMember(sensorLines,false,false,false);
+    SetDictMember(sensorTaps,false,false,false);
+    SetDictMember(st,false,false,false);
+    SetDictMember(stm1,false,false,false);
+    SetDictMember(at,false,false,false);
+    if (get_acf) {
+      SetDictString(config);
+    }
+
+    return o;
+  } else if (xtc->contains.version()==3) {
+    const Pds::Archon::ConfigV3* cfg =
+      reinterpret_cast<const Pds::Archon::ConfigV3*>(xtc->payload);
+
+    SetDictMember(readoutMode,false,true,false);
+    SetDictMember(power,false,true,false);
+    SetDictMember(exposureEventCode,false,false,false);
+    SetDictMember(configSize,false,false,false);
+    SetDictMember(preFrameSweepCount,false,false,false);
+    SetDictMember(idleSweepCount,false,false,false);
+    SetDictMember(integrationTime,false,false,false);
+    SetDictMember(nonIntegrationTime,false,false,false);
+    SetDictMember(batches,false,false,false);
+    SetDictMember(pixels,false,false,false);
+    SetDictMember(lines,false,false,false);
+    SetDictMember(horizontalBinning,false,false,false);
+    SetDictMember(verticalBinning,false,false,false);
+    SetDictMember(sensorPixels,false,false,false);
+    SetDictMember(sensorLines,false,false,false);
+    SetDictMember(sensorTaps,false,false,false);
+    SetDictMember(st,false,false,false);
+    SetDictMember(stm1,false,false,false);
+    SetDictMember(at,false,false,false);
+    SetDictMember(bias,false,true,false);
+    SetDictMember(biasChan,false,true,false);
+    SetDictMember(biasVoltage,true,false,false);
+    SetDictMember(configVersion,false,false,false);
+    if (get_acf) {
+      SetDictString(config);
+    }
+
+    return o;
+  } else {
+    Py_DECREF(o);
+    printf("get(): Unsupported ArchonConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+#undef SetDictMember
+#undef SetDictString
+
+
+//  Retrieve configuration data from a Python Dictionary
+#define GetDictEnum(name,type)                                          \
+  type name;                                                            \
+  { PyObject* i = PyDict_GetItemString(o,#name);                        \
+    if (i) {                                                            \
+      if (PyInt_CheckExact(i))  name = (type) PyInt_AsLong(i);          \
+      else if (PyLong_CheckExact(i)) name = (type) PyLong_AsLong(i);    \
+      else name = (type) cfg->name();                                   \
+    }                                                                   \
+    else name = cfg->name(); }
+
+#define GetDictString(name,updated)               \
+  const char* name;                               \
+  bool updated;                                   \
+  { PyObject* i = PyDict_GetItemString(o,#name);  \
+    if (i && PyString_Check(i)) {                 \
+      name  = PyString_AsString(i);               \
+      updated = true;                             \
+    }                                             \
+    else {                                        \
+      name  = cfg->name();                        \
+      updated = false;                            \
+    }                                             \
+  }
+
+#define GetDictLong(name)                                         \
+  unsigned long name;                                             \
+  { PyObject* i = PyDict_GetItemString(o,#name);                  \
+    if (i) {                                                      \
+      if (PyLong_Check(i)) name = PyLong_AsUnsignedLong(i);       \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);            \
+      else name = cfg->name();                                    \
+    }                                                             \
+    else name = cfg->name(); }
+
+#define GetDictSignedLong(name)                         \
+  long name;                                            \
+  { PyObject* i = PyDict_GetItemString(o,#name);        \
+    if (i) {                                            \
+      if (PyLong_Check(i)) name = PyLong_AsLong(i);     \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);  \
+      else name = cfg->name();                          \
+    }                                                   \
+    else name = cfg->name(); }
+
+#define GetDictFloat(name)                              \
+  double name;                                          \
+  { PyObject* i = PyDict_GetItemString(o,#name);        \
+    if (i) {                                            \
+      if (PyFloat_Check(i)) name = PyFloat_AsDouble(i); \
+      else name = cfg->name();                          \
+    }                                                   \
+    else name = cfg->name(); }
+
+PyObject* pds_ArchonConfig_set (PyObject*   self, PyObject* args)
+{
+  PyObject* o = 0;
+  if (PyArg_ParseTuple(args,"O",&o)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.version()==1) {
+    const Pds::Archon::ConfigV1* cfg =
+      reinterpret_cast<const Pds::Archon::ConfigV1*>(xtc->payload);
+
+    GetDictEnum(readoutMode,Pds::Archon::ConfigV1::ReadoutMode);
+    GetDictLong(sweepCount);
+    GetDictLong(integrationTime);
+    GetDictLong(nonIntegrationTime);
+    GetDictLong(preSkipPixels);
+    GetDictLong(pixels);
+    GetDictLong(postSkipPixels);
+    GetDictLong(overscanPixels);
+    GetDictLong(preSkipLines);
+    GetDictLong(lines);
+    GetDictLong(postSkipLines);
+    GetDictLong(overScanLines);
+    GetDictLong(horizontalBinning);
+    GetDictLong(verticalBinning);
+    GetDictLong(rgh);
+    GetDictLong(rgl);
+    GetDictLong(shp);
+    GetDictLong(shd);
+    GetDictLong(st);
+    GetDictLong(stm1);
+    GetDictLong(at);
+    GetDictLong(dwell1);
+    GetDictLong(dwell2);
+    GetDictSignedLong(rgHigh);
+    GetDictSignedLong(rgLow);
+    GetDictSignedLong(sHigh);
+    GetDictSignedLong(sLow);
+    GetDictSignedLong(aHigh);
+    GetDictSignedLong(aLow);
+    GetDictSignedLong(rgSlew);
+    GetDictSignedLong(sSlew);
+    GetDictSignedLong(aSlew);
+
+    GetDictString(config,new_acf);
+
+    if (new_acf) {
+      size_t sz = strlen(config) + 1;
+      if (sz > Pds::Archon::ConfigV1::FILENAME_CHAR_MAX) {
+        printf("set(): config size of %zu is larger than max of %d - name will be truncated!\n", sz, Pds::Archon::ConfigV1::FILENAME_CHAR_MAX);
+      }
+    }
+
+    new(xtc->payload) Pds::Archon::ConfigV1(readoutMode,
+                                            (uint16_t) sweepCount,
+                                            (uint32_t) integrationTime,
+                                            (uint32_t) nonIntegrationTime,
+                                            (uint32_t) preSkipPixels,
+                                            (uint32_t) pixels,
+                                            (uint32_t) postSkipPixels,
+                                            (uint32_t) overscanPixels,
+                                            (uint16_t) preSkipLines,
+                                            (uint16_t) lines,
+                                            (uint16_t) postSkipLines,
+                                            (uint16_t) overScanLines,
+                                            (uint16_t) horizontalBinning,
+                                            (uint16_t) verticalBinning,
+                                            (uint16_t) rgh,
+                                            (uint16_t) rgl,
+                                            (uint16_t) shp,
+                                            (uint16_t) shd,
+                                            (uint16_t) st,
+                                            (uint16_t) stm1,
+                                            (uint16_t) at,
+                                            (uint16_t) dwell1,
+                                            (uint16_t) dwell2,
+                                            (int16_t) rgHigh,
+                                            (int16_t) rgLow,
+                                            (int16_t) sHigh,
+                                            (int16_t) sLow,
+                                            (int16_t) aHigh,
+                                            (int16_t) aLow,
+                                            (int16_t) rgSlew,
+                                            (int16_t) sSlew,
+                                            (int16_t) aSlew,
+                                            config);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  } else if (xtc->contains.version()==2) {
+    const Pds::Archon::ConfigV2* cfg =
+      reinterpret_cast<const Pds::Archon::ConfigV2*>(xtc->payload);
+
+    GetDictEnum(readoutMode,Pds::Archon::ConfigV2::ReadoutMode);
+    GetDictLong(exposureEventCode);
+    GetDictLong(preFrameSweepCount);
+    GetDictLong(idleSweepCount);
+    GetDictLong(integrationTime);
+    GetDictLong(nonIntegrationTime);
+    GetDictLong(batches);
+    GetDictLong(pixels);
+    GetDictLong(lines);
+    GetDictLong(horizontalBinning);
+    GetDictLong(verticalBinning);
+    GetDictLong(sensorPixels);
+    GetDictLong(sensorLines);
+    GetDictLong(sensorTaps);
+    GetDictLong(st);
+    GetDictLong(stm1);
+    GetDictLong(at);
+    GetDictString(config,new_acf);
+
+    uint32_t configSize = cfg->configSize();
+    if (new_acf) {
+      configSize = strlen(config) + 1;
+
+      // Make an empty config on the stack to test size
+      Pds::Archon::ConfigV2 test_cfg(configSize);
+      size_t sz = test_cfg._sizeof();
+
+      // Re-alloc the space for the xtc
+      if (xtc->extent != sz) {
+        delete[] xtc->payload;
+        xtc->extent = sz;
+        xtc->payload = new char[sz];
+      }
+    }
+
+    new(xtc->payload) Pds::Archon::ConfigV2(readoutMode,
+                                            (uint16_t) exposureEventCode,
+                                            (uint32_t) configSize,
+                                            (uint32_t) preFrameSweepCount,
+                                            (uint32_t) idleSweepCount,
+                                            (uint32_t) integrationTime,
+                                            (uint32_t) nonIntegrationTime,
+                                            (uint32_t) batches,
+                                            (uint32_t) pixels,
+                                            (uint32_t) lines,
+                                            (uint32_t) horizontalBinning,
+                                            (uint32_t) verticalBinning,
+                                            (uint32_t) sensorPixels,
+                                            (uint32_t) sensorLines,
+                                            (uint32_t) sensorTaps,
+                                            (uint32_t) st,
+                                            (uint32_t) stm1,
+                                            (uint32_t) at,
+                                            config);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  } else if (xtc->contains.version()==3) {
+    const Pds::Archon::ConfigV3* cfg =
+      reinterpret_cast<const Pds::Archon::ConfigV3*>(xtc->payload);
+
+    GetDictEnum(readoutMode,Pds::Archon::ConfigV3::ReadoutMode);
+    GetDictEnum(power,Pds::Archon::ConfigV3::Switch);
+    GetDictLong(exposureEventCode);
+    GetDictLong(preFrameSweepCount);
+    GetDictLong(idleSweepCount);
+    GetDictLong(integrationTime);
+    GetDictLong(nonIntegrationTime);
+    GetDictLong(batches);
+    GetDictLong(pixels);
+    GetDictLong(lines);
+    GetDictLong(horizontalBinning);
+    GetDictLong(verticalBinning);
+    GetDictLong(sensorPixels);
+    GetDictLong(sensorLines);
+    GetDictLong(sensorTaps);
+    GetDictLong(st);
+    GetDictLong(stm1);
+    GetDictLong(at);
+    GetDictEnum(bias,Pds::Archon::ConfigV3::Switch);
+    GetDictEnum(biasChan,Pds::Archon::ConfigV3::BiasChannelId);
+    GetDictFloat(biasVoltage);
+    GetDictString(config,new_acf);
+    
+    uint32_t configSize = cfg->configSize();
+    uint32_t configVersion = cfg->configVersion();
+    if (new_acf) {
+      configSize = strlen(config) + 1;
+      configVersion++;
+
+      // Make an empty config on the stack to test size
+      Pds::Archon::ConfigV3 test_cfg(configSize);
+      size_t sz = test_cfg._sizeof();
+
+      // Re-alloc the space for the xtc
+      if (xtc->extent != sz) {
+        delete[] xtc->payload;
+        xtc->extent = sz;
+        xtc->payload = new char[sz];
+      }
+    }
+
+    new(xtc->payload) Pds::Archon::ConfigV3(readoutMode,
+                                            power,
+                                            (uint16_t) exposureEventCode,
+                                            (uint32_t) configSize,
+                                            (uint32_t) preFrameSweepCount,
+                                            (uint32_t) idleSweepCount,
+                                            (uint32_t) integrationTime,
+                                            (uint32_t) nonIntegrationTime,
+                                            (uint32_t) batches,
+                                            (uint32_t) pixels,
+                                            (uint32_t) lines,
+                                            (uint32_t) horizontalBinning,
+                                            (uint32_t) verticalBinning,
+                                            (uint32_t) sensorPixels,
+                                            (uint32_t) sensorLines,
+                                            (uint32_t) sensorTaps,
+                                            (uint32_t) st,
+                                            (uint32_t) stm1,
+                                            (uint32_t) at,
+                                            bias,
+                                            biasChan,
+                                            biasVoltage,
+                                            (uint32_t) configVersion,
+                                            config);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  } else {
+    printf("set(): Unsupported ArchonConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+#undef GetDictEnum
+#undef GetDictString
+#undef GetDictLong
+#undef GetDictSignedLong
+#undef GetDictFloat
