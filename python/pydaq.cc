@@ -689,8 +689,11 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
   pdsdaq*   daq      = (pdsdaq*)self;
 
   if (daq->state >= Running) {
-    PyObject* o = pdsdaq_end(self);
-    if (o == NULL) return o;
+    PyObject* o = pdsdaq_clear(self);
+    if (o == NULL) {
+      PyErr_SetString(PyExc_RuntimeError,"Already running");
+      return o;
+    }
     Py_DECREF(o);
   }
 
@@ -875,7 +878,7 @@ PyObject* pdsdaq_end      (PyObject* self)
 PyObject* pdsdaq_stop     (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
-  if (daq->state >= Open) {
+  if (daq->state >= Running) {
     char* buff = new char[MaxConfigSize];
     ControlConfigType* cfg = Pds::ControlConfig::_new(buff,
                                                       list<PVControl>(),
@@ -884,18 +887,19 @@ PyObject* pdsdaq_stop     (PyObject* self)
                                                       EndCalibTime);
     ::write(daq->socket, buff, cfg->_sizeof());
     delete[] buff;
+
+    daq->state = Open;
+    return pdsdaq_rcv(self);
+  } else {
+    Py_INCREF(Py_None);
+    return Py_None;
   }
-
-  daq->state = Open;
-
-  Py_INCREF(Py_None);
-  return Py_None;
 }
 
 PyObject* pdsdaq_endrun   (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
-  if (daq->state >= Configured) {
+  if (daq->state >= Open) {
     char* buff = new char[MaxConfigSize];
     ControlConfigType* cfg = Pds::ControlConfig::_new(buff,
                                                       list<PVControl>(),
@@ -905,11 +909,19 @@ PyObject* pdsdaq_endrun   (PyObject* self)
     ::write(daq->socket, buff, cfg->_sizeof());
     delete[] buff;
 
-    daq->state = Configured;
+    // If we are running wait for the end Calib cycle otherwise just return
+    if (daq->state >= Running) {
+      daq->state = Configured;
+      return pdsdaq_rcv(self);
+    } else {
+      daq->state = Configured;
+      Py_INCREF(Py_None);
+      return Py_None;
+    }
+  } else {
+    Py_INCREF(Py_None);
+    return Py_None;
   }
-
-  Py_INCREF(Py_None);
-  return Py_None;
 }
 
 PyObject* pdsdaq_eventnum(PyObject* self)
