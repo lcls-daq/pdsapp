@@ -28,6 +28,7 @@ using Pds::RemoteNode;
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <string.h>
+#include <poll.h>
 #include <sstream>
 using std::ostringstream;
 
@@ -62,35 +63,105 @@ static PyObject* pdsdaq_connect  (PyObject* self);
 static PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_end      (PyObject* self);
+static PyObject* pdsdaq_wait     (PyObject* self);
 static PyObject* pdsdaq_stop     (PyObject* self);
 static PyObject* pdsdaq_endrun   (PyObject* self);
 static PyObject* pdsdaq_eventnum (PyObject* self);
 static PyObject* pdsdaq_l3eventnum(PyObject* self);
 static PyObject* pdsdaq_state    (PyObject* self);
-static PyObject* pdsdaq_rcv      (PyObject* self);
+static PyObject* pdsdaq_rcv      (PyObject* self, int state, bool interrupt=false);
 static PyObject* pdsdaq_clear    (PyObject* self);
+#ifdef WITH_THREAD
+static PyObject* pdsdaq_blocking (PyObject* self);
+#endif
+static bool      pdsdaq_lock     (PyObject* self, bool interrupt=true);
+static void      pdsdaq_unlock   (PyObject* self);
+//
+//  pdsdaq class methods (thread safe versions)
+//
+#define WRAP_FUNC(function)                                       \
+static PyObject* function ## _wrap (PyObject* self)               \
+{                                                                 \
+  if (pdsdaq_lock(self)) {                                        \
+    PyObject* o = function(self);                                 \
+    pdsdaq_unlock(self);                                          \
+    return o;                                                     \
+  } else {                                                        \
+    PyErr_SetString(PyExc_RuntimeError,"Unable to obtain lock!"); \
+    return NULL;                                                  \
+  }                                                               \
+}
+
+#define WRAP_FUNC_WAIT(function)                                  \
+static PyObject* function ## _wrap (PyObject* self)               \
+{                                                                 \
+  pdsdaq* daq = (pdsdaq*)self;                                    \
+  if (pdsdaq_lock(self, false)) {                                 \
+    daq->waiting++;                                               \
+    PyObject* o = function(self);                                 \
+    if (--daq->waiting < 0)                                       \
+      daq->waiting = 0;                                           \
+    pdsdaq_unlock(self);                                          \
+    return o;                                                     \
+  } else {                                                        \
+    PyErr_SetString(PyExc_RuntimeError,"Unable to obtain lock!"); \
+    return NULL;                                                  \
+  }                                                               \
+}
+
+#define WRAP_FUNC_ARGS(function)                                                    \
+static PyObject* function ## _wrap (PyObject* self, PyObject* args, PyObject* kwds) \
+{                                                                                   \
+  if (pdsdaq_lock(self)) {                                                          \
+    PyObject* o = function(self, args, kwds);                                       \
+    pdsdaq_unlock(self);                                                            \
+    return o;                                                                       \
+  } else {                                                                          \
+    PyErr_SetString(PyExc_RuntimeError,"Unable to obtain lock!");                   \
+    return NULL;                                                                    \
+  }                                                                                 \
+}
+
+WRAP_FUNC_ARGS(pdsdaq_configure);
+WRAP_FUNC_ARGS(pdsdaq_begin);
+WRAP_FUNC_WAIT(pdsdaq_end);
+WRAP_FUNC_WAIT(pdsdaq_wait);
+WRAP_FUNC(pdsdaq_stop);
+WRAP_FUNC(pdsdaq_endrun);
+WRAP_FUNC(pdsdaq_eventnum);
+WRAP_FUNC(pdsdaq_l3eventnum);
+WRAP_FUNC(pdsdaq_connect);
+WRAP_FUNC(pdsdaq_disconnect);
+WRAP_FUNC(pdsdaq_state);
+#undef WRAP_FUNC
+#undef WRAP_FUNC_WAIT
+#undef WRAP_FUNC_ARGS
 
 static PyMethodDef pdsdaq_methods[] = {
-  {"dbpath"    , (PyCFunction)pdsdaq_dbpath    , METH_NOARGS  , "Get database path"},
-  {"dbalias"   , (PyCFunction)pdsdaq_dbalias   , METH_NOARGS  , "Get database alias"},
-  {"dbkey"     , (PyCFunction)pdsdaq_dbkey     , METH_NOARGS  , "Get database key"},
-  {"partition" , (PyCFunction)pdsdaq_partition , METH_NOARGS  , "Get partition"},
-  {"record"    , (PyCFunction)pdsdaq_record    , METH_NOARGS  , "Get record status"},
-  {"runnumber" , (PyCFunction)pdsdaq_runnum    , METH_NOARGS  , "Get run number"},
-  {"experiment", (PyCFunction)pdsdaq_expt      , METH_NOARGS  , "Get experiment number"},
-  {"detectors" , (PyCFunction)pdsdaq_detectors , METH_NOARGS  , "Get the detector names"},
-  {"devices"   , (PyCFunction)pdsdaq_devices   , METH_NOARGS  , "Get the device names"},
-  {"types"     , (PyCFunction)pdsdaq_types     , METH_NOARGS  , "Get the type names"},
-  {"configure" , (PyCFunction)pdsdaq_configure , METH_VARARGS|METH_KEYWORDS, "Configure the scan"},
-  {"begin"     , (PyCFunction)pdsdaq_begin     , METH_VARARGS|METH_KEYWORDS, "Configure the cycle"},
-  {"end"       , (PyCFunction)pdsdaq_end       , METH_NOARGS  , "Wait for the cycle end"},
-  {"stop"      , (PyCFunction)pdsdaq_stop      , METH_NOARGS  , "End the current cycle"},
-  {"endrun"    , (PyCFunction)pdsdaq_endrun    , METH_NOARGS  , "End the current run"},
-  {"eventnum"  , (PyCFunction)pdsdaq_eventnum  , METH_NOARGS  , "Get current event number"},
-  {"l3eventnum", (PyCFunction)pdsdaq_l3eventnum, METH_NOARGS  , "Get current l3pass event number"},
-  {"connect"   , (PyCFunction)pdsdaq_connect   , METH_NOARGS  , "Connect to control"},
-  {"disconnect", (PyCFunction)pdsdaq_disconnect, METH_NOARGS  , "Disconnect from control"},
-  {"state"     , (PyCFunction)pdsdaq_state     , METH_NOARGS  , "Get the control state"},
+  {"dbpath"    , (PyCFunction)pdsdaq_dbpath         , METH_NOARGS  , "Get database path"},
+  {"dbalias"   , (PyCFunction)pdsdaq_dbalias        , METH_NOARGS  , "Get database alias"},
+  {"dbkey"     , (PyCFunction)pdsdaq_dbkey          , METH_NOARGS  , "Get database key"},
+  {"partition" , (PyCFunction)pdsdaq_partition      , METH_NOARGS  , "Get partition"},
+  {"record"    , (PyCFunction)pdsdaq_record         , METH_NOARGS  , "Get record status"},
+  {"runnumber" , (PyCFunction)pdsdaq_runnum         , METH_NOARGS  , "Get run number"},
+  {"experiment", (PyCFunction)pdsdaq_expt           , METH_NOARGS  , "Get experiment number"},
+  {"detectors" , (PyCFunction)pdsdaq_detectors      , METH_NOARGS  , "Get the detector names"},
+  {"devices"   , (PyCFunction)pdsdaq_devices        , METH_NOARGS  , "Get the device names"},
+  {"types"     , (PyCFunction)pdsdaq_types          , METH_NOARGS  , "Get the type names"},
+  {"configure" , (PyCFunction)pdsdaq_configure_wrap , METH_VARARGS|METH_KEYWORDS, "Configure the scan"},
+  {"begin"     , (PyCFunction)pdsdaq_begin_wrap     , METH_VARARGS|METH_KEYWORDS, "Configure the cycle"},
+  {"end"       , (PyCFunction)pdsdaq_end_wrap       , METH_NOARGS  , "Wait for the cycle end"},
+  {"wait"      , (PyCFunction)pdsdaq_wait_wrap      , METH_NOARGS  , "Wait for the cycle end"},
+  {"stop"      , (PyCFunction)pdsdaq_stop_wrap      , METH_NOARGS  , "End the current cycle"},
+  {"endrun"    , (PyCFunction)pdsdaq_endrun_wrap    , METH_NOARGS  , "End the current run"},
+  {"eventnum"  , (PyCFunction)pdsdaq_eventnum_wrap  , METH_NOARGS  , "Get current event number"},
+  {"l3eventnum", (PyCFunction)pdsdaq_l3eventnum_wrap, METH_NOARGS  , "Get current l3pass event number"},
+  {"connect"   , (PyCFunction)pdsdaq_connect_wrap   , METH_NOARGS  , "Connect to control"},
+  {"disconnect", (PyCFunction)pdsdaq_disconnect_wrap, METH_NOARGS  , "Disconnect from control"},
+  {"state"     , (PyCFunction)pdsdaq_state_wrap     , METH_NOARGS  , "Get the control state"},
+#ifdef WITH_THREAD
+  {"blocking"  , (PyCFunction)pdsdaq_blocking       , METH_NOARGS , "Get blocking enabled status"},
+#endif
   {NULL},
 };
 
@@ -159,6 +230,13 @@ void pdsdaq_dealloc(pdsdaq* self)
     delete[] self->buffer;
   }
 
+#ifdef WITH_THREAD
+  if (self->lock) {
+    PyThread_free_lock(self->lock);
+    self->lock = NULL;
+  }
+#endif
+
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -180,6 +258,12 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
     self->buffer   = new char[MaxConfigSize];
     self->exptnum  = -1;
     self->runnum   = -1;
+    self->waiting  = 0;
+    self->pending  = 0;
+#ifdef WITH_THREAD
+    self->blocking = true;
+    self->lock     = NULL;
+#endif
   }
 
   return (PyObject*)self;
@@ -187,14 +271,15 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
 
 int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
 {
-  const char* kwlist[] = {"host","platform",NULL};
+  const char* kwlist[] = {"host","platform","blocking",NULL};
   unsigned    addr  = 0;
   const char* host  = 0;
   unsigned    platform = 0;
+  PyObject*   blocking = NULL;
 
   while(1) {
-    if (PyArg_ParseTupleAndKeywords(args,kwds,"s|I",const_cast<char**>(kwlist),
-                                    &host,&platform)) {
+    if (PyArg_ParseTupleAndKeywords(args,kwds,"s|IO",const_cast<char**>(kwlist),
+                                    &host,&platform,&blocking)) {
 
       hostent* entries = gethostbyname(host);
       if (entries) {
@@ -202,8 +287,8 @@ int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
         break;
       }
     }
-    if (PyArg_ParseTupleAndKeywords(args,kwds,"I|i",const_cast<char**>(kwlist),
-                                    &addr,&platform)) {
+    if (PyArg_ParseTupleAndKeywords(args,kwds,"I|iO",const_cast<char**>(kwlist),
+                                    &addr,&platform,&blocking)) {
       break;
     }
 
@@ -215,6 +300,23 @@ int pdsdaq_init(pdsdaq* self, PyObject* args, PyObject* kwds)
   self->addr     = addr;
   self->platform = platform;
   self->socket   = -1;
+
+  if (::pipe(self->signal) < 0) {
+    PyErr_SetFromErrno(PyExc_OSError);
+    return -1;
+  }
+
+#ifdef WITH_THREAD
+  if (blocking) {
+    self->blocking = PyObject_IsTrue(blocking);
+  }
+  self->lock = PyThread_allocate_lock();
+  if (self->lock == NULL) {
+    PyErr_SetString(PyExc_MemoryError, "Unable to allocate thread lock.");
+    return -1;
+  }
+#endif
+
   return 0;
 }
 
@@ -677,11 +779,9 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
     return NULL;
   }
 
-  daq->state = Configured;
-
   ::write(daq->socket,daq->buffer,cfg->_sizeof());
 
-  return pdsdaq_rcv(self);
+  return pdsdaq_rcv(self, Configured);
 }
 
 PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
@@ -859,25 +959,37 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
 
   ::write(daq->socket,daq->buffer,cfg->_sizeof());
 
-  daq->state = Running;
-  return pdsdaq_rcv(self);
+  return pdsdaq_rcv(self, Running);
 }
 
 PyObject* pdsdaq_end      (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
+
   if (daq->state != Running) {
     PyErr_SetString(PyExc_RuntimeError,"Not running(begin)");
     return NULL;
   }
 
-  daq->state = Open;
-  return pdsdaq_rcv(self);
+  return pdsdaq_rcv(self, Open, true);
+}
+
+PyObject* pdsdaq_wait      (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+
+  if (daq->state != Running) {
+    Py_INCREF(Py_None);
+      return Py_None;
+  }
+
+  return pdsdaq_rcv(self, Open, true);
 }
 
 PyObject* pdsdaq_stop     (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
+
   if (daq->state >= Running) {
     char* buff = new char[MaxConfigSize];
     ControlConfigType* cfg = Pds::ControlConfig::_new(buff,
@@ -888,8 +1000,7 @@ PyObject* pdsdaq_stop     (PyObject* self)
     ::write(daq->socket, buff, cfg->_sizeof());
     delete[] buff;
 
-    daq->state = Open;
-    return pdsdaq_rcv(self);
+    return pdsdaq_rcv(self, Open);
   } else {
     Py_INCREF(Py_None);
     return Py_None;
@@ -911,8 +1022,7 @@ PyObject* pdsdaq_endrun   (PyObject* self)
 
     // If we are running wait for the end Calib cycle otherwise just return
     if (daq->state >= Running) {
-      daq->state = Configured;
-      return pdsdaq_rcv(self);
+      return pdsdaq_rcv(self, Configured);
     } else {
       daq->state = Configured;
       Py_INCREF(Py_None);
@@ -1010,15 +1120,60 @@ PyObject* pdsdaq_state(PyObject* self)
   return PyInt_FromLong(daq->state);
 }
 
-PyObject* pdsdaq_rcv      (PyObject* self)
+PyObject* pdsdaq_rcv      (PyObject* self, int state, bool interrupt)
 {
   pdsdaq* daq = (pdsdaq*)self;
   Pds::RemoteSeqResponse result;
   int s = daq->socket;
-  int r;
-  Py_BEGIN_ALLOW_THREADS
-  r = ::recv(s,&result,sizeof(result),MSG_WAITALL);
-  Py_END_ALLOW_THREADS
+  int sig = daq->signal[0];
+  int r = -1;
+  int rsig = 0;
+  int msg = 0;
+  if (interrupt) { // this receive can be interrupted by request
+    bool wait = true;
+    struct pollfd pfds[] = {
+      { s,    POLLIN, 0 },
+      { sig,  POLLIN, 0 },
+    };
+    struct timespec sleep_time = {0, 100000}; // 100 us
+    do {
+      while (daq->pending) {
+        pdsdaq_unlock(self);
+        Py_BEGIN_ALLOW_THREADS
+        nanosleep(&sleep_time, NULL);
+        Py_END_ALLOW_THREADS
+        pdsdaq_lock(self, false);
+      }
+      // if someone else got our transition just exit
+      if (daq->state <= state) {
+        Py_INCREF(Py_None);
+        return Py_None;
+      }
+      Py_BEGIN_ALLOW_THREADS
+      if (::poll(pfds, (nfds_t) (sizeof(pfds)/sizeof(struct pollfd)), -1) < 0) {
+        wait = false;
+      } else {
+        for (unsigned n=0; n<(sizeof(pfds)/sizeof(struct pollfd)); n++) {
+          if (pfds[n].revents & POLLIN) {
+            if (pfds[n].fd == s) {
+              r = ::recv(s,&result,sizeof(result),MSG_WAITALL);
+              wait = false;
+            } else if (pfds[n].fd == sig) {
+              rsig = ::read(sig,&msg,sizeof(msg));
+              if (rsig != sizeof(msg) || msg) {
+                wait = false;
+              }
+            }
+          }
+        }
+      }
+      Py_END_ALLOW_THREADS
+    } while (wait);
+  } else {
+    Py_BEGIN_ALLOW_THREADS
+    r = ::recv(s,&result,sizeof(result),MSG_WAITALL);
+    Py_END_ALLOW_THREADS
+  }
   if (r<0) {
     PyErr_SetString(PyExc_ValueError,"pdsdaq_rcv interrupted");
     return NULL;
@@ -1040,11 +1195,20 @@ PyObject* pdsdaq_rcv      (PyObject* self)
   else {
     daq->exptnum = result.exptnum();
     daq->runnum  = result.runnum ();
+    daq->state   = state;
   }
 
   Py_INCREF(Py_None);
   return Py_None;
 }
+
+#ifdef WITH_THREAD
+PyObject* pdsdaq_blocking (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  return PyBool_FromLong(daq->blocking);
+}
+#endif
 
 PyObject* pdsdaq_clear    (PyObject* self)
 {
@@ -1060,10 +1224,47 @@ PyObject* pdsdaq_clear    (PyObject* self)
   if (nb < 0) {
     return NULL; // nothing left to read
   } else if (daq->state >= Running) {
-    return pdsdaq_end(self);  
+    return pdsdaq_rcv(self, Open);
   } else {
-    return pdsdaq_rcv(self);
+    return pdsdaq_rcv(self, daq->state);
   }
+}
+
+bool pdsdaq_lock    (PyObject* self, bool interrupt)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+#ifdef WITH_THREAD
+  if (! PyThread_acquire_lock(daq->lock, NOWAIT_LOCK)) {
+    if (daq->blocking) {
+      int rc;
+      if (interrupt && (daq->waiting)) {
+        if (daq->pending++ == 0) {
+          int msg = 0;
+          ::write(daq->signal[1], &msg, sizeof(msg));
+        }
+      }
+      Py_BEGIN_ALLOW_THREADS
+      rc = PyThread_acquire_lock(daq->lock, WAIT_LOCK);
+      Py_END_ALLOW_THREADS
+      if (interrupt) {
+        if (--daq->pending < 0)
+          daq->pending = 0;
+      }
+      return rc;
+    } else {
+      return false;
+    }
+  }
+#endif
+  return true;
+}
+
+void pdsdaq_unlock  (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+#ifdef WITH_THREAD
+  PyThread_release_lock(daq->lock);
+#endif
 }
 
 //
