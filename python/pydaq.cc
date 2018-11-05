@@ -223,6 +223,12 @@ void pdsdaq_dealloc(pdsdaq* self)
     ::close(self->socket);
   }
 
+  for (unsigned i=0; i<(sizeof(self->signal)/sizeof(int)); i++) {
+    if (self->signal[i] >= 0) {
+      ::close(self->signal[i]);
+    }
+  }
+
   if (self->buffer) {
     delete[] self->dbpath;
     delete[] self->dbalias;
@@ -260,6 +266,9 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
     self->runnum   = -1;
     self->waiting  = 0;
     self->pending  = 0;
+    for (unsigned i=0; i<(sizeof(self->signal)/sizeof(int)); i++) {
+      self->signal[i] = -1;
+    }
 #ifdef WITH_THREAD
     self->blocking = true;
     self->lock     = NULL;
@@ -655,34 +664,36 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
   PyObject* labels   = 0;
   PyObject* partition= 0;
 
-  PyObject* keys = PyDict_Keys  (kwds);
-  PyObject* vals = PyDict_Values(kwds);
-  for(int i=0; i<PyList_Size(keys); i++) {
-    const char* name = PyString_AsString(PyList_GetItem(keys,i));
-    PyObject* obj = PyList_GetItem(vals,i);
-    if (strcmp("key"     ,name)==0) {
-      if (!ParseInt (obj,key   ,"key"   )) return NULL;
-    }
-    else if (strcmp("events"  ,name)==0) {
-      if (!ParseInt (obj,l1t_events,"events")) return NULL;
-    }
-    else if (strcmp("l1t_events"  ,name)==0) {
-      if (!ParseInt (obj,l1t_events,"l1t_events")) return NULL;
-    }
-    else if (strcmp("l3t_events"  ,name)==0) {
-      if (!ParseInt (obj,l3t_events,"l3t_events")) return NULL;
-    }
-    else if (strcmp("record"  ,name)==0)  record  =obj;
-    else if (strcmp("duration",name)==0)  duration=obj;
-    else if (strcmp("controls",name)==0)  controls=obj;
-    else if (strcmp("monitors",name)==0)  monitors=obj;
-    else if (strcmp("labels"  ,name)==0)  labels  =obj;
-    else if (strcmp("partition",name)==0) partition=obj;
-    else {
-      ostringstream o;
-      o << name << " is not a valid keyword";
-      PyErr_SetString(PyExc_TypeError,o.str().c_str());
-      return NULL;
+  if (kwds) { // No kwargs is null instead of 'empty' dict
+    PyObject* keys = PyDict_Keys  (kwds);
+    PyObject* vals = PyDict_Values(kwds);
+    for(int i=0; i<PyList_Size(keys); i++) {
+      const char* name = PyString_AsString(PyList_GetItem(keys,i));
+      PyObject* obj = PyList_GetItem(vals,i);
+      if (strcmp("key"     ,name)==0) {
+        if (!ParseInt (obj,key   ,"key"   )) return NULL;
+      }
+      else if (strcmp("events"  ,name)==0) {
+        if (!ParseInt (obj,l1t_events,"events")) return NULL;
+      }
+      else if (strcmp("l1t_events"  ,name)==0) {
+        if (!ParseInt (obj,l1t_events,"l1t_events")) return NULL;
+      }
+      else if (strcmp("l3t_events"  ,name)==0) {
+        if (!ParseInt (obj,l3t_events,"l3t_events")) return NULL;
+      }
+      else if (strcmp("record"  ,name)==0)  record  =obj;
+      else if (strcmp("duration",name)==0)  duration=obj;
+      else if (strcmp("controls",name)==0)  controls=obj;
+      else if (strcmp("monitors",name)==0)  monitors=obj;
+      else if (strcmp("labels"  ,name)==0)  labels  =obj;
+      else if (strcmp("partition",name)==0) partition=obj;
+      else {
+        ostringstream o;
+        o << name << " is not a valid keyword";
+        PyErr_SetString(PyExc_TypeError,o.str().c_str());
+        return NULL;
+      }
     }
   }
 
@@ -721,6 +732,8 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
       printf("partition list size (%zd) does not match original size (%d).\nPartition unchanged.\n",
        PyList_Size(nodes),daq->partition->nodes());
       PyErr_SetString(PyExc_RuntimeError,"Partition size changed.");
+      // Half configuring leaves the DAQ in a strange state so disconnect to go to unconfigured!
+      Py_DECREF(pdsdaq_disconnect(self));
       return NULL;
     }
     else {
@@ -776,6 +789,8 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
   }
   else {
     PyErr_SetString(PyExc_RuntimeError,"Configuration lacks duration or events input.");
+    // Half configuring leaves the DAQ in a strange state so disconnect to go to unconfigured!
+    Py_DECREF(pdsdaq_disconnect(self));
     return NULL;
   }
 
@@ -809,29 +824,31 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
   PyObject* monitors = 0;
   PyObject* labels   = 0;
 
-  PyObject* keys = PyDict_Keys  (kwds);
-  PyObject* vals = PyDict_Values(kwds);
-  for(int i=0; i<PyList_Size(keys); i++) {
-    const char* name = PyString_AsString(PyList_GetItem(keys,i));
-    PyObject* obj = PyList_GetItem(vals,i);
-    if (strcmp("events"  ,name)==0) {
-      if (!ParseInt (obj,l1t_events,"events")) return NULL;
-    }
-    else if (strcmp("l1t_events",name)==0) {
-      if (!ParseInt (obj,l1t_events,"l1t_events")) return NULL;
-    }
-    else if (strcmp("l3t_events",name)==0) {
-      if (!ParseInt (obj,l3t_events,"l3t_events")) return NULL;
-    }
-    else if (strcmp("duration",name)==0)  duration=obj;
-    else if (strcmp("controls",name)==0)  controls=obj;
-    else if (strcmp("monitors",name)==0)  monitors=obj;
-    else if (strcmp("labels"  ,name)==0)  labels  =obj;
-    else {
-      ostringstream o;
-      o << name << " is not a valid keyword";
-      PyErr_SetString(PyExc_TypeError,o.str().c_str());
-      return NULL;
+  if (kwds) { // No kwargs is null instead of 'empty' dict
+    PyObject* keys = PyDict_Keys  (kwds);
+    PyObject* vals = PyDict_Values(kwds);
+    for(int i=0; i<PyList_Size(keys); i++) {
+      const char* name = PyString_AsString(PyList_GetItem(keys,i));
+      PyObject* obj = PyList_GetItem(vals,i);
+      if (strcmp("events"  ,name)==0) {
+        if (!ParseInt (obj,l1t_events,"events")) return NULL;
+      }
+      else if (strcmp("l1t_events",name)==0) {
+        if (!ParseInt (obj,l1t_events,"l1t_events")) return NULL;
+      }
+      else if (strcmp("l3t_events",name)==0) {
+        if (!ParseInt (obj,l3t_events,"l3t_events")) return NULL;
+      }
+      else if (strcmp("duration",name)==0)  duration=obj;
+      else if (strcmp("controls",name)==0)  controls=obj;
+      else if (strcmp("monitors",name)==0)  monitors=obj;
+      else if (strcmp("labels"  ,name)==0)  labels  =obj;
+      else {
+        ostringstream o;
+        o << name << " is not a valid keyword";
+        PyErr_SetString(PyExc_TypeError,o.str().c_str());
+        return NULL;
+      }
     }
   }
 
