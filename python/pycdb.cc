@@ -24,6 +24,7 @@
 #include "pdsapp/python/Epix100aConfig.icc"
 #include "pdsapp/python/Epix10kaConfig.icc"
 #include "pdsapp/python/Epix10ka2MConfig.icc"
+#include "pdsapp/python/Epix10kaQuadConfig.icc"
 #include "pdsapp/python/IpmFexConfig.icc"
 #include "pdsapp/python/IpimbConfig.icc"
 #include "pdsapp/python/PrincetonConfig.icc"
@@ -102,6 +103,9 @@ DECLARE_INIT(pycdb)
     INITERROR;
 
   if (PyType_Ready(&pds_Epix10ka2MConfig_type) < 0)
+    INITERROR;
+
+  if (PyType_Ready(&pds_Epix10kaQuadConfig_type) < 0)
     INITERROR;
 
  if (PyType_Ready(&pds_IpmFexConfig_type) < 0)
@@ -192,6 +196,9 @@ DECLARE_INIT(pycdb)
 
   Py_INCREF(&pds_Epix10ka2MConfig_type);
   PyModule_AddObject(m, "Epix10ka2MConfig", (PyObject*)&pds_Epix10ka2MConfig_type);
+
+  Py_INCREF(&pds_Epix10kaQuadConfig_type);
+  PyModule_AddObject(m, "Epix10kaQuadConfig", (PyObject*)&pds_Epix10kaQuadConfig_type);
 
   Py_INCREF(&pds_IpmFexConfig_type);
   PyModule_AddObject(m, "IpmFexConfig", (PyObject*)&pds_IpmFexConfig_type);

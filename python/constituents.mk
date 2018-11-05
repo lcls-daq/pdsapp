@@ -36,6 +36,7 @@ liblibs_py3daq += pdsdata/xtcdata pdsdata/psddl_pdsdata pds/configdata
 libslib_py3daq := $(USRLIBDIR)/rt
 
 libsrcs_pymonshm := pymonshm.cc
+libsrcs_pymonshm += FrameProcessor.cc NullProcessor.cc Epix100aProcessor.cc Epix10kaProcessor.cc
 libincs_pymonshm := python3/include/python3.6m
 libincs_pymonshm += pdsdata/include ndarray/include boost/include
 liblibs_pymonshm += pdsdata/appdata pdsdata/xtcdata pdsdata/psddl_pdsdata

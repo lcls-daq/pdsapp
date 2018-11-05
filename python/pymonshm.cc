@@ -9,7 +9,13 @@
 #include <Python.h>
 #include <structmember.h>
 #include "p3compat.h"
+
 #include "pdsapp/python/pymonshm.hh"
+#include "pdsapp/python/FrameProcessor.hh"
+#include "pdsapp/python/NullProcessor.hh"
+#include "pdsapp/python/Epix100aProcessor.hh"
+#include "pdsapp/python/Epix10kaProcessor.hh"
+
 #include "pdsdata/app/XtcMonitorServer.hh"
 #include "pdsdata/xtc/ProcInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
@@ -66,42 +72,9 @@ namespace Pds {
   private:
     size_t _sizeofBuffers;
   };
-
-  class FrameProcessor {
-  public:
-    virtual ~FrameProcessor() {}
-    virtual Dgram* configure(Dgram*) = 0;
-    virtual Dgram* event    (Dgram*, const char*) = 0;
-  };
 };
 
 using namespace Pds;
-
-static const ProcInfo segInfo(Pds::Level::Segment,0,0);
-static const DetInfo  srcInfo(0,DetInfo::CxiEndstation,0,DetInfo::Opal1000,0);
-static unsigned _ievent = 0;
-
-//
-//  Insert a simulated transition
-//
-static Dgram* insert(Dgram*              dg,
-                     TransitionId::Value tr)
-{
-  timespec tv;
-  clock_gettime(CLOCK_REALTIME, &tv);
-
-  new((void*)&dg->seq) Sequence(Sequence::Event, 
-                                tr, 
-                                ClockTime(tv.tv_sec,tv.tv_nsec), 
-                                TimeStamp(0,0x1ffff,
-                                          tr==TransitionId::L1Accept?_ievent++:0,
-                                          0));
-  new((char*)&dg->xtc) Xtc(TypeId(TypeId::Id_Xtc,0), segInfo);
-  return dg;
-}
-
-#include "NullProcessor.icc"
-#include "Epix100aProcessor.icc"
 
 //
 //  pdsmonshm class methods
@@ -236,6 +209,10 @@ PyObject* pdsmonshm_configure(PyObject* self, PyObject* args, PyObject* kwds)
         srv->processor = new Epix100aProcessor;
         break;
       }
+      if (strcasecmp(dettype,"Epix10ka")==0) {
+        srv->processor = new Epix10kaProcessor;
+        break;
+      }
       return NULL;
     }
 
@@ -249,11 +226,11 @@ PyObject* pdsmonshm_configure(PyObject* self, PyObject* args, PyObject* kwds)
   PyErr_Clear();
 
   Pds::MyMonitorServer& mon = *srv->srv;
-  mon.events(insert(mon.newDatagram(), TransitionId::Map));
+  mon.events(FrameProcessor::insert(mon.newDatagram(), TransitionId::Map));
   mon.events(srv->processor->configure(mon.newDatagram()));
-  mon.events(insert(mon.newDatagram(), TransitionId::BeginRun));
-  mon.events(insert(mon.newDatagram(), TransitionId::BeginCalibCycle));
-  mon.events(insert(mon.newDatagram(), TransitionId::Enable));
+  mon.events(FrameProcessor::insert(mon.newDatagram(), TransitionId::BeginRun));
+  mon.events(FrameProcessor::insert(mon.newDatagram(), TransitionId::BeginCalibCycle));
+  mon.events(FrameProcessor::insert(mon.newDatagram(), TransitionId::Enable));
 
   Py_INCREF(Py_None);
   return Py_None;

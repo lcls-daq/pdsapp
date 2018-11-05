@@ -62,6 +62,7 @@
 #include "pdsapp/config/Epix100aConfig_V1.hh"
 #include "pdsapp/config/Epix10kaConfig.hh"
 #include "pdsapp/config/Epix10ka2MConfig.hh"
+#include "pdsapp/config/Epix10kaQuadConfigP.hh"
 #include "pdsapp/config/GenericPgpConfig.hh"
 #include "pdsapp/config/OceanOpticsConfig.hh"
 #include "pdsapp/config/FliConfig.hh"
@@ -188,6 +189,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_epix100aConfigType    ,new Epix100aConfig);
   enroll(_epix10kaConfigType    ,new Epix10kaConfig);
   enroll(_epix10ka2MConfigType  ,new Epix10ka2MConfig);
+  enroll(_epix10kaQuadConfigType,new Epix10kaQuadConfigP);
   enroll(_genericPgpConfigType  ,new GenericPgpConfig);
   enroll(_oceanOpticsConfigType ,new OceanOpticsConfig);  
   enroll(_fliConfigType         ,new FliConfig);  

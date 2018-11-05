@@ -3,6 +3,7 @@
 
 #include <QtGui/QWidget>
 #include <stdint.h>
+#include <vector>
 
 namespace Pds_ConfigDb
 {
@@ -11,7 +12,8 @@ namespace Pds_ConfigDb
   class Epix10ka2MMap : public QWidget {
     Q_OBJECT
   public:
-    Epix10ka2MMap(unsigned grouping=1, bool exclusive=false);
+    Epix10ka2MMap(unsigned nq=4, unsigned grouping=1, bool exclusive=false);
+    ~Epix10ka2MMap();
   public:
     void     update(uint64_t m);
     uint64_t value() const;
@@ -24,7 +26,7 @@ namespace Pds_ConfigDb
   signals:
     void changed();  
   private:
-    EpixSector* _sectors[4];
+    std::vector<EpixSector*> _sectors;
   };
 };
 
