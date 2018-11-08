@@ -214,10 +214,20 @@ int main( int argc, char** argv )
       return -1;
     }
 
-    lane = port-1 + s;
-    printf("%s pgpcard opened as fd %d, lane %d\n", argv[0], fd, lane);
+    //  Allocate for VC 0(Data), 2(Scope)
+    { Pgp::Pgp p(true, fd);
+      p.allocateVC(5,1<<lane); }
 
-    server->setFd(fd, s);
+    //  Open a second time for an independent stream (register configuration)
+    int fd2 = open( devName,  O_RDWR | O_NONBLOCK );
+    //  Allocate for VC 1(Registers)
+    { Pgp::Pgp p(true, fd2);
+      p.allocateVC(2,1<<lane); }
+
+    lane = port-1 + s;
+    printf("%s pgpcard opened as fd %d,%d lane %d\n", argv[0], fd, fd2, lane);
+
+    server->setFd(fd, fd2, s);
     serverList  [s] = server;
     ebServerList.push_back(server);
   }

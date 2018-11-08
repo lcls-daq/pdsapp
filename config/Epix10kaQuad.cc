@@ -329,6 +329,8 @@ void QuadP::push   (Epix10kaQuadConfig* p)
   *new(p) Epix10kaQuadConfig    (125000000,  // baseClockFreq
                                  0,          // enableAutomaticRunTrigger
                                  125e6/120,  // numberOf125MhzTicksPerRunTrigger
+                                 0,          // digitalCardId0
+                                 0,          // digitalCardId1
                                  _dcdcEn             .value,
                                  _asicAnaEn          .value,
                                  _asicDigEn          .value,

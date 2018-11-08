@@ -188,6 +188,7 @@ static void _toEpix10kaQuadConfig( PyObject*                 quad,
         Epix10kaQuadConfig(GET_MEMBER(quad,baseClockFrequency),
                          GET_MEMBER(quad,enableAutomaticRunTrigger),
                          GET_MEMBER(quad,numberOf125MhzTicksPerRunTrigger),
+                         0, 0, // digitalCarrierId
                          GET_MEMBER(quad,dcdcEn),
                          GET_MEMBER(quad,asicAnaEn),
                          GET_MEMBER(quad,asicDigEn),
