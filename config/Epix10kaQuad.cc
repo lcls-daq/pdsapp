@@ -328,7 +328,7 @@ void QuadP::push   (Epix10kaQuadConfig* p)
   __attribute__((unused)) Epix10kaQuadConfig& c =
   *new(p) Epix10kaQuadConfig    (125000000,  // baseClockFreq
                                  0,          // enableAutomaticRunTrigger
-                                 125e6/120,  // numberOf125MhzTicksPerRunTrigger
+                                 125000000/120,  // numberOf125MhzTicksPerRunTrigger
                                  0,          // digitalCardId0
                                  0,          // digitalCardId1
                                  _dcdcEn             .value,

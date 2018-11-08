@@ -159,13 +159,13 @@ QLayout* NumericIntArray<T,N>::initialize(QWidget* parent, unsigned row)
   if (_label)
     layout->addWidget(new QLabel(_label));             
   if (allowEdit()) {
-    for(int i=ilo; i<ihi; i++) {
+    for(unsigned i=ilo; i<ihi; i++) {
       layout->addWidget(_input[i] = new QLineEdit(parent));  
       _input[i]->setReadOnly(!allowEdit());
     }
     if (row == rows-1)
       flush();
-    for(int i=ilo; i<ihi; i++) {
+    for(unsigned i=ilo; i<ihi; i++) {
       switch(mode) {
       case Decimal:
         _input[i]->setValidator(new IntValidator( *this, *_input[i], range[0], range[1]));
@@ -179,7 +179,7 @@ QLayout* NumericIntArray<T,N>::initialize(QWidget* parent, unsigned row)
     }
   }
   else {
-    for(int i=ilo; i<ihi; i++) {
+    for(unsigned i=ilo; i<ihi; i++) {
       switch(mode) {
       case Decimal: _display[i] = new QLabel(QString::number(value[i],10)); break;
       case Hex:     _display[i] = new QLabel(QString::number(value[i],16)); break;

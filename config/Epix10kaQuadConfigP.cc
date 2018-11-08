@@ -84,7 +84,7 @@ namespace Pds_ConfigDb {
         _evrRunCode      ( "EVR Run EventCode"     , 40, 0, 255, Decimal),
         _evrDaqCode      ( "EVR Acq EventCode"     , 40, 0, 255, Decimal),
         _evrRunDelay     ( "EVR Run Delay [119MHz]", 0, 0, (1U<<31)-1, Decimal),
-        _asicMask        ( "ASIC Mask"             , -1ULL, 0, -1ULL, Hex)
+        _asicMask        ( "ASIC Mask"             , -1U, 0, -1U, Hex)
       {
         for(unsigned a=0; a<4; a++) {
           _pixelArray[a] = ndarray<uint16_t,2>(pixelArrayShape);
