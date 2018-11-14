@@ -383,6 +383,12 @@ int main( int argc, char** argv ) {
             if (printFlag & 2) printf("\tcycle %u\n", idx++);
           }
         }
+        unsigned v;
+        ret = pgp->readRegister(dest, addr, 0x2dbeef, &v, 1, printFlag!=0);
+        if (ret) printf("Read return 0x%x\n", ret);
+        if (v != data)
+          printf("Wrote %x  read %x\n", data, v);
+        data++;
       }
       break;
     case readCommand:

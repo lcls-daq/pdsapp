@@ -110,7 +110,7 @@ namespace Pds_ConfigDb {
         for(unsigned i=0; i<4; i++) {
           _asicMask .value |= uint16_t(p.elemCfg(i).asicMask())<<(4*i);
           for(unsigned j=0; j<4; j++)
-            _asic[j+4*i].pull(reinterpret_cast<const Epix10kaASIC_ConfigShadow*>(&p.elemCfg(i).asics(j)));
+            _asic[j+4*i].pull(*reinterpret_cast<const Epix10kaASIC_ConfigShadow*>(&p.elemCfg(i).asics(j)));
           std::copy(p.elemCfg(i).asicPixelConfigArray().begin(),
                     p.elemCfg(i).asicPixelConfigArray().end(),
                     _pixelArray[i].begin());
@@ -153,6 +153,8 @@ namespace Pds_ConfigDb {
         pList.insert(&_evrDaqCode);
         pList.insert(&_evrRunDelay);
         pList.insert(&_asicMask);
+        for(unsigned j=0; j<16; j++)
+          pList.insert(&_asic[j]);
       }
 
     public:

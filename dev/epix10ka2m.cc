@@ -43,7 +43,7 @@
 
 using namespace Pds;
 
-static std::vector<Pds::Epix10ka2m::Server*> serverList(1);
+static std::vector<Pds::Epix10ka2m::Server*> serverList(4);
 
 void sigHandler( int signal ) {
   psignal( signal, "Signal received by Epix10ka2M Application");
@@ -216,15 +216,15 @@ int main( int argc, char** argv )
 
     //  Allocate for VC 0(Data), 2(Scope)
     { Pgp::Pgp p(true, fd);
-      p.allocateVC(5,1<<lane); }
+      p.allocateVC(5,1<<s); }
 
     //  Open a second time for an independent stream (register configuration)
     int fd2 = open( devName,  O_RDWR | O_NONBLOCK );
     //  Allocate for VC 1(Registers)
     { Pgp::Pgp p(true, fd2);
-      p.allocateVC(2,1<<lane); }
+      p.allocateVC(2,1<<s); }
 
-    lane = port-1 + s;
+    lane = s;
     printf("%s pgpcard opened as fd %d,%d lane %d\n", argv[0], fd, fd2, lane);
 
     server->setFd(fd, fd2, s);

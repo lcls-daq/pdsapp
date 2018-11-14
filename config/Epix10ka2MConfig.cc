@@ -153,6 +153,8 @@ namespace Pds_ConfigDb {
         pList.insert(&_evrDaqCode);
         pList.insert(&_evrRunDelay);
         pList.insert(&_asicMask);
+        for(unsigned j=0; j<64; j++)
+          pList.insert(&_asic[j]);
       }
 
     public:
@@ -242,7 +244,7 @@ int ConfigTable::pull(const Epix10ka2MConfigType& tc) {
     _quadP[q]->pull(tc.quad(q)); //,_gainMap->quad(q));
   //  _gainMap->flush();
 
-  return sizeof(tc);
+  return tc._sizeof();
 }
 
 int ConfigTable::push(void* to) const {
@@ -251,7 +253,7 @@ int ConfigTable::push(void* to) const {
   _globalP->push(&tc);
   for(unsigned q=0; q<4; q++)
     _quadP[q]->push(&const_cast<Epix10kaQuadConfig&>(tc.quad(q)));
-  return sizeof(tc);
+  return tc._sizeof();
 }
 
 int ConfigTable::dataSize() const {
