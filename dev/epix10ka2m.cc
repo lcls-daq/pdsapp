@@ -230,6 +230,8 @@ int main( int argc, char** argv )
     server->setFd(fd, fd2, s);
     serverList  [s] = server;
     ebServerList.push_back(server);
+
+    if (replicateQuads) break;
   }
 
   if (replicateQuads) {
