@@ -14,12 +14,41 @@
 #include <QtGui/QGroupBox>
 #include <QtGui/QPainter>
 #include <QtGui/QPixmap>
+#include <QtGui/QStaticText>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QPushButton>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QFileDialog>
 
+static const int _height  = 31;
+static const int _width   = 30;
+static const int asic_xo[] = { 4, 4, _width+5, _width+5 };
+static const int asic_yo[] = { 11, _height+12, _height+12, 11 }; 
+
 namespace Pds_ConfigDb {
+
+  class Epix10kaAsicLayout : public QLabel {
+  public:
+    Epix10kaAsicLayout() : QLabel(0)
+    {
+      QPixmap* image = new QPixmap(70, 75);
+      QRgb bg = QPalette().color(QPalette::Window).rgb();
+      image->fill(bg);
+      QPainter painter(image);
+      for(unsigned j=0; j<4; j++) {
+        QRgb fg = bg;
+        painter.setBrush(QColor(fg));
+        int xo = asic_xo[j%4];
+        int yo = asic_yo[j%4];
+        painter.drawRect(xo, yo, _width, _height);
+        painter.setBrush(QColor(qRgb(0,0,0)));
+        QString label = QString("%1").arg(j);
+        painter.drawStaticText(xo+_width/2-4,yo+_height/2-6,QStaticText(label));
+      }
+      QTransform transform(QTransform().rotate(180));
+      setPixmap(image->transformed(transform));
+    }
+  };
 
   class Epix10kaPixelDisplay : public QLabel {
     public:
@@ -145,6 +174,12 @@ namespace Pds_ConfigDb {
     leftLayout->addWidget(_display);
 
     QVBoxLayout *rightLayout = new QVBoxLayout;
+    rightLayout->addStretch();
+    { QHBoxLayout* hl = new QHBoxLayout;
+      hl->addStretch();
+      hl->addWidget(new Epix10kaAsicLayout);
+      hl->addStretch();
+      rightLayout->addLayout(hl); }
     rightLayout->addStretch();
     rightLayout->addWidget(clearButton);
     rightLayout->addWidget(exportButton);
