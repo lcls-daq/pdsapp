@@ -57,7 +57,7 @@ void sigHandler( int signal ) {
         server->configurator()->cleanupEvr(1);
       }
       server->disable();
-      server->dumpFrontEnd();
+      //      server->dumpFrontEnd();
       server->die();
     } else {
       printf("sigHandler found nil server 1!\n");
@@ -81,7 +81,7 @@ void printUsage(char* s) {
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
       "    -m <B>  Set flag to maintain or not maintain lost run triggers (turn off for slow running\n"
-      "    -4      Replicate one quadrant to remaining 4\n"
+      "    -r <Q>  Replicate Q quads\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -98,13 +98,14 @@ void printUsage(char* s) {
 
 int main( int argc, char** argv )
 {
-  DetInfo::Detector   detector            = DetInfo::XppEndstation;
+  DetInfo::Detector   detector            = DetInfo::NoDetector;
   int                 deviceId            = 0;
   unsigned            platform            = 0;
-  unsigned            pgpcard             = 0;
-  unsigned            eventDepth          = 128;
+  unsigned            pgpcard             = 0x10;
+  unsigned            eventDepth          = 64;
   bool                maintainRunTrig     = false;
-  bool                replicateQuads      = false;
+  unsigned            nthreads            = 4;
+  unsigned            replicateQuads      = 0;
   ::signal( SIGINT,  sigHandler );
   ::signal( SIGSEGV, sigHandler );
   ::signal( SIGFPE,  sigHandler );
@@ -114,7 +115,7 @@ int main( int argc, char** argv )
   extern char* optarg;
   char* uniqueid = (char *)NULL;
   int c;
-  while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:D:P:u:4" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:D:H:P:r:u:" ) ) != EOF ) {
     printf("processing %c\n", c);
     bool     found;
     unsigned index;
@@ -153,6 +154,9 @@ int main( int argc, char** argv )
       eventDepth = strtoul(optarg, NULL, 0);
       printf("Epix10ka using event depth of  %u\n", eventDepth);
       break;
+    case 'H':
+      nthreads = strtoul(optarg, NULL, 0);
+      break;
     case 'R':
       Pds::Epix10ka2m::Server::resetOnEveryConfig(strtoul(optarg, NULL, 0));
       break;
@@ -163,8 +167,8 @@ int main( int argc, char** argv )
     case 'D':
       Pds::Epix10ka2m::Server::debug(strtoul(optarg, NULL, 0));
       break;
-    case '4':
-      replicateQuads = true;
+    case 'r':
+      replicateQuads = strtoul(optarg, NULL, 0);
       break;
     case 'h':
       printUsage(argv[0]);
@@ -205,6 +209,7 @@ int main( int argc, char** argv )
 
   std::list<Pds::EbServer*> ebServerList;
   for(unsigned s=0; s<serverList.size(); s++) {
+
     Pds::Epix10ka2m::ServerSequence* server = new Pds::Epix10ka2m::ServerSequence(detInfo, 0);
 
     int fd = open( devName,  O_RDWR | O_NONBLOCK );
@@ -227,28 +232,33 @@ int main( int argc, char** argv )
     lane = s;
     printf("%s pgpcard opened as fd %d,%d lane %d\n", argv[0], fd, fd2, lane);
 
-    server->setFd(fd, fd2, s);
+    server->setFd(fd, fd2, s);  // this breaks us!
+
     serverList  [s] = server;
     ebServerList.push_back(server);
 
-    if (replicateQuads) break;
+    if (replicateQuads && (replicateQuads+s)==3) break;
   }
 
   if (replicateQuads) {
     serverList.resize(4);
     Pds::Epix10ka2m::ServerSim* sim;
-    ebServerList.push_back(sim=new Pds::Epix10ka2m::ServerSim(serverList[0]));
-    serverList[0] = sim;
-    ebServerList.push_back(sim=new Pds::Epix10ka2m::ServerSim(sim));
-    serverList[1] = sim;
-    ebServerList.push_back(sim=new Pds::Epix10ka2m::ServerSim(sim));
-    serverList[2] = sim;
-    ebServerList.push_back(sim=new Pds::Epix10ka2m::ServerSim(sim));
-    serverList[3] = sim;
-    ebServerList.pop_front();
+    unsigned i=0;
+    while(i<4-replicateQuads) {
+      ebServerList.push_back(sim=new Pds::Epix10ka2m::ServerSim(serverList[i]));
+      serverList[i] = sim;
+      i++;
+    }
+    while(i<4) {
+      ebServerList.push_back(sim=new Pds::Epix10ka2m::ServerSim(sim));
+      serverList[i] = sim;
+      i++;
+    }
+    for(i=0; i<4-replicateQuads; i++)
+      ebServerList.pop_front();
   }
 
-  Pds::Epix10ka2m::Manager* manager = new Pds::Epix10ka2m::Manager(serverList);
+  Pds::Epix10ka2m::Manager* manager = new Pds::Epix10ka2m::Manager(serverList, nthreads);
 
   //  EPICS thread initialization
   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ),
