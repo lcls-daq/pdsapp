@@ -9,7 +9,6 @@ CPPFLAGS += -fno-strict-aliasing
 tgtnames := evr evrstandalone evrsnoop
 tgtnames += epicsArch bld cspad cspad2x2
 tgtnames += imp pnccd epix epixsampler epix10k epix100a epix10ka genericpgp
-tgtnames += epix10ka2m epix10kaquad
 tgtnames += simcam
 tgtnames += ipimb lusidiag
 tgtnames += rayonix udpcam
@@ -42,7 +41,7 @@ tgtnames += fli andor andordual
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi archon
+tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -98,6 +97,7 @@ tgtincs_epix10ka += epics/include epics/include/os/Linux
 
 tgtsrcs_epix10ka2m := epix10ka2m.cc
 tgtlibs_epix10ka2m := $(commonlibs) pds/epix10ka2m pds/pgp pds/configdata
+tgtlibs_epix10ka2m += pds/pgpv3
 tgtlibs_epix10ka2m += evgr/evr evgr/evg
 tgtlibs_epix10ka2m += pds/evgr
 tgtlibs_epix10ka2m += pds/eventcodetools pds/epicstools epics/ca epics/Com
@@ -107,6 +107,7 @@ tgtincs_epix10ka2m += epics/include epics/include/os/Linux
 
 tgtsrcs_epix10kaquad := epix10kaquad.cc
 tgtlibs_epix10kaquad := $(commonlibs) pds/epix10ka2m pds/pgp pds/configdata
+tgtlibs_epix10kaquad += pds/pgpv3
 tgtlibs_epix10kaquad += evgr/evr evgr/evg
 tgtlibs_epix10kaquad += pds/evgr
 tgtlibs_epix10kaquad += pds/eventcodetools pds/epicstools epics/ca epics/Com

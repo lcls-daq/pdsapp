@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------------------
 -- Title      : 
 -------------------------------------------------------------------------------
--- File       : epix10kaquad.cc
+-- File       : epix10ka2m.cc
 -- Author     : Matt Weaver <weaver@slac.stanford.edu>
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2018-09-28
@@ -43,10 +43,10 @@
 
 using namespace Pds;
 
-static std::vector<Pds::Epix10ka2m::Server*> serverList(1);
+static std::vector<Pds::Epix10ka2m::Server*> serverList(4);
 
 void sigHandler( int signal ) {
-  psignal( signal, "Signal received by application");
+  psignal( signal, "Signal received by Epix10ka2M Application");
   for(unsigned i=0; i<serverList.size(); i++) {
     Pds::Epix10ka2m::Server* server = serverList[i];
     if (server != 0) {
@@ -57,7 +57,7 @@ void sigHandler( int signal ) {
         server->configurator()->cleanupEvr(1);
       }
       server->disable();
-      server->dumpFrontEnd();
+      //      server->dumpFrontEnd();
       server->die();
     } else {
       printf("sigHandler found nil server 1!\n");
@@ -68,7 +68,7 @@ void sigHandler( int signal ) {
 }
 
 void printUsage(char* s) {
-  printf( "Usage: %s [options]\n"
+  printf( "Usage: epix10ka [options]\n"
       "    -h      Show usage\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
@@ -77,9 +77,11 @@ void printUsage(char* s) {
       "                the index of the card and the top nybble being index of the port in use with the"
       "                first port being ONE.  For the G3 card this could be a number from 1 to 8, for the\n"
       "                G2 card, this could be a number from 1 to 4.\n"
+      "    -T      Use if pgpcard is a G3 card and you want the triggering to be done over the fiber\n"
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
       "    -m <B>  Set flag to maintain or not maintain lost run triggers (turn off for slow running\n"
+      "    -r <Q>  Replicate Q quads\n"
       "    -D      Set debug value           [Default: 0]\n"
       "                bit 00          label every fetch\n"
       "                bit 01          label more, offest and count calls\n"
@@ -90,18 +92,20 @@ void printUsage(char* s) {
       "                bit 08          turn on printing of FE Internal status on\n"
       "                "
       "            NB, if you can't remember the detector names\n"
-      "            just make up something and it'll list them\n",
-          s);
+      "            just make up something and it'll list them\n"
+  );
 }
 
 int main( int argc, char** argv )
 {
-  DetInfo::Detector   detector            = DetInfo::XppEndstation;
+  DetInfo::Detector   detector            = DetInfo::NoDetector;
   int                 deviceId            = 0;
   unsigned            platform            = 0;
-  unsigned            pgpcard             = 0;
-  unsigned            eventDepth          = 128;
+  unsigned            pgpcard[4]          = { 0x10, 0x20, 0x30, 0x40 };
+  unsigned            eventDepth          = 64;
   bool                maintainRunTrig     = false;
+  unsigned            nthreads            = 4;
+  unsigned            replicateQuads      = 0;
   ::signal( SIGINT,  sigHandler );
   ::signal( SIGSEGV, sigHandler );
   ::signal( SIGFPE,  sigHandler );
@@ -109,9 +113,10 @@ int main( int argc, char** argv )
   ::signal( SIGQUIT, sigHandler );
 
   extern char* optarg;
+  char* endptr;
   char* uniqueid = (char *)NULL;
   int c;
-  while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:D:P:u:" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:D:H:P:r:u:" ) ) != EOF ) {
     printf("processing %c\n", c);
     bool     found;
     unsigned index;
@@ -143,12 +148,21 @@ int main( int argc, char** argv )
       deviceId = strtoul(optarg, NULL, 0);
       break;
     case 'P':
-      pgpcard = strtoul(optarg, NULL, 0);
-      printf("epix10ka read pgpcard as 0x%x\n", pgpcard);
+      { unsigned q=0;
+        pgpcard[q++] = strtoul(optarg, &endptr, 0);
+        while(*endptr==',' && q<4)
+          pgpcard[q++] = strtoul(endptr+1, &endptr, 0);
+        printf("epix10ka read pgpcard as [");
+        for(unsigned i=0; i<q; i++)
+          printf(" 0x%x", pgpcard[i]);
+        printf("]\n"); }
       break;
     case 'e':
       eventDepth = strtoul(optarg, NULL, 0);
       printf("Epix10ka using event depth of  %u\n", eventDepth);
+      break;
+    case 'H':
+      nthreads = strtoul(optarg, NULL, 0);
       break;
     case 'R':
       Pds::Epix10ka2m::Server::resetOnEveryConfig(strtoul(optarg, NULL, 0));
@@ -159,6 +173,9 @@ int main( int argc, char** argv )
       break;
     case 'D':
       Pds::Epix10ka2m::Server::debug(strtoul(optarg, NULL, 0));
+      break;
+    case 'r':
+      replicateQuads = strtoul(optarg, NULL, 0);
       break;
     case 'h':
       printUsage(argv[0]);
@@ -182,23 +199,26 @@ int main( int argc, char** argv )
   DetInfo detInfo( 0,
                    (Pds::DetInfo::Detector) detector,
                    0,
-                   DetInfo::Epix10kaQuad,
+                   DetInfo::Epix10ka2M,
                    deviceId );
 
   printf("Epix10ka2M will reset on %s configuration\n", Pds::Epix10ka2m::Server::resetOnEveryConfig() ? "every" : "only the first");
-  unsigned card = pgpcard & 0xf;
-  unsigned port = (pgpcard >> 4) & 0xf;
-  unsigned lane = port - 1;
-  printf("%s pgpcard %d, lane %d\n", argv[0], card, lane);
+
   char devName[128];
   char err[128];
-  sprintf(devName, "/dev/pgpcard_%u", card);
 
   Pds::Pgp::Pgp::portOffset(lane);
 
   std::list<Pds::EbServer*> ebServerList;
   for(unsigned s=0; s<serverList.size(); s++) {
+
     Pds::Epix10ka2m::ServerSequence* server = new Pds::Epix10ka2m::ServerSequence(detInfo, 0);
+
+    unsigned card = pgpcard[s] & 0xf;
+    unsigned port = (pgpcard[s] >> 4) & 0xf;
+    unsigned lane = port - 1;
+    
+    sprintf(devName, "/dev/pgpcard_%u", card);
 
     int fd = open( devName,  O_RDWR | O_NONBLOCK );
     if (fd < 0) {
@@ -209,23 +229,44 @@ int main( int argc, char** argv )
 
     //  Allocate for VC 0(Data), 2(Scope)
     { Pgp::Pgp p(true, fd);
-      p.allocateVC(5,1<<0); }
+      p.allocateVC(5,1<<lane); }
 
-    //  Open a second time for an independent stream
+    //  Open a second time for an independent stream (register configuration)
     int fd2 = open( devName,  O_RDWR | O_NONBLOCK );
     //  Allocate for VC 1(Registers)
     { Pgp::Pgp p(true, fd2);
-      p.allocateVC(2,1<<0); }
+      p.allocateVC(2,1<<lane); }
 
-    lane = port-1 + s;
+    lane = s;
     printf("%s pgpcard opened as fd %d,%d lane %d\n", argv[0], fd, fd2, lane);
 
     server->setFd(fd, fd2, s);
+
     serverList  [s] = server;
     ebServerList.push_back(server);
+
+    if (replicateQuads && (replicateQuads+s)==3) break;
   }
 
-  Pds::Epix10ka2m::Manager* manager = new Pds::Epix10ka2m::Manager(serverList);
+  if (replicateQuads) {
+    serverList.resize(4);
+    Pds::Epix10ka2m::ServerSim* sim;
+    unsigned i=0;
+    while(i<4-replicateQuads) {
+      ebServerList.push_back(sim=new Pds::Epix10ka2m::ServerSim(serverList[i]));
+      serverList[i] = sim;
+      i++;
+    }
+    while(i<4) {
+      ebServerList.push_back(sim=new Pds::Epix10ka2m::ServerSim(sim));
+      serverList[i] = sim;
+      i++;
+    }
+    for(i=0; i<4-replicateQuads; i++)
+      ebServerList.pop_front();
+  }
+
+  Pds::Epix10ka2m::Manager* manager = new Pds::Epix10ka2m::Manager(serverList, nthreads);
 
   //  EPICS thread initialization
   SEVCHK ( ca_context_create(ca_enable_preemptive_callback ),

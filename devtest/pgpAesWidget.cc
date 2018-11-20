@@ -2,6 +2,7 @@
 #include "pdsdata/psddl/epix.ddl.h"
 #include "pdsdata/psddl/epixsampler.ddl.h"
 #include "pds/pgp/Pgp.hh"
+#include "pds/pgp/SrpV3.hh"
 #include "pds/pgp/Destination.hh"
 #include "pds/pgp/DataImportFrame.hh"
 #include <PgpDriver.h>
@@ -121,6 +122,7 @@ int main( int argc, char** argv ) {
   PadMonServer::PadType typ               = PadMonServer::NumberOf;
   unsigned            dumpTxBuffers = 0;
   DmaWriteData           tx;
+  bool                srpV3 = false;
   ::signal( SIGINT, sigHandler );
 
   char*               endptr;
@@ -253,7 +255,7 @@ int main( int argc, char** argv ) {
       case 'p':
         printFlag = strtoul(optarg, NULL, 0);
         break;
-      case '3':        Pgp::Pgp::srpVersion(3);        break;
+      case '3':        srpV3 = true;        break;
       case 'h':
         printUsage(argv[0]);
         return 0;
@@ -360,8 +362,12 @@ int main( int argc, char** argv ) {
 //      pgp->status()->print();
 //      break;
     case writeCommand:
-      pgp->writeRegister(dest, addr, data, printFlag, Pds::Pgp::PgpRSBits::Waiting);
-      if (Pgp::Pgp::srpVersion()!=3) {
+      if (srpV3) {
+        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, 0);
+        proto->writeRegister(dest, addr, data);
+      }
+      else {
+        pgp->writeRegister(dest, addr, data, printFlag, Pds::Pgp::PgpRSBits::Waiting);
         rsif = pgp->read();
         if (rsif) {
           if (printFlag) rsif->print();
@@ -374,17 +380,22 @@ int main( int argc, char** argv ) {
       //      printf("\n");
       idx = 0;
       while (count--) {
-        pgp->writeRegister(dest, addr, data, printFlag & 1, Pds::Pgp::PgpRSBits::Waiting);
-        usleep(delay);
-        if (Pgp::Pgp::srpVersion()!=3) {
+        unsigned v;
+        if (srpV3) {
+          Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, 0);
+          proto->writeRegister(dest, addr, data);
+          ret = proto->readRegister(dest, addr, 0, &v);
+        }
+        else {
+          pgp->writeRegister(dest, addr, data, printFlag & 1, Pds::Pgp::PgpRSBits::Waiting);
+          usleep(delay);
           rsif = pgp->read();
           if (rsif) {
             if (printFlag & 1) rsif->print();
             if (printFlag & 2) printf("\tcycle %u\n", idx++);
           }
+          ret = pgp->readRegister(dest, addr, 0x2dbeef, &v, 1, printFlag!=0);
         }
-        unsigned v;
-        ret = pgp->readRegister(dest, addr, 0x2dbeef, &v, 1, printFlag!=0);
         if (ret) printf("Read return 0x%x\n", ret);
         if (v != data)
           printf("Wrote %x  read %x\n", data, v);
@@ -392,7 +403,12 @@ int main( int argc, char** argv ) {
       }
       break;
     case readCommand:
-      ret = pgp->readRegister(dest, addr,0x2dbeef, &data, 1, printFlag!=0);
+      if (srpV3) {
+        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, 0);
+        ret = proto->readRegister(dest, addr,0x2dbeef, &data);
+      }
+      else
+        ret = pgp->readRegister(dest, addr,0x2dbeef, &data, 1, printFlag!=0);
       if (!ret) printf("%s read returned 0x%x\n", argv[0], data);
       break;
     case dumpCommand:

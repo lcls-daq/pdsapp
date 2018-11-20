@@ -32,7 +32,11 @@ liblibs_epixsim := pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata
 liblibs_epixsim += pds/service pds/xtc pds/collection pds/mon pds/vmon pds/utility pds/client 
 libincs_epixsim := pdsdata/include ndarray/include boost/include 
 
-tgtnames    := evgr evg pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget pgpaeswidget xtccamfix compressstat epixwriter microspin xtcwriter  epix100abintoxtc
+tgtnames    := evgr evg pnccdwriter xtctruncate pnccdreader dsstest xcasttest xtccompress pgpwidget pnccdwidget xtccamfix compressstat epixwriter microspin xtcwriter  epix100abintoxtc
+
+ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
+tgtnames += pgpaeswidget
+endif
 
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
@@ -115,7 +119,7 @@ tgtslib_pnccdwidget := $(USRLIB)/rt
 tgtincs_pnccdwidget := pdsdata/include 
 
 tgtsrcs_pgpaeswidget := pgpAesWidget.cc
-tgtlibs_pgpaeswidget := pds/pgp pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
+tgtlibs_pgpaeswidget := pds/pgp pds/pgpv3 pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 tgtslib_pgpaeswidget := $(USRLIB)/rt
 tgtincs_pgpaeswidget := pdsdata/include ndarray/include boost/include aesdriver/include
 
@@ -181,3 +185,16 @@ tgtincs_quadadc_xtc := pdsdata/include ndarray/include boost/include
 tgtslib_quadadc_xtc := $(USRLIBDIR)/rt
 
 tgtnames += quadadc_xtc
+
+libnames += promload
+libsrcs_promload := McsFile.cc AxiMicronN25Q.cc AxiCypressS25.cc MMDevice.cc PgpDevice.cc 
+liblibs_promload := pds/pgpv3
+
+tgtsrcs_pgppromload := pgppromload.cc
+tgtlibs_pgppromload := pdsapp/promload pds/pgpv3
+tgtslib_pgppromload := $(USRLIBDIR)/rt
+tgtincs_pgppromload := pgpcard aesdriver/include
+
+ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
+tgtnames += pgppromload
+endif

@@ -205,7 +205,6 @@ int main( int argc, char** argv )
   sprintf(devName, "/dev/pgpcard_%u", card);
 
   Pds::Pgp::Pgp::portOffset(lane);
-  Pds::Pgp::Pgp::srpVersion(3);
 
   std::list<Pds::EbServer*> ebServerList;
   for(unsigned s=0; s<serverList.size(); s++) {
