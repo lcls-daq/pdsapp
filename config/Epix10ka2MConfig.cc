@@ -110,7 +110,7 @@ namespace Pds_ConfigDb {
         for(unsigned i=0; i<16; i++) {
           _asicMask .value |= uint64_t(p.elemCfg(i).asicMask())<<(4*i);
           for(unsigned j=0; j<4; j++)
-            _asic[j+4*i].pull(reinterpret_cast<const Epix10kaASIC_ConfigShadow*>(&p.elemCfg(i).asics(j)));
+            _asic[j+4*i].pull(*reinterpret_cast<const Epix10kaASIC_ConfigShadow*>(&p.elemCfg(i).asics(j)));
           std::copy(p.elemCfg(i).asicPixelConfigArray().begin(),
                     p.elemCfg(i).asicPixelConfigArray().end(),
                     _pixelArray[i].begin());
@@ -400,9 +400,10 @@ QLayout* ConfigTable::initialize(QWidget* parent)
 
   _qlink = new ConfigTableQ(*this,parent);
   ::QObject::connect(_globalP->_asicMaskMap, SIGNAL(changed()), _qlink, SLOT(update_maskv()));
-  ::QObject::connect(_globalP->_asicMask._input, SIGNAL(editingFinished()), _qlink, SLOT(update_maskg()));
   ::QObject::connect(_pixelMapB, SIGNAL(pressed()), _qlink, SLOT(pixel_map_dialog()));
   ::QObject::connect(_calibMapB, SIGNAL(pressed()), _qlink, SLOT(calib_map_dialog()));
+  if (allowEdit())
+    ::QObject::connect(_globalP->_asicMask._input, SIGNAL(editingFinished()), _qlink, SLOT(update_maskg()));
 
   return layout;
 #undef ADDTAB

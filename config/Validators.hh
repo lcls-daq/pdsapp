@@ -3,6 +3,7 @@
 
 #include <QtGui/QIntValidator>
 #include <QtGui/QDoubleValidator>
+#include <stdint.h>
 
 class QLineEdit;
 
@@ -33,7 +34,7 @@ namespace Pds_ConfigDb {
     Q_OBJECT
   public:
     HexValidator(Parameter& p, QLineEdit& l,
-		 unsigned vlo, unsigned vhi);
+		 uint64_t vlo, uint64_t vhi);
     ~HexValidator();
   public:
     void fixup(QString&) const;
@@ -42,7 +43,7 @@ namespace Pds_ConfigDb {
     void validChange();
   private:
     Parameter& _p;
-    unsigned   _rlo, _rhi;
+    uint64_t   _rlo, _rhi;
   };
 
   class DoubleValidator : public QDoubleValidator {

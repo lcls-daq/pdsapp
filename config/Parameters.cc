@@ -340,7 +340,7 @@ void NumericInt<T>::update()
     bool ok;
     switch(mode) {
     case Decimal:  value = _input->text().toInt(); break;
-    case Hex:      value = _input->text().toUInt(&ok,16); break;
+    case Hex:      value = _input->text().toULongLong(&ok,16); break;
     default:       value = int(_input->text().toDouble(&ok)/scale + 0.5); break;
     }
   }

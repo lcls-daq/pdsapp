@@ -243,7 +243,7 @@ int ConfigTable::pull(const Epix10kaQuadConfigType& tc) {
   _quadP[0]->pull(tc.quad()); //,_gainMap->quad(q));
   //  _gainMap->flush();
 
-  return sizeof(tc);
+  return tc._sizeof();
 }
 
 int ConfigTable::push(void* to) const {
@@ -251,7 +251,7 @@ int ConfigTable::push(void* to) const {
   Epix10kaQuadConfigType& tc = *reinterpret_cast<Epix10kaQuadConfigType*>(to);
   _globalP->push(&tc);
   _quadP[0]->push(&const_cast<Epix10kaQuadConfig&>(tc.quad()));
-  return sizeof(tc);
+  return tc._sizeof();
 }
 
 int ConfigTable::dataSize() const {
@@ -340,9 +340,10 @@ QLayout* ConfigTable::initialize(QWidget* parent)
 
   _qlink = new ConfigTableQ(*this,parent);
   ::QObject::connect(_globalP->_asicMaskMap, SIGNAL(changed()), _qlink, SLOT(update_maskv()));
-  ::QObject::connect(_globalP->_asicMask._input, SIGNAL(editingFinished()), _qlink, SLOT(update_maskg()));
   ::QObject::connect(_pixelMapB, SIGNAL(pressed()), _qlink, SLOT(pixel_map_dialog()));
   ::QObject::connect(_calibMapB, SIGNAL(pressed()), _qlink, SLOT(calib_map_dialog()));
+  if (allowEdit())
+    ::QObject::connect(_globalP->_asicMask._input, SIGNAL(editingFinished()), _qlink, SLOT(update_maskg()));
 
   return layout;
 #undef ADDTAB

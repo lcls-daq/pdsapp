@@ -56,7 +56,7 @@ QValidator::State IntValidator::validate(QString& input,
 
 
 HexValidator::HexValidator(Parameter& p, QLineEdit& l,
-			   unsigned rlo, unsigned rhi) :
+			   uint64_t rlo, uint64_t rhi) :
   QValidator(&l),
   _p        (p),
   _rlo      (rlo),
@@ -82,7 +82,7 @@ QValidator::State HexValidator::validate(QString& input,
 {
   if (input.size()==0) return Intermediate;
   bool ok;
-  unsigned v = input.toUInt(&ok, 16);
+  uint64_t v = input.toULongLong(&ok, 16);
   if (!ok) return Invalid;
   if (v < _rlo || v > _rhi) return Invalid;
   return Acceptable;
