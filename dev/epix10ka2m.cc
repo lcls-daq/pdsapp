@@ -101,7 +101,7 @@ int main( int argc, char** argv )
   DetInfo::Detector   detector            = DetInfo::NoDetector;
   int                 deviceId            = 0;
   unsigned            platform            = 0;
-  unsigned            pgpcard             = 0x10;
+  unsigned            pgpcard[4]          = { 0x10, 0x20, 0x30, 0x40 };
   unsigned            eventDepth          = 64;
   bool                maintainRunTrig     = false;
   unsigned            nthreads            = 4;
@@ -113,6 +113,7 @@ int main( int argc, char** argv )
   ::signal( SIGQUIT, sigHandler );
 
   extern char* optarg;
+  char* endptr;
   char* uniqueid = (char *)NULL;
   int c;
   while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:D:H:P:r:u:" ) ) != EOF ) {
@@ -147,8 +148,14 @@ int main( int argc, char** argv )
       deviceId = strtoul(optarg, NULL, 0);
       break;
     case 'P':
-      pgpcard = strtoul(optarg, NULL, 0);
-      printf("epix10ka read pgpcard as 0x%x\n", pgpcard);
+      { unsigned q=0;
+        pgpcard[q++] = strtoul(optarg, &endptr, 0);
+        while(*endptr==',' && q<4)
+          pgpcard[q++] = strtoul(endptr+1, &endptr, 0);
+        printf("epix10ka read pgpcard as [");
+        for(unsigned i=0; i<q; i++)
+          printf(" 0x%x", pgpcard[i]);
+        printf("]\n"); }
       break;
     case 'e':
       eventDepth = strtoul(optarg, NULL, 0);
@@ -196,20 +203,25 @@ int main( int argc, char** argv )
                    deviceId );
 
   printf("Epix10ka2M will reset on %s configuration\n", Pds::Epix10ka2m::Server::resetOnEveryConfig() ? "every" : "only the first");
-  unsigned card = pgpcard & 0xf;
-  unsigned port = (pgpcard >> 4) & 0xf;
-  unsigned lane = port - 1;
-  printf("%s pgpcard %d, lane %d\n", argv[0], card, lane);
+
   char devName[128];
   char err[128];
-  sprintf(devName, "/dev/pgpcard_%u", card);
 
-  Pds::Pgp::Pgp::portOffset(lane);
+  //  Pds::Pgp::Pgp::portOffset(lane);
 
   std::list<Pds::EbServer*> ebServerList;
   for(unsigned s=0; s<serverList.size(); s++) {
 
     Pds::Epix10ka2m::ServerSequence* server = new Pds::Epix10ka2m::ServerSequence(detInfo, 0);
+
+    unsigned card = pgpcard[s] & 0xf;
+    unsigned port = (pgpcard[s] >> 4) & 0xf;
+    unsigned lane = port - 1;
+
+    printf("arg 0x%x : card %u  port %u lane %u\n",
+           pgpcard[s], card, port, lane);
+
+    sprintf(devName, "/dev/pgpcard_%u", card);
 
     int fd = open( devName,  O_RDWR | O_NONBLOCK );
     if (fd < 0) {
@@ -220,18 +232,17 @@ int main( int argc, char** argv )
 
     //  Allocate for VC 0(Data), 2(Scope)
     { Pgp::Pgp p(true, fd);
-      p.allocateVC(5,1<<s); }
+      p.allocateVC(5,1<<lane); }
 
     //  Open a second time for an independent stream (register configuration)
     int fd2 = open( devName,  O_RDWR | O_NONBLOCK );
     //  Allocate for VC 1(Registers)
     { Pgp::Pgp p(true, fd2);
-      p.allocateVC(2,1<<s); }
+      p.allocateVC(2,1<<lane); }
 
-    lane = s;
     printf("%s pgpcard opened as fd %d,%d lane %d\n", argv[0], fd, fd2, lane);
 
-    server->setFd(fd, fd2, s);  // this breaks us!
+    server->setFd(fd, fd2, lane, s);
 
     serverList  [s] = server;
     ebServerList.push_back(server);

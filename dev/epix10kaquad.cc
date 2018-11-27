@@ -194,7 +194,7 @@ int main( int argc, char** argv )
   char err[128];
   sprintf(devName, "/dev/pgpcard_%u", card);
 
-  Pds::Pgp::Pgp::portOffset(lane);
+  //  Pds::Pgp::Pgp::portOffset(lane);
 
   std::list<Pds::EbServer*> ebServerList;
   for(unsigned s=0; s<serverList.size(); s++) {
@@ -209,18 +209,17 @@ int main( int argc, char** argv )
 
     //  Allocate for VC 0(Data), 2(Scope)
     { Pgp::Pgp p(true, fd);
-      p.allocateVC(5,1<<0); }
+      p.allocateVC(5,1<<lane); }
 
     //  Open a second time for an independent stream
     int fd2 = open( devName,  O_RDWR | O_NONBLOCK );
     //  Allocate for VC 1(Registers)
     { Pgp::Pgp p(true, fd2);
-      p.allocateVC(2,1<<0); }
+      p.allocateVC(2,1<<lane); }
 
-    lane = port-1 + s;
     printf("%s pgpcard opened as fd %d,%d lane %d\n", argv[0], fd, fd2, lane);
 
-    server->setFd(fd, fd2, s);
+    server->setFd(fd, fd2, lane, s);
     serverList  [s] = server;
     ebServerList.push_back(server);
   }
