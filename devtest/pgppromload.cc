@@ -1,5 +1,6 @@
 #include "pdsapp/devtest/PgpDevice.hh"
 #include "pdsapp/devtest/AxiMicronN25Q.hh"
+#include "pdsapp/devtest/AxiCypressS25.hh"
 #include "pds/pgp/SrpV3.hh"
 #include "pds/pgp/Destination.hh"
 #include <PgpDriver.h>
@@ -70,7 +71,8 @@ int main( int argc, char** argv ) {
 
   PgpDevice device(*srp, vc, addr);
 
-  AxiMicronN25Q prom(mcsfile, device);
+  //  AxiMicronN25Q prom(mcsfile, device);
+  AxiCypressS25 prom(mcsfile, device);
 
   if (lwrite) prom.load();
 

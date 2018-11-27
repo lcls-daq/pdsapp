@@ -6,7 +6,7 @@
 
 using namespace PdsApp;
 
-static bool _verbose = true;
+static bool _verbose = false;
 
 PgpDevice::PgpDevice(Pds::Pgp::SrpV3::Protocol& proto,
                      unsigned dst,

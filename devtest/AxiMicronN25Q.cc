@@ -76,7 +76,7 @@ void AxiMicronN25Q::verifyProm()
   unsigned* dataArray = 0;
   const unsigned read_size = mcs->read_size();
   unsigned report = read_size/10;
-  unsigned nPrint=0;
+  unsigned nPrint=4;
   bool lFail=false;
   unsigned nFail=0;
   for (unsigned i=0; i<read_size; i++) {
