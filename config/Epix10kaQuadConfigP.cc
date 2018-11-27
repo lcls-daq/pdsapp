@@ -40,6 +40,8 @@ static const unsigned calibArrayShape[] = {Pds::Epix::Config10ka::_calibrationRo
                                            Pds::Epix::Config10ka::_numberOfPixelsPerAsicRow *
                                            Pds::Epix::Config10ka::_numberOfAsicsPerRow};
 
+enum GainMode { _HIGH_GAIN, _MEDIUM_GAIN, _LOW_GAIN, _AUTO_HL_GAIN, _AUTO_ML_GAIN };
+
 namespace Pds_ConfigDb {
   namespace Epix10kaQuad {
     //  class CspadGainMap;
@@ -60,6 +62,7 @@ namespace Pds_ConfigDb {
       void update_maskv();
       void pixel_map_dialog();
       void calib_map_dialog();
+      void set_gain(GainMode);
     public:
       QLayout* initialize(QWidget* parent);
       void     flush     ();
@@ -146,8 +149,25 @@ namespace Pds_ConfigDb {
         layout->addSpacing(40);
         layout->addWidget(_asicMaskMap = new Epix10ka2MMap(1));
         layout->addLayout(_asicMask.initialize(parent));
+        layout->addSpacing(40);
+
+        layout->addWidget(new QLabel("Set Gain for All"));
+        layout->addWidget(_hiGainB = new QPushButton("High"));
+        layout->addWidget(_mdGainB = new QPushButton("Medium"));
+        layout->addWidget(_loGainB = new QPushButton("Low"));
+        layout->addWidget(_ahGainB = new QPushButton("Auto High/Low"));
+        layout->addWidget(_amGainB = new QPushButton("Auto Med/Low"));
       }
 
+      void connect(ConfigTableQ* qlink) {
+        ::QObject::connect(_asicMaskMap, SIGNAL(changed()), qlink, SLOT(update_maskv()));
+        ::QObject::connect(_hiGainB, SIGNAL(pressed()), qlink, SLOT(set_high_gain()));
+        ::QObject::connect(_mdGainB, SIGNAL(pressed()), qlink, SLOT(set_medium_gain()));
+        ::QObject::connect(_loGainB, SIGNAL(pressed()), qlink, SLOT(set_low_gain()));
+        ::QObject::connect(_ahGainB, SIGNAL(pressed()), qlink, SLOT(set_auto_high_low_gain()));
+        ::QObject::connect(_amGainB, SIGNAL(pressed()), qlink, SLOT(set_auto_medium_low_gain()));
+      }
+ 
       void insert(Pds::LinkedList<Parameter>& pList) {
         pList.insert(&_evrRunCode);
         pList.insert(&_evrDaqCode);
@@ -155,6 +175,27 @@ namespace Pds_ConfigDb {
         pList.insert(&_asicMask);
         for(unsigned j=0; j<16; j++)
           pList.insert(&_asic[j]);
+      }
+
+      void set_gain(GainMode gm) {
+        unsigned mapv  = 0;
+        unsigned trbit = 0;
+        switch(gm) {
+        case _HIGH_GAIN   : mapv = 0xc; trbit = 1; break;
+        case _MEDIUM_GAIN : mapv = 0xc; trbit = 0; break;
+        case _LOW_GAIN    : mapv = 0x8; trbit = 0; break;
+        case _AUTO_HL_GAIN: mapv = 0x0; trbit = 1; break;
+        case _AUTO_ML_GAIN: mapv = 0x0; trbit = 0; break;
+        default: break;
+        }
+        for(unsigned i=0; i<4; i++) {
+          for(ndarray<uint16_t,2>::iterator it=_pixelArray[i].begin(); it!=_pixelArray[i].end(); it++)
+            *it = mapv;
+          for(unsigned j=i*4; j<i*4+4; j++) {
+            _asic[j]._reg[Epix10kaASIC_ConfigShadow::trbit]->value = trbit;
+            _asic[j].flush();
+          }
+        }
       }
 
     public:
@@ -166,6 +207,11 @@ namespace Pds_ConfigDb {
       Epix10kaASICdata                 _asic[16];
       ndarray<uint16_t,2>              _pixelArray[4];
       ndarray<uint8_t ,2>              _calibArray[4];
+      QPushButton*                     _hiGainB;
+      QPushButton*                     _mdGainB;
+      QPushButton*                     _loGainB;
+      QPushButton*                     _ahGainB;
+      QPushButton*                     _amGainB;
     };
 
     class AdcCopyBox : public CopyBox {
@@ -339,7 +385,7 @@ QLayout* ConfigTable::initialize(QWidget* parent)
   _pixelMap->update(0);
 
   _qlink = new ConfigTableQ(*this,parent);
-  ::QObject::connect(_globalP->_asicMaskMap, SIGNAL(changed()), _qlink, SLOT(update_maskv()));
+  _globalP->connect(_qlink);
   ::QObject::connect(_pixelMapB, SIGNAL(pressed()), _qlink, SLOT(pixel_map_dialog()));
   ::QObject::connect(_calibMapB, SIGNAL(pressed()), _qlink, SLOT(calib_map_dialog()));
   if (allowEdit())
@@ -404,6 +450,8 @@ void ConfigTable::calib_map_dialog()
     }
 }
 
+void ConfigTable::set_gain(GainMode gm) { _globalP->set_gain(gm); }
+
 // ConfigTableQ::ConfigTableQ(GlobalP& table,
 //                                                QWidget* parent) :
 //   QObject(parent),
@@ -454,4 +502,9 @@ void ConfigTableQ::update_maskg    () { _table.update_maskg    (); }
 void ConfigTableQ::pixel_map_dialog() { _table.pixel_map_dialog(); }
 void ConfigTableQ::calib_map_dialog() { _table.calib_map_dialog(); }
 
+void ConfigTableQ::set_high_gain           () { _table.set_gain(_HIGH_GAIN); }
+void ConfigTableQ::set_medium_gain         () { _table.set_gain(_MEDIUM_GAIN); }
+void ConfigTableQ::set_low_gain            () { _table.set_gain(_LOW_GAIN); }
+void ConfigTableQ::set_auto_high_low_gain  () { _table.set_gain(_AUTO_HL_GAIN); }
+void ConfigTableQ::set_auto_medium_low_gain() { _table.set_gain(_AUTO_ML_GAIN); }
 

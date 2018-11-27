@@ -173,6 +173,8 @@ void QuadP::initialize_tabs(QWidget*     parent,
     gl_sco->addWidget(new QLabel(QString("Quad %1").arg(i)), 0, i+1);
   }
   unsigned row=1;
+  gl_sys->addWidget(new QLabel("digitalId0"),row++,0);
+  gl_sys->addWidget(new QLabel("digitalId1"),row++,0);
   gl_sys->addWidget(new QLabel("dcdcEn"    ),row++,0);
   gl_sys->addWidget(new QLabel("asicAnaEn" ),row++,0);
   gl_sys->addWidget(new QLabel("asicDigEn" ),row++,0);
@@ -222,6 +224,8 @@ void QuadP::initialize_tabs(QWidget*     parent,
 
 QuadP::QuadP() :
   //  SystemRegs
+  _digitalCardId0     ( NULL, 0,      0, 0xffffffff, Hex),
+  _digitalCardId1     ( NULL, 0,      0, 0xffffffff, Hex),
   _dcdcEn             ( NULL, 0xf,    0, 0xf, Hex),
   _asicAnaEn          ( NULL, 0,      0, 1, Decimal),
   _asicDigEn          ( NULL, 0,      0, 1, Decimal),
@@ -274,6 +278,9 @@ void QuadP::reset ()
 
 void QuadP::pull   (const Epix10kaQuadConfig& p)
 {
+  //  AxiVersion (RO)
+  _digitalCardId0     .value = p.digitalCardId0     ();
+  _digitalCardId1     .value = p.digitalCardId1     ();
   //  System
   _dcdcEn             .value = p.dcdcEn             ();
   _asicAnaEn          .value = p.asicAnaEn          ();
@@ -329,8 +336,8 @@ void QuadP::push   (Epix10kaQuadConfig* p)
   *new(p) Epix10kaQuadConfig    (125000000,  // baseClockFreq
                                  0,          // enableAutomaticRunTrigger
                                  125000000/120,  // numberOf125MhzTicksPerRunTrigger
-                                 0,          // digitalCardId0
-                                 0,          // digitalCardId1
+                                 _digitalCardId0     .value,
+                                 _digitalCardId1     .value,
                                  _dcdcEn             .value,
                                  _asicAnaEn          .value,
                                  _asicDigEn          .value,
@@ -377,6 +384,8 @@ void QuadP::push   (Epix10kaQuadConfig* p)
 void QuadP::initialize(QWidget* parent, QGridLayout* gl_sys, QGridLayout* gl_acq, QGridLayout* gl_sco, QGridLayout** gl_adc, QLayout** gl_asi, unsigned q)
 {
   unsigned row=1;
+  gl_sys->addLayout(_digitalCardId0.initialize(parent),row++,q+1);
+  gl_sys->addLayout(_digitalCardId1.initialize(parent),row++,q+1);
   gl_sys->addLayout(_dcdcEn    .initialize(parent),row++,q+1);
   gl_sys->addLayout(_asicAnaEn .initialize(parent),row++,q+1);
   gl_sys->addLayout(_asicDigEn .initialize(parent),row++,q+1);
@@ -424,6 +433,8 @@ void QuadP::initialize(QWidget* parent, QGridLayout* gl_sys, QGridLayout* gl_acq
 
 void QuadP::insert(Pds::LinkedList<Parameter>& pList) {
 #define ADDP(t) pList.insert(&t)
+  ADDP(_digitalCardId0);
+  ADDP(_digitalCardId1);
   ADDP(_dcdcEn);
   ADDP(_asicAnaEn);
   ADDP(_asicDigEn);

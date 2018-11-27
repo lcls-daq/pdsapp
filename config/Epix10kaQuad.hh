@@ -58,6 +58,8 @@ namespace Pds_ConfigDb {
       void initialize(QWidget* parent, QGridLayout* gl_sys, QGridLayout* gl_acq, QGridLayout* gl_sco, QGridLayout** gl_adc, QLayout** gl_asi, unsigned q);
       void insert(Pds::LinkedList<Parameter>& pList);
     public:
+      NumericInt<uint32_t> _digitalCardId0;
+      NumericInt<uint32_t> _digitalCardId1;
       NumericInt<uint32_t> _dcdcEn;
       NumericInt<uint32_t> _asicAnaEn;
       NumericInt<uint32_t> _asicDigEn;

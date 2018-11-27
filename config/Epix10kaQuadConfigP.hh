@@ -16,6 +16,11 @@ namespace Pds_ConfigDb {
       void update_maskg();
       void pixel_map_dialog();
       void calib_map_dialog();
+      void set_high_gain();
+      void set_medium_gain();
+      void set_low_gain();
+      void set_auto_high_low_gain();
+      void set_auto_medium_low_gain();
     private:
       ConfigTable& _table;
     };
