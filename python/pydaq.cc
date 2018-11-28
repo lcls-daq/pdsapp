@@ -1209,6 +1209,10 @@ PyObject* pdsdaq_rcv      (PyObject* self, int state, bool interrupt)
     Py_DECREF(pdsdaq_disconnect(self));
     return NULL;
   }
+  else if ((result.id() == Pds::TransitionId::Enable) && (daq->state >= Running)) {
+    // Ignore EVR enables from new chunks
+    return pdsdaq_rcv(self, state, interrupt);
+  }
   else {
     daq->exptnum = result.exptnum();
     daq->runnum  = result.runnum ();

@@ -391,18 +391,18 @@ void RemoteSeqApp::routine()
                 }
                 else {
                   _control.wait_for_target();
-                  _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
                   if (config.uses_duration())
-                    _control.set_transition_env(TransitionId::Enable,
+                    _control.set_transition_env(TransitionId::BeginCalibCycle,
                                                 EnableEnv(config.duration()).value());
                   else if (config.uses_l3t_events())
-                    _control.set_transition_env(TransitionId::Enable,
+                    _control.set_transition_env(TransitionId::BeginCalibCycle,
                                                 EnableEnv(-1).value());
                   else if (config.uses_events())
-                    _control.set_transition_env(TransitionId::Enable,
+                    _control.set_transition_env(TransitionId::BeginCalibCycle,
                                                 EnableEnv(config.events()).value());
                   else
                     ;
+                  _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_config_buffer);
                   _control.set_target_state(PartitionControl::Enabled);
                   _control.release_target();
                 }
@@ -436,7 +436,7 @@ void RemoteSeqApp::routine()
 
             _control.set_transition_env    (TransitionId::Configure,old_key);
             _control.set_transition_payload(TransitionId::Configure,&_configtc,_config_buffer);
-            _control.set_transition_env    (TransitionId::Enable,
+            _control.set_transition_env    (TransitionId::BeginCalibCycle,
                                             config.uses_duration() ?
                                             EnableEnv(config.duration()).value() :
                                             EnableEnv(config.events()).value());

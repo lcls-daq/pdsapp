@@ -118,17 +118,17 @@ Transition* SeqAppliance::transitions(Transition* tr)
       _configtc.extent = sizeof(Xtc) + _cur_config->_sizeof();
       _configtc.damage = damage;
       _control.set_transition_payload(TransitionId::Configure,&_configtc,_cur_config);
+      _control.set_transition_env(TransitionId::BeginCalibCycle,
+                                  _cur_config->uses_duration() ?
+                                  EnableEnv(_cur_config->duration()).value() :
+                                  EnableEnv(_cur_config->events()).value());
       break;
     }
   case TransitionId::BeginCalibCycle:
     if (_manual.control_enabled()) {
       //  apply the configuration
-      _control.set_transition_env(TransitionId::Enable, 
-				  _cur_config->uses_duration() ?
-				  EnableEnv(_cur_config->duration()).value() :
-				  EnableEnv(_cur_config->events()).value());
       if (_cselect.controlpvs())
-	_pvmanager.configure(*_cur_config);
+        _pvmanager.configure(*_cur_config);
       _control.set_transition_payload(TransitionId::BeginCalibCycle,&_configtc,_cur_config);
     }
     break;
