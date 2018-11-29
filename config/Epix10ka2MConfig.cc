@@ -4,6 +4,8 @@
 #include "pdsapp/config/Epix10kaASICdata.hh"
 #include "pdsapp/config/Epix10kaCalibMap.hh"
 #include "pdsapp/config/Epix10kaPixelMap.hh"
+#include "pdsapp/config/Epix10ka2MGainMap.hh"
+#include "pdsapp/config/Epix10kaQuadGainMap.hh"
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/CopyBox.hh"
 #include "pds/config/EpixConfigType.hh"
@@ -23,6 +25,8 @@
 #include <QtGui/QTabWidget>
 #include <QtGui/QGroupBox>
 #include <QtGui/QPushButton>
+#include <QtGui/QButtonGroup>
+#include <QtGui/QRadioButton>
 
 static const int PolarityGroup = 100;
 
@@ -40,7 +44,6 @@ static const unsigned calibArrayShape[] = {Pds::Epix::Config10ka::_calibrationRo
                                            Pds::Epix::Config10ka::_numberOfPixelsPerAsicRow *
                                            Pds::Epix::Config10ka::_numberOfAsicsPerRow};
 
-enum GainMode { _HIGH_GAIN, _MEDIUM_GAIN, _LOW_GAIN, _AUTO_HL_GAIN, _AUTO_ML_GAIN };
 
 namespace Pds_ConfigDb {
   namespace Epix10ka2M {
@@ -62,7 +65,8 @@ namespace Pds_ConfigDb {
       void update_maskv();
       void pixel_map_dialog();
       void calib_map_dialog();
-      void set_gain(GainMode);
+      void set_gain(int asic);
+      void set_all_gain();
     public:
       QLayout* initialize(QWidget* parent);
       void     flush     ();
@@ -147,25 +151,39 @@ namespace Pds_ConfigDb {
         layout->addLayout(_evrDaqCode     .initialize(parent));
         layout->addLayout(_evrRunDelay    .initialize(parent));
         layout->addSpacing(40);
-        layout->addWidget(_asicMaskMap = new Epix10ka2MMap(4));
-        layout->addLayout(_asicMask.initialize(parent));
+
+        layout->addWidget(_asicGainMap = new Epix10ka2MGainMap(_pixelArray, _asic));
         layout->addSpacing(40);
 
-        layout->addWidget(new QLabel("Set Gain for All"));
-        layout->addWidget(_hiGainB = new QPushButton("High"));
-        layout->addWidget(_mdGainB = new QPushButton("Medium"));
-        layout->addWidget(_loGainB = new QPushButton("Low"));
-        layout->addWidget(_ahGainB = new QPushButton("Auto High/Low"));
-        layout->addWidget(_amGainB = new QPushButton("Auto Med/Low"));
+        _gainB = new QButtonGroup;
+        _gainB->addButton(new QRadioButton("High")   ,Epix10kaQuadGainMap::_HIGH_GAIN);
+        _gainB->addButton(new QRadioButton("Medium") ,Epix10kaQuadGainMap::_MEDIUM_GAIN);
+        _gainB->addButton(new QRadioButton("Low")    ,Epix10kaQuadGainMap::_LOW_GAIN);
+        _gainB->addButton(new QRadioButton("Auto HL"),Epix10kaQuadGainMap::_AUTO_HL_GAIN);
+        _gainB->addButton(new QRadioButton("Auto ML"),Epix10kaQuadGainMap::_AUTO_ML_GAIN);
+        for(unsigned i=0; i<5; i++) {
+          QPalette p;
+          p.setColor(QPalette::ButtonText,
+                     QColor(Epix10kaQuadGainMap::rgb(Epix10kaQuadGainMap::GainMode(i))));
+          p.setColor(QPalette::Text,
+                     QColor(Epix10kaQuadGainMap::rgb(Epix10kaQuadGainMap::GainMode(i))));
+          QAbstractButton* b = _gainB->button(i);
+          b->setPalette(p);
+          layout->addWidget(b);
+        }
+        layout->addWidget(_allGainB = new QPushButton("Set Gain for All"));
+      }
+
+      void initialize_mask(QWidget* parent, QVBoxLayout* layout)
+      {
+        layout->addWidget(_asicMaskMap = new Epix10ka2MMap(4));
+        layout->addLayout(_asicMask.initialize(parent));
       }
 
       void connect(ConfigTableQ* qlink) {
         ::QObject::connect(_asicMaskMap, SIGNAL(changed()), qlink, SLOT(update_maskv()));
-        ::QObject::connect(_hiGainB, SIGNAL(pressed()), qlink, SLOT(set_high_gain()));
-        ::QObject::connect(_mdGainB, SIGNAL(pressed()), qlink, SLOT(set_medium_gain()));
-        ::QObject::connect(_loGainB, SIGNAL(pressed()), qlink, SLOT(set_low_gain()));
-        ::QObject::connect(_ahGainB, SIGNAL(pressed()), qlink, SLOT(set_auto_high_low_gain()));
-        ::QObject::connect(_amGainB, SIGNAL(pressed()), qlink, SLOT(set_auto_medium_low_gain()));
+        ::QObject::connect(_allGainB   , SIGNAL(pressed()), qlink, SLOT(set_all_gain()));
+        ::QObject::connect(_asicGainMap, SIGNAL(clicked(int)), qlink, SLOT(set_gain(int)));
       }
 
       void insert(Pds::LinkedList<Parameter>& pList) {
@@ -176,42 +194,84 @@ namespace Pds_ConfigDb {
         for(unsigned j=0; j<64; j++)
           pList.insert(&_asic[j]);
       }
-
-      void set_gain(GainMode gm) {
+      
+      void set_all_gain() {
+        int id = _gainB->checkedId();
+        if (id < 0) return;
+        Epix10kaQuadGainMap::GainMode gm = Epix10kaQuadGainMap::GainMode(id);
         unsigned mapv  = 0;
         unsigned trbit = 0;
         switch(gm) {
-        case _HIGH_GAIN   : mapv = 0xc; trbit = 1; break;
-        case _MEDIUM_GAIN : mapv = 0xc; trbit = 0; break;
-        case _LOW_GAIN    : mapv = 0x8; trbit = 0; break;
-        case _AUTO_HL_GAIN: mapv = 0x0; trbit = 1; break;
-        case _AUTO_ML_GAIN: mapv = 0x0; trbit = 0; break;
+        case Epix10kaQuadGainMap::_HIGH_GAIN   : mapv = 0xc; trbit = 1; break;
+        case Epix10kaQuadGainMap::_MEDIUM_GAIN : mapv = 0xc; trbit = 0; break;
+        case Epix10kaQuadGainMap::_LOW_GAIN    : mapv = 0x8; trbit = 0; break;
+        case Epix10kaQuadGainMap::_AUTO_HL_GAIN: mapv = 0x0; trbit = 1; break;
+        case Epix10kaQuadGainMap::_AUTO_ML_GAIN: mapv = 0x0; trbit = 0; break;
         default: break;
         }
-        for(unsigned i=0; i<16; i++) {
+        for(unsigned i=0; i<16; i++)
           for(ndarray<uint16_t,2>::iterator it=_pixelArray[i].begin(); it!=_pixelArray[i].end(); it++)
             *it = mapv;
-          for(unsigned j=i*4; j<i*4+4; j++) {
-            _asic[j]._reg[Epix10kaASIC_ConfigShadow::trbit]->value = trbit;
-            _asic[j].flush();
-          }
+        for(unsigned j=0; j<64; j++) {
+          _asic[j]._reg[Epix10kaASIC_ConfigShadow::trbit]->value = trbit;
+          _asic[j].flush();
         }
+        _asicGainMap->update();
+      }
+
+      void set_gain(int asic) {
+        int id = _gainB->checkedId();
+        if (id < 0) return;
+        Epix10kaQuadGainMap::GainMode gm = Epix10kaQuadGainMap::GainMode(id);
+        unsigned mapv  = 0;
+        unsigned trbit = 0;
+        switch(gm) {
+        case Epix10kaQuadGainMap::_HIGH_GAIN   : mapv = 0xc; trbit = 1; break;
+        case Epix10kaQuadGainMap::_MEDIUM_GAIN : mapv = 0xc; trbit = 0; break;
+        case Epix10kaQuadGainMap::_LOW_GAIN    : mapv = 0x8; trbit = 0; break;
+        case Epix10kaQuadGainMap::_AUTO_HL_GAIN: mapv = 0x0; trbit = 1; break;
+        case Epix10kaQuadGainMap::_AUTO_ML_GAIN: mapv = 0x0; trbit = 0; break;
+        default: break;
+        }
+        unsigned i = asic>>2;
+        ndarray<uint16_t,2> pa = _pixelArray[i];
+        unsigned yo = pa.shape()[0]/2;
+        unsigned xo = pa.shape()[1]/2;
+        switch(asic&3) {
+        case 0:
+          { for(unsigned y=yo; y<yo*2; y++)
+              for(unsigned x=xo; x<xo*2; x++)
+                pa[y][x] = mapv; } break;
+        case 1:
+          { for(unsigned y=0; y<yo; y++)
+              for(unsigned x=xo; x<xo*2; x++)
+                pa[y][x] = mapv; } break;
+        case 2:
+          { for(unsigned y=0; y<yo; y++)
+              for(unsigned x=0; x<xo; x++)
+                pa[y][x] = mapv; } break;
+        case 3:
+          { for(unsigned y=yo; y<yo*2; y++)
+              for(unsigned x=0; x<xo; x++)
+                pa[y][x] = mapv; } break;
+        }
+        _asic[asic]._reg[Epix10kaASIC_ConfigShadow::trbit]->value = trbit;
+        _asic[asic].flush();
+        _asicGainMap->update();
       }
 
     public:
       NumericInt<unsigned>             _evrRunCode;
       NumericInt<unsigned>             _evrDaqCode;
       NumericInt<unsigned>             _evrRunDelay;
+      Epix10ka2MGainMap*               _asicGainMap;
       Epix10ka2MMap*                   _asicMaskMap;
       NumericInt<uint64_t>             _asicMask;
       Epix10kaASICdata                 _asic[64];
       ndarray<uint16_t,2>              _pixelArray[16];
       ndarray<uint8_t ,2>              _calibArray[16];
-      QPushButton*                     _hiGainB;
-      QPushButton*                     _mdGainB;
-      QPushButton*                     _loGainB;
-      QPushButton*                     _ahGainB;
-      QPushButton*                     _amGainB;
+      QButtonGroup*                    _gainB;
+      QPushButton*                     _allGainB;
     };
 
     class AdcCopyBox : public CopyBox {
@@ -431,6 +491,9 @@ QLayout* ConfigTable::initialize(QWidget* parent)
         vl->addWidget(tab_asi);
         vl->addWidget(new AsicCopyBox(*this));
         ADDTAB(vl, "ASICs"); }
+      { QVBoxLayout* vl = new QVBoxLayout;
+        _globalP->initialize_mask(parent,vl);
+        ADDTAB(vl, "ASIC Mask"); }
     }
     { QVBoxLayout* vl = new QVBoxLayout;
       vl->addWidget(_pixelMap  = new Epix10ka2MMap(4,2,true));
@@ -480,6 +543,7 @@ void ConfigTable::enable(bool)
 void ConfigTable::update_maskg()
 {
   _globalP->_asicMaskMap->update(_globalP->_asicMask.value);
+  _globalP->_asicGainMap->update();
 }
 
 void ConfigTable::update_maskv()
@@ -510,7 +574,8 @@ void ConfigTable::calib_map_dialog()
     }
 }
 
-void ConfigTable::set_gain(GainMode gm) { _globalP->set_gain(gm); }
+void ConfigTable::set_gain(int a) { _globalP->set_gain(a); }
+void ConfigTable::set_all_gain() { _globalP->set_all_gain(); }
 
 // ConfigTableQ::ConfigTableQ(GlobalP& table,
 //                                                QWidget* parent) :
@@ -562,8 +627,5 @@ void ConfigTableQ::update_maskg            () { _table.update_maskg(); }
 void ConfigTableQ::pixel_map_dialog        () { _table.pixel_map_dialog(); }
 void ConfigTableQ::calib_map_dialog        () { _table.calib_map_dialog(); }
 
-void ConfigTableQ::set_high_gain           () { _table.set_gain(_HIGH_GAIN); }
-void ConfigTableQ::set_medium_gain         () { _table.set_gain(_MEDIUM_GAIN); }
-void ConfigTableQ::set_low_gain            () { _table.set_gain(_LOW_GAIN); }
-void ConfigTableQ::set_auto_high_low_gain  () { _table.set_gain(_AUTO_HL_GAIN); }
-void ConfigTableQ::set_auto_medium_low_gain() { _table.set_gain(_AUTO_ML_GAIN); }
+void ConfigTableQ::set_all_gain           () { _table.set_all_gain(); }
+void ConfigTableQ::set_gain          (int a) { _table.set_gain(a); }
