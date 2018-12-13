@@ -34,7 +34,7 @@ Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
-  printf( "Usage: %s [-h]  -P <cardNumb,portVcNumb,offset> [-w addr,data][-W addr,data,count,delay][-r addr][-d addr,count][-t addr,count][-R][-S detID,sharedMemoryTag,nclients][-o maxPrint][-s filename][-D <debug>][-m][M][-f <runTimeConfigName>][-X <addr,count>][x][-p pf]\n"
+  printf( "Usage: %s [-h]  -P <cardNumb,portVcNumb,offset> [-w addr,data][-W addr,data,count,delay][-r addr][-d addr,count][-t addr,count][-R][-S detID,sharedMemoryTag,nclients][-o maxPrint][-s filename][-D <debug>][-m][M][-f <runTimeConfigName>][-X <addr,count>][x][-p pf][-3]\n"
       "    -h      Show usage\n"
       "    -P      Set pgpcard card number and port/vc\n"
       "                 The first number is just the index of the card, default zero.  The second number,\n"
@@ -73,7 +73,8 @@ void printUsage(char* name) {
       "    -x      print status\n"
       "    -X      print pgpcard registers at addr for count registers\n"
       "    -O      set Pgp offset, default is zero\n"
-      "    -p      set print flag to value given\n",
+      "    -p      set print flag to value given\n"
+      "    -3      Use SLAC register protocol version 3\n",
       name
   );
 }
@@ -255,7 +256,9 @@ int main( int argc, char** argv ) {
       case 'p':
         printFlag = strtoul(optarg, NULL, 0);
         break;
-      case '3':        srpV3 = true;        break;
+      case '3':
+        srpV3 = true;
+        break;
       case 'h':
         printUsage(argv[0]);
         return 0;
