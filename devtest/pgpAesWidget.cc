@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
+#include <math.h>
 #include <new>
 
 FILE*               writeFile           = 0;
@@ -25,7 +26,16 @@ void sigHandler( int signal ) {
   ::exit(signal);
 }
 
-
+static double getThermistorTemp(const uint16_t x)
+{
+  if (x==0) return 0.;
+  double u = double(x)/16383.0 * 2.5;
+  double i = u / 100000;
+  double r = (2.5 - u)/i;
+  double l = log(r/10000);
+  double t = 1.0 / (3.3538646E-03 + 2.5654090E-04 * l + 1.9243889E-06 * (l*l) + 1.0969244E-07 * (l*l*l));
+  return t - 273.15;
+}
 
 using namespace Pds;
 
@@ -57,7 +67,7 @@ void printUsage(char* name) {
       "    -T      Dump memory mapped Tx buffers\n"
       "    -d      Dump count registers starting at addr\n"
       "    -m      Monitor testing -  write enable and then loop reading\n"
-      "    -M      Disable monitor output, write disable"
+      "    -M      Disable monitor output, write disable\n"
       "    -R      Loop reading data until interrupted, resulting data will be written to the standard output.\n"
       "    -S      Loop reading data until interrupted, resulting data will be written with the device type to the shared memory.  [Example: -S \"EpixSampler,0_1_DAQ\"\n"
       "    -o      Print out up to maxPrint words when reading data\n"
@@ -366,7 +376,7 @@ int main( int argc, char** argv ) {
 //      break;
     case writeCommand:
       if (srpV3) {
-        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, 0);
+        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset);
         proto->writeRegister(dest, addr, data);
       }
       else {
@@ -385,7 +395,7 @@ int main( int argc, char** argv ) {
       while (count--) {
         unsigned v;
         if (srpV3) {
-          Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, 0);
+          Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset);
           proto->writeRegister(dest, addr, data);
           ret = proto->readRegister(dest, addr, 0, &v);
         }
@@ -407,7 +417,7 @@ int main( int argc, char** argv ) {
       break;
     case readCommand:
       if (srpV3) {
-        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, 0);
+        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset);
         ret = proto->readRegister(dest, addr,0x2dbeef, &data);
       }
       else
@@ -416,16 +426,33 @@ int main( int argc, char** argv ) {
       break;
     case dumpCommand:
       printf("%s reading %u registers at %x\n", argv[0], count, (unsigned)addr);
-      for (unsigned i=0; i<count; i++) {
-        pgp->readRegister(dest, addr, 0x2dbeef+i, &data);
-        printf("\t%s0x%x - 0x%x\n", addr+i < 0x10 ? " " : "", addr+i, data);
+      if (srpV3) {
+        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset);
+        for (unsigned i=0; i<count; i++) {
+          proto->readRegister(dest, addr, 0x2dbeef+i, &data);
+          printf("\t%s0x%x - 0x%x\n", addr+i < 0x10 ? " " : "", addr+i, data);
+        }
+      } else {
+        for (unsigned i=0; i<count; i++) {
+          pgp->readRegister(dest, addr, 0x2dbeef+i, &data);
+          printf("\t%s0x%x - 0x%x\n", addr+i < 0x10 ? " " : "", addr+i, data);
+        }
       }
       break;
     case testCommand:
-      for (unsigned i=0; i<count; i++) {
-        pgp->writeRegister(dest, addr+i, i);
-        pgp->readRegister(dest, addr+i,0x2dbeef, &data);
-        printf("\t%16x - %16x %s\n", i, data, i == data ? "" : "<<--ERROR");
+      if (srpV3) {
+        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset);
+        for (unsigned i=0; i<count; i++) {
+          proto->writeRegister(dest, addr+i, i);
+          proto->readRegister(dest, addr+i,0x2dbeef, &data);
+          printf("\t%16x - %16x %s\n", i, data, i == data ? "" : "<<--ERROR");
+        }
+      } else {
+        for (unsigned i=0; i<count; i++) {
+          pgp->writeRegister(dest, addr+i, i);
+          pgp->readRegister(dest, addr+i,0x2dbeef, &data);
+          printf("\t%16x - %16x %s\n", i, data, i == data ? "" : "<<--ERROR");
+        }
       }
       break;
     case printStatus:
@@ -443,21 +470,41 @@ int main( int argc, char** argv ) {
       break;
     case disMonitorTest:
       val = zero;
-      tx.is32   = sizeof(&tx) == 4;
-      tx.dest = 3 + (4*pgp->portOffset());
-      tx.flags = 0;
-      tx.size = sizeof(tx);
-      tx.data = (unsigned long long)&val;
+      if (srpV3) {
+        unsigned cmd[] = {0, val, 0, 0};
+        tx.is32   = sizeof(&tx) == 4;
+        tx.dest = 3 + (4*pgp->portOffset());
+        tx.index = 0;
+        tx.flags = 0;
+        tx.size = sizeof(cmd);
+        tx.data = (unsigned long long)&cmd;
+      } else {
+        tx.is32   = sizeof(&tx) == 4;
+        tx.dest = 3 + (4*pgp->portOffset());
+        tx.index = 0;
+        tx.flags = 0;
+        tx.size = sizeof(val);
+        tx.data = (unsigned long long)&val;
+      }
       printf("monitorTest write %d to lane %d vc %d, offset %d\n", val, tx.dest>>2, tx.dest&3, pgp->portOffset());
       write(fd, &tx, sizeof(tx));
       break;
     case monitorTest:
       val = one;
-      tx.is32   = sizeof(&tx) == 4;
-      tx.dest = 3 + (4*pgp->portOffset());
-      tx.flags = 0;
-      tx.size = sizeof(tx);
-      tx.data = (unsigned long long)&val;
+      if (srpV3) {
+        unsigned cmd[] = {0, val, 0, 0};
+        tx.is32   = sizeof(&tx) == 4;
+        tx.dest = 3 + (4*pgp->portOffset());
+        tx.flags = 0;
+        tx.size = sizeof(cmd);
+        tx.data = (unsigned long long)&cmd;
+      } else {
+        tx.is32   = sizeof(&tx) == 4;
+        tx.dest = 3 + (4*pgp->portOffset());
+        tx.flags = 0;
+        tx.size = sizeof(val);
+        tx.data = (unsigned long long)&val;
+      }
       printf("monitorTest write %d to lane %d vc %d, offset %d\n", val, tx.dest>>2, tx.dest&3, pgp->portOffset());
       write(fd, &tx, sizeof(tx));
       //fall through to readAsync ...
@@ -466,7 +513,7 @@ int main( int argc, char** argv ) {
       Pds::Pgp::DataImportFrame* inFrame;
       DmaReadData       pgpCardRx;
       pgpCardRx.data    = (uint64_t)malloc(BufferWords);
-      pgpCardRx.dest    = dest->dest();
+      pgpCardRx.dest    = 0;
       pgpCardRx.flags   = 0;
       pgpCardRx.index   = 0;
       pgpCardRx.error   = 0;
@@ -565,14 +612,55 @@ int main( int argc, char** argv ) {
                 slastAcq = inFrame->acqCount();
               }
             } else if ((inFrame->vc()==3) && (command == monitorTest)) {
-              printf("Temperature 1 [C]: %f\n", (double)((int)i32p[8])/100);
-              printf("Temperature 2 [C]: %f\n", (double)((int)i32p[9])/100);
-              printf("Humidity [%%]: %f\n", (double)(i32p[10])/100);
-              printf("ASIC analog current [mA]: %d\n", (u32p[11]));
-              printf("ASIC digital current [mA]: %d\n", (u32p[12]));
-              printf("ASIC guard ring current [uA]: %d\n", (u32p[13]));
-              printf("Analog input voltage [mV]: %d\n", (u32p[14]));
-              printf("Digital input voltage [mV]: %d\n\n", (u32p[15]));
+              if (srpV3) {
+                printf("Sht31 Humidity [%%]: %f\n", double(u16p[16])/65535.0 * 100);
+                printf("Sht31 Temperature [C]: %f\n", double(u16p[17])/65535.0 * 175 - 45);
+                printf("NctLoc Temperature [C]: %f\n", double(u16p[18]&0xff));
+                printf("NctFpga Temperature [C]: %f\n", double(u16p[19]>>8)+double(u16p[19]&0xc0)/256.);
+                printf("A0_2V5 Current [mA]: %f\n", double(u16p[20])/16383.0*2.5/330.*1.e6);
+                printf("A1_2V5 Current [mA]: %f\n", double(u16p[21])/16383.0*2.5/330.*1.e6);
+                printf("A2_2V5 Current [mA]: %f\n", double(u16p[22])/16383.0*2.5/330.*1.e6);
+                printf("A3_2V5 Current [mA]: %f\n", double(u16p[23])/16383.0*2.5/330.*1.e6);
+                printf("D0_2V5 Current [mA]: %f\n", double(u16p[24])/16383.0*2.5/330.*0.5e6);
+                printf("D1_2V5 Current [mA]: %f\n", double(u16p[25])/16383.0*2.5/330.*0.5e6);
+                printf("Thermistor 0 Temperature [C]: %f\n", getThermistorTemp(u16p[26]));
+                printf("Thermistor 1 Temperature [C]: %f\n", getThermistorTemp(u16p[27]));
+                printf("PwrDig Current [mA]: %f\n", double(u16p[28])*0.1024/4095/0.02);
+                printf("PwrDig Voltage [mV]: %f\n", double(u16p[29])*102.4/4095);
+                printf("PwrDig Temperature [C]: %f\n", double(u16p[30])*2.048/4095*(130/(0.882-1.951)) + (0.882/0.0082+100));
+                printf("PwrAna Current [mA]: %f\n", double(u16p[31])*0.1024/4095/0.02);
+                printf("PwrAna Voltage [mV]: %f\n", double(u16p[32])*102.4/4095);
+                printf("PwrAna Temperature [C]: %f\n", double(u16p[33])*2.048/4095*(130/(0.882-1.951)) + (0.882/0.0082+100));
+                printf("A0_2V5_H Temperature [C]: %f\n", double(u16p[34])*1.65/65535*100);
+                printf("A0_2V5_L Temperature [C]: %f\n", double(u16p[35])*1.65/65535*100);
+                printf("A1_2V5_H Temperature [C]: %f\n", double(u16p[36])*1.65/65535*100);
+                printf("A1_2V5_L Temperature [C]: %f\n", double(u16p[37])*1.65/65535*100);
+                printf("A2_2V5_H Temperature [C]: %f\n", double(u16p[38])*1.65/65535*100);
+                printf("A2_2V5_L Temperature [C]: %f\n", double(u16p[39])*1.65/65535*100);
+                printf("A3_2V5_H Temperature [C]: %f\n", double(u16p[40])*1.65/65535*100);
+                printf("A3_2V5_L Temperature [C]: %f\n", double(u16p[41])*1.65/65535*100);
+                printf("D0_2V5 Temperature [C]: %f\n", double(u16p[42])*1.65/65535*100);
+                printf("D1_2V5 Temperature [C]: %f\n", double(u16p[43])*1.65/65535*100);
+                printf("A0_1V8 Temperature [C]: %f\n", double(u16p[44])*1.65/65535*100);
+                printf("A1_1V8 Temperature [C]: %f\n", double(u16p[45])*1.65/65535*100);
+                printf("A2_1V8 Temperature [C]: %f\n", double(u16p[46])*1.65/65535*100);
+                printf("PcbAna Temperature 0 [C]: %f\n", double(u16p[47])*1.65/65535*(130/0.882-1.951)+(0.882/0.0082+100));
+                printf("PcbAna Temperature 1 [C]: %f\n", double(u16p[48])*1.65/65535*(130/0.882-1.951)+(0.882/0.0082+100));
+                printf("PcbAna Temperature 2 [C]: %f\n", double(u16p[49])*1.65/65535*(130/0.882-1.951)+(0.882/0.0082+100));
+                printf("TrOpt Temperature [C]: %f\n", double(u16p[50])/256);
+                printf("TrOpt Voltage [mV]: %f\n", double(u16p[51])*0.0001);
+                printf("TrOpt TxPwr [uW]: %f\n", double(u16p[52])*0.1);
+                printf("TrOpt RxPwr [uW]: %f\n", double(u16p[53])*0.1);
+              } else {
+                printf("Temperature 1 [C]: %f\n", (double)((int)i32p[8])/100);
+                printf("Temperature 2 [C]: %f\n", (double)((int)i32p[9])/100);
+                printf("Humidity [%%]: %f\n", (double)(i32p[10])/100);
+                printf("ASIC analog current [mA]: %d\n", (u32p[11]));
+                printf("ASIC digital current [mA]: %d\n", (u32p[12]));
+                printf("ASIC guard ring current [uA]: %d\n", (u32p[13]));
+                printf("Analog input voltage [mV]: %d\n", (u32p[14]));
+                printf("Digital input voltage [mV]: %d\n\n", (u32p[15]));
+              }
             } else {
               unsigned readBytes = readRet;
               if (printFlag) printf("[%d] ",readBytes);
