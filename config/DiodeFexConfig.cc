@@ -10,11 +10,11 @@ using namespace Pds_ConfigDb;
 typedef DiodeFexConfigType T;
 
 // limit to 8 ranges
-static const int NRANGES=8;
+//static const int NRANGES=8;
 
 DiodeFexConfig::DiodeFexConfig() : 
   Serializer("DiodeFexConfig"),
-  _table( new DiodeFexTable(NRANGES) ) 
+  _table( new DiodeFexTable(T::NRANGES) )
 {
   _table->insert(pList);
 }
