@@ -79,6 +79,7 @@ namespace Pds_ConfigDb {
   class NumericInt : public Parameter,
          public ParameterCount {
   public:
+    NumericInt();
     NumericInt(const char* label, T val, T vlo, T vhi, IntMode mo=Decimal, double sca=1.);
     ~NumericInt();
 

@@ -21,6 +21,8 @@ Enumerated<T>::Enumerated(const char* label, T val,
   Parameter(label),
   value (val),
   labels(strlist),
+  _input(0),
+  _display(0),
   values(0)
 {
 }
@@ -32,6 +34,8 @@ Enumerated<T>::Enumerated(const char* label, T val,
   Parameter(label),
   value (val),
   labels(strlist),
+  _input(0),
+  _display(0),
   values(vallist)
 {
 }
@@ -83,21 +87,25 @@ template <class T>
 void Enumerated<T>::flush()
 {
   if (allowEdit()) {
-    if (values)
-      _input->setCurrentIndex(_input->findData(value));
-    else
-      _input->setCurrentIndex(value);
+    if (_input) {
+      if (values)
+        _input->setCurrentIndex(_input->findData(value));
+      else
+        _input->setCurrentIndex(value);
+    }
   }
   else {
-    if (values) {
-      for(unsigned i=0; labels[i]; i++)
-        if (values[i]==value) {
-          _display->setText(labels[i]);
-          break;
-        }
+    if (_display) {
+      if (values) {
+        for(unsigned i=0; labels[i]; i++)
+          if (values[i]==value) {
+            _display->setText(labels[i]);
+            break;
+          }
+      }
+      else
+        _display->setText(labels[value]);
     }
-    else
-      _display->setText(labels[value]);
   }
 }
 
@@ -112,6 +120,7 @@ template <class T>
 Enumerated<T>& Enumerated<T>::operator=(const Enumerated<T>& o)
 {
   value = o.value;
+  values = o.values;
   flush();
   return *this;
 }
@@ -124,7 +133,11 @@ NumericIntArray<T,N>::NumericIntArray(const char* label, T val, T vlo, T vhi,
   scale(sca),
   rows(row)
 {
-  for(int i=0; i<N; i++) value[i]=val;
+  for(int i=0; i<N; i++) {
+    value[i]=val;
+    _input[i]=0;
+    _display[i]=0;
+  }
   range[0]=vlo;
   range[1]=vhi;
 }
@@ -218,10 +231,13 @@ void NumericIntArray<T,N>::flush()
       case Hex:	    v = QString::number(value[i],16); break;
       default:      v = QString::number(double(value[i])*scale); break;
     }
-    if (allowEdit())
-      _input[i]->setText(v);
-    else
-      _display[i]->setText(v);
+    if (allowEdit()) {
+      if (_input[i])
+        _input[i]->setText(v);
+    } else {
+      if (_display[i])
+        _display[i]->setText(v);
+    }
   }
 }
 
@@ -247,6 +263,10 @@ NumericIntArray<T,N>& NumericIntArray<T,N>::operator=(const NumericIntArray<T,N>
 {
   for(int i=0; i<N; i++)
     value[i] = o.value[i];
+  range[0] = o.range[1];
+  mode = o.mode;
+  scale = o.scale;
+  rows = o.rows;
   flush();
   return *this;
 }

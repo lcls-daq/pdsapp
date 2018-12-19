@@ -36,7 +36,9 @@ bool Parameter::readFromData() { return _read; }
 
 TextParameter::TextParameter(const char* label, const char* val, unsigned size) :
   Parameter(label),
-  _size    (size)
+  _input   (0),
+  _size    (size),
+  _display (0)
 {
   memset (value, 0, size);
   strncpy(value, val, size);
@@ -73,10 +75,13 @@ void     TextParameter::update()
 
 void     TextParameter::flush ()
 {
-  if (allowEdit())
-    _input->setText(value);
-  else
-    _display->setText(value);
+  if (allowEdit()) {
+    if (_input)
+      _input->setText(value);
+  } else {
+    if (_display)
+      _display->setText(value);
+  }
 }
 
 void     TextParameter::enable(bool v)
@@ -95,6 +100,7 @@ TextParameter& TextParameter::operator=(const TextParameter& o)
 {
   for(unsigned i=0; i<MaxSize; i++)
     value[i] = o.value[i];
+  _size = o._size;
   flush();
   return *this;
 }
@@ -245,7 +251,8 @@ unsigned TextFileParameter::length() const
 CheckValue::CheckValue(const char* label,
 		       bool checked) :
   Parameter(label),
-  value    (checked)
+  value    (checked),
+  _input   (0)
 {
 }
 
@@ -268,7 +275,8 @@ void CheckValue::update()
 
 void CheckValue::flush()
 {
-  _input->setChecked(value);
+  if (_input)
+    _input->setChecked(value);
 }
 
 void CheckValue::enable(bool v)
@@ -284,11 +292,19 @@ CheckValue& CheckValue::operator=(const CheckValue& o)
 }
 
 template <class T>
+NumericInt<T>::NumericInt() :
+  _input(0),
+  _display(0)
+{}
+
+template <class T>
 NumericInt<T>::NumericInt(const char* label, T val, T vlo, T vhi, IntMode mo, double sca) :
   Parameter(label),
   value(val),
   mode (mo),
-  scale(sca)
+  scale(sca),
+  _input(0),
+  _display(0)
 {
   range[0]=vlo;
   range[1]=vhi;
@@ -356,10 +372,13 @@ void NumericInt<T>::flush()
     default:      v = QString::number(double(value)*scale); break;
   }
 
-  if (allowEdit())
-    _input->setText(v);
-  else
-    _display->setText(v);
+  if (allowEdit()) {
+    if (_input)
+      _input->setText(v);
+  } else {
+    if (_display)
+      _display->setText(v);
+  }
 }
 
 template <class T>
@@ -392,17 +411,26 @@ template <class T>
 NumericInt<T>& NumericInt<T>::operator=(const NumericInt<T>& o)
 {
   value = o.value;
+  mode = o.mode;
+  scale = o.scale;
+  range[0] = o.range[0];
+  range[1] = o.range[1];
   flush();
   return *this;
 }
 
 template <class T>
-NumericFloat<T>::NumericFloat() {}
+NumericFloat<T>::NumericFloat() :
+  _input(0),
+  _display(0)
+{}
 
 template <class T>
 NumericFloat<T>::NumericFloat(const char* label, T val, T vlo, T vhi) :
   Parameter(label),
-  value(val) 
+  value(val),
+  _input(0),
+  _display(0)
 {
   range[0] = vlo;
   range[1] = vhi;
@@ -445,10 +473,13 @@ void NumericFloat<T>::update()
 template <class T>
 void NumericFloat<T>::flush()
 {
-  if (allowEdit())
-    _input->setText(QString::number(value));
-  else
-    _display->setText(QString::number(value));
+  if (allowEdit()) {
+    if(_input)
+      _input->setText(QString::number(value));
+  } else {
+    if(_display)
+      _display->setText(QString::number(value));
+  }
 }
 
 template <class T>
@@ -462,12 +493,16 @@ template <class T>
 NumericFloat<T>& NumericFloat<T>::operator=(const NumericFloat<T>& o)
 {
   value = o.value;
+  range[0] = o.range[0];
+  range[1] = o.range[1];
   flush();
   return *this;
 }
 
 template <class T>
-Poly<T>::Poly(const char* label) : ParameterFile(label) {}
+Poly<T>::Poly(const char* label) :
+  ParameterFile(label),
+  _display(0) {}
 
 template <class T>
 Poly<T>::~Poly() { delete _dialog; }
@@ -497,9 +532,10 @@ void Poly<T>::update() {}
 template <class T>
 void Poly<T>::flush() 
 {
-  _display->setText(QString("%1 (%2)")
-                    .arg(_label)
-                    .arg(value.size()));
+  if (_display)
+    _display->setText(QString("%1 (%2)")
+                      .arg(_label)
+                      .arg(value.size()));
 }
 
 template <class T>
