@@ -496,12 +496,14 @@ int main( int argc, char** argv ) {
         tx.is32   = sizeof(&tx) == 4;
         tx.dest = 3 + (4*pgp->portOffset());
         tx.flags = 0;
+        tx.index = 0;
         tx.size = sizeof(cmd);
         tx.data = (unsigned long long)&cmd;
       } else {
         tx.is32   = sizeof(&tx) == 4;
         tx.dest = 3 + (4*pgp->portOffset());
         tx.flags = 0;
+        tx.index = 0;
         tx.size = sizeof(val);
         tx.data = (unsigned long long)&val;
       }
@@ -625,11 +627,11 @@ int main( int argc, char** argv ) {
                 printf("D1_2V5 Current [mA]: %f\n", double(u16p[25])/16383.0*2.5/330.*0.5e6);
                 printf("Thermistor 0 Temperature [C]: %f\n", getThermistorTemp(u16p[26]));
                 printf("Thermistor 1 Temperature [C]: %f\n", getThermistorTemp(u16p[27]));
-                printf("PwrDig Current [mA]: %f\n", double(u16p[28])*0.1024/4095/0.02);
-                printf("PwrDig Voltage [mV]: %f\n", double(u16p[29])*102.4/4095);
+                printf("PwrDig Current [A]: %f\n", double(u16p[28])*0.1024/4095/0.02);
+                printf("PwrDig Voltage [V]: %f\n", double(u16p[29])*102.4/4095);
                 printf("PwrDig Temperature [C]: %f\n", double(u16p[30])*2.048/4095*(130/(0.882-1.951)) + (0.882/0.0082+100));
-                printf("PwrAna Current [mA]: %f\n", double(u16p[31])*0.1024/4095/0.02);
-                printf("PwrAna Voltage [mV]: %f\n", double(u16p[32])*102.4/4095);
+                printf("PwrAna Current [A]: %f\n", double(u16p[31])*0.1024/4095/0.02);
+                printf("PwrAna Voltage [V]: %f\n", double(u16p[32])*102.4/4095);
                 printf("PwrAna Temperature [C]: %f\n", double(u16p[33])*2.048/4095*(130/(0.882-1.951)) + (0.882/0.0082+100));
                 printf("A0_2V5_H Temperature [C]: %f\n", double(u16p[34])*1.65/65535*100);
                 printf("A0_2V5_L Temperature [C]: %f\n", double(u16p[35])*1.65/65535*100);
@@ -648,7 +650,7 @@ int main( int argc, char** argv ) {
                 printf("PcbAna Temperature 1 [C]: %f\n", double(u16p[48])*1.65/65535*(130/0.882-1.951)+(0.882/0.0082+100));
                 printf("PcbAna Temperature 2 [C]: %f\n", double(u16p[49])*1.65/65535*(130/0.882-1.951)+(0.882/0.0082+100));
                 printf("TrOpt Temperature [C]: %f\n", double(u16p[50])/256);
-                printf("TrOpt Voltage [mV]: %f\n", double(u16p[51])*0.0001);
+                printf("TrOpt Voltage [V]: %f\n", double(u16p[51])*0.0001);
                 printf("TrOpt TxPwr [uW]: %f\n", double(u16p[52])*0.1);
                 printf("TrOpt RxPwr [uW]: %f\n", double(u16p[53])*0.1);
               } else {
