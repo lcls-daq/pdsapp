@@ -45,12 +45,14 @@ using namespace Pds;
 
 static std::vector<Pds::Epix10ka2m::Server*> serverList(1);
 
+static bool cleanupTriggers = false;
+
 void sigHandler( int signal ) {
   psignal( signal, "Signal received by application");
   for(unsigned i=0; i<serverList.size(); i++) {
     Pds::Epix10ka2m::Server* server = serverList[i];
     if (server != 0) {
-      if (server->configurator()) {
+      if (server->configurator() && cleanupTriggers) {
         server->configurator()->waitForFiducialMode(false);
         server->configurator()->evrLaneEnable(false);
         //      server->configurator()->enableExternalTrigger(false);
@@ -77,6 +79,9 @@ void printUsage(char* s) {
       "                the index of the card and the top nybble being index of the port in use with the"
       "                first port being ONE.  For the G3 card this could be a number from 1 to 8, for the\n"
       "                G2 card, this could be a number from 1 to 4.\n"
+      "    -E      Clean up trigger settings on exit when using triggering over fiber\n"
+      "                Note: this should not be used if there is an IOC monitoring the detector\n"
+      "                environmental data. The IOC needs the triggers running to get data\n"
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
       "    -m <B>  Set flag to maintain or not maintain lost run triggers (turn off for slow running\n"
@@ -111,7 +116,7 @@ int main( int argc, char** argv )
   extern char* optarg;
   char* uniqueid = (char *)NULL;
   int c;
-  while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:D:P:u:" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:D:P:u:E" ) ) != EOF ) {
     printf("processing %c\n", c);
     bool     found;
     unsigned index;
@@ -159,6 +164,9 @@ int main( int argc, char** argv )
       break;
     case 'D':
       Pds::Epix10ka2m::Server::debug(strtoul(optarg, NULL, 0));
+      break;
+    case 'E':
+      cleanupTriggers = true;
       break;
     case 'h':
       printUsage(argv[0]);

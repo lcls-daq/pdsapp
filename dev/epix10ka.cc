@@ -165,11 +165,13 @@ void Pds::MySegWire::connect( InletWire& wire,
    myWire = &wire;
 }
 
+static bool cleanupTriggers = false;
+
 void sigHandler( int signal ) {
   Pds::Epix10kaServer* server = Pds::Epix10kaServer::instance();
   psignal( signal, "Signal received by Epix10kaApplication\n");
   if (server != 0) {
-    if (server->configurator()) {
+    if (server->configurator() && cleanupTriggers) {
       server->configurator()->waitForFiducialMode(false);
       server->configurator()->evrLaneEnable(false);
       server->configurator()->enableExternalTrigger(false);
@@ -260,7 +262,7 @@ void Pds::Seg::dissolved( const Node& who )
 using namespace Pds;
 
 void printUsage(char* s) {
-  printf( "Usage: epix10ka [-h][-P <portAndCardNumb>][-d <detector>][-i <deviceID>][-e <numb>][-R <bool>][-m <bool>][-r <runTimeConfigName>][-D <debug>][-T]\n"
+  printf( "Usage: epix10ka [-h][-P <portAndCardNumb>][-d <detector>][-i <deviceID>][-e <numb>][-R <bool>][-m <bool>][-r <runTimeConfigName>][-D <debug>][-T][-E]\n"
       "    -h      Show usage\n"
       "    -d      Set detector type by name [Default: XcsEndstation]\n"
       "    -i      Set device id             [Default: 0]\n"
@@ -270,6 +272,9 @@ void printUsage(char* s) {
       "                first port being ONE.  For the G3 card this could be a number from 1 to 8, for the\n"
       "                G2 card, this could be a number from 1 to 4.\n"
       "    -T      Use if pgpcard is a G3 card and you want the triggering to be done over the fiber\n"
+      "    -E      Clean up trigger settings on exit when using triggering over fiber\n"
+      "                Note: this should not be used if there is an IOC monitoring the detector\n"
+      "                environmental data. The IOC needs the triggers running to get data\n"
       "    -e <N>  Set the maximum event depth, default is 128\n"
       "    -R <B>  Set flag to reset on every config or just the first if false\n"
       "    -m <B>  Set flag to maintain or not maintain lost run triggers (turn off for slow running\n"
@@ -316,7 +321,7 @@ int main( int argc, char** argv )
    extern char* optarg;
    char* uniqueid = (char *)NULL;
    int c;
-   while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:r:D:P:Tu:" ) ) != EOF ) {
+   while( ( c = getopt( argc, argv, "hd:i:p:m:e:R:r:D:P:Tu:E" ) ) != EOF ) {
 	 printf("processing %c\n", c);
      bool     found;
      unsigned index;
@@ -377,6 +382,9 @@ int main( int argc, char** argv )
            break;
          case 'T':
            triggerOverFiber = true;
+           break;
+         case 'E':
+           cleanupTriggers = true;
            break;
          case 'h':
            printUsage(argv[0]);
