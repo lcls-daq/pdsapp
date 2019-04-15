@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
+
 #include "pds/archon/Driver.hh"
 
 static const char sArchonTestVersion[] = "1.0";
@@ -16,8 +17,9 @@ static void showUsage(const char* p)
 {
   printf("Usage: %s [-v|--version] [-h|--help]\n"
          "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (msec)>]\n"
-         "[-N|--nonexp <non-exposure time>] [-b|--vbin <binning>] [-l|--lines <lines>] [-m|--max <max>]\n"
-         "[-C|--clear] [-o|--on] [-t|--trigger] -c|--config <config> -H|--host <host> [-P|--port <port>]\n"
+         "[-N|--nonexp <non-exposure time>] [-b|--vbin <binning>] [-l|--lines <lines>] [-s|--skip <lines>]\n"
+         "[-m|--max <max>] [-C|--clear] [-o|--on] [-t|--trigger] -c|--config <config> -H|--host <host>\n"
+         "[-P|--port <port>]\n"
          " Options:\n"
          "    -w|--write    <filename prefix>         output filename prefix\n"
          "    -n|--number   <number of images>        number of images to be captured (default: 1)\n"
@@ -25,6 +27,8 @@ static void showUsage(const char* p)
          "    -N|--nonexp   <non-exposure time>       non-exposure time (mesc) to wait after exposure (default: 100 msec)\n"
          "    -b|--vbin     <vbinning>                the vertical binning (default: 1)\n"
          "    -l|--lines    <lines>                   the number of lines (default: 300)\n"
+         "    -s|--skip     <lines>                   the number of preframe skipped lines (default: 22)\n"
+         "    -B|--batch    <batch size>              the number of acquisitions to batch into a single frame (default: 0)\n"
          "    -m|--max      <max>                     the maximum number of pixel values to print for each frame (default: 0)\n"
          "    -P|--port     <port>                    set the Archon controller tcp port number (default: 4242)\n"
          "    -H|--host     <host>                    set the Archon controller host ip\n"
@@ -37,7 +41,7 @@ static void showUsage(const char* p)
 }
 
 int main(int argc, char *argv[]) {
-  const char*         strOptions  = ":vhw:n:e:N:b:l:m:P:H:c:Cot";
+  const char*         strOptions  = ":vhw:n:e:N:b:l:s:B:m:P:H:c:Cot";
   const struct option loOptions[] =
   {
     {"version",     0, 0, 'v'},
@@ -48,6 +52,8 @@ int main(int argc, char *argv[]) {
     {"nonexp",      1, 0, 'N'},
     {"vbin",        1, 0, 'b'},
     {"lines",       1, 0, 'l'},
+    {"skip",        1, 0, 's'},
+    {"batch",       1, 0, 'B'},
     {"max",         1, 0, 'm'},
     {"port",        1, 0, 'P'},
     {"host",        1, 0, 'H'},
@@ -64,6 +70,8 @@ int main(int argc, char *argv[]) {
   unsigned non_exposure_time = 100;
   unsigned vertical_binning = 1;
   unsigned lines = 300;
+  unsigned skip = 22;
+  unsigned batch = 0;
   unsigned max_display = 0;
   bool lUsage = false;
   bool use_clear = false;
@@ -122,6 +130,12 @@ int main(int argc, char *argv[]) {
         break;
       case 'l':
         lines = strtoul(optarg, NULL, 0);
+        break;
+      case 's':
+        skip = strtoul(optarg, NULL, 0);
+        break;
+      case 'B':
+        batch = strtoul(optarg, NULL, 0);
         break;
       case 'm':
         max_display = strtoul(optarg, NULL, 0);
@@ -230,8 +244,9 @@ int main(int argc, char *argv[]) {
     }
 
     drv.set_vertical_binning(vertical_binning);
-    drv.set_number_of_lines(lines);
+    drv.set_number_of_lines(lines, batch);
     drv.set_preframe_clear(use_clear ? lines : 0);
+    drv.set_preframe_skip(skip);
     drv.set_integration_time(exposure_time);
     drv.set_non_integration_time(non_exposure_time);
     drv.set_idle_clear();
@@ -253,7 +268,7 @@ int main(int argc, char *argv[]) {
     uint16_t* data16 = (uint16_t*) data;
     uint32_t* data32 = (uint32_t*) data;
 
-    if (!drv.start_acquisition(num_images)) {
+    if (!drv.start_acquisition(batch ? num_images * batch : num_images)) {
       printf("Failed to start acquisition!\n");
       if (power_on)
         drv.power_off();
