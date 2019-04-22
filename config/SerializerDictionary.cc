@@ -77,6 +77,7 @@
 #include "pdsapp/config/ArchonConfig.hh"
 #include "pdsapp/config/ArchonConfig_V1.hh"
 #include "pdsapp/config/ArchonConfig_V2.hh"
+#include "pdsapp/config/ArchonConfig_V3.hh"
 #include "pdsapp/config/JungfrauConfig.hh"
 #include "pdsapp/config/JungfrauConfig_V1.hh"
 #include "pdsapp/config/JungfrauConfig_V2.hh"
@@ -232,6 +233,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_JungfrauConfig,2), new JungfrauConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_ArchonConfig,1)  , new ArchonConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_ArchonConfig,2)  , new ArchonConfig_V2);
+  enroll(Pds::TypeId(Pds::TypeId::Id_ArchonConfig,3)  , new ArchonConfig_V3);
   //  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
 
   if (Parameter::readFromData())
