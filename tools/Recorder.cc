@@ -31,7 +31,7 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
-    
+
 using namespace Pds;
 using SmlData::SmlDataIterL1Accept;
 using SmlData::XtcObj;
@@ -50,7 +50,7 @@ static int call(char *cmd)
   if (rv != 0) {
     fprintf(stderr, " *** system call '%s' returned %d ***\n", cmd, rv);
   }
-  
+
   return 0;
 }
 
@@ -87,8 +87,8 @@ static void local_mkdir_with_acls (const char * path, const char *expname)
   }
 }
 
-Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer, OfflineClient *offlineclient, const char* expname, unsigned uSizeThreshold) : 
-  Appliance(), 
+Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, bool delay_xfer, OfflineClient *offlineclient, const char* expname, unsigned uSizeThreshold) :
+  Appliance(),
   _pool    (new GenericPool(sizeof(CDatagramIterator),1)),
   _node    (0),
   _sliceID (sliceID),
@@ -100,7 +100,6 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
   _chunk(0),
   _chunkSize(chunkSize),
   _delay_xfer(delay_xfer),
-  _experiment(0),
   _expname(expname),
   _run(0),
   _occPool(new GenericPool(sizeof(DataFileOpened),5)),
@@ -130,7 +129,7 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
   mode_t newmask = S_IWOTH;
   mode_t oldmask = umask(newmask);
   printf("Changed umask from %o to %o\n",oldmask,newmask);
-  
+
   memset( _indexfname, 0, sizeof(_indexfname) );
 
   if (gethostname(_host_name, sizeof(_host_name))) {
@@ -162,7 +161,7 @@ InDatagram* Recorder::events(InDatagram* in) {
        // Cache configure transition for xtc file
        memcpy   (_config, &in->datagram(), sizeof(Datagram));
        iter->copy(_config+sizeof(Datagram), in->datagram().xtc.sizeofPayload());
-       
+
        // Add SmlData::ConfigV1 to configure datagram for smldata index file
        XtcObj   xtcIndexConfig;
        uint32_t sizeofPayloadOrg = in->datagram().xtc.sizeofPayload();
@@ -173,7 +172,7 @@ InDatagram* Recorder::events(InDatagram* in) {
        xtcIndexConfig.xtc.contains = TypeId(TypeId::Id_SmlDataConfig, 1);
        xtcIndexConfig.xtc.extent   = sizeof(Xtc) + sizeof(SmlData::ConfigV1);
        in->datagram().xtc.extent += xtcIndexConfig.xtc.extent;
-       
+
        // Cache the extended configure transition for smldata index file
        memcpy (_smlconfig, &in->datagram(), sizeof(Datagram));
        memcpy (_smlconfig+sizeof(Datagram),(char*)&xtcIndexConfig, xtcIndexConfig.xtc.extent);
@@ -198,7 +197,7 @@ InDatagram* Recorder::events(InDatagram* in) {
       }
     } else if (_f) {
       struct stat64 st;
-      
+
       int64_t i64Offset = lseek64( fileno(_f), 0, SEEK_CUR);
       if (_writeOutputFile(&(in->datagram()),sizeof(in->datagram()),1) != 0) {
         // error
@@ -230,24 +229,24 @@ InDatagram* Recorder::events(InDatagram* in) {
           {
             bool bInvalidNodeData = false;
             _indexList.startNewNode( (const Pds::Dgram&) in->datagram(), i64Offset, bInvalidNodeData);
-            
+
             if ( !bInvalidNodeData )
-            {            
+            {
               Index::XtcIterL1Accept iterL1Accept(&(in->datagram().xtc), 0,
                 i64Offset + sizeof(Xtc) + sizeof(in->datagram()) - sizeof(in->datagram().xtc),
-                                                  _indexList);           
+                                                  _indexList);
               iterL1Accept.iterate();
-                    
+
               bool bPrintNode = false;
               _indexList.finishNode(bPrintNode);
             }
-          } // if (in->datagram().seq.service() == TransitionId::L1Accept)  
+          } // if (in->datagram().seq.service() == TransitionId::L1Accept)
           else if (in->datagram().seq.service() == TransitionId::BeginCalibCycle)
           {
             _indexList.addCalibCycle(i64Offset, in->datagram().seq.clock().seconds(), in->datagram().seq.clock().nanoseconds() );
-          }          
+          }
         } // if ( _indexfname[0] != 0 )
-        
+
         if ((0 == rv) && ((uint64_t)st.st_size >= _chunkSize)) {
           _requestChunk();
         }
@@ -268,13 +267,13 @@ InDatagram* Recorder::events(InDatagram* in) {
            if (in->datagram().seq.service() == TransitionId::L1Accept) {
               xtcObjPool.clear();
               // Iterate over datagram
-              SmlDataIterL1Accept iterL1AcceptSml(&(in->datagram().xtc), 0, 
-                                                  i64Offset + dgramOffset, 
-                                                  dgramOffset, 
-                                                  _uSizeThreshold, 
+              SmlDataIterL1Accept iterL1AcceptSml(&(in->datagram().xtc), 0,
+                                                  i64Offset + dgramOffset,
+                                                  dgramOffset,
+                                                  _uSizeThreshold,
                                                   xtcObjPool, lquiet);
               iterL1AcceptSml.iterate();
-              
+
               typedef std::vector<SmlDataIterL1Accept::XtcInfo> XtcInfoList;
               XtcInfoList& xtcInfoList = iterL1AcceptSml.xtcInfoList();
 
@@ -283,14 +282,14 @@ InDatagram* Recorder::events(InDatagram* in) {
                 printf("WARNING:  smldata iteration no good; skipping\n");
                 break;
               }
-              
+
               // Write datagram header to small data file
               if (_writeSmallDataFile( &in->datagram(), sizeof(in->datagram()) - sizeof(Xtc) ) != 0) {
-                 _sdf_write_error=true; 
+                 _sdf_write_error=true;
                  printf("ERROR:  Failed to write to small data index file\n");
               }
-              
-              // Create OrigDgramOffsetV1 
+
+              // Create OrigDgramOffsetV1
               XtcObj xtcIndexOrigDgramOffset;
               new ((char*)&xtcIndexOrigDgramOffset) Xtc           (); // set damage to 0
               new (xtcIndexOrigDgramOffset.origDgramOffsetV1)   SmlData::OrigDgramOffsetV1  (i64Offset, in->datagram().xtc.extent);
@@ -299,7 +298,7 @@ InDatagram* Recorder::events(InDatagram* in) {
               xtcIndexOrigDgramOffset.xtc.contains = TypeId(TypeId::Id_SmlDataOrigDgramOffset, 1);
               xtcIndexOrigDgramOffset.xtc.extent   = sizeof(Xtc) + sizeof(SmlData::OrigDgramOffsetV1);
               xtcInfoList[0].uSize    += xtcIndexOrigDgramOffset.xtc.extent;
-              
+
               // Loop over xtcInfoList
               // Write data to small data file:  Original xtc written if size < threshold; Proxy written otherwise
               for (size_t i=0; i < xtcInfoList.size(); ++i) {
@@ -307,7 +306,7 @@ InDatagram* Recorder::events(InDatagram* in) {
                  Xtc* pXtc    = (xtcInfoList[i].iPoolIndex == -1? pOrgXtc : &xtcObjPool[xtcInfoList[i].iPoolIndex].xtc);
                  uint32_t orgExtent = pXtc->extent; // Save the original extent before we overwrite it with xtcInfoList[i].uSize
                  pXtc->extent       = xtcInfoList[i].uSize;
-                 uint32_t sizeWrite = ((i == xtcInfoList.size()-1 || xtcInfoList[i].depth >= xtcInfoList[i+1].depth) 
+                 uint32_t sizeWrite = ((i == xtcInfoList.size()-1 || xtcInfoList[i].depth >= xtcInfoList[i+1].depth)
                                        ? pXtc->extent : sizeof(Xtc));
                  if(_writeSmallDataFile(pXtc, sizeWrite) != 0) {
                     _sdf_write_error=true;
@@ -344,7 +343,7 @@ InDatagram* Recorder::events(InDatagram* in) {
               printf("ERROR:  failed to flush small data index file \n");
            }
         } // if (_sdf)
-        
+
         ///////////////////////////////////////////
 
       } //(_writeOutputFile(&(in->datagram()),sizeof(in->datagram()),1) successful
@@ -397,11 +396,10 @@ Transition* Recorder::transitions(Transition* tr) {
     }
     else {
       RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
-      _experiment = rinfo.experiment();
       _run = rinfo.run();
       _chunk = 0;
       // open the file, write configure, and this transition
-      printf("run %d exp# %d ",_run,_experiment);
+      printf("run %d exp# %s ",_run,_expname);
       if (_expname) {
         printf("expname %s ", _expname);
       }
@@ -427,7 +425,7 @@ Transition* Recorder::transitions(Transition* tr) {
           }
           sprintf(_fname,"%s/%s/xtc", _path,_expname);
         } else {
-          sprintf(_fname,"%s/e%d", _path,_experiment);
+          sprintf(_fname,"%s/e%s", _path,_expname);
         }
         local_mkdir(_fname);
         // open output file
@@ -436,12 +434,12 @@ Transition* Recorder::transitions(Transition* tr) {
           _beginrunerr++;
         }
         else {
-          if (_writeOutputFile(_config, sizeof(Datagram) + 
+          if (_writeOutputFile(_config, sizeof(Datagram) +
               reinterpret_cast<const Datagram*>(_config)->xtc.sizeofPayload(),1) != 0) {
             // error
             _beginrunerr++;
           }
-          if (_writeSmallDataFile(_smlconfig, sizeof(Datagram) + 
+          if (_writeSmallDataFile(_smlconfig, sizeof(Datagram) +
                              reinterpret_cast<const Datagram*>(_smlconfig)->xtc.sizeofPayload()) != 0) {
              // error
              _sdf_write_error=true;
@@ -452,7 +450,7 @@ Transition* Recorder::transitions(Transition* tr) {
     }
   }
   else if (tr->id()==TransitionId::Enable && _f &&
-           fstat64(fileno(_f), &st) == 0 && 
+           fstat64(fileno(_f), &st) == 0 &&
            ((uint64_t)st.st_size >= _chunkSize/2)) {
     // chunking: close the current output file and open the next one
     ++_chunk;     // should _chunk have an upper limit? Why, yes, it should!
@@ -490,11 +488,12 @@ int Recorder::_openOutputFile(bool verbose) {
   flk.l_len    = 0;
 
   if (_expname && isalpha(_expname[0])) {
-    sprintf(_fname,"%s/%s/xtc/e%d-r%04d-s%02d-c%02d.xtc",
-      _path, _expname, _experiment, _run, _sliceID, _chunk);
+    sprintf(_fname,"%s/%s/xtc/e%s-r%04d-s%02d-c%02d.xtc",
+      _path, _expname, _expname, _run, _sliceID, _chunk);
   } else {
-    sprintf(_fname,"%s/e%d/e%d-r%04d-s%02d-c%02d.xtc",
-      _path, _experiment, _experiment, _run, _sliceID, _chunk);
+    const char* errmsg = "When opening an output file, the experiment name is null\n";
+    fprintf(stderr, errmsg);
+    throw std::runtime_error(errmsg);
   }
   sprintf(_fnamerunning,"%s.inprogress",_fname);
   _f=fopen(_fnamerunning,"wx"); // x: if the file already exists, fopen() fails
@@ -520,15 +519,13 @@ int Recorder::_openOutputFile(bool verbose) {
       printf("Opened %s\n",_fname);
     }
     if (_offlineclient) {
-      if (_experiment != 0) {
         // fast feedback
         std::string hostname = _host_name;
         std::string filename = _fname;
         // ffb=true
-        _offlineclient->reportOpenFile(_experiment, _run, (int)_sliceID, (int)_chunk, hostname, filename, true);
-      }
+        _offlineclient->reportOpenFile(filename, _run, (int)_sliceID, (int)_chunk, hostname, true);
     } else {
-      post(new(_occPool) DataFileOpened(_experiment,_run,_sliceID,_chunk,_host_name,_fname));
+      post(new(_occPool) DataFileOpened(_expname, _run,_sliceID,_chunk,_host_name,_fname));
     }
   }
   else {
@@ -539,20 +536,18 @@ int Recorder::_openOutputFile(bool verbose) {
   }
 
   /*
-   * Open small data index file 
+   * Open small data index file
    */
   if (_expname && isalpha(_expname[0])) {
     sprintf(_sdfname,"%s/%s/xtc/smalldata", _path,_expname);
     local_mkdir(_sdfname);
     printf("Created smalldata directory: %s\n", _sdfname);
-    sprintf(_sdfname,"%s/%s/xtc/smalldata/e%d-r%04d-s%02d-c%02d.smd.xtc",
-      _path, _expname, _experiment, _run, _sliceID, _chunk);
+    sprintf(_sdfname,"%s/%s/xtc/smalldata/e%s-r%04d-s%02d-c%02d.smd.xtc",
+      _path, _expname, _expname, _run, _sliceID, _chunk);
   } else {
-    sprintf(_sdfname,"%s/e%d/smalldata", _path, _experiment);
-    local_mkdir(_sdfname);
-    printf("Created smldata directory: %s\n", _sdfname);
-    sprintf(_sdfname,"%s/e%d/smalldata/e%d-r%04d-s%02d-c%02d.smd.xtc",
-      _path, _experiment, _experiment, _run, _sliceID, _chunk);
+    const char* errmsg = "When opening an output file, the experiment name is null\n";
+    fprintf(stderr, errmsg);
+    throw std::runtime_error(errmsg);
   }
   sprintf(_sdfnamerunning,"%s.inprogress",_sdfname);
   _sdf=fopen(_sdfnamerunning,"wx"); // x: if the file already exists, fopen() fails
@@ -571,13 +566,13 @@ int Recorder::_openOutputFile(bool verbose) {
         return rv;
       }
     }
-    
+
     //  rv = 0;
     //  Set disk buffering as a multiple of RAID stripe size (256kB)
     rv |= setvbuf(_sdf, NULL, _IOFBF, 4*1024*1024);
-    printf("Opened %s\n",_sdfname); 
+    printf("Opened %s\n",_sdfname);
     if (verbose) {
-      printf("Opened %s\n",_sdfname); 
+      printf("Opened %s\n",_sdfname);
     }
     // JBT - do not register open file with offline client until offline client API contains file type
 //    if (_offlineclient) {
@@ -589,7 +584,7 @@ int Recorder::_openOutputFile(bool verbose) {
 //        // Don't report smldata file name until offline client API changes to include file type
 //        //        _offlineclient->reportOpenFile(_experiment, _run, (int)_sliceID, (int)_chunk, hostname, sdfilename, true);
 //      }
-//    } 
+//    }
   } // if (_sdf)
   else {
     _open_data_file_error = true;
@@ -598,28 +593,31 @@ int Recorder::_openOutputFile(bool verbose) {
       printf("Error opening smldata file %s : %s\n",_sdfnamerunning,strerror(errno));
     }
   }
-  
-  
+
+
   /*
-   * Initialize/Reset the index list 
+   * Initialize/Reset the index list
    */
   if (_expname && isalpha(_expname[0])) {
     sprintf(_indexfname,"%s/%s/xtc/index", _path,_expname);
   } else {
-    sprintf(_indexfname,"%s/e%d/index", _path,_experiment);
+    const char* errmsg = "When opening an output file, the experiment name is null\n";
+    fprintf(stderr, errmsg);
+    throw std::runtime_error(errmsg);
   }
   local_mkdir(_indexfname);
-  
+
   _indexList.reset();
-  _indexList.setXtcFilename(_fname);   
+  _indexList.setXtcFilename(_fname);
   if (_expname && isalpha(_expname[0])) {
-    sprintf(_indexfname,"%s/%s/xtc/index/e%d-r%04d-s%02d-c%02d.xtc.idx",
-      _path, _expname, _experiment, _run, _sliceID, _chunk); 
+    sprintf(_indexfname,"%s/%s/xtc/index/e%s-r%04d-s%02d-c%02d.xtc.idx",
+      _path, _expname, _expname, _run, _sliceID, _chunk);
   } else {
-    sprintf(_indexfname,"%s/e%d/index/e%d-r%04d-s%02d-c%02d.xtc.idx",
-      _path, _experiment, _experiment, _run, _sliceID, _chunk); 
+    const char* errmsg = "When opening an output file, the experiment name is null\n";
+    fprintf(stderr, errmsg);
+    throw std::runtime_error(errmsg);
   }
-  
+
   return rv;
 }
 
@@ -630,7 +628,7 @@ int Recorder::_openOutputFile(bool verbose) {
 //
 int Recorder::_postDataFileError()
 {
-  post(new(_occPool) DataFileError(_experiment,_run,_sliceID,_chunk));
+  post(new(_occPool) DataFileError(_expname,_run,_sliceID,_chunk));
   return (0);
 }
 
@@ -663,7 +661,7 @@ int Recorder::_writeOutputFile(const void *ptr, size_t size, size_t nmemb) {
 //
 // RETURNS: 0 on success, otherwise -1.
 //
-int Recorder::_writeSmallDataFile(const void *ptr, size_t size) 
+int Recorder::_writeSmallDataFile(const void *ptr, size_t size)
 {
   int rv = -1;
   size_t count = 1;
@@ -682,7 +680,7 @@ int Recorder::_writeSmallDataFile(const void *ptr, size_t size)
 
   return (rv);
 }
-     
+
 
 //
 // Recorder::_flushOutputFile - flush output file
@@ -742,30 +740,30 @@ int Recorder::_closeOutputFile() {
   int rv = -1;
 
   if (_f) {
-    
+
     /*
      * generate index file
-     * 
+     *
      * Note: index file is generated before xtc file is closed,
      *   so it is ready for data mover to transfer it
      */
     if ( _indexfname[0] != 0 )
     {
-      _indexList.finishList();  
-      
-      printf( "Writing index file %s\n", _indexfname );          
+      _indexList.finishList();
+
+      printf( "Writing index file %s\n", _indexfname );
       int fdIndex = open(_indexfname, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
       if ( fdIndex == -1 )
         printf( "Recorder::_closeOutputFile(): Open index file %s failed (%s)\n", _indexfname, strerror(errno) );
       else {
-        _indexList.writeToFile(fdIndex);    
+        _indexList.writeToFile(fdIndex);
         ::close(fdIndex);
-        
+
         int iVerbose = 0;
-        _indexList.printList(iVerbose);          
-      }  
+        _indexList.printList(iVerbose);
+      }
       _indexfname[0] = 0;
-    }    
+    }
     if (_delay_xfer) {
       if ( (rv = rename(_fnamerunning, _fname)) ) {
         perror(_fname);
@@ -773,7 +771,7 @@ int Recorder::_closeOutputFile() {
     }
     if (fclose(_f) == 0) {
       // success
-      rv = 0;           
+      rv = 0;
     } else {
       // error
       perror("fclose");
@@ -797,7 +795,7 @@ int Recorder::_closeOutputFile() {
 }
 
 //
-// Recorder::_requestChunk - request a transition to allow 
+// Recorder::_requestChunk - request a transition to allow
 //    file close and open of a new chunk
 //
 // RETURNS: 0 on success, otherwise -1.
@@ -812,7 +810,7 @@ int Recorder::_requestChunk() {
     if (occ) {
       post(occ);
       rv = 0;
-    }        
+    }
   }
 
   return rv;

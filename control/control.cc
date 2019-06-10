@@ -25,7 +25,6 @@ static void usage(char *argv0)
    "Options: -L <offlinerc>            : offline db access\n"
    "         -E <experiment_name>      : offline db experiment\n"
    "         -R <run_number_file>      : no offline db\n"
-   "         -e <experiment_number>    : no offline db experiment number\n"
    "         -N <seconds>              : log long NFS accesses\n"
    "         -C <controls_config_file> : configuration of controls recorder\n"
    "         -A                        : auto run\n"
@@ -62,7 +61,6 @@ int main(int argc, char** argv)
   const char* controlrc = (char *)NULL;
   double nfs_log_threshold = -1;
   unsigned    sequencer_id = 0;
-  unsigned    expnum = 0;
   const char* status_host_and_port = (char *)NULL;
   int         slowReadout = 0;
   unsigned key=0;
@@ -105,12 +103,6 @@ int main(int argc, char** argv)
       break;
     case 'E':
       experiment = optarg;
-      break;
-    case 'e':
-      if (!Pds::CmdLineTools::parseUInt(optarg, expnum)) {
-        printf("%s: option `-e' parsing error\n", argv[0]);
-        lusage = true;
-      }
       break;
     case 'N':
       if (!Pds::CmdLineTools::parseDouble(optarg, nfs_log_threshold)) {
@@ -229,7 +221,6 @@ int main(int argc, char** argv)
                                       partition_options,
                                       (verbose > 0),
                                       controlrc,
-                                      expnum,
                                       status_host_and_port,
                                       pv_ignore_options);
   window->override_errors(override);

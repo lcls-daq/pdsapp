@@ -1,12 +1,12 @@
 #ifndef Pds_MainWindow_hh
 #define Pds_MainWindow_hh
 
+#include "pds/offlineclient/OfflineClient.hh"
 #include <QtGui/QWidget>
 
 // signal support
 #include <QtCore/qsocketnotifier.h>
 #include "signal.h"
-#include "pds/offlineclient/OfflineClient.hh"
 
 namespace Pds {
   class CCallback;
@@ -35,7 +35,6 @@ namespace Pds {
                unsigned          partition_options,
                bool              verbose,
                const char*       controlrc,
-               unsigned          experiment_number,
                const char*       status_host_and_port,
                unsigned          pv_ignore_options);
     ~MainWindow();

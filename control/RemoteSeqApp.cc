@@ -484,7 +484,7 @@ Occurrence* RemoteSeqApp::occurrences(Occurrence* occ)
       _control.set_target_state(PartitionControl::Running);
       return 0;
     case OccurrenceId::EvrEnabled: {
-      RemoteSeqResponse response(_last_run.experiment(),
+      RemoteSeqResponse response(_last_run.expname(),
                                  _last_run.run(),
                                  Pds::TransitionId::Enable, 0);
       ::write(_socket,&response,sizeof(response));
@@ -513,7 +513,7 @@ InDatagram* RemoteSeqApp::events     (InDatagram* dg)
       return 0;
     }
 
-    RemoteSeqResponse response(_last_run.experiment(),
+    RemoteSeqResponse response(_last_run.expname(),
                                _last_run.run(),
                                dg->datagram().seq.service(),
                                dg->datagram().xtc.damage.value());

@@ -22,23 +22,24 @@ tgtincs_monshm := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_monshmserver := monshmserver.cc MonComm.cc
 tgtlibs_monshmserver := pdsdata/appdata pds/offlineclient offlinedb/mysqlclient offlinedb/offlinedb
-tgtlibs_monshmserver += $(commonlibs) pds/mon $(liblibs_tools) pdsapp/tools pdsdata/indexdata pdsdata/smalldata pdsdata/psddl_pdsdata
+tgtlibs_monshmserver += $(commonlibs) pds/mon $(liblibs_tools) pdsapp/tools pdsdata/indexdata pdsdata/smalldata pdsdata/psddl_pdsdata pds/logbookclient python3/python3.6m
 tgtslib_monshmserver := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
-tgtincs_monshmserver := pdsdata/include
+tgtincs_monshmserver := pdsdata/include python3/include/python3.6m
 
 tgtsrcs_monreqserver := monreqserver.cc
-tgtlibs_monreqserver := pdsdata/appdata pds/offlineclient offlinedb/mysqlclient offlinedb/offlinedb
+#tgtlibs_monreqserver := pdsdata/appdata pds/offlineclient offlinedb/mysqlclient offlinedb/offlinedb
+tgtlibs_monreqserver := pdsdata/appdata pds/offlineclient pds/logbookclient python3/python3.6m
 tgtlibs_monreqserver += $(commonlibs) pds/mon $(liblibs_tools) pdsapp/tools pdsdata/indexdata pdsdata/smalldata pdsdata/psddl_pdsdata
 tgtslib_monreqserver := $(USRLIBDIR)/rt
-tgtincs_monreqserver := pdsdata/include
+tgtincs_monreqserver := pdsdata/include python3/include/python3.6m
 
 tgtsrcs_offlineobs := offlineobs.cc OfflineAppliance.cc
 tgtlibs_offlineobs := $(commonlibs) pds/mon pds/offlineclient
-tgtlibs_offlineobs += offlinedb/mysqlclient offlinedb/offlinedb epics/ca epics/Com
+tgtlibs_offlineobs += offlinedb/mysqlclient offlinedb/offlinedb epics/ca epics/Com pds/logbookclient python3/python3.6m
 tgtslib_offlineobs := $(USRLIBDIR)/rt
 tgtincs_offlineobs := offlinedb/include offlineclient
 tgtincs_offlineobs += epics/include epics/include/os/Linux
-tgtincs_offlineobs += pdsdata/include
+tgtincs_offlineobs += pdsdata/include python3/include/python3.6m
 
 tgtsrcs_common := Handler.cc ShmClient.cc
 tgtlibs_common := pds/epicstools epics/ca epics/Com pdsdata/appdata pdsdata/compressdata

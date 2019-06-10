@@ -80,26 +80,19 @@ static char *hdfoutfile = NULL;
 string hostname = "";
 string prefix = "";
 string username = "";
-int expid = -1;
+string expname;
 int runnum = -1;
 int strnum = -1;
 int haveH = 0;
 string curdir = "";
 string logbook[LCPARAMS];
-static string lb_params[LCPARAMS] = { /* This is the order of parameters to LogBook::Connection::open! */
-    "logbook_host=",
-    "logbook_user=",
+static string lb_params[LCPARAMS] = {
+    "logbook_endpoint=",
+    "logbook_uid=",
     "logbook_password=",
-    "logbook_db=",
-    "regdb_host=",
-    "regdb_user=",
-    "regdb_password=",
-    "regdb_db=",
-    "ifacedb_host=",
-    "ifacedb_user=",
-    "ifacedb_password=",
-    "ifacedb_db=",
+    "logbook_use_kerberos="
 };
+
 int start_sec = 0, start_nsec = 0;
 int end_sec = 0, end_nsec = 0;
 int streamno = 0;
@@ -188,7 +181,7 @@ static void record(string name, const char *arg)
         create_bld(s->name, s->address, (string)(arg ? arg : defether), s->revtime);
         break;
     case symbol::CAMERA_TYPE:
-        printf("Found %s -> CA to (%s,%s) at %s.\n", name.c_str(), 
+        printf("Found %s -> CA to (%s,%s) at %s.\n", name.c_str(),
                s->detector.c_str(), s->camtype.c_str(), s->pvname.c_str());
         if (!strncmp(s->pvname.c_str(), "DUMMY:", 6)) {
             printf("Fake symbol, not recording!\n");
@@ -234,7 +227,7 @@ static void read_logbook_file()
     while(getline(*in, line)) {
         istringstream ss(line);
         istream_iterator<std::string> begin(ss), end;
-        vector<string> arrayTokens(begin, end); 
+        vector<string> arrayTokens(begin, end);
         lineno++;
 
         if (arrayTokens.size() == 0 || arrayTokens[0][0] == '#')
@@ -269,10 +262,10 @@ static void read_config_file(const char *name)
             line = buf;
         istringstream ss(line);
         istream_iterator<std::string> begin(ss), end;
-        vector<string> arrayTokens(begin, end); 
+        vector<string> arrayTokens(begin, end);
         lineno++;
 
-        if (arrayTokens.size() == 0 || arrayTokens[0][0] == '#' || 
+        if (arrayTokens.size() == 0 || arrayTokens[0][0] == '#' ||
             arrayTokens[0] == "camera-per-row" || arrayTokens[0] == "bld-per-row" ||
             arrayTokens[0] == "pv-per-row" || arrayTokens[0] == "host" ||
             arrayTokens[0] == "defhost" || arrayTokens[0] == "defport") {
@@ -295,10 +288,10 @@ static void read_config_file(const char *name)
                 end_nsec = atoi(arrayTokens[2].c_str());
             }
         } else if (arrayTokens[0] == "dbinfo") {
-            /* dbinfo username expid run stream */
+            /* dbinfo username expname run stream */
             if (arrayTokens.size() >= 5) {
                 username = arrayTokens[1];
-                expid = atoi(arrayTokens[2].c_str());
+                expname = arrayTokens[2].c_str();
                 runnum = atoi(arrayTokens[3].c_str());
                 strnum = atoi(arrayTokens[4].c_str());
             }
@@ -441,7 +434,7 @@ static void initialize(char *config)
         printf("No hdf5 output file specified! Disabling hdf5 output.\n\n");
         write_hdf = false;
     }
-    if (expid == -1) {
+    if (expname.empty()) {
         /* No dbinfo --> running as a non-authorized user, put it in tmp! */
         chdir("../tmp");
     }
@@ -449,12 +442,12 @@ static void initialize(char *config)
         if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
             char buf[1024];
             *s = 0;
-            sprintf(buf, "umask %s; mkdir -p %s/index %s/smalldata", 
-                    expid == -1 ? "0" : "2", outfile, outfile);
+            sprintf(buf, "umask %s; mkdir -p %s/index %s/smalldata",
+                    expname.empty() ? "0" : "2", outfile, outfile);
             *s = '/';
             system(buf);
         } else {
-            system(expid == -1 ? "umask 0; mkdir index smalldata" 
+            system(expname.empty() ? "umask 0; mkdir index smalldata"
                                : "umask 2; mkdir index smalldata");
         }
     }
@@ -463,7 +456,7 @@ static void initialize(char *config)
         char buf[1024];
         *s = 0;
         sprintf(buf, "umask %s; mkdir -p %s",
-                  expid == -1 ? "0" : "2", hdfoutfile);
+                  expname.empty() ? "0" : "2", hdfoutfile);
         *s = '/';
         system(buf);
       }
@@ -480,7 +473,7 @@ static void stats(int v)
     if (running) {
         gettimeofday(&now, NULL);
 
-        runtime = (1000000LL * now.tv_sec + now.tv_usec) - 
+        runtime = (1000000LL * now.tv_sec + now.tv_usec) -
                   (1000000LL * start.tv_sec + start.tv_usec);
         runtime /= 1000000.;
         fprintf(stderr, "%sruntime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",
@@ -523,9 +516,9 @@ static void process_command(char *buf)
         fflush(stderr);
     } else if (buf[0] == 0 || !strcmp(buf, "stats")) {
         gettimeofday(&now, NULL);
-        if (delay && (now.tv_sec > ka_finish.tv_sec || 
+        if (delay && (now.tv_sec > ka_finish.tv_sec ||
                       (now.tv_sec == ka_finish.tv_sec && now.tv_usec > ka_finish.tv_usec))) {
-            if (now.tv_sec > finish.tv_sec || 
+            if (now.tv_sec > finish.tv_sec ||
                 (now.tv_sec == finish.tv_sec && now.tv_usec > finish.tv_usec)) {
                 int_handler(SIGALRM);      /* Past the time?!? */
                 timer.it_value.tv_sec = keepalive;
@@ -600,7 +593,7 @@ void cleanup(void)
     cleanup_hdf();
 
     if (running) {
-        runtime = (1000000LL * stop.tv_sec + stop.tv_usec) - 
+        runtime = (1000000LL * stop.tv_sec + stop.tv_usec) -
                   (1000000LL * start.tv_sec + start.tv_usec);
         runtime /= 1000000.;
         fprintf(stderr, "%sstopped, runtime: %.4lf seconds, Records: %d, Rate: %.2lf Hz\n",

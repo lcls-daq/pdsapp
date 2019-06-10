@@ -11,7 +11,7 @@
 #include "pdsapp/control/RunStatus.hh"
 #include "pdsapp/control/ExportStatus.hh"
 #include "pdsapp/control/ControlLog.hh"
-#include "pdsapp/control/MySqlRunAllocator.hh"
+#include "pdsapp/control/WSRunAllocator.hh"
 #include "pdsapp/control/FileRunAllocator.hh"
 
 #include "pds/offlineclient/OfflineClient.hh"
@@ -98,7 +98,7 @@ namespace Pds {
       } else if (occ->id() == OccurrenceId::DataFileError) {
         char msg[256];
         const DataFileError& dfe = *static_cast<const DataFileError*>(occ);
-        snprintf(msg, sizeof(msg), "Error writing e%d-r%04d-s%02d-c%02d.xtc.\n"
+        snprintf(msg, sizeof(msg), "Error writing e%s-r%04d-s%02d-c%02d.xtc.\n"
                 "  Shutting down.\n  Fix and Allocate again.",
                 dfe.expt, dfe.run, dfe.stream, dfe.chunk);
         _w.insert_message(msg);
@@ -114,8 +114,7 @@ namespace Pds {
   public:
     FileReport(ControlLog& log, RunStatus& runstatus) :
       _log(log),
-      _runstatus(runstatus),
-      _experiment(0)
+      _runstatus(runstatus)
     {
     }
     ~FileReport() {}
@@ -137,9 +136,9 @@ namespace Pds {
           RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
           runNumber = rinfo.run();
     char fname[256];
-    sprintf(fname, "e%d/e%d-r%04d-s00-c00.xtc",
-      rinfo.experiment(), rinfo.experiment(), rinfo.run());
-    _experiment = rinfo.experiment();
+    sprintf(fname, "e%s/e%s-r%04d-s00-c00.xtc",
+      rinfo.expname(), rinfo.expname(), rinfo.run());
+    _experiment = rinfo.expname();
     _log.appendText(QString("%1: Recording run %2. Transient data file: %3\n")
         .arg(QTime::currentTime().toString("hh:mm:ss"))
         .arg(rinfo.run())
@@ -168,7 +167,7 @@ namespace Pds {
 private:
     ControlLog& _log;
     RunStatus&  _runstatus;
-    unsigned    _experiment;
+    std::string _experiment;
   };
 
   class OfflineReport : public Appliance {
@@ -190,13 +189,13 @@ private:
         if (tr->size() > sizeof(Transition)) {
           // RunInfo
           RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
-          _experiment = rinfo.experiment();
+          _experiment = rinfo.expname();
           _run = rinfo.run();
           std::vector<std::string> names;
           foreach (std::string ss, _partition.deviceNames()) {
             names.push_back(ss);
           }
-          _runallocator.reportDetectors(_experiment, _run, names);
+          _runallocator.reportDetectors(_run, names);
         } else {
           _run = 0;
         }
@@ -212,7 +211,7 @@ private:
           if (damaged > LONG_MAX) {
             damaged = LONG_MAX;
           }
-          _runallocator.reportTotals(_experiment, _run, (long)events, (long)damaged, (double)(bytes / 1000000000.));
+          _runallocator.reportTotals(_run, (long)events, (long)damaged, (double)(bytes / 1000000000.));
         }
       }
     return tr;
@@ -226,7 +225,7 @@ private:
     PartitionSelect& _partition;
     RunAllocator& _runallocator;
     RunStatus&  _runstatus;
-    unsigned    _experiment;
+    std::string _experiment;
     unsigned    _run;
   };
 
@@ -260,7 +259,6 @@ MainWindow::MainWindow(unsigned          platform,
                        unsigned          partition_options,
                        bool              verbose,
                        const char*       controlrc,
-                       unsigned          experiment_number,
                        const char*       status_host_and_port,
                        unsigned          pv_ignore_options) :
   QWidget(0),
@@ -283,6 +281,7 @@ MainWindow::MainWindow(unsigned          platform,
   printf("MainWindow  offlinerc %s   controlrc %s\n", offlinerc, controlrc);
 #endif
 
+  std::string expname;
   if (offlinerc) {
     // option A: run number maintained in a mysql database
     PartitionDescriptor pd(partition);
@@ -290,35 +289,26 @@ MainWindow::MainWindow(unsigned          platform,
       if (experiment_name) {
         // A.1: experiment name passed in
         _offlineclient = new OfflineClient(offlinerc, pd, experiment_name, verbose);
-        experiment_number = _offlineclient->GetExperimentNumber();
-        if (experiment_number == OFFLINECLIENT_DEFAULT_EXPNUM) {
-          fprintf(stderr, "%s: failed to find experiment '%s'\n", __FUNCTION__,
-                  experiment_name);
-        }
       } else {
         // A.2: current experiment retrieved from database
         _offlineclient = new OfflineClient(offlinerc, pd, verbose);
-        experiment_number = _offlineclient->GetExperimentNumber();
-        if (experiment_number == OFFLINECLIENT_DEFAULT_EXPNUM) {
-          fprintf(stderr, "%s: failed to find current experiment for partition '%s'\n",
-                  __FUNCTION__, partition);
-        }
       }
-      if (experiment_number != OFFLINECLIENT_DEFAULT_EXPNUM) {
+      expname = _offlineclient->GetExperimentName();
+      if (!expname.empty()) {
         // success: run number allocated from database
-        const char *expname = _offlineclient->GetExperimentName();
-        const char *instname = _offlineclient->GetInstrumentName();
+        const char *instname = _offlineclient->GetInstrumentName().c_str();
         unsigned station     = _offlineclient->GetStationNumber();
-        printf("%s: instrument '%s:%u' experiment '%s' (#%u)\n", __FUNCTION__,
-               instname, station, expname, experiment_number);
-        _runallocator = new MySqlRunAllocator(_offlineclient);
+        printf("%s: instrument '%s:%u' experiment '%s'\n", __FUNCTION__,
+               instname, station, expname.c_str());
+        _runallocator = new WSRunAllocator(_offlineclient);
 
-	experiment_label = new QLabel(QString("%1 [%2]").arg(expname).arg(experiment_number));
-	experiment_label->setAlignment(Qt::AlignHCenter);
+	    experiment_label = new QLabel(QString("%1").arg(expname.c_str()));
+	    experiment_label->setAlignment(Qt::AlignHCenter);
 
         delete _icontrol;
-        _icontrol = new IocControl(offlinerc,instname,station,experiment_number,controlrc,pv_ignore_options);
+        _icontrol = new IocControl(offlinerc,instname,station,expname.c_str(),controlrc,pv_ignore_options);
       } else {
+        fprintf(stderr, "Cannot determine experiment. Setting the offlineclient to NULL\n");
         // error: run number fixed at 0
         _runallocator = new RunAllocator;
         // NULL offline database
@@ -339,7 +329,7 @@ MainWindow::MainWindow(unsigned          platform,
     // NULL offline database
     _offlineclient = (OfflineClient*)NULL;
   }
-  _control->set_experiment(experiment_number);
+  _control->set_experiment(expname);
   _control->set_runAllocator(_runallocator);
 
   QVBoxLayout* layout = new QVBoxLayout(this);

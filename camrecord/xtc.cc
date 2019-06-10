@@ -33,7 +33,7 @@
 #include"pdsdata/psddl/smldata.ddl.h"
 #include"pds/service/NetServer.hh"
 #include"pds/service/Ins.hh"
-#include"LogBook/Connection.h"
+#include"pds/logbookclient/WSLogBook.hh"
 
 #include"yagxtc.hh"
 
@@ -157,7 +157,7 @@ static FILE *myfopen(const char *name, const char *flags, int doreg)
     FILE *fp = fopen(name, flags);
     if (!fp)
         return fp;
-    if (expid >= 0) {
+    if (!expname.empty()) {
         /* We set this in a dbinfo, so we need to do some data mover magic! */
         struct flock flk;
         int rc;
@@ -176,24 +176,12 @@ static FILE *myfopen(const char *name, const char *flags, int doreg)
         if (!doreg)
             return fp;
         try {
-            LogBook::Connection *conn;
-            conn = LogBook::Connection::open(logbook[0], logbook[1], logbook[2], logbook[3],
-                                             logbook[4], logbook[5], logbook[6], logbook[7],
-                                             logbook[8], logbook[9], logbook[10], logbook[11]);
-            conn->beginTransaction();
-            conn->reportOpenFile(expid, runnum, strnum, chunk, hostname, curdir + name);
-            conn->commitTransaction();
-        } catch (LogBook::DatabaseError* e) {
-            printf("Caught DatabaseError, ignoring.\n");
-            fprintf(stderr, "error Database error: aborting.\n");
-            exit(1);
-        } catch (LogBook::ValueTypeMismatch* e) {
-            printf("Caught ValueTypeMismatch, ignoring.\n");
-            fprintf(stderr, "error Database value type-mismatch error: aborting.\n");
-            exit(1);
-        } catch (LogBook::WrongParams* e) {
-            printf("Caught WrongParams, ignoring.\n");
-            fprintf(stderr, "error Database wrong parameter error: aborting.\n");
+            WSLogbookClient* client = WSLogbookClient::createWSLogbookClient(logbook[0].c_str(), logbook[1].c_str(), logbook[2].c_str(), logbook[3] == "true", expname.c_str());
+            std::cout << "Current experiment is " << client->current_experiment() << std::endl;
+            client->report_open_file((curdir + name).c_str(), strnum, chunk, hostname.c_str(), true);
+        } catch(const std::runtime_error& e){
+            printf("Caught exception %s\n", e.what());
+            fprintf(stderr, "Caught exception %s. Aborting!!!\n", e.what());
             exit(1);
         }
     }
@@ -283,7 +271,7 @@ static char *get_sml_offset(int64_t offset, uint32_t extent)
     return buf;
 }
 
-static char *get_sml_proxy(int64_t offset, uint32_t extent, Src &src, int iswv8) 
+static char *get_sml_proxy(int64_t offset, uint32_t extent, Src &src, int iswv8)
 {
     static char buf[SML_PROXY_SIZE];
     memset(buf, 0, sizeof(buf));
@@ -313,7 +301,7 @@ static void write_datagram(TransitionId::Value val, int extra, int diff)
     sigset_t oldsig;
 
     setup_datagram(val);
-    
+
     seg->extent    += extra;
     dg->xtc.extent += extra;
 
@@ -354,7 +342,7 @@ static void write_xtc_config(void)
     Xtc *xtcpv = NULL, *xtc1 = NULL, *xtc = NULL;
 
     dg = (Dgram *) malloc(sizeof(Dgram) + sizeof(Xtc));
-    
+
     int pid = getpid();
     int ipaddr = 0x7f000001;  // Default to 127.0.0.1, if we can't find better.
     char hostname[256];
@@ -364,7 +352,7 @@ static void write_xtc_config(void)
             ipaddr =
                 (((unsigned char *)host->h_addr)[0] << 24) |
                 (((unsigned char *)host->h_addr)[1] << 16) |
-                (((unsigned char *)host->h_addr)[2] << 8) | 
+                (((unsigned char *)host->h_addr)[2] << 8) |
                 ((unsigned char *)host->h_addr)[3];
         }
     }
@@ -772,8 +760,8 @@ void send_event(struct event *ev)
 #ifdef TRACE
     printf("%08x:%08x T event %d\n", ev->sec, ev->nsec, ev->id);
 #endif
-    new ((void *) &dg->seq) Sequence(Sequence::Event, TransitionId::L1Accept, 
-                                     ClockTime(ev->sec, ev->nsec), 
+    new ((void *) &dg->seq) Sequence(Sequence::Event, TransitionId::L1Accept,
+                                     ClockTime(ev->sec, ev->nsec),
                                      TimeStamp(0, ev->nsec & 0x1ffff, 0, 0));
     dsec = ev->sec;
     dnsec = ev->nsec;
@@ -1101,14 +1089,14 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
 #else
         printf("%08x:%08x S%d -> DUPLICATE event %d\n", sec, nsec, id, ev->id);
         printf("OLD: %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\n",
-               ev->data[id][0], ev->data[id][1], ev->data[id][2], ev->data[id][3], 
+               ev->data[id][0], ev->data[id][1], ev->data[id][2], ev->data[id][3],
                ev->data[id][4], ev->data[id][5], ev->data[id][6], ev->data[id][7],
-               ev->data[id][8], ev->data[id][9], ev->data[id][10], ev->data[id][11], 
+               ev->data[id][8], ev->data[id][9], ev->data[id][10], ev->data[id][11],
                ev->data[id][12], ev->data[id][13], ev->data[id][14], ev->data[id][15]);
         printf("NEW: %02x %02x %02x %02x %02x %02x %02x %02x  %02x %02x %02x %02x %02x %02x %02x %02x\n",
-               buf[0], buf[1], buf[2], buf[3], 
+               buf[0], buf[1], buf[2], buf[3],
                buf[4], buf[5], buf[6], buf[7],
-               buf[8], buf[9], buf[10], buf[11], 
+               buf[8], buf[9], buf[10], buf[11],
                buf[12], buf[13], buf[14], buf[15]);
 #endif
         delete buf;
@@ -1129,8 +1117,8 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
     else
         cur = cur->next;
 #ifdef TRACE
-    printf("%08x:%08x %c%d -> event %d (%d, %d)\n", 
-           sec, nsec, s->sync ? 'S' : 'A', id, 
+    printf("%08x:%08x %c%d -> event %d (%d, %d)\n",
+           sec, nsec, s->sync ? 'S' : 'A', id,
            ev->id, ev->synccnt, ev->damcnt);
 #endif
 
@@ -1266,7 +1254,7 @@ void do_transition(int id, unsigned int secs, unsigned int nsecs, unsigned int f
         transidx++;
         return;
     }
-    printf("TRANS: %d.%09d (0x%x) %s\n", secs, nsecs, fid, 
+    printf("TRANS: %d.%09d (0x%x) %s\n", secs, nsecs, fid,
            TransitionId::name((TransitionId::Value) id));
     csec = secs;
     cnsec = nsecs;

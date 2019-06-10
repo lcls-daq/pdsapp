@@ -20,7 +20,7 @@ typedef struct {
   int32_t  dbkey;
   bool     record;
   char*    buffer;
-  int32_t  exptnum;
+  std::string exptname;
   int32_t  runnum;
   Pds::RemotePartition* partition;
   int      waiting;

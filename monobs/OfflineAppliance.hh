@@ -6,7 +6,6 @@
 #include <vector>
 #include "pds/client/Fsm.hh"
 #include "pds/offlineclient/OfflineClient.hh"
-#include "LogBook/Connection.h"
 #include "pds/utility/PvConfigFile.hh"
 
 // EPICS
@@ -46,17 +45,9 @@ namespace Pds {
 
     static const char sPvListSeparators[];
 
-    static int _saveRunParameter(LogBook::Connection *conn, const char *instrument,
-                      const char *experiment, unsigned int run, const char *parmName,
-                      const char *parmValue, const char *parmDescription);
-
-    static int _saveRunAttribute(LogBook::Connection *conn, const char *instrument,
-                      const char *experiment, unsigned int run, const char *attrName,
-                      const char *attrValue, const char *attrDescription);
-
     int _readEpicsPv(PvConfigFile::TPvList in, std::vector<std::string> & pvValues);
 
-    const char * _path;
+    OfflineClient* _client;
     const char * _instrument_name;
     const char * _experiment_name;
     unsigned int _experiment_number;

@@ -3,7 +3,9 @@ tgtnames := camrecord xtcmerge clockadjust dropcheck undtest
 commonlibs := pdsdata/indexdata pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/compressdata
 tgtsrcs_camrecord := bld.cc ca.cc main.cc xtc.cc hdf5.cc
 tgtlibs_camrecord := $(commonlibs) offlinedb/mysqlclient offlinedb/offlinedb epics/ca epics/Com pds/service szip/sz hdf5/hdf5
-tgtincs_camrecord := offlinedb/include epics/include epics/include/os/Linux pdsdata/include ndarray/include boost/include hdf5/include
+tgtlibs_camrecord += pds/logbookclient python3/python3.6m
+
+tgtincs_camrecord := offlinedb/include epics/include epics/include/os/Linux pdsdata/include ndarray/include boost/include hdf5/include python3/include/python3.6m
 tgtslib_camrecord := $(USRLIBDIR)/pthread
 
 tgtsrcs_xtcmerge := xtcmerge.cc
@@ -16,7 +18,7 @@ tgtincs_clockadjust := pdsdata/include
 
 tgtsrcs_dropcheck := dropcheck.cc
 tgtlibs_dropcheck := $(commonlibs)
-tgtincs_dropcheck := pdsdata/include ndarray/include boost/include 
+tgtincs_dropcheck := pdsdata/include ndarray/include boost/include
 
 tgtsrcs_undtest := undtest.cc
 tgtlibs_undtest := $(commonlibs) epics/ca epics/Com

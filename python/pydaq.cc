@@ -144,7 +144,7 @@ static PyMethodDef pdsdaq_methods[] = {
   {"partition" , (PyCFunction)pdsdaq_partition      , METH_NOARGS  , "Get partition"},
   {"record"    , (PyCFunction)pdsdaq_record         , METH_NOARGS  , "Get record status"},
   {"runnumber" , (PyCFunction)pdsdaq_runnum         , METH_NOARGS  , "Get run number"},
-  {"experiment", (PyCFunction)pdsdaq_expt           , METH_NOARGS  , "Get experiment number"},
+  {"experiment", (PyCFunction)pdsdaq_expt           , METH_NOARGS  , "Get experiment name"},
   {"detectors" , (PyCFunction)pdsdaq_detectors      , METH_NOARGS  , "Get the detector names"},
   {"devices"   , (PyCFunction)pdsdaq_devices        , METH_NOARGS  , "Get the device names"},
   {"types"     , (PyCFunction)pdsdaq_types          , METH_NOARGS  , "Get the type names"},
@@ -262,7 +262,6 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
     self->record   = false;
     self->partition= new RemotePartition;
     self->buffer   = new char[MaxConfigSize];
-    self->exptnum  = -1;
     self->runnum   = -1;
     self->waiting  = 0;
     self->pending  = 0;
@@ -413,7 +412,7 @@ PyObject* pdsdaq_connect(PyObject* self)
     /*
      * Get dbkey
      */
-    
+
     Py_BEGIN_ALLOW_THREADS
     nb = ::recv(s, &key, sizeof(key), MSG_WAITALL);
     Py_END_ALLOW_THREADS
@@ -488,7 +487,7 @@ PyObject* pdsdaq_connect(PyObject* self)
     }
 
     RemotePartition partition;
-    
+
     Py_BEGIN_ALLOW_THREADS
     nb = ::recv(s, &partition, len, MSG_WAITALL);
     Py_END_ALLOW_THREADS
@@ -586,7 +585,7 @@ PyObject* pdsdaq_runnum   (PyObject* self)
 PyObject* pdsdaq_expt     (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
-  return PyLong_FromLong(daq->exptnum);
+  return PyString_FromString(daq->exptname.c_str());
 }
 
 PyObject* pdsdaq_detectors (PyObject* self)
@@ -1202,8 +1201,8 @@ PyObject* pdsdaq_rcv      (PyObject* self, int state, bool interrupt)
   }
   else if (result.damage()) {
     ostringstream o;
-    o << "Remote DAQ failed " 
-      << Pds::TransitionId::name(result.id()) 
+    o << "Remote DAQ failed "
+      << Pds::TransitionId::name(result.id())
       << " transition... disconnecting.";
     PyErr_SetString(PyExc_RuntimeError,o.str().c_str());
     Py_DECREF(pdsdaq_disconnect(self));
@@ -1214,7 +1213,7 @@ PyObject* pdsdaq_rcv      (PyObject* self, int state, bool interrupt)
     return pdsdaq_rcv(self, state, interrupt);
   }
   else {
-    daq->exptnum = result.exptnum();
+    daq->exptname = result.exptname();
     daq->runnum  = result.runnum ();
     daq->state   = state;
   }

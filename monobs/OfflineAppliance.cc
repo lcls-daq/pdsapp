@@ -7,7 +7,6 @@
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/TypeId.hh"
 
-#include "LogBook/Connection.h"
 #include "OfflineAppliance.hh"
 
 #define ca_dget(chan, pValue) \
@@ -24,6 +23,7 @@ using std::string;
 // OfflineAppliance
 //
 OfflineAppliance::OfflineAppliance(OfflineClient* offlineclient, const char *parm_list_file, int maxParms, bool verbose, bool gFormat) :
+    _client(offlineclient),
     _run_number (0),
     _parm_list_file (parm_list_file),
     _parm_list_initialized (false),
@@ -32,10 +32,9 @@ OfflineAppliance::OfflineAppliance(OfflineClient* offlineclient, const char *par
     _verbose (verbose),
     _gFormat (gFormat)
 {
-  _path = offlineclient->GetPath();
-  _instrument_name = offlineclient->GetInstrumentName();
+  _instrument_name = offlineclient->GetInstrumentName().c_str();
   _station = offlineclient->GetStationNumber();
-  _experiment_name = offlineclient->GetExperimentName();
+  _experiment_name = offlineclient->GetExperimentName().c_str();
 
   string sConfigFileWarning;
 
@@ -79,8 +78,6 @@ InDatagram* OfflineAppliance::events(InDatagram* in) {
 // transitions
 //
 Transition* OfflineAppliance::transitions(Transition* tr) {
-  LogBook::Connection * conn = NULL;
-  LusiTime::Time now;
   int errs;
 
   if ((tr->id()==TransitionId::BeginRun) &&
@@ -94,22 +91,17 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
     int parm_read_count = 0;
     int parm_save_count = 0;
     std::vector<string> vsPvValueList;
+    std::map<std::string, std::string> vsPvNameValuePairs;
     string sConfigFileWarning;
 
     // retrieve run # that was allocated earlier
     RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
     _run_number = rinfo.run();
-    _experiment_number = rinfo.experiment();
     printf("Storing BeginRun LogBook information for %s:%u/%s Run #%u\n",
             _instrument_name, _station, _experiment_name, _run_number);
     try {
-      conn = LogBook::Connection::open(_path);
-
-      if (conn != NULL) {
-        // LogBook: begin transaction
-        conn->beginTransaction();
-
         if (_parm_list_size > 0) {
+
           // save metadata
           parm_read_count = _readEpicsPv(_vsPvNameList, vsPvValueList);
           if (parm_read_count != _parm_list_size) {
@@ -120,92 +112,22 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
               // skip empty values
               continue;
             }
-
-            errs = 0;
-            if (_saveRunAttribute(conn, _instrument_name,
-                          _experiment_name, _run_number,
-                          _vsPvNameList[iPv].sPvName.c_str(), vsPvValueList[iPv].c_str(),
-                          _vsPvNameList[iPv].sPvDescription.c_str())) {
-              ++ errs;
-            }
-            if (_saveRunParameter(conn, _instrument_name,
-                          _experiment_name, _run_number,
-                          _vsPvNameList[iPv].sPvName.c_str(), vsPvValueList[iPv].c_str(),
-                          _vsPvNameList[iPv].sPvDescription.c_str())) {
-              ++ errs;
-            }
-            if (errs) {
-              printf("Error: storing PV %s in LogBook failed\n", _vsPvNameList[iPv].sPvName.c_str());
-            } else {
-              ++parm_save_count;
-            }
+            vsPvNameValuePairs[_vsPvNameList[iPv].sPvName] = vsPvValueList[iPv];
           }
+          _client->reportParams(_run_number, vsPvNameValuePairs);
         }
-
-        // LogBook: commit transaction
-        conn->commitTransaction();
-      } else {
-          printf("LogBook::Connection::connect() failed\n");
-      }
-
-    } catch (const LogBook::ValueTypeMismatch& e) {
-      printf ("Parameter type mismatch: %s\n", e.what());
-
-    } catch (const LogBook::WrongParams& e) {
-      printf ("Problem with parameters: %s\n", e.what());
-    
-    } catch (const LogBook::DatabaseError& e) {
-      printf ("Database operation failed: %s\n", e.what());
+    } catch (const std::runtime_error& e){
+        printf("Caught exception registering parameters %s\n", e.what());
     }
-    if (NULL == _parm_list_file) {
-      printf("Completed storing BeginRun LogBook information\n");
-    } else {
-      printf("Completed storing BeginRun LogBook information (%d of %d run parameters saved)\n",
-              parm_save_count, _parm_list_size);
-    }
-
-    if (conn != NULL) {
-      // LogBook: close connection
-      delete conn ;
-    }
-
-  }
-  else if ((tr->id()==TransitionId::EndRun) &&
+  } else if ((tr->id()==TransitionId::EndRun) &&
            (_run_number != NotRecording)) {
 
     printf("Storing EndRun LogBook information for %s:%u/%s Run #%u\n",
             _instrument_name, _station, _experiment_name, _run_number);
     try {
-      conn = LogBook::Connection::open(_path);
-
-      if (conn != NULL) {
-          // begin transaction
-          conn->beginTransaction();
-
-          // end run
-          now = LusiTime::Time::now();
-          conn->endRun(_instrument_name, _experiment_name,
-                         _run_number, now);
-          // commit transaction
-          conn->commitTransaction();
-      } else {
-          printf("Error: opening LogBook connection failed\n");
-      }
-
-    } catch (const LogBook::ValueTypeMismatch& e) {
-      printf ("Parameter type mismatch: %s\n", e.what());
-
-    } catch (const LogBook::WrongParams& e) {
-      printf ("Problem with parameters: %s\n", e.what());
-    
-    } catch (const LogBook::DatabaseError& e) {
-      printf ("Database operation failed: %s\n", e.what());
-    }
-    printf("Completed storing EndRun LogBook information\n");
-
-    if (conn != NULL) {
-      // close connection
-      delete conn ;
+      _client->EndCurrentRun();
+    } catch (const std::runtime_error& e){
+        printf("Caught exception ending the run %s\n", e.what());
     }
   }
   return tr;
@@ -216,123 +138,6 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
 //
 InDatagram* OfflineAppliance::occurrences(InDatagram* in) {
   return in;
-}
-
-
-//
-// private static member functions
-//
-
-//
-// _saveRunParameter -
-//
-// RETURNS: 0 if successful, otherwise 1.
-//
-int OfflineAppliance::_saveRunParameter(LogBook::Connection *conn, const char *instrument,
-                      const char *experiment, unsigned int run, const char *parmName,
-                      const char *parmValue, const char *parmDescription)
-{
-    LogBook::ParamInfo paramBuf;
-    bool dbError = false;
-    bool parmError = false;
-    bool parmFound = false;
-
-    if (!conn || !instrument || !experiment || !parmName || !parmValue || !parmDescription) {
-      return 1;   // invalid parameter
-    }
-
-    try {
-      parmFound = conn->getParamInfo(paramBuf, instrument, experiment, parmName);
-    } catch (const LogBook::WrongParams& e) {
-      parmError = true;
-      printf ("getParamInfo(): Problem with parameters: %s\n", e.what());
-    
-    } catch (const LogBook::DatabaseError& e) {
-      dbError = true;
-      printf ("getParamInfo(): Database operation failed: %s\n", e.what());
-    } 
-
-    if (!parmError && !dbError && !parmFound) {
-      // create run parameter
-      try {
-        conn->createRunParam(instrument, experiment, parmName, "TEXT",
-                             parmDescription);
-      } catch (const LogBook::WrongParams& e) {
-        parmError = true;
-        printf ("createRunParam(): Problem with parameters: %s\n", e.what());
-
-      } catch (const LogBook::DatabaseError& e) {
-        dbError = true;
-        printf ("createRunParam(): Database operation failed: %s\n", e.what());
-      }
-    }
-
-    if (!dbError && !parmError) {
-      try {
-        conn->setRunParam(instrument, experiment, run, parmName,
-                               parmValue, "run control", true);
-      } catch (const LogBook::ValueTypeMismatch& e) {
-        parmError = true;
-        printf ("setRunParam(): Parameter type mismatch: %s\n", e.what());
-
-      } catch (const LogBook::WrongParams& e) {
-        parmError = true;
-        printf ("setRunParam(): Problem with parameters: %s\n", e.what());
-
-      } catch (const LogBook::DatabaseError& e) {
-        dbError = true;
-        printf ("setRunParam(): Database operation failed: %s\n", e.what());
-      }
-  }
-
-  return (dbError || parmError) ? 1 : 0;
-}
-
-//
-// _saveRunAttribute -
-//
-// RETURNS: 0 if successful, otherwise 1.
-//
-int OfflineAppliance::_saveRunAttribute(LogBook::Connection *conn, const char *instrument,
-                      const char *experiment, unsigned int run, const char *attrName,
-                      const char *attrValue, const char *attrDescription)
-{
-    LogBook::AttrInfo attrBuf;
-    bool dbError = false;
-    bool parmError = false;
-    bool parmFound = false;
-
-    if (!conn || !instrument || !experiment || !attrName || !attrValue || !attrDescription) {
-      return 1;   // invalid parameter
-    }
-
-    try {
-      parmFound = conn->getAttrInfo(attrBuf, instrument, experiment, run, EPICS_CLASS_NAME, attrName);
-    } catch (const LogBook::WrongParams& e) {
-      parmError = true;
-      printf ("getAttrInfo(): Problem with parameters: %s\n", e.what());
-    
-    } catch (const LogBook::DatabaseError& e) {
-      dbError = true;
-      printf ("getAttrInfo(): Database operation failed: %s\n", e.what());
-    } 
-
-    if (!parmError && !dbError && !parmFound) {
-      // create run attribute
-      try {
-        conn->createRunAttr(instrument, experiment, run, EPICS_CLASS_NAME, attrName,
-                             attrDescription, attrValue);
-      } catch (const LogBook::WrongParams& e) {
-        parmError = true;
-        printf ("createRunAttr(): Problem with parameters: %s\n", e.what());
-
-      } catch (const LogBook::DatabaseError& e) {
-        dbError = true;
-        printf ("createRunAttr(): Database operation failed: %s\n", e.what());
-      }
-    }
-
-  return (dbError || parmError) ? 1 : 0;
 }
 
 //

@@ -57,7 +57,6 @@ private:
   unsigned int _chunk;
   uint64_t _chunkSize;
   bool     _delay_xfer;
-  int      _experiment;
   const char *_expname;
   int      _run;
   GenericPool* _occPool;

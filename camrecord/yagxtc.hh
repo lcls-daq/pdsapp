@@ -11,7 +11,7 @@
 
 /* Flags for how the epicsTime can be messed up */
 #define REVTIME_NONE   0
-#define REVTIME_WORD   1 
+#define REVTIME_WORD   1
 #define REVTIME_OFFSET 2
 
 /* Flags that can modify cameras */
@@ -24,7 +24,7 @@
 #define CAMERA_DEPTH(b) (((b) & CAMERA_DEPTH_MASK) >> CAMERA_DEPTH_OFFSET)
 
 /* How many parameters does LogBook::Connection::open have? */
-#define LCPARAMS 12
+#define LCPARAMS 4
 
 /* main.cc */
 extern void add_socket(int s);
@@ -38,7 +38,8 @@ extern std::string hostname;
 extern std::string prefix;
 extern std::string username;
 extern std::string curdir;
-extern int expid, runnum, strnum;
+extern std::string expname;
+extern int runnum, strnum;
 extern std::string logbook[LCPARAMS];
 extern int start_sec, start_nsec;
 extern int end_sec, end_nsec;

@@ -53,20 +53,18 @@ int instrumentPrint(const char *offlinerc, PartitionDescriptor& desc, unsigned i
 
   if (offlineclient == NULL) {
     fprintf(stderr,"%s: failed to instantiate OfflineClient\n", argv0);
-  } else if (offlineclient->GetExperimentName() == NULL) {
+  } else if (offlineclient->GetExperimentName().empty()) {
     fprintf(stderr,"%s: failed to find current experiment name\n", argv0);
   } else {
     rv = 0;         // return OK
     if (verbose) {
-      printf("Instrument name: %s\n", offlineclient->GetInstrumentName());
+      printf("Instrument name: %s\n", offlineclient->GetInstrumentName().c_str());
       printf("Station number: %u\n", offlineclient->GetStationNumber());
-      printf("Experiment name: %s\n", offlineclient->GetExperimentName());
-      printf("Experiment number: %u\n", offlineclient->GetExperimentNumber());
+      printf("Experiment name: %s\n", offlineclient->GetExperimentName().c_str());
     } else {
-      printf("%s:%u %s %u\n",  offlineclient->GetInstrumentName(),
+      printf("%s:%u %s\n",  offlineclient->GetInstrumentName().c_str(),
                                offlineclient->GetStationNumber(),
-                               offlineclient->GetExperimentName(),
-                               offlineclient->GetExperimentNumber());
+                               offlineclient->GetExperimentName().c_str());
     }
   }
 

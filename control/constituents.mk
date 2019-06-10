@@ -5,7 +5,7 @@ endif
 
 datalibs := pdsdata/xtcdata pdsdata/psddl_pdsdata
 
-tgtsrcs_control_gui := control.cc 
+tgtsrcs_control_gui := control.cc
 tgtsrcs_control_gui += MainWindow.cc      MainWindow_moc.cc
 tgtsrcs_control_gui += ConfigSelect.cc    ConfigSelect_moc.cc
 tgtsrcs_control_gui += NodeSelect.cc
@@ -23,7 +23,7 @@ tgtsrcs_control_gui += DamageStats.cc     DamageStats_moc.cc
 tgtsrcs_control_gui += RunStatus.cc     RunStatus_moc.cc
 tgtsrcs_control_gui += ExportStatus.cc  ExportStatus_moc.cc
 tgtsrcs_control_gui += Preferences.cc
-tgtsrcs_control_gui += MySqlRunAllocator.cc
+tgtsrcs_control_gui += WSRunAllocator.cc
 tgtsrcs_control_gui += FileRunAllocator.cc
 tgtsrcs_control_gui += SeqAppliance.cc
 tgtsrcs_control_gui += RemoteSeqApp.cc
@@ -38,24 +38,24 @@ tgtlibs_control_gui += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/u
 tgtlibs_control_gui += pds/ioc
 tgtlibs_control_gui += pds/epicstools
 tgtlibs_control_gui += pds/eventcodetools
-tgtlibs_control_gui += pds/configdata 
+tgtlibs_control_gui += pds/configdata
 tgtlibs_control_gui += pds/configdbc pds/confignfs pds/configsql
 tgtlibs_control_gui += pdsapp/configdb
 tgtlibs_control_gui += pdsapp/configdbg
 tgtlibs_control_gui += $(qtlibdir)
 tgtlibs_control_gui += epics/ca epics/Com
-tgtlibs_control_gui += offlinedb/mysqlclient offlinedb/offlinedb
+tgtlibs_control_gui += offlinedb/mysqlclient offlinedb/offlinedb pds/logbookclient  python3/python3.6m
 tgtslib_control_gui := $(USRLIBDIR)/rt $(qtslibdir) $(USRLIBDIR)/mysql/mysqlclient $(USRLIBDIR)/pthread
 tgtincs_control_gui := $(qtincdir)
 tgtincs_control_gui += epics/include epics/include/os/Linux
-tgtincs_control_gui += offlinedb/include pdsdata/include ndarray/include boost/include 
+tgtincs_control_gui += offlinedb/include pdsdata/include ndarray/include boost/include python3/include/python3.6m
 
 tgtsrcs_catest := catest.cc PVMonitor.cc
 tgtslib_catest := $(USRLIBDIR)/rt
 tgtincs_catest := epics/include epics/include/os/Linux
-tgtincs_catest += pdsdata/include ndarray/include boost/include 
+tgtincs_catest += pdsdata/include ndarray/include boost/include
 tgtlibs_catest := epics/ca epics/Com
 tgtlibs_catest += pdsdata/psddl_pdsdata pdsdata/xtcdata
-tgtlibs_catest += pds/service pds/mon pds/vmon pds/collection pds/xtc pds/utility 
+tgtlibs_catest += pds/service pds/mon pds/vmon pds/collection pds/xtc pds/utility
 tgtlibs_catest += pds/configdata pds/config pds/configdbc pds/confignfs pds/configsql
 tgtlibs_catest += pds/epicstools offlinedb/mysqlclient
