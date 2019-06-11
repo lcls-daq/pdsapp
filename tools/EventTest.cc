@@ -1,6 +1,6 @@
-#include <stdio.h>
-
 #include "EventTest.hh"
+#include "Recorder.hh"
+#include "RecorderQ.hh"
 #include "EventOptions.hh"
 #include "DgSummary.hh"
 #include "pds/monreq/MonReqServer.hh"
@@ -12,9 +12,9 @@
 //#include "StatsApp.hh"
 #include "StatsTree.hh"
 #include "pds/utility/EbDump.hh"
-#include "Recorder.hh"
-#include "RecorderQ.hh"
 #include "pds/service/Task.hh"
+
+#include <stdio.h>
 
 using namespace Pds;
 

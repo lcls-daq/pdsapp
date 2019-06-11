@@ -1,6 +1,5 @@
-
-#include "WSRunAllocator.hh"
 #include "pds/offlineclient/OfflineClient.hh"
+#include "WSRunAllocator.hh"
 #include <stdio.h>
 
 using namespace Pds;

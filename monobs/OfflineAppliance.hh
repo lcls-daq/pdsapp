@@ -2,11 +2,12 @@
 #ifndef OFFLINEAPPLIANCE_HH
 #define OFFLINEAPPLIANCE_HH
 
+#include "pds/offlineclient/OfflineClient.hh"
+#include "pds/utility/PvConfigFile.hh"
+
 #include <string>
 #include <vector>
 #include "pds/client/Fsm.hh"
-#include "pds/offlineclient/OfflineClient.hh"
-#include "pds/utility/PvConfigFile.hh"
 
 // EPICS
 #include "cadef.h"

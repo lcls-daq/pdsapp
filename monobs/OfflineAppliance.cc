@@ -1,3 +1,5 @@
+#include "OfflineAppliance.hh"
+
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -6,8 +8,6 @@
 #include "pds/client/Action.hh"
 #include "pdsdata/xtc/Xtc.hh"
 #include "pdsdata/xtc/TypeId.hh"
-
-#include "OfflineAppliance.hh"
 
 #define ca_dget(chan, pValue) \
 ca_array_get(DBR_DOUBLE, 1u, chan, (dbr_double_t *)(pValue))

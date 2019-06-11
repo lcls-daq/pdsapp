@@ -1,4 +1,6 @@
 // $Id$
+#include "pds/offlineclient/OfflineClient.hh"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -6,8 +8,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
-
-#include "pds/offlineclient/OfflineClient.hh"
 
 #define MAXLINE 255
 #define DEFAULT_STATION 0u

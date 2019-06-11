@@ -2,6 +2,7 @@
 #define EXACT_TS_MATCH          0
 #define FIDUCIAL_MATCH          1
 //#define TRACE
+#include"pds/logbookclient/WSLogBook.hh"
 #include<stdio.h>
 #include<signal.h>
 #include<string.h>
@@ -33,7 +34,6 @@
 #include"pdsdata/psddl/smldata.ddl.h"
 #include"pds/service/NetServer.hh"
 #include"pds/service/Ins.hh"
-#include"pds/logbookclient/WSLogBook.hh"
 
 #include"yagxtc.hh"
 

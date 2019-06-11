@@ -1,12 +1,12 @@
 #ifndef PDS_RECORDER
 #define PDS_RECORDER
 
-#include <stdint.h>
-
+#include "pds/offlineclient/OfflineClient.hh"
+#include "pds/utility/Appliance.hh"
 #include "pdsdata/xtc/Src.hh"
 #include "pdsdata/index/IndexList.hh"
-#include "pds/utility/Appliance.hh"
-#include "pds/offlineclient/OfflineClient.hh"
+
+#include <stdint.h>
 
 namespace Pds {
 

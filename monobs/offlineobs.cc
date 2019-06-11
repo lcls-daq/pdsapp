@@ -1,3 +1,4 @@
+#include "pds/offlineclient/OfflineClient.hh"
 #include "pds/service/CmdLineTools.hh"
 #include "pds/service/Task.hh"
 #include "pds/collection/Arp.hh"
@@ -5,7 +6,6 @@
 #include "pds/management/ObserverLevel.hh"
 #include "pds/utility/SetOfStreams.hh"
 #include "pdsdata/xtc/DetInfo.hh"
-#include "pds/offlineclient/OfflineClient.hh"
 #include "OfflineAppliance.hh"
 
 #include <stdio.h>
