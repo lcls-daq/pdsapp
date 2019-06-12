@@ -25,7 +25,7 @@ tgtnames := event segtest sourcetest bldtest source montest showPartitions killP
 commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs += pds/pnccdFrameV0
 
-liblibs_tools := pds/offlineclient pds/logbookclient python3/python3.6m ssl/ssl
+liblibs_tools := pds/offlineclient pds/logbookclient python3/python3.6m
 libincs_tools := pdsdata/include ndarray/include boost/include python3/include/python3.6m
 
 tgtsrcs_event := event.cc
