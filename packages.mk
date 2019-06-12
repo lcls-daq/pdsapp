@@ -1,6 +1,6 @@
 # List of packages (low level first)
 ifneq ($(findstring i386-linux,$(tgt_arch)),)
-packages := tools config dev devtest monobs control epics blv bldIpimb test
+packages := config dev devtest control epics bldIpimb test
 endif
 
 ifneq ($(findstring x86_64,$(tgt_arch)),)
