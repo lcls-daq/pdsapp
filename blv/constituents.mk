@@ -43,6 +43,8 @@ edt_libs := pds/camedt edt/pdv
 
 cam_libs := pdsdata/psddl_pdsdata
 
+commonslib := $(USRLIBDIR)/rt
+
 tgtsrcs_evrblv := evrblv.cc IdleStream.cc
 tgtincs_evrblv := evgr pdsdata/include ndarray/include boost/include 
 tgtlibs_evrblv := $(commonlibs)
