@@ -19,7 +19,7 @@ endif
 commonlibs	:= pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 commonlibs	+= pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs	+= pds/config pds/configdbc pds/confignfs pds/configsql
-commonlibs	+= offlinedb/mysqlclient
+commonlibs	+= mysql/mysqlclient
 
 tgtsrcs_archonStandAlone := archonStandAlone.cc
 tgtlibs_archonStandAlone := $(commonlibs) pds/archon
@@ -72,7 +72,7 @@ tgtsrcs_timestampReceiver := timestampReceiver.cc
 
 tgtsrcs_sqlDbTest := sqlDbTest.cc
 tgtincs_sqlDbTest := pdsdata/include ndarray/include boost/include
-tgtlibs_sqlDbTest := pds/config pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
+tgtlibs_sqlDbTest := pds/config pds/configdbc pds/confignfs pds/configsql mysql/mysqlclient
 tgtlibs_sqlDbTest += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 tgtlibs_sqlDbTest += pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 tgtlibs_sqlDbTest += pdsapp/configdb

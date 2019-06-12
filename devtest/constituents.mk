@@ -45,14 +45,12 @@ tgtslib_evrobs := $(USRLIB)/rt
 
 tgtsrcs_evg := evg.cc
 tgtincs_evg := evg
-tgtlibs_evg := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
-#tgtslib_evg := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
+tgtlibs_evg := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata pds/configdbc pds/confignfs pds/configsql mysql/mysqlclient
 tgtslib_evg := $(USRLIBDIR)/rt
 
 tgtsrcs_evgr := evgr.cc
 tgtincs_evgr := evgr
-tgtlibs_evgr := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
-#tgtslib_evgr := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
+tgtlibs_evgr := pdsdata/xtcdata pdsdata/psddl_pdsdata evgr/evg evgr/evr pds/service pds/collection pds/config pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/evgr pds/configdata pds/configdbc pds/confignfs pds/configsql mysql/mysqlclient
 tgtslib_evgr := $(USRLIBDIR)/rt 
 
 tgtsrcs_evgrd := evgrd.cc
@@ -138,7 +136,7 @@ tgtslib_compressstat := ${USRLIBDIR}/rt ${USRLIBDIR}/pthread
 tgtincs_compressstat := pdsdata/include boost/include
 
 tgtsrcs_fccdmonserver := fccdmonserver.cc
-tgtlibs_fccdmonserver := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
+tgtlibs_fccdmonserver := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql mysql/mysqlclient
 tgtlibs_fccdmonserver += pdsdata/xtcdata pdsdata/compressdata pdsdata/appdata pdsdata/psddl_pdsdata
 tgtslib_fccdmonserver := ${USRLIBDIR}/rt
 tgtincs_fccdmonserver := pdsdata/include boost/include ndarray/include
@@ -147,19 +145,19 @@ tgtsrcs_buffer := buffer.cc
 tgtslib_buffer := ${USRLIBDIR}/rt
 
 tgtsrcs_epixbintoxtc := epixbintoxtc.cc
-tgtlibs_epixbintoxtc := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
+tgtlibs_epixbintoxtc := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql mysql/mysqlclient
 tgtlibs_epixbintoxtc += pdsdata/xtcdata pdsdata/compressdata pdsdata/psddl_pdsdata
 tgtslib_epixbintoxtc := ${USRLIBDIR}/rt
 tgtincs_epixbintoxtc := pdsdata/include boost/include ndarray/include
 
 tgtsrcs_epix10kbintoxtc := epix10kbintoxtc.cc
-tgtlibs_epix10kbintoxtc := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
+tgtlibs_epix10kbintoxtc := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql mysql/mysqlclient
 tgtlibs_epix10kbintoxtc += pdsdata/xtcdata pdsdata/compressdata pdsdata/psddl_pdsdata
 tgtslib_epix10kbintoxtc := ${USRLIBDIR}/rt
 tgtincs_epix10kbintoxtc := pdsdata/include boost/include ndarray/include
 
 tgtsrcs_epix100abintoxtc := epix100abintoxtc.cc
-tgtlibs_epix100abintoxtc := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql offlinedb/mysqlclient
+tgtlibs_epix100abintoxtc := pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client pds/udpcam pds/config pds/configdbc pds/confignfs pds/configsql mysql/mysqlclient
 tgtlibs_epix100abintoxtc += pdsdata/xtcdata pdsdata/compressdata pdsdata/psddl_pdsdata
 tgtslib_epix100abintoxtc := ${USRLIBDIR}/rt
 tgtincs_epix100abintoxtc := pdsdata/include boost/include ndarray/include

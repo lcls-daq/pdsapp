@@ -47,9 +47,8 @@ endif
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs  += pds/config pds/configdbc pds/confignfs pds/configsql
-commonlibs  += offlinedb/mysqlclient
+commonlibs  += mysql/mysqlclient
 
-#commonslib  := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
 commonslib  := $(USRLIBDIR)/rt
 
 tgtsrcs_fexamp := fexamp.cc

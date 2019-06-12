@@ -185,7 +185,7 @@ tgtlibs_configdb_cmd := $(datalibs)
 tgtlibs_configdb_cmd += pdsapp/configdb
 tgtlibs_configdb_cmd += pds/configdbc pds/confignfs pds/configsql
 tgtlibs_configdb_cmd += pds/config pds/utility pds/collection pds/service pds/vmon pds/mon pds/xtc
-tgtlibs_configdb_cmd += offlinedb/mysqlclient
+tgtlibs_configdb_cmd += mysql/mysqlclient
 tgtslib_configdb_cmd := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
 
 tgtsrcs_configdb_gui := configdb_gui.cc
@@ -204,7 +204,7 @@ tgtlibs_configdb_gui += pds/configdbc
 tgtlibs_configdb_gui += pds/confignfs pds/configsql
 tgtlibs_configdb_gui += pdsapp/configdb
 tgtlibs_configdb_gui += pdsapp/configdbg
-tgtlibs_configdb_gui += offlinedb/mysqlclient
+tgtlibs_configdb_gui += mysql/mysqlclient
 tgtslib_configdb_gui := $(USRLIBDIR)/rt $(qtslibdir) $(USRLIBDIR)/mysql/mysqlclient
 
 
@@ -218,7 +218,7 @@ tgtlibs_configdb_list += pds/configdbc
 tgtlibs_configdb_list += pds/confignfs pds/configsql
 tgtlibs_configdb_list += pdsapp/configdb
 tgtlibs_configdb_list += pdsapp/configdbg
-tgtlibs_configdb_list += offlinedb/mysqlclient
+tgtlibs_configdb_list += mysql/mysqlclient
 tgtslib_configdb_list := $(USRLIBDIR)/rt $(qtslibdir) $(USRLIBDIR)/mysql/mysqlclient
 
 tgtsrcs_create_scan := create_scan_config.cc
@@ -247,7 +247,7 @@ tgtincs_nfs_to_sql := pdsdata/include
 tgtlibs_nfs_to_sql := pdsdata/xtcdata
 tgtlibs_nfs_to_sql += pds/configdbc
 tgtlibs_nfs_to_sql += pds/confignfs pds/configsql
-tgtlibs_nfs_to_sql += offlinedb/mysqlclient
+tgtlibs_nfs_to_sql += mysql/mysqlclient
 tgtslib_nfs_to_sql := $(USRLIBDIR)/rt $(USRLIBDIR)/mysql/mysqlclient
 
 tgtsrcs_dbtest := dbtest.cc
