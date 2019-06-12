@@ -25,13 +25,13 @@ tgtnames := event segtest sourcetest bldtest source montest showPartitions killP
 commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs += pds/pnccdFrameV0
 
-liblibs_tools := offlinedb/mysqlclient offlinedb/offlinedb pds/offlineclient pds/logbookclient python3/python3.6m
-libincs_tools := offlinedb/include pdsdata/include ndarray/include boost/include python3/include/python3.6m
+liblibs_tools := pds/offlineclient pds/logbookclient python3/python3.6m ssl/ssl
+libincs_tools := pdsdata/include ndarray/include boost/include python3/include/python3.6m
 
 tgtsrcs_event := event.cc
 tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools pds/monreq pdsdata/indexdata pdsdata/smalldata
 tgtslib_event := $(USRLIBDIR)/rt
-tgtincs_event := offlinedb/include pdsdata/include
+tgtincs_event := pdsdata/include
 
 tgtsrcs_segtest := segtest.cc
 tgtlibs_segtest := $(commonlibs)
@@ -102,9 +102,9 @@ tgtincs_xtcdump := pdsdata/include
 tgtsrcs_currentexp := currentexp.cc
 tgtlibs_currentexp := $(commonlibs)
 tgtlibs_currentexp += pds/offlineclient
-tgtlibs_currentexp += offlinedb/mysqlclient offlinedb/offlinedb pds/logbookclient python3/python3.6m 
+tgtlibs_currentexp += pds/logbookclient python3/python3.6m
 tgtslib_currentexp := $(USRLIBDIR)/rt
-tgtincs_currentexp := offlinedb/include offlineclient python3/include/python3.6m
+tgtincs_currentexp := offlineclient python3/include/python3.6m
 
 libnames += padmon
 libsrcs_padmon := PadMonServer.cc CspadShuffle.cc
