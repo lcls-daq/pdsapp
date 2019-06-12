@@ -377,5 +377,5 @@ tgtslib_quadadc := ${USRLIBDIR}/rt ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
 tgtincs_quadadc := pdsdata/include ndarray/include boost/include hsd/include
 
 tgtlibs_quadadc += pds/service
-tgtlibs_quadadc += pdsdata/xtcdata pdsdata/psddl_pdsdata pdsapp/padmon pdsdata/appdata
+tgtlibs_quadadc += pdsdata/xtcdata pdsdata/psddl_pdsdata pdsdata/appdata
 tgtincs_quadadc += evgr
