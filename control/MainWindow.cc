@@ -176,7 +176,6 @@ private:
       _partition(partition),
       _runallocator(runallocator),
       _runstatus(runstatus),
-      _experiment(0),
       _run(0)
     {
     }

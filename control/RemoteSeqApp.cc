@@ -53,7 +53,7 @@ RemoteSeqApp::RemoteSeqApp(PartitionControl& control,
   _cfgmon_buffer(new char[MaxConfigSize]),
   _task         (new Task(TaskObject("remseq"))),
   _port         (Control_Port + control.header().platform()),
-  _last_run     (0,0),
+  _last_run     (0,NULL),
   _socket       (-1),
   _wait_for_configure(false),
   _l3t_events   (0)
