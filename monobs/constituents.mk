@@ -24,6 +24,9 @@ tgtincs_monshm := pdsdata/include ndarray/include boost/include
 tgtsrcs_monshmserver := monshmserver.cc MonComm.cc
 tgtlibs_monshmserver := pdsdata/appdata pdsapp/tools
 tgtlibs_monshmserver += $(commonlibs) pds/mon $(liblibs_tools) pdsdata/indexdata pdsdata/smalldata pdsdata/psddl_pdsdata
+ifneq ($(findstring x86_64,$(tgt_arch)),)
+tgtlibs_monshmserver += pds/offlineclient pds/logbookclient python3/python3.6m
+endif
 tgtslib_monshmserver := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
 tgtincs_monshmserver := pdsdata/include
 
