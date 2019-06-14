@@ -6,8 +6,15 @@ libnames := tools l3test l3sacla l3saclacompound
 #libslib_tools := $(USRLIBDIR)/gomp
 
 CPPFLAGS += -D_FILE_OFFSET_BITS=64
- 
-libsrcs_tools := EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc DgSummary.cc PnccdShuffle.cc CspadShuffle.cc StripTransient.cc 
+
+libsrcs_tools := DgSummary.cc PnccdShuffle.cc CspadShuffle.cc StripTransient.cc
+liblibs_tools :=
+libincs_tools := pdsdata/include ndarray/include boost/include
+ifneq ($(findstring x86_64,$(tgt_arch)),)
+libsrcs_tools += EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc
+liblibs_tools += pds/offlineclient pds/logbookclient python3/python3.6m
+libincs_tools += python3/include/python3.6m
+endif
 
 libsrcs_l3test := L3TestModule.cc
 libincs_l3test := pdsdata/include ndarray/include boost/include 
@@ -18,15 +25,15 @@ libincs_l3sacla := pdsdata/include ndarray/include boost/include
 libsrcs_l3saclacompound := L3SACLACompoundModule.cc
 libincs_l3saclacompound := pdsdata/include ndarray/include boost/include 
 
-tgtnames := event segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest bldMonitor xtcdump currentexp showPlatform
+tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest bldMonitor xtcdump showPlatform
+ifneq ($(findstring x86_64,$(tgt_arch)),)
+tgtnames += event currentexp
+endif
 #tgtnames := segtest sourcetest bldtest source montest showPartitions killPartition control bldClientTest bldServerTest xtcdump currentexp
 #tgtnames := findSource
 
 commonlibs := pdsdata/xtcdata pdsdata/psddl_pdsdata pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs += pds/pnccdFrameV0
-
-liblibs_tools := pds/offlineclient pds/logbookclient python3/python3.6m
-libincs_tools := pdsdata/include ndarray/include boost/include python3/include/python3.6m
 
 tgtsrcs_event := event.cc
 tgtlibs_event := $(liblibs_tools) $(commonlibs) pdsapp/tools pds/monreq pdsdata/indexdata pdsdata/smalldata

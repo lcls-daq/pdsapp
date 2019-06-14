@@ -1,6 +1,7 @@
-tgtnames := monobs monshm monshmserver offlineobs sxrmon xppmon cximon xcsmon cspadmon
+tgtnames := monobs monshm monshmserver sxrmon xppmon cximon xcsmon cspadmon
 #tgtnames += alive_mon
 ifneq ($(findstring x86_64,$(tgt_arch)),)
+tgtnames += offlineobs
 else
 endif
 
@@ -21,16 +22,16 @@ tgtslib_monshm := $(USRLIBDIR)/rt
 tgtincs_monshm := pdsdata/include ndarray/include boost/include   
 
 tgtsrcs_monshmserver := monshmserver.cc MonComm.cc
-tgtlibs_monshmserver := pdsdata/appdata pds/offlineclient
-tgtlibs_monshmserver += $(commonlibs) pds/mon $(liblibs_tools) pdsapp/tools pdsdata/indexdata pdsdata/smalldata pdsdata/psddl_pdsdata pds/logbookclient python3/python3.6m
+tgtlibs_monshmserver := pdsdata/appdata pdsapp/tools
+tgtlibs_monshmserver += $(commonlibs) pds/mon $(liblibs_tools) pdsdata/indexdata pdsdata/smalldata pdsdata/psddl_pdsdata
 tgtslib_monshmserver := $(USRLIBDIR)/rt $(USRLIBDIR)/dl
-tgtincs_monshmserver := pdsdata/include python3/include/python3.6m
+tgtincs_monshmserver := pdsdata/include
 
 tgtsrcs_monreqserver := monreqserver.cc
-tgtlibs_monreqserver := pdsdata/appdata pds/offlineclient pds/logbookclient python3/python3.6m
-tgtlibs_monreqserver += $(commonlibs) pds/mon $(liblibs_tools) pdsapp/tools pdsdata/indexdata pdsdata/smalldata pdsdata/psddl_pdsdata
+tgtlibs_monreqserver := pdsdata/appdata pdsapp/tools
+tgtlibs_monreqserver += $(commonlibs) pds/mon $(liblibs_tools) pdsdata/indexdata pdsdata/smalldata pdsdata/psddl_pdsdata
 tgtslib_monreqserver := $(USRLIBDIR)/rt
-tgtincs_monreqserver := pdsdata/include python3/include/python3.6m
+tgtincs_monreqserver := pdsdata/include
 
 tgtsrcs_offlineobs := offlineobs.cc OfflineAppliance.cc
 tgtlibs_offlineobs := $(commonlibs) pds/mon pds/offlineclient

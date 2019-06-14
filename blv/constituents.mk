@@ -48,13 +48,13 @@ commonslib := $(USRLIBDIR)/rt
 tgtsrcs_evrblv := evrblv.cc IdleStream.cc
 tgtincs_evrblv := evgr pdsdata/include ndarray/include boost/include 
 tgtlibs_evrblv := $(commonlibs)
-tgtlibs_evrblv += evgr/evr evgr/evg ysql/mysqlclient
+tgtlibs_evrblv += evgr/evr evgr/evg mysql/mysqlclient
 tgtlibs_evrblv += pds/evgr pds/configdata 
 tgtslib_evrblv := $(commonslib)
 
 tgtsrcs_pimblv := pimblv.cc ShmOutlet.cc IdleStream.cc 
 tgtlibs_pimblv := $(commonlibs) $(cam_libs)
-tgtlibs_pimblv += pds/camera pds/configdata ysql/mysqlclient
+tgtlibs_pimblv += pds/camera pds/configdata mysql/mysqlclient
 tgtlibs_pimblv += $(leutron_libs) 
 tgtslib_pimblv := $(commonslib)
 tgtincs_pimblv := leutron/include pdsdata/include ndarray/include boost/include 
