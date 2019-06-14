@@ -57,7 +57,7 @@ private:
   unsigned int _chunk;
   uint64_t _chunkSize;
   bool     _delay_xfer;
-  const char *_expname;
+  char     _expname[SizeofPath];
   int      _run;
   GenericPool* _occPool;
   Index::IndexList _indexList;

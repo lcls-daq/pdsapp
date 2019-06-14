@@ -100,7 +100,6 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
   _chunk(0),
   _chunkSize(chunkSize),
   _delay_xfer(delay_xfer),
-  _expname(expname),
   _run(0),
   _occPool(new GenericPool(sizeof(DataFileOpened),5)),
   _offlineclient(offlineclient),
@@ -108,6 +107,7 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
   _uSizeThreshold(uSizeThreshold)
 {
   struct stat64 st;
+  if(expname != NULL) { strncpy(_expname, expname, sizeof(_expname)-1); }
 
   if (stat64(path,&st)) {
     printf("Cannot stat %s : %s\n",path,strerror(errno));
@@ -397,6 +397,7 @@ Transition* Recorder::transitions(Transition* tr) {
     else {
       RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
       _run = rinfo.run();
+      strncpy(_expname, rinfo.expname(), sizeof(_expname)-1);
       _chunk = 0;
       // open the file, write configure, and this transition
       printf("run %d exp# %s ",_run,_expname);
