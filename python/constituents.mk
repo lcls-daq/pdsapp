@@ -2,7 +2,7 @@ libnames := pycdb pydaq py3cdb py3daq pymonshm
 #libnames := pymonshm
 
 libsrcs_pycdb := pycdb.cc
-libincs_pycdb := python/include/python2.5
+libincs_pycdb := python/include/python2.7
 libincs_pycdb += pdsdata/include ndarray/include boost/include  
 liblibs_pycdb := pdsdata/xtcdata pdsdata/psddl_pdsdata
 liblibs_pycdb += pds/service pds/utility pds/xtc pds/collection pds/vmon pds/mon
@@ -24,7 +24,7 @@ libslib_py3cdb := $(USRLIBDIR)/rt
 CPPFLAGS += -fno-strict-aliasing
 
 libsrcs_pydaq := pydaq.cc
-libincs_pydaq := python/include/python2.5
+libincs_pydaq := python/include/python2.7
 libincs_pydaq += pdsdata/include ndarray/include boost/include  
 liblibs_pydaq += pdsdata/xtcdata pdsdata/psddl_pdsdata pds/configdata
 libslib_pydaq := $(USRLIBDIR)/rt

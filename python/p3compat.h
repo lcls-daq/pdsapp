@@ -48,6 +48,8 @@ static int PyString_Size(PyObject *o)
 #else
 #define DECLARE_INIT(name)  PyMODINIT_FUNC init##name(void)
 #define INITERROR           return
+#if PY_MINOR_VERSION <= 5
 #define Py_TYPE(o)          ((o)->ob_type)
 #define PyVarObject_HEAD_INIT(type, size)   PyObject_HEAD_INIT(type) size,
+#endif
 #endif
