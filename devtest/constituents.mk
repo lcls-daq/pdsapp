@@ -120,6 +120,7 @@ tgtincs_pnccdwidget := pdsdata/include
 
 tgtsrcs_pgpaeswidget := pgpAesWidget.cc
 tgtlibs_pgpaeswidget := pds/pgp pds/pgpv3 pdsapp/padmon pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
+tgtlibs_pgpaeswidget += boost/boost_thread boost/boost_system
 tgtslib_pgpaeswidget := $(USRLIB)/rt
 tgtincs_pgpaeswidget := pdsdata/include ndarray/include boost/include aesdriver/include
 
@@ -192,6 +193,7 @@ liblibs_promload := pds/pgpv3
 
 tgtsrcs_pgppromload := pgppromload.cc
 tgtlibs_pgppromload := pdsapp/promload pds/pgpv3
+tgtlibs_pgppromload += boost/boost_thread boost/boost_system
 tgtslib_pgppromload := $(USRLIBDIR)/rt
 tgtincs_pgppromload := pgpcard aesdriver/include
 
