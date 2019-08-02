@@ -18,6 +18,8 @@
 #include "pds/config/FccdConfigType.hh"
 #include "pds/config/ZylaConfigType.hh"
 #include "pds/config/ZylaDataType.hh"
+#include "pds/config/JungfrauConfigType.hh"
+#include "pds/config/JungfrauDataType.hh"
 #include "pds/config/CsPadConfigType.hh"
 #include "pds/config/CsPadDataType.hh"
 #include "pds/config/CsPad2x2ConfigType.hh"
@@ -435,6 +437,122 @@ public:
     }
   }
   ~SimZyla()
+  {
+    delete[] _cfgpayload;
+    delete[] _evtpayload;
+  }
+private:
+  void _execute_configure()
+  {
+    _ibuffer = 0;
+  }
+  void _insert_configure(InDatagram* dg)
+  {
+    dg->insert(*_cfgtc,_cfgtc->payload());
+  }
+  void _insert_event(InDatagram* dg)
+  {
+    dg->insert(*_evttc[_ibuffer],_evttc[_ibuffer]->payload());
+    if (++_ibuffer==NBuffers) _ibuffer=0;
+  }
+public:
+  size_t max_size() const { return _evttc[0]->sizeofPayload(); }
+private:
+  char* _cfgpayload;
+  char* _evtpayload;
+  Xtc*  _cfgtc;
+
+  enum { NBuffers=16 };
+  Xtc*  _evttc[NBuffers];
+  unsigned _ibuffer;
+};
+
+class SimJungfrau : public SimApp {
+  enum { CfgSize = sizeof(JungfrauConfigType)+sizeof(Xtc) };
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    switch(info.device()) {
+    case DetInfo::Jungfrau:
+      return true;
+    default:
+      break;
+    }
+    return false;
+  }
+public:
+  SimJungfrau(const Src& src)
+  {
+    _cfgpayload = new char[CfgSize];
+    _cfgtc = new(_cfgpayload) Xtc(_jungfrauConfigType,src);
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    unsigned serial = info.devId()<<2;
+    JungfrauModConfigType mod_cfg[JungfrauConfigType::MaxModulesPerDetector];
+    for (unsigned i=0; i<JungfrauConfigType::MaxModulesPerDetector; i++)
+      mod_cfg[i] = JungfrauModConfigType(serial | i, 0x171113, 0x154920171025);
+    JungfrauConfigType* cfg = new (_cfgtc->next()) JungfrauConfigType(2,
+                                                                      512,
+                                                                      1024,
+                                                                      200,
+                                                                      JungfrauConfigType::Normal,
+                                                                      JungfrauConfigType::Half,
+                                                                      0.000238,
+                                                                      0.000010,
+                                                                      0.005,
+                                                                      1000,
+                                                                      1220,
+                                                                      750,
+                                                                      480,
+                                                                      420,
+                                                                      1450,
+                                                                      1053,
+                                                                      3000,
+                                                                      mod_cfg);
+
+    _cfgtc->extent += cfg->_sizeof();
+    unsigned sign  = 190;
+    unsigned mean = 2800;
+    unsigned banks = 64;
+
+    unsigned evtsz = (sizeof(Xtc) + JungfrauDataType::_sizeof(*cfg));
+    unsigned evtst = (evtsz+3)&~3;
+    _evtpayload = new char[NBuffers*evtst];
+    memset(_evtpayload, 0, NBuffers*evtst);
+
+    for(unsigned i=0; i<NBuffers; i++) {
+      _evttc[i] = new(_evtpayload+i*evtst) Xtc(_jungfrauDataType,src);
+      JungfrauDataType* f = new(_evttc[i]->next()) JungfrauDataType();
+      ndarray<const uint16_t, 3> idata = f->frame(*cfg);
+      ndarray<uint16_t, 3> fdata = make_ndarray(const_cast<uint16_t*>(idata.data()), idata.shape()[0], idata.shape()[1], idata.shape()[2]);
+      for(unsigned n=0; n<cfg->numberOfModules(); n++) {
+        unsigned i;
+        for(i=0; i<cfg->numberOfRowsPerModule()/2; i++) {
+          unsigned j;
+          { unsigned range = mean / 200;
+            double sigm = sign * 1.0;
+            for(j=0; j<cfg->numberOfColumnsPerModule()/2; j++)
+              fdata(n,i,j) = rangss(mean+(j%banks)*range,sigm,0x3fff); }
+          { unsigned range = mean / 180;
+            double sigm = sign * 1.1;
+            for(; j<cfg->numberOfColumnsPerModule(); j++)
+              fdata(n,i,j) = rangss(mean+(j%banks)*range,sigm,0x3fff); }
+        }
+        for(; i<cfg->numberOfRowsPerModule(); i++) {
+          unsigned j;
+          { unsigned range = mean / 190;
+            double sigm = sign * 0.9;
+            for(j=0; j<cfg->numberOfColumnsPerModule()/2; j++)
+              fdata(n,i,j) = rangss(mean+(((banks-1)*(j+1))%banks)*range,sigm,0x3fff); }
+          { unsigned range = mean / 210;
+            double sigm = sign * 1.0;
+            for(; j<cfg->numberOfColumnsPerModule(); j++)
+              fdata(n,i,j) = rangss(mean+(((banks-1)*(j+1))%banks)*range,sigm,0x3fff); }
+        }
+      }
+      _evttc[i]->extent += (f->_sizeof(*cfg)+3)&~3;
+    }
+  }
+  ~SimJungfrau()
   {
     delete[] _cfgpayload;
     delete[] _evtpayload;
@@ -1283,6 +1401,8 @@ public:
       _app = new SimEpixSampler(src);
     else if (SimZyla::handles(src))
       _app = new SimZyla(src);
+    else if (SimJungfrau::handles(src))
+      _app = new SimJungfrau(src);
     else {
       const DetInfo& printInfo = static_cast<const DetInfo&>(src);
       fprintf(stderr,"Unsupported2 camera %s\n",Pds::DetInfo::name(printInfo.device()));
