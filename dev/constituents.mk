@@ -41,7 +41,7 @@ tgtnames += fli andor andordual
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad
+tgtnames += pimax pixis camedt fli andor andordual jungfrau jungfrauseg usdusb zyla uxi archon epix10ka2m epix10kaquad
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -186,10 +186,16 @@ tgtlibs_archon := $(commonlibs) pds/archon
 tgtslib_archon := $(commonslib)
 
 tgtsrcs_jungfrau := jungfrau.cc
-tgtincs_jungfrau := pdsdata/include ndarray/include boost/include
+tgtincs_jungfrau := pdsdata/include ndarray/include boost/include zeromq/include
 tgtlibs_jungfrau := $(commonlibs) pds/configdata
-tgtlibs_jungfrau += pds/jungfrau slsdet/SlsDetector
+tgtlibs_jungfrau += pds/jungfrau slsdet/SlsDetector zeromq/zmq
 tgtslib_jungfrau := $(commonslib)
+
+tgtsrcs_jungfrauseg := jungfrauseg.cc
+tgtincs_jungfrauseg := pdsdata/include ndarray/include boost/include zeromq/include
+tgtlibs_jungfrauseg := $(commonlibs) pds/configdata
+tgtlibs_jungfrauseg += pds/jungfrau slsdet/SlsDetector zeromq/zmq
+tgtslib_jungfrauseg := $(commonslib)
 
 tgtsrcs_uxi := uxi.cc
 tgtincs_uxi := pdsdata/include ndarray/include boost/include

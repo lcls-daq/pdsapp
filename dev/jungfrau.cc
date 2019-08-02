@@ -9,6 +9,7 @@
 #include "pds/jungfrau/Manager.hh"
 #include "pds/jungfrau/Server.hh"
 #include "pds/jungfrau/Driver.hh"
+#include "pds/jungfrau/Builder.hh"
 #include "pds/config/CfgClientNfs.hh"
 
 #include <getopt.h>
@@ -25,14 +26,33 @@ static const unsigned MAX_MODULE_SIZE = 2*512*1024;
 static const unsigned MAX_EVENT_DEPTH = 128;
 
 static Pds::Jungfrau::Detector* det = NULL;
+static Pds::Jungfrau::ZmqConnector* con = NULL;
+static Pds::Jungfrau::ZmqConnectorRoutine* routine = NULL;
 
 using namespace Pds;
 
-static void shutdown(int signal)
+static void cleanup(bool complete=true)
 {
   if (det) {
     det->shutdown();
+    if (complete) delete det;
+    det = NULL;
   }
+  if (routine) {
+    routine->disable();
+    if (routine) delete routine;
+    routine = NULL;
+  }
+  if (con) {
+    con->shutdown();
+    if (complete) delete con;
+    con = NULL;
+  }
+}
+
+static void shutdown(int signal)
+{
+  cleanup(false);
   exit(signal);
 }
 
@@ -50,6 +70,9 @@ static void jungfrauUsage(const char* p)
          "    -m|--mac      <mac>                     set the receiver mac address\n"
          "    -d|--detip    <detip>                   set the detector ip address\n"
          "    -s|--sls      <sls>                     set the hostname of the slsDetector interface\n"
+         "    -z|--zmqhost  <host>                    set the hostname of the zeromq interface\n"
+         "    -Z|--zmqport  <port>                    set the port of the zeromq interface\n"
+         "    -l|--local    <mask>                    set the local module mask - only used when using zeromq\n"
          "    -r|--receiver                           do not attempt to configure ip settings of the receiver (default: true)\n"
          "    -M|--threaded                           use the multithreaded version of the Jungfrau detector driver (default: false)\n"
          "    -h|--help                               print this message and exit\n", p);
@@ -57,7 +80,7 @@ static void jungfrauUsage(const char* p)
 
 int main(int argc, char** argv) {
 
-  const char*   strOptions    = ":hp:i:u:P:H:m:d:s:rM";
+  const char*   strOptions    = ":hp:i:u:P:H:m:d:s:z:Z:l:rM";
   const struct option loOptions[]   =
     {
        {"help",        0, 0, 'h'},
@@ -69,6 +92,9 @@ int main(int argc, char** argv) {
        {"mac",         1, 0, 'm'},
        {"detip",       1, 0, 'd'},
        {"sls",         1, 0, 's'},
+       {"zmqhost",     1, 0, 'z'},
+       {"zmqport",     1, 0, 'Z'},
+       {"local",       1, 0, 'l'},
        {"receiver",    0, 0, 'r'},
        {"threaded",    0, 0, 'M'},
        {0,             0, 0,  0 }
@@ -80,6 +106,8 @@ int main(int argc, char** argv) {
   unsigned module = 0;
   unsigned channel = 0;
   unsigned port  = 32410;
+  unsigned zmqPort = 0;
+  unsigned mask = 0;
   unsigned num_modules = 0;
   bool lUsage = false;
   bool isTriggered = false;
@@ -88,6 +116,7 @@ int main(int argc, char** argv) {
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::Jungfrau, 0);
   char* uniqueid = (char *)NULL;
+  char* zmqHost = (char *)NULL;
   std::vector<char*> sHost;
   std::vector<char*> sMac;
   std::vector<char*> sDetIp;
@@ -148,6 +177,21 @@ int main(int argc, char** argv) {
         sSlsHost.push_back(optarg);
         num_modules++;
         break;
+      case 'z':
+        zmqHost = optarg;
+        break;
+      case 'Z':
+        if (!CmdLineTools::parseUInt(optarg,zmqPort)) {
+          printf("%s: option `-Z' parsing error\n", argv[0]);
+          lUsage = true;
+        }
+        break;
+      case 'l':
+        if (!CmdLineTools::parseUInt(optarg,mask)) {
+          printf("%s: option `-l' parsing error\n", argv[0]);
+          lUsage = true;
+        }
+        break;
       case 'r':
         configReceiver = false;
         break;
@@ -174,6 +218,12 @@ int main(int argc, char** argv) {
     lUsage = true;
   }
 
+  if(num_modules > JungfrauConfigType::MaxModulesPerDetector) {
+    printf("%s: number of modules exceeds the maximum per detector of %u\n",
+           argv[0], JungfrauConfigType::MaxModulesPerDetector);
+    return 1;
+  }
+
   if(sHost.size() != num_modules) {
     printf("%s: receiver hostname for each module is required\n", argv[0]);
     lUsage = true;
@@ -191,6 +241,11 @@ int main(int argc, char** argv) {
 
   if(sSlsHost.size() != num_modules) {
     printf("%s: slsDetector interface hostname for each module is required\n", argv[0]);
+    lUsage = true;
+  }
+
+  if(zmqHost && zmqPort == 0) {
+    printf("%s: zmqport is required with zmqhost\n", argv[0]);
     lUsage = true;
   }
 
@@ -232,16 +287,40 @@ int main(int argc, char** argv) {
   std::vector<Jungfrau::Module*> modules(num_modules);
 
   CfgClientNfs* cfg = new CfgClientNfs(detInfo);
+
+  if (zmqHost)
+    con = new Jungfrau::ZmqConnector(zmqHost, zmqPort);
   
+  bool zmq_init_failed = false;
   for (unsigned i=0; i<num_modules; i++) {
-    modules[i] = new Jungfrau::Module(((detInfo.devId()&0xff)<<8) | (i&0xff), sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
+    void* socket = NULL;
+    // if using the zmq module builder force local mode for modules set as local
+    if (con && !(mask & (1<<i))) {
+      socket = con->bind(i, sHost[i], port);
+      if (!socket) {
+        printf("Failed to create Jungfrau zmq server for module %u\n", i);
+        zmq_init_failed = true;
+      }
+    }
+    modules[i] = new Jungfrau::Module(((detInfo.devId()&0xff)<<8) | (i&0xff), sSlsHost[i],
+                                      sHost[i], port, sMac[i], sDetIp[i], configReceiver, socket);
+  }
+  if (zmq_init_failed) {
+    printf("Aborting: Failed to create zmq receivers for Jungfrau modules\n");
+    cleanup();
+    return 1;
   }
   det = new Jungfrau::Detector(modules, isThreaded);
   if (!det->connected()) {
     printf("Aborting: Failed to connect to the Jungfrau detector, please check that it is present and powered!\n");
-    delete det;
-    det = 0;
+    cleanup();
     return 1;
+  }
+
+  // create task for connector
+  if (con) {
+    routine = new Jungfrau::ZmqConnectorRoutine(con, "JungfrauConnector");
+    routine->enable();
   }
 
   Jungfrau::Server* srv = new Jungfrau::Server(detInfo);
@@ -249,7 +328,8 @@ int main(int argc, char** argv) {
   Jungfrau::Manager* mgr = new Jungfrau::Manager(*det, *srv, *cfg);
   managers.push_back(mgr);
 
-  StdSegWire settings(servers, uniqueid, MAX_MODULE_SIZE*num_modules + EVENT_SIZE_EXTRA, MAX_EVENT_DEPTH, isTriggered, module, channel);
+  StdSegWire settings(servers, uniqueid, MAX_MODULE_SIZE*num_modules + EVENT_SIZE_EXTRA, MAX_EVENT_DEPTH,
+                      isTriggered, module, channel);
 
   Task* task = new Task(Task::MakeThisATask);
   EventAppCallback* seg = new EventAppCallback(task, platform, managers.front()->appliance());
@@ -257,6 +337,9 @@ int main(int argc, char** argv) {
   if (seglevel->attach()) {
     task->mainLoop();
   }
+
+  // cleanup the detector shmem from slsDetector and zeromq context
+  cleanup();
 
   return 0;
 }
