@@ -237,7 +237,11 @@ int main(int argc, char** argv) {
     modules[i] = new Jungfrau::Module(((detInfo.devId()&0xff)<<8) | (i&0xff), sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
   }
   det = new Jungfrau::Detector(modules, isThreaded);
-  if (!det->connected()) {
+  if (!det->allocated()) {
+    printf("Aborting: Failed to allocate an slsDetector instance, another user may already own it!\n");
+    cleanup();
+    return 1;
+  } else if (!det->connected()) {
     printf("Aborting: Failed to connect to the Jungfrau detector, please check that it is present and powered!\n");
     delete det;
     det = 0;
