@@ -39,7 +39,7 @@ namespace Pds {
 
   class RemotePartition {
   public:
-    RemotePartition() : _nnodes(0), _options(0), _unbiased_f(0) {}
+    RemotePartition() : _nnodes(0), _options(0), _unbiased_f(0), _l3path() {}
   public:
     bool l3tag () const { return _options&L3Tag; }
     bool l3veto() const { return _options&L3Veto; }
