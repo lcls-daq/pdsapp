@@ -311,7 +311,11 @@ int main(int argc, char** argv) {
     return 1;
   }
   det = new Jungfrau::Detector(modules, isThreaded);
-  if (!det->connected()) {
+  if (!det->allocated()) {
+    printf("Aborting: Failed to allocate an slsDetector instance, another user may already own it!\n");
+    cleanup();
+    return 1;
+  } else if (!det->connected()) {
     printf("Aborting: Failed to connect to the Jungfrau detector, please check that it is present and powered!\n");
     cleanup();
     return 1;
