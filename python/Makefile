@@ -33,7 +33,7 @@ userclean:
 # Libraries
 $(libdir)/py%.$(LIBEXTNS):
 	@echo "[LD] Build python library $*"
-	$(quiet)ln -s py$*.$(LIBEXTNS).2 $@
+	$(quiet)ln -s py$*.$(LIBEXTNS).3 $@
 
 $(libdir)/py%.$(LIBEXTNS).2:
 	@echo "[LD] Build python library $*"
