@@ -489,7 +489,7 @@ public:
     unsigned serial = info.devId()<<2;
     JungfrauModConfigType mod_cfg[JungfrauConfigType::MaxModulesPerDetector];
     for (unsigned i=0; i<JungfrauConfigType::MaxModulesPerDetector; i++)
-      mod_cfg[i] = JungfrauModConfigType(serial | i, 0x171113, 0x154920171025);
+      mod_cfg[i] = JungfrauModConfigType(serial | i, 0x171113, 0x15492017);
     JungfrauConfigType* cfg = new (_cfgtc->next()) JungfrauConfigType(2,
                                                                       512,
                                                                       1024,
