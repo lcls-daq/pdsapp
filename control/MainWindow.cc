@@ -98,7 +98,7 @@ namespace Pds {
       } else if (occ->id() == OccurrenceId::DataFileError) {
         char msg[256];
         const DataFileError& dfe = *static_cast<const DataFileError*>(occ);
-        snprintf(msg, sizeof(msg), "Error writing e%s-r%04d-s%02d-c%02d.xtc.\n"
+        snprintf(msg, sizeof(msg), "Error writing %s-r%04d-s%02d-c%02d.xtc.\n"
                 "  Shutting down.\n  Fix and Allocate again.",
                 dfe.expt, dfe.run, dfe.stream, dfe.chunk);
         _w.insert_message(msg);
@@ -136,7 +136,7 @@ namespace Pds {
           RunInfo& rinfo = *reinterpret_cast<RunInfo*>(tr);
           runNumber = rinfo.run();
     char fname[256];
-    sprintf(fname, "e%s/e%s-r%04d-s00-c00.xtc",
+    sprintf(fname, "e%s/%s-r%04d-s00-c00.xtc",
       rinfo.expname(), rinfo.expname(), rinfo.run());
     _experiment = rinfo.expname();
     _log.appendText(QString("%1: Recording run %2. Transient data file: %3\n")

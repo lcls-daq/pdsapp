@@ -489,7 +489,7 @@ int Recorder::_openOutputFile(bool verbose) {
   flk.l_len    = 0;
 
   if (_expname && isalpha(_expname[0])) {
-    sprintf(_fname,"%s/%s/xtc/e%s-r%04d-s%02d-c%02d.xtc",
+    sprintf(_fname,"%s/%s/xtc/%s-r%04d-s%02d-c%02d.xtc",
       _path, _expname, _expname, _run, _sliceID, _chunk);
   } else {
     const char* errmsg = "When opening an output file, the experiment name is null\n";
@@ -543,7 +543,7 @@ int Recorder::_openOutputFile(bool verbose) {
     sprintf(_sdfname,"%s/%s/xtc/smalldata", _path,_expname);
     local_mkdir(_sdfname);
     printf("Created smalldata directory: %s\n", _sdfname);
-    sprintf(_sdfname,"%s/%s/xtc/smalldata/e%s-r%04d-s%02d-c%02d.smd.xtc",
+    sprintf(_sdfname,"%s/%s/xtc/smalldata/%s-r%04d-s%02d-c%02d.smd.xtc",
       _path, _expname, _expname, _run, _sliceID, _chunk);
   } else {
     const char* errmsg = "When opening an output file, the experiment name is null\n";
@@ -611,7 +611,7 @@ int Recorder::_openOutputFile(bool verbose) {
   _indexList.reset();
   _indexList.setXtcFilename(_fname);
   if (_expname && isalpha(_expname[0])) {
-    sprintf(_indexfname,"%s/%s/xtc/index/e%s-r%04d-s%02d-c%02d.xtc.idx",
+    sprintf(_indexfname,"%s/%s/xtc/index/%s-r%04d-s%02d-c%02d.xtc.idx",
       _path, _expname, _expname, _run, _sliceID, _chunk);
   } else {
     const char* errmsg = "When opening an output file, the experiment name is null\n";
