@@ -28,11 +28,18 @@ static Pds::Jungfrau::Detector* det = NULL;
 
 using namespace Pds;
 
-static void shutdown(int signal)
+static void cleanup(bool complete=true)
 {
   if (det) {
     det->shutdown();
+    if (complete) delete det;
+    det = NULL;
   }
+}
+
+static void shutdown(int signal)
+{
+  cleanup(false);
   exit(signal);
 }
 
@@ -243,8 +250,7 @@ int main(int argc, char** argv) {
     return 1;
   } else if (!det->connected()) {
     printf("Aborting: Failed to connect to the Jungfrau detector, please check that it is present and powered!\n");
-    delete det;
-    det = 0;
+    cleanup();
     return 1;
   }
 
@@ -261,6 +267,9 @@ int main(int argc, char** argv) {
   if (seglevel->attach()) {
     task->mainLoop();
   }
+
+  // cleanup the detector shmem from slsDetector
+  cleanup();
 
   return 0;
 }
