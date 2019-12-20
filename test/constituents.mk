@@ -33,7 +33,7 @@ tgtslib_uxiStandAlone := dl pthread rt
 tgtsrcs_jungfrauStandAlone := jungfrauStandAlone.cc
 tgtincs_jungfrauStandAlone := pdsdata/include ndarray/include boost/include
 tgtlibs_jungfrauStandAlone := $(commonlibs) pds/configdata
-tgtlibs_jungfrauStandAlone += pds/jungfrau slsdet/SlsDetector
+tgtlibs_jungfrauStandAlone += pds/jungfrau slsdet/SlsDetector zeromq/zmq
 tgtslib_jungfrauStandAlone := dl pthread rt
 
 tgtsrcs_princetonCameraTest := princetonCameraTest.cc
