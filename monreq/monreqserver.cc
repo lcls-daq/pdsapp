@@ -1,6 +1,7 @@
 #include "pdsdata/app/XtcMonitorServer.hh"
 #include "pdsapp/tools/PnccdShuffle.hh"
 #include "pdsapp/tools/CspadShuffle.hh"
+#include "pdsapp/tools/JungfrauSegBuilder.hh"
 #include <errno.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -194,6 +195,7 @@ namespace Pds {
 
       PnccdShuffle::shuffle(dgrm);
       CspadShuffle::shuffle(reinterpret_cast<Dgram&>(dgrm));
+      JungfrauSegBuilder::build(reinterpret_cast<Dgram&>(dgrm));
 
       //  write the datagram
       memcpy(b, &dgrm, sizeof(Datagram));

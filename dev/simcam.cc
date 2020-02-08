@@ -474,6 +474,7 @@ public:
     const DetInfo& info = static_cast<const DetInfo&>(src);
     switch(info.device()) {
     case DetInfo::Jungfrau:
+    case DetInfo::JungfrauSegment:
       return true;
     default:
       break;

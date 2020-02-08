@@ -7,8 +7,8 @@ libnames := tools l3test l3sacla l3saclacompound
 
 CPPFLAGS += -D_FILE_OFFSET_BITS=64
 
-libsrcs_tools := DgSummary.cc PnccdShuffle.cc CspadShuffle.cc StripTransient.cc
-liblibs_tools :=
+libsrcs_tools := DgSummary.cc PnccdShuffle.cc CspadShuffle.cc StripTransient.cc JungfrauSegBuilder.cc
+liblibs_tools := pds/configdata pds/jungfrauseg
 libincs_tools := pdsdata/include ndarray/include boost/include
 ifneq ($(findstring x86_64,$(tgt_arch)),)
 libsrcs_tools += EventTest.cc EventOptions.cc Recorder.cc RecorderQ.cc

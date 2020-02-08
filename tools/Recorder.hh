@@ -60,6 +60,7 @@ private:
   char     _expname[SizeofPath];
   int      _run;
   GenericPool* _occPool;
+  GenericPool* _msgPool;
   Index::IndexList _indexList;
   char     _indexfname[SizeofName];
   char     _host_name[SizeofName];

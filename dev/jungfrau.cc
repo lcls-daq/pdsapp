@@ -9,6 +9,7 @@
 #include "pds/jungfrau/Manager.hh"
 #include "pds/jungfrau/Server.hh"
 #include "pds/jungfrau/Driver.hh"
+#include "pds/jungfrau/Segment.hh"
 #include "pds/config/CfgClientNfs.hh"
 
 #include <getopt.h>
@@ -57,6 +58,7 @@ static void jungfrauUsage(const char* p)
          "    -m|--mac      <mac>                     set the receiver mac address\n"
          "    -d|--detip    <detip>                   set the detector ip address\n"
          "    -s|--sls      <sls>                     set the hostname of the slsDetector interface\n"
+         "    -S|--segid    <index>,<num>,<total>     indicates this is part of multi-segment detector\n"
          "    -r|--receiver                           do not attempt to configure ip settings of the receiver (default: true)\n"
          "    -M|--threaded                           use the multithreaded version of the Jungfrau detector driver (default: false)\n"
          "    -h|--help                               print this message and exit\n", p);
@@ -64,7 +66,7 @@ static void jungfrauUsage(const char* p)
 
 int main(int argc, char** argv) {
 
-  const char*   strOptions    = ":hp:i:u:P:H:m:d:s:rM";
+  const char*   strOptions    = ":hp:i:u:P:H:m:d:s:S:rM";
   const struct option loOptions[]   =
     {
        {"help",        0, 0, 'h'},
@@ -76,6 +78,7 @@ int main(int argc, char** argv) {
        {"mac",         1, 0, 'm'},
        {"detip",       1, 0, 'd'},
        {"sls",         1, 0, 's'},
+       {"segment",     1, 0, 'S'},
        {"receiver",    0, 0, 'r'},
        {"threaded",    0, 0, 'M'},
        {0,             0, 0,  0 }
@@ -88,10 +91,14 @@ int main(int argc, char** argv) {
   unsigned channel = 0;
   unsigned port  = 32410;
   unsigned num_modules = 0;
+  unsigned segment_index = 0;
+  unsigned segment_num_modules = 0;
+  unsigned segment_total_modules = 0;
   bool lUsage = false;
   bool isTriggered = false;
   bool isThreaded = false;
   bool configReceiver = true;
+  bool isSegment = false;
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::Jungfrau, 0);
   char* uniqueid = (char *)NULL;
@@ -161,6 +168,17 @@ int main(int argc, char** argv) {
       case 'M':
         isThreaded = true;
         break;
+      case 'S':
+        switch (CmdLineTools::parseUInt(optarg,segment_index,segment_num_modules, segment_total_modules)) {
+          case 3:
+            isSegment = true;
+            break;
+          default:
+            printf("%s: option `-S' parsing error\n", argv[0]);
+            lUsage = true;
+            break;
+        }
+        break;
       case '?':
         if (optopt)
           printf("%s: Unknown option: %c\n", argv[0], optopt);
@@ -216,6 +234,30 @@ int main(int argc, char** argv) {
     lUsage = true;
   }
 
+  if (isSegment) {
+    if ((segment_num_modules + segment_index) > segment_total_modules) {
+      printf("%s: invalid module index of %u in a multi-segment detector with %u modules!\n",
+             argv[0], num_modules + segment_index, segment_num_modules);
+      lUsage = true;
+    } else if (segment_num_modules > segment_total_modules) {
+       printf("%s: segment cannot contain more modules than the multi-segment detector: %u vs. %u\n",
+              argv[0], segment_num_modules, segment_total_modules);
+      lUsage = true;
+    } else if (segment_num_modules == 0) {
+      printf("%s: the total number of modules in a segment must be non-zero!\n",
+             argv[0]);
+      lUsage = true;
+    } else if (segment_total_modules == 0) {
+      printf("%s: the total number of modules in a multi-segment detector must be non-zero!\n",
+             argv[0]);
+      lUsage = true;
+    } else if (segment_num_modules != num_modules) {
+      printf("%s: Segment info specifies %u modules, but %u have been added to the detector!\n",
+             argv[0], segment_num_modules, num_modules);
+      lUsage = true;
+    }
+  }
+
   if (lUsage) {
     jungfrauUsage(argv[0]);
     return 1;
@@ -239,6 +281,11 @@ int main(int argc, char** argv) {
   std::vector<Jungfrau::Module*> modules(num_modules);
 
   CfgClientNfs* cfg = new CfgClientNfs(detInfo);
+
+  // patch the DetInfo object if this Jungfrau is a segment of a larger detector
+  if (isSegment) {
+    detInfo = Jungfrau::SegmentInfo::child(detInfo, segment_index, segment_num_modules);
+  }
   
   for (unsigned i=0; i<num_modules; i++) {
     modules[i] = new Jungfrau::Module(((detInfo.devId()&0xff)<<8) | (i&0xff), sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);

@@ -2,6 +2,7 @@
 #include "PnccdShuffle.hh"
 #include "CspadShuffle.hh"
 #include "StripTransient.hh"
+#include "JungfrauSegBuilder.hh"
 #include "EventOptions.hh"
 #include "pdsdata/index/XtcIterL1Accept.hh"
 #include "pdsdata/index/SmlDataIterL1Accept.hh"
@@ -102,6 +103,7 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
   _delay_xfer(delay_xfer),
   _run(0),
   _occPool(new GenericPool(sizeof(DataFileOpened),5)),
+  _msgPool(new GenericPool(sizeof(UserMessage),2)),
   _offlineclient(offlineclient),
   _open_data_file_error(false),
   _uSizeThreshold(uSizeThreshold)
@@ -143,7 +145,11 @@ Recorder::Recorder(const char* path, unsigned int sliceID, uint64_t chunkSize, b
 InDatagram* Recorder::events(InDatagram* in) {
   PnccdShuffle::shuffle(in->datagram());
   if (!CspadShuffle::shuffle(reinterpret_cast<Dgram&>(in->datagram()))) {
-    post(new(_occPool) UserMessage("Corrupt CSPAD data.  Recommend reboot of CSPAD host"));
+    post(new(_msgPool) UserMessage("Corrupt CSPAD data.  Recommend reboot of CSPAD host"));
+    post(new(_occPool) Occurrence(OccurrenceId::ClearReadout));
+  }
+  if (!JungfrauSegBuilder::build(reinterpret_cast<Dgram&>(in->datagram()), reinterpret_cast<const ProcInfo&>(_src))) {
+    post(new(_msgPool) UserMessage("Jungfrau Segment builder failure: Recommend sanity checking Jungfrau segment setup"));
     post(new(_occPool) Occurrence(OccurrenceId::ClearReadout));
   }
   StripTransient::process(reinterpret_cast<Dgram&>(in->datagram()));
