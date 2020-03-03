@@ -575,17 +575,13 @@ int Recorder::_openOutputFile(bool verbose) {
     if (verbose) {
       printf("Opened %s\n",_sdfname);
     }
-    // JBT - do not register open file with offline client until offline client API contains file type
-//    if (_offlineclient) {
-//      if (_experiment != 0) {
-//        // fast feedback
-//        std::string hostname = _host_name;
-//        std::string sdfilename = _sdfname;
-//        // ffb=true
-//        // Don't report smldata file name until offline client API changes to include file type
-//        //        _offlineclient->reportOpenFile(_experiment, _run, (int)_sliceID, (int)_chunk, hostname, sdfilename, true);
-//      }
-//    }
+    if (_offlineclient) {
+        // fast feedback
+        std::string hostname = _host_name;
+        std::string filename = _sdfname;
+        // ffb=true
+        _offlineclient->reportOpenFile(filename, _run, (int)_sliceID, (int)_chunk, hostname, true);
+    } 
   } // if (_sdf)
   else {
     _open_data_file_error = true;
