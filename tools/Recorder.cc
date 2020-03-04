@@ -583,11 +583,15 @@ int Recorder::_openOutputFile(bool verbose) {
     }
     if (_offlineclient) {
         // fast feedback
+        printf("Reporting directly  %s\n",_sdfname);
         std::string hostname = _host_name;
         std::string filename = _sdfname;
         // ffb=true
         _offlineclient->reportOpenFile(filename, _run, (int)_sliceID, (int)_chunk, hostname, true);
-    } 
+    } else {
+        printf("Reporting indirectly %s\n",_sdfname);
+        post(new(_occPool) DataFileOpened(_expname, _run,_sliceID,_chunk,_host_name,_sdfname));
+    }
   } // if (_sdf)
   else {
     _open_data_file_error = true;
