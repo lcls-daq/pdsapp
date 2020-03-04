@@ -1,5 +1,6 @@
 #include "pds/service/CmdLineTools.hh"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/SegmentInfo.hh"
 
 #include "pds/management/SegmentLevel.hh"
 #include "pds/management/EventAppCallback.hh"
@@ -10,6 +11,7 @@
 #include "pds/jungfrau/Server.hh"
 #include "pds/jungfrau/Driver.hh"
 #include "pds/jungfrau/Segment.hh"
+#include "pds/jungfrau/DetectorId.hh"
 #include "pds/config/CfgClientNfs.hh"
 
 #include <getopt.h>
@@ -284,7 +286,7 @@ int main(int argc, char** argv) {
 
   // patch the DetInfo object if this Jungfrau is a segment of a larger detector
   if (isSegment) {
-    detInfo = Jungfrau::SegmentInfo::child(detInfo, segment_index, segment_num_modules);
+    detInfo = SegmentInfo(detInfo, segment_index, segment_total_modules);
   }
   
   for (unsigned i=0; i<num_modules; i++) {
@@ -301,9 +303,11 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  // Create an instance of the Jungfrau serial id lookup service
+  Jungfrau::DetIdLookup* lookup = new Jungfrau::DetIdLookup();
   Jungfrau::Server* srv = new Jungfrau::Server(detInfo);
   servers   .push_back(srv);
-  Jungfrau::Manager* mgr = new Jungfrau::Manager(*det, *srv, *cfg);
+  Jungfrau::Manager* mgr = new Jungfrau::Manager(*det, *srv, *cfg, *lookup);
   managers.push_back(mgr);
 
   StdSegWire settings(servers, uniqueid, MAX_MODULE_SIZE*num_modules + EVENT_SIZE_EXTRA, MAX_EVENT_DEPTH, isTriggered, module, channel);

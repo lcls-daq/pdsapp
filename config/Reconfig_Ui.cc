@@ -1,5 +1,6 @@
 #include "pdsapp/config/Reconfig_Ui.hh"
 
+#include "pdsdata/xtc/SegmentInfo.hh"
 #include "pdsapp/config/Experiment.hh"
 #include "pdsapp/config/Device.hh"
 #include "pds/config/PdsDefs.hh"
@@ -188,12 +189,21 @@ void Reconfig_Ui::update_device_list()
         std::list<std::string> names;
         for(std::list<DeviceEntry>::const_iterator it=sources.begin();
             it!=sources.end(); it++) {
+          Pds::DetInfo parent;
           const Pds::DetInfo* info = 0;
-          for(unsigned j=0; j<partn->numSources(); j++)
-            if (DeviceEntry(partn->sources()[j].src().phy())==*it) {
-              info = &static_cast<const Pds::DetInfo&>(partn->sources()[j].src());
+          for(unsigned j=0; j<partn->numSources(); j++) {
+            const Pds::SegmentInfo& det = reinterpret_cast<const Pds::SegmentInfo&>(partn->sources()[j].src());
+            if (det.isChild()) {
+              parent = Pds::SegmentInfo::parent(det);
+              if (DeviceEntry(parent.phy())==*it) {
+                info = &parent;
+                break;
+              }
+            } else if (DeviceEntry(det.phy())==*it) {
+              info = &det;
               break;
             }
+          }
           if (info) {
             bool lalias=false;
             for(unsigned j=0; j<aliases.size(); j++)

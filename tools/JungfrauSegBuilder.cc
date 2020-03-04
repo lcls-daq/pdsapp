@@ -281,7 +281,7 @@ bool JungfrauSegBuilder::process(Dgram& dg, const ProcInfo& proc)
         if (_data_extent <= remaining) {
           Xtc* seg = new (&dg.xtc) Xtc(_xtcType, proc);
           for (FrameCacheIter it=_frames.begin(); it!=_frames.end(); ++it) {
-            Xtc* xtc = new (seg) Xtc(_jungfrauDataType, it->first);
+            Xtc* xtc = new (seg) Xtc(_jungfrauDataType, it->first, it->second->damage());
             if (!process_data(it->second, xtc)) {
               printf("%s. Failed to create data!\n", DetInfo::name(it->first));
               failed = true;
