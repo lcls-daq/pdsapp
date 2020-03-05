@@ -475,6 +475,12 @@ int main( int argc, char** argv )
      return 1;
    }
 
+   // Check that the driver is using a compatible API version
+   if (!Pgp::Pgp::checkVersion(true, fd)) {
+    fprintf(stderr, "Driver reports an incompatible DMA API version!\n");
+    return 1;
+   }
+
    printf("%s pgpcard opened as fd %d, lane %d\n", argv[0], fd, lane);
 
    Pds::Pgp::Pgp::portOffset(lane);

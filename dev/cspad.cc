@@ -521,6 +521,12 @@ int main( int argc, char** argv )
     return 1;
   }
 
+  // Check that the driver is using a compatible API version
+  if (!Pgp::Pgp::checkVersion(useAesDriver, fd)) {
+    fprintf(stderr, "Driver reports an incompatible DMA API version!\n");
+    return 1;
+  }
+
   unsigned limit =  4;
   unsigned offset = 0;
 

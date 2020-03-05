@@ -237,6 +237,12 @@ int main( int argc, char** argv )
       return -1;
     }
 
+    // Check that the driver is using a compatible API version
+    if (!Pgp::Pgp::checkVersion(true, fd)) {
+      fprintf(stderr, "Driver reports an incompatible DMA API version!\n");
+      return 1;
+    }
+
     //  Allocate for VC 0(Data), 2(Scope)
     { Pgp::Pgp p(true, fd);
       p.allocateVC(5,1<<lane); }
