@@ -5,7 +5,6 @@
 #include "pythread.h"
 #endif
 #include <string>
-using std::string;
 
 namespace Pds { class RemotePartition; }
 
@@ -20,7 +19,7 @@ typedef struct {
   int32_t  dbkey;
   bool     record;
   char*    buffer;
-  std::string exptname;
+  char*    exptname;
   int32_t  runnum;
   Pds::RemotePartition* partition;
   int      waiting;

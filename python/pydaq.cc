@@ -20,6 +20,7 @@ using Pds::ControlData::PVControl;
 using Pds::ControlData::PVMonitor;
 using Pds::ControlData::PVLabel;
 #include "pdsapp/control/RemotePartition.hh"
+using Pds::RemoteSeqResponse;
 using Pds::RemotePartition;
 using Pds::RemoteNode;
 
@@ -36,7 +37,7 @@ using std::ostringstream;
 using std::list;
 
 static const int MaxPathSize   = 0x100;
-static const int MaxAliasSize   = 0x100;
+static const int MaxAliasSize  = 0x100;
 static const int MaxConfigSize = 0x100000;
 static const int Control_Port  = 10130;
 
@@ -234,6 +235,7 @@ void pdsdaq_dealloc(pdsdaq* self)
     delete[] self->dbalias;
     delete   self->partition;
     delete[] self->buffer;
+    delete[] self->exptname;
   }
 
 #ifdef WITH_THREAD
@@ -262,12 +264,19 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
     self->record   = false;
     self->partition= new RemotePartition;
     self->buffer   = new char[MaxConfigSize];
+    self->exptname = new char[RemoteSeqResponse::MaxExpName];
     self->runnum   = -1;
     self->waiting  = 0;
     self->pending  = 0;
     for (unsigned i=0; i<(sizeof(self->signal)/sizeof(int)); i++) {
       self->signal[i] = -1;
     }
+    /*
+     * Initialize char arrays to zero
+     */
+    memset(self->dbpath, 0, MaxPathSize);
+    memset(self->dbalias, 0, MaxAliasSize);
+    memset(self->exptname, 0, RemoteSeqResponse::MaxExpName);
 #ifdef WITH_THREAD
     self->blocking = true;
     self->lock     = NULL;
@@ -585,7 +594,7 @@ PyObject* pdsdaq_runnum   (PyObject* self)
 PyObject* pdsdaq_expt     (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
-  return PyString_FromString(daq->exptname.c_str());
+  return PyString_FromString(daq->exptname);
 }
 
 PyObject* pdsdaq_detectors (PyObject* self)
@@ -1139,7 +1148,7 @@ PyObject* pdsdaq_state(PyObject* self)
 PyObject* pdsdaq_rcv      (PyObject* self, int state, bool interrupt)
 {
   pdsdaq* daq = (pdsdaq*)self;
-  Pds::RemoteSeqResponse result;
+  RemoteSeqResponse result;
   int s = daq->socket;
   int sig = daq->signal[0];
   int r = -1;
@@ -1213,7 +1222,7 @@ PyObject* pdsdaq_rcv      (PyObject* self, int state, bool interrupt)
     return pdsdaq_rcv(self, state, interrupt);
   }
   else {
-    daq->exptname = result.exptname();
+    strcpy(daq->exptname, result.exptname());
     daq->runnum  = result.runnum ();
     daq->state   = state;
   }
@@ -1233,7 +1242,7 @@ PyObject* pdsdaq_blocking (PyObject* self)
 PyObject* pdsdaq_clear    (PyObject* self)
 {
   pdsdaq* daq = (pdsdaq*)self;
-  Pds::RemoteSeqResponse result;
+  RemoteSeqResponse result;
   int s = daq->socket;
   int nb;
 
