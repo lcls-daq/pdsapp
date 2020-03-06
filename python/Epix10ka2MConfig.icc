@@ -260,9 +260,9 @@ PyObject* pds_Epix10ka2MConfig_get    (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
  
-  int icycle;
-  if (PyArg_ParseTuple(args,"I",&icycle)==0)
-    icycle = 0;
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"|I",&icycle)==0)
+    return NULL;
 
   unsigned isize = pds_Epix10ka2MConfig_size(self);
   unsigned usize = isize*(icycle+1);

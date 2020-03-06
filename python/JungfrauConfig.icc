@@ -4,9 +4,10 @@
 static PyObject* pds_JungfrauConfig_get      (PyObject*   self, PyObject* args);
 static PyObject* pds_JungfrauConfig_set      (PyObject*   self, PyObject* args);
 static PyObject* pds_JungfrauConfig_enum     (PyObject*   self, PyObject* args);
+static unsigned  pds_JungfrauConfig_size     (PyObject*   self);
 
 static PyMethodDef pds_JungfrauConfig_methods[] = {
-  {"get"        , (PyCFunction)pds_JungfrauConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"get"        , (PyCFunction)pds_JungfrauConfig_get   , METH_VARARGS|METH_KEYWORDS, "Output the configuration"},
   {"set"        , (PyCFunction)pds_JungfrauConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
   {"get_enums"  , (PyCFunction)pds_JungfrauConfig_enum  , METH_NOARGS  , "Output enum constants"},
   {NULL},
@@ -176,10 +177,23 @@ static PyObject* get_module_config(const Pds::Jungfrau::ConfigV3* modcfg)
 PyObject* pds_JungfrauConfig_get  (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
+
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"|I",&icycle)==0)
+    return NULL;
+
+  unsigned isize = pds_JungfrauConfig_size(self);
+  unsigned usize = isize*(icycle+1);
+
+  if (xtc->extent < usize)
+    return NULL;
+
+  char* ubegin = xtc->payload + isize*icycle;
+
   PyObject* o = PyDict_New();
   if (xtc->contains.version()==1) {
     const Pds::Jungfrau::ConfigV1* cfg =
-      reinterpret_cast<const Pds::Jungfrau::ConfigV1*>(xtc->payload);
+      reinterpret_cast<const Pds::Jungfrau::ConfigV1*>(ubegin);
 
     
     SetDictMember(numberOfModules,false,false,false);
@@ -195,7 +209,7 @@ PyObject* pds_JungfrauConfig_get  (PyObject*   self, PyObject* args)
   }
   else if (xtc->contains.version()==2) {
     const Pds::Jungfrau::ConfigV2* cfg =
-      reinterpret_cast<const Pds::Jungfrau::ConfigV2*>(xtc->payload);
+      reinterpret_cast<const Pds::Jungfrau::ConfigV2*>(ubegin);
 
     SetDictMember(numberOfModules,false,false,false);
     SetDictMember(numberOfRowsPerModule,false,false,false);
@@ -219,7 +233,7 @@ PyObject* pds_JungfrauConfig_get  (PyObject*   self, PyObject* args)
   }
   else if (xtc->contains.version()==3) {
     const Pds::Jungfrau::ConfigV3* cfg =
-      reinterpret_cast<const Pds::Jungfrau::ConfigV3*>(xtc->payload);
+      reinterpret_cast<const Pds::Jungfrau::ConfigV3*>(ubegin);
 
     SetDictMember(numberOfModules,false,false,false);
     SetDictMember(numberOfRowsPerModule,false,false,false);
@@ -319,13 +333,29 @@ static void fill_module_config_v1(PyObject* l, Pds::Jungfrau::ModuleConfigV1* cf
 PyObject* pds_JungfrauConfig_set  (PyObject*   self, PyObject* args)
 {
   PyObject* o = 0;
-  if (PyArg_ParseTuple(args,"O",&o)==0)
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"O|I",&o,&icycle)==0)
     return NULL;
 
   pdsxtc* xtc = (pdsxtc*)self;
+
+  unsigned isize = pds_JungfrauConfig_size(self);
+  unsigned usize = isize*(icycle+1);
+
+  if (xtc->extent < usize) {
+    char* p = new char[usize];
+    memcpy(p, xtc->payload, xtc->extent);
+    delete[] xtc->payload;
+
+    xtc->payload = p;
+    xtc->extent  = usize;
+  }
+
+  char* ubegin = xtc->payload + icycle*isize;
+
   if (xtc->contains.version()==1) {
     const Pds::Jungfrau::ConfigV1* cfg =
-      reinterpret_cast<const Pds::Jungfrau::ConfigV1*>(xtc->payload);
+      reinterpret_cast<const Pds::Jungfrau::ConfigV1*>(ubegin);
 
     GetDictLong(numberOfModules);
     GetDictLong(numberOfRowsPerModule);
@@ -335,21 +365,21 @@ PyObject* pds_JungfrauConfig_set  (PyObject*   self, PyObject* args)
     GetDictEnum(speedMode,Pds::Jungfrau::ConfigV1::SpeedMode);
     GetDictFloat(triggerDelay);
     GetDictFloat(exposureTime);
-    new(xtc->payload) Pds::Jungfrau::ConfigV1((uint32_t) numberOfModules,
-                                              (uint32_t) numberOfRowsPerModule,
-                                              (uint32_t) numberOfColumnsPerModule,
-                                              (uint32_t) biasVoltage,
-                                              gainMode,
-                                              speedMode,
-                                              triggerDelay,
-                                              exposureTime);
+    new(ubegin) Pds::Jungfrau::ConfigV1((uint32_t) numberOfModules,
+                                        (uint32_t) numberOfRowsPerModule,
+                                        (uint32_t) numberOfColumnsPerModule,
+                                        (uint32_t) biasVoltage,
+                                        gainMode,
+                                        speedMode,
+                                        triggerDelay,
+                                        exposureTime);
 
     Py_INCREF(Py_None);
     return Py_None;
   }
   else if (xtc->contains.version()==2) {
     const Pds::Jungfrau::ConfigV2* cfg =
-      reinterpret_cast<const Pds::Jungfrau::ConfigV2*>(xtc->payload);
+      reinterpret_cast<const Pds::Jungfrau::ConfigV2*>(ubegin);
 
     GetDictLong(numberOfModules);
     GetDictLong(numberOfRowsPerModule);
@@ -368,30 +398,30 @@ PyObject* pds_JungfrauConfig_set  (PyObject*   self, PyObject* args)
     GetDictLong(vref_prech);
     GetDictLong(vin_com);
     GetDictLong(vdd_prot);
-    new(xtc->payload) Pds::Jungfrau::ConfigV2((uint32_t) numberOfModules,
-                                              (uint32_t) numberOfRowsPerModule,
-                                              (uint32_t) numberOfColumnsPerModule,
-                                              (uint32_t) biasVoltage,
-                                              gainMode,
-                                              speedMode,
-                                              triggerDelay,
-                                              exposureTime,
-                                              exposurePeriod,
-                                              (uint16_t) vb_ds,
-                                              (uint16_t) vb_comp,
-                                              (uint16_t) vb_pixbuf,
-                                              (uint16_t) vref_ds,
-                                              (uint16_t) vref_comp,
-                                              (uint16_t) vref_prech,
-                                              (uint16_t) vin_com,
-                                              (uint16_t) vdd_prot);
+    new(ubegin) Pds::Jungfrau::ConfigV2((uint32_t) numberOfModules,
+                                        (uint32_t) numberOfRowsPerModule,
+                                        (uint32_t) numberOfColumnsPerModule,
+                                        (uint32_t) biasVoltage,
+                                        gainMode,
+                                        speedMode,
+                                        triggerDelay,
+                                        exposureTime,
+                                        exposurePeriod,
+                                        (uint16_t) vb_ds,
+                                        (uint16_t) vb_comp,
+                                        (uint16_t) vb_pixbuf,
+                                        (uint16_t) vref_ds,
+                                        (uint16_t) vref_comp,
+                                        (uint16_t) vref_prech,
+                                        (uint16_t) vin_com,
+                                        (uint16_t) vdd_prot);
 
     Py_INCREF(Py_None);
     return Py_None;
   }
   else if (xtc->contains.version()==3) {
     const Pds::Jungfrau::ConfigV3* cfg =
-      reinterpret_cast<const Pds::Jungfrau::ConfigV3*>(xtc->payload);
+      reinterpret_cast<const Pds::Jungfrau::ConfigV3*>(ubegin);
 
     GetDictLong(numberOfModules);
     GetDictLong(numberOfRowsPerModule);
@@ -412,24 +442,24 @@ PyObject* pds_JungfrauConfig_set  (PyObject*   self, PyObject* args)
     GetDictLong(vdd_prot);
     GetModuleConfigArray(moduleConfig, Pds::Jungfrau::ConfigV3::MaxModulesPerDetector, 1);
 
-    new(xtc->payload) Pds::Jungfrau::ConfigV3((uint32_t) numberOfModules,
-                                              (uint32_t) numberOfRowsPerModule,
-                                              (uint32_t) numberOfColumnsPerModule,
-                                              (uint32_t) biasVoltage,
-                                              gainMode,
-                                              speedMode,
-                                              triggerDelay,
-                                              exposureTime,
-                                              exposurePeriod,
-                                              (uint16_t) vb_ds,
-                                              (uint16_t) vb_comp,
-                                              (uint16_t) vb_pixbuf,
-                                              (uint16_t) vref_ds,
-                                              (uint16_t) vref_comp,
-                                              (uint16_t) vref_prech,
-                                              (uint16_t) vin_com,
-                                              (uint16_t) vdd_prot,
-                                              moduleConfig);
+    new(ubegin) Pds::Jungfrau::ConfigV3((uint32_t) numberOfModules,
+                                        (uint32_t) numberOfRowsPerModule,
+                                        (uint32_t) numberOfColumnsPerModule,
+                                        (uint32_t) biasVoltage,
+                                        gainMode,
+                                        speedMode,
+                                        triggerDelay,
+                                        exposureTime,
+                                        exposurePeriod,
+                                        (uint16_t) vb_ds,
+                                        (uint16_t) vb_comp,
+                                        (uint16_t) vb_pixbuf,
+                                        (uint16_t) vref_ds,
+                                        (uint16_t) vref_comp,
+                                        (uint16_t) vref_prech,
+                                        (uint16_t) vin_com,
+                                        (uint16_t) vdd_prot,
+                                        moduleConfig);
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -444,3 +474,18 @@ PyObject* pds_JungfrauConfig_set  (PyObject*   self, PyObject* args)
 #undef GetDictLongLong
 #undef GetDictFloat
 #undef GetModuleConfigArray
+
+unsigned pds_JungfrauConfig_size(PyObject* self)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.id() == Pds::TypeId::Id_JungfrauConfig) {
+    switch(xtc->contains.version()) {
+      case 1:  return sizeof(Pds::Jungfrau::ConfigV1);
+      case 2:  return sizeof(Pds::Jungfrau::ConfigV2);
+      case 3:  return sizeof(Pds::Jungfrau::ConfigV3);
+     default: break;
+    }
+  }
+
+  return 0;
+}

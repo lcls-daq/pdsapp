@@ -169,11 +169,9 @@ PyObject* pds_CspadConfig_get    (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
  
-  int icycle;
-  if (PyArg_ParseTuple(args,"I",&icycle)==0)
-    icycle = 0;
-
-  PyErr_Clear();
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"|I",&icycle)==0)
+    return NULL;
 
   unsigned isize = pds_CspadConfig_size(self);
   unsigned usize = isize*(icycle+1);
