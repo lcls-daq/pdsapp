@@ -36,9 +36,9 @@ int main(int argc, char** argv)
   }
 
   unsigned interface = 0;
-  in_addr inp;
-  if (inet_aton(argv[1], &inp)) {
-    interface = ntohl(inp.s_addr);
+  struct hostent* host = gethostbyname(argv[1]);
+  if (host) {
+    interface = htonl(*(in_addr_t*)host->h_addr_list[0]);
   }
 
   if (!interface) {
