@@ -92,6 +92,7 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
     int parm_save_count = 0;
     std::vector<string> vsPvValueList;
     std::map<std::string, std::string> vsPvNameValuePairs;
+    std::map<std::string, std::string> vsPvNameDescriptionPairs;
     string sConfigFileWarning;
 
     // retrieve run # that was allocated earlier
@@ -113,8 +114,9 @@ Transition* OfflineAppliance::transitions(Transition* tr) {
               continue;
             }
             vsPvNameValuePairs[_vsPvNameList[iPv].sPvName] = vsPvValueList[iPv];
+            vsPvNameDescriptionPairs[_vsPvNameList[iPv].sPvName] = _vsPvNameList[iPv].sPvDescription.c_str();
           }
-          _client->reportParams(_run_number, vsPvNameValuePairs);
+          _client->reportParams(_run_number, vsPvNameValuePairs, vsPvNameDescriptionPairs);
         }
     } catch (const std::runtime_error& e){
         printf("Caught exception registering parameters %s\n", e.what());
