@@ -1,5 +1,6 @@
 #include "SelectDialog.hh"
 
+#include "pdsdata/xtc/SegmentInfo.hh"
 #include "pdsapp/control/DetNodeGroup.hh"
 #include "pdsapp/control/BldNodeGroup.hh"
 #include "pdsapp/control/ProcNodeGroup.hh"
@@ -72,7 +73,9 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg)
   switch(hdr.level()) {
   case Level::Control : _control = hdr; break;
   case Level::Segment : 
-    {       
+    {
+      std::vector<Src> parents;
+      std::vector<Src> children;
       _segment_map.push_back(NodeMap(hdr,sources));
 
       for(unsigned i=0; i<msg.nsources(); i++) 
@@ -84,12 +87,22 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg)
           h.fixup(StreamPorts::bld(bld.type()).address(),h.ether());
           _rptbox->addNode(NodeSelect(h,bld));
         }
-	else if (hdr.triggered())
-	  _evrio.insert(hdr.evr_module(),
-			hdr.evr_channel(),
-			static_cast<const DetInfo&>(msg.source(i)));
+        else {
+          if (hdr.triggered())
+            _evrio.insert(hdr.evr_module(),
+                          hdr.evr_channel(),
+                          static_cast<const DetInfo&>(msg.source(i)));
+
+          // Check if the Node is part of a mutli-node detector
+          const SegmentInfo& info = reinterpret_cast<const SegmentInfo&>(msg.source(i));
+          if (info.isChild()) {
+            parents.push_back(SegmentInfo::parent(info, false));
+            children.push_back(msg.source(i));
+          }
+        }
       }
       const char *aliasName;
+      std::string strAliasName;
 
       if ((msg.nsources() > 0) && (aliasName = _aliases.lookup(msg.source(0)))) {
         char namebuf[msg.nsources() * (SrcAlias::AliasNameMax + 5)];
@@ -110,9 +123,41 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg)
                    (int) (aliasName ? strlen(aliasName) : 0));
           }
         }
-        _segbox->addNode(NodeSelect(hdr, msg.ready(), sources, QString(namebuf)));
+
+        // if multiple aliases are present, display them in a vertical list
+        char parentbuf[msg.nsources() * (SrcAlias::AliasNameMax + 5)];
+        pName = parentbuf;
+        for (int ii=0; ii<(int)parents.size(); ii++) {
+          strAliasName.assign(_aliases.lookup(children[ii]));
+          strAliasName.assign(strAliasName, 0, strAliasName.rfind('_'));
+          if (!strAliasName.empty() && (strAliasName.length() <= SrcAlias::AliasNameMax)) {
+            if (ii > 0) {
+              strcpy(pName, "\r\n");
+              pName += 2;
+            }
+            strcpy(pName, strAliasName.c_str());
+            pName += strAliasName.length();
+          } else {
+            printf("%s:%d skipped alias #%d (len=%d) ...\n", __FILE__, __LINE__, ii,
+                   (int)  strAliasName.length());
+          }
+        }
+
+        if (!parents.empty()) {
+          NodeSelect parent(Node(hdr.level(), hdr.platform()), msg.ready(), parents, QString(parentbuf));
+          NodeSelect child(hdr, msg.ready(), sources, QString(namebuf));
+          _segbox->addChildNode(parent, child);
+        } else {
+          _segbox->addNode(NodeSelect(hdr, msg.ready(), sources, QString(namebuf)));
+        }
       } else {
-        _segbox->addNode(NodeSelect(hdr, msg.ready(), sources));
+        if (!parents.empty()) {
+          NodeSelect parent(Node(hdr.level(), hdr.platform()), msg.ready(), parents);
+          NodeSelect child(hdr, msg.ready(), sources);
+          _segbox->addChildNode(parent, child);
+        } else {
+          _segbox->addNode(NodeSelect(hdr, msg.ready(), sources));
+        }
       }
       break; 
     }

@@ -5,6 +5,7 @@
 #include "pds/collection/Node.hh"
 
 #include <QtCore/QList>
+#include <QtCore/QMap>
 #include <QtCore/QString>
 #include <QtGui/QWidget>
 
@@ -39,6 +40,7 @@ namespace Pds {
     void list_changed ();
   public:
     void addNode(const NodeSelect&);
+    void addChildNode(const NodeSelect&, const NodeSelect&);
     QString        title() const;
     unsigned       nodes() const;
     QList<Node>    selected();
@@ -57,6 +59,7 @@ namespace Pds {
     QGroupBox*     _group;
     QButtonGroup*  _buttons;
     QList<NodeSelect> _nodes;
+    QMap<int, QList<NodeSelect> > _children;
     QList<QString> _persist;
     QList<QString> _notfound;
     QLabel*        _notfoundlist;
@@ -72,8 +75,14 @@ namespace Pds {
     QPalette*      _palette;
     QPalette*      _warn;
     unsigned       _platform;
+  protected:
+    QList<NodeSelect> expanded(int);
+    bool isReady(int) const;
+    void setGroup    (int, uint16_t group);
+    void setTransient(int, bool);
   private:
     Node& node(int);
+    void addChild(int, const NodeSelect&);
     void _build_notfoundlist(const QString&);
 
     bool              _useGroups;

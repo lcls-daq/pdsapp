@@ -33,7 +33,8 @@ QList<DetInfo> DetNodeGroup::detectors()
       if (_nodes[id].det().device()==DetInfo::Evr)
         dets.push_front(_nodes[id].det());
       else
-        dets.push_back (_nodes[id].det());
+        foreach(const NodeSelect& node, expanded(id))
+          dets.push_back (node.det());
     }
   }
   return dets;

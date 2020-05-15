@@ -86,13 +86,39 @@ void NodeGroup::addNode(const NodeSelect& node)
   if (index >= 0) {                  
     NodeSelect old(_nodes[index]); // Capture user preferences
     _nodes.replace(index, node);
-    this->node(index).setGroup    (old.node().group());
-    this->node(index).setTransient(old.node().transient());
+    setGroup    (index, old.node().group());
+    setTransient(index, old.node().transient());
     emit node_replaced(index);
   }
   else {
     index = _nodes.size();
     _nodes << node;
+    emit node_added(index);
+  }
+}
+
+void NodeGroup::addChildNode(const NodeSelect& node, const NodeSelect& child)
+{
+  int index = _nodes.indexOf(node);
+  if (index >= 0) {
+    NodeSelect old(_nodes[index]); // Capture user preferences
+    _nodes.replace(index, node);
+    addChild(index, child);
+    setGroup    (index, old.node().group());
+    setTransient(index, old.node().transient());
+    addChild(index, child);
+    emit node_replaced(index);
+  }
+  else {
+    index = _nodes.size();
+    _nodes << node;
+    addChild(index, child);
+    QList<NodeSelect>::iterator it;
+    QList<NodeSelect>& children = _children[index];
+    for(it = children.begin(); it != children.end(); ++it) {
+      it->node().setGroup    (this->node(index).group());
+      it->node().setTransient(this->node(index).transient());
+    }
     emit node_added(index);
   }
 }
@@ -132,7 +158,7 @@ void NodeGroup::add_node(int index)
   _build_notfoundlist(node.plabel());	
 
   button->setEnabled   ( indexRequire<0 );
-  button->setPalette( node.ready() ? *_ready : *_notready );
+  button->setPalette( isReady(index) ? *_ready : *_notready );
   _buttons->addButton(button,index); 
   QObject::connect(button, SIGNAL(clicked()), this, SIGNAL(list_changed()));
 
@@ -209,7 +235,7 @@ void NodeGroup::add_node(int index)
     layoutButton->addWidget(ciUseReadoutGroup); 
     ciUseReadoutGroup->setVisible(_useGroups);
 
-    this->node(iNodeIndex).setGroup(iNodeGroup);    
+    setGroup(iNodeIndex, iNodeGroup);
     
 #ifdef DBUG
     printf("Added node %s Group %d\n",qPrintable(node.plabel()), iNodeGroup);
@@ -251,7 +277,7 @@ void NodeGroup::replace_node(int index)
   }
   else
     button->setText(node.label());
-  button->setPalette( node.ready() ? *_ready : *_notready );
+  button->setPalette( isReady(index) ? *_ready : *_notready );
 
   emit list_changed();
 }
@@ -269,9 +295,9 @@ QList<Node> NodeGroup::selected()
   Node* master_evr = 0;
   foreach(QAbstractButton* b, buttons) {
     int id = _buttons->id(b);
-    _nodes[id].node().setGroup(_useGroups ? _groups[id]->currentText().toUInt(): 1);
+    setGroup(id, _useGroups ? _groups[id]->currentText().toUInt(): 1);
     if (_useTransient)
-      _nodes[id].node().setTransient(_transients[id]->currentIndex()==1);
+      setTransient(id, _transients[id]->currentIndex()==1);
 
     _persist.push_back(_nodes[id].plabel().replace('\n','\t'));
     _persistGroup.push_back(_groups[id]->currentText().toUInt());
@@ -285,8 +311,10 @@ QList<Node> NodeGroup::selected()
         else
           nodes.push_front(_nodes[id].node());
       }
-      else
-        nodes.push_back(_nodes[id].node());
+      else {
+        foreach(const NodeSelect& n, expanded(id))
+          nodes << n.node();
+      }
     }
   }
 
@@ -317,8 +345,10 @@ std::set<std::string> NodeGroup::deviceNames()
   foreach(QAbstractButton* b, buttons) {
     if (b->isChecked()) {
       int id = _buttons->id(b);
-      foreach(std::string sss, _nodes[id].deviceNames()) {
-        rv.insert(sss);
+      foreach(const NodeSelect& n, expanded(id)) {
+        foreach(std::string sss, n.deviceNames()) {
+          rv.insert(sss);
+        }
       }
     }
   }
@@ -358,7 +388,7 @@ bool NodeGroup::ready() const
   QList<QString> require = _require;
   int index;
   for(int i=0; i<buttons.size(); i++) {
-    if (buttons[i]->isChecked() && !_nodes[i].ready())
+    if (buttons[i]->isChecked() && !isReady(i))
       return false;
     if ((index=require.indexOf(_nodes[i].plabel()))>=0)
       require.removeAt(index);
@@ -369,6 +399,67 @@ bool NodeGroup::ready() const
 Node& NodeGroup::node(int i)
 {
   return (Node&)_nodes[i].node();
+}
+
+QList<NodeSelect> NodeGroup::expanded(int i)
+{
+  QList<NodeSelect> nodes;
+  const QList<NodeSelect>& children = _children[i];
+  if (children.isEmpty()) {
+    nodes << _nodes[i].node();
+  } else {
+    foreach(const NodeSelect& child, children) {
+      nodes << child;
+    }
+  }
+
+  return nodes;
+}
+
+bool NodeGroup::isReady(int i) const
+{
+  const QList<NodeSelect>& children = _children[i];
+  bool ready = children.isEmpty() ? _nodes[i].ready() : true;
+
+  foreach(const NodeSelect& child, children) {
+    if (!child.ready()) {
+      ready = false;
+      break;
+    }
+  }
+
+  return ready;
+}
+
+void NodeGroup::setGroup(int parent, uint16_t group)
+{
+  QList<NodeSelect>::iterator it;
+  QList<NodeSelect>& children = _children[parent];
+  _nodes[parent].node().setGroup(group);
+  for(it = children.begin(); it != children.end(); ++it) {
+    it->node().setGroup(group);
+  }
+}
+
+void NodeGroup::setTransient(int parent, bool t)
+{
+  QList<NodeSelect>::iterator it;
+  QList<NodeSelect>& children = _children[parent];
+  _nodes[parent].node().setTransient(t);
+  for(it = children.begin(); it != children.end(); ++it) {
+    it->node().setTransient(t);
+  }
+}
+
+void NodeGroup::addChild(int parent, const NodeSelect& child)
+{
+  QList<NodeSelect>& children = _children[parent];
+  int index = children.indexOf(child);
+  if (index >= 0) {
+    children.replace(index, child);
+  } else {
+    children << child;
+  }
 }
 
 void NodeGroup::_read_pref(const QString&  title,
@@ -430,7 +521,7 @@ void NodeTransientCb::selectChanged(bool v)
 
 void NodeTransientCb::stateChanged(int i)
 {
- _nodeGroup.node(_iNodeIndex).setTransient(i!=0);
+  _nodeGroup.setTransient(_iNodeIndex, i!=0);
   if (_selected)
     _button.setPalette(i!=0 ? QPalette(Qt::yellow) : QPalette(Qt::green));
 }
