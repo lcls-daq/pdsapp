@@ -244,6 +244,10 @@ int main(int argc, char** argv) {
        printf("%s: segment cannot contain more modules than the multi-segment detector: %u vs. %u\n",
               argv[0], segment_num_modules, segment_total_modules);
       lUsage = true;
+    } else if (segment_num_modules == segment_total_modules) {
+      printf("%s: A multi-segment detector must have more than one segment!\n",
+             argv[0]);
+      lUsage = true;
     } else if (segment_num_modules == 0) {
       printf("%s: the total number of modules in a segment must be non-zero!\n",
              argv[0]);
