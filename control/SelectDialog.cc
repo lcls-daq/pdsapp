@@ -144,16 +144,16 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg)
         }
 
         if (!parents.empty()) {
-          NodeSelect parent(Node(hdr.level(), hdr.platform()), msg.ready(), parents, QString(parentbuf));
           NodeSelect child(hdr, msg.ready(), sources, QString(namebuf));
+          NodeSelect parent(_getParentNode(child.det(), hdr), msg.ready(), parents, QString(parentbuf));
           _segbox->addChildNode(parent, child);
         } else {
           _segbox->addNode(NodeSelect(hdr, msg.ready(), sources, QString(namebuf)));
         }
       } else {
         if (!parents.empty()) {
-          NodeSelect parent(Node(hdr.level(), hdr.platform()), msg.ready(), parents);
           NodeSelect child(hdr, msg.ready(), sources);
+          NodeSelect parent(_getParentNode(child.det(), hdr), msg.ready(), parents);
           _segbox->addChildNode(parent, child);
         } else {
           _segbox->addNode(NodeSelect(hdr, msg.ready(), sources));
@@ -382,6 +382,20 @@ void SelectDialog::_clearLayout()
   layout()->removeWidget(_evtbox);
   layout()->removeWidget(_rptbox);
   layout()->removeWidget(_iocbox);
+}
+
+Node SelectDialog::_getParentNode(const DetInfo& info, const Node& child)
+{
+  Node node(child);
+  DetInfo parent = SegmentInfo::parent(info, false);
+  if (_parents.contains(parent)) {
+    node = _parents[parent];
+  } else {
+    node.fixup(parent.phy(), node.ether());
+    _parents.insert(parent, node);
+  }
+
+  return node;
 }
 
 void SelectDialog::useTransient(bool v) { _useTransient=v; }

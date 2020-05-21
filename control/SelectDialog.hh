@@ -16,6 +16,7 @@
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
 #include <QtCore/QList>
+#include <QtCore/QMap>
 #include <QtCore/QString>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QVBoxLayout>
@@ -77,6 +78,7 @@ namespace Pds {
   signals:
     void changed();
   private:
+    Node _getParentNode(const DetInfo& info, const Node& child);
     void _clearLayout();
   private:
     PartitionControl& _pcontrol;
@@ -99,6 +101,7 @@ namespace Pds {
     QList<DetInfo > _iocinfo;
     QPushButton*   _acceptb;
     std::list<NodeMap> _segment_map;
+    QMap<DetInfo, Node> _parents;
   };
 };
 

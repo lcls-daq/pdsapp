@@ -5,6 +5,7 @@
 
 #include "pdsdata/xtc/BldInfo.hh"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/SegmentInfo.hh"
 
 #include <QtCore/QString>
 #include <QtGui/QButtonGroup>
@@ -421,11 +422,42 @@ bool NodeGroup::isReady(int i) const
   const QList<NodeSelect>& children = _children[i];
   bool ready = children.isEmpty() ? _nodes[i].ready() : true;
 
+  //unsigned module_mask = 0;
+  bool has_segments = false;
+  unsigned num_modules = 0;
+  unsigned module_mask = 0;
   foreach(const NodeSelect& child, children) {
     if (!child.ready()) {
       ready = false;
       break;
+    } else {
+      const SegmentInfo& seg_info = reinterpret_cast<const SegmentInfo&>(child.det());
+      unsigned total = seg_info.total();
+      unsigned index = seg_info.index();
+      unsigned number = seg_info.number();
+      unsigned mask = (((1U << (index + number)) - 1) ^ ((1U << (index)) - 1));
+
+      if (!has_segments) {
+        num_modules = total;
+        has_segments = true;
+      } else if (total != num_modules) {
+        ready = false;
+        break;
+      }
+
+      // check for duplicate modules
+      if (module_mask & mask) {
+        ready = false;
+        break;
+      } else {
+        module_mask |= mask;
+      }
     }
+  }
+
+  if (has_segments) {
+    if (module_mask != ((1U<<num_modules) - 1))
+      ready = false;
   }
 
   return ready;
