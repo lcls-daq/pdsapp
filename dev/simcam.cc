@@ -475,6 +475,9 @@ public:
     switch(info.device()) {
     case DetInfo::Jungfrau:
     case DetInfo::JungfrauSegment:
+    case DetInfo::JungfrauSegmentM2:
+    case DetInfo::JungfrauSegmentM3:
+    case DetInfo::JungfrauSegmentM4:
       return true;
     default:
       break;
@@ -486,12 +489,33 @@ public:
   {
     _cfgpayload = new char[CfgSize];
     _cfgtc = new(_cfgpayload) Xtc(_jungfrauConfigType,src);
+
     const DetInfo& info = static_cast<const DetInfo&>(src);
     unsigned serial = info.devId()<<2;
     JungfrauModConfigType mod_cfg[JungfrauConfigType::MaxModulesPerDetector];
     for (unsigned i=0; i<JungfrauConfigType::MaxModulesPerDetector; i++)
       mod_cfg[i] = JungfrauModConfigType(serial | i, 0x171113, 0x15492017);
-    JungfrauConfigType* cfg = new (_cfgtc->next()) JungfrauConfigType(2,
+
+    // Determine the number of modules
+    unsigned num_mods;
+    switch(info.device()) {
+    case DetInfo::JungfrauSegment:
+      num_mods = 1;
+      break;
+    case DetInfo::JungfrauSegmentM2:
+      num_mods = 2;
+      break;
+    case DetInfo::JungfrauSegmentM3:
+      num_mods = 3;
+      break;
+    case DetInfo::JungfrauSegmentM4:
+      num_mods = 4;
+      break;
+    default:
+      num_mods = 2;
+    }
+
+    JungfrauConfigType* cfg = new (_cfgtc->next()) JungfrauConfigType(num_mods,
                                                                       512,
                                                                       1024,
                                                                       200,

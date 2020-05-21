@@ -148,11 +148,11 @@ InDatagram* Recorder::events(InDatagram* in) {
     post(new(_msgPool) UserMessage("Corrupt CSPAD data.  Recommend reboot of CSPAD host"));
     post(new(_occPool) Occurrence(OccurrenceId::ClearReadout));
   }
-  StripTransient::process(reinterpret_cast<Dgram&>(in->datagram()));
   if (!JungfrauSegBuilder::build(reinterpret_cast<Dgram&>(in->datagram()), reinterpret_cast<const ProcInfo&>(_src))) {
     post(new(_msgPool) UserMessage("Jungfrau Segment builder failure: Recommend sanity checking Jungfrau segment setup"));
     post(new(_occPool) Occurrence(OccurrenceId::ClearReadout));
   }
+  StripTransient::process(reinterpret_cast<Dgram&>(in->datagram()));
 
   InDatagramIterator* iter = in->iterator(_pool);
 

@@ -287,7 +287,12 @@ int main(int argc, char** argv) {
 
   // patch the DetInfo object if this Jungfrau is a segment of a larger detector
   if (isSegment) {
-    detInfo = SegmentInfo(detInfo, segment_index, segment_total_modules);
+    DetInfo::Device devType = detInfo.device();
+    detInfo = SegmentInfo(detInfo, segment_index, segment_num_modules, segment_total_modules);
+    if (!SegmentInfo::is_valid(detInfo)) {
+      printf("Aborting: The device type specified (%s) does not support segments!\n", DetInfo::name(devType));
+      return 1;
+    }
   }
   
   for (unsigned i=0; i<num_modules; i++) {

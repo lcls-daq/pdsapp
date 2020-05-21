@@ -26,13 +26,15 @@ static SegmentMap _segment_config;
 static MultiSegmentMap _config_parts;
 static FrameCacheMap _frames;
 static ParentMap _parents;
+static TransientMap _transients;
 
 class JungfrauBuilder : public XtcStripper {
 public:
   enum Status {Stop, Continue};
-  JungfrauBuilder(Xtc* root, uint32_t*& pwrite) : 
+  JungfrauBuilder(Xtc* root, uint32_t*& pwrite, bool isTransient=false) :
     XtcStripper(root,pwrite),
-    _fatalError(false) {}
+    _fatalError(false),
+    _isTransient(isTransient) {}
   ~JungfrauBuilder() {}
   bool fatalError() const { return _fatalError; }
 
@@ -42,16 +44,19 @@ protected:
     switch (xtc->contains.id()) {
     case (TypeId::Id_Xtc) :
       {
-        JungfrauBuilder iter(xtc,_pwrite);
+        JungfrauBuilder iter(xtc,_pwrite,xtc->contains.value() == _transientXtcType.value());
         iter.iterate();
       }
       break;
     case (TypeId::Id_JungfrauConfig) :
       switch (info.device()) {
       case (DetInfo::JungfrauSegment) :
+      case (DetInfo::JungfrauSegmentM2) :
+      case (DetInfo::JungfrauSegmentM3) :
+      case (DetInfo::JungfrauSegmentM4) :
         {
           const JungfrauConfigType* cfg = reinterpret_cast<const JungfrauConfigType*>(xtc->payload());
-           SegmentConfig* seg_cfg = new SegmentConfig(info, xtc->damage, *cfg);
+           SegmentConfig* seg_cfg = new SegmentConfig(info, xtc->damage, *cfg, _isTransient);
           _info.insert(seg_cfg->parent());
           _parents.insert(std::make_pair(info, seg_cfg->parent()));
           _segment_config.insert(std::make_pair(info, seg_cfg));
@@ -66,6 +71,9 @@ protected:
     case (TypeId::Id_JungfrauElement) :
       switch (info.device()) {
       case (DetInfo::JungfrauSegment) :
+      case (DetInfo::JungfrauSegmentM2) :
+      case (DetInfo::JungfrauSegmentM3) :
+      case (DetInfo::JungfrauSegmentM4) :
         {
           const JungfrauDataType* data = reinterpret_cast<const JungfrauDataType*>(xtc->payload());
           ParentIter it = _parents.find(info);
@@ -97,12 +105,15 @@ protected:
 
 private:
   bool  _fatalError;
+  bool  _isTransient;
 };
 
 static bool process_config(const DetInfo& parent, Xtc* xtc)
 {
+  bool transient = false;
   unsigned module_mask = 0;
   unsigned num_modules = 0;
+  unsigned num_segments = 0;
   JungfrauConfigType* tmp = NULL;
   JungfrauModConfigType modcfg[JungfrauConfigType::MaxModulesPerDetector];
   MultiSegmentRange range = _config_parts.equal_range(parent);
@@ -127,11 +138,16 @@ static bool process_config(const DetInfo& parent, Xtc* xtc)
         printf("%s. Inconsistent expected module number from the segments: %u vs %u\n",
                DetInfo::name(parent), num_modules, expected);
         return false;
+      } else if (transient != it->second->transient()) {
+        printf("%s. Inconsistent expected transient state from the segments\n",
+               DetInfo::name(parent));
+        return false;
       } else if (it->second->verify(*tmp)) {
         printf("%s. Inconsistent configuration from the segments\n", DetInfo::name(parent));
         return false;
       }
     } else {
+      transient = it->second->transient();
       num_modules = expected;
       if (num_modules > JungfrauConfigType::MaxModulesPerDetector) {
         printf("%s. Detector has more modules than the maximum supported: %u vs %u\n",
@@ -147,10 +163,17 @@ static bool process_config(const DetInfo& parent, Xtc* xtc)
     for (unsigned n=0; n<cfg.numberOfModules(); n++) {
       modcfg[index+n] = cfg.moduleConfig(n);
     }
+
+    // increment the number of segments
+    num_segments++;
   }
   if (module_mask != ((1U<<num_modules) - 1)) {
     printf("%s. Inconsistent module mask from the segments: 0x%04x vs 0x%04x\n",
            DetInfo::name(parent), module_mask, (1U<<num_modules) - 1);
+    return false;
+  } else if (num_segments < 2) {
+    printf("%s. Detector must has at least two segments!\n",
+           DetInfo::name(parent));
     return false;
   } else {
     JungfrauConfig::setSize(*tmp,
@@ -159,6 +182,7 @@ static bool process_config(const DetInfo& parent, Xtc* xtc)
                             tmp->numberOfColumnsPerModule(),
                             modcfg);
     _config.push_back(*tmp);
+    _transients.insert(std::make_pair(parent, transient));
     _frames.insert(std::make_pair(parent, new FrameCache(*tmp)));
   }
 
@@ -175,16 +199,26 @@ static bool process_data(const FrameCache* fc, Xtc* xtc)
   }
 }
 
+static bool check_transient(const DetInfo& parent)
+{
+  TransientIter it;
+  if ((it = _transients.find(parent)) != _transients.end()) {
+    return it->second;
+  } else {
+    return false;
+  }
+}
+
 static uint32_t get_config_extent()
 {
-  return sizeof(Xtc) + (sizeof(Xtc) + sizeof(JungfrauConfigType)) * _info.size();
+  return (sizeof(Xtc) + sizeof(Xtc) + sizeof(JungfrauConfigType)) * _info.size();
 }
 
 static uint32_t get_data_extent()
 {
-  uint32_t size = sizeof(Xtc);
+  uint32_t size = 0;
   for(FrameCacheIter it=_frames.begin(); it!=_frames.end(); ++it) {
-    size += sizeof(Xtc) + it->second->size();
+    size += sizeof(Xtc) + sizeof(Xtc) + it->second->size();
   }
   return size;
 }
@@ -227,6 +261,7 @@ bool JungfrauSegBuilder::process(Dgram& dg, const ProcInfo& proc)
     _config_parts.clear();
     _info.clear();
     _parents.clear();
+    _transients.clear();
     for(SegmentIter it=_segment_config.begin(); it!=_segment_config.end(); ++it)
       delete it->second;
     _segment_config.clear();
@@ -249,16 +284,22 @@ bool JungfrauSegBuilder::process(Dgram& dg, const ProcInfo& proc)
     if (check_config()) {
       // Check that we have enough space in the datagram for configs we plan to add
       if (_config_extent <= remaining) {
-        Xtc* seg = new (&dg.xtc) Xtc(_xtcType, proc);
         for (std::set<Pds::DetInfo>::const_iterator parent=_info.begin(); parent!=_info.end(); ++parent) {
+          // segement level xtc
+          Xtc* seg = new (&dg.xtc) Xtc(_xtcType, proc);
+          // detector config xtc
           Xtc* xtc = new (seg) Xtc(_jungfrauConfigType, *parent);
           if (!process_config(*parent, xtc)) {
             printf("%s. Failed to create configuration!\n", DetInfo::name(*parent));
             failed = true;
           }
+          // check if the parent is transient and modify the type of the xtc if needed
+          if (check_transient(*parent)) {
+            seg->contains = _transientXtcType;
+          }
           seg->alloc(xtc->sizeofPayload());
+          dg.xtc.alloc(seg->sizeofPayload());
         }
-        dg.xtc.alloc(seg->sizeofPayload());
       } else {
         printf("Not enough space to create configurations, since %u is needed but only %u available!\n", _config_extent, remaining);
         failed = true;
@@ -279,8 +320,10 @@ bool JungfrauSegBuilder::process(Dgram& dg, const ProcInfo& proc)
       if (check_data()) {
         // Check that we have enough space in the datagram for data we plan to add
         if (_data_extent <= remaining) {
-          Xtc* seg = new (&dg.xtc) Xtc(_xtcType, proc);
           for (FrameCacheIter it=_frames.begin(); it!=_frames.end(); ++it) {
+            // segement level xtc
+            Xtc* seg = new (&dg.xtc) Xtc(check_transient(it->first) ? _transientXtcType : _xtcType, proc);
+            // detector frame xtc
             Xtc* xtc = new (seg) Xtc(_jungfrauDataType, it->first, it->second->damage());
             if (!process_data(it->second, xtc)) {
               printf("%s. Failed to create data!\n", DetInfo::name(it->first));
@@ -289,8 +332,8 @@ bool JungfrauSegBuilder::process(Dgram& dg, const ProcInfo& proc)
             seg->alloc(xtc->sizeofPayload());
             // reset the frame cache state
             it->second->reset();
+            dg.xtc.alloc(seg->sizeofPayload());
           }
-          dg.xtc.alloc(seg->sizeofPayload());
         } else {
           printf("Not enough space to add data, since %u is needed but only %u available!\n", _config_extent, remaining);
           failed = true;
