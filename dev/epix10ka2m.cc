@@ -203,11 +203,8 @@ int main( int argc, char** argv )
     }
   }
 
-  DetInfo detInfo( 0,
-                   (Pds::DetInfo::Detector) detector,
-                   0,
-                   DetInfo::Epix10ka2M,
-                   deviceId );
+  Pds::Node node(Level::Source, platform);
+  DetInfo detInfo(node.pid(), detector, 0, DetInfo::Epix10ka2M, deviceId);
 
   printf("Epix10ka2M will reset on %s configuration\n", Pds::Epix10ka2m::Server::resetOnEveryConfig() ? "every" : "only the first");
 
