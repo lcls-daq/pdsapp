@@ -407,7 +407,7 @@ QList<NodeSelect> NodeGroup::expanded(int i)
   QList<NodeSelect> nodes;
   const QList<NodeSelect>& children = _children[i];
   if (children.isEmpty()) {
-    nodes << _nodes[i].node();
+    nodes << _nodes[i];
   } else {
     foreach(const NodeSelect& child, children) {
       nodes << child;
