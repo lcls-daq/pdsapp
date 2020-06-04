@@ -286,6 +286,7 @@ int main(int argc, char** argv) {
   std::vector<Jungfrau::Module*> modules(num_modules);
 
   // patch the DetInfo object if this Jungfrau is a segment of a larger detector
+  DetInfo configInfo = detInfo; // use original detInfo for configdb
   if (isSegment) {
     DetInfo::Device devType = detInfo.device();
     detInfo = SegmentInfo(detInfo, segment_index, segment_num_modules, segment_total_modules);
@@ -313,7 +314,7 @@ int main(int argc, char** argv) {
   Jungfrau::DetIdLookup* lookup = new Jungfrau::DetIdLookup();
   Jungfrau::Server* srv = new Jungfrau::Server(detInfo);
   servers   .push_back(srv);
-  Jungfrau::Manager* mgr = new Jungfrau::Manager(*det, *srv, *lookup);
+  Jungfrau::Manager* mgr = new Jungfrau::Manager(configInfo, *det, *srv, *lookup);
   managers.push_back(mgr);
 
   StdSegWire settings(servers, uniqueid, MAX_MODULE_SIZE*num_modules + EVENT_SIZE_EXTRA, MAX_EVENT_DEPTH, isTriggered, module, channel);
