@@ -15,6 +15,7 @@
 #include "pds/config/ControlConfigType.hh"
 #include "pdsdata/psddl/control.ddl.h"
 #include "pdsdata/xtc/DetInfo.hh"
+#include "pdsdata/xtc/SegmentInfo.hh"
 #include "pdsdata/xtc/TypeId.hh"
 using Pds::ControlData::PVControl;
 using Pds::ControlData::PVMonitor;
@@ -35,6 +36,10 @@ using std::ostringstream;
 
 #include <list>
 using std::list;
+#include <vector>
+using std::vector;
+#include <set>
+using std::set;
 
 static const int MaxPathSize   = 0x100;
 static const int MaxAliasSize  = 0x100;
@@ -52,7 +57,7 @@ static int       pdsdaq_init   (pdsdaq* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_dbpath   (PyObject* self);
 static PyObject* pdsdaq_dbalias  (PyObject* self);
 static PyObject* pdsdaq_dbkey    (PyObject* self);
-static PyObject* pdsdaq_partition(PyObject* self);
+static PyObject* pdsdaq_partition(PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_record   (PyObject* self);
 static PyObject* pdsdaq_runnum   (PyObject* self);
 static PyObject* pdsdaq_expt     (PyObject* self);
@@ -142,7 +147,7 @@ static PyMethodDef pdsdaq_methods[] = {
   {"dbpath"    , (PyCFunction)pdsdaq_dbpath         , METH_NOARGS  , "Get database path"},
   {"dbalias"   , (PyCFunction)pdsdaq_dbalias        , METH_NOARGS  , "Get database alias"},
   {"dbkey"     , (PyCFunction)pdsdaq_dbkey          , METH_NOARGS  , "Get database key"},
-  {"partition" , (PyCFunction)pdsdaq_partition      , METH_NOARGS  , "Get partition"},
+  {"partition" , (PyCFunction)pdsdaq_partition      , METH_VARARGS|METH_KEYWORDS, "Get partition"},
   {"record"    , (PyCFunction)pdsdaq_record         , METH_NOARGS  , "Get record status"},
   {"runnumber" , (PyCFunction)pdsdaq_runnum         , METH_NOARGS  , "Get run number"},
   {"experiment", (PyCFunction)pdsdaq_expt           , METH_NOARGS  , "Get experiment name"},
@@ -558,23 +563,66 @@ PyObject* pdsdaq_record   (PyObject* self)
   return PyBool_FromLong(daq->record);
 }
 
-PyObject* pdsdaq_partition(PyObject* self)
+PyObject* pdsdaq_partition(PyObject* self, PyObject* args, PyObject* kwds)
 {
   pdsdaq* daq = (pdsdaq*)self;
+  PyObject* py_raw = NULL;
+  bool raw = false;
+  const char* kwlist[] = {"raw", NULL};
+
+  if (PyArg_ParseTupleAndKeywords(args, kwds, "|O!", const_cast<char**>(kwlist), &PyBool_Type, &py_raw)) {
+    if (py_raw) raw = PyObject_IsTrue(py_raw);
+  } else {
+    return NULL;
+  }
+
 #ifdef DBUG
   printf("pdsdaq_partition %p nnodes %d\n",daq->partition,daq->partition->nodes());
 #endif
   //  Translate Partition to dictionary and return
-  PyObject* o = PyList_New(daq->partition->nodes());
-  for(unsigned j=0; j<daq->partition->nodes(); j++) {
-    const RemoteNode& node = *daq->partition->node(j);
-    PyObject* n = PyDict_New();
-    PyDict_SetItemString(n, "id" , PyString_FromString(node.name()));
-    PyDict_SetItemString(n, "phy", PyLong_FromUnsignedLong(node.phy()));
-    PyDict_SetItemString(n, "readout", PyBool_FromLong(node.readout()));
-    PyDict_SetItemString(n, "record" , PyBool_FromLong(node.record ()));
-    PyList_SetItem(o, j, n);
+  PyObject* o = NULL;
+  if (raw) {
+    o = PyList_New(daq->partition->nodes());
+    for(unsigned j=0; j<daq->partition->nodes(); j++) {
+      const RemoteNode& node = *daq->partition->node(j);
+      PyObject* n = PyDict_New();
+      PyDict_SetItemString(n, "id" , PyString_FromString(node.name()));
+      PyDict_SetItemString(n, "phy", PyLong_FromUnsignedLong(node.phy()));
+      PyDict_SetItemString(n, "readout", PyBool_FromLong(node.readout()));
+      PyDict_SetItemString(n, "record" , PyBool_FromLong(node.record ()));
+      PyList_SetItem(o, j, n);
+    }
+  } else {
+    set<Pds::DetInfo> parents;
+    vector<RemoteNode> nodes;
+    for(unsigned n=0; n<daq->partition->nodes(); n++) {
+      Pds::DetInfo info(daq->partition->node(n)->name());
+      Pds::SegmentInfo parent(info, false);
+      if (parent.isValid()) {
+        if (parents.count(parent) == 0) {
+          RemoteNode node(Pds::DetInfo::name(parent), parent.phy());
+          node.record(daq->partition->node(n)->record());
+          node.readout(daq->partition->node(n)->readout());
+          parents.insert(parent);
+          nodes.push_back(node);
+        }
+      } else {
+        nodes.push_back(*daq->partition->node(n));
+      }
+    }
+
+    o = PyList_New(nodes.size());
+    for(unsigned j=0; j<nodes.size(); j++) {
+      const RemoteNode& node = nodes[j];
+      PyObject* n = PyDict_New();
+      PyDict_SetItemString(n, "id" , PyString_FromString(node.name()));
+      PyDict_SetItemString(n, "phy", PyLong_FromUnsignedLong(node.phy()));
+      PyDict_SetItemString(n, "readout", PyBool_FromLong(node.readout()));
+      PyDict_SetItemString(n, "record" , PyBool_FromLong(node.record ()));
+      PyList_SetItem(o, j, n);
+    }
   }
+
   PyObject* p = PyDict_New();
   PyDict_SetItemString(p, "l3tag" , PyBool_FromLong    (daq->partition->l3tag()));
   PyDict_SetItemString(p, "l3veto", PyBool_FromLong    (daq->partition->l3veto()));
@@ -736,21 +784,40 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
       daq->partition->clear_l3t();
 
     PyObject* nodes = PyDict_GetItemString(partition,"nodes");
-    if (PyList_Size(nodes)!=daq->partition->nodes()) {
+    if (PyList_Size(nodes)>daq->partition->nodes()) {
       printf("partition list size (%zd) does not match original size (%d).\nPartition unchanged.\n",
-       PyList_Size(nodes),daq->partition->nodes());
+             PyList_Size(nodes),daq->partition->nodes());
       PyErr_SetString(PyExc_RuntimeError,"Partition size changed.");
       // Half configuring leaves the DAQ in a strange state so disconnect to go to unconfigured!
       Py_DECREF(pdsdaq_disconnect(self));
       return NULL;
-    }
-    else {
-      for(unsigned j=0; j<daq->partition->nodes(); j++) {
+    } else {
+      unsigned nnodes = 0;
+      for (unsigned j=0; j<PyList_Size(nodes); j++) {
         PyObject* n = PyList_GetItem(nodes,j);
-        daq->partition->node(j)->readout( PyDict_GetItemString(n,"readout")==Py_True );
-        daq->partition->node(j)->record ( PyDict_GetItemString(n,"record" )==Py_True );
+        PyObject* id = PyDict_GetItemString(n,"id");
+        if (id) {
+          Pds::DetInfo info(PyString_AsString(id));
+          for(unsigned k=0; k<daq->partition->nodes(); k++) {
+            Pds::DetInfo node_info(daq->partition->node(k)->name());
+            if ((info == node_info) || info == Pds::SegmentInfo::parent(node_info, false)) {
+              daq->partition->node(k)->record ( PyDict_GetItemString(n,"record" )==Py_True );
+              daq->partition->node(k)->readout( PyDict_GetItemString(n,"readout")==Py_True );
+              nnodes++;
+            }
+          }
+        }
       }
-      ::write(daq->socket, daq->partition, sizeof(*daq->partition));
+      if (nnodes!=daq->partition->nodes()) {
+        printf("partition list size (%d) does not match original size (%d).\nPartition unchanged.\n",
+               nnodes,daq->partition->nodes());
+        PyErr_SetString(PyExc_RuntimeError,"Partition size changed.");
+        // Half configuring leaves the DAQ in a strange state so disconnect to go to unconfigured!
+        Py_DECREF(pdsdaq_disconnect(self));
+        return NULL;
+      } else {
+        ::write(daq->socket, daq->partition, sizeof(*daq->partition));
+      }
     }
   }
 
