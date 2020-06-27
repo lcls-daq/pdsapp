@@ -46,7 +46,7 @@
 #include <map>
 
 #define IPIMB_BLD_MAX_DATASIZE  512
-#define DEFAULT_EVENT_OPCODE    140 
+#define DEFAULT_EVENT_OPCODE    137
 #define IPIMB_CONFIG_DB         "/reg/g/pcds/dist/pds/sharedIpimb/configdb"
 #define IPIMB_PORTMAP_FILE      "/reg/g/pcds/dist/pds/sharedIpimb/bldIpimbPortmap_NH2-SB1-IPM-01.txt"
 

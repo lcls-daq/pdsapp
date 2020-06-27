@@ -267,7 +267,7 @@ EvrBldManager::EvrBldManager(EvgrBoardInfo<Evr> &erInfo, const std::list<PulsePa
     //
     const double tickspersec = 119.0e6;
     PulseParams p;
-    p.eventcode = 140;
+    p.eventcode = 137;
     p.delay     = (unsigned)(PULSE_DELAY*tickspersec);
     p.width     = (unsigned)(PULSE_WIDTH*tickspersec);
     p.polarity  = PulseParams::Positive;

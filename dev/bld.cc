@@ -688,9 +688,7 @@ namespace Pds {
 
     for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
       const Pds::EvrData::FIFOEvent& fe = evrd.fifoEvents()[i];
-      if (fe.timestampHigh() == timestamp &&
-          fe.eventCode() >= 140 &&
-          fe.eventCode() <= 146)
+      if (fe.timestampHigh() == timestamp && fe.eventCode() == 137)
         return EbS::_is_complete(event,serverId);  //  A beam-present code is found
     }
     return NoBuild;   // No beam-present code is found
