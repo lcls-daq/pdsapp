@@ -24,6 +24,8 @@ static const char* code_str[] = { "40 [120 Hz]",
                                   "162 [BYKIK]",
                                   "163 [ALKIK]",
                                   "164 [TESTBURST]",
+                                  "137 [Every HXR Beam]",
+                                  "139 [HXRBURST]",
                                   "9   [360 Hz*]",
                                   NULL };
 
@@ -53,5 +55,5 @@ void EvrGlbEventDesc::set_code(unsigned n)
 
 bool EvrGlbEventDesc::global_code(unsigned e)
 {
-  return (e>=40 && e<=46) || (e>=140 && e<=146) || (e==150) || (e>=162 && e<=164) || (e==9);
+  return (e>=40 && e<=46) || (e>=140 && e<=146) || (e==150) || (e>=162 && e<=164) || (e==9) || (e==137) || (e==139);
 }
