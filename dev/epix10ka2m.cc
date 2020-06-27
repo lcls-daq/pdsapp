@@ -262,7 +262,7 @@ int main( int argc, char** argv )
 
   if (replicateQuads) {
     serverList.resize(4);
-    Pds::Epix10ka2m::ServerSim* sim;
+    Pds::Epix10ka2m::ServerSim* sim = NULL;
     unsigned i=0;
     while(i<4-replicateQuads) {
       ebServerList.push_back(sim=new Pds::Epix10ka2m::ServerSim(serverList[i]));
