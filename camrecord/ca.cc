@@ -26,9 +26,15 @@ using Pds::Epics::EpicsPvCtrlHeader;
 using Pds::Epics::EpicsPvHeader;
 
 typedef Pds::Generic1D::ConfigV0 G1DCfg;
-#define NCHANNELS 16
-static uint32_t _SampleType[NCHANNELS]= {G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16, G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32};
-static double _Period[NCHANNELS]= {8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7};
+
+// For the wave8
+#define W8_NCHAN 16
+static uint32_t W8_SampleType[W8_NCHAN]= {G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::UINT16, G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32,G1DCfg::UINT32};
+static double W8_Period[W8_NCHAN]= {8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7};
+
+// For the qadc
+#define QADC_NCHAN 4
+#define QADC_BASERATE 1.25e9
 
 static void connection_handler(struct connection_handler_args args);
 
@@ -118,8 +124,10 @@ class caconn {
         double           gain = -1;
         double           exposure = -1;
         int              data_size = 0;
-        uint32_t         nsamp[NCHANNELS];
-        int32_t          offset[NCHANNELS];
+        uint32_t         nsamp[W8_NCHAN];
+        uint32_t         stype[W8_NCHAN];
+        int32_t          offset[W8_NCHAN];
+        double           period[W8_NCHAN];
         char             model[40] = "Unknown";
         char             manufacturer[40] = "Unknown";
 
@@ -144,6 +152,7 @@ class caconn {
             register_pv_alias(name, caid, sourceInfo);
             is_cam = 0;
             is_wv8 = 0;
+            is_qadc = 0;
             int result = ca_create_channel(pvname.c_str(),
                                            connection_handler,
                                            this,
@@ -173,21 +182,48 @@ class caconn {
 
         is_cam = 1;
         is_wv8 = 0;
+        is_qadc = 0;
         cmask = 0;
 
         /* Retrieve the camera parameters based on the PV name. */
         char pv[256];
         strcpy(pv, pvname.c_str());
         int pvlen = strlen(pv);
-        if (!strcmp(pv + pvlen - 4, ":RAW")) {
+        if (!strcmp(pv + pvlen - 8, ":RAWDATA")) {
+            /* NOT a camera, a QADC!! */
+            int prescale;
+            is_qadc = 1;
+            pvlen -= 8;
+            strcpy(pv + pvlen, ":LENGTH");      // Samples per channel!
+            read_ca(pv, &qadc_len, DBR_LONG);
+            strcpy(pv + pvlen, ":INTERLEAVE");
+            read_ca(pv, &qadc_inter, DBR_LONG);
+            nchan = qadc_inter ? 1 : 4;
+            strcpy(pv + pvlen, ":PRESCALE");
+            read_ca(pv, &prescale, DBR_LONG);
+            for (int i = 0; i < nchan; i++) {
+                period[i] = prescale / QADC_BASERATE;
+                offset[i] = 0;
+                stype[i] = G1DCfg::FLOAT64;
+                nsamp[i] = qadc_len;
+            }
+            qadc_len *= 4;                      // Total Samples!
+            if (qadc_inter)
+                nsamp[0] *= 4;                  // If interleaved, all samples are channel 0.
+            data_size = qadc_len * 8;           // We save the data here as doubles...
+            nelem = qadc_len / 2 + 8;           // ... but we get it as shorts packed into ints
+                                                // with an 8-word header.
+            qadc_data = (double *) calloc(1, data_size);
+        } else if (!strcmp(pv + pvlen - 4, ":RAW")) {
             /* NOT a camera, a wave8!! */
             is_wv8 = 1;
+            nchan = W8_NCHAN;
             pvlen -= 4;
             nelem = 15; /* Header + Footer */
             strcpy(pv + pvlen, ":ChanEnable_RBV");
             read_ca(pv, &cmask, DBR_LONG);
             printf("cmask = 0x%x\n", cmask);
-            for (int i = 0; i < NCHANNELS; i++) {
+            for (int i = 0; i < nchan; i++) {
                 if (cmask & (1 << i)) {
                     sprintf(pv + pvlen, ":NumberOfSamples%d_RBV", i);
                     read_ca(pv, &nsamp[i], DBR_LONG);
@@ -200,7 +236,6 @@ class caconn {
                     offset[i] = 0;
                 }
             }
-            printf("Wave8: data_size %d bytes, nelem = %d\n", data_size, nelem);
         } else if (!strcmp(pv + pvlen - 10, ":ArrayData")) {
             /* An area detector camera */
             pvlen -= 10;
@@ -280,7 +315,7 @@ class caconn {
             return;
         }
 
-        if (!is_wv8) {
+        if (!is_wv8 && !is_qadc) {
             if (CAMERA_DEPTH(flags))
                 d = CAMERA_DEPTH(flags);
             nelem = w * h;
@@ -342,18 +377,23 @@ class caconn {
                                                exposure, gain, manufacturer, model);
             break;
         case DetInfo::Wave8:
-            size = sizeof(Xtc) + sizeof(Generic1D::ConfigV0) + NCHANNELS * (3 * sizeof(int32_t) + sizeof(double));
+            // OK, this could be a wave8 *or* a qadc!!
+            size = sizeof(Xtc) + sizeof(Generic1D::ConfigV0) + nchan * (3 * sizeof(int32_t) + sizeof(double));
             buf = (char *) calloc(1, size);
             cfg = new (buf) Xtc(TypeId(TypeId::Id_Generic1DConfig, 0), sourceInfo);
-            new ((void *)cfg->alloc(size - sizeof(Xtc)))
-                Generic1D::ConfigV0(NCHANNELS, nsamp, _SampleType, offset, _Period);
+            if (is_wv8)
+                new ((void *)cfg->alloc(size - sizeof(Xtc)))
+                    Generic1D::ConfigV0(nchan, nsamp, W8_SampleType, offset, W8_Period);
+            else
+                new ((void *)cfg->alloc(size - sizeof(Xtc)))
+                    Generic1D::ConfigV0(nchan, nsamp, stype, offset, period);
             break;
         default:
             printf("Unknown device: %s!\n", DetInfo::name(dev));
             fprintf(stderr, "error Unknown device %s\n", DetInfo::name(dev));
             exit(1);
         }
-        if (!is_wv8) {
+        if (!is_wv8 && !is_qadc) {
             // This is on every camera.
             cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), sourceInfo);
             new ((void *)cfg->alloc(sizeof(Camera::FrameFexConfigV1)))
@@ -453,6 +493,11 @@ class caconn {
     int    strict;
     int    is_cam;
     int    is_wv8;
+    int    nchan;
+    int    is_qadc;
+    int    qadc_inter;
+    int    qadc_len;
+    double *qadc_data;
     int32_t cmask;
     int    caid;
     chid   chan;
@@ -468,7 +513,14 @@ static void event_handler(struct event_handler_args args)
     if (args.status != ECA_NORMAL) {
         printf("Bad status: %d\n", args.status);
     } else if (args.type == c->dbrtype && args.count == c->nelem) {
-        if (c->is_wv8) {
+        if (c->is_qadc) {
+            struct dbr_time_long *d = (struct dbr_time_long *) args.dbr;
+            int16_t *in = (int16_t *)(&d->value + 8);
+            for (int i = 0; i < c->qadc_len; i++)
+                c->qadc_data[i] = (in[i] - 512.) / 2048.; /* Scale the shorts into doubles! */
+            data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
+                     c->hdr, c->hdrlen, c->qadc_data);
+        } else if (c->is_wv8) {
             struct dbr_time_long *d = (struct dbr_time_long *) args.dbr;
             int32_t *in = &d->value + 14;
             int32_t *out = &d->value;
@@ -569,11 +621,15 @@ static void connection_handler(struct connection_handler_args args)
         if (c->nelem == -1)
             c->nelem = ca_element_count(args.chid);
         c->dbftype = ca_field_type(args.chid);
-        if (c->dbftype == DBF_LONG && c->is_cam)
+        if (c->is_wv8 || c->is_qadc) {
+            printf("Forcing type to LONG!\n");
+            c->dbftype = DBR_LONG;
+            c->dbrtype = DBR_TIME_LONG;              /* Force this, since we know the wave8 and qadc are really uint32!!! */
+        } else if (c->is_cam) {
+            printf("Forcing type to SHORT!\n");
+            c->dbftype = DBR_SHORT;
             c->dbrtype = DBR_TIME_SHORT;             /* Force this, since we know the cameras are at most 16 bit!!! */
-        else if (c->dbftype == DBF_DOUBLE && c->is_wv8)
-            c->dbrtype = DBR_TIME_LONG;              /* Force this, since we know the wave8 is really uint32!!! */
-        else
+        } else
             c->dbrtype = dbf_type_to_DBR_TIME(c->dbftype);
         c->size = dbr_size_n(c->dbrtype, c->nelem);
         if (c->is_cam) {

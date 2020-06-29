@@ -46,8 +46,9 @@ class xtcsrc {
  public:
     xtcsrc(int _id, int _sync, string _name, int _crit, int _isbig, int _iswv8)
         : id(_id), hdf_id(-1), sync(_sync), name(_name), cnt(0), val(NULL),
-          len(0), hdrlen(0), ref(NULL), sec(0), nsec(0), ev(NULL), critical(_crit),
-          damagecnt(0), isbig(_isbig), iswv8(_iswv8) {};
+          len(0), val2(NULL), len2(0), hdrlen(0), ref(NULL), sec(0), nsec(0),
+          sec2(0), nsec2(0), ev(NULL), critical(_crit), damagecnt(0),
+          isbig(_isbig), iswv8(_iswv8) {};
     int   id;
     int   hdf_id;
     int   sync;                   // Is this a synchronous source?
@@ -55,9 +56,12 @@ class xtcsrc {
     int   cnt;
     unsigned char *val;
     int   len;
+    unsigned char *val2;
+    int   len2;
     int   hdrlen;                 // header length for this value
     int  *ref;                    // Reference count of this value (if asynchronous!)
     unsigned int sec, nsec;       // Timestamp of this value
+    unsigned int sec2, nsec2;     // Timestamp of the second value
     struct event *ev;             // Event for this value (if asynchronous!)
     Src   src;
     int   critical;               // If we have a critical source, then if anything else is missing,
@@ -146,6 +150,8 @@ static struct transition_queue {
 static int transidx = 0;
 static int cfgdone = 0;
 static int match_type = FIDUCIAL_MATCH;
+
+static struct event *find_event(unsigned int sec, unsigned int nsec);
 
 void nofid(void)
 {
@@ -416,6 +422,18 @@ static void write_xtc_config(void)
             delete src[i]->val;
             src[i]->val = NULL;
             src[i]->len = 0;
+            if (src[i]->len2) {
+                src[i]->val = src[i]->val2;
+                src[i]->sec = src[i]->sec2;
+                src[i]->nsec = src[i]->nsec2;
+                src[i]->ref = new int;
+                *(src[i]->ref) = 1;
+                src[i]->ev = find_event(src[i]->sec, src[i]->nsec);
+#ifdef TRACE
+                printf("%08x:%08x AI%d -> event %d\n", 
+                       src[i]->sec, src[i]->nsec, src[i]->id, src[i]->ev->id);
+#endif
+            }
         }
         if (cnt) {
             *reinterpret_cast<uint32_t *>(xtc->alloc(sizeof(uint32_t))) = cnt;
@@ -440,6 +458,11 @@ static void write_xtc_config(void)
             delete src[i]->val;
             src[i]->val = NULL;
             src[i]->len = 0;
+            if (src[i]->len2) {
+                delete src[i]->val2;
+                src[i]->val2 = NULL;
+                src[i]->len2 = 0;
+            }
         }
     }
 
@@ -713,9 +736,11 @@ void send_event(struct event *ev)
 #endif /* DUPLICATE_SUPPRESSION */
     }
     // When do we *not* send an event?
-    // If we have any critical sources in the event, we always send it, even if damaged.
-    // But if nothing is critical, we send it if it is complete.  We know we have asynchronous
-    // values, so we only need to check the synchronous ones.
+    // If we have any critical sources in the event, we always send it,
+    // even if damaged.
+    // But if nothing is critical, we send it if it is complete.  We know 
+    // we have asynchronous values, so we only need to check the synchronous
+    // ones.
     if (critsrc ? (!ev->critcnt) : (ev->synccnt != syncsrc))
         return;
 
@@ -1031,6 +1056,29 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
             cfid = 0x1ffff;
             write_xtc_config();
         } else {
+            if (!s->sync) {
+                // OK, asynchronous data might be static!  So it's now
+                // or never!!
+                unsigned char *buf;
+                int inc = 0;
+                if (s->len2)
+                    buf = s->val2;
+                else {
+                    buf = new unsigned char[hdr->extent];
+                    inc = 1;
+                }
+                memcpy(buf, hdr, hdrlen);
+                if (data)
+                    memcpy(&buf[hdrlen], data, hdr->extent - hdrlen);
+                s->len2 = hdr->extent;
+                s->val2 = buf;
+                s->sec2 = sec;
+                s->nsec2 = nsec;
+#ifdef TRACE
+                printf("%08x:%08x AI%d -> caching %d!\n", sec, nsec, id, inc);
+#endif
+                haveasync += inc;
+            }
             pthread_mutex_unlock(&datalock);
             return;
         }
@@ -1068,7 +1116,8 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
 #ifdef TRACE
             printf("%08x:%08x AI%d -> event %d\n", sec, nsec, id, s->ev->id);
 #endif
-            haveasync++;
+            if (!s->val2)
+                haveasync++;
             pthread_mutex_unlock(&datalock);
             return;
         }
