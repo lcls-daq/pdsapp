@@ -89,7 +89,7 @@ string logbook[LCPARAMS];
 static string lb_params[LCPARAMS] = {
     "logbook_endpoint=",
     "logbook_uid=",
-    "logbook_password=",
+    "logbook_pwd=",
     "logbook_use_kerberos="
 };
 
