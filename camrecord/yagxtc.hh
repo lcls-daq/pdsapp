@@ -7,7 +7,11 @@
 #define DEFAULT_CRED "/reg/g/pcds/controls/camrecord/CONFIG/DEFAULT"
 #define DEFAULT_CFG  ".camrecord"
 #define POSIX_TIME_AT_EPICS_EPOCH 631152000u
-#define NFSBASE     "/reg/d/cameras/"
+#if 0
+// The old way...
+#define NFSBASE     (char *)"/reg/d/cameras/%s/"
+#endif
+#define NFSBASE     (char*)"/u2/REC/daq/"
 
 /* Flags for how the epicsTime can be messed up */
 #define REVTIME_NONE   0
@@ -37,7 +41,7 @@ extern int pvignore;
 extern std::string hostname;
 extern std::string prefix;
 extern std::string username;
-extern std::string curdir;
+extern char curdir[];
 extern std::string expname;
 extern int runnum, strnum;
 extern std::string logbook[LCPARAMS];

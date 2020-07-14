@@ -84,7 +84,7 @@ string expname;
 int runnum = -1;
 int strnum = -1;
 int haveH = 0;
-string curdir = "";
+char curdir[128] = {0};
 string logbook[LCPARAMS];
 static string lb_params[LCPARAMS] = {
     "logbook_endpoint=",
@@ -157,7 +157,7 @@ static istream *open_config_file(const char *name)
     if (res->good())
         return res;
     if (name[0] != '/') {
-        sprintf(buf, "%s/%s", getenv("HOME"), name);
+        snprintf(buf, sizeof(buf), "%s/%s", getenv("HOME"), name);
         res->open(buf);
         if (res->good())
             return res;
@@ -330,7 +330,7 @@ static void read_config_file(const char *name)
         } else if (arrayTokens[0] == "hostname") {
             hostname = arrayTokens[1];
             if (!haveH)
-                curdir = NFSBASE + arrayTokens[1] + "/";
+		snprintf(curdir, sizeof(curdir), NFSBASE, arrayTokens[1].c_str());
             prefix = arrayTokens[1] + " ";
         } else if (arrayTokens[0] == "timeout") {
             delay = atoi(arrayTokens[1].c_str());
@@ -442,21 +442,21 @@ static void initialize(char *config)
         if ((s = rindex(outfile, '/'))) { /* Make sure the directory exists! */
             char buf[1024];
             *s = 0;
-            sprintf(buf, "umask %s; mkdir -p %s/index %s/smalldata",
-                    expname.empty() ? "0" : "2", outfile, outfile);
+            snprintf(buf, sizeof(buf), "umask %s; mkdir -p %s/index %s/smalldata",
+		     expname.empty() ? "0" : "2", outfile, outfile);
             *s = '/';
             system(buf);
         } else {
             system(expname.empty() ? "umask 0; mkdir index smalldata"
-                               : "umask 2; mkdir index smalldata");
+		                   : "umask 2; mkdir index smalldata");
         }
     }
     if (hdfoutfile) {
       if ((s = rindex(hdfoutfile, '/'))) { /* Make sure the directory exists! */
         char buf[1024];
         *s = 0;
-        sprintf(buf, "umask %s; mkdir -p %s",
-                  expname.empty() ? "0" : "2", hdfoutfile);
+        snprintf(buf, sizeof(buf), "umask %s; mkdir -p %s",
+		 expname.empty() ? "0" : "2", hdfoutfile);
         *s = '/';
         system(buf);
       }
@@ -674,7 +674,7 @@ int main(int argc, char **argv)
             chdir(optarg);
             break;
         case 'H':
-            curdir = ((std::string) NFSBASE) + optarg + "/";
+	    snprintf(curdir, sizeof(curdir), NFSBASE, optarg);
             haveH = 1;
             break;
         case 'n':

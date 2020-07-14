@@ -6,6 +6,7 @@
 #include<stdio.h>
 #include<signal.h>
 #include<string.h>
+#include<strings.h>
 #include<math.h>
 #include<netdb.h>
 #include<stdlib.h>
@@ -13,6 +14,7 @@
 #include<unistd.h>
 #include<errno.h>
 #include<sys/stat.h>
+#include<sys/types.h>
 #include<pthread.h>
 
 #include<new>
@@ -177,6 +179,7 @@ static FILE *myfopen(const char *name, const char *flags, int doreg)
         } while (rc < 0 && errno == EINTR);
         if (rc < 0) {
             /* This can't be good.  Better not tell the data mover about it! */
+	    printf("myfopen(%s): lock failed?\n", name);
             return fp;
         }
         if (!doreg)
@@ -184,7 +187,8 @@ static FILE *myfopen(const char *name, const char *flags, int doreg)
         try {
             WSLogbookClient* client = WSLogbookClient::createWSLogbookClient(logbook[0].c_str(), logbook[1].c_str(), logbook[2].c_str(), logbook[3] == "true", expname.c_str());
             std::cout << "Current experiment is " << client->current_experiment() << std::endl;
-            client->report_open_file((curdir + name).c_str(), strnum, chunk, hostname.c_str(), true);
+	    std::string newfile = ((std::string)curdir) + name;
+            client->report_open_file(newfile.c_str(), strnum, chunk, hostname.c_str(), true);
         } catch(const std::runtime_error& e){
             printf("Caught exception %s\n", e.what());
             fprintf(stderr, "Caught exception %s. Aborting!!!\n", e.what());
@@ -550,7 +554,7 @@ void initialize_xtc(char *outfile)
             exit(0);
         } else
             printf("Opened %s for writing.\n", fname);
-        if (!(sfp = myfopen(sfname, "w", 0))) {
+        if (!(sfp = myfopen(sfname, "w", 1))) {
             printf("Cannot open %s for output!\n", sfname);
             fprintf(stderr, "error Open %s failed.\n", sfname);
             exit(0);
