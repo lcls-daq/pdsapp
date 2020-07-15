@@ -11,7 +11,7 @@
 // The old way...
 #define NFSBASE     (char *)"/reg/d/cameras/%s/"
 #endif
-#define NFSBASE     (char*)"/u2/REC/daq/"
+#define NFSBASE     (char*)"/u2/REC/"
 
 /* Flags for how the epicsTime can be messed up */
 #define REVTIME_NONE   0
