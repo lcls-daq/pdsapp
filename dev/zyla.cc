@@ -51,6 +51,7 @@ static void zylaUsage(const char* p)
          "    -p|--platform <platform>,<mod>,<chan>   platform number, EVR module, EVR channel\n"
          "    -u|--uniqueid <alias>                   set device alias\n"
          "    -c|--camera   [0-9]                     select the camera device index (default: 0)\n"
+         "    -P|--pvbase   <pvbase>                  PV base for ISTAR camera options\n"  
          "    -b|--buffers  <buffers>                 the number of frame buffers to provide to the Andor SDK (default: 5)\n"
          "    -W|--wait                               wait for camera temperature to stabilize before running\n"
          "    -w|--sloweb   <0/1/2>                   set slow readout mode (default: 0)\n"
@@ -59,7 +60,7 @@ static void zylaUsage(const char* p)
 
 int main(int argc, char** argv) {
 
-  const char*   strOptions    = ":hp:i:u:c:b:Ww:";
+  const char*   strOptions    = ":hp:i:u:c:P:b:Ww:";
   const struct option loOptions[]   =
     {
        {"help",        0, 0, 'h'},
@@ -67,6 +68,7 @@ int main(int argc, char** argv) {
        {"id",          1, 0, 'i'},
        {"uniqueid",    1, 0, 'u'},
        {"camera",      1, 0, 'c'},
+       {"pvbase",      1, 0, 'P'},
        {"buffers",     1, 0, 'b'},
        {"wait",        0, 0, 'W'},
        {"sloweb",      1, 0, 'w'},
@@ -87,6 +89,7 @@ int main(int argc, char** argv) {
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::Zyla, 0);
   char* uniqueid = (char *)NULL;
+  char* pvbase = (char *)NULL;
   
   int optionIndex  = 0;
   while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &optionIndex ) ) {
@@ -129,6 +132,9 @@ int main(int argc, char** argv) {
           printf("%s: option `-c' parsing error\n", argv[0]);
           lUsage = true;
         }
+        break;
+      case 'P':
+        pvbase = optarg;
         break;
       case 'b':
         if (!CmdLineTools::parseUInt(optarg,num_buffers)) {
@@ -287,7 +293,7 @@ int main(int argc, char** argv) {
   
     Zyla::Server* srv = new Zyla::Server(detInfo);
     servers.push_back(srv);
-    Zyla::Manager* mgr = new Zyla::Manager(*drv, *srv, *cfg, waitCooling);
+    Zyla::Manager* mgr = new Zyla::Manager(*drv, *srv, *cfg, waitCooling, pvbase);
     managers.push_back(mgr);
 
     StdSegWire settings(servers, uniqueid, MAX_EVENT_SIZE, MAX_EVENT_DEPTH, isTriggered, module, channel);

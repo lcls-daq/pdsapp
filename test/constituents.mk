@@ -52,6 +52,7 @@ tgtslib_andorDualStandAlone := dl pthread rt
 tgtsrcs_zylaStandAlone := zylaStandAlone.cc
 tgtincs_zylaStandAlone := pdsdata/include ndarray/include boost/include
 tgtlibs_zylaStandAlone := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.05
+tgtlibs_zylaStandAlone += pds/epicstools epics/ca epics/Com
 tgtslib_zylaStandAlone := dl pthread rt
 
 libPicam := picam/picam picam/GenApi_gcc40_v2_4 picam/GCBase_gcc40_v2_4 picam/MathParser_gcc40_v2_4 picam/log4cpp_gcc40_v2_4 picam/Log_gcc40_v2_4
