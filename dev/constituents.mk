@@ -198,6 +198,7 @@ tgtslib_uxi := $(commonslib)
 
 tgtsrcs_zyla :=	zyla.cc
 tgtincs_zyla := pdsdata/include ndarray/include boost/include
+tgtincs_zyla += epics/include epics/include/os/Linux
 tgtlibs_zyla := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.05
 tgtlibs_zyla += pds/epicstools epics/ca epics/Com
 tgtslib_zyla := $(commonslib)

@@ -11,6 +11,8 @@
 #include "pds/zyla/Driver.hh"
 #include "pds/config/CfgClientNfs.hh"
 
+#include "cadef.h"
+
 #include <getopt.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -289,6 +291,10 @@ int main(int argc, char** argv) {
     std::list<EbServer*>      servers;
     std::list<Zyla::Manager*> managers;
 
+    //  EPICS thread initialization
+    SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), 
+             "zyla calling ca_context_create" );
+
     CfgClientNfs* cfg = new CfgClientNfs(detInfo);
   
     Zyla::Server* srv = new Zyla::Server(detInfo);
@@ -304,6 +310,8 @@ int main(int argc, char** argv) {
     if (seglevel->attach()) {
       task->mainLoop();
     }
+
+    ca_context_destroy();
   }
 
   // Clean up camera
