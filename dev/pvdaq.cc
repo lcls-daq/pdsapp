@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
+#include <ifaddrs.h>
 
 static const unsigned MAX_EVENT_SIZE = 4*1024*1024;
 static const unsigned MAX_EVENT_DEPTH = 64;
@@ -374,7 +375,9 @@ int main(int argc, char** argv) {
   }
 
   if (local_ioc) {
+    char dst[64];
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    ifaddrs *ifap, *ifa;
     sockaddr_in srv;
     memset(&srv,0,sizeof(srv));
     srv.sin_family = AF_INET;
@@ -384,15 +387,19 @@ int main(int argc, char** argv) {
     sockaddr_in name;
     socklen_t   name_sz = sizeof(name);
     getsockname(fd, (sockaddr*)&name, &name_sz);
-    char dst[64];
-    inet_ntop(AF_INET,&name.sin_addr,dst,64);
-    int count = 0;
-    char* p = strchr(dst, '.');
-    while (p!=NULL && count < 2) {
-      p=strchr(p+1, '.');
-      count++;
+
+    // now find the interface for this address to get the broadcast addr
+    getifaddrs(&ifap);
+    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
+      if (ifa->ifa_addr && ifa->ifa_addr->sa_family==AF_INET) {
+        if (((sockaddr_in *) ifa->ifa_addr)->sin_addr.s_addr == name.sin_addr.s_addr) {
+          inet_ntop(AF_INET,&((sockaddr_in *) ifa->ifa_broadaddr)->sin_addr,dst,64);
+          break;
+        }
+      }
     }
-    if (p) strcpy(p+1, "255");
+    freeifaddrs(ifap);
+
     printf("Setting EPICS_CA_ADDR_LIST %s\n",dst);
     setenv("EPICS_CA_ADDR_LIST",dst,1);
     close(fd);
