@@ -53,6 +53,8 @@
 #include "pds/config/UsdUsbConfigType.hh"
 #include "pds/config/UsdUsbFexConfigType.hh"
 #include "pdsdata/psddl/camera.ddl.h"
+// Event code information
+#include "pds/evgr/EvrDefs.hh"
 
 #include "pds/config/EvrConfigType.hh"
 
@@ -111,6 +113,7 @@ static const Pds::BldBitMask EMPTY    = Pds::BldBitMask();
 namespace Pds {
 
   static NullServer* _evrServer = 0;
+  static unsigned _beamPresentCode = 0;
 
   class BldConfigCache {
   public:
@@ -515,15 +518,15 @@ namespace Pds {
     {
       if (_cnt!=0) _cnt--;
       if ((dg->datagram().xtc.damage.value()&(1<<Damage::DroppedContribution)) && _cnt==0) {
-  _eb->dump(1);
-  _cnt = Period;
+        _eb->dump(1);
+        _cnt = Period;
       }
       return dg;
     }
     Transition* transitions(Transition* tr)
     {
       if (tr->id() == TransitionId::Disable)
-  _eb->dump(1);
+        _eb->dump(1);
       return tr;
     }
   private:
@@ -532,7 +535,7 @@ namespace Pds {
   };
 
   class BldCallback : public EventCallback,
-          public SegWireSettings {
+                      public SegWireSettings {
   public:
     BldCallback(Task*      task,
                 unsigned   platform,
@@ -634,12 +637,12 @@ namespace Pds {
       EbEventBase* empty = _pending.empty();
       //  Prefer to flush an unvalued event first
       while( event != empty ) {
-  EbBitMask value(event->allocated().remaining() & _valued_clients);
-  if (value.isZero()) {
-    _postEvent(event);
-    return;
-  }
-  event = event->forward();
+        EbBitMask value(event->allocated().remaining() & _valued_clients);
+        if (value.isZero()) {
+          _postEvent(event);
+          return;
+        }
+        event = event->forward();
       }
       _postEvent(_pending.forward());
     }
@@ -679,20 +682,20 @@ namespace Pds {
       //    Search for FIFO Event with current pulseId and beam present code
       //
       if (_evrServer) {
-  if (serverId.hasBitSet(_evrServer->id())) {  // EVR just added
-    Datagram* dg = event->datagram();
-    uint32_t timestamp = dg->seq.stamp().fiducials();
-    const Xtc& xtc  = *reinterpret_cast<const Xtc*>(_evrServer->payload());
-    const Xtc& xtc1 = *reinterpret_cast<const Xtc*>(xtc.payload());
-    const EvrDataType& evrd = *reinterpret_cast<const EvrDataType*>(xtc1.payload());
+        if (serverId.hasBitSet(_evrServer->id())) {  // EVR just added
+          Datagram* dg = event->datagram();
+          uint32_t timestamp = dg->seq.stamp().fiducials();
+          const Xtc& xtc  = *reinterpret_cast<const Xtc*>(_evrServer->payload());
+          const Xtc& xtc1 = *reinterpret_cast<const Xtc*>(xtc.payload());
+          const EvrDataType& evrd = *reinterpret_cast<const EvrDataType*>(xtc1.payload());
 
-    for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
-      const Pds::EvrData::FIFOEvent& fe = evrd.fifoEvents()[i];
-      if (fe.timestampHigh() == timestamp && fe.eventCode() == 137)
-        return EbS::_is_complete(event,serverId);  //  A beam-present code is found
-    }
-    return NoBuild;   // No beam-present code is found
-  }
+          for(unsigned i=0; i<evrd.numFifoEvents(); i++) {
+            const Pds::EvrData::FIFOEvent& fe = evrd.fifoEvents()[i];
+            if (fe.timestampHigh() == timestamp && fe.eventCode() == _beamPresentCode)
+              return EbS::_is_complete(event,serverId);  //  A beam-present code is found
+          }
+          return NoBuild;   // No beam-present code is found
+        }
       }
       return EbS::_is_complete(event,serverId);   //  Not only EVR is present
     }
@@ -711,13 +714,13 @@ namespace Pds {
       const Src& src = m.header().procInfo();
       for (int s = 0; s < StreamParams::NumberOfStreams; s++) {
 
-  _outlets[s] = new ToEventWireScheduler(*stream(s)->outlet(),
+        _outlets[s] = new ToEventWireScheduler(*stream(s)->outlet(),
               m,
               ipaddress,
               max_size*net_buf_depth,
               m.occurrences());
 
-  _inlet_wires[s] = new BldEvBuilder(src,
+        _inlet_wires[s] = new BldEvBuilder(src,
              _xtcType,
              level,
              *stream(s)->inlet(),
@@ -727,13 +730,13 @@ namespace Pds {
              max_size, eb_depth,
              new VmonEb(src,32,eb_depth,(1<<23),(1<<22)));
 
-  (new VmonServerAppliance(src))->connect(stream(s)->inlet());
+        (new VmonServerAppliance(src))->connect(stream(s)->inlet());
       }
     }
     ~BldStreams() {
       for (int s = 0; s < StreamParams::NumberOfStreams; s++) {
-  delete _inlet_wires[s];
-  delete _outlets[s];
+        delete _inlet_wires[s];
+        delete _outlets[s];
       }
     }
   };
@@ -779,10 +782,10 @@ namespace Pds {
       for (unsigned n = 0; n < nnodes; n++) {
         const Node & node = *alloc.node(n);
         if (node.level() == Level::Segment &&
-	    node == _header) {
-	  _contains = node.transient()?_transientXtcType:_xtcType;  // transitions
-	  static_cast<EbBase&>(inlet).contains(_contains);  // l1accepts
-	}
+            node == _header) {
+          _contains = node.transient()?_transientXtcType:_xtcType;  // transitions
+          static_cast<EbBase&>(inlet).contains(_contains);  // l1accepts
+	      }
       }
 
       for (unsigned n = 0; n < nnodes; n++) {
@@ -899,10 +902,11 @@ static void sigintHandler(int iSignal)
 }
 
 void usage(const char* p) {
-  printf("Usage: %s -p <platform> [-m <mask>] [-C] [-h]\n\n"
+  printf("Usage: %s -p <platform> [-m <mask>] [-C] [-N] [-h]\n\n"
          "Options:\n"
          "       -C : compress images\n"
-         "       -h:  print this message and exit\n",p);
+         "       -N : use new HXR event code (137) for beam presence\n"
+         "       -h : print this message and exit\n",p);
 }
 
 int main(int argc, char** argv) {
@@ -911,12 +915,13 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   unsigned platform = NO_PLATFORM;
   bool lCompress = false;
+  bool use_hxr_ec = false;
   BldBitMask mask = (ONE_BIT<<BldInfo::NumberOf) - ONE_BIT;
   EbBase::printSinks(false);
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "p:m:Ch")) != EOF ) {
+  while ( (c=getopt( argc, argv, "p:m:CNh")) != EOF ) {
     switch(c) {
     case 'p':
       platform = strtoul(optarg, NULL, 0);
@@ -927,6 +932,9 @@ int main(int argc, char** argv) {
       break;
     case 'C':
       lCompress = true;
+      break;
+    case 'N':
+      use_hxr_ec = true;
       break;
     case 'h':
       usage(argv[0]);
@@ -941,6 +949,8 @@ int main(int argc, char** argv) {
     usage(argv[0]);
     return 0;
   }
+
+  _beamPresentCode = use_hxr_ec ? EVENT_CODE_HXR : EVENT_CODE_BEAM;
 
   cache = new BldConfigCache;
 
