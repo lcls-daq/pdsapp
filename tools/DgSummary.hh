@@ -26,6 +26,7 @@ namespace Pds {
     GenericPool _dgpool;
     GenericPool _itpool;
     BldStats*   _bld;
+    bool        _expect;
   };
 };
 
