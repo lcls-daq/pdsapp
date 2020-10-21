@@ -330,7 +330,8 @@ void Experiment::substitute(unsigned           key,
                             const string&      devname,
                             const Pds::TypeId& type, 
                             const char*        payload,
-                            size_t             sz) const
+                            size_t             sz,
+                            bool               reuse) const
 {
   if (_lock==NoLock) 
     _handle_no_lock("substitute");
@@ -339,8 +340,12 @@ void Experiment::substitute(unsigned           key,
   if (!dev) return;
 
   ostringstream skey;
-  skey << std::hex << setw(8) << setfill('0') << key
-       << devname;
+  if (reuse) {
+    skey << "confscan_";
+  } else {
+    skey << std::hex << setw(8) << setfill('0') << key;
+  }
+  skey << devname;
   XtcEntry x;
   x.type_id = type;
   x.name    = skey.str();
@@ -357,14 +362,19 @@ void Experiment::substitute(unsigned           key,
                             const Pds::Src&    src,
                             const Pds::TypeId& type, 
                             const char*        payload,
-                            size_t             sz) const
+                            size_t             sz,
+                            bool               reuse) const
 {
   if (_lock==NoLock)
     _handle_no_lock("substitute_");
 
   ostringstream skey;
-  skey << std::hex << setw(8) << setfill('0') << key
-       << std::hex << setw(8) << setfill('0') << src.phy();
+  if (reuse) {
+    skey << "confscan_";
+  } else {
+    skey << std::hex << setw(8) << setfill('0') << key;
+  }
+  skey << std::hex << setw(8) << setfill('0') << src.phy();
   XtcEntry x;
   x.type_id = type;
   x.name    = skey.str();

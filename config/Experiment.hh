@@ -54,8 +54,16 @@ namespace Pds_ConfigDb {
     unsigned next_key   () const;
   public:
     unsigned clone      (const string& alias);
-    void     substitute (unsigned key, const string& device, const Pds::TypeId&, const char*, size_t) const;
-    void     substitute (unsigned key, const Pds::Src& src , const Pds::TypeId&, const char*, size_t) const;
+    void     substitute (unsigned key,
+                         const string& device,
+                         const Pds::TypeId&,
+                         const char*, size_t,
+                         bool reuse=true) const;
+    void     substitute (unsigned key,
+                         const Pds::Src& src,
+                         const Pds::TypeId&,
+                         const char*, size_t,
+                         bool reuse=true) const;
   public:
     bool     update_key_file(const TableEntry&);
     unsigned next_key_file() const;
