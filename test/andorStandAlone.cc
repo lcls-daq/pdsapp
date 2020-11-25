@@ -372,7 +372,7 @@ int AndorCameraTest::init()
   //Initialize Shutter
   SetShutter(1,0,0,0);
 
-  iError = SetDMAParameters(1, 0.003);
+  iError = SetDMAParameters(1, 0.001);
   if (!isAndorFuncOk(iError))
     printf("SetDMAParameters(): %s\n", AndorErrorCodes::name(iError));
   else
@@ -717,19 +717,7 @@ int AndorCameraTest::_runAcquisition()
   SetReadMode(iReadMode);
   printf("Read mode: %d\n", iReadMode);
 
-  if (iReadMode == 0)
-  {
-    //** Keep clean enable only available for FVB trigger mode
-    int iKeepCleanMode = 0; // Off
-    iError = EnableKeepCleans(iKeepCleanMode);
-    if (!isAndorFuncOk(iError))
-      printf("EnableKeepCleans(): %s\n", AndorErrorCodes::name(iError));
-
-    float fTimeKeepClean = -1;
-    GetKeepCleanTime(&fTimeKeepClean);
-    printf("Keep clean time: %f s\n", fTimeKeepClean);
-  }
-  else if (iReadMode == 4)
+  if (iReadMode == 4)
   {
     if (_bCropMode)
     {
@@ -785,10 +773,6 @@ int AndorCameraTest::_runAcquisition()
 
   if (bExtTrigger) // not Internal or Soft trigger mode
   {
-    iError = SetAccumulationCycleTime(0);
-    if (!isAndorFuncOk(iError))
-      printf("SetAccumulationCycleTime(): %s\n", AndorErrorCodes::name(iError));
-
     iError = SetKineticCycleTime(0);
     if (!isAndorFuncOk(iError))
       printf("SetKineticCycleTime(): %s\n", AndorErrorCodes::name(iError));
@@ -799,6 +783,24 @@ int AndorCameraTest::_runAcquisition()
       printf("GetSizeOfCircularBuffer(): %s\n", AndorErrorCodes::name(iError));
     else
       printf("Size of Circular Buffer: %d\n", (int) sizeBuffer);
+
+    //** Set vertical shift speed to the fastest
+    int iVSRecIndex = 0;
+    iError = SetVSSpeed(iVSRecIndex);
+    if (isAndorFuncOk(iError))
+      printf("Set VSSpeed to %d\n", iVSRecIndex);
+    else
+      printf("SetVSSpeed(): %s\n", AndorErrorCodes::name(iError));
+
+    //** Keep clean enable only available for FVB trigger mode
+    int iKeepCleanMode = 0; // Off
+    iError = EnableKeepCleans(iKeepCleanMode);
+    if (!isAndorFuncOk(iError))
+      printf("EnableKeepCleans(): %s\n", AndorErrorCodes::name(iError));
+
+    float fTimeKeepClean = -1;
+    GetKeepCleanTime(&fTimeKeepClean);
+    printf("Keep clean time: %f s\n", fTimeKeepClean);
   }
 
   float fTimeExposure   = -1;
