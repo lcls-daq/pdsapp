@@ -17,13 +17,17 @@
 using namespace Pds;
 using namespace Pds::Jungfrau;
 
+static bool _scanning = false;
 static const int _minimum_segments = 2;
 static uint32_t _config_extent;
+static uint32_t _scan_extent;
 static uint32_t _data_extent;
 static std::set<Pds::DetInfo> _info;
+static std::set<Pds::DetInfo> _scan;
 static std::vector<JungfrauConfigType> _config;
 static SegmentMap _segment_config;
 static MultiSegmentMap _config_parts;
+static MultiSegmentMap _scan_parts;
 static FrameCacheMap _frames;
 static ParentMap _parents;
 static TransientMap _transients;
@@ -56,11 +60,16 @@ protected:
       case (DetInfo::JungfrauSegmentM4) :
         {
           const JungfrauConfigType* cfg = reinterpret_cast<const JungfrauConfigType*>(xtc->payload());
-           SegmentConfig* seg_cfg = new SegmentConfig(info, xtc->damage, *cfg, _isTransient);
-          _info.insert(seg_cfg->parent());
-          _parents.insert(std::make_pair(info, seg_cfg->parent()));
-          _segment_config.insert(std::make_pair(info, seg_cfg));
-          _config_parts.insert(std::make_pair(seg_cfg->parent(), seg_cfg));
+          SegmentConfig* seg_cfg = new SegmentConfig(info, xtc->damage, *cfg, _isTransient);
+          if (_scanning) {
+            _scan.insert(seg_cfg->parent());
+            _scan_parts.insert(std::make_pair(seg_cfg->parent(), seg_cfg));
+          } else {
+            _info.insert(seg_cfg->parent());
+            _parents.insert(std::make_pair(info, seg_cfg->parent()));
+            _segment_config.insert(std::make_pair(info, seg_cfg));
+            _config_parts.insert(std::make_pair(seg_cfg->parent(), seg_cfg));
+          }
         }
         break;
       default:
@@ -116,7 +125,12 @@ static bool process_config(const DetInfo& parent, Xtc* xtc)
   unsigned num_segments = 0;
   JungfrauConfigType* tmp = NULL;
   JungfrauModConfigType modcfg[JungfrauConfigType::MaxModulesPerDetector];
-  MultiSegmentRange range = _config_parts.equal_range(parent);
+  MultiSegmentRange range;
+  if (_scanning) {
+    range = _scan_parts.equal_range(parent);
+  } else {
+    range = _config_parts.equal_range(parent);
+  }
   for (MultiSegmentIter it = range.first; it != range.second; ++it) {
     const JungfrauConfigType& cfg = it->second->config();
     unsigned expected = it->second->detSize();
@@ -181,9 +195,11 @@ static bool process_config(const DetInfo& parent, Xtc* xtc)
                             tmp->numberOfRowsPerModule(),
                             tmp->numberOfColumnsPerModule(),
                             modcfg);
-    _config.push_back(*tmp);
-    _transients.insert(std::make_pair(parent, transient));
-    _frames.insert(std::make_pair(parent, new FrameCache(*tmp)));
+    if (!_scanning) {
+      _config.push_back(*tmp);
+      _transients.insert(std::make_pair(parent, transient));
+      _frames.insert(std::make_pair(parent, new FrameCache(*tmp)));
+    }
   }
 
   return true;
@@ -214,6 +230,11 @@ static uint32_t get_config_extent()
   return (sizeof(Xtc) + sizeof(Xtc) + sizeof(JungfrauConfigType)) * _info.size();
 }
 
+static uint32_t get_scan_extent()
+{
+  return (sizeof(Xtc) + sizeof(Xtc) + sizeof(JungfrauConfigType)) * _scan.size();
+}
+
 static uint32_t get_data_extent()
 {
   uint32_t size = 0;
@@ -226,6 +247,11 @@ static uint32_t get_data_extent()
 static bool check_config()
 {
   return !_info.empty();
+}
+
+static bool check_scan()
+{
+  return !_scan.empty();
 }
 
 static bool check_data()
@@ -253,15 +279,65 @@ bool JungfrauSegBuilder::process(Dgram& dg, const ProcInfo& proc)
 {
   bool failed = false;
 
-  if (dg.seq.service() == TransitionId::Configure) {
+  if (dg.seq.service() == TransitionId::BeginCalibCycle) {
     // clear up the configs from previous transitions
+    _scanning = true;
+    _scan_extent = 0;
+    _scan.clear();
+    for(MultiSegmentIter it=_scan_parts.begin(); it!=_scan_parts.end(); ++it)
+      delete it->second;
+    _scan_parts.clear();
+
+    // modify the datagram removing segment configs
+    uint32_t remaining = dg.xtc.extent;
+    uint32_t* pdg = reinterpret_cast<uint32_t*>(&(dg.xtc));
+    JungfrauBuilder iter(&(dg.xtc),pdg);
+    iter.iterate();
+    remaining -= dg.xtc.extent;
+
+    // Calculate the space needed for building config xtcs
+    _scan_extent = get_scan_extent();
+
+    // Create a new segment level entry and add combined Jungfrau configs to it
+    if (check_scan()) {
+      // Check that we have enough space in the datagram for configs we plan to add
+      if (_scan_extent <= remaining) {
+        for (std::set<Pds::DetInfo>::const_iterator parent=_scan.begin(); parent!=_scan.end(); ++parent) {
+          // segement level xtc
+          Xtc* seg = new (&dg.xtc) Xtc(_xtcType, proc);
+          // detector config xtc
+          Xtc* xtc = new (seg) Xtc(_jungfrauConfigType, *parent);
+          if (!process_config(*parent, xtc)) {
+            printf("%s. Failed to create configuration!\n", DetInfo::name(*parent));
+            failed = true;
+          }
+          // check if the parent is transient and modify the type of the xtc if needed
+          if (check_transient(*parent)) {
+            seg->contains = _transientXtcType;
+          }
+          seg->alloc(xtc->sizeofPayload());
+          dg.xtc.alloc(seg->sizeofPayload());
+        }
+      } else {
+        printf("Not enough space to create configurations, since %u is needed but only %u available!\n", _scan_extent, remaining);
+        failed = true;
+      }
+    }
+  } else if (dg.seq.service() == TransitionId::Configure) {
+    // clear up the configs from previous transitions
+    _scanning = false;
     _config_extent = 0;
+    _scan_extent = 0;
     _data_extent = 0;
     _config.clear();
     _config_parts.clear();
     _info.clear();
+    _scan.clear();
     _parents.clear();
     _transients.clear();
+    for(MultiSegmentIter it=_scan_parts.begin(); it!=_scan_parts.end(); ++it)
+      delete it->second;
+    _scan_parts.clear();
     for(SegmentIter it=_segment_config.begin(); it!=_segment_config.end(); ++it)
       delete it->second;
     _segment_config.clear();
@@ -276,7 +352,7 @@ bool JungfrauSegBuilder::process(Dgram& dg, const ProcInfo& proc)
     iter.iterate();
     remaining -= dg.xtc.extent;
 
-    // Calculate the space needed for the build config and data xtcs
+    // Calculate the space needed for the building config and data xtcs
     _config_extent = get_config_extent();
     _data_extent = get_data_extent();
 
@@ -335,7 +411,7 @@ bool JungfrauSegBuilder::process(Dgram& dg, const ProcInfo& proc)
             dg.xtc.alloc(seg->sizeofPayload());
           }
         } else {
-          printf("Not enough space to add data, since %u is needed but only %u available!\n", _config_extent, remaining);
+          printf("Not enough space to add data, since %u is needed but only %u available!\n", _data_extent, remaining);
           failed = true;
         }
       } else {
