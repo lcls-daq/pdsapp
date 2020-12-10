@@ -77,7 +77,7 @@ tgtslib_epix10k := $(commonslib)
 tgtincs_epix10k := pdsdata/include ndarray/include boost/include 
 
 tgtsrcs_epix100a := epix100a.cc
-tgtlibs_epix100a := $(commonlibs) pds/epix100a pds/pgp pds/configdata
+tgtlibs_epix100a := $(commonlibs) pds/epix100a pds/pgp pds/configdata pds/configutils
 tgtlibs_epix100a += evgr/evr evgr/evg
 tgtlibs_epix100a += pds/evgr
 tgtlibs_epix100a += pds/eventcodetools pds/epicstools epics/ca epics/Com
@@ -86,7 +86,7 @@ tgtincs_epix100a := pdsdata/include ndarray/include boost/include
 tgtincs_epix100a += epics/include epics/include/os/Linux
 
 tgtsrcs_epix10ka := epix10ka.cc
-tgtlibs_epix10ka := $(commonlibs) pds/epix10ka pds/pgp pds/configdata
+tgtlibs_epix10ka := $(commonlibs) pds/epix10ka pds/pgp pds/configdata pds/configutils
 tgtlibs_epix10ka += evgr/evr evgr/evg
 tgtlibs_epix10ka += pds/evgr
 tgtlibs_epix10ka += pds/eventcodetools pds/epicstools epics/ca epics/Com
@@ -95,7 +95,7 @@ tgtincs_epix10ka := pdsdata/include ndarray/include boost/include
 tgtincs_epix10ka += epics/include epics/include/os/Linux
 
 tgtsrcs_epix10ka2m := epix10ka2m.cc
-tgtlibs_epix10ka2m := $(commonlibs) pds/epix10ka2m pds/pgp pds/configdata
+tgtlibs_epix10ka2m := $(commonlibs) pds/epix10ka2m pds/pgp pds/configdata pds/configutils
 tgtlibs_epix10ka2m += pds/pgpv3
 tgtlibs_epix10ka2m += evgr/evr evgr/evg
 tgtlibs_epix10ka2m += pds/evgr
@@ -106,7 +106,7 @@ tgtincs_epix10ka2m := pdsdata/include ndarray/include boost/include
 tgtincs_epix10ka2m += epics/include epics/include/os/Linux
 
 tgtsrcs_epix10kaquad := epix10kaquad.cc
-tgtlibs_epix10kaquad := $(commonlibs) pds/epix10ka2m pds/pgp pds/configdata
+tgtlibs_epix10kaquad := $(commonlibs) pds/epix10ka2m pds/pgp pds/configdata pds/configutils
 tgtlibs_epix10kaquad += pds/pgpv3
 tgtlibs_epix10kaquad += evgr/evr evgr/evg
 tgtlibs_epix10kaquad += pds/evgr
@@ -198,9 +198,7 @@ tgtslib_uxi := $(commonslib)
 
 tgtsrcs_zyla :=	zyla.cc
 tgtincs_zyla := pdsdata/include ndarray/include boost/include
-tgtincs_zyla += epics/include epics/include/os/Linux
 tgtlibs_zyla := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.05
-tgtlibs_zyla += pds/epicstools epics/ca epics/Com
 tgtslib_zyla := $(commonslib)
 
 tgtsrcs_evr := evr.cc
