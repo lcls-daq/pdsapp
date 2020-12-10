@@ -148,7 +148,10 @@ namespace Pds_ConfigDb {
             _reg[i]->initialize(0); // initialize but don't show
           }
           for (unsigned i=Epix10kaConfigShadow::EvrRunCode; i<Epix10kaConfigShadow::DacSetting; i++) {
-            l->addLayout(_reg[i]->initialize(0));
+            if (i==Epix10kaConfigShadow::EvrRunCode)
+              _reg[i]->initialize(0); // initialize but don't show daq code
+            else
+              l->addLayout(_reg[i]->initialize(0));
           }
           for (unsigned i=Epix10kaConfigShadow::DacSetting; i<Epix10kaConfigShadow::NumberOfRegisters; i++) {
             _reg[i]->initialize(0); // initialize but don't show
