@@ -85,7 +85,6 @@ namespace Pds_ConfigDb {
     public:
       GlobalP() :
         _evrRunCode      ( "EVR Run EventCode"     , 40, 0, 255, Decimal),
-        _evrDaqCode      ( "EVR Acq EventCode"     , 40, 0, 255, Decimal),
         _evrRunDelay     ( "EVR Run Delay [119MHz]", 0, 0, (1U<<31)-1, Decimal),
         _asicMask        ( "ASIC Mask"             , -1U, 0, -1U, Hex)
       {
@@ -101,13 +100,11 @@ namespace Pds_ConfigDb {
       void reset ()
       {
         _evrRunCode.value = 40;
-        _evrDaqCode.value = 40;
         _evrRunDelay.value = 0;
       }
       void pull   (const Epix10kaQuadConfigType& p)
       {
         _evrRunCode .value = p.evr().runCode ();
-        _evrDaqCode .value = p.evr().daqCode ();
         _evrRunDelay.value = p.evr().runDelay();
         _asicMask   .value = 0;
         for(unsigned i=0; i<4; i++) {
@@ -124,7 +121,7 @@ namespace Pds_ConfigDb {
       }
       void push   (Epix10kaQuadConfigType* p)
       {
-        Pds::Epix::PgpEvrConfig evr(1U, _evrRunCode.value, _evrDaqCode.value, _evrRunDelay.value);
+        Pds::Epix::PgpEvrConfig evr(1U, _evrRunCode.value, 0, _evrRunDelay.value);
 
         Pds::Epix::Config10ka elemCfg[4];
         for(unsigned i=0; i<4; i++) {
@@ -144,7 +141,6 @@ namespace Pds_ConfigDb {
       void initialize(QWidget* parent, QVBoxLayout* layout)
       {
         layout->addLayout(_evrRunCode     .initialize(parent));
-        layout->addLayout(_evrDaqCode     .initialize(parent));
         layout->addLayout(_evrRunDelay    .initialize(parent));
         layout->addSpacing(40);
         layout->addWidget(_asicMaskMap = new Epix10ka2MMap(1));
@@ -170,7 +166,6 @@ namespace Pds_ConfigDb {
  
       void insert(Pds::LinkedList<Parameter>& pList) {
         pList.insert(&_evrRunCode);
-        pList.insert(&_evrDaqCode);
         pList.insert(&_evrRunDelay);
         pList.insert(&_asicMask);
         for(unsigned j=0; j<16; j++)
@@ -200,7 +195,6 @@ namespace Pds_ConfigDb {
 
     public:
       NumericInt<unsigned>             _evrRunCode;
-      NumericInt<unsigned>             _evrDaqCode;
       NumericInt<unsigned>             _evrRunDelay;
       Epix10ka2MMap*                   _asicMaskMap;
       NumericInt<uint16_t>             _asicMask;
