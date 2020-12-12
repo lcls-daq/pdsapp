@@ -82,6 +82,12 @@ static PyObject* pdsdaq_blocking (PyObject* self);
 #endif
 static bool      pdsdaq_lock     (PyObject* self, bool interrupt=true);
 static void      pdsdaq_unlock   (PyObject* self);
+static bool      pdsdaq_pvcheck  (PyObject* name, ssize_t size, const char* pvtype);
+#define CHECK_PVCONTROL_NAME(name)  pdsdaq_pvcheck(name, PVControl::NameSize, "Control")
+#define CHECK_PVMONITOR_NAME(name)  pdsdaq_pvcheck(name, PVMonitor::NameSize, "Monitor")
+#define CHECK_PVLABEL_NAME(name)    pdsdaq_pvcheck(name, PVLabel::NameSize,   "Label")
+#define CHECK_PVLABEL_VALUE(name)   pdsdaq_pvcheck(name, PVLabel::ValueSize,  "Label")
+
 //
 //  pdsdaq class methods (thread safe versions)
 //
@@ -825,6 +831,11 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
   if (controls)
     for(unsigned i=0; i<PyList_Size(controls); i++) {
       PyObject* item = PyList_GetItem(controls,i);
+      if (!CHECK_PVCONTROL_NAME(PyTuple_GetItem(item,0))) {
+        // Half configuring leaves the DAQ in a strange state so disconnect to go to unconfigured!
+        Py_DECREF(pdsdaq_disconnect(self));
+        return NULL;
+      }
       clist.push_back(PVControl(PyString_AsString(PyTuple_GetItem(item,0)),
                                 PVControl::NoArray,
                                 PyFloat_AsDouble (PyTuple_GetItem(item,1))));
@@ -834,6 +845,11 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
   if (monitors)
     for(unsigned i=0; i<PyList_Size(monitors); i++) {
       PyObject* item = PyList_GetItem(monitors,i);
+      if (!CHECK_PVMONITOR_NAME(PyTuple_GetItem(item,0))) {
+        // Half configuring leaves the DAQ in a strange state so disconnect to go to unconfigured!
+        Py_DECREF(pdsdaq_disconnect(self));
+        return NULL;
+      }
       mlist.push_back(PVMonitor(PyString_AsString(PyTuple_GetItem(item,0)),
                                 PVMonitor::NoArray,
                                 PyFloat_AsDouble (PyTuple_GetItem(item,1)),
@@ -844,8 +860,15 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
   if (labels)
     for(unsigned i=0; i<PyList_Size(labels); i++) {
       PyObject* item = PyList_GetItem(labels,i);
-      llist.push_back(PVLabel  (PyString_AsString(PyTuple_GetItem(item,0)),
-                                PyString_AsString(PyTuple_GetItem(item,1))));
+      if (!CHECK_PVLABEL_NAME(PyTuple_GetItem(item,0)) ||
+          !CHECK_PVLABEL_VALUE(PyTuple_GetItem(item,1))) {
+        // Half configuring leaves the DAQ in a strange state so disconnect to go to unconfigured!
+        Py_DECREF(pdsdaq_disconnect(self));
+        return NULL;
+      }
+      char* name  = strdup(PyString_AsString(PyTuple_GetItem(item,0)));
+      llist.push_back(PVLabel(name, PyString_AsString(PyTuple_GetItem(item,1))));
+      free(name);
     }
 
   ControlConfigType* cfg;
@@ -948,6 +971,9 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
   if (controls) {
     for(unsigned i=0; i<PyList_Size(controls); i++) {
       PyObject* item = PyList_GetItem(controls,i);
+      if (!CHECK_PVCONTROL_NAME(PyTuple_GetItem(item,0))) {
+        return NULL;
+      }
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
       list<PVControl>::iterator it=clist.begin();
       while(it!=clist.end()) {
@@ -973,6 +999,9 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
   if (monitors) {
     for(unsigned i=0; i<PyList_Size(monitors); i++) {
       PyObject* item = PyList_GetItem(monitors,i);
+      if (!CHECK_PVMONITOR_NAME(PyTuple_GetItem(item,0))) {
+        return NULL;
+      }
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
       list<PVMonitor>::iterator it=mlist.begin();
       while(it!=mlist.end()) {
@@ -1001,7 +1030,11 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
   if (labels) {
     for(unsigned i=0; i<PyList_Size(labels); i++) {
       PyObject* item = PyList_GetItem(labels,i);
-      const char* name = PyString_AsString(PyTuple_GetItem(item,0));
+      if (!CHECK_PVLABEL_NAME(PyTuple_GetItem(item,0)) ||
+          !CHECK_PVLABEL_VALUE(PyTuple_GetItem(item,1))) {
+        return NULL;
+      }
+      char* name = strdup(PyString_AsString(PyTuple_GetItem(item,0)));
       list<PVLabel>::iterator it=llist.begin();
       while(it!=llist.end()) {
         if (strncmp(name,it->name(),PVLabel::NameSize)==0) {
@@ -1014,7 +1047,10 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
         ostringstream o;
         o << "Label " << name << " not present in Configure";
         PyErr_SetString(PyExc_TypeError,o.str().c_str());
+        free(name);
         return NULL;
+      } else {
+        free(name);
       }
     }
   }
@@ -1362,6 +1398,28 @@ void pdsdaq_unlock  (PyObject* self)
   PyThread_release_lock(daq->lock);
 #endif
 }
+
+bool pdsdaq_pvcheck  (PyObject* name, ssize_t size, const char* pvtype)
+{
+  if(!PyString_Check(name)) {
+    ostringstream o;
+    o << pvtype << " names must be strings!";
+    PyErr_SetString(PyExc_TypeError,o.str().c_str());
+    return false;
+  } else if(PyString_Size(name) >= size) {
+    ostringstream o;
+    o << pvtype << " name " << PyString_AsString(name) << " exceeds the maximum character length of " << size;
+    PyErr_SetString(PyExc_ValueError,o.str().c_str());
+    return false;
+  } else {
+    return true;
+  }
+}
+
+#undef CHECK_PVCONTROL_NAME
+#undef CHECK_PVMONITOR_NAME
+#undef CHECK_PVLABEL_NAME
+#undef CHECK_PVLABEL_VALUE
 
 //
 //  Module methods
