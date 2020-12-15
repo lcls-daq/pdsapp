@@ -55,21 +55,21 @@ namespace Pds {
                              public Routine {
   public:
     MyXtcMonitorServer(const char* tag,
-		       unsigned sizeofBuffers, 
-		       unsigned numberofEvBuffers, 
-		       unsigned numberofEvQueues, const char* intf) : 
+                       unsigned sizeofBuffers,
+                       unsigned numberofEvBuffers,
+                       unsigned numberofEvQueues, const char* intf) :
       XtcMonitorServer(tag,
-		       sizeofBuffers,
-		       numberofEvBuffers,
-		       numberofEvQueues), 
-      _task(new Task(TaskObject("monmcast")))   
+                       sizeofBuffers,
+                       numberofEvBuffers,
+                       numberofEvQueues),
+      _task(new Task(TaskObject("monmcast")))
     {
       _init();
     }
     ~MyXtcMonitorServer() {}
   public:
 
-    void run(int nodes, unsigned int platform) { 
+    void run(int nodes, unsigned int platform) {
 
 
       //
@@ -91,7 +91,7 @@ namespace Pds {
           printf("Failed to find source\n");
         m.cancel();
       }
-   
+
       Ins vmon(StreamPorts::vmon(platform));
 
       ProcInfo  info(Level::Observer, getpid(), iip);
@@ -113,7 +113,7 @@ namespace Pds {
       VmonServerManager::instance(result)->listen(info, vmon);
       MonGroup* group = new MonGroup("event_tracking");
       VmonServerManager::instance()->cds().add(group);
-  	
+
       //
       //  Start a thread to request connections to the servers
       //
@@ -125,7 +125,7 @@ namespace Pds {
       //
       while(1) {
 
-	int nfd=1+_receivers.size();
+        int nfd=1+_receivers.size();
         std::vector<pollfd> pfd(nfd);
         pfd[0].fd=_connReq.socket();
         pfd[0].events = POLLIN|POLLERR;
@@ -135,8 +135,8 @@ namespace Pds {
         }
 
         int r;
-	r=poll(&pfd[0], pfd.size(), 1000);
-	
+        r=poll(&pfd[0], pfd.size(), 1000);
+
         if(pfd[0].revents&POLLIN) { //add new connections to array
           int fd=_connReq.receiveConnection();
           if (fd <0) {
@@ -158,7 +158,7 @@ namespace Pds {
               pfd.erase(pfd.begin()+j);
               continue;
             }
-				
+
             Dgram* dg = ((Dgram*)p);
 
             if( !dg->seq.isEvent() && j != 1 ) {
@@ -175,7 +175,7 @@ namespace Pds {
           }
 
         }
-	
+
       }
     }
 
@@ -209,7 +209,7 @@ namespace Pds {
     void _requestDatagram() {
       //printf("_requestDatagram\n");
       if (_receivers.size()==0) {
-	_initialRequests++;
+        _initialRequests++;
       }
       else {
         //
@@ -235,8 +235,8 @@ namespace Pds {
             smallest_pending = pend;
             location = i;
           }
-	}
-	_receivers[location].request();
+        }
+        _receivers[location].request();
 
       }
     }
@@ -330,10 +330,10 @@ int main(int argc, char** argv) {
 
   printf("\nPartition Tag:%s\n", tag);
 
-  MyXtcMonitorServer* apps = new MyXtcMonitorServer(tag, 
-						    sizeOfBuffers, 
-						    numberOfBuffers, 
-						    nevqueues, intf);
+  MyXtcMonitorServer* apps = new MyXtcMonitorServer(tag,
+                                                    sizeOfBuffers,
+                                                    numberOfBuffers,
+                                                    nevqueues, intf);
   apps->distribute(ldist);
 
   apps->run(node, platform); //pass variable node and platform
