@@ -21,16 +21,21 @@ include $(RELEASE_DIR)/make/sw/package.mk
 #
 #  Special rules for creating python C++ extension libraries
 #
-pyso  := $(libdir)/pycdb.so $(libdir)/pydaq.so
-pyso2 := $(addsuffix .2,$(pyso))
-pyso3 := $(addsuffix .3,$(pyso))
+pyso    := $(libdir)/pycdb.so $(libdir)/pydaq.so
+pysoabi := $(patsubst %.so,%.abi3.so,$(pyso))
+pyso2   := $(addsuffix .2,$(pyso))
+pyso3   := $(addsuffix .3,$(pyso))
 
-userall: $(pyso) $(pyso2) $(pyso3)
+userall: $(pyso) $(pysoabi) $(pyso2) $(pyso3)
 
 userclean:
-	$(quiet)$(RM) $(pyso) $(pyso2) $(pyso3)
+	$(quiet)$(RM) $(pyso) $(pysoabi) $(pyso2) $(pyso3)
 
 # Libraries
+$(libdir)/py%.abi3.$(LIBEXTNS):
+	@echo "[LD] Build python library $*"
+	$(quiet)ln -s py$*.$(LIBEXTNS).3 $@
+
 $(libdir)/py%.$(LIBEXTNS):
 	@echo "[LD] Build python library $*"
 	$(quiet)ln -s py$*.$(LIBEXTNS).2 $@
