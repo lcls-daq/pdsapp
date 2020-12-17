@@ -1152,6 +1152,66 @@ protected:
   unsigned _ibuffer;
 };
 
+template<class C, class E>
+class SimEpixArrayBase : public SimApp {
+public:
+  SimEpixArrayBase() {}
+  ~SimEpixArrayBase()
+  {
+    delete[] _cfgpayload;
+    delete[] _evtpayload;
+  }
+protected:
+  Xtc* config(const Src& src, unsigned sz)
+  {
+    _cfgpayload = new char[sz];
+    return (_cfgtc = new(_cfgpayload)
+      Xtc(TypeId(TypeId::Type(C::TypeId),unsigned(C::Version)),src));
+  }
+  void event(const Src& src)
+  {
+    const C* cfg = reinterpret_cast<const C*>(_cfgtc->payload());
+    const size_t sz = E::_sizeof(*cfg);
+    unsigned evtsz = sz + sizeof(Xtc);
+    unsigned evtst = (evtsz+3)&~3;
+    _evtpayload = new char[NBuffers*evtst];
+
+    for(unsigned b=0; b<NBuffers; b++) {
+      _evttc[b] = new(_evtpayload+b*evtst)
+  Xtc(TypeId(TypeId::Type(E::TypeId),unsigned(E::Version)),src);
+      E* q = new (_evttc[b]->alloc(sz)) E;
+      //  Set the payload
+      ndarray<const uint16_t,3> a = q->frame(*cfg);
+      uint16_t* p = const_cast<uint16_t*>(a.data());
+      uint16_t* e = p+a.size();
+      unsigned o = 0x150 + ((rand()>>8)&0x7f);
+      double sigm = 32;
+      while(p < e)
+        *p++ = rangss(o,sigm,0x3fff);
+    }
+  }
+private:
+  void _execute_configure() { _ibuffer=0; }
+  void _insert_configure(InDatagram* dg)
+  {
+    dg->insert(*_cfgtc,_cfgtc->payload());
+  }
+  void _insert_event(InDatagram* dg)
+  {
+    dg->insert(*_evttc[_ibuffer],_evttc[_ibuffer]->payload());
+    if (++_ibuffer == NBuffers) _ibuffer=0;
+  }
+public:
+  size_t max_size() const { return _evttc[0]->sizeofPayload(); }
+protected:
+  char* _cfgpayload;
+  char* _evtpayload;
+  Xtc*  _cfgtc;
+  enum { NBuffers=64 };
+  Xtc*  _evttc[NBuffers];
+  unsigned _ibuffer;
+};
+
 class SimEpix100 : public SimEpixBase<Epix::ConfigV1,Epix::ElementV1> {
   enum { Columns = 2*96, Rows = 2*88 };
 public:
@@ -1298,6 +1358,140 @@ public:
   }
 };
 
+class SimEpix10kaQuad : public SimEpixArrayBase<Epix::Config10kaQuadV1,Epix::ArrayV1> {
+public:
+  SimEpix10kaQuad(const Src& src) {
+    const unsigned Asics = 4;
+
+    Epix::Config10kaQuadV1 c;
+    unsigned CfgSize = c._sizeof()+sizeof(Xtc);
+
+    Xtc* cfgtc = config(src,CfgSize);
+
+    Epix::Config10ka e;
+    unsigned ElemSize = e._sizeof();
+    unsigned Elements = c.numberOfElements();
+    Epix::Asic10kaConfigV1 asics[Asics];
+    uint16_t* asicarray = new uint16_t[e.numberOfRows()*e.numberOfColumns()];
+    memset(asicarray, 0, e.numberOfRows()*e.numberOfColumns()*sizeof(uint16_t));
+    uint8_t* calibarray = new uint8_t[e.numberOfCalibrationRows()/2*
+              e.numberOfPixelsPerAsicRow()*
+              e.numberOfAsicsPerRow()];
+    memset(calibarray, 0,
+     e.numberOfCalibrationRows()/2*
+     e.numberOfPixelsPerAsicRow()*
+     e.numberOfAsicsPerRow());
+
+    unsigned asicMask = 0xf; // for all asics on ortherwise use -> src.phy()&0xf;
+
+    char* elemBuffer = new char[Elements * ElemSize];
+    Epix::Config10ka* elemCfg = reinterpret_cast<Epix::Config10ka*>(elemBuffer);
+    for (unsigned elem=0; elem<Elements; elem++) {
+      new(&elemCfg[elem]) Epix::Config10ka(0, 0, asicMask, asics, asicarray, calibarray);
+    }
+
+    Epix::PgpEvrConfig pgpCfg(1, 40, 40, 0);
+
+    Epix::Config10kaQuad quadCfg;
+
+    Epix::Config10kaQuadV1* cfg = new (cfgtc->next())
+      Epix::Config10kaQuadV1(pgpCfg, quadCfg, elemCfg);
+
+    cfgtc->alloc(cfg->_sizeof());
+
+    // cleanup temporary memory for creating configs
+    delete[] asicarray;
+    delete[] calibarray;
+    delete[] elemBuffer;
+
+    event(src);
+  }
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    return (info.device()==DetInfo::Epix10kaQuad);
+  }
+};
+
+class SimEpix10ka2M : public SimEpixArrayBase<Epix::Config10ka2MV1,Epix::ArrayV1> {
+public:
+  SimEpix10ka2M(const Src& src) {
+    const unsigned Asics = 4;
+    const unsigned Adcs  = 10;
+
+    Epix::Config10ka2MV1 c;
+    unsigned CfgSize = c._sizeof()+sizeof(Xtc);
+
+    Xtc* cfgtc = config(src,CfgSize);
+
+    Epix::Config10ka e;
+    unsigned ElemSize = e._sizeof();
+    unsigned Elements = c.numberOfElements();
+    Epix::Asic10kaConfigV1 asics[Asics];
+    uint16_t* asicarray = new uint16_t[e.numberOfRows()*e.numberOfColumns()];
+    memset(asicarray, 0, e.numberOfRows()*e.numberOfColumns()*sizeof(uint16_t));
+    uint8_t* calibarray = new uint8_t[e.numberOfCalibrationRows()/2*
+              e.numberOfPixelsPerAsicRow()*
+              e.numberOfAsicsPerRow()];
+    memset(calibarray, 0,
+     e.numberOfCalibrationRows()/2*
+     e.numberOfPixelsPerAsicRow()*
+     e.numberOfAsicsPerRow());
+
+    unsigned asicMask = 0xf; // for all asics on ortherwise use -> src.phy()&0xf;
+
+    char* elemBuffer = new char[Elements * ElemSize];
+    Epix::Config10ka* elemCfg = reinterpret_cast<Epix::Config10ka*>(elemBuffer);;
+    for (unsigned elem=0; elem<Elements; elem++) {
+      new(&elemCfg[elem]) Epix::Config10ka(0, 0, asicMask, asics, asicarray, calibarray);
+    }
+
+    Epix::PgpEvrConfig pgpCfg(1, 40, 40, 0);
+
+    Epix::Config10kaQuad q;
+    unsigned QuadSize = q._sizeof();
+    unsigned Quads = 4;
+
+    Epix::Ad9249Config adcs[Adcs];
+
+    char* quadBuffer = new char[Quads * QuadSize];
+    Epix::Config10kaQuad* quadCfg = reinterpret_cast<Epix::Config10kaQuad*>(quadBuffer);
+    for (unsigned quad=0; quad<Quads; quad++) {
+      new(&quadCfg[quad]) Epix::Config10kaQuad(0, 0, 0, 0, 0,   //digitalCardId1
+                                               0xf, 1, 1, 0, 0, //trigSrcSel
+                                               0, 78032, 30,    //asicR0Width
+                                               10000, 10000,    //asicAcqWidth
+                                               1000, 0, 7,      //asicRoClkHalfT
+                                               0, 0, 1, 0, 0,   //asicRoClkForce
+                                               0, 0, 1, 0, 0,   //asicRoClkValue
+                                               30, 0,           //testData
+                                               0, 0, 0, 0,      //scopeTrigMode
+                                               0 ,0, 0, 0, 0,   //scopeADCsamplesToS
+                                               0, 0, 0, adcs,
+                                               0, 0, 0, 0, 0,   //testTimeout
+                                               0);
+    }
+
+    Epix::Config10ka2MV1* cfg = new (cfgtc->next())
+      Epix::Config10ka2MV1(pgpCfg, quadCfg, elemCfg);
+
+    cfgtc->alloc(cfg->_sizeof());
+
+    // cleanup temporary memory for creating configs
+    delete[] asicarray;
+    delete[] calibarray;
+    delete[] elemBuffer;
+    delete[] quadBuffer;
+
+    event(src);
+  }
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    return (info.device()==DetInfo::Epix10ka2M);
+  }
+};
+
 class SimEpixSampler : public SimApp {
 public:
   SimEpixSampler(const Src& src)
@@ -1422,6 +1616,10 @@ public:
       _app = new SimEpix10k(src);
     else if (SimEpix100a::handles(src))
       _app = new SimEpix100a(src);
+    else if (SimEpix10kaQuad::handles(src))
+      _app = new SimEpix10kaQuad(src);
+    else if (SimEpix10ka2M::handles(src))
+      _app = new SimEpix10ka2M(src);
     else if (SimEpixSampler::handles(src))
       _app = new SimEpixSampler(src);
     else if (SimZyla::handles(src))
