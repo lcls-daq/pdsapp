@@ -7,6 +7,7 @@
 #include "pdsapp/config/Epix10kaConfig.hh"
 #include "pdsapp/config/JungfrauConfig.hh"
 #include "pdsapp/config/ZylaConfig.hh"
+#include "pdsapp/config/iStarConfig.hh"
 #include "pdsapp/config/PixisConfig.hh"
 #include "pdsapp/config/UxiConfig.hh"
 #include "pdsapp/config/ArchonConfig.hh"
@@ -43,6 +44,7 @@ Serializer* ExpertDictionary::lookup(const Pds::TypeId& type)
   enroll(_epix100aConfigType  ,new Epix100aConfig(true));
   enroll(_epix10kaConfigType  ,new Epix10kaConfig(true));
   enroll(_zylaConfigType      ,new ZylaConfig(true));
+  enroll(_istarConfigType     ,new iStarConfig(true));
   enroll(_jungfrauConfigType  ,new JungfrauConfig(true));
   enroll(_pixisConfigType     ,new PixisConfig(true));
   enroll(_uxiConfigType       ,new UxiConfig(true));

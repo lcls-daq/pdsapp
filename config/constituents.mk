@@ -50,6 +50,7 @@ libsrcs_configdbg += JungfrauConfig.cc
 libsrcs_configdbg += JungfrauConfig_V1.cc
 libsrcs_configdbg += JungfrauConfig_V2.cc
 libsrcs_configdbg += ZylaConfig.cc
+libsrcs_configdbg += iStarConfig.cc
 libsrcs_configdbg += UxiConfig.cc
 #libsrcs_configdbg += ProjectionConfig.cc ProjectionConfigQ.cc ProjectionConfigQ_moc.cc
 libsrcs_configdbg += EvrOutputMap.cc EvrOutputMap_V1.cc

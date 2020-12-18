@@ -83,6 +83,7 @@
 #include "pdsapp/config/JungfrauConfig_V2.hh"
 #include "pdsapp/config/QuadAdcConfig.hh"
 #include "pdsapp/config/ZylaConfig.hh"
+#include "pdsapp/config/iStarConfig.hh"
 
 #include "pds/config/AliasConfigType.hh"
 #include "pds/config/EvsConfigType.hh"
@@ -203,6 +204,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_jungfrauConfigType    ,new JungfrauConfig);
   enroll(_QuadAdcConfigType     ,new QuadAdcConfig);
   enroll(_zylaConfigType        ,new ZylaConfig);
+  enroll(_istarConfigType       ,new iStarConfig);
   enroll(_uxiConfigType         ,new UxiConfig);
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_Cspad2x2Config,1),new Cspad2x2Config_V1);
