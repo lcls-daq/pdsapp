@@ -40,6 +40,7 @@
 #include "pdsapp/python/UsdUsbFexConfig.icc"
 #include "pdsapp/python/JungfrauConfig.icc"
 #include "pdsapp/python/ZylaConfig.icc"
+#include "pdsapp/python/iStarConfig.icc"
 #include "pdsapp/python/UxiConfig.icc"
 #include "pdsapp/python/ArchonConfig.icc"
 #include "pdsapp/python/Db.icc"
@@ -153,6 +154,9 @@ DECLARE_INIT(pycdb)
   if (PyType_Ready(&pds_ZylaConfig_type) < 0)
     INITERROR;
 
+  if (PyType_Ready(&pds_iStarConfig_type) < 0)
+    INITERROR;
+
   if (PyType_Ready(&pds_UxiConfig_type) < 0)
     INITERROR;
 
@@ -244,6 +248,9 @@ DECLARE_INIT(pycdb)
 
   Py_INCREF(&pds_ZylaConfig_type);
   PyModule_AddObject(m, "ZylaConfig", (PyObject*)&pds_ZylaConfig_type);
+
+  Py_INCREF(&pds_iStarConfig_type);
+  PyModule_AddObject(m, "iStarConfig", (PyObject*)&pds_iStarConfig_type);
 
   Py_INCREF(&pds_UxiConfig_type);
   PyModule_AddObject(m, "UxiConfig", (PyObject*)&pds_UxiConfig_type);
