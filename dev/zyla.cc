@@ -9,7 +9,7 @@
 #include "pds/zyla/Manager.hh"
 #include "pds/zyla/Server.hh"
 #include "pds/zyla/Driver.hh"
-#include "pds/config/CfgClientNfs.hh"
+#include "pds/zyla/ConfigCache.hh"
 
 #include <getopt.h>
 #include <unistd.h>
@@ -249,6 +249,12 @@ int main(int argc, char** argv) {
     printf(" done!\n");
   }
 
+  Zyla::ConfigCache* cfg = Zyla::ConfigCache::create(detInfo, *drv);
+  if (!cfg) {
+    printf("Unable to create ConfigCache for %s!\n", DetInfo::name(detInfo));
+    return 1;
+  }
+
   // Print out basic camera info
   bool isSimCam = false;
   AT_WC wc_buffer[AT_MAX_MSG_LEN];
@@ -283,8 +289,6 @@ int main(int argc, char** argv) {
     std::list<EbServer*>      servers;
     std::list<Zyla::Manager*> managers;
 
-    CfgClientNfs* cfg = new CfgClientNfs(detInfo);
-  
     Zyla::Server* srv = new Zyla::Server(detInfo);
     servers.push_back(srv);
     Zyla::Manager* mgr = new Zyla::Manager(*drv, *srv, *cfg, waitCooling);

@@ -4,6 +4,8 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <string.h>
 #include <signal.h>
 
 static AT_H Handle = AT_HANDLE_UNINITIALISED;
@@ -32,6 +34,8 @@ static void show_usage(const char* p)
          "    -t|--trigger                            use an external trigger instead for acquistion\n"
          "    -h|--help                               print this message and exit\n", p);
 }
+
+using namespace Pds::Zyla;
 
 int main(int argc, char **argv)
 {
@@ -65,12 +69,12 @@ int main(int argc, char **argv)
   double exposure = 0.001;
   bool noise_filter = false;
   bool blemish_correction = false;
-  ZylaConfigType::CoolingSetpoint cooling_spt = ZylaConfigType::Temp_0C;
-  ZylaConfigType::FanSpeed fan_speed = ZylaConfigType::On;
-  ZylaConfigType::ShutteringMode shutter = ZylaConfigType::Global;
-  ZylaConfigType::ReadoutRate readout_rate = ZylaConfigType::Rate280MHz;
-  ZylaConfigType::GainMode gain = ZylaConfigType::LowNoiseHighWellCap16Bit;
-  ZylaConfigType::TriggerMode trigger = ZylaConfigType::Internal;
+  Driver::CoolingSetpoint cooling_spt = Driver::Temp_0C;
+  Driver::FanSpeed fan_speed = Driver::On;
+  Driver::ShutteringMode shutter = Driver::Global;
+  Driver::ReadoutRate readout_rate = Driver::Rate280MHz;
+  Driver::GainMode gain = Driver::LowNoiseHighWellCap16Bit;
+  Driver::TriggerMode trigger = Driver::Internal;
   char* file_prefix = (char *)NULL;
   
   int optIndex = 0;
@@ -130,7 +134,7 @@ int main(int argc, char **argv)
         overlap = true;
         break;
       case 't':
-        trigger = ZylaConfigType::External;
+        trigger = Driver::External;
         break;
       case '?':
         if (optopt)
@@ -197,7 +201,7 @@ int main(int argc, char **argv)
   if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 )
     printf("Cannot register signal handler for SIGTERM\n");
 
-  Pds::Zyla::Driver* camera = new Pds::Zyla::Driver(Handle);
+  Driver* camera = new Driver(Handle);
   bool cam_timeout = false;
   int retry_count = 0;
   printf("Waiting to camera to initialize ...");
@@ -246,7 +250,7 @@ int main(int argc, char **argv)
 
   camera->wait_cooling(0);
 
-  if (trigger == ZylaConfigType::External) {
+  if (trigger == Driver::External) {
     printf("Using external trigger for acquistion\n");
   } else {
     printf("Estimated camera frame rate (Hz) : %g\n", camera->frame_rate());
