@@ -371,81 +371,62 @@ private:
   unsigned _ibuffer;
 };
 
-
-class SimZyla : public SimApp {
-  enum { CfgSize = sizeof(ZylaConfigType)+sizeof(Xtc) };
+template<class C, class E>
+class SimZylaBase : public SimApp {
 public:
-  static bool handles(const Src& src) {
-    const DetInfo& info = static_cast<const DetInfo&>(src);
-    switch(info.device()) {
-    case DetInfo::Zyla:
-      return true;
-    default:
-      break;
-    }
-    return false;
-  }
-public:
-  SimZyla(const Src& src)
-  {
-    _cfgpayload = new char[CfgSize];
-    _cfgtc = new(_cfgpayload) Xtc(_zylaConfigType,src);
-    ZylaConfigType* cfg = new (_cfgtc->next()) ZylaConfigType(ZylaConfigType::True, ZylaConfigType::False,
-                                                             ZylaConfigType::False, ZylaConfigType::False,
-                                                             ZylaConfigType::Global, ZylaConfigType::On,
-                                                             ZylaConfigType::Rate280MHz, ZylaConfigType::External,
-                                                             ZylaConfigType::HighWellCap12Bit, ZylaConfigType::Temp_0C,
-                                                             2560, 2160, 1, 1, 1, 1, 0.001, 0.0);
-    _cfgtc->extent += cfg->_sizeof();
-    unsigned depth  = 16;
-    unsigned offset = 32;
-
-    unsigned evtsz = (sizeof(Xtc) + Zyla::FrameV1::_sizeof(*cfg));
-    unsigned evtst = (evtsz+3)&~3;
-    _evtpayload = new char[NBuffers*evtst];
-    memset(_evtpayload, 0, NBuffers*evtst);
-
-    for(unsigned i=0; i<NBuffers; i++) {
-      _evttc[i] = new(_evtpayload+i*evtst) Xtc(_zylaDataType,src);
-      ZylaDataType* f = new(_evttc[i]->next()) ZylaDataType(i);
-      if (depth<=16) {
-        ndarray<const uint16_t, 2> idata = f->data(*cfg);
-        ndarray<uint16_t, 2> fdata = make_ndarray(const_cast<uint16_t*>(idata.data()), idata.shape()[0], idata.shape()[1]);
-        unsigned i;
-        for(i=0; i<cfg->height()/2; i++) {
-          unsigned j;
-          { double sigm = double(offset/8);
-            for(j=0; j<cfg->width()/2; j++)
-              fdata(i,j) = rangss(offset,sigm,0xff); }
-          { double sigm = double(offset/6);
-            for(; j<cfg->width(); j++)
-              fdata(i,j) = rangss(offset,sigm,0xff); }
-        }
-        for(; i<cfg->height(); i++) {
-          unsigned j;
-          { double sigm = double(offset/6);
-            for(j=0; j<cfg->width()/2; j++)
-              fdata(i,j) = rangss(offset,sigm,0xff); }
-          { double sigm = double(offset/8);
-            for(; j<cfg->width(); j++)
-              fdata(i,j) = rangss(offset,sigm,0xff); }
-        }
-      }
-      else
-        ;
-      _evttc[i]->extent += (f->_sizeof(*cfg)+3)&~3;
-    }
-  }
-  ~SimZyla()
+  SimZylaBase() {}
+  ~SimZylaBase()
   {
     delete[] _cfgpayload;
     delete[] _evtpayload;
   }
-private:
-  void _execute_configure()
+protected:
+  Xtc* config(const Src& src, unsigned sz)
   {
-    _ibuffer = 0;
+    _cfgpayload = new char[sz];
+    return (_cfgtc = new(_cfgpayload)
+	    Xtc(TypeId(TypeId::Type(C::TypeId),unsigned(C::Version)),src));
   }
+  void event(const Src& src)
+  {
+    const C* cfg = reinterpret_cast<const C*>(_cfgtc->payload());
+    const size_t sz = E::_sizeof(*cfg);
+    unsigned evtsz = sz + sizeof(Xtc);
+    unsigned evtst = (evtsz+3)&~3;
+    _evtpayload = new char[NBuffers*evtst];
+
+    const unsigned offset = 32;
+
+    for(unsigned b=0; b<NBuffers; b++) {
+      _evttc[b] = new(_evtpayload+b*evtst)
+	      Xtc(TypeId(TypeId::Type(E::TypeId),unsigned(E::Version)),src);
+      E* q = new (_evttc[b]->alloc(sz)) E;
+
+      ndarray<const uint16_t, 2> idata = q->data(*cfg);
+      ndarray<uint16_t, 2> fdata = make_ndarray(const_cast<uint16_t*>(idata.data()), idata.shape()[0], idata.shape()[1]);
+      unsigned i;
+      for(i=0; i<cfg->height()/2; i++) {
+        unsigned j;
+        { double sigm = double(offset/8);
+          for(j=0; j<cfg->width()/2; j++)
+            fdata(i,j) = rangss(offset,sigm,0xff); }
+        { double sigm = double(offset/6);
+          for(; j<cfg->width(); j++)
+            fdata(i,j) = rangss(offset,sigm,0xff); }
+      }
+      for(; i<cfg->height(); i++) {
+        unsigned j;
+        { double sigm = double(offset/6);
+          for(j=0; j<cfg->width()/2; j++)
+            fdata(i,j) = rangss(offset,sigm,0xff); }
+        { double sigm = double(offset/8);
+          for(; j<cfg->width(); j++)
+            fdata(i,j) = rangss(offset,sigm,0xff); }
+      }
+    }
+  }
+private:
+  void _execute_configure() { _ibuffer=0; }
   void _insert_configure(InDatagram* dg)
   {
     dg->insert(*_cfgtc,_cfgtc->payload());
@@ -453,18 +434,72 @@ private:
   void _insert_event(InDatagram* dg)
   {
     dg->insert(*_evttc[_ibuffer],_evttc[_ibuffer]->payload());
-    if (++_ibuffer==NBuffers) _ibuffer=0;
+    if (++_ibuffer == NBuffers) _ibuffer=0;
   }
 public:
   size_t max_size() const { return _evttc[0]->sizeofPayload(); }
-private:
+protected:
   char* _cfgpayload;
   char* _evtpayload;
   Xtc*  _cfgtc;
-
   enum { NBuffers=16 };
   Xtc*  _evttc[NBuffers];
   unsigned _ibuffer;
+};
+
+class SimZyla : public SimZylaBase<ZylaConfigType,ZylaDataType> {
+public:
+  SimZyla(const Src& src)
+  {
+    unsigned CfgSize = sizeof(ZylaConfigType)+sizeof(Xtc);
+
+    Xtc* cfgtc = config(src,CfgSize);
+
+    ZylaConfigType* cfg =
+      new (_cfgtc->next()) ZylaConfigType(ZylaConfigType::True, ZylaConfigType::False,
+                                          ZylaConfigType::False, ZylaConfigType::False,
+                                          ZylaConfigType::Global, ZylaConfigType::On,
+                                          ZylaConfigType::Rate280MHz, ZylaConfigType::External,
+                                          ZylaConfigType::HighWellCap12Bit, ZylaConfigType::Temp_0C,
+                                          2560, 2160, 1, 1, 1, 1, 0.001, 0.0);
+
+    cfgtc->alloc(cfg->_sizeof());
+
+    event(src);
+  }
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    return (info.device()==DetInfo::Zyla);
+  }
+};
+
+class SimiStar : public SimZylaBase<iStarConfigType,ZylaDataType> {
+public:
+  SimiStar(const Src& src)
+  {
+    unsigned CfgSize = sizeof(iStarConfigType)+sizeof(Xtc);
+
+    Xtc* cfgtc = config(src,CfgSize);
+
+    iStarConfigType* cfg =
+      new (_cfgtc->next()) iStarConfigType(iStarConfigType::True, iStarConfigType::False,
+                                           iStarConfigType::False, iStarConfigType::False,
+                                           iStarConfigType::False, iStarConfigType::On,
+                                           iStarConfigType::Rate280MHz, iStarConfigType::External,
+                                           iStarConfigType::HighWellCap12Bit, iStarConfigType::FireAndGate,
+                                           iStarConfigType::Normal, 1024,
+                                           2560, 2160, 1, 1, 1, 1, 0.001, 0.0);
+
+    cfgtc->alloc(cfg->_sizeof());
+
+    event(src);
+  }
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    return (info.device()==DetInfo::iStar);
+  }
 };
 
 class SimJungfrau : public SimApp {
@@ -1624,6 +1659,8 @@ public:
       _app = new SimEpixSampler(src);
     else if (SimZyla::handles(src))
       _app = new SimZyla(src);
+    else if (SimiStar::handles(src))
+      _app = new SimiStar(src);
     else if (SimJungfrau::handles(src))
       _app = new SimJungfrau(src);
     else {
