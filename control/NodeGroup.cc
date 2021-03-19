@@ -294,6 +294,7 @@ QList<Node> NodeGroup::selected()
   QList<Node> nodes;
   QList<QAbstractButton*> buttons = _buttons->buttons();
   Node* master_evr = 0;
+  unsigned master_id = 0;
   foreach(QAbstractButton* b, buttons) {
     int id = _buttons->id(b);
     setGroup(id, _useGroups ? _groups[id]->currentText().toUInt(): 1);
@@ -307,10 +308,21 @@ QList<Node> NodeGroup::selected()
 
     if (b->isChecked()) {    
       if (_nodes[id].det().device()==DetInfo::Evr) {
-        if (_nodes[id].det().devId()==0)
+        if (master_evr) {
+          if (_nodes[id].det().devId() < master_id) {
+            nodes.push_front(*master_evr);
+            delete master_evr;
+            master_id = _nodes[id].det().devId();
+            master_evr = new Node(_nodes[id].node());
+          }
+          else {
+            nodes.push_front(_nodes[id].node());
+          }
+        }
+        else {
+          master_id = _nodes[id].det().devId();
           master_evr = new Node(_nodes[id].node());
-        else
-          nodes.push_front(_nodes[id].node());
+        }
       }
       else {
         foreach(const NodeSelect& n, expanded(id))
