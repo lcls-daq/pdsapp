@@ -176,14 +176,18 @@ tgtincs_quadadc_mon := pdsdata/include ndarray/include boost/include evgr
 tgtslib_quadadc_mon := $(USRLIBDIR)/rt pthread
 tgtincs_quadadc_mon += hsd/include
 
+ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
 tgtnames += quadadc_mon
+endif
 
 tgtsrcs_quadadc_xtc := quadadc_xtc.cc
 tgtlibs_quadadc_xtc += pdsdata/xtcdata pdsdata/psddl_pdsdata
 tgtincs_quadadc_xtc := pdsdata/include ndarray/include boost/include
 tgtslib_quadadc_xtc := $(USRLIBDIR)/rt
 
+ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
 tgtnames += quadadc_xtc
+endif
 
 libnames += promload
 libsrcs_promload := McsFile.cc AxiMicronN25Q.cc AxiCypressS25.cc MMDevice.cc PgpDevice.cc 

@@ -16,7 +16,6 @@ tgtnames += oceanoptics
 tgtnames += lecroy
 tgtnames += pvdaq
 tgtnames += gsc16ai
-tgtnames += quadadc
 
 ifneq ($(findstring i386,$(tgt_arch)),)
 tgtnames +=  acq \
@@ -41,7 +40,7 @@ tgtnames += fli andor andordual
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad
+tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad quadadc
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata

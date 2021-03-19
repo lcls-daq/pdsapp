@@ -64,6 +64,7 @@ int main(int argc, char** argv) {
   int testpattern = -1;
   bool calib = false;
   bool anyMatch = false;
+  unsigned fmc = 0;
 
   const uint32_t NO_PLATFORM = uint32_t(-1UL);
   uint32_t  platform  = NO_PLATFORM;
@@ -132,7 +133,7 @@ int main(int argc, char** argv) {
 
   //  SEVCHK ( ca_context_create(ca_enable_preemptive_callback ), "epicsArch calling ca_context_create" );
 
-  Pds::HSD::Module* p = Pds::HSD::Module::create(fd, LCLS);
+  Pds::HSD::Module* p = Pds::HSD::Module::create(fd, fmc, LCLS);
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
   //p->version();

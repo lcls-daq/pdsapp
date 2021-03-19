@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
   args.fd  = fd;
   sem_init(&args.sem,0,0);
 
-  Pds::HSD::Module* p = reg = Pds::HSD::Module::create(fd);
+  Pds::HSD::Module* p = reg = Pds::HSD::Module::create(fd, 0);
   if (!p)
     return -2;
 
@@ -269,8 +269,7 @@ int main(int argc, char** argv) {
   }
   //  p->enable_test_pattern(Module::DMA);
 
-  p->sample_init(length, delay, prescale);
-  p->setAdcMux( interleave>=0, (0x11<<interleave));
+  p->sample_init(length, delay, prescale, interleave?0:-1, (0x11<<interleave));
   p->trig_lcls(args.rate);
 
   Pds::Bld::BldDataPhaseCavity ecfg;
