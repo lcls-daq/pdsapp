@@ -39,6 +39,7 @@ static void usage(const char *p)
   printf("Options:\n"
          "\t-i <detInfo>\n"
          "\t-p <platform>\n"
+         "\t-P <port>\n"
          "\t-r <evrId>\n"
          "\t-u <alias>\n"
          "\t-t <testPattern>\n"
@@ -47,7 +48,7 @@ static void usage(const char *p)
 
 int main(int argc, char** argv) {
   
-  char qadc='a';
+  unsigned qadc = 0;
   int c;
   bool lUsage = false;
   //  bool lSetupClkSynth = false;
@@ -59,7 +60,7 @@ int main(int argc, char** argv) {
   //  bool lRing1 = false;
   //  bool lDumpAlign = false;
   //  int  regTest=-1, regValu=-1;
-  char* evrid =0;
+  char* evrid = 0;
   //  const char* prefix = "qadc";
   int testpattern = -1;
   bool calib = false;
@@ -89,7 +90,10 @@ int main(int argc, char** argv) {
       }
       break;
     case 'P':
-      //      prefix = optarg;
+      if (!CmdLineTools::parseUInt(optarg,qadc)) {
+        printf("%s: option `-P' parsing error\n", argv[0]);
+        lUsage = true;
+      }
       break;
     case 'r':
       evrid = optarg;
@@ -124,7 +128,7 @@ int main(int argc, char** argv) {
   }
  
  char devname[16];
-  sprintf(devname,"/dev/qadc%c",qadc);
+  sprintf(devname,"/dev/datadev_%u",qadc);
   int fd = open(devname, O_RDWR);
   if (fd<0) {
     perror("Open device failed");
