@@ -148,7 +148,7 @@ namespace Pds_ConfigDb {
         layout->addLayout(_evrRunDelay    .initialize(parent));
         layout->addSpacing(40);
 
-        layout->addWidget(_asicGainMap = new Epix10ka2MGainMap(_pixelArray, _asic));
+        layout->addWidget(_asicGainMap = new Epix10ka2MGainMap(4, _pixelArray, _asic));
         layout->addSpacing(40);
 
         _gainB = new QButtonGroup;

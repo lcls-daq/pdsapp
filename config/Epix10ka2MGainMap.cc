@@ -6,10 +6,11 @@
 
 using namespace Pds_ConfigDb;
 
-Epix10ka2MGainMap::Epix10ka2MGainMap(ndarray<uint16_t,2>*       pixelArray,
+Epix10ka2MGainMap::Epix10ka2MGainMap(unsigned                   nq,
+                                     ndarray<uint16_t,2>*       pixelArray,
                                      const Epix10kaASICdata*    asicConfig) :
   QWidget(0),
-  _sectors(4)
+  _sectors(nq)
 {
   static const Qt::Alignment horz[] = { ::Qt::AlignRight , ::Qt::AlignLeft };
   static const Qt::Alignment vert[] = { ::Qt::AlignBottom, ::Qt::AlignTop  };
@@ -17,7 +18,7 @@ Epix10ka2MGainMap::Epix10ka2MGainMap(ndarray<uint16_t,2>*       pixelArray,
   static const unsigned      col [] = { 1, 1, 0, 0 };
 
   QGridLayout* ql = new QGridLayout;
-  for(unsigned i=0; i<4; i++) {
+  for(unsigned i=0; i<nq; i++) {
     ql->addWidget(_sectors[i] = new Epix10kaQuadGainMap(i,&pixelArray[4*i],
                                                         &asicConfig[16*i]),
                   row[i],col[i],horz[col[i]] | vert[row[i]]);
