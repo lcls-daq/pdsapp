@@ -68,6 +68,7 @@
 //#define DBUG
 
 typedef Pds::Bld::BldDataEBeamV7 BldDataEBeam;
+typedef Pds::Bld::BldDataPhaseCavityV1 BldDataPhaseCavity;
 typedef Pds::Bld::BldDataFEEGasDetEnergyV1 BldDataFEEGasDetEnergy;
 typedef Pds::Bld::BldDataIpimbV1 BldDataIpimb;
 typedef Pds::Bld::BldDataUsdUsbV1 BldDataUsdUsb;
@@ -89,7 +90,6 @@ static Pds::TypeId _eOrbitsType(Pds::TypeId::Id_EOrbits,
                                 EOrbitsType::Version);
 
 //    typedef BldDataAcqADCV1 BldDataAcqADC;
-using Pds::Bld::BldDataPhaseCavity;
 using Pds::Bld::BldDataPimV1;
 
 static const unsigned MAX_EVENT_SIZE = 8*1024*1024;
