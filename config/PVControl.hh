@@ -3,7 +3,7 @@
 
 #include "pdsapp/config/Parameters.hh"
 
-#include "pdsdata/psddl/control.ddl.h"
+#include "pds/config/ControlConfigType.hh"
 
 namespace Pds_ConfigDb {
 
@@ -12,7 +12,7 @@ namespace Pds_ConfigDb {
     PVControl();
     
     void insert(Pds::LinkedList<Parameter>& pList);
-    bool pull  (const Pds::ControlData::PVControl& tc);
+    bool pull  (const PVControlType& tc);
     int  push  (void* to);
 
   private:

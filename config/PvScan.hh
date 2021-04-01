@@ -3,7 +3,7 @@
 
 #include <QtGui/QWidget>
 
-#include "pdsdata/psddl/control.ddl.h"
+#include "pds/config/ControlConfigType.hh"
 
 #include <list>
 
@@ -25,8 +25,8 @@ namespace Pds_ConfigDb {
     void read (const char*, int);
   private:
     void _fill_pvs(unsigned step, unsigned nsteps,
-		   std::list<Pds::ControlData::PVControl>& controls,
-		   std::list<Pds::ControlData::PVMonitor>& monitors) const;
+		   std::list<PVControlType>& controls,
+		   std::list<PVMonitorType>& monitors) const;
   private:
     QLineEdit* _control_name;
     QLineEdit* _control_lo  ;

@@ -18,6 +18,7 @@ typedef struct {
   char*    dbalias;
   int32_t  dbkey;
   bool     record;
+  int32_t  version;
   char*    buffer;
   char*    exptname;
   int32_t  runnum;

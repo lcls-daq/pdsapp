@@ -2,8 +2,8 @@
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
-#include "pdsapp/config/PVControl.hh"
-#include "pdsapp/config/PVMonitor.hh"
+#include "pdsapp/config/PVControl_V0.hh"
+#include "pdsapp/config/PVMonitor_V0.hh"
 #include "pdsapp/config/ControlConfigType_V1.hh"
 
 #include "pdsdata/psddl/control.ddl.h"
@@ -13,6 +13,9 @@
 
 #include <new>
 #include <float.h>
+
+using Pds_ConfigDb::PVControl_V0::PVControl;
+using Pds_ConfigDb::PVMonitor_V0::PVMonitor;
 
 namespace Pds_ConfigDb {
   namespace ControlConfig_V1 {
@@ -112,7 +115,7 @@ namespace Pds_ConfigDb {
       Pds::LinkedList<Parameter> _pvcArgs[MaxPVs];
       ParameterSet            _pvcSet;
       NumericInt<unsigned>    _npvms;
-      PVMonitor               _pvms[MaxPVs];
+      PVMonitor                _pvms[MaxPVs];
       Pds::LinkedList<Parameter> _pvmArgs[MaxPVs];
       ParameterSet            _pvmSet;
     };

@@ -72,9 +72,9 @@ EvrScan::~EvrScan()
 
 int EvrScan::write_control(unsigned step, unsigned nsteps, const Pds::ClockTime& ctime, char* buff) const
 {
-  std::list<Pds::ControlData::PVControl> controls;
-  std::list<Pds::ControlData::PVMonitor> monitors;
-  std::list<Pds::ControlData::PVLabel  > labels;
+  std::list<PVControlType> controls;
+  std::list<PVMonitorType> monitors;
+  std::list<PVLabelType  > labels;
 
   QString control_base = QString("EVR:P%1:DELAY").arg(_pulse_id->currentIndex());
 
@@ -83,9 +83,9 @@ int EvrScan::write_control(unsigned step, unsigned nsteps, const Pds::ClockTime&
          control_v, control_step);
   control_v += double(step)*control_step;
 
-  controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
-                                                 Pds::ControlData::PVControl::NoArray,
-                                                 control_v));
+  controls.push_back(PVControlType(qPrintable(control_base),
+                                   PVControlType::NoArray,
+                                   control_v));
 
   ControlConfigType* c = Pds::ControlConfig::_new(buff, controls, monitors, labels, ctime);
 
@@ -94,9 +94,9 @@ int EvrScan::write_control(unsigned step, unsigned nsteps, const Pds::ClockTime&
 
 int EvrScan::write_control(unsigned step, unsigned nsteps, unsigned nevents, char* buff) const
 {
-  std::list<Pds::ControlData::PVControl> controls;
-  std::list<Pds::ControlData::PVMonitor> monitors;
-  std::list<Pds::ControlData::PVLabel  > labels;
+  std::list<PVControlType> controls;
+  std::list<PVMonitorType> monitors;
+  std::list<PVLabelType  > labels;
 
   QString control_base = QString("EVR:P%1:DELAY").arg(_pulse_id->currentIndex());
 
@@ -105,9 +105,9 @@ int EvrScan::write_control(unsigned step, unsigned nsteps, unsigned nevents, cha
          control_v, control_step);
   control_v += double(step)*control_step;
 
-  controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
-                                                 Pds::ControlData::PVControl::NoArray,
-                                                 control_v));
+  controls.push_back(PVControlType(qPrintable(control_base),
+                                   PVControlType::NoArray,
+                                   control_v));
 
   ControlConfigType* c = Pds::ControlConfig::_new(buff, controls, monitors, labels, nevents);
 

@@ -4,6 +4,7 @@
 static const unsigned ModifyPartition = 0x80000000;
 static const unsigned RecordSetMask   = 0x40000000;
 static const unsigned RecordValMask   = 0x20000000;
+static const unsigned ApiVersionMask  = 0x10000000;
 static const unsigned DbKeyMask       = 0x0fffffff;
 
 namespace Pds {

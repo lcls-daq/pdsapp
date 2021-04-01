@@ -13,13 +13,13 @@
 #include "pdsapp/control/RemoteSeqCmd.hh"
 #include "pdsapp/control/RemoteSeqResponse.hh"
 #include "pds/config/ControlConfigType.hh"
-#include "pdsdata/psddl/control.ddl.h"
+using Pds::ControlConfig::pvControlNameSize;
+using Pds::ControlConfig::pvMonitorNameSize;
+using Pds::ControlConfig::pvLabelNameSize;
+using Pds::ControlConfig::pvLabelValueSize;
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/SegmentInfo.hh"
 #include "pdsdata/xtc/TypeId.hh"
-using Pds::ControlData::PVControl;
-using Pds::ControlData::PVMonitor;
-using Pds::ControlData::PVLabel;
 #include "pdsapp/control/RemotePartition.hh"
 using Pds::RemoteSeqResponse;
 using Pds::RemotePartition;
@@ -47,6 +47,7 @@ static const int MaxConfigSize = 0x100000;
 static const int Control_Port  = 10130;
 
 enum PydaqState { Disconnected, Connected, Configured, Open, Running };
+enum PvTypeInfo { ControlName, MonitorName, LabelName, LabelValue };
 
 //
 //  pdsdaq class methods
@@ -59,12 +60,14 @@ static PyObject* pdsdaq_dbalias  (PyObject* self);
 static PyObject* pdsdaq_dbkey    (PyObject* self);
 static PyObject* pdsdaq_partition(PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_record   (PyObject* self);
+static PyObject* pdsdaq_version  (PyObject* self);
 static PyObject* pdsdaq_runnum   (PyObject* self);
 static PyObject* pdsdaq_expt     (PyObject* self);
 static PyObject* pdsdaq_detectors(PyObject* self);
 static PyObject* pdsdaq_devices  (PyObject* self);
 static PyObject* pdsdaq_disconnect(PyObject* self);
 static PyObject* pdsdaq_types    (PyObject* self);
+static PyObject* pdsdaq_sizes    (PyObject* self);
 static PyObject* pdsdaq_connect  (PyObject* self);
 static PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds);
 static PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds);
@@ -82,11 +85,13 @@ static PyObject* pdsdaq_blocking (PyObject* self);
 #endif
 static bool      pdsdaq_lock     (PyObject* self, bool interrupt=true);
 static void      pdsdaq_unlock   (PyObject* self);
-static bool      pdsdaq_pvcheck  (PyObject* name, ssize_t size, const char* pvtype);
-#define CHECK_PVCONTROL_NAME(name)  pdsdaq_pvcheck(name, PVControl::NameSize, "Control")
-#define CHECK_PVMONITOR_NAME(name)  pdsdaq_pvcheck(name, PVMonitor::NameSize, "Monitor")
-#define CHECK_PVLABEL_NAME(name)    pdsdaq_pvcheck(name, PVLabel::NameSize,   "Label")
-#define CHECK_PVLABEL_VALUE(name)   pdsdaq_pvcheck(name, PVLabel::ValueSize,  "Label")
+static ssize_t   pdsdaq_pvsize   (PyObject* self, PvTypeInfo pvtype);
+static bool      pdsdaq_pvcheck  (PyObject* self, PyObject* name, PvTypeInfo pvtype);
+static void      pdsdaq_writecfg (PyObject* self, ControlConfigType* cfg);
+#define CHECK_PVCONTROL_NAME(self, name)  pdsdaq_pvcheck(self, name, ControlName)
+#define CHECK_PVMONITOR_NAME(self, name)  pdsdaq_pvcheck(self, name, MonitorName)
+#define CHECK_PVLABEL_NAME(self, name)    pdsdaq_pvcheck(self, name, LabelName)
+#define CHECK_PVLABEL_VALUE(self, name)   pdsdaq_pvcheck(self, name, LabelValue)
 
 //
 //  pdsdaq class methods (thread safe versions)
@@ -155,11 +160,13 @@ static PyMethodDef pdsdaq_methods[] = {
   {"dbkey"     , (PyCFunction)pdsdaq_dbkey          , METH_NOARGS  , "Get database key"},
   {"partition" , (PyCFunction)pdsdaq_partition      , METH_VARARGS|METH_KEYWORDS, "Get partition"},
   {"record"    , (PyCFunction)pdsdaq_record         , METH_NOARGS  , "Get record status"},
+  {"version"   , (PyCFunction)pdsdaq_version        , METH_NOARGS  , "Get the version of the comm api"},
   {"runnumber" , (PyCFunction)pdsdaq_runnum         , METH_NOARGS  , "Get run number"},
   {"experiment", (PyCFunction)pdsdaq_expt           , METH_NOARGS  , "Get experiment name"},
   {"detectors" , (PyCFunction)pdsdaq_detectors      , METH_NOARGS  , "Get the detector names"},
   {"devices"   , (PyCFunction)pdsdaq_devices        , METH_NOARGS  , "Get the device names"},
   {"types"     , (PyCFunction)pdsdaq_types          , METH_NOARGS  , "Get the type names"},
+  {"sizes"     , (PyCFunction)pdsdaq_sizes          , METH_NOARGS  , "Get various maximum supported sizes in bytes"},
   {"configure" , (PyCFunction)pdsdaq_configure_wrap , METH_VARARGS|METH_KEYWORDS, "Configure the scan"},
   {"begin"     , (PyCFunction)pdsdaq_begin_wrap     , METH_VARARGS|METH_KEYWORDS, "Configure the cycle"},
   {"end"       , (PyCFunction)pdsdaq_end_wrap       , METH_NOARGS  , "Wait for the cycle end"},
@@ -273,6 +280,7 @@ PyObject* pdsdaq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
     self->dbalias  = new char[MaxAliasSize];
     self->dbkey    = 0;
     self->record   = false;
+    self->version  = -1;
     self->partition= new RemotePartition;
     self->buffer   = new char[MaxConfigSize];
     self->exptname = new char[RemoteSeqResponse::MaxExpName];
@@ -380,6 +388,7 @@ PyObject* pdsdaq_connect(PyObject* self)
   char buff[256];
   uint32_t len=0;
   uint32_t key;
+  uint32_t version=0;
 
   Py_BEGIN_ALLOW_THREADS
   nb = ::connect(s, (sockaddr*)&sa, sizeof(sa));
@@ -445,6 +454,27 @@ PyObject* pdsdaq_connect(PyObject* self)
 
     daq->dbkey  = key&DbKeyMask;
     daq->record = key&RecordValMask;
+
+    if (key&ApiVersionMask) {
+      Py_BEGIN_ALLOW_THREADS
+      nb = ::recv(s, &version, sizeof(version), MSG_WAITALL);
+      Py_END_ALLOW_THREADS
+
+      if (nb != sizeof(version))
+      {
+        printf("pdsdaq_connect(): get api version failed\n");
+        break;
+      }
+
+      if (version > ControlConfigApiVersion)
+      {
+        printf("pdsdaq_connect(): DAQ API version (%d) is newer than the current supported version (%d)\n",
+               version, ControlConfigApiVersion);
+        break;
+      }
+    }
+
+    daq->version = version;
 
 #ifdef DBUG
     printf("pdsdaq_connect received dbkey %d\n",daq->dbkey);
@@ -569,6 +599,12 @@ PyObject* pdsdaq_record   (PyObject* self)
   return PyBool_FromLong(daq->record);
 }
 
+PyObject* pdsdaq_version  (PyObject* self)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  return PyLong_FromLong(daq->version);
+}
+
 PyObject* pdsdaq_partition(PyObject* self, PyObject* args, PyObject* kwds)
 {
   pdsdaq* daq = (pdsdaq*)self;
@@ -687,6 +723,19 @@ PyObject* pdsdaq_types (PyObject* self)
     PyList_SetItem(o, i, PyString_FromString(t.name((Pds::TypeId::Type)i)));
     i += 1;
   }
+  return o;
+}
+
+PyObject* pdsdaq_sizes (PyObject* self)
+{
+  PyObject* o = PyDict_New();
+  PyDict_SetItemString(o, "MaxPathSize"    , PyLong_FromLong(MaxPathSize));
+  PyDict_SetItemString(o, "MaxAliasSize"   , PyLong_FromLong(MaxAliasSize));
+  PyDict_SetItemString(o, "MaxConfigSize"  , PyLong_FromLong(MaxConfigSize));
+  PyDict_SetItemString(o, "ControlNameSize", PyLong_FromSsize_t(pdsdaq_pvsize(self, ControlName)));
+  PyDict_SetItemString(o, "MonitorNameSize", PyLong_FromSsize_t(pdsdaq_pvsize(self, MonitorName)));
+  PyDict_SetItemString(o, "LabelNameSize"  , PyLong_FromSsize_t(pdsdaq_pvsize(self, LabelName)));
+  PyDict_SetItemString(o, "LabelValueSize" , PyLong_FromSsize_t(pdsdaq_pvsize(self, LabelValue)));
   return o;
 }
 
@@ -827,47 +876,47 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
     }
   }
 
-  list<PVControl> clist;
+  list<PVControlType> clist;
   if (controls)
     for(unsigned i=0; i<PyList_Size(controls); i++) {
       PyObject* item = PyList_GetItem(controls,i);
-      if (!CHECK_PVCONTROL_NAME(PyTuple_GetItem(item,0))) {
+      if (!CHECK_PVCONTROL_NAME(self, PyTuple_GetItem(item,0))) {
         // Half configuring leaves the DAQ in a strange state so disconnect to go to unconfigured!
         Py_DECREF(pdsdaq_disconnect(self));
         return NULL;
       }
-      clist.push_back(PVControl(PyString_AsString(PyTuple_GetItem(item,0)),
-                                PVControl::NoArray,
+      clist.push_back(PVControlType(PyString_AsString(PyTuple_GetItem(item,0)),
+                                PVControlType::NoArray,
                                 PyFloat_AsDouble (PyTuple_GetItem(item,1))));
     }
 
-  list<PVMonitor> mlist;
+  list<PVMonitorType> mlist;
   if (monitors)
     for(unsigned i=0; i<PyList_Size(monitors); i++) {
       PyObject* item = PyList_GetItem(monitors,i);
-      if (!CHECK_PVMONITOR_NAME(PyTuple_GetItem(item,0))) {
+      if (!CHECK_PVMONITOR_NAME(self, PyTuple_GetItem(item,0))) {
         // Half configuring leaves the DAQ in a strange state so disconnect to go to unconfigured!
         Py_DECREF(pdsdaq_disconnect(self));
         return NULL;
       }
-      mlist.push_back(PVMonitor(PyString_AsString(PyTuple_GetItem(item,0)),
-                                PVMonitor::NoArray,
+      mlist.push_back(PVMonitorType(PyString_AsString(PyTuple_GetItem(item,0)),
+                                PVMonitorType::NoArray,
                                 PyFloat_AsDouble (PyTuple_GetItem(item,1)),
                                 PyFloat_AsDouble (PyTuple_GetItem(item,2))));
     }
 
-  list<PVLabel> llist;
+  list<PVLabelType> llist;
   if (labels)
     for(unsigned i=0; i<PyList_Size(labels); i++) {
       PyObject* item = PyList_GetItem(labels,i);
-      if (!CHECK_PVLABEL_NAME(PyTuple_GetItem(item,0)) ||
-          !CHECK_PVLABEL_VALUE(PyTuple_GetItem(item,1))) {
+      if (!CHECK_PVLABEL_NAME(self, PyTuple_GetItem(item,0)) ||
+          !CHECK_PVLABEL_VALUE(self, PyTuple_GetItem(item,1))) {
         // Half configuring leaves the DAQ in a strange state so disconnect to go to unconfigured!
         Py_DECREF(pdsdaq_disconnect(self));
         return NULL;
       }
       char* name  = strdup(PyString_AsString(PyTuple_GetItem(item,0)));
-      llist.push_back(PVLabel(name, PyString_AsString(PyTuple_GetItem(item,1))));
+      llist.push_back(PVLabelType(name, PyString_AsString(PyTuple_GetItem(item,1))));
       free(name);
     }
 
@@ -892,7 +941,7 @@ PyObject* pdsdaq_configure(PyObject* self, PyObject* args, PyObject* kwds)
     return NULL;
   }
 
-  ::write(daq->socket,daq->buffer,cfg->_sizeof());
+  pdsdaq_writecfg(self, cfg);
 
   return pdsdaq_rcv(self, Configured);
 }
@@ -964,21 +1013,21 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
 
   ControlConfigType* cfg = reinterpret_cast<ControlConfigType*>(daq->buffer);
 
-  list<PVControl> clist;
+  list<PVControlType> clist;
   { for(unsigned i=0; i<cfg->npvControls(); i++)
       clist.push_back(cfg->pvControls()[i]); }
 
   if (controls) {
     for(unsigned i=0; i<PyList_Size(controls); i++) {
       PyObject* item = PyList_GetItem(controls,i);
-      if (!CHECK_PVCONTROL_NAME(PyTuple_GetItem(item,0))) {
+      if (!CHECK_PVCONTROL_NAME(self, PyTuple_GetItem(item,0))) {
         return NULL;
       }
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
-      list<PVControl>::iterator it=clist.begin();
+      list<PVControlType>::iterator it=clist.begin();
       while(it!=clist.end()) {
-        if (strncmp(name,it->name(),PVControl::NameSize)==0) {
-          (*it) = PVControl(name,PVControl::NoArray,PyFloat_AsDouble (PyTuple_GetItem(item,1)));
+        if (strncmp(name,it->name(),PVControlType::NameSize)==0) {
+          (*it) = PVControlType(name,PVControlType::NoArray,PyFloat_AsDouble (PyTuple_GetItem(item,1)));
           break;
         }
         ++it;
@@ -992,22 +1041,22 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     }
   }
 
-  list<PVMonitor> mlist;
+  list<PVMonitorType> mlist;
   { for(unsigned i=0; i<cfg->npvMonitors(); i++)
       mlist.push_back(cfg->pvMonitors()[i]); }
 
   if (monitors) {
     for(unsigned i=0; i<PyList_Size(monitors); i++) {
       PyObject* item = PyList_GetItem(monitors,i);
-      if (!CHECK_PVMONITOR_NAME(PyTuple_GetItem(item,0))) {
+      if (!CHECK_PVMONITOR_NAME(self, PyTuple_GetItem(item,0))) {
         return NULL;
       }
       const char* name = PyString_AsString(PyTuple_GetItem(item,0));
-      list<PVMonitor>::iterator it=mlist.begin();
+      list<PVMonitorType>::iterator it=mlist.begin();
       while(it!=mlist.end()) {
-        if (strncmp(name,it->name(),PVMonitor::NameSize)==0) {
-          (*it) = PVMonitor(name,
-                            PVMonitor::NoArray,
+        if (strncmp(name,it->name(),PVMonitorType::NameSize)==0) {
+          (*it) = PVMonitorType(name,
+                            PVMonitorType::NoArray,
                             PyFloat_AsDouble (PyTuple_GetItem(item,1)),
                             PyFloat_AsDouble (PyTuple_GetItem(item,2)));
           break;
@@ -1023,22 +1072,22 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     }
   }
 
-  list<PVLabel> llist;
+  list<PVLabelType> llist;
   { for(unsigned i=0; i<cfg->npvLabels(); i++)
       llist.push_back(cfg->pvLabels()[i]); }
 
   if (labels) {
     for(unsigned i=0; i<PyList_Size(labels); i++) {
       PyObject* item = PyList_GetItem(labels,i);
-      if (!CHECK_PVLABEL_NAME(PyTuple_GetItem(item,0)) ||
-          !CHECK_PVLABEL_VALUE(PyTuple_GetItem(item,1))) {
+      if (!CHECK_PVLABEL_NAME(self, PyTuple_GetItem(item,0)) ||
+          !CHECK_PVLABEL_VALUE(self, PyTuple_GetItem(item,1))) {
         return NULL;
       }
       char* name = strdup(PyString_AsString(PyTuple_GetItem(item,0)));
-      list<PVLabel>::iterator it=llist.begin();
+      list<PVLabelType>::iterator it=llist.begin();
       while(it!=llist.end()) {
-        if (strncmp(name,it->name(),PVLabel::NameSize)==0) {
-          (*it) = PVLabel(name, PyString_AsString(PyTuple_GetItem(item,1)));
+        if (strncmp(name,it->name(),PVLabelType::NameSize)==0) {
+          (*it) = PVLabelType(name, PyString_AsString(PyTuple_GetItem(item,1)));
           break;
         }
         ++it;
@@ -1085,7 +1134,7 @@ PyObject* pdsdaq_begin    (PyObject* self, PyObject* args, PyObject* kwds)
     return NULL;
   }
 
-  ::write(daq->socket,daq->buffer,cfg->_sizeof());
+  pdsdaq_writecfg(self, cfg);
 
   return pdsdaq_rcv(self, Running);
 }
@@ -1121,11 +1170,11 @@ PyObject* pdsdaq_stop     (PyObject* self)
   if (daq->state >= Running) {
     char* buff = new char[MaxConfigSize];
     ControlConfigType* cfg = Pds::ControlConfig::_new(buff,
-                                                      list<PVControl>(),
-                                                      list<PVMonitor>(),
-                                                      list<PVLabel  >(),
+                                                      list<PVControlType>(),
+                                                      list<PVMonitorType>(),
+                                                      list<PVLabelType  >(),
                                                       EndCalibTime);
-    ::write(daq->socket, buff, cfg->_sizeof());
+    pdsdaq_writecfg(self, cfg);
     delete[] buff;
 
     return pdsdaq_rcv(self, Open);
@@ -1141,11 +1190,11 @@ PyObject* pdsdaq_endrun   (PyObject* self)
   if (daq->state >= Open) {
     char* buff = new char[MaxConfigSize];
     ControlConfigType* cfg = Pds::ControlConfig::_new(buff,
-                                                      list<PVControl>(),
-                                                      list<PVMonitor>(),
-                                                      list<PVLabel  >(),
+                                                      list<PVControlType>(),
+                                                      list<PVMonitorType>(),
+                                                      list<PVLabelType  >(),
                                                       EndRunTime);
-    ::write(daq->socket, buff, cfg->_sizeof());
+    pdsdaq_writecfg(self, cfg);
     delete[] buff;
 
     // If we are running wait for the end Calib cycle otherwise just return
@@ -1399,20 +1448,56 @@ void pdsdaq_unlock  (PyObject* self)
 #endif
 }
 
-bool pdsdaq_pvcheck  (PyObject* name, ssize_t size, const char* pvtype)
+ssize_t pdsdaq_pvsize(PyObject* self, PvTypeInfo pvtype)
 {
-  if(!PyString_Check(name)) {
-    ostringstream o;
-    o << pvtype << " names must be strings!";
-    PyErr_SetString(PyExc_TypeError,o.str().c_str());
-    return false;
-  } else if(PyString_Size(name) >= size) {
-    ostringstream o;
-    o << pvtype << " name " << PyString_AsString(name) << " exceeds the maximum character length of " << size;
-    PyErr_SetString(PyExc_ValueError,o.str().c_str());
-    return false;
+  pdsdaq* daq = (pdsdaq*)self;
+  bool match = (daq->version == (int32_t) ControlConfigApiVersion);
+  switch (pvtype) {
+    case ControlName:
+      return match ? PVControlType::NameSize : pvControlNameSize(daq->version);
+    case MonitorName:
+      return match ? PVMonitorType::NameSize : pvMonitorNameSize(daq->version);
+    case LabelName:
+      return match ? PVLabelType::NameSize : pvLabelNameSize(daq->version);
+    case LabelValue:
+      return match ? PVLabelType::ValueSize : pvLabelValueSize(daq->version);
+    default:
+      return 0;
+  }
+}
+
+bool pdsdaq_pvcheck  (PyObject* self, PyObject* name, PvTypeInfo pvtype)
+{
+  ssize_t size = pdsdaq_pvsize(self, pvtype);
+  if(name) {
+    if(!PyString_Check(name)) {
+      ostringstream o;
+      o << pvtype << " names must be strings!";
+      PyErr_SetString(PyExc_TypeError,o.str().c_str());
+      return false;
+    } else if(PyString_Size(name) >= size) {
+      ostringstream o;
+      o << pvtype << " name " << PyString_AsString(name) << " exceeds the maximum character length of " << size;
+      PyErr_SetString(PyExc_ValueError,o.str().c_str());
+      return false;
+    } else {
+      return true;
+    }
   } else {
-    return true;
+    return false;
+  }
+}
+
+void pdsdaq_writecfg (PyObject* self, ControlConfigType* cfg)
+{
+  pdsdaq* daq = (pdsdaq*)self;
+  if (daq->version != (int32_t) ControlConfigApiVersion) {
+    char* buff = new char[MaxConfigSize];
+    size_t sz = Pds::ControlConfig::convert(buff, *cfg, daq->version);
+    ::write(daq->socket,buff,sz);
+    delete[] buff;
+  } else {
+    ::write(daq->socket,cfg,cfg->_sizeof());
   }
 }
 

@@ -1,15 +1,12 @@
-#include "pdsapp/config/ControlConfig_V2.hh"
+#include "pdsapp/config/ControlConfig_V3.hh"
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 #include "pdsapp/config/PVControl_V0.hh"
 #include "pdsapp/config/PVMonitor_V0.hh"
-#include "pdsapp/config/ControlConfigType_V2.hh"
 
+#include "pdsapp/config/ControlConfigType_V3.hh"
 #include "pdsdata/psddl/control.ddl.h"
-
-
-#include "pdsdata/xtc/ClockTime.hh"
 
 #include <new>
 #include <float.h>
@@ -18,8 +15,8 @@ using Pds_ConfigDb::PVControl_V0::PVControl;
 using Pds_ConfigDb::PVMonitor_V0::PVMonitor;
 
 namespace Pds_ConfigDb {
-  namespace ControlConfig_V2 {
-
+  namespace ControlConfig_V3 {
+  
     class PVLabel {
     public:
       PVLabel() :
@@ -52,9 +49,9 @@ namespace Pds_ConfigDb {
 
     enum StepControl { System, Duration, Events };
     static const char* step_control[] = { "System",
-                                          "Duration",
-                                          "Events",
-                                          NULL };
+		  			"Duration",
+			  		"Events",
+				  	NULL };
 
     class ControlConfig::Private_Data {
       enum { MaxPVs = 100 };
@@ -90,7 +87,7 @@ namespace Pds_ConfigDb {
         pList.insert(&_pvmSet);
         pList.insert(&_npvls);
         pList.insert(&_pvlSet);
-     }
+      }
 
       int pull(void* from) {
         const ControlConfigType& tc = *reinterpret_cast<const ControlConfigType*>(from);
@@ -133,14 +130,14 @@ namespace Pds_ConfigDb {
           pvls.push_back(pvl);
         }
 
-       ControlConfigType* tc;
+        ControlConfigType* tc;
         switch(_control.value) {
-        case Duration: tc = _new(to, pvcs, pvms,  pvls,
-                                 Pds::ClockTime(_duration_sec.value,
-                                                _duration_nsec.value)); break;
-        case Events  : tc = _new(to, pvcs, pvms, pvls, _events.value); break;
+        case Duration: tc = Pds_ConfigDb::ControlConfig_V3::_new(to, pvcs, pvms, pvls, 
+                                                                 Pds::ClockTime(_duration_sec.value,
+                                                                                _duration_nsec.value)); break;
+        case Events  : tc = Pds_ConfigDb::ControlConfig_V3::_new(to, pvcs, pvms, pvls, _events.value); break;
         case System  :
-        default      : tc = _new(to, pvcs, pvms, pvls, 0); break;
+        default      : tc = Pds_ConfigDb::ControlConfig_V3::_new(to, pvcs, pvms, pvls, 0); break;
         }
         return tc->_sizeof();
       }
@@ -150,7 +147,7 @@ namespace Pds_ConfigDb {
           _npvcs.value*sizeof(Pds::ControlData::PVControl) +
           _npvms.value*sizeof(Pds::ControlData::PVMonitor) +
           _npvls.value*sizeof(Pds::ControlData::PVLabel  );
-     }
+      }
 
     private:
       Enumerated<StepControl> _control;
@@ -174,7 +171,7 @@ namespace Pds_ConfigDb {
 };
 
 
-using namespace Pds_ConfigDb::ControlConfig_V2;
+using namespace Pds_ConfigDb::ControlConfig_V3;
 
 ControlConfig::ControlConfig() : 
   Serializer("Control_Config"),

@@ -39,6 +39,7 @@
 #include "pdsapp/config/pnCCDConfig.hh"
 #include "pdsapp/config/princetonConfig.hh"
 #include "pdsapp/config/FrameFexConfig.hh"
+#include "pdsapp/config/ControlConfig_V3.hh"
 #include "pdsapp/config/ControlConfig_V2.hh"
 #include "pdsapp/config/ControlConfig_V1.hh"
 #include "pdsapp/config/ControlConfig.hh"
@@ -223,7 +224,8 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_TM6740Config,1), new TM6740ConfigV1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_IpimbConfig,1) , new IpimbConfig_V1);  
   enroll(Pds::TypeId(Pds::TypeId::Id_IpmFexConfig,1), new IpmFexConfig_V1);
-  enroll(Pds::TypeId(Pds::TypeId::Id_DiodeFexConfig,1), new DiodeFexConfig_V1);  
+  enroll(Pds::TypeId(Pds::TypeId::Id_DiodeFexConfig,1), new DiodeFexConfig_V1);
+  enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,3),new ControlConfig_V3::ControlConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,2),new ControlConfig_V2::ControlConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_ControlConfig,1),new ControlConfig_V1::ControlConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_TimepixConfig,2),new TimepixConfig_V2);

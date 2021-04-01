@@ -119,9 +119,9 @@ RemoteSeqApp::MsgType RemoteSeqApp::readTransition()
   //
   //  Create config with only DAQ control information (to send to EVR)
   //
-  std::list<ControlData::PVControl> controls;
-  std::list<ControlData::PVMonitor> monitors;
-  std::list<ControlData::PVLabel  > labels;
+  std::list<PVControlType> controls;
+  std::list<PVMonitorType> monitors;
+  std::list<PVLabelType  > labels;
 
   if (config.uses_duration())
     ControlConfig::_new(_cfgmon_buffer, controls, monitors, labels, config.duration());
@@ -218,9 +218,12 @@ void RemoteSeqApp::routine()
             ::write(_socket,_control.partition().dbpath(),length);
 
             uint32_t old_key = _control.get_transition_env(TransitionId::Configure);
-            uint32_t options = old_key&DbKeyMask;
+            uint32_t options = (old_key&DbKeyMask) | ApiVersionMask;
             if (lrecord) options |= RecordValMask;
             ::write(_socket,&options,sizeof(options));
+
+            // send the api version
+            ::write(_socket,&ControlConfigApiVersion,sizeof(ControlConfigApiVersion));
 
             // send the current config type (alias)
             string sType = _select.getType();

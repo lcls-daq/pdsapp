@@ -2,8 +2,6 @@
 
 #include "pdsdata/xtc/ClockTime.hh"
 
-#include "pds/config/ControlConfigType.hh"
-
 #include <QtGui/QGridLayout>
 #include <QtGui/QCheckBox>
 #include <QtGui/QLabel>
@@ -94,8 +92,8 @@ PvScan::~PvScan()
 }
 
 void PvScan::_fill_pvs(unsigned step, unsigned nsteps,
-		       std::list<Pds::ControlData::PVControl>& controls,
-		       std::list<Pds::ControlData::PVMonitor>& monitors) const
+		       std::list<PVControlType>& controls,
+		       std::list<PVMonitorType>& monitors) const
 {
   controls.clear();
   monitors.clear();
@@ -119,23 +117,23 @@ void PvScan::_fill_pvs(unsigned step, unsigned nsteps,
 
   if (!control_base.isEmpty()) {
     if (control_index>=0)
-      controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
+      controls.push_back(PVControlType(qPrintable(control_base),
 						     control_index, 
 						     control_v));
     else
-      controls.push_back(Pds::ControlData::PVControl(qPrintable(control_base),
-                                                     Pds::ControlData::PVControl::NoArray,
+      controls.push_back(PVControlType(qPrintable(control_base),
+                                       PVControlType::NoArray,
 						     control_v));
   }
   if (!readback_base.isEmpty()) {
     if (readback_index>=0)
-      monitors.push_back(Pds::ControlData::PVMonitor(qPrintable(readback_base),
+      monitors.push_back(PVMonitorType(qPrintable(readback_base),
 						     readback_index, 
 						     control_v + readback_o - readback_m,
 						     control_v + readback_o + readback_m));
     else
-      monitors.push_back(Pds::ControlData::PVMonitor(qPrintable(readback_base),
-                                                     Pds::ControlData::PVMonitor::NoArray,
+      monitors.push_back(PVMonitorType(qPrintable(readback_base),
+                                       PVMonitorType::NoArray,
 						     control_v + readback_o - readback_m,
 						     control_v + readback_o + readback_m));
   }
@@ -143,9 +141,9 @@ void PvScan::_fill_pvs(unsigned step, unsigned nsteps,
 
 int PvScan::write(unsigned step, unsigned nsteps, bool usePvs, const Pds::ClockTime& ctime, char* buff) const
 {
-  std::list<Pds::ControlData::PVControl> controls;
-  std::list<Pds::ControlData::PVMonitor> monitors;
-  std::list<Pds::ControlData::PVLabel  > labels;
+  std::list<PVControlType> controls;
+  std::list<PVMonitorType> monitors;
+  std::list<PVLabelType  > labels;
   if (usePvs)
     _fill_pvs(step, nsteps, controls, monitors);
 
@@ -157,9 +155,9 @@ int PvScan::write(unsigned step, unsigned nsteps, bool usePvs, const Pds::ClockT
 
 int PvScan::write(unsigned step, unsigned nsteps, bool usePvs, unsigned nevents, char* buff) const
 {
-  std::list<Pds::ControlData::PVControl> controls;
-  std::list<Pds::ControlData::PVMonitor> monitors;
-  std::list<Pds::ControlData::PVLabel  > labels;
+  std::list<PVControlType> controls;
+  std::list<PVMonitorType> monitors;
+  std::list<PVLabelType  > labels;
   if (usePvs)
     _fill_pvs(step, nsteps, controls, monitors);
 
@@ -180,7 +178,7 @@ void PvScan::read(const char* dbuf, int len)
     *reinterpret_cast<const ControlConfigType*>(dbuf+(npts-1)*cfg._sizeof());
 
   if (cfg.npvControls()) {
-    const Pds::ControlData::PVControl& ctl = cfg.pvControls()[0];
+    const PVControlType& ctl = cfg.pvControls()[0];
     if (ctl.array())
       _control_name->setText(QString("%1[%2]").arg(ctl.name()).arg(ctl.index()));
     else
@@ -191,7 +189,7 @@ void PvScan::read(const char* dbuf, int len)
   }
 
   if (cfg.npvMonitors()) {
-    const Pds::ControlData::PVMonitor& mon = cfg.pvMonitors()[0];
+    const PVMonitorType& mon = cfg.pvMonitors()[0];
     if (mon.array())
       _readback_name->setText(QString("%1[%2]").arg(mon.name()).arg(mon.index()));
     else

@@ -3,7 +3,7 @@
 
 #include "pds/epicstools/EpicsCA.hh"
 
-#include "pdsdata/psddl/control.ddl.h"
+#include "pds/config/ControlConfigType.hh"
 
 #include "db_access.h"
 
@@ -25,7 +25,7 @@
     }                                                                   \
   }
 
-typedef Pds::ControlData::PVControl PvType;
+typedef PVControlType PvType;
 
 namespace Pds {
 

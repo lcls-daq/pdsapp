@@ -16,8 +16,8 @@ namespace Pds_ConfigDb {
   class PVLabel {
   public:
     PVLabel() :
-      _name        ("PV Name" , "", Pds::ControlData::PVLabel::NameSize),
-      _value       ("PV Value", "", Pds::ControlData::PVLabel::ValueSize)
+      _name        ("PV Name" , "", PVLabelType::NameSize),
+      _value       ("PV Value", "", PVLabelType::ValueSize)
     {
     }
     
@@ -26,16 +26,16 @@ namespace Pds_ConfigDb {
       pList.insert(&_value);
     }
 
-    bool pull(const Pds::ControlData::PVLabel& tc) {
+    bool pull(const PVLabelType& tc) {
       // construct the full name from the array base and index
-      strncpy(_name .value, tc.name (), Pds::ControlData::PVLabel::NameSize);
-      strncpy(_value.value, tc.value(), Pds::ControlData::PVLabel::ValueSize);
+      strncpy(_name .value, tc.name (), PVLabelType::NameSize);
+      strncpy(_value.value, tc.value(), PVLabelType::ValueSize);
       return true;
     }
 
     int push(void* to) {
-      Pds::ControlData::PVLabel& tc = *new(to) Pds::ControlData::PVLabel(_name.value,
-                                                                         _value.value);
+      PVLabelType& tc = *new(to) PVLabelType(_name.value,
+                                             _value.value);
       return sizeof(tc);
     }
   private:
@@ -105,25 +105,25 @@ namespace Pds_ConfigDb {
     }
 
     int push(void* to) {
-      std::list<Pds::ControlData::PVControl> pvcs;
+      std::list<PVControlType> pvcs;
       for(unsigned k=0; k<_npvcs.value; k++) {
-	Pds::ControlData::PVControl pvc;
-	_pvcs[k].push(&pvc);
-	pvcs.push_back(pvc);
+        PVControlType pvc;
+        _pvcs[k].push(&pvc);
+        pvcs.push_back(pvc);
       }
 
-      std::list<Pds::ControlData::PVMonitor> pvms;
+      std::list<PVMonitorType> pvms;
       for(unsigned k=0; k<_npvms.value; k++) {
-	Pds::ControlData::PVMonitor pvm;
-	_pvms[k].push(&pvm);
-	pvms.push_back(pvm);
+	      PVMonitorType pvm;
+	      _pvms[k].push(&pvm);
+	      pvms.push_back(pvm);
       }
 
-      std::list<Pds::ControlData::PVLabel  > pvls;
+      std::list<PVLabelType  > pvls;
       for(unsigned k=0; k<_npvls.value; k++) {
-	Pds::ControlData::PVLabel pvl;
-	_pvls[k].push(&pvl);
-	pvls.push_back(pvl);
+        PVLabelType pvl;
+        _pvls[k].push(&pvl);
+        pvls.push_back(pvl);
       }
 
       ControlConfigType* tc;
@@ -140,9 +140,9 @@ namespace Pds_ConfigDb {
 
     int dataSize() const {
       return sizeof(ControlConfigType) + 
-	_npvcs.value*sizeof(Pds::ControlData::PVControl) +
-	_npvms.value*sizeof(Pds::ControlData::PVMonitor) +
-        _npvls.value*sizeof(Pds::ControlData::PVLabel  );
+        _npvcs.value*sizeof(PVControlType) +
+        _npvms.value*sizeof(PVMonitorType) +
+        _npvls.value*sizeof(PVLabelType  );
     }
 
   private:

@@ -4,7 +4,7 @@
 #include "pds/epicstools/EpicsCA.hh"
 #include "pds/epicstools/PVMonitorCb.hh"
 
-#include "pdsdata/psddl/control.ddl.h"
+#include "pds/config/ControlConfigType.hh"
 
 #include "db_access.h"
 
@@ -16,7 +16,7 @@
     dtype* data = &pval->value; \
     for(int k=0; k<nelem; k++) value[k] = *data++; }
 
-typedef Pds::ControlData::PVMonitor PvType;
+typedef PVMonitorType PvType;
 
 namespace Pds {
 
