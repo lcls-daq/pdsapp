@@ -13,7 +13,7 @@ static PyMethodDef pds_Epix10kaConfig_methods[] = {
 
 DefineXtcType(Epix10kaConfig) ;
 
-  
+
 #include "pdsdata/psddl/epix.ddl.h"
 #include "pds/config/EpixConfigType.hh"
 #include <new>
@@ -27,9 +27,9 @@ static PyObject* get_asic(const Asic10kaConfigV1* cfg)
 {
   PyObject* o = PyDict_New();
   Epix10kaASIC_ConfigShadow* s = (Epix10kaASIC_ConfigShadow*)cfg;
-  
+
   for (unsigned i=0; i<Pds::Epix10kaConfig::ASIC_ConfigV1::NumberOfRegisters; i++) {
-    PyDict_SetItemString(o, 
+    PyDict_SetItemString(o,
         s->name((Pds::Epix10kaConfig::ASIC_ConfigV1::Registers)i),
         PyLong_FromLong(s->get((Pds::Epix10kaConfig::ASIC_ConfigV1::Registers)i)));
   }
@@ -41,7 +41,7 @@ static PyObject* get_asic(const Asic10kaConfigV1* cfg)
 PyObject* pds_Epix10kaConfig_get    (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
- 
+
   int icycle;
   if (PyArg_ParseTuple(args,"I",&icycle)==0)
     icycle = 0;
@@ -58,16 +58,64 @@ PyObject* pds_Epix10kaConfig_get    (PyObject*   self, PyObject* args)
 
   PyObject* o    = PyDict_New();
   unsigned n     = 0;
-  
+
   if(xtc->contains.version()==1) {
     const Pds::Epix::Config10kaV1* cfg =
       reinterpret_cast<const Pds::Epix::Config10kaV1*>(ubegin);
-    Epix10kaConfigShadow* s = (Epix10kaConfigShadow*)cfg;
+    Epix10kaConfigShadowV1* s = (Epix10kaConfigShadowV1*)cfg;
     for (unsigned i=0; i<Pds::Epix10kaConfig::ConfigV1::NumberOfRegisters; i++) {
-      PyDict_SetItemString(o, 
+      PyDict_SetItemString(o,
           s->name((Pds::Epix10kaConfig::ConfigV1::Registers)i),
           PyLong_FromLong(s->get((Pds::Epix10kaConfig::ConfigV1::Registers)i)));
-      
+
+    }
+    n = cfg->numberOfAsics();
+    printf("Retrieving asics\n");
+    { PyObject* l = PyList_New(n);
+      for(unsigned i=0; i<n; i++)
+        PyList_SetItem(l,i,get_asic(&cfg->asics(i)));
+      PyDict_SetItemString(o,"asics",l); }
+
+    printf("Retrieving Pixel Config Array\n");
+    ndarray<const uint16_t,2> a = cfg->asicPixelConfigArray();
+    { PyObject* rows = PyList_New(a.shape()[0]);
+      for (unsigned j=0; j<a.shape()[0]; j++) {
+        PyObject* pixels = PyList_New(a.shape()[1]);
+        for (unsigned k=0; k<a.shape()[1]; k++) {
+          PyList_SetItem(pixels, k, PyLong_FromLong(a(j,k)));
+        }
+        PyList_SetItem(rows, j, pixels);
+      }
+      PyDict_SetItemString(o, "asicPixelConfigArray", rows);
+    }
+
+    printf("Retrieving Calib Config Array\n");
+    ndarray<const uint8_t,2> b = cfg->calibPixelConfigArray();
+    { PyObject* rows = PyList_New(b.shape()[0]);
+      for (unsigned j=0; j<b.shape()[0]; j++) {
+        PyObject* pixels = PyList_New(b.shape()[1]);
+        for (unsigned k=0; k<b.shape()[1]; k++) {
+          PyList_SetItem(pixels, k, PyLong_FromLong(b(j,k)));
+        }
+        PyList_SetItem(rows, j, pixels);
+      }
+      PyDict_SetItemString(o, "calibPixelConfigArray", rows);
+    }
+    return o;
+  } else if(xtc->contains.version()==2) {
+    const Pds::Epix::Config10kaV2* cfg =
+      reinterpret_cast<const Pds::Epix::Config10kaV2*>(ubegin);
+    Epix10kaConfigShadow* s = (Epix10kaConfigShadow*)cfg;
+    for (unsigned i=0; i<Pds::Epix10kaConfig::ConfigV2::NumberOfRegisters; i++) {
+      PyDict_SetItemString(o,
+          s->name((Pds::Epix10kaConfig::ConfigV2::Registers)i),
+          PyLong_FromLong(s->get((Pds::Epix10kaConfig::ConfigV2::Registers)i)));
+
+    }
+    for (unsigned i=0; i<Pds::Epix10kaConfig::ConfigV2::NumberOfStrRegisters; i++) {
+      PyDict_SetItemString(o,
+          s->name((Pds::Epix10kaConfig::ConfigV2::StrRegisters)i),
+          PyString_FromString(s->getStr((Pds::Epix10kaConfig::ConfigV2::StrRegisters)i)));
     }
     n = cfg->numberOfAsics();
     printf("Retrieving asics\n");
@@ -114,7 +162,7 @@ static bool set_asic(Asic10kaConfigV1* cfg,
 {
 
   Epix10kaASIC_ConfigShadow* s = (Epix10kaASIC_ConfigShadow*)cfg;
-  
+
   for (unsigned i=0; i<Pds::Epix10kaConfig::ASIC_ConfigV1::NumberOfRegisters; i++) {
     PyObject * in = PyDict_GetItemString(o, s->name((Pds::Epix10kaConfig::ASIC_ConfigV1::Registers)i));
     s->set((Pds::Epix10kaConfig::ASIC_ConfigV1::Registers)i, PyLong_AsLong(in));
@@ -135,19 +183,29 @@ PyObject* pds_Epix10kaConfig_set    (PyObject*   self, PyObject* args)
     return NULL;
 
   pdsxtc* xtc = (pdsxtc*)self;
-      
+
   if (xtc->contains.version()==1) {
     Pds::Epix::Config10kaV1* myConfig = new Pds::Epix::Config10kaV1(
-        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerRow")), 
-        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerColumn")), 
-        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfRowsPerAsic")), 
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerRow")),
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerColumn")),
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfRowsPerAsic")),
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfPixelsPerAsicRow")),
+        PyLong_AsLong(PyDict_GetItemString(o, "CalibrationRowCountPerASIC")));
+    isize = myConfig->_sizeof();
+    usize = isize*(icycle+1);
+    delete myConfig;
+  } else if (xtc->contains.version()==2) {
+    Pds::Epix::Config10kaV2* myConfig = new Pds::Epix::Config10kaV2(
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerRow")),
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfAsicsPerColumn")),
+        PyLong_AsLong(PyDict_GetItemString(o, "NumberOfRowsPerAsic")),
         PyLong_AsLong(PyDict_GetItemString(o, "NumberOfPixelsPerAsicRow")),
         PyLong_AsLong(PyDict_GetItemString(o, "CalibrationRowCountPerASIC")));
     isize = myConfig->_sizeof();
     usize = isize*(icycle+1);
     delete myConfig;
   }
-  
+
 //  printf("pds_Epix10kaConfig_set isize(%u) usize(%u) icycle(%u)\n", isize, usize, icycle);
 
   if (xtc->extent < usize) {
@@ -161,17 +219,17 @@ PyObject* pds_Epix10kaConfig_set    (PyObject*   self, PyObject* args)
   char* ubegin = xtc->payload + icycle*isize;
 
   if (xtc->contains.version()==1) {
-    Pds::Epix::Config10kaV1* cfg = 
+    Pds::Epix::Config10kaV1* cfg =
         reinterpret_cast<Pds::Epix::Config10kaV1*>(ubegin);
-    
+
 //    printf("pds_Epix10kaConfig_set cfg %p\n", cfg);
 
-    Epix10kaConfigShadow* s = new(ubegin)Epix10kaConfigShadow(true);
+    Epix10kaConfigShadowV1* s = new(ubegin)Epix10kaConfigShadowV1(true);
     for (unsigned i=0; i<Pds::Epix10kaConfig::ConfigV1::NumberOfRegisters; i++) {
       in = PyDict_GetItemString(o, s->name((Pds::Epix10kaConfig::ConfigV1::Registers)i));
       s->set((Pds::Epix10kaConfig::ConfigV1::Registers)i, PyLong_AsLong(in));
     }
-    
+
 //    printf("pds_Epix10kaConfig_set n %u, r %u, p, %u, cfg %p, s %p\n", n, r, p, cfg, s);
 //    if ((n > 4) || (icycle == 0)) {
 //      const uint32_t* q = reinterpret_cast<const uint32_t*>(cfg);
@@ -183,13 +241,65 @@ PyObject* pds_Epix10kaConfig_set    (PyObject*   self, PyObject* args)
 //      printf("Config ---\n");
 //      for (unsigned i=0; i<Pds::Epix10kaConfig::ConfigV1::NumberOfRegisters; i++) {
 //        in = PyDict_GetItemString(o, s->name((Pds::Epix10kaConfig::ConfigV1::Registers)i));
-//        printf("\t%s  =  %u shadow has %u, offset is %u\n", 
-//            s->name((Pds::Epix10kaConfig::ConfigV1::Registers)i), 
-//            PyLong_AsLong(in), 
+//        printf("\t%s  =  %u shadow has %u, offset is %u\n",
+//            s->name((Pds::Epix10kaConfig::ConfigV1::Registers)i),
+//            PyLong_AsLong(in),
 //            s->get((Pds::Epix10kaConfig::ConfigV1::Registers)i),
 //            s->offset((Pds::Epix10kaConfig::ConfigV1::Registers)i));
-//      }  
+//      }
 //    }
+
+    if ((in = PyDict_GetItemString(o,"asics"))) {
+      for(unsigned q=0; q<PyList_Size(in); q++) {
+        const Asic10kaConfigV1& asic = cfg->asics(q);
+        Asic10kaConfigV1* ncptr = (Asic10kaConfigV1*) &asic;
+        if (!set_asic(ncptr,PyList_GetItem(in,q))) {
+          Py_DECREF(o);
+          return NULL;
+        }
+      }
+    }
+
+//    printf("Writing asic pixel config array\n");
+    PyObject* l = PyDict_GetItemString(o,"asicPixelConfigArray");
+    if (l) {
+      for (unsigned j=0; j<PyList_Size(l); j++) {
+        PyObject* row = PyList_GetItem(l, j);
+        for (unsigned k=0; k<PyList_Size(row); k++) {
+          uint16_t* ncptr = (uint16_t*)&(cfg->asicPixelConfigArray()(j,k));
+          *ncptr = PyLong_AsLong(PyList_GetItem(row, k));
+        }
+      }
+    } else {
+      return NULL;
+    }
+
+//    printf("Writing calib pixel config array\n");
+    PyObject* li = PyDict_GetItemString(o,"calibPixelConfigArray");
+    if (li) {
+      for (unsigned j=0; j<PyList_Size(li); j++) {
+        PyObject* row = PyList_GetItem(li, j);
+        for (unsigned k=0; k<PyList_Size(row); k++) {
+          uint8_t* ncptr = (uint8_t*)&(cfg->calibPixelConfigArray()(j,k));
+          *ncptr = PyLong_AsLong(PyList_GetItem(row, k));
+        }
+      }
+    } else {
+      return NULL;
+    }
+  } else if (xtc->contains.version()==2) {
+    Pds::Epix::Config10kaV2* cfg =
+        reinterpret_cast<Pds::Epix::Config10kaV2*>(ubegin);
+
+    Epix10kaConfigShadow* s = new(ubegin)Epix10kaConfigShadow(true);
+    for (unsigned i=0; i<Pds::Epix10kaConfig::ConfigV2::NumberOfRegisters; i++) {
+      in = PyDict_GetItemString(o, s->name((Pds::Epix10kaConfig::ConfigV2::Registers)i));
+      s->set((Pds::Epix10kaConfig::ConfigV2::Registers)i, PyLong_AsLong(in));
+    }
+    for (unsigned i=0; i<Pds::Epix10kaConfig::ConfigV2::NumberOfStrRegisters; i++) {
+      in = PyDict_GetItemString(o, s->name((Pds::Epix10kaConfig::ConfigV2::StrRegisters)i));
+      s->setStr((Pds::Epix10kaConfig::ConfigV2::StrRegisters)i, PyString_AsString(in));
+    }
 
     if ((in = PyDict_GetItemString(o,"asics"))) {
       for(unsigned q=0; q<PyList_Size(in); q++) {

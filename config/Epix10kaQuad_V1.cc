@@ -1,4 +1,4 @@
-#include "pdsapp/config/Epix10kaQuad.hh"
+#include "pdsapp/config/Epix10kaQuad_V1.hh"
 #include "pdsapp/config/Epix10kaASICdata.hh"
 #include "pdsapp/config/Epix10kaCalibMap.hh"
 #include "pdsapp/config/Epix10kaPixelMap.hh"
@@ -41,14 +41,14 @@ static const char* IntPwdnModeCh[] = { "ChipRun", "FullPowerDown", "Standby", "D
 static const char* UserTestModeCh[] = { "Single", "Alternate", "Single Once", "Alternate Once", NULL };
 
 //enum OutputTestMode { Off, MidscaleShort, PosFS, NegFS, AltCheckerBoard, PN23, PN9, OneZeroWordToggle, UserInput, OneZeroBitToggle };
-static const char* OutputTestModeCh[] = { "Off", "MidscaleShort", "PosFS", "NegFS", "AltCheckerBoard", 
+static const char* OutputTestModeCh[] = { "Off", "MidscaleShort", "PosFS", "NegFS", "AltCheckerBoard",
                                           "PN23", "PN9", "1/0 WordToggle", "UserInput", "1/0 BitToggle", NULL };
 static const char* ClockDivideCh[] = { "1","2","3","4","5","6","7","8", NULL };
 
 enum OutputFormat { TwosComplement, OffsetBinary };
 static const char* OutputFormatCh[] = { "TwosComplement", "OffsetBinary", NULL };
 
-using namespace Pds_ConfigDb::Epix10kaQuad;
+using namespace Pds_ConfigDb::V1::Epix10kaQuad;
 
 AD9249Display::AD9249Display() :
   _devIndexMask      (NULL, 0xff, 0, 0xff, Hex),
@@ -173,17 +173,14 @@ void QuadP::initialize_tabs(QWidget*     parent,
     gl_sco->addWidget(new QLabel(QString("Quad %1").arg(i)), 0, i+1);
   }
   unsigned row=1;
-  gl_sys->addWidget(new QLabel("firmwareVersion"),row++,0);
-  gl_sys->addWidget(new QLabel("firmwareHash"   ),row++,0);
-  gl_sys->addWidget(new QLabel("firmwareDesc"   ),row++,0);
-  gl_sys->addWidget(new QLabel("digitalId0"     ),row++,0);
-  gl_sys->addWidget(new QLabel("digitalId1"     ),row++,0);
-  gl_sys->addWidget(new QLabel("dcdcEn"         ),row++,0);
-  gl_sys->addWidget(new QLabel("asicAnaEn"      ),row++,0);
-  gl_sys->addWidget(new QLabel("asicDigEn"      ),row++,0);
-  gl_sys->addWidget(new QLabel("ddrVttEn"       ),row++,0);
-  gl_sys->addWidget(new QLabel("trigSrcSel"     ),row++,0);
-  gl_sys->addWidget(new QLabel("vguardDac"      ),row++,0);
+  gl_sys->addWidget(new QLabel("digitalId0"),row++,0);
+  gl_sys->addWidget(new QLabel("digitalId1"),row++,0);
+  gl_sys->addWidget(new QLabel("dcdcEn"    ),row++,0);
+  gl_sys->addWidget(new QLabel("asicAnaEn" ),row++,0);
+  gl_sys->addWidget(new QLabel("asicDigEn" ),row++,0);
+  gl_sys->addWidget(new QLabel("ddrVttEn"  ),row++,0);
+  gl_sys->addWidget(new QLabel("trigSrcSel"),row++,0);
+  gl_sys->addWidget(new QLabel("vguardDac" ),row++,0);
   gl_sys->addWidget(new QLabel("-"),row++,0); gl_sys->setRowStretch(row-1,1);
   row=1;
   gl_acq->addWidget(new QLabel("acqToAsicR0Delay"),row++,0);
@@ -203,13 +200,8 @@ void QuadP::initialize_tabs(QWidget*     parent,
   gl_acq->addWidget(new QLabel("asicSyncValue"   ),row++,0);
   gl_acq->addWidget(new QLabel("asicRoClkForce"  ),row++,0);
   gl_acq->addWidget(new QLabel("asicRoClkValue"  ),row++,0);
-  gl_acq->addWidget(new QLabel("dummyAcqEn"      ),row++,0);
-  gl_acq->addWidget(new QLabel("asicSyncInjEn"   ),row++,0);
-  gl_acq->addWidget(new QLabel("asicSyncInjDly"  ),row++,0);
   gl_acq->addWidget(new QLabel("adcPipelineDelay"),row++,0);
   gl_acq->addWidget(new QLabel("testData"        ),row++,0);
-  gl_acq->addWidget(new QLabel("overSampleEn"    ),row++,0);
-  gl_acq->addWidget(new QLabel("overSampleSize"  ),row++,0);
   gl_acq->addWidget(new QLabel("-"),row++,0); gl_acq->setRowStretch(row-1,1);
   row=1;
   gl_sco->addWidget(new QLabel("enable"       ),row++,0);
@@ -226,15 +218,12 @@ void QuadP::initialize_tabs(QWidget*     parent,
   gl_sco->addWidget(new QLabel("chanBSelect"  ),row++,0);
   gl_sco->addWidget(new QLabel("-"),row++,0); gl_sco->setRowStretch(row-1,1);
 
-  for(unsigned ch=0; ch<10*nq; ch++) 
+  for(unsigned ch=0; ch<10*nq; ch++)
     AD9249Display::initializeTab(parent,gl_adc[ch]);
 }
 
 QuadP::QuadP() :
   //  SystemRegs
-  _firmwareVersion    ( NULL, 0,      0, 0xffffffff, Hex),
-  _firmwareHash       ( NULL, "",     Epix10kaQuadConfig::FirmwareHashMax),
-  _firmwareDesc       ( NULL, "",     Epix10kaQuadConfig::FirmwareDescMax),
   _digitalCardId0     ( NULL, 0,      0, 0xffffffff, Hex),
   _digitalCardId1     ( NULL, 0,      0, 0xffffffff, Hex),
   _dcdcEn             ( NULL, 0xf,    0, 0xf, Hex),
@@ -261,18 +250,13 @@ QuadP::QuadP() :
   _asicSyncValue      ( NULL, Enums::False, Enums::Bool_Names),
   _asicRoClkForce     ( NULL, Enums::False, Enums::Bool_Names),
   _asicRoClkValue     ( NULL, Enums::False, Enums::Bool_Names),
-  _dummyAcqEn         ( NULL, Enums::True , Enums::Bool_Names),
-  _asicSyncInjEn      ( NULL, Enums::True , Enums::Bool_Names),
-  _asicSyncInjDly     ( NULL, 1000,   0, 0xffffffff, Decimal),
   _adcPipelineDelay   ( NULL, 0,      0, 0xffffffff, Decimal),
-  _testData           ( NULL, Enums::False, Enums::Bool_Names),
-  _overSampleEn       ( NULL, Enums::False, Enums::Bool_Names),
-  _overSampleSize     ( NULL, 0,      0, 7, Decimal),
+  _testData           ( NULL, Enums::False,  Enums::Bool_Names),
 // ScopeCore
-  _scopeEnable        ( NULL, 0,      0, 1,          Decimal),
-  _scopeTrigEdge      ( NULL, 0,      0, 1,          Decimal),
-  _scopeTrigChan      ( NULL, 0,      0, 31,         Decimal),
-  _scopeTrigMode      ( NULL, 0,      0, 3,          Decimal),
+  _scopeEnable        ( NULL, 0,      0, 1,       Decimal),
+  _scopeTrigEdge      ( NULL, 0,      0, 1,     Decimal),
+  _scopeTrigChan      ( NULL, 0,      0, 31,     Decimal),
+  _scopeTrigMode      ( NULL, 0,      0, 3,     Decimal),
   _scopeAdcThreshold  ( NULL, 0,      0, 0xffff,     Decimal),
   _scopeTrigHoldoff   ( NULL, 0,      0, 0x1fff,     Decimal),
   _scopeTrigOffset    ( NULL, 0,      0, 0x1fff,     Decimal),
@@ -292,10 +276,9 @@ void QuadP::reset ()
 {
 }
 
-void QuadP::pull   (const Epix10kaQuadConfig& p)
+void QuadP::pull   (const Epix10kaQuadConfigV1& p)
 {
   //  AxiVersion (RO)
-  _firmwareVersion    .value = p.firmwareVersion    ();
   _digitalCardId0     .value = p.digitalCardId0     ();
   _digitalCardId1     .value = p.digitalCardId1     ();
   //  System
@@ -323,14 +306,8 @@ void QuadP::pull   (const Epix10kaQuadConfig& p)
   _asicSyncValue      .value = Enums::Bool(p.asicSyncValue      ());
   _asicRoClkForce     .value = Enums::Bool(p.asicRoClkForce     ());
   _asicRoClkValue     .value = Enums::Bool(p.asicRoClkValue     ());
-  _dummyAcqEn         .value = Enums::Bool(p.dummyAcqEn         ());
-  _asicSyncInjEn      .value = Enums::Bool(p.asicSyncInjEn      ());
-  _asicSyncInjDly     .value = p.asicSyncInjDly     ();
-  // RdoutCore
   _adcPipelineDelay   .value = p.adcPipelineDelay   ();
   _testData           .value = Enums::Bool(p.testData           ());
-  _overSampleEn       .value = Enums::Bool(p.overSampleEn       ());
-  _overSampleSize     .value = p.overSampleSize     ();
   // ScopeCore
   _scopeEnable        .value = p.scopeEnable        ();
   _scopeTrigEdge      .value = p.scopeTrigEdge      ();
@@ -345,29 +322,22 @@ void QuadP::pull   (const Epix10kaQuadConfig& p)
   _scopeChanASelect   .value = p.scopeChanAwaveformSelect   ();
   _scopeChanBSelect   .value = p.scopeChanBwaveformSelect   ();
 
-  // string firmware parameters
-  strcpy(_firmwareHash.value, p.firmwareHash());
-  strcpy(_firmwareDesc.value, p.firmwareDesc());
-
   for(unsigned ch=0; ch<10; ch++)
     _adc[ch].pull(p.adc(ch));
 }
 
-void QuadP::push   (Epix10kaQuadConfig* p)
+void QuadP::push   (Epix10kaQuadConfigV1* p)
 {
   Pds::Epix::Ad9249Config     adcs[10];
   for(unsigned ch=0; ch<10; ch++)
     _adc[ch].push(adcs[ch]);
 
-  __attribute__((unused)) Epix10kaQuadConfig& c =
-  *new(p) Epix10kaQuadConfig    (125000000,  // baseClockFreq
+  __attribute__((unused)) Epix10kaQuadConfigV1& c =
+  *new(p) Epix10kaQuadConfigV1  (125000000,  // baseClockFreq
                                  0,          // enableAutomaticRunTrigger
                                  125000000/120,  // numberOf125MhzTicksPerRunTrigger
-                                 _firmwareVersion    .value,
                                  _digitalCardId0     .value,
                                  _digitalCardId1     .value,
-                                 _firmwareHash       .value,
-                                 _firmwareDesc       .value,
                                  _dcdcEn             .value,
                                  _asicAnaEn          .value,
                                  _asicDigEn          .value,
@@ -392,14 +362,8 @@ void QuadP::push   (Epix10kaQuadConfig* p)
                                  _asicPPmatValue     .value,
                                  _asicSyncValue      .value,
                                  _asicRoClkValue     .value,
-                                 _dummyAcqEn         .value,
-                                 _asicSyncInjEn      .value,
-                                 _asicSyncInjDly     .value,
-                                 // RdoutCore
                                  _adcPipelineDelay   .value,
                                  _testData           .value,
-                                 _overSampleEn       .value,
-                                 _overSampleSize     .value,
                                  // ScopeCore
                                  _scopeEnable        .value,
                                  _scopeTrigEdge      .value,
@@ -420,9 +384,6 @@ void QuadP::push   (Epix10kaQuadConfig* p)
 void QuadP::initialize(QWidget* parent, QGridLayout* gl_sys, QGridLayout* gl_acq, QGridLayout* gl_sco, QGridLayout** gl_adc, QLayout** gl_asi, unsigned q)
 {
   unsigned row=1;
-  gl_sys->addLayout(_firmwareVersion.initialize(parent),row++,q+1);
-  gl_sys->addLayout(_firmwareHash   .initialize(parent),row++,q+1);
-  gl_sys->addLayout(_firmwareDesc   .initialize(parent),row++,q+1);
   gl_sys->addLayout(_digitalCardId0.initialize(parent),row++,q+1);
   gl_sys->addLayout(_digitalCardId1.initialize(parent),row++,q+1);
   gl_sys->addLayout(_dcdcEn    .initialize(parent),row++,q+1);
@@ -436,7 +397,7 @@ void QuadP::initialize(QWidget* parent, QGridLayout* gl_sys, QGridLayout* gl_acq
   gl_acq->addLayout(_asicR0Width.initialize(parent)     ,row++,q+1);
   gl_acq->addLayout(_asicR0ToAsicAcq.initialize(parent) ,row++,q+1);
   gl_acq->addLayout(_asicAcqWidth.initialize(parent)    ,row++,q+1);
-  gl_acq->addLayout(_asicAcqLToPPmatL.initialize(parent),row++,q+1);      
+  gl_acq->addLayout(_asicAcqLToPPmatL.initialize(parent),row++,q+1);
   gl_acq->addLayout(_asicPPmatToReadout.initialize(parent) ,row++,q+1);
   gl_acq->addLayout(_asicRoClkHalfT.initialize(parent)  ,row++,q+1);
   gl_acq->addLayout(_asicAcqForce    .initialize(parent)  ,row++,q+1);
@@ -449,13 +410,8 @@ void QuadP::initialize(QWidget* parent, QGridLayout* gl_sys, QGridLayout* gl_acq
   gl_acq->addLayout(_asicSyncValue   .initialize(parent)  ,row++,q+1);
   gl_acq->addLayout(_asicRoClkForce  .initialize(parent)  ,row++,q+1);
   gl_acq->addLayout(_asicRoClkValue  .initialize(parent)  ,row++,q+1);
-  gl_acq->addLayout(_dummyAcqEn      .initialize(parent)  ,row++,q+1);
-  gl_acq->addLayout(_asicSyncInjEn   .initialize(parent)  ,row++,q+1);
-  gl_acq->addLayout(_asicSyncInjDly  .initialize(parent)  ,row++,q+1);
   gl_acq->addLayout(_adcPipelineDelay.initialize(parent),row++,q+1);
   gl_acq->addLayout(_testData        .initialize(parent),row++,q+1);
-  gl_acq->addLayout(_overSampleEn    .initialize(parent),row++,q+1);
-  gl_acq->addLayout(_overSampleSize  .initialize(parent),row++,q+1);
   row=1;
   gl_sco->addLayout(_scopeEnable.initialize(parent)       ,row++,q+1);
   gl_sco->addLayout(_scopeTrigEdge.initialize(parent)     ,row++,q+1);
@@ -477,9 +433,6 @@ void QuadP::initialize(QWidget* parent, QGridLayout* gl_sys, QGridLayout* gl_acq
 
 void QuadP::insert(Pds::LinkedList<Parameter>& pList) {
 #define ADDP(t) pList.insert(&t)
-  ADDP(_firmwareVersion);
-  ADDP(_firmwareHash);
-  ADDP(_firmwareDesc);
   ADDP(_digitalCardId0);
   ADDP(_digitalCardId1);
   ADDP(_dcdcEn);
@@ -505,13 +458,8 @@ void QuadP::insert(Pds::LinkedList<Parameter>& pList) {
   ADDP(_asicSyncValue);
   ADDP(_asicRoClkForce);
   ADDP(_asicRoClkValue);
-  ADDP(_dummyAcqEn);
-  ADDP(_asicSyncInjEn);
-  ADDP(_asicSyncInjDly);
   ADDP(_adcPipelineDelay);
   ADDP(_testData);
-  ADDP(_overSampleEn);
-  ADDP(_overSampleSize);
   ADDP(_scopeEnable);
   ADDP(_scopeTrigEdge);
   ADDP(_scopeTrigChan);

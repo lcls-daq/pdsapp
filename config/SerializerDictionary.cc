@@ -62,8 +62,11 @@
 #include "pdsapp/config/Epix100aConfig.hh"
 #include "pdsapp/config/Epix100aConfig_V1.hh"
 #include "pdsapp/config/Epix10kaConfig.hh"
+#include "pdsapp/config/Epix10kaConfig_V1.hh"
 #include "pdsapp/config/Epix10ka2MConfig.hh"
+#include "pdsapp/config/Epix10ka2MConfig_V1.hh"
 #include "pdsapp/config/Epix10kaQuadConfigP.hh"
+#include "pdsapp/config/Epix10kaQuadConfigP_V1.hh"
 #include "pdsapp/config/GenericPgpConfig.hh"
 #include "pdsapp/config/OceanOpticsConfig.hh"
 #include "pdsapp/config/FliConfig.hh"
@@ -232,6 +235,9 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_TimeToolConfig,1),new V1::TimeToolConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_QuartzConfig,1),new V1::QuartzConfig);
   enroll(Pds::TypeId(Pds::TypeId::Id_Epix100aConfig,1),new V1::Epix100aConfig);
+  enroll(Pds::TypeId(Pds::TypeId::Id_Epix10kaConfig,1),new V1::Epix10kaConfig);
+  enroll(Pds::TypeId(Pds::TypeId::Id_Epix10ka2MConfig,1),new V1::Epix10ka2MConfig);
+  enroll(Pds::TypeId(Pds::TypeId::Id_Epix10kaQuadConfig,1),new V1::Epix10kaQuadConfigP);
   enroll(Pds::TypeId(Pds::TypeId::Id_AndorConfig,1),  new AndorConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_JungfrauConfig,1), new JungfrauConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_JungfrauConfig,2), new JungfrauConfig_V2);

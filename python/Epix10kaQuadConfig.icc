@@ -13,7 +13,7 @@ static PyMethodDef pds_Epix10kaQuadConfig_methods[] = {
 
 DefineXtcType(Epix10kaQuadConfig) ;
 
-  
+
 #include "pdsdata/psddl/epix.ddl.h"
 #include "pds/config/EpixConfigType.hh"
 #include <new>
@@ -27,10 +27,10 @@ using namespace Pds::Epix;
 PyObject* pds_Epix10kaQuadConfig_get    (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
- 
-  int icycle;
-  if (PyArg_ParseTuple(args,"I",&icycle)==0)
-    icycle = 0;
+
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"|I",&icycle)==0)
+    return NULL;
 
   unsigned isize = pds_Epix10kaQuadConfig_size(self);
   unsigned usize = isize*(icycle+1);
@@ -41,7 +41,7 @@ PyObject* pds_Epix10kaQuadConfig_get    (PyObject*   self, PyObject* args)
   char* ubegin = xtc->payload + isize*icycle;
 
   if(xtc->contains.version()==1) {
-    const Config10kaQuadV1* cfg = 
+    const Config10kaQuadV1* cfg =
       reinterpret_cast<const Config10kaQuadV1*>(ubegin);
 
     PyObject* o = PyDict_New();
@@ -53,7 +53,22 @@ PyObject* pds_Epix10kaQuadConfig_get    (PyObject*   self, PyObject* args)
         PyList_SetItem(elems, e, _toPyDict(cfg->elemCfg(e)));
       PyDict_SetItemString(o, "elemCfg", elems);
     }
-    
+
+    return o;
+  } else if(xtc->contains.version()==2) {
+    const Config10kaQuadV2* cfg =
+      reinterpret_cast<const Config10kaQuadV2*>(ubegin);
+
+    PyObject* o = PyDict_New();
+    PyDict_SetItemString(o, "evr" , _toPyDict(cfg->evr()));
+    PyDict_SetItemString(o, "quad", _toPyDict(cfg->quad()));
+
+    { PyObject* elems = PyList_New(4);
+      for(unsigned e=0; e<4; e++)
+        PyList_SetItem(elems, e, _toPyDict(cfg->elemCfg(e)));
+      PyDict_SetItemString(o, "elemCfg", elems);
+    }
+
     return o;
   }
 
@@ -72,7 +87,7 @@ PyObject* pds_Epix10kaQuadConfig_set    (PyObject*   self, PyObject* args)
     return NULL;
 
   pdsxtc* xtc = (pdsxtc*)self;
-      
+
   unsigned isize = Config10kaQuadV1::_sizeof();
   unsigned usize = isize*(icycle+1);
 
@@ -95,6 +110,15 @@ PyObject* pds_Epix10kaQuadConfig_set    (PyObject*   self, PyObject* args)
     for(unsigned e=0; e<4; e++)
       _toConfig10ka( PyList_GetItem(PyDict_GetItemString(o, "elemCfg"), e),
                      &cfg->elemCfg(e) );
+  } else if (xtc->contains.version()==2) {
+    Config10kaQuadV2* cfg = reinterpret_cast<Config10kaQuadV2*>(ubegin);
+    _toPgpEvrConfig( PyDict_GetItemString(o,"evr"), &cfg->evr());
+
+    _toEpix10kaQuadConfig( PyDict_GetItemString(o,"quad"), &cfg->quad());
+
+    for(unsigned e=0; e<4; e++)
+      _toConfig10ka( PyList_GetItem(PyDict_GetItemString(o, "elemCfg"), e),
+                     &cfg->elemCfg(e) );
   }
 
   Py_INCREF(Py_None);
@@ -107,6 +131,7 @@ unsigned pds_Epix10kaQuadConfig_size(PyObject* self)
   if (xtc->contains.id() == Pds::TypeId::Id_Epix10kaQuadConfig) {
     switch(xtc->contains.version()) {
       case 1:  return reinterpret_cast<Pds::Epix::Config10kaQuadV1*>(xtc->payload)->_sizeof();
+      case 2:  return reinterpret_cast<Pds::Epix::Config10kaQuadV2*>(xtc->payload)->_sizeof();
      default: break;
     }
   }

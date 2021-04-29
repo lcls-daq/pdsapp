@@ -86,7 +86,8 @@ void     TextParameter::flush ()
 
 void     TextParameter::enable(bool v)
 {
-  _input->setReadOnly(!(allowEdit() && v));
+  if (_input)
+    _input->setReadOnly(!(allowEdit() && v));
 }
 
 QWidget* TextParameter::widget() 

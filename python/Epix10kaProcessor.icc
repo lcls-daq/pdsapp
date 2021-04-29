@@ -3,18 +3,18 @@
 //
 #include "pdsdata/psddl/epix.ddl.h"
 
-typedef Pds::Epix::Config10kaV1       EpixConfig;
+typedef Pds::Epix::Config10kaV2       EpixConfig;
 typedef Pds::Epix::ElementV3          EpixData;
 
 namespace Pds {
-  class Epix100aProcessor : public FrameProcessor {
+  class Epix10kaProcessor : public FrameProcessor {
   public:
-    Epix100aProcessor() :
+    Epix10kaProcessor() :
       _rows(708), _columns(768), _bitdepth(14), _offset(32),
-      _srcInfo(0,DetInfo::CxiEndstation,0,DetInfo::Epix100a,0),
+      _srcInfo(0,DetInfo::CxiEndstation,0,DetInfo::Epix10ka,0),
       _cfgb(0)
     {}
-    ~Epix100aProcessor() { if (_cfgb) delete[] _cfgb; }
+    ~Epix10kaProcessor() { if (_cfgb) delete[] _cfgb; }
   public:
     Dgram* configure(Dgram*         dg) {
       insert(dg,TransitionId::Configure);
@@ -80,7 +80,10 @@ namespace Pds {
                    0, // arg__baseClockFrequency, 
                    0xf, // arg__asicMask, 
                    0, // arg__enableAutomaticRunTrigger, 
-                   0, // arg__numberOf125MhzTicksPerRunTrigger, 
+                   0, // arg__numberOf125MhzTicksPerRunTrigger,
+                   1, // arg__ghostCorrEn,
+                   0, // arg__oversampleEn,
+                   0, // arg__oversampleSize,
                    0, // arg__scopeEnable, 
                    0, // arg__scopeTrigEdge, 
                    0, // arg__scopeTrigChan, 

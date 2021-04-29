@@ -34,15 +34,15 @@ static const int PolarityGroup = 100;
 // static const unsigned Columns = Pds::CsPad::ColumnsPerASIC;
 // static const unsigned Rows    = Pds::CsPad::MaxRowsPerASIC;
 
-static const unsigned pixelArrayShape[] = {Pds::Epix::Config10ka::_numberOfRowsPerAsic *
-                                           Pds::Epix::Config10ka::_numberOfAsicsPerColumn,
-                                           Pds::Epix::Config10ka::_numberOfPixelsPerAsicRow *
-                                           Pds::Epix::Config10ka::_numberOfAsicsPerRow};
+static const unsigned pixelArrayShape[] = {Epix10kaElemConfig::_numberOfRowsPerAsic *
+                                           Epix10kaElemConfig::_numberOfAsicsPerColumn,
+                                           Epix10kaElemConfig::_numberOfPixelsPerAsicRow *
+                                           Epix10kaElemConfig::_numberOfAsicsPerRow};
 
-static const unsigned calibArrayShape[] = {Pds::Epix::Config10ka::_calibrationRowCountPerASIC *
-                                           Pds::Epix::Config10ka::_numberOfAsicsPerColumn,
-                                           Pds::Epix::Config10ka::_numberOfPixelsPerAsicRow *
-                                           Pds::Epix::Config10ka::_numberOfAsicsPerRow};
+static const unsigned calibArrayShape[] = {Epix10kaElemConfig::_calibrationRowCountPerASIC *
+                                           Epix10kaElemConfig::_numberOfAsicsPerColumn,
+                                           Epix10kaElemConfig::_numberOfPixelsPerAsicRow *
+                                           Epix10kaElemConfig::_numberOfAsicsPerRow};
 
 
 namespace Pds_ConfigDb {
@@ -94,7 +94,9 @@ namespace Pds_ConfigDb {
       {
         for(unsigned a=0; a<16; a++) {
           _pixelArray[a] = ndarray<uint16_t,2>(pixelArrayShape);
+          std::fill(_pixelArray[a].begin(), _pixelArray[a].end(), 0);
           _calibArray[a] = ndarray<uint8_t ,2>(calibArrayShape);
+          std::fill(_calibArray[a].begin(), _calibArray[a].end(), 0);
         }
       }
     public:
@@ -127,12 +129,12 @@ namespace Pds_ConfigDb {
       {
         Pds::Epix::PgpEvrConfig evr(1U, _evrRunCode.value, 0, _evrRunDelay.value);
 
-        Pds::Epix::Config10ka elemCfg[16];
+        Epix10kaElemConfig elemCfg[16];
         for(unsigned i=0; i<16; i++) {
           Pds::Epix::Asic10kaConfigV1 asics[4];
           for(unsigned j=0; j<4; j++)
             _asic[j+4*i].push(reinterpret_cast<Epix10kaASIC_ConfigShadow*>(&asics[j]));
-          elemCfg[i] = Pds::Epix::Config10ka( 0, 0, (_asicMask.value>>(4*i))&0xf, 
+          elemCfg[i] = Epix10kaElemConfig( 0, 0, (_asicMask.value>>(4*i))&0xf,
                                               asics, 
                                               _pixelArray[i].begin(),
                                               _calibArray[i].begin() );

@@ -1393,17 +1393,17 @@ public:
   }
 };
 
-class SimEpix10kaQuad : public SimEpixArrayBase<Epix::Config10kaQuadV1,Epix::ArrayV1> {
+class SimEpix10kaQuad : public SimEpixArrayBase<Epix::Config10kaQuadV2,Epix::ArrayV1> {
 public:
   SimEpix10kaQuad(const Src& src) {
     const unsigned Asics = 4;
 
-    Epix::Config10kaQuadV1 c;
+    Epix::Config10kaQuadV2 c;
     unsigned CfgSize = c._sizeof()+sizeof(Xtc);
 
     Xtc* cfgtc = config(src,CfgSize);
 
-    Epix::Config10ka e;
+    Epix::Elem10kaConfigV1 e;
     unsigned ElemSize = e._sizeof();
     unsigned Elements = c.numberOfElements();
     Epix::Asic10kaConfigV1 asics[Asics];
@@ -1420,17 +1420,17 @@ public:
     unsigned asicMask = 0xf; // for all asics on ortherwise use -> src.phy()&0xf;
 
     char* elemBuffer = new char[Elements * ElemSize];
-    Epix::Config10ka* elemCfg = reinterpret_cast<Epix::Config10ka*>(elemBuffer);
+    Epix::Elem10kaConfigV1* elemCfg = reinterpret_cast<Epix::Elem10kaConfigV1*>(elemBuffer);
     for (unsigned elem=0; elem<Elements; elem++) {
-      new(&elemCfg[elem]) Epix::Config10ka(0, 0, asicMask, asics, asicarray, calibarray);
+      new(&elemCfg[elem]) Epix::Elem10kaConfigV1(0, 0, asicMask, asics, asicarray, calibarray);
     }
 
     Epix::PgpEvrConfig pgpCfg(1, 40, 40, 0);
 
-    Epix::Config10kaQuad quadCfg;
+    Epix::Quad10kaConfigV2 quadCfg;
 
-    Epix::Config10kaQuadV1* cfg = new (cfgtc->next())
-      Epix::Config10kaQuadV1(pgpCfg, quadCfg, elemCfg);
+    Epix::Config10kaQuadV2* cfg = new (cfgtc->next())
+      Epix::Config10kaQuadV2(pgpCfg, quadCfg, elemCfg);
 
     cfgtc->alloc(cfg->_sizeof());
 
@@ -1448,7 +1448,7 @@ public:
   }
 };
 
-class SimEpix10ka2M : public SimEpixArrayBase<Epix::Config10ka2MV1,Epix::ArrayV1> {
+class SimEpix10ka2M : public SimEpixArrayBase<Epix::Config10ka2MV2,Epix::ArrayV1> {
 public:
   SimEpix10ka2M(const Src& src) {
     const unsigned Asics = 4;
@@ -1459,7 +1459,7 @@ public:
 
     Xtc* cfgtc = config(src,CfgSize);
 
-    Epix::Config10ka e;
+    Epix::Elem10kaConfigV1 e;
     unsigned ElemSize = e._sizeof();
     unsigned Elements = c.numberOfElements();
     Epix::Asic10kaConfigV1 asics[Asics];
@@ -1476,39 +1476,42 @@ public:
     unsigned asicMask = 0xf; // for all asics on ortherwise use -> src.phy()&0xf;
 
     char* elemBuffer = new char[Elements * ElemSize];
-    Epix::Config10ka* elemCfg = reinterpret_cast<Epix::Config10ka*>(elemBuffer);;
+    Epix::Elem10kaConfigV1* elemCfg = reinterpret_cast<Epix::Elem10kaConfigV1*>(elemBuffer);;
     for (unsigned elem=0; elem<Elements; elem++) {
-      new(&elemCfg[elem]) Epix::Config10ka(0, 0, asicMask, asics, asicarray, calibarray);
+      new(&elemCfg[elem]) Epix::Elem10kaConfigV1(0, 0, asicMask, asics, asicarray, calibarray);
     }
 
     Epix::PgpEvrConfig pgpCfg(1, 40, 40, 0);
 
-    Epix::Config10kaQuad q;
+    Epix::Quad10kaConfigV2 q;
     unsigned QuadSize = q._sizeof();
     unsigned Quads = 4;
 
     Epix::Ad9249Config adcs[Adcs];
 
     char* quadBuffer = new char[Quads * QuadSize];
-    Epix::Config10kaQuad* quadCfg = reinterpret_cast<Epix::Config10kaQuad*>(quadBuffer);
+    Epix::Quad10kaConfigV2* quadCfg = reinterpret_cast<Epix::Quad10kaConfigV2*>(quadBuffer);
     for (unsigned quad=0; quad<Quads; quad++) {
-      new(&quadCfg[quad]) Epix::Config10kaQuad(0, 0, 0, 0, 0,   //digitalCardId1
-                                               0xf, 1, 1, 0, 0, //trigSrcSel
-                                               0, 78032, 30,    //asicR0Width
-                                               10000, 10000,    //asicAcqWidth
-                                               1000, 0, 7,      //asicRoClkHalfT
-                                               0, 0, 1, 0, 0,   //asicRoClkForce
-                                               0, 0, 1, 0, 0,   //asicRoClkValue
-                                               30, 0,           //testData
-                                               0, 0, 0, 0,      //scopeTrigMode
-                                               0 ,0, 0, 0, 0,   //scopeADCsamplesToS
-                                               0, 0, 0, adcs,
-                                               0, 0, 0, 0, 0,   //testTimeout
-                                               0);
+      new(&quadCfg[quad]) Epix::Quad10kaConfigV2(0, 0, 0, 0, 0, 0,//digitalCardId1
+                                                 "deadbeaf",      //firmwareGitHash
+                                                 "simdetector",   //firmwareDesc
+                                                 0xf, 1, 1, 0, 0, //trigSrcSel
+                                                 0, 78032, 30,    //asicR0Width
+                                                 10000, 10000,    //asicAcqWidth
+                                                 1000, 0, 7,      //asicRoClkHalfT
+                                                 0, 0, 1, 0, 0,   //asicRoClkForce
+                                                 0, 0, 1, 0, 0,   //asicRoClkValue
+                                                 1, 1, 1000,      //asicSyncInjDly
+                                                 30, 0, 0, 0,     //overSampleSize
+                                                 0, 0, 0, 0,      //scopeTrigMode
+                                                 0 ,0, 0, 0, 0,   //scopeADCsamplesToS
+                                                 0, 0, 0, adcs,
+                                                 0, 0, 0, 0, 0,   //testTimeout
+                                                 0);
     }
 
-    Epix::Config10ka2MV1* cfg = new (cfgtc->next())
-      Epix::Config10ka2MV1(pgpCfg, quadCfg, elemCfg);
+    Epix::Config10ka2MV2* cfg = new (cfgtc->next())
+      Epix::Config10ka2MV2(pgpCfg, quadCfg, elemCfg);
 
     cfgtc->alloc(cfg->_sizeof());
 

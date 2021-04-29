@@ -58,6 +58,9 @@ namespace Pds_ConfigDb {
       void initialize(QWidget* parent, QGridLayout* gl_sys, QGridLayout* gl_acq, QGridLayout* gl_sco, QGridLayout** gl_adc, QLayout** gl_asi, unsigned q);
       void insert(Pds::LinkedList<Parameter>& pList);
     public:
+      NumericInt<uint32_t> _firmwareVersion;
+      TextParameter        _firmwareHash;
+      TextParameter        _firmwareDesc;
       NumericInt<uint32_t> _digitalCardId0;
       NumericInt<uint32_t> _digitalCardId1;
       NumericInt<uint32_t> _dcdcEn;
@@ -84,8 +87,14 @@ namespace Pds_ConfigDb {
       Enumerated<Enums::Bool> _asicSyncValue;
       Enumerated<Enums::Bool> _asicRoClkForce;
       Enumerated<Enums::Bool> _asicRoClkValue;
+      Enumerated<Enums::Bool> _dummyAcqEn;
+      Enumerated<Enums::Bool> _asicSyncInjEn;
+      NumericInt<uint32_t> _asicSyncInjDly;
+      // RdoutCore
       NumericInt<uint32_t> _adcPipelineDelay;
       Enumerated<Enums::Bool> _testData;
+      Enumerated<Enums::Bool> _overSampleEn;
+      NumericInt<uint32_t> _overSampleSize;
       // ScopeCore
       NumericInt<uint8_t> _scopeEnable;
       NumericInt<uint8_t> _scopeTrigEdge;

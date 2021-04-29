@@ -76,6 +76,14 @@ namespace Pds_ConfigDb {
                                            Epix10kaConfigShadow::type(r)  ==  Epix10kaConfigShadow::hex ? Hex : Decimal
                                            );
       }
+      for (unsigned i=0; i<Epix10kaConfigShadow::NumberOfStrRegisters; i++) {
+        Epix10kaConfigShadow::StrRegisters r = (Epix10kaConfigShadow::StrRegisters) i;
+        _strReg[i] = new TextParameter(
+                                       Epix10kaConfigShadow::name(r),
+                                       "",
+                                       Epix10kaConfigShadow::maxchars(r)
+                                       );
+      }
       for (uint32_t i=0; i<Epix10kaConfigShadow::defaultValue(Epix10kaConfigShadow::NumberOfAsicsPerRow) *
       Epix10kaConfigShadow::defaultValue(Epix10kaConfigShadow::NumberOfAsicsPerColumn); i++) {
         _asicArgs[i].insert(&_asic[i]);
@@ -102,10 +110,20 @@ namespace Pds_ConfigDb {
             l->addLayout(_reg[i]->initialize(0));
           }
         }
+        for (unsigned i=Epix10kaConfigShadow::FirmwareHash; i<Epix10kaConfigShadow::NumberOfStrRegisters; i++) {
+          if (Epix10kaConfigShadow::readOnly((Epix10kaConfigShadow::StrRegisters)i) == Epix10kaConfigShadow::ReadOnly) {
+            l->addLayout(_strReg[i]->initialize(0));
+          }
+        }
         l->addStretch();
         for (unsigned i=Epix10kaConfigShadow::Version; i<Epix10kaConfigShadow::NumberOfRegisters; i++) {
           if (Epix10kaConfigShadow::readOnly((Epix10kaConfigShadow::Registers)i) == Epix10kaConfigShadow::UseOnly) {
             l->addLayout(_reg[i]->initialize(0));
+          }
+        }
+        for (unsigned i=Epix10kaConfigShadow::FirmwareHash; i<Epix10kaConfigShadow::NumberOfStrRegisters; i++) {
+          if (Epix10kaConfigShadow::readOnly((Epix10kaConfigShadow::StrRegisters)i) == Epix10kaConfigShadow::UseOnly) {
+            l->addLayout(_strReg[i]->initialize(0));
           }
         }
         l->addStretch();
@@ -121,6 +139,11 @@ namespace Pds_ConfigDb {
         for (unsigned i=Epix10kaConfigShadow::Version; i<Epix10kaConfigShadow::prepulseR0En; i++) {
           if (Epix10kaConfigShadow::readOnly((Epix10kaConfigShadow::Registers)i) == Epix10kaConfigShadow::ReadWrite) {
             l->addLayout(_reg[i]->initialize(0));
+          }
+        }
+        for (unsigned i=Epix10kaConfigShadow::FirmwareHash; i<Epix10kaConfigShadow::NumberOfStrRegisters; i++) {
+          if (Epix10kaConfigShadow::readOnly((Epix10kaConfigShadow::StrRegisters)i) == Epix10kaConfigShadow::ReadWrite) {
+            l->addLayout(_strReg[i]->initialize(0));
           }
         }
         layout->addLayout(l);
@@ -168,12 +191,21 @@ namespace Pds_ConfigDb {
           _reg[i]->enable(!(Epix10kaConfigShadow::readOnly(Epix10kaConfigShadow::Registers(i)) == Epix10kaConfigShadow::ReadOnly));
         }
 
+      for(unsigned i=0; i<Epix10kaConfigShadow::NumberOfStrRegisters; i++)
+        if (Epix10kaConfigShadow::readOnly(Epix10kaConfigShadow::StrRegisters(i)) != Epix10kaConfigShadow::DoNotUse) {
+          _strReg[i]->enable(!(Epix10kaConfigShadow::readOnly(Epix10kaConfigShadow::StrRegisters(i)) == Epix10kaConfigShadow::ReadOnly));
+        }
+
       return layout;
     }
     void update() {
       for(unsigned i=0; i<Epix10kaConfigShadow::NumberOfRegisters; i++)
         if (Epix10kaConfigShadow::readOnly(Epix10kaConfigShadow::Registers(i)) != Epix10kaConfigShadow::DoNotUse) {
           _reg[i]->update();
+        }
+      for(unsigned i=0; i<Epix10kaConfigShadow::NumberOfStrRegisters; i++)
+        if (Epix10kaConfigShadow::readOnly(Epix10kaConfigShadow::StrRegisters(i)) != Epix10kaConfigShadow::DoNotUse) {
+          _strReg[i]->update();
         }
       _asicSet.update();
     }
@@ -182,12 +214,20 @@ namespace Pds_ConfigDb {
         if (Epix10kaConfigShadow::readOnly(Epix10kaConfigShadow::Registers(i)) != Epix10kaConfigShadow::DoNotUse) {
           _reg[i]->flush();
         }
+      for(unsigned i=0; i<Epix10kaConfigShadow::NumberOfStrRegisters; i++)
+        if (Epix10kaConfigShadow::readOnly(Epix10kaConfigShadow::StrRegisters(i)) != Epix10kaConfigShadow::DoNotUse) {
+          _strReg[i]->flush();
+        }
       _asicSet.flush();
     }
     void enable(bool v) {
       for(unsigned i=0; i<Epix10kaConfigShadow::NumberOfRegisters; i++)
         if (Epix10kaConfigShadow::readOnly(Epix10kaConfigShadow::Registers(i)) != Epix10kaConfigShadow::DoNotUse) {
           _reg[i]->enable(v && (Epix10kaConfigShadow::readOnly(Epix10kaConfigShadow::Registers(i)) == Epix10kaConfigShadow::ReadWrite));
+        }
+      for(unsigned i=0; i<Epix10kaConfigShadow::NumberOfStrRegisters; i++)
+        if (Epix10kaConfigShadow::readOnly(Epix10kaConfigShadow::StrRegisters(i)) != Epix10kaConfigShadow::DoNotUse) {
+          _strReg[i]->enable(v && (Epix10kaConfigShadow::readOnly(Epix10kaConfigShadow::StrRegisters(i)) == Epix10kaConfigShadow::ReadWrite));
         }
       _asicSet.enable(v);
     }
@@ -199,6 +239,9 @@ namespace Pds_ConfigDb {
       for (uint32_t i=0; i<Epix10kaConfigShadow::NumberOfRegisters; i++) {
         _reg[i]->value = epixConfShadow.get((Epix10kaConfigShadow::Registers) i);
         //      printf("%s0x%x",  i%16==0 ? "\n\t" : " ", epixConfShadow.get((Epix10kaConfigShadow::Registers) i));
+      }
+      for (uint32_t i=0; i<Epix10kaConfigShadow::NumberOfStrRegisters; i++) {
+        strcpy(_strReg[i]->value, epixConfShadow.getStr((Epix10kaConfigShadow::StrRegisters) i));
       }
       for (uint32_t i=0; i<epixConf.numberOfAsics(); i++) {
         _asic[i].pull(reinterpret_cast<const Epix10kaASIC_ConfigShadow&>(epixConf.asics(i)));
@@ -227,6 +270,9 @@ namespace Pds_ConfigDb {
       Epix10kaConfigShadow& epixConfShadow = *new(to) Epix10kaConfigShadow(true);
       for (uint32_t i=0; i<Epix10kaConfigShadow::NumberOfRegisters; i++) {
         epixConfShadow.set((Epix10kaConfigShadow::Registers) i, _reg[i]->value);
+      }
+      for (uint32_t i=0; i<Epix10kaConfigShadow::NumberOfStrRegisters; i++) {
+        epixConfShadow.setStr((Epix10kaConfigShadow::StrRegisters) i, _strReg[i]->value);
       }
       for (uint32_t i=0; i<epixConf.numberOfAsics(); i++) {
         _asic[i].push((void*)(&(epixConf.asics(i))));
@@ -269,6 +315,7 @@ namespace Pds_ConfigDb {
   private:
     bool                        _expert;
     NumericInt<uint32_t>*       _reg[Epix10kaConfigShadow::NumberOfRegisters];
+    TextParameter*              _strReg[Epix10kaConfigShadow::NumberOfStrRegisters];
     Epix10kaSimpleCount         _count;
     Epix10kaASICdata            _asic    [Epix10kaConfigShadow::NumberOfAsics];
     Pds::LinkedList<Parameter>  _asicArgs[Epix10kaConfigShadow::NumberOfAsics];
