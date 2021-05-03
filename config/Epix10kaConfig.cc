@@ -179,6 +179,9 @@ namespace Pds_ConfigDb {
           for (unsigned i=Epix10kaConfigShadow::DacSetting; i<Epix10kaConfigShadow::NumberOfRegisters; i++) {
             _reg[i]->initialize(0); // initialize but don't show
           }
+          for (unsigned i=Epix10kaConfigShadow::FirmwareHash; i<Epix10kaConfigShadow::NumberOfStrRegisters; i++) {
+            _strReg[i]->initialize(0); // initialize but don't show
+          }
           layout->addLayout(l);
         }
         _asicSet.initialize(0);
