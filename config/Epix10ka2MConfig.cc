@@ -94,7 +94,9 @@ namespace Pds_ConfigDb {
       {
         for(unsigned a=0; a<16; a++) {
           _pixelArray[a] = ndarray<uint16_t,2>(pixelArrayShape);
+          std::fill(_pixelArray[a].begin(), _pixelArray[a].end(), 0);
           _calibArray[a] = ndarray<uint8_t ,2>(calibArrayShape);
+          std::fill(_calibArray[a].begin(), _calibArray[a].end(), 0);
         }
       }
     public:

@@ -156,7 +156,7 @@ namespace Pds_ConfigDb {
       QPixmap*              pixmap;
   };
   Epix10kaPixelMapDialog::Epix10kaPixelMapDialog(ndarray<uint16_t, 2>& m, QWidget *parent)
-    : QDialog(parent), _map(m), _display(new Epix10kaPixelDisplay(_map))
+    : QDialog(parent), _map(m), _display(new Epix10kaPixelDisplay(m))
   {
     char foo[80];
     clearButton  =  new QPushButton(tr("&Clear"));

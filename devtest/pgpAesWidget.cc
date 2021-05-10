@@ -516,6 +516,7 @@ int main( int argc, char** argv ) {
       DmaReadData       pgpCardRx;
       pgpCardRx.data    = (uint64_t)malloc(BufferWords);
       pgpCardRx.dest    = 0;
+      pgpCardRx.ret     = 0;
       pgpCardRx.flags   = 0;
       pgpCardRx.index   = 0;
       pgpCardRx.error   = 0;
@@ -524,11 +525,12 @@ int main( int argc, char** argv ) {
       int readRet;
       while (keepGoing) {
         if ((readRet = ::read(fd, &pgpCardRx, sizeof(DmaReadData))) > 0) {
+          readRet = pgpCardRx.ret / sizeof(uint32_t);
           inFrame = (Pds::Pgp::DataImportFrame*) pgpCardRx.data;
           if (shm) {
             switch(typ) {
               case PadMonServer::Epix:
-                if (readRet > 4000) // ignore configure returns
+                if (readRet > 1000) // ignore configure returns
                   shm->event(*reinterpret_cast<Epix::ElementV1*>(pgpCardRx.data)); break;
               case PadMonServer::EpixSampler:
                 shm->event(*reinterpret_cast<EpixSampler::ElementV1*>(pgpCardRx.data)); break;
