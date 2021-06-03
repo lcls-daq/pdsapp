@@ -11,8 +11,13 @@
 // Event code information
 #include "pds/evgr/EvrDefs.hh"
 #include "pds/config/EvrConfigType.hh"
+// Large bitfield for bld mask
+#include "pds/service/BldBitMask.hh"
 
 //#define DBUG
+
+static const Pds::BldBitMask ONE_BIT  = Pds::BldBitMask(Pds::BldBitMask::ONE);
+static const Pds::BldBitMask EMPTY    = Pds::BldBitMask();
 
 namespace Pds {
   class BldStats : private PdsClient::XtcIterator {
@@ -20,15 +25,17 @@ namespace Pds {
     BldStats() {}
   public:
     void discover(const Xtc& xtc, InDatagramIterator* iter) {
-      _mask = 0;
+      _mask = EMPTY;
       iterate(xtc, iter);
 #ifdef DBUG
-      printf("BldStats::discover %x %08x.%08x\n",_mask,_src.log(),_src.phy());
+      char maskbuf[PDS_BLD_MASKSIZE*8+3];
+      _mask.write(maskbuf);
+      printf("BldStats::discover %s %08x.%08x\n",maskbuf,_src.log(),_src.phy());
 #endif
     }
     void fill(SummaryDg::Dg& out) {
       for(unsigned i=0; i<BldInfo::NumberOf; i++)
-        if (_mask & (1<<i)) {
+        if ((_mask & (ONE_BIT<<i)).isNotZero()) {
           BldInfo info(static_cast<const ProcInfo&>(_src).processId(),BldInfo::Type(i));
           out.append(info,Damage(1<<Damage::DroppedContribution));
         }
@@ -48,14 +55,14 @@ namespace Pds {
       }
       else if (xtc.src.level() == Level::Reporter) {
         _src = _parent;
-        _mask |= (1<<reinterpret_cast<const BldInfo&>(xtc.src).type());
+        _mask |= (ONE_BIT<<reinterpret_cast<const BldInfo&>(xtc.src).type());
       }
       return 0;
     }
   private:
-    Src      _parent;
-    Src      _src;
-    unsigned _mask;
+    Src        _parent;
+    Src        _src;
+    BldBitMask _mask;
   };
 
   class L3CIterator : public XtcIterator {
@@ -188,7 +195,7 @@ int DgSummary::process(const Xtc& xtc, InDatagramIterator* iter)
   }
   else if (xtc.damage.value() && xtc.src.level() == Level::Reporter) {
     // don't count as damage for bld if beam is not present
-    if (_expect || xtc.contains.id()==TypeId::Id_Epics) {
+    if (_expect) {
       if (BldInfo::Type(xtc.src.phy())==BldInfo::EBeam &&
           xtc.damage.value()==(1<<Damage::UserDefined))
         _out->append(EBeamBPM,0);  // don't count as damage
