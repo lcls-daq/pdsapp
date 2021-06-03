@@ -729,7 +729,7 @@ namespace Pds {
              s,
              ipaddress,
              max_size, eb_depth,
-             new VmonEb(src,32,eb_depth,(1<<23),(1<<22)));
+             new VmonEb(src,64,eb_depth,(1<<23),(1<<22)));
 
         (new VmonServerAppliance(src))->connect(stream(s)->inlet());
       }
