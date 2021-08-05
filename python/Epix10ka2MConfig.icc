@@ -500,7 +500,7 @@ PyObject* pds_Epix10ka2MConfig_set    (PyObject*   self, PyObject* args)
 
   pdsxtc* xtc = (pdsxtc*)self;
 
-  unsigned isize = Config10ka2MV1::_sizeof();
+  unsigned isize = pds_Epix10ka2MConfig_size(self);
   unsigned usize = isize*(icycle+1);
 
   if (xtc->extent < usize) {
