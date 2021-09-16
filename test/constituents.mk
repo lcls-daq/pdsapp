@@ -14,6 +14,7 @@ endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
 tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone archonStandAlone picamStandAlone uxiStandAlone
+tgtnames += vimbaStandAlone
 endif
 
 commonlibs	:= pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -52,8 +53,12 @@ tgtslib_andorDualStandAlone := dl pthread rt
 tgtsrcs_zylaStandAlone := zylaStandAlone.cc
 tgtincs_zylaStandAlone := pdsdata/include ndarray/include boost/include
 tgtlibs_zylaStandAlone := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.05
-tgtlibs_zylaStandAlone += pds/epicstools epics/ca epics/Com
 tgtslib_zylaStandAlone := dl pthread rt
+
+tgtsrcs_vimbaStandAlone := vimbaStandAlone.cc
+tgtincs_vimbaStandAlone := pdsdata/include ndarray/include boost/include
+tgtlibs_vimbaStandAlone := $(commonlibs) pds/configdata pds/vimba vimba/VimbaC vimba/VimbaImageTransform
+tgtslib_vimbaStandAlone := dl pthread rt
 
 libPicam := picam/picam picam/GenApi_gcc40_v2_4 picam/GCBase_gcc40_v2_4 picam/MathParser_gcc40_v2_4 picam/log4cpp_gcc40_v2_4 picam/Log_gcc40_v2_4
 libPicam += picam/piac picam/pidi picam/picc picam/pida picam/PvBase picam/PvDevice picam/PvBuffer picam/PvPersistence picam/ftd2xx

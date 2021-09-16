@@ -11,6 +11,7 @@
 #include "pdsapp/config/PixisConfig.hh"
 #include "pdsapp/config/UxiConfig.hh"
 #include "pdsapp/config/ArchonConfig.hh"
+#include "pdsapp/config/AlviumConfig.hh"
 
 #ifdef BUILD_EXTRA
 #include "pdsapp/config/PhasicsConfig.hh"
@@ -25,6 +26,7 @@
 #include "pds/config/PixisConfigType.hh"
 #include "pds/config/UxiConfigType.hh"
 #include "pds/config/ArchonConfigType.hh"
+#include "pds/config/VimbaConfigType.hh"
 
 using namespace Pds_ConfigDb;
 
@@ -49,6 +51,7 @@ Serializer* ExpertDictionary::lookup(const Pds::TypeId& type)
   enroll(_pixisConfigType     ,new PixisConfig(true));
   enroll(_uxiConfigType       ,new UxiConfig(true));
   enroll(_archonConfigType    ,new ArchonConfig(true));
+  enroll(_alviumConfigType    ,new AlviumConfig(true));
 #ifdef BUILD_EXTRA
   enroll(_PhasicsConfigType   ,new PhasicsExpertConfig);
 #endif

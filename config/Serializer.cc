@@ -16,6 +16,9 @@ void Serializer::initialize(QWidget* parent, QBoxLayout* layout)
 {
   assert(this != NULL);
   Parameter* p = pList.forward();
+  if (fixedSize()) {
+    layout->setSizeConstraint(QLayout::SetFixedSize);
+  }
   while( p != pList.empty() ) {
     layout->addLayout(p->initialize(parent));
     p = p->forward();

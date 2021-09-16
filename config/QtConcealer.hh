@@ -20,7 +20,9 @@ namespace Pds_ConfigDb {
     QWidget* add(QWidget*);
   public slots:
     void show(bool);
+    void show(int);
     void hide(bool);
+    void hide(int);
   private:
     std::vector<QLayout*> _layouts;
     std::vector<QWidget*> _widgets;

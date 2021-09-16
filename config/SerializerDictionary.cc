@@ -88,6 +88,7 @@
 #include "pdsapp/config/QuadAdcConfig.hh"
 #include "pdsapp/config/ZylaConfig.hh"
 #include "pdsapp/config/iStarConfig.hh"
+#include "pdsapp/config/AlviumConfig.hh"
 
 #include "pds/config/AliasConfigType.hh"
 #include "pds/config/EvsConfigType.hh"
@@ -131,6 +132,7 @@
 #include "pds/config/JungfrauConfigType.hh"
 #include "pds/config/QuadAdcConfigType.hh"
 #include "pds/config/ZylaConfigType.hh"
+#include "pds/config/VimbaConfigType.hh"
 #include "pds/config/PdsDefs.hh"
 
 #include "pdsdata/psddl/lusi.ddl.h"
@@ -210,6 +212,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(_zylaConfigType        ,new ZylaConfig);
   enroll(_istarConfigType       ,new iStarConfig);
   enroll(_uxiConfigType         ,new UxiConfig);
+  enroll(_alviumConfigType      ,new AlviumConfig);
   //  retired
   enroll(Pds::TypeId(Pds::TypeId::Id_Cspad2x2Config,1),new Cspad2x2Config_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_CspadConfig,4) , new CspadConfig_V4);
