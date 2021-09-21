@@ -4,9 +4,10 @@
 static PyObject* pds_iStarConfig_get    (PyObject*   self, PyObject* args);
 static PyObject* pds_iStarConfig_set    (PyObject*   self, PyObject* args);
 static PyObject* pds_iStarConfig_enum   (PyObject*   self, PyObject* args);
+static unsigned  pds_iStarConfig_size   (PyObject*   self);
 
 static PyMethodDef pds_iStarConfig_methods[] = {
-  {"get"        , (PyCFunction)pds_iStarConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"get"        , (PyCFunction)pds_iStarConfig_get   , METH_VARARGS|METH_KEYWORDS, "Output the configuration"},
   {"set"        , (PyCFunction)pds_iStarConfig_set   , METH_VARARGS|METH_KEYWORDS, "Set the configuration"},
   {"get_enums"  , (PyCFunction)pds_iStarConfig_enum  , METH_NOARGS  , "Output enum constants"},
   {NULL},
@@ -173,7 +174,6 @@ PyObject* pds_iStarConfig_enum (PyObject*   self, PyObject* args)
     printf("get_enums(): Unsupported iStarConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception
   }
-
 }
 
 #undef SetEnum
@@ -200,10 +200,23 @@ PyObject* pds_iStarConfig_enum (PyObject*   self, PyObject* args)
 PyObject* pds_iStarConfig_get (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
+
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"|I",&icycle)==0)
+    return NULL;
+
+  unsigned isize = pds_iStarConfig_size(self);
+  unsigned usize = isize*(icycle+1);
+
+  if (xtc->extent < usize)
+    return NULL;
+
+  char* ubegin = xtc->payload + isize*icycle;
+
   PyObject* o = PyDict_New();
   if (xtc->contains.version()==1) {
     const Pds::iStar::ConfigV1* cfg =
-      reinterpret_cast<const Pds::iStar::ConfigV1*>(xtc->payload);
+      reinterpret_cast<const Pds::iStar::ConfigV1*>(ubegin);
 
     SetDictMember(cooling,false,true,false);
     SetDictMember(overlap,false,true,false);
@@ -281,13 +294,28 @@ PyObject* pds_iStarConfig_get (PyObject*   self, PyObject* args)
 PyObject* pds_iStarConfig_set    (PyObject*   self, PyObject* args)
 {
   PyObject* o = 0;
-  if (PyArg_ParseTuple(args,"O",&o)==0)
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"O|I",&o,&icycle)==0)
     return NULL;
 
   pdsxtc* xtc = (pdsxtc*)self;
+  unsigned isize = pds_iStarConfig_size(self);
+  unsigned usize = isize*(icycle+1);
+
+  if (xtc->extent < usize) {
+    char* p = new char[usize];
+    memcpy(p, xtc->payload, xtc->extent);
+    delete[] xtc->payload;
+
+    xtc->payload = p;
+    xtc->extent  = usize;
+  }
+
+  char* ubegin = xtc->payload + icycle*isize;
+
   if (xtc->contains.version()==1) {
     const Pds::iStar::ConfigV1* cfg =
-      reinterpret_cast<const Pds::iStar::ConfigV1*>(xtc->payload);
+      reinterpret_cast<const Pds::iStar::ConfigV1*>(ubegin);
 
     GetDictEnum(cooling,Pds::iStar::ConfigV1::ATBool);
     GetDictEnum(overlap,Pds::iStar::ConfigV1::ATBool);
@@ -309,26 +337,26 @@ PyObject* pds_iStarConfig_set    (PyObject*   self, PyObject* args)
     GetDictLong(binY);
     GetDictFloat(exposureTime);
     GetDictFloat(triggerDelay);
-    new(xtc->payload) Pds::iStar::ConfigV1(cooling,
-                      overlap,
-                      noiseFilter,
-                      blemishCorrection,
-                      mcpIntelligate,
-                      fanSpeed,
-                      readoutRate,
-                      triggerMode,
-                      gainMode,
-                      gateMode,
-                      insertionDelay,
-                      (uint16_t) mcpGain,
-                      (uint32_t) width,
-                      (uint32_t) height,
-                      (uint32_t) orgX,
-                      (uint32_t) orgY,
-                      (uint32_t) binX,
-                      (uint32_t) binY,
-                      exposureTime,
-                      triggerDelay);
+    new(ubegin) Pds::iStar::ConfigV1(cooling,
+                                     overlap,
+                                     noiseFilter,
+                                     blemishCorrection,
+                                     mcpIntelligate,
+                                     fanSpeed,
+                                     readoutRate,
+                                     triggerMode,
+                                     gainMode,
+                                     gateMode,
+                                     insertionDelay,
+                                     (uint16_t) mcpGain,
+                                     (uint32_t) width,
+                                     (uint32_t) height,
+                                     (uint32_t) orgX,
+                                     (uint32_t) orgY,
+                                     (uint32_t) binX,
+                                     (uint32_t) binY,
+                                     exposureTime,
+                                     triggerDelay);
     Py_INCREF(Py_None);
     return Py_None;
   }
@@ -336,7 +364,6 @@ PyObject* pds_iStarConfig_set    (PyObject*   self, PyObject* args)
     printf("set(): Unsupported iStarConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception
   }
-
 }
 
 #undef GetDictEnum
@@ -344,3 +371,15 @@ PyObject* pds_iStarConfig_set    (PyObject*   self, PyObject* args)
 #undef GetDictSignedLong
 #undef GetDictFloat
 
+unsigned pds_iStarConfig_size(PyObject* self)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.id() == Pds::TypeId::Id_iStarConfig) {
+    switch(xtc->contains.version()) {
+      case 1:  return sizeof(Pds::iStar::ConfigV1);
+     default: break;
+    }
+  }
+
+  return 0;
+}

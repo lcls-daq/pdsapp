@@ -43,6 +43,7 @@
 #include "pdsapp/python/iStarConfig.icc"
 #include "pdsapp/python/UxiConfig.icc"
 #include "pdsapp/python/ArchonConfig.icc"
+#include "pdsapp/python/AlviumConfig.icc"
 #include "pdsapp/python/Db.icc"
 #include "pdsapp/python/pycdbHelp.icc"
 
@@ -163,6 +164,9 @@ DECLARE_INIT(pycdb)
   if (PyType_Ready(&pds_ArchonConfig_type) < 0)
     INITERROR;
 
+  if (PyType_Ready(&pds_AlviumConfig_type) < 0)
+    INITERROR;
+
 #ifdef IS_PY3K
   PyObject *m = PyModule_Create(&moduledef);
 #else
@@ -257,6 +261,9 @@ DECLARE_INIT(pycdb)
 
   Py_INCREF(&pds_ArchonConfig_type);
   PyModule_AddObject(m, "ArchonConfig", (PyObject*)&pds_ArchonConfig_type);
+
+  Py_INCREF(&pds_AlviumConfig_type);
+  PyModule_AddObject(m, "AlviumConfig", (PyObject*)&pds_AlviumConfig_type);
 
 #ifdef IS_PY3K
   return m;
