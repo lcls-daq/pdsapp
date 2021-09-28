@@ -44,7 +44,7 @@ Pgp::Pgp* pgp;
 Pds::Pgp::RegisterSlaveImportFrame* rsif;
 
 void printUsage(char* name) {
-  printf( "Usage: %s [-h]  -P <cardNumb,portVcNumb,offset> [-w addr,data][-W addr,data,count,delay][-r addr][-d addr,count][-t addr,count][-R][-S detID,sharedMemoryTag,nclients][-o maxPrint][-s filename][-D <debug>][-m][M][-f <runTimeConfigName>][-X <addr,count>][x][-p pf][-3]\n"
+  printf( "Usage: %s [-h]  -P <cardNumb,portVcNumb,offset> [-w addr,data][-W addr,data,count,delay][-r addr][-d addr,count][-t addr,count][-R][-S detID,sharedMemoryTag,nclients][-o maxPrint][-s filename][-D <debug>][-m][M][-f <runTimeConfigName>][-X <addr,count>][x][-p pf][-3][-K]\n"
       "    -h      Show usage\n"
       "    -P      Set pgpcard card number and port/vc\n"
       "                 The first number is just the index of the card, default zero.  The second number,\n"
@@ -84,7 +84,8 @@ void printUsage(char* name) {
       "    -X      print pgpcard registers at addr for count registers\n"
       "    -O      set Pgp offset, default is zero\n"
       "    -p      set print flag to value given\n"
-      "    -3      Use SLAC register protocol version 3\n",
+      "    -3      Use SLAC register protocol version 3\n"
+      "    -K      flag to indicate the card is kcu1500/datadev card\n",
       name
   );
 }
@@ -134,12 +135,13 @@ int main( int argc, char** argv ) {
   unsigned            dumpTxBuffers = 0;
   DmaWriteData           tx;
   bool                srpV3 = false;
+  bool                datadev = false;
   ::signal( SIGINT, sigHandler );
 
   char*               endptr;
   extern char*        optarg;
   int c;
-  while( ( c = getopt( argc, argv, "hP:w:W:D:r:d:RS:o:s:f:p:t:T:mMX:x3" ) ) != EOF ) {
+  while( ( c = getopt( argc, argv, "hP:w:W:D:r:d:RS:o:s:f:p:t:T:mMX:x3K" ) ) != EOF ) {
     switch(c) {
       case 'T': dumpTxBuffers = strtoul(optarg, &endptr,0); break;
       case 'P':
@@ -269,6 +271,9 @@ int main( int argc, char** argv ) {
       case '3':
         srpV3 = true;
         break;
+      case 'K':
+        datadev = true;
+        break;
       case 'h':
         printUsage(argv[0]);
         return 0;
@@ -282,7 +287,10 @@ int main( int argc, char** argv ) {
   }
 
   char err[128];
-  sprintf(devName, "/dev/pgpcard_%u",pgpcard);
+  if (datadev)
+    sprintf(devName, "/dev/datadev_%u",pgpcard);
+  else
+    sprintf(devName, "/dev/pgpcard_%u",pgpcard);
 
   int fd = open( devName,  O_RDWR );
   printf("%s using %s\n", argv[0], devName);
