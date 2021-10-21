@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 
+#include "pds/service/Semaphore.hh"
 #include "pds/management/PlatformCallback.hh"
 #include "pds/ioc/IocHostCallback.hh"
 
@@ -85,6 +86,7 @@ namespace Pds {
     IocControl&       _icontrol;
     bool              _bReadGroupEnable;
     bool              _autorun;
+    Semaphore         _sem;
     Node _control;
     DetNodeGroup* _segbox;
     ProcNodeGroup* _evtbox;
