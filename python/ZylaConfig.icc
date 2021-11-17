@@ -4,9 +4,10 @@
 static PyObject* pds_ZylaConfig_get    (PyObject*   self, PyObject* args);
 static PyObject* pds_ZylaConfig_set    (PyObject*   self, PyObject* args);
 static PyObject* pds_ZylaConfig_enum   (PyObject*   self, PyObject* args);
+static unsigned  pds_ZylaConfig_size   (PyObject*   self);
 
 static PyMethodDef pds_ZylaConfig_methods[] = {
-  {"get"        , (PyCFunction)pds_ZylaConfig_get   , METH_NOARGS  , "Output the configuration"},
+  {"get"        , (PyCFunction)pds_ZylaConfig_get   , METH_VARARGS|METH_KEYWORDS, "Output the configuration"},
   {"set"        , (PyCFunction)pds_ZylaConfig_set   , METH_VARARGS|METH_KEYWORDS, "Set the configuration"},
   {"get_enums"  , (PyCFunction)pds_ZylaConfig_enum  , METH_NOARGS  , "Output enum constants"},
   {NULL},
@@ -204,10 +205,23 @@ PyObject* pds_ZylaConfig_enum (PyObject*   self, PyObject* args)
 PyObject* pds_ZylaConfig_get (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
+
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"|I",&icycle)==0)
+    return NULL;
+
+  unsigned isize = pds_ZylaConfig_size(self);
+  unsigned usize = isize*(icycle+1);
+
+  if (xtc->extent < usize)
+    return NULL;
+
+  char* ubegin = xtc->payload + isize*icycle;
+
   PyObject* o = PyDict_New();
   if (xtc->contains.version()==1) {
     const Pds::Zyla::ConfigV1* cfg =
-      reinterpret_cast<const Pds::Zyla::ConfigV1*>(xtc->payload);
+      reinterpret_cast<const Pds::Zyla::ConfigV1*>(ubegin);
 
     SetDictMember(cooling,false,true,false);
     SetDictMember(overlap,false,true,false);
@@ -283,13 +297,28 @@ PyObject* pds_ZylaConfig_get (PyObject*   self, PyObject* args)
 PyObject* pds_ZylaConfig_set    (PyObject*   self, PyObject* args)
 {
   PyObject* o = 0;
-  if (PyArg_ParseTuple(args,"O",&o)==0)
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"O|I",&o,&icycle)==0)
     return NULL;
 
   pdsxtc* xtc = (pdsxtc*)self;
+  unsigned isize = pds_ZylaConfig_size(self);
+  unsigned usize = isize*(icycle+1);
+
+  if (xtc->extent < usize) {
+    char* p = new char[usize];
+    memcpy(p, xtc->payload, xtc->extent);
+    delete[] xtc->payload;
+
+    xtc->payload = p;
+    xtc->extent  = usize;
+  }
+
+  char* ubegin = xtc->payload + icycle*isize;
+
   if (xtc->contains.version()==1) {
     const Pds::Zyla::ConfigV1* cfg =
-      reinterpret_cast<const Pds::Zyla::ConfigV1*>(xtc->payload);
+      reinterpret_cast<const Pds::Zyla::ConfigV1*>(ubegin);
 
     GetDictEnum(cooling,Pds::Zyla::ConfigV1::ATBool);
     GetDictEnum(overlap,Pds::Zyla::ConfigV1::ATBool);
@@ -309,24 +338,24 @@ PyObject* pds_ZylaConfig_set    (PyObject*   self, PyObject* args)
     GetDictLong(binY);
     GetDictFloat(exposureTime);
     GetDictFloat(triggerDelay);
-    new(xtc->payload) Pds::Zyla::ConfigV1(cooling,
-                      overlap,
-                      noiseFilter,
-                      blemishCorrection,
-                      shutter,
-                      fanSpeed,
-                      readoutRate,
-                      triggerMode,
-                      gainMode,
-                      setpoint,
-                      (uint32_t) width,
-                      (uint32_t) height,
-                      (uint32_t) orgX,
-                      (uint32_t) orgY,
-                      (uint32_t) binX,
-                      (uint32_t) binY,
-                      exposureTime,
-                      triggerDelay);
+    new(ubegin) Pds::Zyla::ConfigV1(cooling,
+                                    overlap,
+                                    noiseFilter,
+                                    blemishCorrection,
+                                    shutter,
+                                    fanSpeed,
+                                    readoutRate,
+                                    triggerMode,
+                                    gainMode,
+                                    setpoint,
+                                    (uint32_t) width,
+                                    (uint32_t) height,
+                                    (uint32_t) orgX,
+                                    (uint32_t) orgY,
+                                    (uint32_t) binX,
+                                    (uint32_t) binY,
+                                    exposureTime,
+                                    triggerDelay);
     Py_INCREF(Py_None);
     return Py_None;
   }
@@ -342,3 +371,15 @@ PyObject* pds_ZylaConfig_set    (PyObject*   self, PyObject* args)
 #undef GetDictSignedLong
 #undef GetDictFloat
 
+unsigned pds_ZylaConfig_size(PyObject* self)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.id() == Pds::TypeId::Id_ZylaConfig) {
+    switch(xtc->contains.version()) {
+      case 1:  return sizeof(Pds::Zyla::ConfigV1);
+     default: break;
+    }
+  }
+
+  return 0;
+}

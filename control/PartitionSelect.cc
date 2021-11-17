@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 #include <set>
 #include "pdsapp/control/AliasPoll.hh"
 #include "pdsapp/control/SelectDialog.hh"
@@ -124,6 +125,7 @@ void PartitionSelect::select_dialog()
     _deviceNames = dialog->deviceNames();
     _segments    = dialog->segments ();
     _reporters   = dialog->reporters();
+    _aliases     = dialog->aliases();
 
     unsigned options(_options);
     float    l3_unbias(0.);
@@ -244,8 +246,6 @@ void PartitionSelect::select_dialog()
                               dialog->aliases().config());
       _pcontrol.set_target_state(PartitionControl::Configured);
       
-      _aliases = dialog->aliases();
-
       Pds_ConfigDb::GlobalCfg::instance().cache(_evrIOConfigType, 
 						reinterpret_cast<char*>(dialog->evrio  ().config(dialog->aliases())), 
 						true);
@@ -310,12 +310,28 @@ bool PartitionSelect::_validate(const BldBitMask& bld_mask)
     }
   }
 
+  bool lXTCav  =false;
   foreach(DetInfo info, _iocs) {
+    // check if one of the detectors has an alias "xtcav"
+    const char* alias = _aliases.lookup(info);
+    if (alias) printf("alias is %s\n", alias);
+    else printf("no alias\n");
+    lXTCav   |= ((alias != NULL) && (strcmp(alias, "xtcav") == 0));
+    // check for duplicate device name
     const char* p = DetInfo::name(info);
+    printf("ioc name: %s\n", p);
     if (!(unique_names.insert(p).second)) {
       lError = true;
       errorMsg += QString("Duplicate devices selected: %1 [IOC]\n").arg(p);
     }
+  }
+
+  bool lEBeam  =false;
+  bool lGasDet =false;
+  foreach(BldInfo info, _reporters) {
+    // check if EBeam and FEEGasDetEnergy are selected
+    lEBeam   |= (info.type()==BldInfo::EBeam);
+    lGasDet  |= (info.type()==BldInfo::FEEGasDetEnergy);
   }
 
   if (!lEvent) {
@@ -332,6 +348,11 @@ bool PartitionSelect::_validate(const BldBitMask& bld_mask)
   if (!lBld && bld_mask.isNotZero()) {
     lWarning = true;
     warnMsg += "Beamline Data selected but not BldEb.\n";
+  }
+
+  if (lXTCav && (!lEBeam || !lGasDet)) {
+    lWarning = true;
+    warnMsg += "XTCav selected but not EBeam and FEEGasDetEnergy.\n";
   }
 
   if (lError) {

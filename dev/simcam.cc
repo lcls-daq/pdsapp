@@ -18,6 +18,8 @@
 #include "pds/config/FccdConfigType.hh"
 #include "pds/config/ZylaConfigType.hh"
 #include "pds/config/ZylaDataType.hh"
+#include "pds/config/VimbaConfigType.hh"
+#include "pds/config/VimbaDataType.hh"
 #include "pds/config/JungfrauConfigType.hh"
 #include "pds/config/JungfrauDataType.hh"
 #include "pds/config/CsPadConfigType.hh"
@@ -499,6 +501,119 @@ public:
   static bool handles(const Src& src) {
     const DetInfo& info = static_cast<const DetInfo&>(src);
     return (info.device()==DetInfo::iStar);
+  }
+};
+
+template<class C, class E>
+class SimVimbaBase : public SimApp {
+public:
+  SimVimbaBase() {}
+  ~SimVimbaBase()
+  {
+    delete[] _cfgpayload;
+    delete[] _evtpayload;
+  }
+protected:
+  Xtc* config(const Src& src, unsigned sz)
+  {
+    _cfgpayload = new char[sz];
+    return (_cfgtc = new(_cfgpayload)
+	    Xtc(TypeId(TypeId::Type(C::TypeId),unsigned(C::Version)),src));
+  }
+  void event(const Src& src)
+  {
+    const C* cfg = reinterpret_cast<const C*>(_cfgtc->payload());
+    const size_t sz = E::_sizeof(*cfg);
+    unsigned evtsz = sz + sizeof(Xtc);
+    unsigned evtst = (evtsz+3)&~3;
+    _evtpayload = new char[NBuffers*evtst];
+
+    const unsigned offset = 32;
+
+    for(unsigned b=0; b<NBuffers; b++) {
+      _evttc[b] = new(_evtpayload+b*evtst)
+	      Xtc(TypeId(TypeId::Type(E::TypeId),unsigned(E::Version)),src);
+      E* q = new (_evttc[b]->alloc(sz)) E;
+
+      ndarray<const uint16_t, 2> idata = q->data(*cfg);
+      ndarray<uint16_t, 2> fdata = make_ndarray(const_cast<uint16_t*>(idata.data()), idata.shape()[0], idata.shape()[1]);
+      unsigned i;
+      for(i=0; i<cfg->height()/2; i++) {
+        unsigned j;
+        { double sigm = double(offset/8);
+          for(j=0; j<cfg->width()/2; j++)
+            fdata(i,j) = rangss(offset,sigm,0xff); }
+        { double sigm = double(offset/6);
+          for(; j<cfg->width(); j++)
+            fdata(i,j) = rangss(offset,sigm,0xff); }
+      }
+      for(; i<cfg->height(); i++) {
+        unsigned j;
+        { double sigm = double(offset/6);
+          for(j=0; j<cfg->width()/2; j++)
+            fdata(i,j) = rangss(offset,sigm,0xff); }
+        { double sigm = double(offset/8);
+          for(; j<cfg->width(); j++)
+            fdata(i,j) = rangss(offset,sigm,0xff); }
+      }
+    }
+  }
+private:
+  void _execute_configure() { _ibuffer=0; }
+  void _insert_configure(InDatagram* dg)
+  {
+    dg->insert(*_cfgtc,_cfgtc->payload());
+  }
+  void _insert_event(InDatagram* dg)
+  {
+    dg->insert(*_evttc[_ibuffer],_evttc[_ibuffer]->payload());
+    if (++_ibuffer == NBuffers) _ibuffer=0;
+  }
+public:
+  size_t max_size() const { return _evttc[0]->sizeofPayload(); }
+protected:
+  char* _cfgpayload;
+  char* _evtpayload;
+  Xtc*  _cfgtc;
+  enum { NBuffers=16 };
+  Xtc*  _evttc[NBuffers];
+  unsigned _ibuffer;
+};
+
+class SimAlvium : public SimVimbaBase<AlviumConfigType,VimbaDataType> {
+public:
+  SimAlvium(const Src& src)
+  {
+    unsigned CfgSize = sizeof(AlviumConfigType)+sizeof(Xtc);
+
+    Xtc* cfgtc = config(src,CfgSize);
+
+    AlviumConfigType* cfg =
+      new (_cfgtc->next()) AlviumConfigType(AlviumConfigType::False, AlviumConfigType::False,
+                                            AlviumConfigType::False, AlviumConfigType::False,
+                                            AlviumConfigType::Off,
+                                            AlviumConfigType::DefectPixelCorrection,
+                                            AlviumConfigType::Preset,
+                                            AlviumConfigType::Mono8, AlviumConfigType::External,
+                                            1936, 1216, 0, 0,
+                                            1936, 1216, 0, 1, 4, 0.002, 0.0, 0.0, 1.0,
+                                            "Allied Vision",
+                                            "ALVIUM",
+                                            "1800 U-240m",
+                                            "0-DD-0-462889-0-0",
+                                            "0.0",
+                                            "012RN",
+                                            "44-0030102C",
+                                            "4.0.34658");
+
+    cfgtc->alloc(cfg->_sizeof());
+
+    event(src);
+  }
+public:
+  static bool handles(const Src& src) {
+    const DetInfo& info = static_cast<const DetInfo&>(src);
+    return (info.device()==DetInfo::Alvium);
   }
 };
 
@@ -1666,6 +1781,8 @@ public:
       _app = new SimiStar(src);
     else if (SimJungfrau::handles(src))
       _app = new SimJungfrau(src);
+    else if (SimAlvium::handles(src))
+      _app = new SimAlvium(src);
     else {
       const DetInfo& printInfo = static_cast<const DetInfo&>(src);
       fprintf(stderr,"Unsupported2 camera %s\n",Pds::DetInfo::name(printInfo.device()));

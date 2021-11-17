@@ -1,0 +1,423 @@
+//
+//  pds_AlviumConfig class methods
+//
+static PyObject* pds_AlviumConfig_get    (PyObject*   self, PyObject* args);
+static PyObject* pds_AlviumConfig_set    (PyObject*   self, PyObject* args);
+static PyObject* pds_AlviumConfig_enum   (PyObject*   self, PyObject* args);
+static unsigned  pds_AlviumConfig_size   (PyObject*   self);
+
+static PyMethodDef pds_AlviumConfig_methods[] = {
+  {"get"        , (PyCFunction)pds_AlviumConfig_get   , METH_VARARGS|METH_KEYWORDS, "Output the configuration"},
+  {"set"        , (PyCFunction)pds_AlviumConfig_set   , METH_VARARGS|METH_KEYWORDS, "Set the configuration"},
+  {"get_enums"  , (PyCFunction)pds_AlviumConfig_enum  , METH_NOARGS  , "Output enum constants"},
+  {NULL},
+};
+
+DefineXtcType(AlviumConfig) ;
+
+#include "pdsdata/psddl/vimba.ddl.h"
+#include <new>
+
+
+// Return a dictionary of enum types in config
+#define SetEnum(name,type,dict)                           \
+  { PyObject* v = PyInt_FromLong(Pds::Vimba::type::name); \
+    if (v) {                                              \
+      PyDict_SetItemString(dict,#name,v);                 \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
+
+#define SetBool(name,type,dict)                           \
+  { PyObject* v = PyBool_FromLong(Pds::Vimba::type::name);\
+    if (v) {                                              \
+      PyDict_SetItemString(dict,#name,v);                 \
+      Py_DECREF(v);                                       \
+    }                                                     \
+  }
+
+#define SetEnumDict(name,dict)              \
+  { PyDict_SetItemString(o,#name,dict);     \
+    Py_DECREF(dict); }
+
+static PyObject* get_alvium_vmbbool_enum(pdsxtc* xtc)
+{
+  PyObject* vmbbool_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetBool(False,AlviumConfigV1,vmbbool_enum);
+    SetBool(True,AlviumConfigV1,vmbbool_enum);
+
+    return vmbbool_enum;
+  } else {
+    Py_DECREF(vmbbool_enum);
+    printf("get_enums(): Unsupported AlviumConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+static PyObject* get_alvium_roimode_enum(pdsxtc* xtc)
+{
+  PyObject* roimode_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(Off,AlviumConfigV1,roimode_enum);
+    SetEnum(On,AlviumConfigV1,roimode_enum);
+    SetEnum(Centered,AlviumConfigV1,roimode_enum);
+
+    return roimode_enum;
+  } else {
+    Py_DECREF(roimode_enum);
+    printf("get_enums(): Unsupported AlviumConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+static PyObject* get_alvium_triggermode_enum(pdsxtc* xtc)
+{
+  PyObject* trigmode_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(FreeRun,AlviumConfigV1,trigmode_enum);
+    SetEnum(External,AlviumConfigV1,trigmode_enum);
+    SetEnum(Software,AlviumConfigV1,trigmode_enum);
+
+    return trigmode_enum;
+  } else {
+    Py_DECREF(trigmode_enum);
+    printf("get_enums(): Unsupported AlviumConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+static PyObject* get_alvium_pixelmode_enum(pdsxtc* xtc)
+{
+  PyObject* pixelmode_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(Mono8,AlviumConfigV1,pixelmode_enum);
+    SetEnum(Mono10,AlviumConfigV1,pixelmode_enum);
+    SetEnum(Mono10p,AlviumConfigV1,pixelmode_enum);
+    SetEnum(Mono12,AlviumConfigV1,pixelmode_enum);
+    SetEnum(Mono12p,AlviumConfigV1,pixelmode_enum);
+
+    return pixelmode_enum;
+  } else {
+    Py_DECREF(pixelmode_enum);
+    printf("get_enums(): Unsupported AlviumConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+static PyObject* get_alvium_corrtype_enum(pdsxtc* xtc)
+{
+  PyObject* corrtype_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(DefectPixelCorrection,AlviumConfigV1,corrtype_enum);
+    SetEnum(FixedPatternNoiseCorrection,AlviumConfigV1,corrtype_enum);
+
+    return corrtype_enum;
+  } else {
+    Py_DECREF(corrtype_enum);
+    printf("get_enums(): Unsupported AlviumConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+static PyObject* get_alvium_corrset_enum(pdsxtc* xtc)
+{
+  PyObject* corrset_enum = PyDict_New();
+  if (xtc->contains.version()==1) {
+    SetEnum(Preset,AlviumConfigV1,corrset_enum);
+    SetEnum(User,AlviumConfigV1,corrset_enum);
+
+    return corrset_enum;
+  } else {
+    Py_DECREF(corrset_enum);
+    printf("get_enums(): Unsupported AlviumConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+PyObject* pds_AlviumConfig_enum(PyObject* self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+
+    SetEnumDict(reverseX,get_alvium_vmbbool_enum(xtc));
+    SetEnumDict(reverseY,get_alvium_vmbbool_enum(xtc));
+    SetEnumDict(contrastEnable,get_alvium_vmbbool_enum(xtc));
+    SetEnumDict(correctionEnable,get_alvium_vmbbool_enum(xtc));
+
+    SetEnumDict(roiEnable,get_alvium_roimode_enum(xtc));
+    SetEnumDict(correctionType,get_alvium_corrtype_enum(xtc));
+    SetEnumDict(correctionSet,get_alvium_corrset_enum(xtc));
+    SetEnumDict(pixelMode,get_alvium_pixelmode_enum(xtc));
+    SetEnumDict(triggerMode,get_alvium_triggermode_enum(xtc));
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get_enums(): Unsupported AlviumConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+#undef SetEnum
+#undef SetBool
+#undef SetEnumDict
+
+
+//  Return a dictionary of configuration data
+#define SetDictMember(name,isFloat,isEnum,isBool,isSigned)  \
+  { PyObject* v = NULL;                                     \
+    if (isFloat)                                            \
+      v = PyFloat_FromDouble(cfg->name());                  \
+    else if (isEnum)                                        \
+      v = PyInt_FromLong((signed)cfg->name());              \
+    else if (isBool)                                        \
+      v = PyBool_FromLong((signed)cfg->name());             \
+    else if (isSigned)                                      \
+      v = PyLong_FromLong((signed)cfg->name());             \
+    else                                                    \
+      v = PyLong_FromUnsignedLong((unsigned)cfg->name());   \
+    if (v) {                                                \
+      PyDict_SetItemString(o,#name,v);                      \
+      Py_DECREF(v);                                         \
+    }                                                       \
+  }
+
+#define SetDictString(name)                         \
+  { PyObject* s = PyString_FromString(cfg->name()); \
+    PyDict_SetItemString(o,#name,s);                \
+    Py_DECREF(s); }
+
+PyObject* pds_AlviumConfig_get(PyObject* self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"|I",&icycle)==0)
+    return NULL;
+
+  unsigned isize = pds_AlviumConfig_size(self);
+  unsigned usize = isize*(icycle+1);
+
+  if (xtc->extent < usize)
+    return NULL;
+
+  char* ubegin = xtc->payload + isize*icycle;
+
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+    const Pds::Vimba::AlviumConfigV1* cfg =
+      reinterpret_cast<const Pds::Vimba::AlviumConfigV1*>(ubegin);
+
+    SetDictMember(reverseX,false,false,true,false);
+    SetDictMember(reverseY,false,false,true,false);
+    SetDictMember(contrastEnable,false,false,true,false);
+    SetDictMember(correctionEnable,false,false,true,false);
+    SetDictMember(roiEnable,false,true,false,false);
+    SetDictMember(correctionType,false,true,false,false);
+    SetDictMember(correctionSet,false,true,false,false);
+    SetDictMember(pixelMode,false,true,false,false);
+    SetDictMember(triggerMode,false,true,false,false);
+    SetDictMember(width,false,false,false,false);
+    SetDictMember(height,false,false,false,false);
+    SetDictMember(offsetX,false,false,false,false);
+    SetDictMember(offsetY,false,false,false,false);
+    SetDictMember(sensorWidth,false,false,false,false);
+    SetDictMember(sensorHeight,false,false,false,false);
+    SetDictMember(contrastDarkLimit,false,false,false,false);
+    SetDictMember(contrastBrightLimit,false,false,false,false);
+    SetDictMember(contrastShape,false,false,false,false);
+    SetDictMember(exposureTime,true,false,false,false);
+    SetDictMember(blackLevel,true,false,false,false);
+    SetDictMember(gain,true,false,false,false);
+    SetDictMember(gamma,true,false,false,false);
+    SetDictString(manufacturer);
+    SetDictString(family);
+    SetDictString(model);
+    SetDictString(manufacturerId);
+    SetDictString(version);
+    SetDictString(serialNumber);
+    SetDictString(firmwareId);
+    SetDictString(firmwareVersion);
+    
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("get(): Unsupported AlviumConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+#undef SetDictMember
+#undef SetDictString
+
+
+//  Retrieve configuration data from a Python Dictionary
+#define GetDictEnum(name,type)                                        \
+  type name;                                                          \
+  { PyObject* i = PyDict_GetItemString(o,#name);                      \
+    if (i) {                                                          \
+      if (PyBool_Check(i)) name = (type) (i == Py_True);              \
+      else if (PyInt_CheckExact(i))  name = (type) PyInt_AsLong(i);   \
+      else if (PyLong_CheckExact(i)) name = (type) PyLong_AsLong(i);  \
+      else name = (type) cfg->name();                                 \
+    }                                                                 \
+    else name = cfg->name(); }
+
+#define GetDictString(name,len)                   \
+  char name[len] = {0};                           \
+  { PyObject* i = PyDict_GetItemString(o,#name);  \
+    if (i && PyString_Check(i)) {                 \
+      strncpy(name, PyString_AsString(i), len-1); \
+    }                                             \
+    else {                                        \
+      strncpy(name, cfg->name(), len-1);          \
+    }                                             \
+  }
+
+#define GetDictLong(name)                                         \
+  unsigned long name;                                             \
+  { PyObject* i = PyDict_GetItemString(o,#name);                  \
+    if (i) {                                                      \
+      if (PyLong_Check(i)) name = PyLong_AsUnsignedLong(i);       \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);            \
+      else name = cfg->name();                                    \
+    }                                                             \
+    else name = cfg->name(); }
+
+#define GetDictSignedLong(name)                                   \
+  long name;                                                      \
+  { PyObject* i = PyDict_GetItemString(o,#name);                  \
+    if (i) {                                                      \
+      if (PyLong_Check(i)) name = PyLong_AsLong(i);               \
+      else if (PyInt_Check(i)) name = PyInt_AsLong(i);            \
+      else name = cfg->name();                                    \
+    }                                                             \
+    else name = cfg->name(); }
+
+#define GetDictFloat(name)                              \
+  double name;                                          \
+  { PyObject* i = PyDict_GetItemString(o,#name);        \
+    if (i) {                                            \
+      if (PyFloat_Check(i)) name = PyFloat_AsDouble(i); \
+      else name = cfg->name();                          \
+    }                                                   \
+    else name = cfg->name(); }
+
+PyObject* pds_AlviumConfig_set(PyObject* self, PyObject* args)
+{
+  PyObject* o = 0;
+  int icycle = 0;
+  if (PyArg_ParseTuple(args,"O|I",&o,&icycle)==0)
+    return NULL;
+
+  pdsxtc* xtc = (pdsxtc*)self;
+  unsigned isize = pds_AlviumConfig_size(self);
+  unsigned usize = isize*(icycle+1);
+
+  if (xtc->extent < usize) {
+    char* p = new char[usize];
+    memcpy(p, xtc->payload, xtc->extent);
+    delete[] xtc->payload;
+
+    xtc->payload = p;
+    xtc->extent  = usize;
+  }
+
+  char* ubegin = xtc->payload + icycle*isize;
+
+  if (xtc->contains.version()==1) {
+    const Pds::Vimba::AlviumConfigV1* cfg =
+      reinterpret_cast<const Pds::Vimba::AlviumConfigV1*>(ubegin);
+
+    GetDictEnum(reverseX,Pds::Vimba::AlviumConfigV1::VmbBool);
+    GetDictEnum(reverseY,Pds::Vimba::AlviumConfigV1::VmbBool);
+    GetDictEnum(contrastEnable,Pds::Vimba::AlviumConfigV1::VmbBool);
+    GetDictEnum(correctionEnable,Pds::Vimba::AlviumConfigV1::VmbBool);
+    GetDictEnum(roiEnable,Pds::Vimba::AlviumConfigV1::RoiMode);
+    GetDictEnum(correctionType,Pds::Vimba::AlviumConfigV1::ImgCorrectionType);
+    GetDictEnum(correctionSet,Pds::Vimba::AlviumConfigV1::ImgCorrectionSet);
+    GetDictEnum(pixelMode,Pds::Vimba::AlviumConfigV1::PixelMode);
+    GetDictEnum(triggerMode,Pds::Vimba::AlviumConfigV1::TriggerMode);
+    GetDictLong(width);
+    GetDictLong(height);
+    GetDictLong(offsetX);
+    GetDictLong(offsetY);
+    GetDictLong(sensorWidth);
+    GetDictLong(sensorHeight);
+    GetDictLong(contrastDarkLimit);
+    GetDictLong(contrastBrightLimit);
+    GetDictLong(contrastShape);
+    GetDictFloat(exposureTime);
+    GetDictFloat(blackLevel);
+    GetDictFloat(gain);
+    GetDictFloat(gamma);
+    GetDictString(manufacturer,Pds::Vimba::AlviumConfigV1::DESC_CHAR_MAX);
+    GetDictString(family,Pds::Vimba::AlviumConfigV1::DESC_CHAR_MAX);
+    GetDictString(model,Pds::Vimba::AlviumConfigV1::DESC_CHAR_MAX);
+    GetDictString(manufacturerId,Pds::Vimba::AlviumConfigV1::DESC_CHAR_MAX);
+    GetDictString(version,Pds::Vimba::AlviumConfigV1::DESC_CHAR_MAX);
+    GetDictString(serialNumber,Pds::Vimba::AlviumConfigV1::DESC_CHAR_MAX);
+    GetDictString(firmwareId,Pds::Vimba::AlviumConfigV1::DESC_CHAR_MAX);
+    GetDictString(firmwareVersion,Pds::Vimba::AlviumConfigV1::DESC_CHAR_MAX);
+    new(ubegin) Pds::Vimba::AlviumConfigV1(reverseX,
+                                           reverseY,
+                                           contrastEnable,
+                                           correctionEnable,
+                                           roiEnable,
+                                           correctionType,
+                                           correctionSet,
+                                           pixelMode,
+                                           triggerMode,
+                                           (uint32_t) width,
+                                           (uint32_t) height,
+                                           (uint32_t) offsetX,
+                                           (uint32_t) offsetY,
+                                           (uint32_t) sensorWidth,
+                                           (uint32_t) sensorHeight,
+                                           (uint32_t) contrastDarkLimit,
+                                           (uint32_t) contrastBrightLimit,
+                                           (uint32_t) contrastShape,
+                                           exposureTime,
+                                           blackLevel,
+                                           gain,
+                                           gamma,
+                                           manufacturer,
+                                           family,
+                                           model,
+                                           manufacturerId,
+                                           version,
+                                           serialNumber,
+                                           firmwareId,
+                                           firmwareVersion);
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else {
+    printf("set(): Unsupported AlviumConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+
+}
+
+#undef GetDictEnum
+#undef GetDictString
+#undef GetDictLong
+#undef GetDictSignedLong
+#undef GetDictFloat
+
+unsigned pds_AlviumConfig_size(PyObject* self)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  if (xtc->contains.id() == Pds::TypeId::Id_AlviumConfig) {
+    switch(xtc->contains.version()) {
+      case 1:  return sizeof(Pds::Vimba::AlviumConfigV1);
+     default: break;
+    }
+  }
+
+  return 0;
+}

@@ -40,7 +40,7 @@ tgtnames += fli andor andordual
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad quadadc
+tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad quadadc vimba
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -199,6 +199,11 @@ tgtsrcs_zyla :=	zyla.cc
 tgtincs_zyla := pdsdata/include ndarray/include boost/include
 tgtlibs_zyla := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.05
 tgtslib_zyla := $(commonslib)
+
+tgtsrcs_vimba := vimba.cc
+tgtincs_vimba := pdsdata/include ndarray/include boost/include
+tgtlibs_vimba := $(commonlibs) pds/configdata pds/vimba vimba/VimbaC vimba/VimbaImageTransform
+tgtslib_vimba := $(commonslib)
 
 tgtsrcs_evr := evr.cc
 tgtincs_evr := evgr pdsdata/include ndarray/include boost/include  

@@ -7,6 +7,7 @@
 #include "pdsapp/control/NodeSelect.hh"
 #include "pds/management/PartitionControl.hh"
 #include "pds/ioc/IocControl.hh"
+#include "pds/ioc/IocNode.hh"
 #include "pds/collection/PingReply.hh"
 #include "pds/collection/AliasReply.hh"
 #include "pds/utility/StreamPorts.hh"
@@ -24,29 +25,30 @@ SelectDialog::SelectDialog(QWidget* parent,
   _pcontrol(control),
   _icontrol(icontrol),
   _bReadGroupEnable(bReadGroupEnable),
-  _autorun (autorun)
+  _autorun(autorun),
+  _sem(Semaphore::FULL)
 {
   setWindowTitle("Partition Selection");
 
   unsigned platform = _pcontrol.header().platform();
   QGridLayout* layout = new QGridLayout(this);
   layout->addWidget(_segbox = new DetNodeGroup("Readout Nodes",this, platform, 
-					       _bReadGroupEnable, _useTransient ), 
+                    _bReadGroupEnable, _useTransient ),
                     0, 0);
   layout->addWidget(_evtbox = new ProcNodeGroup("Processing Nodes",this, platform), 
                     1, 0);
   layout->addWidget(_rptbox = new BldNodeGroup("Beamline Data",this, platform,
-					       0, _useTransient ),
+                    0, _useTransient ),
                     2, 0);
   layout->addWidget(_iocbox = new DetNodeGroup("Camera IOCs",this, platform),
-		    3, 0);
+                    3, 0);
 
   _acceptb = new QPushButton("Ok",this);
   QPushButton* rejectb = new QPushButton("Cancel",this);
   QHBoxLayout* layoutb = new QHBoxLayout;
   layoutb->addWidget(_acceptb);
   layoutb->addWidget(rejectb);
-  layout->addLayout(layoutb, 3, 0, 1, 3);
+  layout->addLayout(layoutb, 4, 0, 1, 3);
   setLayout(layout);
 
   connect(this    , SIGNAL(changed()), this, SLOT(update_layout()));
@@ -170,6 +172,10 @@ void        SelectDialog::available(const Node& hdr, const PingReply& msg)
 
 void        SelectDialog::connected(const IocNode& ioc) {
   _iocbox->addNode(NodeSelect(ioc));
+  Alias::SrcAlias iocAlias(ioc.src(), ioc.alias());
+  _sem.take();
+  _aliases.insert(iocAlias);
+  _sem.give();
   emit changed();
 }
 
@@ -177,9 +183,11 @@ void        SelectDialog::aliasCollect(const Node& hdr, const AliasReply& msg)
 {
   if (hdr.level() == Level::Segment) {
     int count = (int)msg.naliases();
+    _sem.take();
     for (int ix=0; ix < count; ix++) {
       _aliases.insert(msg.alias(ix));
     }
+    _sem.give();
   }
 }
 
@@ -198,38 +206,38 @@ void SelectDialog::update_layout()
     _clearLayout();
     if (ne+nr > MaxRows) {
       if (nr+ni > MaxRows) {
-	layout->addWidget(_segbox,0,0);
-	layout->addWidget(_evtbox,0,1);
-	layout->addWidget(_rptbox,0,2);
-	layout->addWidget(_iocbox,0,3);
+        layout->addWidget(_segbox,0,0);
+        layout->addWidget(_evtbox,0,1);
+        layout->addWidget(_rptbox,0,2);
+        layout->addWidget(_iocbox,0,3);
       }
       else {
-	layout->addWidget(_segbox,0,0,2,1);
-	layout->addWidget(_evtbox,0,1,2,1);
-	layout->addWidget(_rptbox,0,2);
-	layout->addWidget(_iocbox,1,2);
+        layout->addWidget(_segbox,0,0,2,1);
+        layout->addWidget(_evtbox,0,1,2,1);
+        layout->addWidget(_rptbox,0,2);
+        layout->addWidget(_iocbox,1,2);
       }
     }
     else {
       if (ne+nr+ni > MaxRows) {
-	if (ne > ni) {
-	  layout->addWidget(_segbox,0,0,2,1);
-	  layout->addWidget(_evtbox,0,1,2,1);
-	  layout->addWidget(_rptbox,0,2);
-	  layout->addWidget(_iocbox,1,2);
-	}
-	else {
-	  layout->addWidget(_segbox,0,0,2,1);
-	  layout->addWidget(_evtbox,0,1);
-	  layout->addWidget(_rptbox,1,1);
-	  layout->addWidget(_iocbox,0,2,2,1);
-	}
+        if (ne > ni) {
+          layout->addWidget(_segbox,0,0,2,1);
+          layout->addWidget(_evtbox,0,1,2,1);
+          layout->addWidget(_rptbox,0,2);
+          layout->addWidget(_iocbox,1,2);
+        }
+        else {
+          layout->addWidget(_segbox,0,0,2,1);
+          layout->addWidget(_evtbox,0,1);
+          layout->addWidget(_rptbox,1,1);
+          layout->addWidget(_iocbox,0,2,2,1);
+        }
       }
       else {
-	layout->addWidget(_segbox,0,0,3,1);
-	layout->addWidget(_evtbox,0,1);
-	layout->addWidget(_rptbox,1,1);
-	layout->addWidget(_iocbox,2,1);
+        layout->addWidget(_segbox,0,0,3,1);
+        layout->addWidget(_evtbox,0,1);
+        layout->addWidget(_rptbox,1,1);
+        layout->addWidget(_iocbox,2,1);
       }
     }
   }

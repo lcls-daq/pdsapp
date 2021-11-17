@@ -40,7 +40,17 @@ void QtConcealer::show(bool v)
     _widgets[j]->setVisible(v);
 }
 
+void QtConcealer::show(int v)
+{
+  show(v != 0);
+}
+
 void QtConcealer::hide(bool v)
 {
   show(!v);
+}
+
+void QtConcealer::hide(int v)
+{
+  hide(v != 0);
 }
