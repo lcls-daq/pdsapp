@@ -1,0 +1,26 @@
+camera wave8 XrayTransportDiagnostic-0 Wave8-0 TST:CR:01:RAW
+record wave8
+camera qadc XrayTransportDiagnostic-1 Wave8-0 TST:CR:01:RAWDATA
+record qadc
+camera qadc134 XrayTransportDiagnostic-2 Wave8-0 TST:CR:01:RAWDATA0
+record qadc134
+camera cam0 XrayTransportDiagnostic-3 ControlsCamera-0 TST:CR:01:CAM:0:IMAGE1:ArrayData
+record cam0
+camera cam1 XrayTransportDiagnostic-3 ControlsCamera-1 TST:CR:01:CAM:1:IMAGE1:ArrayData
+record cam1
+camera cam2 XrayTransportDiagnostic-3 ControlsCamera-2 TST:CR:01:CAM:2:IMAGE1:ArrayData
+record cam2
+camera cam3 XrayTransportDiagnostic-3 ControlsCamera-3 TST:CR:01:CAM:3:IMAGE1:ArrayData
+record cam3
+camera cam4 XrayTransportDiagnostic-3 ControlsCamera-4 TST:CR:01:CAM:4:IMAGE1:ArrayData
+record cam4
+camera wf0 XrayTransportDiagnostic-4 Wave8-0 TST:CR:01:WF:0
+record wf0
+camera wf1 XrayTransportDiagnostic-4 Wave8-1 TST:CR:01:WF:1
+record wf1
+camera wf2 XrayTransportDiagnostic-4 Wave8-2 TST:CR:01:WF:2
+record wf2
+camera wf3 XrayTransportDiagnostic-4 Wave8-3 TST:CR:01:WF:3
+record wf3
+camera wf4 XrayTransportDiagnostic-4 Wave8-4 TST:CR:01:WF:4
+record wf4

@@ -11,13 +11,36 @@
 #include"pdsdata/psddl/generic1d.ddl.h"
 #include"yagxtc.hh"
 
-#include <stdio.h>
+#include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<strings.h>
 #include<vector>   //for std::vector
 
 #include"cadef.h"
 #include"alarm.h"
+
+/*
+ * Better to include this from EPICS menuFtype.h, but... it's complicated.
+ * This has unfortunately changed on the way to epics7... and in a not
+ * backwards compatible way, since INT64 and UINT64 were added before
+ * float.  So... we cheat.  No recording of int64/uint64 for us, but we'll
+ * be able to do the right thing for floats and doubles.
+ */
+typedef enum {
+	menuFtypeSTRING,
+	menuFtypeCHAR,
+	menuFtypeUCHAR,
+	menuFtypeSHORT,
+	menuFtypeUSHORT,
+	menuFtypeLONG,
+	menuFtypeULONG,
+	menuFtypeFLOAT,
+	menuFtypeDOUBLE,
+	menuFtypeFLOAT7,
+	menuFtypeDOUBLE7,
+}menuFtype;
+
 
 using namespace std;
 using namespace Pds;
@@ -33,8 +56,10 @@ static uint32_t W8_SampleType[W8_NCHAN]= {G1DCfg::UINT16,G1DCfg::UINT16,G1DCfg::
 static double W8_Period[W8_NCHAN]= {8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 8e-9, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7, 2e-7};
 
 // For the qadc
-#define QADC_NCHAN 4
-#define QADC_BASERATE 1.25e9
+#define QADC_NCHAN       4
+#define QADC_BASERATE    1.25e9
+#define QADC134_NCHAN    2
+#define QADC134_BASERATE (3.2e9*13/14)
 
 static void connection_handler(struct connection_handler_args args);
 
@@ -104,12 +129,64 @@ static int read_ca(char *name, void *value, int dbrtype)
     return 0;
 }
 
+static struct generic1dinfo {
+    int      ftype;
+    uint32_t stype;
+    int      size;
+    chtype   dbf;
+} g1dinfo[] = {
+    { menuFtypeCHAR,    G1DCfg::UINT8,   1, DBF_CHAR },
+    { menuFtypeUCHAR,   G1DCfg::UINT8,   1, DBF_CHAR },
+    { menuFtypeSHORT,   G1DCfg::UINT16,  2, DBF_SHORT },
+    { menuFtypeUSHORT,  G1DCfg::UINT16,  2, DBF_SHORT },
+    { menuFtypeLONG,    G1DCfg::UINT32,  4, DBF_LONG },
+    { menuFtypeULONG,   G1DCfg::UINT32,  4, DBF_LONG },
+    { menuFtypeFLOAT,   G1DCfg::FLOAT32, 4, DBF_FLOAT },
+    { menuFtypeFLOAT7,  G1DCfg::FLOAT32, 4, DBF_FLOAT },
+    { menuFtypeDOUBLE,  G1DCfg::FLOAT64, 8, DBF_DOUBLE },
+    { menuFtypeDOUBLE7, G1DCfg::FLOAT64, 8, DBF_DOUBLE },
+    { -1, 0, 0, 0 }
+};
+
+static int get_generic1d_type(int kind, uint32_t *stype, int *size, chtype *dbf) 
+{
+    for (int i = 0; g1dinfo[i].ftype >= 0; i++) {
+	if (kind == g1dinfo[i].ftype) {
+	    *stype = g1dinfo[i].stype;
+	    *size = g1dinfo[i].size;
+	    *dbf = g1dinfo[i].dbf;
+	    return 0;
+	}
+    }
+    return 1;
+}
+
+/*
+ * The logic for exactly how we record a PV into the XTC file is a little bit
+ * squirrelly, and partially depends on the device type passed in and partially
+ * depends on the PV name.
+ *
+ * If the device type is EpicsArch, we assume the data is small and not critical and
+ * should just be put into the standard EpicsArch.  Otherwise, the data is either a
+ * camera or some type of arbitrary waveform.
+ * 
+ * Next, we look at the PV name.  We assume we have a camera if the PV name either
+ * ends ":ArrayData" (for Area Detector cameras), ".IRAW" (for a Dehong framegrabber
+ * camera), ":LIVE_IMAGE_FAST" (for a unixCam camera), ":IMAGE_CMPX" (a unixCam with
+ * an ROI), or ":WF" (the NFOV camera).  Many of these are historical and can probably
+ * be removed.
+ *
+ * If we don't have a known camera, we assume we have a waveform.  Two special types
+ * of waveform are understood: ":RAWDATA" denotes a QADC stream, and ":RAW" denotes wave8.
+ * Otherwise, we assume we have a single waveform that does not require any special
+ * unpacking.
+ */
 class caconn {
  public:
     caconn(string _name, string _det, string _camtype, string _pvname,
            int _flags, int _strict)
         : name(_name), detector(_det), camtype(_camtype), pvname(_pvname),
-          connected(0), nelem(-1), event(0), flags(_flags), strict(_strict) {
+          connected(0), nelem(-1), event(0), flags(_flags), strict(_strict), force_dbf(DBF_LONG) {
         const char       *ds  = detector.c_str();
         int               detversion = 0;
         DetInfo::Detector det = find_detector(ds, detversion);
@@ -140,19 +217,20 @@ class caconn {
 
         num = conns.size();
         conns.push_back(this);
-        xid = register_xtc(strict, name,  // PVs -> not critical or big, cameras -> critical and big
-                           det != DetInfo::EpicsArch,
-                           det != DetInfo::EpicsArch,
-                           dev == DetInfo::Wave8);
+
+	is_epicsarch = 0;
+        is_cam = 0;
+        is_wv8 = 0;
+        is_qadc = 0;
+        is_qadc134 = 0;
+        is_wf = 0;
 
         if (det == DetInfo::EpicsArch) {
             DetInfo sourceInfo(getpid(), DetInfo::EpicsArch, 0, DetInfo::NoDevice, streamno);
             
             caid = nxtcaid++;
             register_pv_alias(name, caid, sourceInfo);
-            is_cam = 0;
-            is_wv8 = 0;
-            is_qadc = 0;
+            is_epicsarch = 1;
             int result = ca_create_channel(pvname.c_str(),
                                            connection_handler,
                                            this,
@@ -175,14 +253,13 @@ class caconn {
                 }
             }
             ca_poll();
+            // If it's in EpicsArch, we assume it's small, not critical, and not a camera.
+            xid = register_xtc(strict, name, 0, 0, 0);
             // Do this for non-cameras here
             if (write_hdf) register_hdf_writer(xid, register_hdf(name, 0, 0, 0, nelem, dbrtype, 0, 0));
             return;
         }
 
-        is_cam = 1;
-        is_wv8 = 0;
-        is_qadc = 0;
         cmask = 0;
 
         /* Retrieve the camera parameters based on the PV name. */
@@ -191,28 +268,83 @@ class caconn {
         int pvlen = strlen(pv);
         if (!strcmp(pv + pvlen - 8, ":RAWDATA")) {
             /* NOT a camera, a QADC!! */
-            int prescale;
+	    double p;
             is_qadc = 1;
             pvlen -= 8;
             strcpy(pv + pvlen, ":LENGTH");      // Samples per channel!
             read_ca(pv, &qadc_len, DBR_LONG);
             strcpy(pv + pvlen, ":INTERLEAVE");
             read_ca(pv, &qadc_inter, DBR_LONG);
-            nchan = qadc_inter ? 1 : 4;
-            strcpy(pv + pvlen, ":PRESCALE");
-            read_ca(pv, &prescale, DBR_LONG);
+	    if (qadc_inter) {
+		nchan = 1;
+		p = (1.0 / QADC_NCHAN) / QADC_BASERATE;
+	    } else {
+		nchan = QADC_NCHAN;
+		p = 1.0 / QADC_BASERATE;
+	    }
             for (int i = 0; i < nchan; i++) {
-                period[i] = prescale / QADC_BASERATE;
+                period[i] = p;
                 offset[i] = 0;
                 stype[i] = G1DCfg::FLOAT64;
                 nsamp[i] = qadc_len;
             }
-            qadc_len *= 4;                      // Total Samples!
-            if (qadc_inter)
-                nsamp[0] *= 4;                  // If interleaved, all samples are channel 0.
-            data_size = qadc_len * 8;           // We save the data here as doubles...
-            nelem = qadc_len / 2 + 8;           // ... but we get it as shorts packed into ints
-                                                // with an 8-word header.
+            qadc_len *= nchan;                    // Total Samples!
+            data_size = qadc_len * 8;             // We save the data here as doubles...
+            nelem = qadc_len / 2 + 8 + 4 * nchan; // ... but we get it as shorts packed into ints
+                                                  // with an 8-word header and a 4-word header per
+	                                          // channel.
+            qadc_data = (double *) calloc(1, data_size);
+        } else if (!strcmp(pv + pvlen - 9, ":RAWDATA0") || !strcmp(pv + pvlen - 9, ":RAWDATA1")) {
+            /* NOT a camera, a QADC134!! */
+            int prescale;
+	    int full, sparse;
+	    int lo_thresh, hi_thresh;
+	    double p;
+            is_qadc134 = 1;
+            pvlen -= 9;
+            strcpy(pv + pvlen, ":LENGTH_RBV");      // Samples per channel!
+            read_ca(pv, &qadc_len, DBR_LONG);
+            strcpy(pv + pvlen, ":INTERLEAVE_RBV");
+            read_ca(pv, &qadc_inter, DBR_LONG);
+            strcpy(pv + pvlen, ":PRESCALE_RBV");
+            read_ca(pv, &prescale, DBR_LONG);
+            strcpy(pv + pvlen, ":LO_THRESH_RAW_RBV");
+            read_ca(pv, &lo_thresh, DBR_LONG);
+            strcpy(pv + pvlen, ":HI_THRESH_RAW_RBV");
+            read_ca(pv, &hi_thresh, DBR_LONG);
+	    qadc_fill = ((lo_thresh + hi_thresh) / 2.0 - 2048.) / 4096. * 1.3;
+            strcpy(pv + pvlen, ":FULL_EN_RBV");
+            read_ca(pv, &full, DBR_LONG);
+	    if (full)
+		full = 1;
+            strcpy(pv + pvlen, ":SPARSE_EN_RBV");
+            read_ca(pv, &sparse, DBR_LONG);
+	    if (sparse)
+		sparse = 1;
+            nchan = qadc_inter ? (full+sparse) : 2;
+	    if (qadc_inter) {
+		nchan = 1;
+		p = (1.0 / QADC134_NCHAN) / QADC134_BASERATE;
+	    } else {
+		nchan = QADC134_NCHAN;
+		p = 1.0 / QADC134_BASERATE;
+	    }
+	    if (prescale)
+		p *= prescale;
+	    else
+		p *= 4096;
+            for (int i = 0; i < nchan; i++) {
+		period[i] = p;
+                offset[i] = 0;
+                stype[i] = G1DCfg::FLOAT64;
+                nsamp[i] = qadc_len;
+            }
+            qadc_len *= nchan;                    // Total Samples!
+            data_size = qadc_len * 8;             // We save the data here as doubles...
+            nelem = qadc_len / 2 + 8 + 4 * nchan; // ... but we get it as shorts packed into ints
+                                                  // with an 8-word header and a 4-word header per
+	                                          // channel. NOTE: This is a maximum, since
+	                                          // sparcified data is, well, sparse!
             qadc_data = (double *) calloc(1, data_size);
         } else if (!strcmp(pv + pvlen - 4, ":RAW")) {
             /* NOT a camera, a wave8!! */
@@ -238,6 +370,7 @@ class caconn {
             }
         } else if (!strcmp(pv + pvlen - 10, ":ArrayData")) {
             /* An area detector camera */
+            is_cam = 1;
             pvlen -= 10;
             strcpy(pv + pvlen, ":ArraySize0_RBV");
             read_ca(pv, &w, DBR_LONG);
@@ -260,6 +393,7 @@ class caconn {
             read_ca(pv, manufacturer, DBR_STRING);
         } else if (!strcmp(pv + pvlen - 5, ".IRAW")) {
             /* A Dehong framegrabber camera */
+            is_cam = 1;
             pvlen -= 5;
             strcpy(pv + pvlen, ".NCOL");
             read_ca(pv, &w, DBR_LONG);
@@ -269,6 +403,7 @@ class caconn {
             read_ca(pv, &d, DBR_LONG);
         } else if (!strcmp(pv + pvlen - 16, ":LIVE_IMAGE_FAST")) {
             /* A unixCam camera */
+            is_cam = 1;
             pvlen -= 16;
             strcpy(pv + pvlen, ":N_OF_COL");
             read_ca(pv, &w, DBR_LONG);
@@ -284,6 +419,7 @@ class caconn {
             read_ca(pv, manufacturer, DBR_STRING);
         } else if (!strcmp(pv + pvlen - 11, ":IMAGE_CMPX")) {
             /* A unixCam camera with ROI */
+            is_cam = 1;
             pvlen -= 11;
             strcpy(pv + pvlen, ":ROI_XNP");
             read_ca(pv, &w, DBR_LONG);
@@ -299,6 +435,7 @@ class caconn {
             read_ca(pv, manufacturer, DBR_STRING);
         } else if (!strcmp(pv + pvlen - 3, ":WF")) {
             /* The NFOV.  Does anything else do this?!? */
+            is_cam = 1;
             pvlen -= 3;
             strcpy(pv + pvlen, ":RawNx");
             read_ca(pv, &w, DBR_LONG);
@@ -310,14 +447,55 @@ class caconn {
             strcpy(pv + pvlen, ":CamMaker");
             read_ca(pv, manufacturer, DBR_STRING);
         } else {
-            /* WTF?!? */
-            fprintf(stderr, "warn Unknown camera type for PV %s!\n", pv);
-            return;
+            /*
+	     * We assume this is a single waveform.  We don't know anything else yet.
+	     *
+	     * Let's further assume it's either a waveform record (so we can read
+	     * NORD and FTVL) or it's an aSub (so we can read NEA/FTA for A, and 
+	     * NEVA/FTVA for VALA).
+	     */
+            is_wf = 1;
+	    nchan = 1;
+	    period[0] = 1.0;  /* We'll never know this! */
+	    offset[0] = 0;
+	    char *dot = ::index(pv, '.');
+	    int kind;
+	    if (dot) {
+		char last = pv[pvlen - 1];
+		if (strlen(++dot) == 1) {   /* A-Z */
+		    sprintf(dot, "NE%c", last);
+		    read_ca(pv, &nsamp[0], DBR_LONG);
+		    sprintf(dot, "FT%c", last);
+		    read_ca(pv, &kind, DBR_LONG);
+		} else {                    /* VALA-VALZ */
+		    sprintf(dot, "NEV%c", last);
+		    read_ca(pv, &nsamp[0], DBR_LONG);
+		    sprintf(dot, "FTV%c", last);
+		    read_ca(pv, &kind, DBR_LONG);
+		}
+	    } else {
+		strcpy(pv + pvlen, ".NORD");
+		read_ca(pv, &nsamp[0], DBR_LONG);
+		strcpy(pv + pvlen, ".FTVL");
+		read_ca(pv, &kind, DBR_LONG);
+	    }
+	    if (get_generic1d_type(kind, stype, &data_size, &force_dbf)) {
+		fprintf(stderr, "warn Cannot find waveform information for PV %s (%d)!\n", pv, kind);
+		printf("Cannot find waveform information for PV %s (%d)!\n", pv, kind);
+		return;
+	    }
+	    data_size *= nsamp[0];
         }
 
-        if (!is_wv8 && !is_qadc) {
+        if (is_cam) {
             if (CAMERA_DEPTH(flags))
                 d = CAMERA_DEPTH(flags);
+	    // Sigh.  psana doesn't listen to us.  If the bit depth is 8, it assumes char,
+	    // and if it's 16, it assumes short.  So we must obey our computer overlords.
+	    if (d <= 8)
+		force_dbf = DBF_CHAR;
+	    else if (d <= 16)
+		force_dbf = DBF_SHORT;
             nelem = w * h;
         }
 
@@ -376,8 +554,12 @@ class caconn {
                 Camera::ControlsCameraConfigV1(w, h, d, Camera::ControlsCameraConfigV1::Mono,
                                                exposure, gain, manufacturer, model);
             break;
-        case DetInfo::Wave8:
-            // OK, this could be a wave8 *or* a qadc!!
+        default:
+	    if (is_cam) {
+		fprintf(stderr, "warn Unknown camera type for PV %s!\n", pv);
+		return;
+	    }
+            // So now we either have a wave8, a qadc, or a generic waveform.
             size = sizeof(Xtc) + sizeof(Generic1D::ConfigV0) + nchan * (3 * sizeof(int32_t) + sizeof(double));
             buf = (char *) calloc(1, size);
             cfg = new (buf) Xtc(TypeId(TypeId::Id_Generic1DConfig, 0), sourceInfo);
@@ -388,12 +570,8 @@ class caconn {
                 new ((void *)cfg->alloc(size - sizeof(Xtc)))
                     Generic1D::ConfigV0(nchan, nsamp, stype, offset, period);
             break;
-        default:
-            printf("Unknown device: %s!\n", DetInfo::name(dev));
-            fprintf(stderr, "error Unknown device %s\n", DetInfo::name(dev));
-            exit(1);
         }
-        if (!is_wv8 && !is_qadc) {
+        if (is_cam) {
             // This is on every camera.
             cfg = new ((char *) cfg->next()) Xtc(TypeId(TypeId::Id_FrameFexConfig, 1), sourceInfo);
             new ((void *)cfg->alloc(sizeof(Camera::FrameFexConfigV1)))
@@ -401,6 +579,7 @@ class caconn {
                                          Camera::FrameFexConfigV1::NoProcessing, origin, bottom, 0, 0, 0);
 
             // setup hdf5 datasets
+	    xid = register_xtc(strict, name, 1, 1, 1);
             if (write_hdf) {
                 register_hdf_writer(xid, register_hdf(name, is_cam, w, h, nelem, dbrtype, 0, 0));
             }
@@ -415,6 +594,8 @@ class caconn {
             frm->alloc(f->_sizeof()-sizeof(*f));
             free(buf);
         } else {
+	    xid = register_xtc(strict, name, 1, 1, 0);
+
             /* MCB - Dan, add HDF for wave8 here? */
             configure_xtc(xid, buf, size, 0, 0);
 
@@ -491,16 +672,21 @@ class caconn {
     int    hdrlen;
     int    flags;
     int    strict;
+    int    is_epicsarch;
     int    is_cam;
     int    is_wv8;
-    int    nchan;
+    int    is_wf;
     int    is_qadc;
+    int    is_qadc134;
+    double qadc_fill;
+    int    nchan;
     int    qadc_inter;
     int    qadc_len;
     double *qadc_data;
     int32_t cmask;
     int    caid;
     chid   chan;
+    chtype force_dbf;
 };
 
 vector<caconn *> caconn::conns;
@@ -515,9 +701,35 @@ static void event_handler(struct event_handler_args args)
     } else if (args.type == c->dbrtype && args.count == c->nelem) {
         if (c->is_qadc) {
             struct dbr_time_long *d = (struct dbr_time_long *) args.dbr;
-            int16_t *in = (int16_t *)(&d->value + 8);
-            for (int i = 0; i < c->qadc_len; i++)
-                c->qadc_data[i] = (in[i] - 512.) / 2048.; /* Scale the shorts into doubles! */
+            int32_t *in32 = (int32_t *)(&d->value + 8);
+	    double *data = c->qadc_data;
+            for (int i = 0; i < c->nchan; i++) {
+		int len = in32[0] & 0x3fffffff;
+		int16_t *in = (int16_t *)(in32 + 4);
+		for (int j = 0; j < len; j++) {
+		    *data++ = (*in++ - 512.) / 2048.; /* Scale the shorts into doubles! */
+		}
+		in32 = (int32_t *)in;
+	    }
+            data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
+                     c->hdr, c->hdrlen, c->qadc_data);
+        } else if (c->is_qadc134) {
+            struct dbr_time_long *d = (struct dbr_time_long *) args.dbr;
+            int32_t *in32 = (int32_t *)(&d->value + 8);
+	    double *data = c->qadc_data;
+            for (int i = 0; i < c->nchan; i++) {
+		int len = in32[0] & 0x3fffffff;
+		int16_t *in = (int16_t *)(in32 + 4);
+		for (int j = 0; j < len; j++) {
+		    if (*in & 0x8000) {
+			for (int k = 0; k < (*in & 0x7fff); k++) /* Unsparcify! */
+			    *data++ = c->qadc_fill;
+			in++;
+		    } else
+			*data++ = (*in++ - 2048.) / 4096. * 1.3;/* Scale the shorts into doubles! */
+		}
+		in32 = (int32_t *)in;
+	    }
             data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
                      c->hdr, c->hdrlen, c->qadc_data);
         } else if (c->is_wv8) {
@@ -539,11 +751,44 @@ static void event_handler(struct event_handler_args args)
 
             data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
                      c->hdr, c->hdrlen, &d->value);
-        } else if (c->is_cam) {
-            struct dbr_time_short *d = (struct dbr_time_short *) args.dbr;
-
-            data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
-                     c->hdr, c->hdrlen, &d->value);
+        } else if (!c->is_epicsarch) {
+	    /* Sigh, we can't cheat here, since we want to dereference the value field, not
+	       just grab the timestamp from the start and record the entire dbr_time_* record! */
+	    switch (args.type) {
+	    case DBR_TIME_CHAR: {
+		struct dbr_time_char *d = (struct dbr_time_char *) args.dbr;
+		data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
+			 c->hdr, c->hdrlen, &d->value);
+		break;
+	    }
+	    case DBR_TIME_SHORT: {
+		struct dbr_time_short *d = (struct dbr_time_short *) args.dbr;
+		data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
+			 c->hdr, c->hdrlen, &d->value);
+		break;
+	    }
+	    case DBR_TIME_LONG: {
+		struct dbr_time_long *d = (struct dbr_time_long *) args.dbr;
+		data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
+			 c->hdr, c->hdrlen, &d->value);
+		break;
+	    }
+	    case DBR_TIME_FLOAT: {
+		struct dbr_time_float *d = (struct dbr_time_float *) args.dbr;
+		data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
+			 c->hdr, c->hdrlen, &d->value);
+		break;
+	    }
+	    case DBR_TIME_DOUBLE: {
+		struct dbr_time_double *d = (struct dbr_time_double *) args.dbr;
+		data_xtc(c->xid, d->stamp.secPastEpoch + POSIX_TIME_AT_EPICS_EPOCH, d->stamp.nsec,
+			 c->hdr, c->hdrlen, &d->value);
+		break;
+	    }
+	    default:
+		/* printf("Unknown type?!?\n"); */
+		break;
+	    }
         } else {
             struct dbr_time_short *d = (struct dbr_time_short *) args.dbr;
             /*
@@ -597,7 +842,7 @@ static void get_handler(struct event_handler_args args)
                                         event_handler, (void *) c, &c->event);
     if (status != ECA_NORMAL) {
         printf("Failed to create subscription! error %d!\n", status);
-        switch (c->is_cam ? 0 : pvignore) {
+        switch (c->is_epicsarch ? pvignore : 0) {
         case 0:
             fprintf(stderr, "error Cannot subscribe to %s (error %d).\n", c->getpvname(), status);
             exit(0);
@@ -625,14 +870,14 @@ static void connection_handler(struct connection_handler_args args)
             printf("Forcing type to LONG!\n");
             c->dbftype = DBR_LONG;
             c->dbrtype = DBR_TIME_LONG;              /* Force this, since we know the wave8 and qadc are really uint32!!! */
-        } else if (c->is_cam) {
-            printf("Forcing type to SHORT!\n");
-            c->dbftype = DBR_SHORT;
-            c->dbrtype = DBR_TIME_SHORT;             /* Force this, since we know the cameras are at most 16 bit!!! */
+        } else if (c->is_cam || c->is_wf) {
+            c->dbftype = dbf_type_to_DBR(c->force_dbf);
+            c->dbrtype = dbf_type_to_DBR_TIME(c->force_dbf);
+	    printf("Using type %d for %s %s\n", (int) c->dbrtype, c->is_cam ? (char *)"camera" : (char *)"waveform", c->getname());
         } else
             c->dbrtype = dbf_type_to_DBR_TIME(c->dbftype);
         c->size = dbr_size_n(c->dbrtype, c->nelem);
-        if (c->is_cam) {
+        if (!c->is_epicsarch) {
             int status = ca_create_subscription(c->dbrtype, c->nelem, args.chid, DBE_VALUE | DBE_ALARM,
                                                 event_handler, (void *) c, &c->event);
             if (status != ECA_NORMAL) {
@@ -661,7 +906,7 @@ static void connection_handler(struct connection_handler_args args)
             }
         }
     } else {
-        if ( c->connected )
+        if (c->connected)
             printf("%s (%s) has disconnected!\n", c->getname(), c->getpvname());
         else
             printf("%s unable to connect to PV (%s)!\n", c->getname(), c->getpvname());
@@ -704,7 +949,7 @@ void begin_run_ca(void)
             int status = ca_array_get_callback(c->dbrtype, c->nelem, c->chan, event_handler, (void *) c);
             if (status != ECA_NORMAL) {
                 printf("Get failed! error %d!\n", status);
-                switch (c->is_cam ? 0 : pvignore) {
+                switch (c->is_epicsarch ? pvignore : 0) {
                 case 0:
                     fprintf(stderr, "error Cannot get %s (error %d).\n", c->getpvname(), status);
                     exit(0);

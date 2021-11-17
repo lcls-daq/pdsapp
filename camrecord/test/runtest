@@ -1,0 +1,40 @@
+#!/bin/bash
+export TEST_IOC=/reg/g/pcds/epics/ioc/common/cr_test/R1.0.0
+
+export ARCH='unknown'
+export EARCH='unknown'
+if [[ `uname -r` == *el5* ]]; then
+  export ARCH='x86_64-linux'
+  export EARCH='linux-x86_64'
+elif [[ `uname -r` == *el7* ]]; then
+  export ARCH='x86_64-rhel7'
+  export EARCH='rhel7-x86_64'
+fi
+export PROCSERV=/reg/g/pcds/pkg_mgr/release/procServ/2.8.0-1.3.0/$EARCH/bin/procServ
+#
+# Start the IOC!
+#
+export CHILD=`cd $TEST_IOC/children/build/iocBoot/ioc-tst-cr1; $PROCSERV --oneshot --allow --ignore ^D^C 63000 $TEST_IOC/bin/$EARCH/crt ./st.cmd |& awk '/spawning daemon/{print $NF;}' -`
+echo CHILD = $CHILD
+sleep 10
+
+#
+# Make a recording!
+#
+../../../build/pdsapp/bin/${ARCH}-dbg/camrecord -t 5 -o foo -c config >/dev/null 2>/dev/null
+
+#
+# Stop the IOC!
+#
+kill -9 $CHILD
+
+#
+# Check the recording!
+#
+source /reg/g/psdm/sw/conda/manage/bin/psconda.sh
+python check.py
+
+#
+# Cleanup!
+#
+rm -rf foo* index smalldata

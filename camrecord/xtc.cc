@@ -46,11 +46,11 @@ struct event;
 
 class xtcsrc {
  public:
-    xtcsrc(int _id, int _sync, string _name, int _crit, int _isbig, int _iswv8)
+    xtcsrc(int _id, int _sync, string _name, int _crit, int _isbig, int _iscam)
         : id(_id), hdf_id(-1), sync(_sync), name(_name), cnt(0), val(NULL),
-          len(0), val2(NULL), len2(0), hdrlen(0), ref(NULL), sec(0), nsec(0),
+          len(0), val2(NULL), len2(0), hdrlen(0), hdrlen2(0), ref(NULL), sec(0), nsec(0),
           sec2(0), nsec2(0), ev(NULL), critical(_crit), damagecnt(0),
-          isbig(_isbig), iswv8(_iswv8) {};
+          isbig(_isbig), iscam(_iscam) {};
     int   id;
     int   hdf_id;
     int   sync;                   // Is this a synchronous source?
@@ -61,6 +61,7 @@ class xtcsrc {
     unsigned char *val2;
     int   len2;
     int   hdrlen;                 // header length for this value
+    int   hdrlen2;                // header length for the second value
     int  *ref;                    // Reference count of this value (if asynchronous!)
     unsigned int sec, nsec;       // Timestamp of this value
     unsigned int sec2, nsec2;     // Timestamp of the second value
@@ -71,7 +72,7 @@ class xtcsrc {
                                   // throw away partials.
     int   damagecnt;
     int   isbig;
-    int   iswv8;
+    int   iscam;
 };
 
 #define SML_CONFIG_SIZE (sizeof(Xtc) + sizeof(SmlData::ConfigV1))
@@ -281,13 +282,13 @@ static char *get_sml_offset(int64_t offset, uint32_t extent)
     return buf;
 }
 
-static char *get_sml_proxy(int64_t offset, uint32_t extent, Src &src, int iswv8)
+static char *get_sml_proxy(int64_t offset, uint32_t extent, Src &src, int iscam)
 {
     static char buf[SML_PROXY_SIZE];
     memset(buf, 0, sizeof(buf));
     Xtc *xtc = new ((char *) buf) Xtc(TypeId(TypeId::Id_SmlDataProxy, 1), src);
     new (xtc->alloc(sizeof(SmlData::ProxyV1)))
-        SmlData::ProxyV1(offset, iswv8 ? TypeId(TypeId::Id_Generic1DData, 0) : TypeId(TypeId::Id_Frame, 1), extent);
+        SmlData::ProxyV1(offset, iscam ? TypeId(TypeId::Id_Frame, 1) : TypeId(TypeId::Id_Generic1DData, 0), extent);
     return buf;
 }
 
@@ -318,7 +319,7 @@ static void write_datagram(TransitionId::Value val, int extra, int diff)
     sigprocmask(SIG_BLOCK, &blockset, &oldsig);
     if (write_xtc) {
         if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
-            printf("Write failed!\n");
+	    printf("Write failed A, errno=%d!\n", errno);
             fprintf(stderr, "error Write to %s failed.\n", fname);
             exit(1);
         }
@@ -331,7 +332,7 @@ static void write_datagram(TransitionId::Value val, int extra, int diff)
 
     if (write_xtc) {
         if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, sfp)) {
-            printf("Write failed!\n");
+	    printf("Write failed B, errno=%d!\n", errno);
             fprintf(stderr, "error Write to %s failed.\n", fname);
             exit(1);
         }
@@ -343,6 +344,39 @@ static void write_datagram(TransitionId::Value val, int extra, int diff)
 }
 
 /*
+ * This is called the first time we see data for a particular source.
+ */
+void new_data(xtcsrc *s, unsigned char *buf, int len, int hdrlen,
+	      unsigned int sec, unsigned int nsec)
+{
+    s->len = len;
+    s->hdrlen = hdrlen;
+    totaldlen += len;
+    if (s->isbig)
+	totalsdlen += SML_PROXY_SIZE;
+    else
+	totalsdlen += len;
+    if (++havedata == numsrc) {
+	// Initialize the header now that we know its length.
+	setup_datagram(TransitionId::L1Accept);
+	seg->extent    += totaldlen;
+	dg->xtc.extent += totaldlen;
+    }
+    if (!s->sync) {
+	s->val = buf;
+	s->sec = sec;
+	s->nsec = nsec;
+	s->ref = new int;
+	*(s->ref) = 1;
+	s->ev = find_event(sec, nsec);
+#ifdef TRACE
+	printf("%08x:%08x AI%d -> event %d\n", sec, nsec, id, s->ev->id);
+#endif
+	haveasync++;
+    }
+}
+
+/*
  * This is called once we have all of the configuration data.
  */
 static void write_xtc_config(void)
@@ -351,6 +385,7 @@ static void write_xtc_config(void)
     sigset_t oldsig;
     Xtc *xtcpv = NULL, *xtc1 = NULL, *xtc = NULL;
 
+    printf("write_xtc_config\n");
     dg = (Dgram *) malloc(sizeof(Dgram) + sizeof(Xtc));
 
     int pid = getpid();
@@ -426,18 +461,9 @@ static void write_xtc_config(void)
             delete src[i]->val;
             src[i]->val = NULL;
             src[i]->len = 0;
-            if (src[i]->len2) {
-                src[i]->val = src[i]->val2;
-                src[i]->sec = src[i]->sec2;
-                src[i]->nsec = src[i]->nsec2;
-                src[i]->ref = new int;
-                *(src[i]->ref) = 1;
-                src[i]->ev = find_event(src[i]->sec, src[i]->nsec);
-#ifdef TRACE
-                printf("%08x:%08x AI%d -> event %d\n", 
-                       src[i]->sec, src[i]->nsec, src[i]->id, src[i]->ev->id);
-#endif
-            }
+            if (src[i]->len2)
+		new_data(src[i], src[i]->val2, src[i]->len2, src[i]->hdrlen2,
+			 src[i]->sec2, src[i]->nsec2);
         }
         if (cnt) {
             *reinterpret_cast<uint32_t *>(xtc->alloc(sizeof(uint32_t))) = cnt;
@@ -590,7 +616,7 @@ void initialize_xtc(char *outfile)
 /*
  * Generate a unique id for this source.
  */
-int register_xtc(int sync, string name, int critical, int isbig, int iswv8)
+int register_xtc(int sync, string name, int critical, int isbig, int iscam)
 {
     string dname = name;
     // Make all of the names equal length!
@@ -603,13 +629,14 @@ int register_xtc(int sync, string name, int critical, int isbig, int iswv8)
     }
     while (name.length() != maxname)
         name.append(" ");
-    src.push_back(new xtcsrc(numsrc, sync, name, critical, isbig, iswv8));
+    src.push_back(new xtcsrc(numsrc, sync, name, critical, isbig, iscam));
     if (sync)
         syncsrc++;
     else
         asyncsrc++;
     if (critical)
         critsrc++;
+    printf("register %s --> %d\n", name.c_str(), numsrc);
     return numsrc++;
 }
 
@@ -659,8 +686,11 @@ void configure_xtc(int id, char *xtc, int size, unsigned int secs, unsigned int 
     cfgcnt++;
     if (csec == 0 && cnsec == 0) {
         /*
-         * For channel access, secs and nsecs are zero.  So this must be a BLD,
-         * which means we *aren't* running in DAQ mode and have no transitions!
+         * For channel access, secs and nsecs are zero.  So if secs/nsecs are
+	 * non-zero, this must be a BLD, which means we *aren't* running in
+	 * DAQ mode and have no transitions!
+	 *
+	 * If they are zero, this is a no-op.
          */
         csec = secs;
         cnsec = nsecs;
@@ -817,7 +847,7 @@ void send_event(struct event *ev)
         int64_t svoff = fsize;
 
         if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, fp)) {
-            printf("Write failed!\n");
+	    printf("Write failed C, errno=%d!\n", errno);
             fprintf(stderr, "error Write to %s failed.\n", fname);
             exit(1);
         }
@@ -834,7 +864,7 @@ void send_event(struct event *ev)
         }
 
         if (!fwrite(dg, sizeof(Dgram) + sizeof(Xtc), 1, sfp)) {
-            printf("Write failed!\n");
+	    printf("Write failed D, errno=%d!\n", errno);
             fprintf(stderr, "error Write to %s failed.\n", fname);
             exit(1);
         }
@@ -867,21 +897,21 @@ void send_event(struct event *ev)
                     _indexList.updateSource(*(Xtc *)ev->data[i], bStopUpdate);
                 if (src[i]->isbig) {
                     if (!fwrite(ev->data[i], src[i]->len, 1, fp)) {
-                        printf("Write failed!\n");
+		        printf("Write failed E, errno=%d!\n", errno);
                         fprintf(stderr, "error Write to %s failed.\n", sfname);
                         exit(1);
                     }
-                    if (!fwrite(get_sml_proxy(fsize, src[i]->len, src[i]->src, src[i]->iswv8),
+                    if (!fwrite(get_sml_proxy(fsize, src[i]->len, src[i]->src, src[i]->iscam),
                                 SML_PROXY_SIZE, 1, sfp)) {
-                        printf("Write failed!\n");
+		        printf("Write failed F, errno=%d!\n", errno);
                         fprintf(stderr, "error Write to %s failed.\n", sfname);
                         exit(1);
                     }
                     fsize += src[i]->len;
                     sfsize += SML_PROXY_SIZE;
                 } else {
-                    if (!myfwrite(ev->data[i], src[i]->len)) {
-                        printf("Write failed!\n");
+		    if (!myfwrite(ev->data[i], src[i]->len)) {
+		        printf("Write failed G, i=%d, errno=%d, len=%d!\n", i, errno, src[i]->len);
                         fprintf(stderr, "error Write to %s failed.\n", fname);
                         exit(1);
                     }
@@ -891,7 +921,7 @@ void send_event(struct event *ev)
                 if (!bInvalidData && !bStopUpdate)
                     _indexList.updateSource(damagextc, bStopUpdate);
                 if (!myfwrite(&damagextc, sizeof(Xtc))) {
-                    printf("Write failed!\n");
+		    printf("Write failed H, errno=%d!\n", errno);
                     fprintf(stderr, "error Write to %s failed.\n", fname);
                     exit(1);
                 }
@@ -917,7 +947,7 @@ void send_event(struct event *ev)
             exit(0);
         } else
             printf("Opened %s for writing.\n", fname);
-        if (!(sfp = myfopen(sfname, "w", 0))) {
+        if (!(sfp = myfopen(sfname, "w", 1))) {
             printf("Cannot open %s for output!\n", sfname);
             fprintf(stderr, "error Open %s failed.\n", sfname);
             exit(0);
@@ -1064,24 +1094,21 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
                 // OK, asynchronous data might be static!  So it's now
                 // or never!!
                 unsigned char *buf;
-                int inc = 0;
                 if (s->len2)
                     buf = s->val2;
-                else {
+                else
                     buf = new unsigned char[hdr->extent];
-                    inc = 1;
-                }
                 memcpy(buf, hdr, hdrlen);
                 if (data)
                     memcpy(&buf[hdrlen], data, hdr->extent - hdrlen);
                 s->len2 = hdr->extent;
+                s->hdrlen2 = hdrlen;
                 s->val2 = buf;
                 s->sec2 = sec;
                 s->nsec2 = nsec;
 #ifdef TRACE
                 printf("%08x:%08x AI%d -> caching %d!\n", sec, nsec, id, inc);
 #endif
-                haveasync += inc;
             }
             pthread_mutex_unlock(&datalock);
             return;
@@ -1097,31 +1124,8 @@ void data_xtc(int id, unsigned int sec, unsigned int nsec, Pds::Xtc *hdr, int hd
         memcpy(&buf[hdrlen], data, hdr->extent - hdrlen);
 
     if (!s->len) { // First time we've seen this data!
-        s->len = hdr->extent;
-        s->hdrlen = hdrlen;
-        totaldlen += hdr->extent;
-        if (s->isbig)
-            totalsdlen += SML_PROXY_SIZE;
-        else
-            totalsdlen += hdr->extent;
-        if (++havedata == numsrc) {
-            // Initialize the header now that we know its length.
-            setup_datagram(TransitionId::L1Accept);
-            seg->extent    += totaldlen;
-            dg->xtc.extent += totaldlen;
-        }
-        if (!s->sync) {  // Just save asynchronous data for now.
-            s->val = buf;
-            s->sec = sec;
-            s->nsec = nsec;
-            s->ref = new int;
-            *(s->ref) = 1;
-            s->ev = find_event(sec, nsec);
-#ifdef TRACE
-            printf("%08x:%08x AI%d -> event %d\n", sec, nsec, id, s->ev->id);
-#endif
-            if (!s->val2)
-                haveasync++;
+	new_data(s, buf, hdr->extent, hdrlen, sec, nsec);
+	if (!s->sync) {  // Just save asynchronous data for now.
             pthread_mutex_unlock(&datalock);
             return;
         }

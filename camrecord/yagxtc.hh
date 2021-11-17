@@ -69,7 +69,7 @@ extern char *connection_status(void);
 /* xtc.cc */
 extern void nofid(void);
 extern void initialize_xtc(char *outfile);
-extern int register_xtc(int sync, std::string name, int critical, int isbig, int iswv8);
+extern int register_xtc(int sync, std::string name, int critical, int isbig, int iscam);
 extern void register_hdf_writer(int id, int hid);
 extern void register_alias(std::string name, Pds::DetInfo &sourceInfo);
 extern void register_pv_alias(std::string name, int idx, Pds::DetInfo &sourceInfo);
