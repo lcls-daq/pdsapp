@@ -88,7 +88,7 @@ PyObject* pds_Epix10kaQuadConfig_set    (PyObject*   self, PyObject* args)
 
   pdsxtc* xtc = (pdsxtc*)self;
 
-  unsigned isize = Config10kaQuadV1::_sizeof();
+  unsigned isize = pds_Epix10kaQuadConfig_size(self);
   unsigned usize = isize*(icycle+1);
 
   if (xtc->extent < usize) {
