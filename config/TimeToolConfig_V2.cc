@@ -1,6 +1,6 @@
 #include <new>
 
-#include "TimeToolConfig.hh"
+#include "TimeToolConfig_V2.hh"
 
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
@@ -23,21 +23,24 @@
 
 #include <stdint.h>
 
+using Pds_ConfigDb::V2::TimeToolConfig;
+
 using namespace Pds_ConfigDb;
 
 static const char* xy_names[] = { "X","Y",NULL };
 
 using Pds::Camera::FrameCoord;
 
-typedef Pds::TimeTool::ConfigV3 TT;
+typedef Pds::TimeTool::ConfigV2 TT;
 
 namespace Pds_ConfigDb
-{  
+{
+  namespace V2 {
   class ROI : public Parameter {
   public:
     ROI(const char* label,
-        const char* a,
-        const char* b) : 
+	const char* a,
+	const char* b) : 
       Parameter(label),
       _sw(new QStackedWidget),
       _lo(0,0,0,0x1fff),
@@ -63,9 +66,9 @@ namespace Pds_ConfigDb
     }
     void flush() {
       if (_lo.value > _hi.value) {
-        unsigned t=_lo.value;
-        _lo.value=_hi.value;
-        _hi.value=t;
+	unsigned t=_lo.value;
+	_lo.value=_hi.value;
+	_hi.value=t;
       }
       _lo.flush();
       _hi.flush();
@@ -85,8 +88,6 @@ namespace Pds_ConfigDb
     Private_Data() : 
       _beam_logic ("Beam",true,162),
       _laser_logic("Laser",true,62),
-      _use_full_roi("Use Full ROIs",false),
-      _use_fit  ("Use Fit",false),
       _proj_axis("Projection Axis",TT::X,xy_names),
       _time_axis("","X","Y"),
       _sig_roi  ("Signal"  ,"Y","X"),
@@ -97,30 +98,20 @@ namespace Pds_ConfigDb
       _sb_roi   ("Sideband","Y","X"),
       _sb_conv  ("Sideband Convergence (1/N)",0.05,0.,1.),
       _sig_cut  ("Signal Minimum Projected Value",0,-(1<<20),(1<<20)),
-      _fit_iter ("Maximum Fit Iterations",100,0,UINT32_MAX),
-      _fit_fact ("Fit Weights Scale Factor",0.1,0.,1.),
       _record_image("Image",true),
       _record_proj ("Projections",false),
       _base_name("Output PV name","TTSPEC",32),
       _weights  ("Filter Weights"), 
-      _cal_poly ("Pixel-Time Calib Polynomial"),
-      _fit_pars ("Fit Parameter Initial Values")
+      _cal_poly ("Pixel-Time Calib Polynomial")
     {
       _weights .value.clear();
       _weights .value.push_back(1);
       _cal_poly.value.clear();
       _cal_poly.value.push_back(0);
       _cal_poly.value.push_back(1);
-      _fit_pars.value.clear();
-      _fit_pars.value.push_back(1.);
-      _fit_pars.value.push_back(2.);
-      _fit_pars.value.push_back(0.);
-      _fit_pars.value.push_back(0.);
 
       pList.insert(&_beam_logic);
       pList.insert(&_laser_logic);
-      pList.insert(&_use_full_roi);
-      pList.insert(&_use_fit);
       pList.insert(&_proj_axis);
       pList.insert(&_time_axis);
       pList.insert(&_sig_roi);
@@ -131,14 +122,11 @@ namespace Pds_ConfigDb
       pList.insert(&_sig_cut);
       pList.insert(&_use_sb);
       pList.insert(&_use_ref);
-      pList.insert(&_fit_iter);
-      pList.insert(&_fit_fact);
       pList.insert(&_record_image);
       pList.insert(&_record_proj);
       pList.insert(&_base_name);
       pList.insert(&_weights);
       pList.insert(&_cal_poly);
-      pList.insert(&_fit_pars);
     }
     ~Private_Data() {}
   public:
@@ -155,7 +143,6 @@ namespace Pds_ConfigDb
       layout->addLayout(_laser_logic.initialize(p));
       layout->addLayout(_proj_axis.initialize(p));
       layout->addLayout(_time_axis.initialize(p));
-      layout->addLayout(_use_full_roi.initialize(p));
       layout->addLayout(_sig_roi  .initialize(p));
       layout->addStretch();
       layout->addLayout(_use_sb   .initialize(p));
@@ -167,19 +154,13 @@ namespace Pds_ConfigDb
       layout->addStretch();
       layout->addLayout(_ref_conv .initialize(p));
       layout->addLayout(_sig_cut  .initialize(p));
-      layout->addStretch();
-      layout->addLayout(_use_fit  .initialize(p));
-      layout->addLayout(_fit_concealer.add(_fit_iter.initialize(p)));
-      layout->addLayout(_fit_concealer.add(_fit_fact.initialize(p)));
-      layout->addStretch();
       { QHBoxLayout* h = new QHBoxLayout;
-        h->addWidget(new QLabel("Record"));
-        h->addLayout(_record_image.initialize(p));
-        h->addLayout(_record_proj .initialize(p));
-        layout->addLayout(h); }
+	h->addWidget(new QLabel("Record"));
+	h->addLayout(_record_image.initialize(p));
+	h->addLayout(_record_proj .initialize(p));
+	layout->addLayout(h); }
       layout->addLayout(_weights  .initialize(p));
       layout->addLayout(_cal_poly .initialize(p));
-      layout->addLayout(_fit_concealer.add(_fit_pars .initialize(p)));
       layout->addLayout(_base_name.initialize(p));
 
       if (Parameter::allowEdit()) {
@@ -188,11 +169,9 @@ namespace Pds_ConfigDb
         QObject::connect(_proj_axis._input, SIGNAL(currentIndexChanged(int)), _sb_roi   ._sw, SLOT(setCurrentIndex(int)));
         QObject::connect(_use_sb._input, SIGNAL(toggled(bool)), &_sb_concealer, SLOT(show(bool)));
         QObject::connect(_use_ref._input, SIGNAL(toggled(bool)), &_ref_concealer, SLOT(show(bool)));
-        QObject::connect(_use_fit._input, SIGNAL(toggled(bool)), &_fit_concealer, SLOT(show(bool)));
       }
       _sb_concealer.show (_use_sb .value=false);
       _ref_concealer.show(_use_ref.value=false);
-      _fit_concealer.show(_use_fit.value=false);
       //      _record_proj.enable(false);
 
       return layout;
@@ -200,11 +179,9 @@ namespace Pds_ConfigDb
     int pull(void *from)
     {
       const TT& c =
-        *reinterpret_cast<const TT*>(from);
+	*reinterpret_cast<const TT*>(from);
       _beam_logic .set(c.beam_logic());
       _laser_logic.set(c.laser_logic());
-      _use_full_roi.value = c.use_full_roi();
-      _use_fit     .value = c.use_fit();
       TT::Axis a = (TT::Axis)c.project_axis();
       _proj_axis.value = a;
       _time_axis._lo.value = (a==TT::X) ? c.sig_roi_lo().column() : c.sig_roi_lo().row();
@@ -226,13 +203,8 @@ namespace Pds_ConfigDb
       _cal_poly.value.resize(c.calib_poly().shape()[0]);
       std::copy(c.calib_poly().begin(),c.calib_poly().end(),_cal_poly.value.begin());
 
-      _fit_pars.value.resize(c.fit_params().shape()[0]);
-      std::copy(c.fit_params().begin(),c.fit_params().end(),_fit_pars.value.begin());
-
       _use_sb      .value = c.subtract_sideband();
       _use_ref     .value = c.use_reference_roi();
-      _fit_iter    .value = c.fit_max_iterations();
-      _fit_fact    .value = c.fit_weights_factor();
       _record_image.value = c.write_image();
       _record_proj .value = c.write_projections();
 
@@ -246,7 +218,6 @@ namespace Pds_ConfigDb
         _sb_roi   ._sw->setCurrentIndex(int(a));
         _sb_concealer .show(_use_sb .value);
         _ref_concealer.show(_use_ref.value);
-        _fit_concealer.show(_use_fit.value);
       }
 
       return c._sizeof();
@@ -255,78 +226,71 @@ namespace Pds_ConfigDb
     {
       FrameCoord sig_roi_lo, sig_roi_hi, sb_roi_lo, sb_roi_hi, ref_roi_lo, ref_roi_hi;
       if (_proj_axis.value == TT::X) {
-        sig_roi_lo = FrameCoord(_time_axis._lo.value,
-                                _sig_roi._lo.value);
-        sig_roi_hi = FrameCoord(_time_axis._hi.value,
-                                _sig_roi._hi.value);
-        sb_roi_lo  = FrameCoord(_time_axis._lo.value,
-                                _sb_roi._lo.value);
-        sb_roi_hi  = FrameCoord(_time_axis._hi.value,
-                                _sb_roi._hi.value);
-        ref_roi_lo = FrameCoord(_time_axis._lo.value,
-                                _ref_roi._lo.value);
-        ref_roi_hi = FrameCoord(_time_axis._hi.value,
-                                _ref_roi._hi.value);
+	sig_roi_lo = FrameCoord(_time_axis._lo.value,
+				_sig_roi._lo.value);
+	sig_roi_hi = FrameCoord(_time_axis._hi.value,
+				_sig_roi._hi.value);
+	sb_roi_lo  = FrameCoord(_time_axis._lo.value,
+				_sb_roi._lo.value);
+	sb_roi_hi  = FrameCoord(_time_axis._hi.value,
+				_sb_roi._hi.value);
+	ref_roi_lo  = FrameCoord(_time_axis._lo.value,
+				 _ref_roi._lo.value);
+	ref_roi_hi  = FrameCoord(_time_axis._hi.value,
+				 _ref_roi._hi.value);
       }
       else {
-        sig_roi_lo = FrameCoord(_sig_roi._lo.value,
-                                _time_axis._lo.value);
-        sig_roi_hi = FrameCoord(_sig_roi._hi.value,
-                                _time_axis._hi.value);
-        sb_roi_lo  = FrameCoord(_sb_roi._lo.value,
-                                _time_axis._lo.value);
-        sb_roi_hi  = FrameCoord(_sb_roi._hi.value,
-                                _time_axis._hi.value);
-        ref_roi_lo = FrameCoord(_ref_roi._lo.value,
-                                _time_axis._lo.value);
-        ref_roi_hi = FrameCoord(_ref_roi._hi.value,
-                                _time_axis._hi.value);
+	sig_roi_lo = FrameCoord(_sig_roi._lo.value,
+				_time_axis._lo.value);
+	sig_roi_hi = FrameCoord(_sig_roi._hi.value,
+				_time_axis._hi.value);
+	sb_roi_lo  = FrameCoord(_sb_roi._lo.value,
+				_time_axis._lo.value);
+	sb_roi_hi  = FrameCoord(_sb_roi._hi.value,
+				_time_axis._hi.value);
+	ref_roi_lo  = FrameCoord(_ref_roi._lo.value,
+				 _time_axis._lo.value);
+	ref_roi_hi  = FrameCoord(_ref_roi._hi.value,
+				 _time_axis._hi.value);
       }
 
       ndarray<const Pds::TimeTool::EventLogic,1> beam_logic  = _beam_logic.get();
       ndarray<const Pds::TimeTool::EventLogic,1> laser_logic = _laser_logic.get();
 
       TT& c = *new(to) TT(_proj_axis   .value,
-                          _use_full_roi.value,
-                          _use_fit     .value,
-                          _record_image.value,
-                          _record_proj .value,
-                          _use_sb      .value,
-                          _use_ref     .value,
-                          _weights.value.size(), 
-                          _cal_poly.value.size(),
-                          _fit_pars.value.size(),
-                          strlen(_base_name.value)+1,
-                          beam_logic.size(),
-                          laser_logic.size(),
-                          _sig_cut.value,
-                          _fit_iter.value,
-                          _fit_fact.value,
-                          sig_roi_lo,
-                          sig_roi_hi,
-                          sb_roi_lo,
-                          sb_roi_hi,
-                          _sb_conv.value,
-                          ref_roi_lo,
-                          ref_roi_hi,
-                          _ref_conv.value,
-                          beam_logic.data(),
-                          laser_logic.data(),
-                          _weights.value.data(),
-                          _cal_poly.value.data(),
-                          _fit_pars.value.data(),
-                          _base_name.value);
+			  _record_image.value,
+			  _record_proj .value,
+			  _use_sb      .value,
+			  _use_ref     .value,
+			  _weights.value.size(), 
+			  _cal_poly.value.size(),
+			  strlen(_base_name.value)+1,
+			  beam_logic.size(),
+			  laser_logic.size(),
+			  _sig_cut.value,
+			  sig_roi_lo,
+			  sig_roi_hi,
+			  sb_roi_lo,
+			  sb_roi_hi,
+			  _sb_conv.value,
+			  ref_roi_lo,
+			  ref_roi_hi,
+			  _ref_conv.value,
+			  beam_logic.data(),
+			  laser_logic.data(),
+			  _weights.value.data(),
+			  _cal_poly.value.data(),
+			  _base_name.value);
       return c._sizeof();
     }
 
     int dataSize() const
     {
       TT c(_beam_logic .get().size(),
-           _laser_logic.get().size(),
-           _weights .value.size(),
-           _cal_poly.value.size(),
-           _fit_pars.value.size(),
-           strlen(_base_name.value)+1);
+	   _laser_logic.get().size(),
+	   _weights .value.size(),
+	   _cal_poly.value.size(),
+	   strlen(_base_name.value)+1);
       return c._sizeof();
     }
 
@@ -340,18 +304,18 @@ namespace Pds_ConfigDb
     bool _check_region(const ROI& roi, const char* n) const {
       bool v=true;
       if ((roi._hi.value-roi._lo.value)!=
-          (_sig_roi._hi.value-_sig_roi._lo.value)) {
-          QMessageBox::warning(_sig_roi._lo._input,
-                               QString("%1 region error").arg(n),
-                               QString("%1 and signal region sizes differ").arg(n));
-          v=false;
+	  (_sig_roi._hi.value-_sig_roi._lo.value)) {
+	QMessageBox::warning(_sig_roi._lo._input,
+			     QString("%1 region error").arg(n),
+			     QString("%1 and signal region sizes differ").arg(n));
+	v=false;
       }
       if (!((roi ._hi.value<_sig_roi._lo.value) ||
-            (roi ._lo.value>_sig_roi._hi.value))) {
-          QMessageBox::warning(_sig_roi._lo._input,
-                               QString("%1 region error").arg(n),
-                               QString("%1 and signal regions overlap").arg(n));
-          v=false;
+	    (roi ._lo.value>_sig_roi._hi.value))) {
+	QMessageBox::warning(_sig_roi._lo._input,
+			     QString("%1 region error").arg(n),
+			     QString("%1 and signal regions overlap").arg(n));
+	v=false;
       }
       return v;
     }
@@ -359,30 +323,25 @@ namespace Pds_ConfigDb
     Pds::LinkedList<Parameter> pList;
     EventLogic _beam_logic;
     EventLogic _laser_logic;
-    CheckValue             _use_full_roi;
-    CheckValue             _use_fit;
-    Enumerated<TT::Axis>   _proj_axis;
-    ROI                    _time_axis;
-    ROI                    _sig_roi;
-    CheckValue             _use_ref;
-    ROI                    _ref_roi;
-    NumericFloat<double>   _ref_conv;
-    CheckValue             _use_sb;
-    ROI                    _sb_roi;
-    NumericFloat<double>   _sb_conv;
-    NumericInt  <int>      _sig_cut;
-    NumericInt  <uint32_t> _fit_iter;
-    NumericFloat<double>   _fit_fact;
+    Enumerated<TT::Axis> _proj_axis;
+    ROI        _time_axis;
+    ROI        _sig_roi;
+    CheckValue           _use_ref;
+    ROI                  _ref_roi;
+    NumericFloat<double> _ref_conv;
+    CheckValue           _use_sb;
+    ROI                  _sb_roi;
+    NumericFloat<double> _sb_conv;
+    NumericInt  <int>    _sig_cut;
     CheckValue   _record_image;
     CheckValue   _record_proj;
     TextParameter _base_name;
     Poly<double> _weights;
     Poly<double> _cal_poly;
-    Poly<double> _fit_pars;
     QtConcealer  _sb_concealer;
     QtConcealer  _ref_concealer;
-    QtConcealer  _fit_concealer;
   };
+  }
 } // namespace Pds_ConfigDb
 
 
@@ -414,4 +373,4 @@ bool TimeToolConfig::validate()
 
 #include "Parameters.icc"
 
-template class Enumerated<Pds::TimeTool::ConfigV3::Axis>;
+template class Enumerated<Pds::TimeTool::ConfigV2::Axis>;

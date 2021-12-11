@@ -38,7 +38,7 @@ namespace Pds {
 	iterate(xtc);
 	break;
       case TypeId::Id_Opal1kConfig:
-	{ TimeToolConfigType tmplate(4,4,256,8,64);
+	{ TimeToolConfigType tmplate(4,4,256,8,8,64);
 	  _cache = new TimeToolCfgCache(_src = xtc->src,
 					_timetoolConfigType,
 					tmplate._sizeof());
