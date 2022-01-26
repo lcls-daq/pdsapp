@@ -50,6 +50,15 @@ static PyObject* get_axisV2_enum()
   return axis_enum;
 }
 
+static PyObject* get_axisV3_enum()
+{
+  PyObject* axis_enum = PyDict_New();
+  SetEnum(X,ConfigV3,axis_enum);
+  SetEnum(Y,ConfigV3,axis_enum);
+
+  return axis_enum;
+}
+
 static PyObject* get_eventlogic_enum()
 {
   PyObject* logic_enum = PyDict_New();
@@ -75,6 +84,13 @@ PyObject* pds_TimeToolConfig_enum (PyObject*   self, PyObject* args)
   else if (xtc->contains.version()==2) {
 
     SetEnumDict(Axis,get_axisV2_enum());
+    SetEnumDict(EventLogic,get_eventlogic_enum());
+
+    return o;
+  }
+  else if (xtc->contains.version()==3) {
+
+    SetEnumDict(Axis,get_axisV3_enum());
     SetEnumDict(EventLogic,get_eventlogic_enum());
 
     return o;
@@ -223,6 +239,44 @@ PyObject* pds_TimeToolConfig_get  (PyObject*   self, PyObject* args)
 
     SetDictFloat(weights);
     SetDictFloat(calib_poly);
+
+    return o;
+  }
+  else if (xtc->contains.version()==3) {
+    const Pds::TimeTool::ConfigV3* cfg =
+      reinterpret_cast<const Pds::TimeTool::ConfigV3*>(xtc->payload);
+
+    SetDictMember(project_axis,false,true);
+    SetDictMember(use_full_roi,false,false);
+    SetDictMember(use_fit,false,false);
+    SetDictMember(write_image,false,false);
+    SetDictMember(write_projections,false,false);
+    SetDictMember(subtract_sideband,false,false);
+    SetDictMember(use_reference_roi,false,false);
+    SetDictMember(signal_cut,false,false);
+    SetDictMember(fit_max_iterations,false,false);
+    SetDictMember(fit_weights_factor,true,false);
+    SetDictMember(sb_convergence,true,false);
+    SetDictMember(ref_convergence,true,false);
+    SetDictMember(signal_projection_size,false,false);
+    SetDictMember(sideband_projection_size,false,false);
+    SetDictMember(reference_projection_size,false,false);
+
+    SetDictString(base_name);
+
+    SetDictFrame(sig_roi_lo);
+    SetDictFrame(sig_roi_hi);
+    SetDictFrame(sb_roi_lo);
+    SetDictFrame(sb_roi_hi);
+    SetDictFrame(ref_roi_lo);
+    SetDictFrame(ref_roi_hi);
+
+    SetDictEventLogic(beam_logic);
+    SetDictEventLogic(laser_logic);
+
+    SetDictFloat(weights);
+    SetDictFloat(calib_poly);
+    SetDictFloat(fit_params);
 
     return o;
   }
@@ -518,6 +572,88 @@ PyObject* pds_TimeToolConfig_set  (PyObject*   self, PyObject* args)
                                               laser_logic,
                                               weights,
                                               calib_poly,
+                                              base_name);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  else if (xtc->contains.version()==3) {
+    const Pds::TimeTool::ConfigV3* cfg =
+      reinterpret_cast<const Pds::TimeTool::ConfigV3*>(xtc->payload);
+
+    GetDictEnum(project_axis,Pds::TimeTool::ConfigV3::Axis);
+    GetDictLong(use_full_roi);
+    GetDictLong(use_fit);
+    GetDictLong(write_image);
+    GetDictLong(write_projections);
+    GetDictLong(subtract_sideband);
+    GetDictLong(use_reference_roi);
+    GetDictString(base_name,base_name_length);
+    GetDictFrame(sig_roi_lo);
+    GetDictFrame(sig_roi_hi);
+    GetDictFrame(sb_roi_lo);
+    GetDictFrame(sb_roi_hi);
+    GetDictLong(signal_cut);
+    GetDictLong(fit_max_iterations);
+    GetDictFloat(fit_weights_factor);
+    GetDictFloat(sb_convergence);
+    GetDictFrame(ref_roi_lo);
+    GetDictFrame(ref_roi_hi);
+    GetDictFloat(ref_convergence);
+
+    GetFloatArray(weights,number_of_weights);
+    GetFloatArray(calib_poly,calib_poly_dim);
+    GetFloatArray(fit_params,fit_params_dim);
+
+    GetLogicArray(beam_logic, number_of_beam_event_codes);
+    GetLogicArray(laser_logic, number_of_laser_event_codes);
+
+    size_t pack = 4;
+    size_t sz = (sizeof(Pds::TimeTool::ConfigV3)    +
+                number_of_weights * sizeof(double)  +
+                calib_poly_dim    * sizeof(double)  +
+                fit_params_dim    * sizeof(double)  +
+                base_name_length  * sizeof(char)    +
+                number_of_beam_event_codes  * sizeof(Pds::TimeTool::EventLogic) +
+                number_of_laser_event_codes * sizeof(Pds::TimeTool::EventLogic) +
+                pack-1) / pack * pack;
+
+    /* Remove the old payload and replace if size changes */
+    if (xtc->extent != sz) {
+      delete[] xtc->payload;
+      xtc->extent = sz;
+      xtc->payload = new char[sz];
+    }
+
+    new(xtc->payload) Pds::TimeTool::ConfigV3(project_axis,
+                                              (uint8_t) use_full_roi,
+                                              (uint8_t) use_fit,
+                                              (uint8_t) write_image,
+                                              (uint8_t) write_projections,
+                                              (uint8_t) subtract_sideband,
+                                              (uint8_t) use_reference_roi,
+                                              number_of_weights,
+                                              calib_poly_dim,
+                                              fit_params_dim,
+                                              base_name_length,
+                                              number_of_beam_event_codes,
+                                              number_of_laser_event_codes,
+                                              (uint32_t) signal_cut,
+                                              (uint32_t) fit_max_iterations,
+                                              fit_weights_factor,
+                                              sig_roi_lo,
+                                              sig_roi_hi,
+                                              sb_roi_lo,
+                                              sb_roi_hi,
+                                              sb_convergence,
+                                              ref_roi_lo,
+                                              ref_roi_hi,
+                                              ref_convergence,
+                                              beam_logic,
+                                              laser_logic,
+                                              weights,
+                                              calib_poly,
+                                              fit_params,
                                               base_name);
 
     Py_INCREF(Py_None);
