@@ -1,3 +1,4 @@
+#define __STDC_LIMIT_MACROS
 #include <new>
 
 #include "TimeToolConfig.hh"
