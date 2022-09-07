@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
       printf(" Type: %u\n", system.type());
       printf(" Rev:  %u\n", system.rev());
       printf(" Ver:  %s\n", system.version().c_str());
-      printf(" ID:   %#06x\n", system.id());
+      printf(" ID:   %s\n", system.id().c_str());
       printf(" Module present mask: %#06x\n", system.present());
       printf("Module Info:\n");
       for (unsigned i=0; i<16; i++) {
@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
           printf("  Type: %u\n", system.module_type(i));
           printf("  Rev:  %u\n", system.module_rev(i));
           printf("  Ver:  %s\n", system.module_version(i).c_str());
-          printf("  ID:   %#06x\n", system.module_id(i));
+          printf("  ID:   %s\n", system.module_id(i).c_str());
         }
       }
     }
