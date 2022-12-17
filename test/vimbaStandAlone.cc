@@ -295,7 +295,6 @@ int main(int argc, char **argv)
             // show contrast information
             printf("Contrast information:\n");
             printf("  Contrast Enable:        %s\n", Bool::desc(cam->contrastEnable()));
-            printf("  Contrast Cfg Mode:      %s\n", cam->contrastConfigurationMode());
             printf("  Contrast Shape:         %lld\n", cam->contrastShape());
             printf("  Contrast Dark Limit:    %lld\n", cam->contrastDarkLimit());
             printf("  Contrast Bright Limit:  %lld\n", cam->contrastBrightLimit());
@@ -381,7 +380,8 @@ int main(int argc, char **argv)
                   }
                   ncomp++;
                 } else {
-                  printf("status: %d\n", frames[ncomp].receiveStatus);
+                  printf("status: %s\n",
+                         FrameStatusCodes::desc(frames[ncomp].receiveStatus));
                 }
               } else {
                 printf("Frame capture failed - exiting: %s!\n",
