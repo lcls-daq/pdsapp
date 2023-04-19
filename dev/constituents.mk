@@ -203,7 +203,7 @@ tgtslib_zyla := $(commonslib)
 tgtsrcs_vimba := vimba.cc
 tgtincs_vimba := pdsdata/include ndarray/include boost/include
 tgtlibs_vimba := $(commonlibs) pds/configdata pds/vimba vimba/VimbaC vimba/VimbaImageTransform
-tgtslib_vimba := $(commonslib)
+tgtslib_vimba := $(commonslib) ${USRLIBDIR}/dl
 
 tgtsrcs_evr := evr.cc
 tgtincs_evr := evgr pdsdata/include ndarray/include boost/include  

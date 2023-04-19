@@ -5,6 +5,8 @@
 #include "pds/management/EventAppCallback.hh"
 #include "pds/management/StdSegWire.hh"
 
+#include "pds/utility/Appliance.hh"
+
 #include "pds/service/Task.hh"
 #include "pds/vimba/Manager.hh"
 #include "pds/vimba/Server.hh"
@@ -18,6 +20,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
+#include <dlfcn.h>
 
 #include <list>
 
@@ -64,12 +67,13 @@ static void vimbaUsage(const char* p)
          "    -b|--buffers  <buffers>                 the number of frame buffers to provide to the Vimba SDK (default: 64)\n"
          "    -l|--limit    <link limit>              limit the link speed to this value (default: 450000000 Bytes/s)\n"
          "    -w|--sloweb   <0/1/2>                   set slow readout mode (default: 0)\n"
+         "    -L|--plugins  <path1>,<path2>,...       comma separated list of paths to plugins to load (e.g. timetool plugin)\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char** argv) {
 
-  const char*   strOptions    = ":hp:i:u:c:s:b:l:w:";
+  const char*   strOptions    = ":hp:i:u:c:s:b:l:w:L:";
   const struct option loOptions[]   =
     {
        {"help",        0, 0, 'h'},
@@ -81,6 +85,7 @@ int main(int argc, char** argv) {
        {"buffers",     1, 0, 'b'},
        {"limit",       1, 0, 'l'},
        {"sloweb",      1, 0, 'w'},
+       {"plugins",     1, 0, 'L'},
        {0,             0, 0,  0 }
     };
 
@@ -102,6 +107,7 @@ int main(int argc, char** argv) {
   VmbError_t err = VmbErrorSuccess;
   VmbCameraInfo_t info;
   VmbVersionInfo_t version;
+  std::list<Appliance*> apps;
   
   int optionIndex  = 0;
   while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &optionIndex ) ) {
@@ -168,7 +174,30 @@ int main(int argc, char** argv) {
           printf("%s: option `-w' out of range\n", argv[0]);
           lUsage = true;
         }
-      break;
+        break;
+      case 'L':
+        for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
+          printf("dlopen %s\n",p);
+
+          void* handle = dlopen(p, RTLD_LAZY);
+          if (!handle) {
+            printf("dlopen failed : %s\n",dlerror());
+            break;
+          }
+
+          // reset errors
+          const char* dlsym_error;
+          dlerror();
+
+          // load the symbols
+          create_app* c_user = (create_app*) dlsym(handle, "create");
+          if ((dlsym_error = dlerror())) {
+            fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
+            break;
+          }
+          apps.push_back( c_user() );
+        }
+        break;
       case '?':
         if (optopt)
           printf("%s: Unknown option: %c\n", argv[0], optopt);
@@ -296,12 +325,13 @@ int main(int argc, char** argv) {
   Vimba::FrameBuffer* buf = new Vimba::FrameBuffer(num_buffers, cam, srv);
 
   Vimba::Manager* mgr = new Vimba::Manager(*buf, *srv, *cfg);
+  apps.push_back(&mgr->appliance());
   managers.push_back(mgr);
 
   StdSegWire settings(servers, uniqueid, MAX_EVENT_SIZE, MAX_EVENT_DEPTH, isTriggered, module, channel);
 
   Task* task = new Task(Task::MakeThisATask);
-  EventAppCallback* seg = new EventAppCallback(task, platform, managers.front()->appliance());
+  EventAppCallback* seg = new EventAppCallback(task, platform, apps);
   SegmentLevel* seglevel = new SegmentLevel(platform, settings, *seg, 0, slowReadout);
   if (seglevel->attach()) {
     task->mainLoop();
