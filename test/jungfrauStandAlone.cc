@@ -37,13 +37,14 @@ static void showUsage(const char* p)
          "    -T|--external                           use an external trigger for acquistion (default: false)\n"
          "    -M|--threaded                           use the multithreaded version of the Jungfrau detector driver (default: false)\n"
          "    -r|--receiver                           do not attempt to configure ip settings of the receiver (default: true)\n"
+         "    -i|--info                               display additional info about recieved frames (default: false)\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhw:n:e:E:b:g:S:P:H:m:d:s:t:TMr";
+  const char*         strOptions  = ":vhw:n:e:E:b:g:S:P:H:m:d:s:t:TMri";
   const struct option loOptions[] =
   {
     {"ver",         0, 0, 'v'},
@@ -64,6 +65,7 @@ int main(int argc, char **argv)
     {"external",    0, 0, 'T'},
     {"threaded",    0, 0, 'M'},
     {"receiver",    0, 0, 'r'},
+    {"info",        0, 0, 'i'},
     {0,             0, 0,  0 }
   };
 
@@ -74,10 +76,12 @@ int main(int argc, char **argv)
   double exposureTime = 0.00001;
   double exposurePeriod = 0.2;
   double triggerDelay = 0.000238;
+  double tsClock = 10.e6;
   bool lUsage = false;
   bool configReceiver = true;
   bool external = false;
   bool threaded = false;
+  bool show_info = false;
   unsigned gain_value = 0;
   unsigned speed_value = 1;
   JungfrauConfigType::GainMode gain = JungfrauConfigType::Normal;
@@ -148,6 +152,9 @@ int main(int argc, char **argv)
         break;
       case 'M':
         threaded = true;
+        break;
+      case 'i':
+        show_info = true;
         break;
       case '?':
         if (optopt)
@@ -278,13 +285,24 @@ int main(int argc, char **argv)
   size_t  data_sz = numImages * event_sz;
   uint16_t* data = new uint16_t[data_sz];
   uint64_t frame = 0;
+  JungfrauModInfoType metadata;
+  uint64_t last = 0;
 
   det->sync_nframes();
 
   if (det->start()) {
     for(int i=0; i<numImages; i++) {
-      if (det->get_frame(&frame, &data[i*event_sz + header_sz])) {
-        printf("got frame: %lu\n", frame);
+      if (det->get_frame(&frame, &metadata, &data[i*event_sz + header_sz])) {
+        if (show_info) {
+          printf("got frame: %lu (ts %g, delta %g)\n",
+                 frame,
+                 metadata.timestamp()/tsClock,
+                 (metadata.timestamp()-last)/tsClock);
+          last = metadata.timestamp();
+        } else {
+          printf("got frame: %lu\n",
+                 frame);
+        }
         *((uint64_t*) &data[i*event_sz]) = frame;
       } else {
         printf("failed to retrieve frame: %lu\n", frame);
