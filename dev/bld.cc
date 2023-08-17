@@ -23,6 +23,7 @@
 #include "pds/utility/NullServer.hh"
 #include "pds/utility/EbBase.hh"
 #include "pds/service/Task.hh"
+#include "pds/service/CmdLineTools.hh"
 
 #include "pdsdata/xtc/DetInfo.hh"
 #include "pdsdata/xtc/BldInfo.hh"
@@ -903,10 +904,13 @@ static void sigintHandler(int iSignal)
 }
 
 void usage(const char* p) {
-  printf("Usage: %s -p <platform> [-m <mask>] [-C] [-N] [-h]\n\n"
+  printf("Usage: %s -p <platform> [-m <mask>] [-C] [-N <0/1/2>] [-h]\n\n"
          "Options:\n"
          "       -C : compress images\n"
-         "       -N : use new HXR event code (137) for beam presence\n"
+         "       -N : beam presence mode\n"
+         "             0=BEAM (default)\n"
+         "             1=HXR\n"
+         "             2=ALL\n"
          "       -h : print this message and exit\n",p);
 }
 
@@ -916,16 +920,20 @@ int main(int argc, char** argv) {
   // parse the command line for our boot parameters
   unsigned platform = NO_PLATFORM;
   bool lCompress = false;
-  bool use_hxr_ec = false;
+  bool lusage = false;
+  unsigned beam_ec_mode = 0;
   BldBitMask mask = (ONE_BIT<<BldInfo::NumberOf) - ONE_BIT;
   EbBase::printSinks(false);
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "p:m:CNh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "p:m:CN:h")) != EOF ) {
     switch(c) {
     case 'p':
-      platform = strtoul(optarg, NULL, 0);
+      if (!Pds::CmdLineTools::parseUInt(optarg, platform)) {
+        printf("%s: option `-p' parsing error\n", argv[0]);
+        lusage = true;
+      }
       break;
     case 'm':
       mask.clearAll();
@@ -935,7 +943,13 @@ int main(int argc, char** argv) {
       lCompress = true;
       break;
     case 'N':
-      use_hxr_ec = true;
+      if (!Pds::CmdLineTools::parseUInt(optarg, beam_ec_mode)) {
+          printf("%s: option `-N' parsing error\n", argv[0]);
+          lusage = true;
+      } else if ((beam_ec_mode != 0) && (beam_ec_mode != 1) && (beam_ec_mode != 2)) {
+        printf("%s: option `-N' out of range\n", argv[0]);
+        lusage = true;
+      }
       break;
     case 'h':
       usage(argv[0]);
@@ -946,12 +960,30 @@ int main(int argc, char** argv) {
     }
   }
 
+  if (optind < argc) {
+    printf("%s: invalid argument -- %s\n", argv[0], argv[optind]);
+    lusage = true;
+  }
   if (platform==NO_PLATFORM) {
+    printf("%s: platform is required\n", argv[0]);
+    lusage = true;
+  }
+  if (lusage) {
     usage(argv[0]);
     return 0;
   }
 
-  _beamPresentCode = use_hxr_ec ? EVENT_CODE_HXR : EVENT_CODE_BEAM;
+  switch(beam_ec_mode) {
+    case 0:
+      _beamPresentCode = EVENT_CODE_BEAM;
+      break;
+    case 1:
+      _beamPresentCode = EVENT_CODE_HXR;
+      break;
+    case 2:
+      _beamPresentCode = EVENT_CODE_ALL;
+      break;
+  }
 
   cache = new BldConfigCache;
 
