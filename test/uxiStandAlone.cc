@@ -18,22 +18,23 @@ static void showUsage(const char* p)
 {
   printf("Usage: %s [-v|--version] [-h|--help]\n"
          "[-w|--write <filename prefix>] [-n|--number <number of images>] [-t|--timing <ton>,<toff>[,tdel]]\n"
-         "[-r|--pot5 <pot5>] -R|--pot7 <pot7> -H|--host <host> [-P|--port <portset>]\n"
+         "[-5|--pot5 <pot5>] [-7|--pot7 <pot7>] -H|--host <host> [-P|--port <portset>]\n"
          " Options:\n"
          "    -w|--write    <filename prefix>         output filename prefix\n"
          "    -n|--number   <number of images>        number of images to be captured (default: 1)\n"
          "    -t|--timing   <ton>,<toff>[,tdel]       the timing setup to use for the UXI detector (default: 2,2,0)\n"
          "    -P|--port     <portset>                 set the UXI detector server port set (default: 0)\n"
          "    -H|--host     <host>                    set the UXI detector server host ip\n"
-         "    -r|--pot5     <pot5>                    the relaxation oscillator pot value (default: 2.8)\n"
-         "    -R|--pot7     <pot7>                    the relaxation oscillator stationary param (default: 1.53)\n"
+         "    -5|--pot5     <pot5>                    the relaxation oscillator pot value (default: 2.8)\n"
+         "    -7|--pot7     <pot7>                    the relaxation oscillator stationary param (default: 1.53)\n"
          "    -m|--max      <max>                     the maximum number of pixel values to print for each frame (default: 0)\n"
+         "    -r|--roi      <r0,r1,f0,f1>             set an ROI with first/last row and then frame\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char *argv[]) {
-  const char*         strOptions  = ":vhw:n:t:P:H:r:R:m:";
+  const char*         strOptions  = ":vhw:n:t:P:H:5:7:m:r:";
   const struct option loOptions[] =
   {
     {"version",     0, 0, 'v'},
@@ -43,9 +44,10 @@ int main(int argc, char *argv[]) {
     {"timing",      1, 0, 't'},
     {"port",        1, 0, 'P'},
     {"host",        1, 0, 'H'},
-    {"pot5",        1, 0, 'r'},
-    {"pot7",        1, 0, 'R'},
+    {"pot5",        1, 0, '5'},
+    {"pot7",        1, 0, '7'},
     {"max",         1, 0, 'm'},
+    {"roi",         1, 0, 'r'},
     {0,             0, 0,  0 }
   };
 
@@ -56,9 +58,14 @@ int main(int argc, char *argv[]) {
   unsigned toff = 2;
   unsigned tdel = 0;
   unsigned max_display = 0;
+  unsigned first_row = 0;
+  unsigned last_row = 1023;
+  unsigned first_frame = 0;
+  unsigned last_frame = 3;
   double pot5 = 2.8;
   double pot7 = 1.53;
   const char* default_host = "localhost";
+  bool use_roi = false;
   bool lUsage = false;
   char* filename = (char *)NULL;
   char* file_prefix = (char *)NULL;
@@ -104,13 +111,13 @@ int main(int argc, char *argv[]) {
           lUsage = true;
         }
         break;
-      case 'r':
+      case '5':
         if (!Pds::CmdLineTools::parseDouble(optarg,pot5)) {
           printf("%s: option `-r' parsing error\n", argv[0]);
           lUsage = true;
         }
         break;
-      case 'R':
+      case '7':
         if (!Pds::CmdLineTools::parseDouble(optarg,pot7)) {
           printf("%s: option `-R' parsing error\n", argv[0]);
           lUsage = true;
@@ -120,6 +127,14 @@ int main(int argc, char *argv[]) {
         if (!Pds::CmdLineTools::parseUInt(optarg,max_display)) {
           printf("%s: option `-m' parsing error\n", argv[0]);
           lUsage = true;
+        }
+        break;
+      case 'r':
+        if (Pds::CmdLineTools::parseUInt(optarg,first_row,last_row,first_frame,last_frame)!=4) {
+          printf("%s: option `-r' parsing error\n", argv[0]);
+          lUsage = true;
+        } else {
+          use_roi = true;
         }
         break;
       case ':':
@@ -149,6 +164,13 @@ int main(int argc, char *argv[]) {
     baseport + 2 * portset,
     baseport + 2 * portset +1
   );
+
+  if (use_roi) {
+    drv.set_row_roi(first_row, last_row);
+    drv.set_frame_roi(first_row, last_row);
+  } else {
+    drv.reset_roi();
+  }
 
   uint32_t width, height, nframes, nbytes, type;
   drv.width(&width);

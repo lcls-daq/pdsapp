@@ -75,6 +75,7 @@
 #include "pdsapp/config/PimaxConfig.hh"
 #include "pdsapp/config/PixisConfig.hh"
 #include "pdsapp/config/UxiConfig.hh"
+#include "pdsapp/config/UxiConfig_V1.hh"
 #include "pdsapp/config/TimeToolConfig.hh"
 #include "pdsapp/config/TimeToolConfig_V2.hh"
 #include "pdsapp/config/TimeToolConfig_V1.hh"
@@ -249,6 +250,7 @@ Serializer* SerializerDictionary::lookup(const Pds::TypeId& type)
   enroll(Pds::TypeId(Pds::TypeId::Id_ArchonConfig,1)  , new ArchonConfig_V1);
   enroll(Pds::TypeId(Pds::TypeId::Id_ArchonConfig,2)  , new ArchonConfig_V2);
   enroll(Pds::TypeId(Pds::TypeId::Id_ArchonConfig,3)  , new ArchonConfig_V3);
+  enroll(Pds::TypeId(Pds::TypeId::Id_UxiConfig,1)     , new UxiConfig_V1);
   //  enroll(Pds::TypeId(Pds::TypeId::Id_RayonixConfig,1), new RayonixConfig_V1);
 
   if (Parameter::readFromData())

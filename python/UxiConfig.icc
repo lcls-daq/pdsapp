@@ -3,10 +3,12 @@
 //
 static PyObject* pds_UxiConfig_get    (PyObject*   self, PyObject* args);
 static PyObject* pds_UxiConfig_set    (PyObject*   self, PyObject* args);
+static PyObject* pds_UxiConfig_enum   (PyObject*   self, PyObject* args);
 
 static PyMethodDef pds_UxiConfig_methods[] = {
-  {"get"        , (PyCFunction)pds_UxiConfig_get   , METH_NOARGS  , "Output the configuration"},
-  {"set"        , (PyCFunction)pds_UxiConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration"},
+  {"get"        , (PyCFunction)pds_UxiConfig_get   , METH_NOARGS               , "Output the configuration"},
+  {"set"        , (PyCFunction)pds_UxiConfig_set   , METH_VARARGS|METH_KEYWORDS, "Input the configuration" },
+  {"get_enums"  , (PyCFunction)pds_UxiConfig_enum  , METH_NOARGS               , "Output enum constants"   },
   {NULL},
 };
 
@@ -14,6 +16,51 @@ DefineXtcType(UxiConfig) ;
 
 #include "pdsdata/psddl/uxi.ddl.h"
 #include <new>
+
+
+// Return a dictionary of enum types in config
+#define SetEnum(name,type,dict)                         \
+  { PyObject* v = PyInt_FromLong(Pds::Uxi::type::name); \
+    if (v) {                                            \
+      PyDict_SetItemString(dict,#name,v);               \
+      Py_DECREF(v);                                     \
+    }                                                   \
+  }
+
+#define SetEnumDict(name,dict)              \
+  { PyDict_SetItemString(o,#name,dict);     \
+    Py_DECREF(dict); }
+
+static PyObject* get_roimodeV2_enum()
+{
+  PyObject* roimode_enum = PyDict_New();
+  SetEnum(Off,ConfigV2,roimode_enum);
+  SetEnum(On,ConfigV2,roimode_enum);
+
+  return roimode_enum;
+}
+
+PyObject* pds_UxiConfig_enum (PyObject*   self, PyObject* args)
+{
+  pdsxtc* xtc = (pdsxtc*)self;
+  PyObject* o = PyDict_New();
+  if (xtc->contains.version()==1) {
+    return o;
+  }
+  else if (xtc->contains.version()==2) {
+    SetEnumDict(RoiMode, get_roimodeV2_enum());
+
+    return o;
+  }
+  else {
+    Py_DECREF(o);
+    printf("enum(): Unsupported UxiConfig Version= %u \n",xtc->contains.version());
+    return NULL; // Throw an exception
+  }
+}
+
+#undef SetEnum
+#undef SetEnumDict
 
 
 //  Return a dictionary of configuration data
@@ -33,6 +80,12 @@ DefineXtcType(UxiConfig) ;
     }                                                     \
   }
 
+// Add a sub-dictionary as an item to the configuraion dictionary
+#define SetDictSubMember(name, func)    \
+  { PyObject* obj = func(&cfg->name()); \
+    PyDict_SetItemString(o,#name,obj);  \
+    Py_DECREF(obj); }
+
 #define SetDictMemberArray(name,ntype,ptype)      \
   { ndarray<const ntype, 1> values = cfg->name(); \
     PyObject* v = PyList_New(values.size());      \
@@ -43,6 +96,14 @@ DefineXtcType(UxiConfig) ;
     Py_DECREF(v);                                 \
   }
 
+static PyObject* get_roi_config(const Pds::Uxi::RoiCoord* cfg)
+{
+  PyObject* o = PyDict_New();
+  SetDictMember(first,false,false,false);
+  SetDictMember(last,false,false,false);
+
+  return o;
+}
 
 PyObject* pds_UxiConfig_get (PyObject*   self, PyObject* args)
 {
@@ -84,6 +145,45 @@ PyObject* pds_UxiConfig_get (PyObject*   self, PyObject* args)
 
     return o;
   }
+  else if (xtc->contains.version()==2) {
+    const Pds::Uxi::ConfigV2* cfg =
+      reinterpret_cast<const Pds::Uxi::ConfigV2*>(xtc->payload);
+
+    SetDictMember(roiEnable,false,true,false);
+    SetDictSubMember(roiRows, get_roi_config);
+    SetDictSubMember(roiFrames, get_roi_config);
+    SetDictMember(width,false,false,false);
+    SetDictMember(height,false,false,false);
+    SetDictMember(numberOfFrames,false,false,false);
+    SetDictMember(numberOFBytesPerPixel,false,false,false);
+    SetDictMember(sensorType,false,false,false);
+    SetDictMemberArray(timeOn,uint32_t,PyLong_FromUnsignedLong);
+    SetDictMemberArray(timeOff,uint32_t,PyLong_FromUnsignedLong);
+    SetDictMemberArray(delay,uint32_t,PyLong_FromUnsignedLong);
+    // Get the readonly status of the pots
+    { PyObject* v = PyList_New(Pds::Uxi::ConfigV2::NumberOfPots);
+      for (unsigned i=0; i<Pds::Uxi::ConfigV2::NumberOfPots; i++) {
+        PyObject* ro = cfg->potIsReadOnly(i) ? Py_True : Py_False;
+        Py_INCREF(o);
+        PyList_SetItem(v, i, ro);
+      }
+      PyDict_SetItemString(o,"readOnlyPots",v);
+      Py_DECREF(v);
+    }
+    // Get the tune status of the pots
+    { PyObject* v = PyList_New(Pds::Uxi::ConfigV2::NumberOfPots);
+      for (unsigned i=0; i<Pds::Uxi::ConfigV2::NumberOfPots; i++) {
+        PyObject* ro = cfg->potIsTuned(i) ? Py_True : Py_False;
+        Py_INCREF(o);
+        PyList_SetItem(v, i, ro);
+      }
+      PyDict_SetItemString(o,"tunedPots",v);
+      Py_DECREF(v);
+    }
+    SetDictMemberArray(pots,double,PyFloat_FromDouble);
+
+    return o;
+  }
   else {
     Py_DECREF(o);
     printf("get(): Unsupported UxiConfig Version= %u \n",xtc->contains.version());
@@ -91,10 +191,21 @@ PyObject* pds_UxiConfig_get (PyObject*   self, PyObject* args)
   }
 }
 #undef SetDictMember
+#undef SetDictSubMember
 #undef SetDictMemberArray
 
 
 //  Retrieve configuration data from a Python Dictionary
+#define GetDictEnum(name,type)                                          \
+  type name;                                                            \
+  { PyObject* i = PyDict_GetItemString(o,#name);                        \
+    if (i) {                                                            \
+      if (PyInt_CheckExact(i))  name = (type) PyInt_AsLong(i);          \
+      else if (PyLong_CheckExact(i)) name = (type) PyLong_AsLong(i);    \
+      else name = (type) cfg->name();                                   \
+    }                                                                   \
+    else name = cfg->name(); }
+
 #define GetDictLong(name)                                         \
   unsigned long name;                                             \
   { PyObject* i = PyDict_GetItemString(o,#name);                  \
@@ -112,6 +223,14 @@ PyObject* pds_UxiConfig_get (PyObject*   self, PyObject* args)
       if (PyFloat_Check(i)) name = PyFloat_AsDouble(i); \
       else name = cfg->name();                          \
     }                                                   \
+    else name = cfg->name(); }
+
+#define GetDictRoiCoord(name)                     \
+  Pds::Uxi::RoiCoord name;                        \
+  { PyObject* i = PyDict_GetItemString(o,#name);  \
+    if (i && PyDict_Check(i)) {                   \
+      name = get_roi_coord(i,&cfg->name());       \
+    }                                             \
     else name = cfg->name(); }
 
 #define GetDictLongArray(name,maxlen)                             \
@@ -152,6 +271,14 @@ PyObject* pds_UxiConfig_get (PyObject*   self, PyObject* args)
         name[i++] = *val;                                         \
     }                                                             \
   }
+
+static Pds::Uxi::RoiCoord get_roi_coord(PyObject* o, const Pds::Uxi::RoiCoord* cfg)
+{
+  GetDictLong(first);
+  GetDictLong(last);
+
+  return Pds::Uxi::RoiCoord(first, last);
+}
 
 PyObject* pds_UxiConfig_set    (PyObject*   self, PyObject* args)
 {
@@ -214,13 +341,76 @@ PyObject* pds_UxiConfig_set    (PyObject*   self, PyObject* args)
     Py_INCREF(Py_None);
     return Py_None;
   }
-   else {
+  else if (xtc->contains.version()==2) {
+    const Pds::Uxi::ConfigV2* cfg =
+      reinterpret_cast<const Pds::Uxi::ConfigV2*>(xtc->payload);
+
+    GetDictEnum(roiEnable,Pds::Uxi::ConfigV2::RoiMode);
+    GetDictRoiCoord(roiRows);
+    GetDictRoiCoord(roiFrames);
+    GetDictLong(width);
+    GetDictLong(height);
+    GetDictLong(numberOfFrames);
+    GetDictLong(numberOFBytesPerPixel);
+    GetDictLong(sensorType);
+    GetDictLongArray(timeOn,Pds::Uxi::ConfigV2::NumberOfSides);
+    GetDictLongArray(timeOff,Pds::Uxi::ConfigV2::NumberOfSides);
+    GetDictLongArray(delay,Pds::Uxi::ConfigV2::NumberOfSides);
+    uint32_t readOnlyPots = 0;
+    // Set the readonly pot bits
+    { PyObject* l = PyDict_GetItemString(o,"readOnlyPots");
+      if (l) {
+        Py_ssize_t num = PyList_Size(l);
+        int maxlen = Pds::Uxi::ConfigV2::NumberOfPots;
+        for (unsigned i=0; i<(maxlen > num ? num : maxlen); i++) {
+          PyObject* n = PyList_GetItem(l,i);
+          if (PyObject_IsTrue(n)) {
+            readOnlyPots |= (1<<i);
+          }
+        }
+      } else readOnlyPots = cfg->readOnlyPots();
+    }
+    // Set the tuned pot bits
+    { PyObject* l = PyDict_GetItemString(o,"tunedPots");
+      if (l) {
+        Py_ssize_t num = PyList_Size(l);
+        int maxlen = Pds::Uxi::ConfigV2::NumberOfPots;
+        for (unsigned i=0; i<(maxlen > num ? num : maxlen); i++) {
+          PyObject* n = PyList_GetItem(l,i);
+          if (PyObject_IsTrue(n)) {
+            readOnlyPots |= (1<<(i+Pds::Uxi::ConfigV2::NumberOfPots));
+          }
+        }
+      } else readOnlyPots = cfg->readOnlyPots();
+    }
+    GetDictFloatArray(pots,Pds::Uxi::ConfigV2::NumberOfPots);
+    new(xtc->payload) Pds::Uxi::ConfigV2(roiEnable,
+                                         roiRows,
+                                         roiFrames,
+                                         (uint32_t) width,
+                                         (uint32_t) height,
+                                         (uint32_t) numberOfFrames,
+                                         (uint32_t) numberOFBytesPerPixel,
+                                         (uint32_t) sensorType,
+                                         timeOn,
+                                         timeOff,
+                                         delay,
+                                         readOnlyPots,
+                                         pots);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+
+  }
+  else {
     printf("set(): Unsupported UxiConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception
   }
 }
 
+#undef GetDictEnum
 #undef GetDictLong
 #undef GetDictFloat
+#undef GetDictRoiCoord
 #undef GetDictLongArray
 #undef GetDictFloatArray
