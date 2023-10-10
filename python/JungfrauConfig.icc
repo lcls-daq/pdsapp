@@ -126,7 +126,7 @@ PyObject* pds_JungfrauConfig_enum (PyObject*   self, PyObject* args)
   }
   else {
     Py_DECREF(o);
-    printf("get(): Unsupported JungfrauConfig Version= %u \n",xtc->contains.version());
+    printf("enum(): Unsupported JungfrauConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception
   }
 
