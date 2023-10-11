@@ -172,6 +172,15 @@ int main(int argc, char *argv[]) {
     drv.reset_roi();
   }
 
+  drv.set_pot(5, pot5);
+  drv.set_pot(7, pot7);
+  drv.set_timing_all(ton, toff, tdel);
+
+  if (!drv.commit()) {
+    printf("Failed to commit configuration to the detector!\n");
+    return 1;
+  }
+
   uint32_t width, height, nframes, nbytes, type;
   drv.width(&width);
   drv.height(&height);
@@ -188,15 +197,6 @@ int main(int argc, char *argv[]) {
   double temp;
   drv.temperature(&temp);
   printf(" Temp is:       %g C\n", temp);
-
-  drv.set_pot(5, pot5);
-  drv.set_pot(7, pot7);
-  drv.set_timing_all(ton, toff, tdel);
-
-  if (!drv.commit()) {
-    printf("Failed to commit configuration to the detector!\n");
-    return 1;
-  }
 
   printf("Detector config:\n");
 
