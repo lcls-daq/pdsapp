@@ -165,9 +165,14 @@ int main(int argc, char *argv[]) {
     baseport + 2 * portset +1
   );
 
+  if (!drv.reset()) {
+    printf("Failed to reset the detector!\n");
+    return 1;
+  }
+
   if (use_roi) {
     drv.set_row_roi(first_row, last_row);
-    drv.set_frame_roi(first_row, last_row);
+    drv.set_frame_roi(first_frame, last_frame);
   } else {
     drv.reset_roi();
   }
