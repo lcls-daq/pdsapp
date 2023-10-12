@@ -47,7 +47,7 @@ static void uxiUsage(const char* p)
          "    -p|--platform <platform>,<mod>,<chan>   platform number, EVR module, EVR channel\n"
          "    -u|--uniqueid <alias>                   set device alias\n"
          "    -P|--port     <portset>                 set the UXI detector server port set (default: 0)\n"
-         "    -H|--host     <host>                    set the UXI detector server host ip (default: 10.0.0.10)\n"
+         "    -H|--host     <host>                    set the UXI detector server host ip (default: localhost)\n"
          "    -m|--max      <max_frames>              set the maximum number of frames to expect per event (default: 8)"
          "    -h|--help                               print this message and exit\n", p);
 }
