@@ -24,7 +24,8 @@ static void showUsage(const char* p)
          "    -w|--write    <filename prefix>         output filename prefix\n"
          "    -n|--number   <number of images>        number of images to be captured (default: 1)\n"
          "    -e|--exposure <exposure time>           exposure time (msec) (default: 10000 msec)\n"
-         "    -N|--nonexp   <non-exposure time>       non-exposure time (mesc) to wait after exposure (default: 100 msec)\n"
+         "    -N|--nonexp   <non-exposure time>       non-exposure time (msec) to wait after exposure (default: 100 msec)\n"
+         "    -W|--wait     <wait time>               wait time (msec) time between frames when using internal trigger (default: 0 msec)\n"
          "    -b|--vbin     <vbinning>                the vertical binning (default: 1)\n"
          "    -l|--lines    <lines>                   the number of lines (default: 300)\n"
          "    -s|--skip     <lines>                   the number of preframe skipped lines (default: 22)\n"
@@ -41,7 +42,7 @@ static void showUsage(const char* p)
 }
 
 int main(int argc, char *argv[]) {
-  const char*         strOptions  = ":vhw:n:e:N:b:l:s:B:m:P:H:c:Cot";
+  const char*         strOptions  = ":vhw:n:e:N:W:b:l:s:B:m:P:H:c:Cot";
   const struct option loOptions[] =
   {
     {"version",     0, 0, 'v'},
@@ -50,6 +51,7 @@ int main(int argc, char *argv[]) {
     {"number",      1, 0, 'n'},
     {"exposure",    1, 0, 'e'},
     {"nonexp",      1, 0, 'N'},
+    {"wait",        1, 0, 'W'},
     {"vbin",        1, 0, 'b'},
     {"lines",       1, 0, 'l'},
     {"skip",        1, 0, 's'},
@@ -68,6 +70,7 @@ int main(int argc, char *argv[]) {
   unsigned num_images = 1;
   unsigned exposure_time = 10000; // 10 sec
   unsigned non_exposure_time = 100;
+  unsigned waiting_time = 0;
   unsigned vertical_binning = 1;
   unsigned lines = 300;
   unsigned skip = 22;
@@ -106,6 +109,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'N':
         non_exposure_time = strtoul(optarg, NULL, 0);
+        break;
+      case 'W':
+        waiting_time = strtoul(optarg, NULL, 0);
         break;
       case 'H':
         hostname = optarg;
@@ -249,6 +255,7 @@ int main(int argc, char *argv[]) {
     drv.set_preframe_skip(skip);
     drv.set_integration_time(exposure_time);
     drv.set_non_integration_time(non_exposure_time);
+    drv.set_waiting_time(waiting_time);
     drv.set_idle_clear();
     drv.set_external_trigger(use_trigger);
     //drv.set_frame_poll_interval(10);
