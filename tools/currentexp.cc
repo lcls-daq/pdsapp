@@ -12,7 +12,7 @@
 #define MAXLINE 255
 #define DEFAULT_STATION 0u
 
-#define DEFAULT_RCPATH  "/reg/g/pcds/dist/pds/misc/.offlinereader"
+#define DEFAULT_RCPATH  "/cds/group/pcds/dist/pds/misc/.offlinereader"
 
 #include <string>
 #include <vector>
