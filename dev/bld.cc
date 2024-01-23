@@ -255,7 +255,8 @@ namespace Pds {
     ((ONE_BIT<<(BldInfo::MfxDg2BeamMon+1)) - (ONE_BIT<<BldInfo::XcsSndDio)) |
     ((ONE_BIT<<(BldInfo::MecXt2BeamMon03+1)) - (ONE_BIT<<BldInfo::MecXt2BeamMon02)) |
     ((ONE_BIT<<(BldInfo::MecUsrDio+1)) - (ONE_BIT<<BldInfo::XppUsrDio));
-  BldBitMask UsbEncoder = ((ONE_BIT<<(BldInfo::CxiUsbEncoder01+1)) - (ONE_BIT<<BldInfo::XrtUsbEncoder01));
+  BldBitMask UsbEncoder = ((ONE_BIT<<(BldInfo::CxiUsbEncoder01+1)) - (ONE_BIT<<BldInfo::XrtUsbEncoder01)) |
+    (ONE_BIT<<BldInfo::MfxUsbEncoder01);
 #define TEST_CREAT(mask, idType, dataType)                  \
   if ((im & mask).isNotZero()) {                            \
     Xtc tc(TypeId(TypeId::idType,dataType::Version),        \
@@ -347,10 +348,7 @@ namespace Pds {
           break; }
       case Level::Reporter:
         { const BldInfo& info = static_cast<const BldInfo&>(xtc->src);
-          if (info.type()==94)  // special exception for broken transmission
-            xtc->src = BldInfo(_pid, BldInfo::FeeSpec0);
-          else
-            xtc->src = BldInfo(_pid, info.type());
+          xtc->src = BldInfo(_pid, info.type());
           break; }
       default:
         break;
