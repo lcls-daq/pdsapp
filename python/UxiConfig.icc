@@ -40,6 +40,26 @@ static PyObject* get_roimodeV2_enum()
   return roimode_enum;
 }
 
+static PyObject* get_roimodeV3_enum()
+{
+  PyObject* roimode_enum = PyDict_New();
+  SetEnum(Off,ConfigV3,roimode_enum);
+  SetEnum(On,ConfigV3,roimode_enum);
+
+  return roimode_enum;
+}
+
+static PyObject* get_oscmodeV3_enum()
+{
+  PyObject* oscmode_enum = PyDict_New();
+  SetEnum(RelaxationOsc,ConfigV3,oscmode_enum);
+  SetEnum(RingOscWithCaps,ConfigV3,oscmode_enum);
+  SetEnum(RingOscNoCaps,ConfigV3,oscmode_enum);
+  SetEnum(ExternalClock,ConfigV3,oscmode_enum);
+
+  return oscmode_enum;
+}
+
 PyObject* pds_UxiConfig_enum (PyObject*   self, PyObject* args)
 {
   pdsxtc* xtc = (pdsxtc*)self;
@@ -49,6 +69,12 @@ PyObject* pds_UxiConfig_enum (PyObject*   self, PyObject* args)
   }
   else if (xtc->contains.version()==2) {
     SetEnumDict(RoiMode, get_roimodeV2_enum());
+
+    return o;
+  }
+  else if (xtc->contains.version()==3) {
+    SetEnumDict(RoiMode, get_roimodeV3_enum());
+    SetEnumDict(OscMode, get_oscmodeV3_enum());
 
     return o;
   }
@@ -173,6 +199,46 @@ PyObject* pds_UxiConfig_get (PyObject*   self, PyObject* args)
     // Get the tune status of the pots
     { PyObject* v = PyList_New(Pds::Uxi::ConfigV2::NumberOfPots);
       for (unsigned i=0; i<Pds::Uxi::ConfigV2::NumberOfPots; i++) {
+        PyObject* ro = cfg->potIsTuned(i) ? Py_True : Py_False;
+        Py_INCREF(o);
+        PyList_SetItem(v, i, ro);
+      }
+      PyDict_SetItemString(o,"tunedPots",v);
+      Py_DECREF(v);
+    }
+    SetDictMemberArray(pots,double,PyFloat_FromDouble);
+
+    return o;
+  }
+  else if (xtc->contains.version()==3) {
+    const Pds::Uxi::ConfigV3* cfg =
+      reinterpret_cast<const Pds::Uxi::ConfigV3*>(xtc->payload);
+
+    SetDictMember(roiEnable,false,true,false);
+    SetDictSubMember(roiRows, get_roi_config);
+    SetDictSubMember(roiFrames, get_roi_config);
+    SetDictMember(oscillator,false,true,false);
+    SetDictMember(width,false,false,false);
+    SetDictMember(height,false,false,false);
+    SetDictMember(numberOfFrames,false,false,false);
+    SetDictMember(numberOFBytesPerPixel,false,false,false);
+    SetDictMember(sensorType,false,false,false);
+    SetDictMemberArray(timeOn,uint32_t,PyLong_FromUnsignedLong);
+    SetDictMemberArray(timeOff,uint32_t,PyLong_FromUnsignedLong);
+    SetDictMemberArray(delay,uint32_t,PyLong_FromUnsignedLong);
+    // Get the readonly status of the pots
+    { PyObject* v = PyList_New(Pds::Uxi::ConfigV3::NumberOfPots);
+      for (unsigned i=0; i<Pds::Uxi::ConfigV3::NumberOfPots; i++) {
+        PyObject* ro = cfg->potIsReadOnly(i) ? Py_True : Py_False;
+        Py_INCREF(o);
+        PyList_SetItem(v, i, ro);
+      }
+      PyDict_SetItemString(o,"readOnlyPots",v);
+      Py_DECREF(v);
+    }
+    // Get the tune status of the pots
+    { PyObject* v = PyList_New(Pds::Uxi::ConfigV3::NumberOfPots);
+      for (unsigned i=0; i<Pds::Uxi::ConfigV3::NumberOfPots; i++) {
         PyObject* ro = cfg->potIsTuned(i) ? Py_True : Py_False;
         Py_INCREF(o);
         PyList_SetItem(v, i, ro);
@@ -402,6 +468,70 @@ PyObject* pds_UxiConfig_set    (PyObject*   self, PyObject* args)
     return Py_None;
 
   }
+  else if (xtc->contains.version()==3) {
+    const Pds::Uxi::ConfigV3* cfg =
+      reinterpret_cast<const Pds::Uxi::ConfigV3*>(xtc->payload);
+
+    GetDictEnum(roiEnable,Pds::Uxi::ConfigV3::RoiMode);
+    GetDictRoiCoord(roiRows);
+    GetDictRoiCoord(roiFrames);
+    GetDictEnum(oscillator,Pds::Uxi::ConfigV3::OscMode);
+    GetDictLong(width);
+    GetDictLong(height);
+    GetDictLong(numberOfFrames);
+    GetDictLong(numberOFBytesPerPixel);
+    GetDictLong(sensorType);
+    GetDictLongArray(timeOn,Pds::Uxi::ConfigV3::NumberOfSides);
+    GetDictLongArray(timeOff,Pds::Uxi::ConfigV3::NumberOfSides);
+    GetDictLongArray(delay,Pds::Uxi::ConfigV3::NumberOfSides);
+    uint32_t readOnlyPots = 0;
+    // Set the readonly pot bits
+    { PyObject* l = PyDict_GetItemString(o,"readOnlyPots");
+      if (l) {
+        Py_ssize_t num = PyList_Size(l);
+        int maxlen = Pds::Uxi::ConfigV3::NumberOfPots;
+        for (unsigned i=0; i<(maxlen > num ? num : maxlen); i++) {
+          PyObject* n = PyList_GetItem(l,i);
+          if (PyObject_IsTrue(n)) {
+            readOnlyPots |= (1<<i);
+          }
+        }
+      } else readOnlyPots = cfg->readOnlyPots();
+    }
+    // Set the tuned pot bits
+    { PyObject* l = PyDict_GetItemString(o,"tunedPots");
+      if (l) {
+        Py_ssize_t num = PyList_Size(l);
+        int maxlen = Pds::Uxi::ConfigV3::NumberOfPots;
+        for (unsigned i=0; i<(maxlen > num ? num : maxlen); i++) {
+          PyObject* n = PyList_GetItem(l,i);
+          if (PyObject_IsTrue(n)) {
+            readOnlyPots |= (1<<(i+Pds::Uxi::ConfigV3::NumberOfPots));
+          }
+        }
+      } else readOnlyPots = cfg->readOnlyPots();
+    }
+    GetDictFloatArray(pots,Pds::Uxi::ConfigV3::NumberOfPots);
+    new(xtc->payload) Pds::Uxi::ConfigV3(roiEnable,
+                                         roiRows,
+                                         roiFrames,
+                                         oscillator,
+                                         (uint32_t) width,
+                                         (uint32_t) height,
+                                         (uint32_t) numberOfFrames,
+                                         (uint32_t) numberOFBytesPerPixel,
+                                         (uint32_t) sensorType,
+                                         timeOn,
+                                         timeOff,
+                                         delay,
+                                         readOnlyPots,
+                                         pots);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+
+  }
+
   else {
     printf("set(): Unsupported UxiConfig Version= %u \n",xtc->contains.version());
     return NULL; // Throw an exception

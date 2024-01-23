@@ -29,12 +29,13 @@ static void showUsage(const char* p)
          "    -7|--pot7     <pot7>                    the relaxation oscillator stationary param (default: 1.53)\n"
          "    -m|--max      <max>                     the maximum number of pixel values to print for each frame (default: 0)\n"
          "    -r|--roi      <r0,r1,f0,f1>             set an ROI with first/last row and then frame\n"
+         "    -o|--osc      <0,1,2,3>                 set the oscillator mode (default: 0)\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char *argv[]) {
-  const char*         strOptions  = ":vhw:n:t:P:H:5:7:m:r:";
+  const char*         strOptions  = ":vhw:n:t:P:H:5:7:m:r:o:";
   const struct option loOptions[] =
   {
     {"version",     0, 0, 'v'},
@@ -48,6 +49,7 @@ int main(int argc, char *argv[]) {
     {"pot7",        1, 0, '7'},
     {"max",         1, 0, 'm'},
     {"roi",         1, 0, 'r'},
+    {"osc",         1, 0, 'o'},
     {0,             0, 0,  0 }
   };
 
@@ -64,6 +66,7 @@ int main(int argc, char *argv[]) {
   unsigned last_frame = 3;
   double pot5 = 2.8;
   double pot7 = 1.53;
+  unsigned oscillator = 0;
   const char* default_host = "localhost";
   bool use_roi = false;
   bool lUsage = false;
@@ -137,6 +140,15 @@ int main(int argc, char *argv[]) {
           use_roi = true;
         }
         break;
+      case 'o':
+        if (!Pds::CmdLineTools::parseUInt(optarg,oscillator)) {
+          printf("%s: option `-o' parsing error\n", argv[0]);
+          lUsage = true;
+        } else if (oscillator > 3) {
+          printf("%s: option `-o' value out of range\n", argv[0]);
+          lUsage = true;
+        }
+        break;
       case ':':
         printf("%s: Missing argument for %c\n", argv[0], optopt);
       default:
@@ -180,6 +192,7 @@ int main(int argc, char *argv[]) {
   drv.set_pot(5, pot5);
   drv.set_pot(7, pot7);
   drv.set_timing_all(ton, toff, tdel);
+  drv.set_oscillator(oscillator);
 
   if (!drv.commit()) {
     printf("Failed to commit configuration to the detector!\n");
@@ -221,6 +234,10 @@ int main(int argc, char *argv[]) {
   printf("  A: %u %u %u\n", ton_rbv, toff_rbv, tdel_rbv);
   drv.get_timing('B', &ton_rbv, &toff_rbv, &tdel_rbv);
   printf("  B: %u %u %u\n", ton_rbv, toff_rbv, tdel_rbv);
+
+  unsigned osc_rbv;
+  drv.get_oscillator(&osc_rbv);
+  printf(" Oscillator mode: %u\n", osc_rbv);
 
   int status = 0;
   uint16_t* data = 0;
