@@ -167,7 +167,12 @@ void RunStatus::reset()
   
   update_stats();
 
+  bool auto_show = false;
+  QRect details_geo;
+
   if (_details) {
+    auto_show = _details->isVisible();
+    details_geo = _details->geometry();
     QObject::disconnect(_detailsB, SIGNAL(clicked()), _details, SLOT(show()));
     QObject::disconnect(this, SIGNAL(changed()), _details, SLOT(update_stats()));
     delete _details;
@@ -179,6 +184,11 @@ void RunStatus::reset()
 
   QObject::connect(_detailsB, SIGNAL(clicked()), _details, SLOT(show()));
   QObject::connect(this, SIGNAL(changed()), _details, SLOT(update_stats()));
+
+  if (auto_show) {
+    _details->setGeometry(details_geo);
+    _details->setVisible(true);
+  }
 
   _alarm = false;
   emit damage_alarm_changed(false);
