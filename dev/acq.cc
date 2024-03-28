@@ -51,11 +51,19 @@ namespace Pds {
       _channel(channel)
 
     {
+      char tmpBuffer[SrcAlias::AliasNameMax];
       for(std::list<AcqServer*>::iterator it=servers.begin(); it!=servers.end(); it++) {
-        _sources.push_back((*it)->client()); 
-        if ((aliasName) && (it == servers.begin())) {
-          SrcAlias tmpAlias((*it)->client(), aliasName);
-          _aliases.push_back(tmpAlias);
+        _sources.push_back((*it)->client());
+        if (aliasName) {
+          if (servers.size() == 1) {
+            SrcAlias tmpAlias((*it)->client(), aliasName);
+            _aliases.push_back(tmpAlias);
+          } else {
+            snprintf(tmpBuffer, SrcAlias::AliasNameMax, "%s_b%d",
+                     aliasName, reinterpret_cast<const DetInfo&>((*it)->client()).devId());
+            SrcAlias tmpAlias((*it)->client(), tmpBuffer);
+            _aliases.push_back(tmpAlias);
+          }
         }
       }
     }
