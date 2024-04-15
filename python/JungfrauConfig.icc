@@ -598,6 +598,7 @@ unsigned pds_JungfrauConfig_size(PyObject* self)
       case 1:  return sizeof(Pds::Jungfrau::ConfigV1);
       case 2:  return sizeof(Pds::Jungfrau::ConfigV2);
       case 3:  return sizeof(Pds::Jungfrau::ConfigV3);
+      case 4:  return sizeof(Pds::Jungfrau::ConfigV4);
      default: break;
     }
   }
