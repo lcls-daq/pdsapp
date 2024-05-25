@@ -255,6 +255,11 @@ int main(int argc, char **argv)
   std::vector<Pds::Jungfrau::Module*> modules(num_modules);
   for (unsigned i=0; i<num_modules; i++) {
     modules[i] = new Pds::Jungfrau::Module(i, sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
+    printf("Module %u info:\n", i);
+    printf(" - Module id:        %#lx\n", modules[i]->moduleid());
+    printf(" - Serial number:    %#lx\n", modules[i]->serialnum());
+    printf(" - Firmware version: %#lx\n", modules[i]->firmware());
+    printf(" - Software version: %#lx\n", modules[i]->software());
   }
   Pds::Jungfrau::Detector* det = new Pds::Jungfrau::Detector(modules, threaded);
  
@@ -288,7 +293,7 @@ int main(int argc, char **argv)
   JungfrauModInfoType metadata;
   uint64_t last = 0;
 
-  det->sync_nframes();
+  det->sync_next_frame();
 
   if (det->start()) {
     for(int i=0; i<numImages; i++) {
