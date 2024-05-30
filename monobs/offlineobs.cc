@@ -63,8 +63,8 @@ private:
 
 void usage(char* progname) {
   printf("Usage: %s -p <platform> -P <partition> -L <offlinerc> [-E <experiment_name>] [-V <pv_config_file>] [OPTIONS]\n", progname);
+  printf("Using %%g format for floating point PVs\n");
   printf("\nOptions:\n");
-  printf("  -g        Use %%g format for floating point PVs\n");
   printf("  -h        Print help message and exit\n");
   printf("  -v        Be verbose\n");
   printf("  -w        Slow readout (0, 1, or 2, default=0)\n");
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
   int verbose = 0;
   (void) signal(SIGINT, sigfunc);
   bool parseErr = false;
-  bool gFormat = false;
+  bool gFormat = true;
   extern int optind;
   int c;
   while ((c = getopt(argc, argv, "p:P:E:L:V:w:vgh")) != -1) {
@@ -129,8 +129,7 @@ int main(int argc, char** argv) {
       ++verbose;
       break;
     case 'g':
-      printf("%s: using %%g format for floating point PVs\n", argv[0]);
-      gFormat = true;
+      // Using %g format for floating point PVs
       break;
     case 'h':
       usage(argv[0]);
