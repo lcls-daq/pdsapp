@@ -265,7 +265,7 @@ int main(int argc, char **argv)
              * this could take us to the next second, a difference of 1 might be
              * normal.)
              */
-            if (abs(dg[0]->seq.clock().seconds() - dg[1]->seq.clock().seconds()) > 2) {
+            if (abs(static_cast<int>(dg[0]->seq.clock().seconds() - dg[1]->seq.clock().seconds())) > 2) {
                 if (dg[0]->seq.clock().seconds() > dg[1]->seq.clock().seconds()) {
                     if (!next_dg(1))
                         done = 1;

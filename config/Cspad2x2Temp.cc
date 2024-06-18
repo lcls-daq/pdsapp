@@ -20,6 +20,22 @@
 
 using namespace Pds_ConfigDb;
 
+// Constants
+const double Cspad2x2Temp::coeffA = -1.4141963e1;
+const double Cspad2x2Temp::coeffB =  4.4307830e3;
+const double Cspad2x2Temp::coeffC = -3.4078983e4;
+const double Cspad2x2Temp::coeffD = -8.8941929e6;
+const double Cspad2x2Temp::t25    = 10000.0;
+const double Cspad2x2Temp::k0     = 273.15;
+const double Cspad2x2Temp::vmax   = 3.3;
+const double Cspad2x2Temp::vref   = 2.5;
+const double Cspad2x2Temp::rdiv   = 20000;
+
+// Temp range
+const double Cspad2x2Temp::minTemp = -50;
+const double Cspad2x2Temp::maxTemp = 150;
+const double Cspad2x2Temp::incTemp = 0.01;
+
 // Constructor
 Cspad2x2Temp::Cspad2x2Temp() {
    double       temp;

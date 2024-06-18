@@ -27,20 +27,20 @@ namespace Pds_ConfigDb {
     public:
 
       // Constants
-      static const double coeffA = -1.4141963e1;
-      static const double coeffB =  4.4307830e3;
-      static const double coeffC = -3.4078983e4;
-      static const double coeffD = -8.8941929e6;
-      static const double t25    = 10000.0;
-      static const double k0     = 273.15;
-      static const double vmax   = 3.3;
-      static const double vref   = 2.5;
-      static const double rdiv   = 20000;
+      static const double coeffA;
+      static const double coeffB;
+      static const double coeffC;
+      static const double coeffD;
+      static const double t25;
+      static const double k0;
+      static const double vmax;
+      static const double vref;
+      static const double rdiv;
 
       // Temp range
-      static const double minTemp = -50;
-      static const double maxTemp = 150;
-      static const double incTemp = 0.01;
+      static const double minTemp;
+      static const double maxTemp;
+      static const double incTemp;
 
       // Conversion table
       static const unsigned int adcCnt = 4096;

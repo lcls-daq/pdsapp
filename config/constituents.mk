@@ -7,7 +7,7 @@ libsrcs_configdb := Table.cc
 libsrcs_configdb += Device.cc
 libsrcs_configdb += Experiment.cc
 libsrcs_configdb += GlobalCfg.cc
-libincs_configdb := pdsdata/include ndarray/include boost/include  
+libincs_configdb := pdsdata/include ndarray/include boost/include
 
 libsrcs_configdbg := ControlScan.cc ControlScan_moc.cc
 libsrcs_configdbg += PvScan.cc PvScan_moc.cc
@@ -194,7 +194,7 @@ endif
 datalibs := pdsdata/xtcdata pdsdata/psddl_pdsdata
 
 tgtsrcs_configdb_cmd := configdb.cc
-tgtincs_configdb_cmd := pdsdata/include
+tgtincs_configdb_cmd := pdsdata/include mysql/include
 tgtlibs_configdb_cmd := $(datalibs)
 tgtlibs_configdb_cmd += pdsapp/configdb
 tgtlibs_configdb_cmd += pds/configdbc pds/confignfs pds/configsql

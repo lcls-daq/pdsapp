@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
         pulse.polarity  = (strtol (endPtr+1,&endPtr,0) > 0) ? PulseParams::Positive : PulseParams::Negative;
         unsigned ticks = Pds_ConfigDb::EventcodeTiming::timeslot(pulse.eventcode);
         unsigned delta = ticks - Pds_ConfigDb::EventcodeTiming::timeslot(140);
-        unsigned udelta = abs(delta);
+        unsigned udelta = abs(static_cast<int>(delta));
         pulse.delay     = strtoul(endPtr+1,&endPtr,0);
         if (pulse.delay>udelta) pulse.delay -= delta;
         pulse.width     = strtoul(endPtr+1,&endPtr,0);

@@ -17,6 +17,11 @@ tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlon
 tgtnames += vimbaStandAlone
 endif
 
+ifneq ($(findstring x86_64-rhel9,$(tgt_arch)),)
+tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone archonStandAlone picamStandAlone uxiStandAlone
+tgtnames += vimbaStandAlone
+endif
+
 commonlibs	:= pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 commonlibs	+= pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs	+= pds/config pds/configdbc pds/confignfs pds/configsql
@@ -52,7 +57,7 @@ tgtslib_andorDualStandAlone := dl pthread rt
 
 tgtsrcs_zylaStandAlone := zylaStandAlone.cc
 tgtincs_zylaStandAlone := pdsdata/include ndarray/include boost/include
-tgtlibs_zylaStandAlone := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.05
+tgtlibs_zylaStandAlone := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.07
 tgtslib_zylaStandAlone := dl pthread rt
 
 tgtsrcs_vimbaStandAlone := vimbaStandAlone.cc

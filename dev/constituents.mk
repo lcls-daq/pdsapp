@@ -43,6 +43,10 @@ ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
 tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad quadadc vimba
 endif
 
+ifneq ($(findstring x86_64-rhel9,$(tgt_arch)),)
+tgtnames += pimax pixis camedt andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad vimba
+endif
+
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
 commonlibs  += pds/service pds/collection pds/xtc pds/mon pds/vmon pds/utility pds/management pds/client
 commonlibs  += pds/config pds/configdbc pds/confignfs pds/configsql
@@ -197,7 +201,7 @@ tgtslib_uxi := $(commonslib)
 
 tgtsrcs_zyla :=	zyla.cc
 tgtincs_zyla := pdsdata/include ndarray/include boost/include
-tgtlibs_zyla := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.05
+tgtlibs_zyla := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.07
 tgtslib_zyla := $(commonslib)
 
 tgtsrcs_vimba := vimba.cc

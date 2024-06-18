@@ -257,7 +257,7 @@ static void read_config_file(const char *name)
             return;
     }
 
-    while(name ? getline(*in, line) : getstdin(buf, 1024)) {
+    while((name && getline(*in, line)) || getstdin(buf, 1024)) {
         if (!name)
             line = buf;
         istringstream ss(line);
