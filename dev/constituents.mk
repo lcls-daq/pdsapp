@@ -24,12 +24,11 @@ tgtnames +=  acq \
     princetonsim \
     cam \
     usdusb \
-    fli andor \
-    andordual
+    fli
 endif
 
 ifneq ($(findstring x86_64-linux,$(tgt_arch)),)
-tgtnames += camedt fli andor andordual archon
+tgtnames += camedt fli archon
   ifeq ($(build_extra),$(true))
     tgtnames += phasics xamps fexamp
   endif
