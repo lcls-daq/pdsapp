@@ -370,18 +370,20 @@ int main(int argc, char **argv)
               if (cam->waitFrame(&frames[ncomp], timeout, &had_timeout)) {
                 if (had_timeout) {
                   continue;
-                } else if (frames[ncomp].receiveStatus == VmbFrameStatusComplete) {
-                  printf("Recieved frame of %u of %u\n", ncomp+1, num_frames);
+                } else {
+                  if (frames[ncomp].receiveStatus == VmbFrameStatusComplete) {
+                    printf("\033[32mRecieved frame of %u of %u\033[0m\n", ncomp+1, num_frames);
+                  } else {
+                    printf("\033[31mError recieving frame of %u of %u: %s\033[0m\n",
+                           ncomp+1, num_frames, FrameStatusCodes::desc(frames[ncomp].receiveStatus));
+                  }
                   if (show_stats) {
                     printf("timestamp: %llu\n", frames[ncomp].timestamp);
-                    printf("status: %d\n", frames[ncomp].receiveStatus);
+                    printf("status: %s\n", FrameStatusCodes::desc(frames[ncomp].receiveStatus));
                     printf("framed id %llu\n", frames[ncomp].frameID);
                     printf("format %s\n", PixelFormatTypes::desc(frames[ncomp].pixelFormat));
                   }
                   ncomp++;
-                } else {
-                  printf("status: %s\n",
-                         FrameStatusCodes::desc(frames[ncomp].receiveStatus));
                 }
               } else {
                 printf("Frame capture failed - exiting: %s!\n",
