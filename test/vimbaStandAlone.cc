@@ -372,9 +372,9 @@ int main(int argc, char **argv)
                   continue;
                 } else {
                   if (frames[ncomp].receiveStatus == VmbFrameStatusComplete) {
-                    printf("\033[32mRecieved frame of %u of %u\033[0m\n", ncomp+1, num_frames);
+                    printf("\033[32mRecieved frame %u of %u\033[0m\n", ncomp+1, num_frames);
                   } else {
-                    printf("\033[31mError recieving frame of %u of %u: %s\033[0m\n",
+                    printf("\033[31mError recieving frame %u of %u: %s\033[0m\n",
                            ncomp+1, num_frames, FrameStatusCodes::desc(frames[ncomp].receiveStatus));
                   }
                   if (show_stats) {
