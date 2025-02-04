@@ -17,7 +17,7 @@
 
 using namespace std;
 
-static const char sAndorCameraTestVersion[] = "1.20";
+static const char sAndorCameraTestVersion[] = "1.21";
 int closeCamera();
 
 static int iCameraInitialized = 0;
@@ -31,7 +31,7 @@ class AndorCameraTest
 public:
   AndorCameraTest(int iCamera, double fExposureTime, int iReadoutPort, int iSpeedIndex, int iGainIndex,
     double fTemperature, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY, int iTriggerMode,
-    char* sFnPrefix, int iNumImages, int iMenu, bool bTriggerFast, bool bCropMode);
+    char* sFnPrefix, int iNumImages, int iOutputMode, int iMenu, bool bTriggerFast, bool bCropMode);
 
   int init();
   int run();
@@ -57,6 +57,7 @@ private:
   int     _iTriggerMode;
   string  _strFnPrefix;
   int     _iNumImages;
+  int     _iOutputMode;
   int     _iMenu;
   bool    _bTriggerFast;
   bool    _bCropMode;
@@ -74,11 +75,11 @@ private:
 
 AndorCameraTest::AndorCameraTest(int iCamera, double fExposureTime, int iReadoutPort, int iSpeedIndex,
   int iGainIndex, double fTemperature, int iRoiX, int iRoiY, int iRoiW, int iRoiH, int iBinX, int iBinY,
-  int iTriggerMode, char* sFnPrefix, int iNumImages, int iMenu, bool bTriggerFast, bool bCropMode) :
+  int iTriggerMode, char* sFnPrefix, int iNumImages, int iOutputMode, int iMenu, bool bTriggerFast, bool bCropMode) :
   _iCamera(iCamera), _fExposureTime(fExposureTime), _iReadoutPort(iReadoutPort), _iSpeedIndex(iSpeedIndex),
   _iGainIndex(iGainIndex), _fTemperature(fTemperature), _iRoiX(iRoiX), _iRoiY(iRoiY), _iRoiW(iRoiW),
-  _iRoiH(iRoiH), _iBinX(iBinX), _iBinY(iBinY),  _iTriggerMode(iTriggerMode),
-  _strFnPrefix(sFnPrefix), _iNumImages(iNumImages), _iMenu(iMenu), _bTriggerFast(bTriggerFast), _bCropMode(bCropMode),
+  _iRoiH(iRoiH), _iBinX(iBinX), _iBinY(iBinY),  _iTriggerMode(iTriggerMode), _strFnPrefix(sFnPrefix),
+  _iNumImages(iNumImages), _iOutputMode(iOutputMode), _iMenu(iMenu), _bTriggerFast(bTriggerFast), _bCropMode(bCropMode),
   _iOutImageIndex(0), _iCameraHandle(0), _iDetectorWidth(-1), _iDetectorHeight(-1), _iADChannel(0)
 {
 }
@@ -94,6 +95,18 @@ static const char* lsTriggerMode[] =
   "Software Trigger", //10
   "",
   "External Charge Shifting", //12
+};
+
+static const char* lsOutputMode[] =
+{
+  "RAW",
+  "SIF",
+};
+
+static const char* lsOutputModeExt[] =
+{
+  "raw",
+  "sif",
 };
 
 int AndorCameraTest::init()
@@ -426,7 +439,10 @@ int AndorCameraTest::run()
     cout << "Speed Index             : " << _iSpeedIndex    <<  endl;
     cout << "Gain Index              : " << _iGainIndex     << endl;
     cout << "Cooling Temperature (C) : " << _fTemperature   << endl;
-    cout << "Trigger Mode:           : " << lsTriggerMode[_iTriggerMode] << endl;
+    cout << "Trigger Mode            : " << lsTriggerMode[_iTriggerMode] << endl;
+    cout << "Fast Trigger Mode       : " << boolalpha << _bTriggerFast << noboolalpha << endl;
+    cout << "Isolated Crop Mode      : " << boolalpha << _bCropMode << noboolalpha << endl;
+    cout << "Output File Mode        : " << lsOutputMode[_iOutputMode] << endl;
     cout << "ROI : x " << _iRoiX << " y " <<  _iRoiY <<
       " W " << _iRoiW << " H " << _iRoiH <<
       " binX " << _iBinX << " binY " << _iBinY << endl;
@@ -444,6 +460,7 @@ int AndorCameraTest::run()
     cout << "b. Set Binning" << endl;
     cout << "f. Set Fast Trigger Mode" << endl;
     cout << "x. Set Isolated Crop Mode" << endl;
+    cout << "o. Set Output File Mode" << endl;
     cout << "q. Quit Program" << endl;
     cout << "====================================="  << endl;
     cout << "> ";
@@ -513,6 +530,15 @@ int AndorCameraTest::run()
       cout << endl << "Enter new Trigger Mode > ";
       cin >> _iTriggerMode;
       printf("New Trigger Mode: %d\n", _iTriggerMode);
+      break;
+    }
+    case 'o':
+    {
+      cout << endl << "Output File Mode:" << endl;
+      cout <<         "  0: RAW, 1: SIF" << endl;
+      cout << endl << "Enter new Output File Mode > ";
+      cin >> _iOutputMode;
+      printf("New Output File Mode: %d\n", _iOutputMode);
       break;
     }
     case 'r':
@@ -964,15 +990,21 @@ int AndorCameraTest::_runAcquisition()
         ++_iOutImageIndex;
 
         char sFnOut[32];
-        sprintf(sFnOut, "%s_%03d.raw", _strFnPrefix.c_str(), _iOutImageIndex);
+        sprintf(sFnOut, "%s_%03d.%s", _strFnPrefix.c_str(), _iOutImageIndex, lsOutputModeExt[_iOutputMode]);
 
         printf("Writing to image file %s...", sFnOut);
         fflush(NULL);
         printf("done.\n");
 
-        int fdImage = ::open(sFnOut, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
-        ::write(fdImage, liImageData, iImageWidth*iImageHeight*sizeof(liImageData[0]));
-        ::close(fdImage);
+        if (_iOutputMode == 0) {
+          int fdImage = ::open(sFnOut, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
+          ::write(fdImage, liImageData, iImageWidth*iImageHeight*sizeof(liImageData[0]));
+          ::close(fdImage);
+        } else if (_iOutputMode == 1) {
+          SaveAsSif(sFnOut);
+        } else {
+          cout << "Unsupported output file type: " << _iOutputMode << endl;
+        }
       }
     }
     //fstream fout("image.txt", ios::out);
@@ -1214,6 +1246,7 @@ static void showUsage()
       "                                      9: ExtFvbEm, 10: Soft, 12: ExtChrgSht\n"
       "    -f|--fast                         Enable fast trigger mode - don't wait for clear cycle\n"
       "    -x|--crop                         Enable isolated crop mode\n"
+      "    -o|--output    <output format>    0: Raw, 1: SIF\n"
       "    -m|--menu                         Show interactive menu\n"
     );
 }
@@ -1234,7 +1267,7 @@ void signalIntHandler(int iSignalNo)
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhc:w:n:e:p:s:g:t:r:b:i:fxm";
+  const char*         strOptions  = ":vhc:w:n:e:p:s:g:t:r:b:i:fxo:m";
   const struct option loOptions[] =
   {
      {"ver",      0, 0, 'v'},
@@ -1252,6 +1285,7 @@ int main(int argc, char **argv)
      {"trigger",  1, 0, 'i'},
      {"fast",     0, 0, 'f'},
      {"crop",     0, 0, 'x'},
+     {"output",   1, 0, 'o'},
      {"menu",     0, 0, 'm'},
      {0,          0, 0,  0 }
   };
@@ -1273,6 +1307,7 @@ int main(int argc, char **argv)
   int     iTriggerMode  = 0;
   bool    bTriggerFast  = false;
   bool    bCropMode     = false;
+  int     iOutputMode   = 0;
   int     iMenu         = 0;
 
   int iOptionIndex = 0;
@@ -1338,6 +1373,9 @@ int main(int argc, char **argv)
       case 'x':
           bCropMode       = true;
           break;
+      case 'o':
+          iOutputMode     = strtoul(optarg, NULL, 0);
+          break;
       case 'm':
           iMenu = 1;
           break;
@@ -1372,8 +1410,8 @@ int main(int argc, char **argv)
     printf( "main(): Cannot register signal handler for SIGTERM\n" );
 
   AndorCameraTest testCamera(iCamera, fExposureTime, iReadoutPort, iSpeedIndex, iGainIndex,
-    fTemperature, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iTriggerMode, sFnPrefix, iNumImages, iMenu,
-    bTriggerFast, bCropMode);
+    fTemperature, iRoiX, iRoiY, iRoiW, iRoiH, iBinX, iBinY, iTriggerMode, sFnPrefix, iNumImages,
+    iOutputMode, iMenu, bTriggerFast, bCropMode);
 
   int iError = testCamera.init();
   if (iError == 0)
