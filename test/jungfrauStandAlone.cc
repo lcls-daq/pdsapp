@@ -3,11 +3,20 @@
 #include <string.h>
 #include <stdint.h>
 #include <getopt.h>
+#include <signal.h>
 #include "pds/jungfrau/Driver.hh"
 
 #include <vector>
 
 static const char sJungfrauTestVersion[] = "1.0";
+
+static volatile sig_atomic_t running = 1;
+
+static void sigHandler(int signal)
+{
+  psignal(signal, "running stopped on signal");
+  running = 0;
+}
 
 static void showVersion(const char* p)
 {
@@ -19,6 +28,7 @@ static void showUsage(const char* p)
   printf("Usage: %s [-v|--version] [-h|--help]\n"
          "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (sec)>]\n"
          "[-b|--bias <bias>] [-g|--gain <gain>] [-S|--speed <speed>] [-t|--trigger <delay>] [-r|--receiver]\n"
+         "[-i|--info] [-f|--flowctrl]\n"
          "-H|--host <host> [-P|--port <port>] -m|--mac <mac> -d|--detip <detip> -s|--sls <sls>\n"
          " Options:\n"
          "    -w|--write    <filename prefix>         output filename prefix\n"
@@ -38,13 +48,14 @@ static void showUsage(const char* p)
          "    -M|--threaded                           use the multithreaded version of the Jungfrau detector driver (default: false)\n"
          "    -r|--receiver                           do not attempt to configure ip settings of the receiver (default: true)\n"
          "    -i|--info                               display additional info about recieved frames (default: false)\n"
+         "    -f|--flowctrl                           disable flow control for udp interface (default: true)\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":vhw:n:e:E:b:g:S:P:H:m:d:s:t:TMri";
+  const char*         strOptions  = ":vhw:n:e:E:b:g:S:P:H:m:d:s:t:TMrif";
   const struct option loOptions[] =
   {
     {"ver",         0, 0, 'v'},
@@ -66,6 +77,7 @@ int main(int argc, char **argv)
     {"threaded",    0, 0, 'M'},
     {"receiver",    0, 0, 'r'},
     {"info",        0, 0, 'i'},
+    {"flowctrl",    0, 0, 'f'},
     {0,             0, 0,  0 }
   };
 
@@ -82,6 +94,7 @@ int main(int argc, char **argv)
   bool external = false;
   bool threaded = false;
   bool show_info = false;
+  bool use_flow_ctrl = true;
   unsigned gain_value = 0;
   unsigned speed_value = 1;
   JungfrauConfigType::GainMode gain = JungfrauConfigType::Normal;
@@ -155,6 +168,9 @@ int main(int argc, char **argv)
         break;
       case 'i':
         show_info = true;
+        break;
+      case 'f':
+        use_flow_ctrl = false;
         break;
       case '?':
         if (optopt)
@@ -252,9 +268,16 @@ int main(int argc, char **argv)
     return 1;
   }
 
+ // add signal handler
+  struct sigaction sa;
+  sa.sa_handler = sigHandler;
+  sa.sa_flags = SA_RESETHAND;
+
+  sigaction(SIGINT,&sa,NULL);
+
   std::vector<Pds::Jungfrau::Module*> modules(num_modules);
   for (unsigned i=0; i<num_modules; i++) {
-    modules[i] = new Pds::Jungfrau::Module(i, sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
+    modules[i] = new Pds::Jungfrau::Module(i, sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], use_flow_ctrl, configReceiver);
     printf("Module %u info:\n", i);
     printf(" - Module id:        %#lx\n", modules[i]->moduleid());
     printf(" - Serial number:    %#lx\n", modules[i]->serialnum());
@@ -290,20 +313,24 @@ int main(int argc, char **argv)
   size_t  data_sz = numImages * event_sz;
   uint16_t* data = new uint16_t[data_sz];
   uint64_t frame = 0;
-  JungfrauModInfoType metadata;
+  JungfrauModInfoType* metadata = new JungfrauModInfoType[num_modules];
   uint64_t last = 0;
 
   det->sync_next_frame();
 
   if (det->start()) {
     for(int i=0; i<numImages; i++) {
-      if (det->get_frame(&frame, &metadata, &data[i*event_sz + header_sz])) {
+      if (!running) {
+        break;
+      }
+
+      if (det->get_frame(&frame, metadata, &data[i*event_sz + header_sz])) {
         if (show_info) {
           printf("got frame: %lu (ts %g, delta %g)\n",
                  frame,
-                 metadata.timestamp()/tsClock,
-                 (metadata.timestamp()-last)/tsClock);
-          last = metadata.timestamp();
+                 metadata->timestamp()/tsClock,
+                 (metadata->timestamp()-last)/tsClock);
+          last = metadata->timestamp();
         } else {
           printf("got frame: %lu\n",
                  frame);
@@ -319,7 +346,7 @@ int main(int argc, char **argv)
     printf("failed to start detector!\n");
   }
 
-  if (fileName) {
+  if (fileName && running) {
     printf("Writing %d Jungfrau frames to %s\n", numImages, fileName);
     FILE *f = fopen(fileName, "wb");
     fwrite(data, sizeof(uint16_t), data_sz, f);
