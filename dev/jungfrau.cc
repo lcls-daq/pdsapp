@@ -62,12 +62,13 @@ static void jungfrauUsage(const char* p)
          "    -S|--segid    <index>,<num>,<total>     indicates this is part of multi-segment detector\n"
          "    -r|--receiver                           do not attempt to configure ip settings of the receiver (default: true)\n"
          "    -M|--threaded                           use the multithreaded version of the Jungfrau detector driver (default: false)\n"
+         "    -f|--flowctrl                           disable flow control for udp interface (default: true)\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char** argv) {
 
-  const char*   strOptions    = ":hp:i:u:P:H:m:d:s:S:rM";
+  const char*   strOptions    = ":hp:i:u:P:H:m:d:s:S:rMf";
   const struct option loOptions[]   =
     {
        {"help",        0, 0, 'h'},
@@ -82,6 +83,7 @@ int main(int argc, char** argv) {
        {"segment",     1, 0, 'S'},
        {"receiver",    0, 0, 'r'},
        {"threaded",    0, 0, 'M'},
+       {"flowctrl",    0, 0, 'f'},
        {0,             0, 0,  0 }
     };
 
@@ -99,6 +101,7 @@ int main(int argc, char** argv) {
   bool isTriggered = false;
   bool isThreaded = false;
   bool configReceiver = true;
+  bool use_flow_ctrl = true;
   bool isSegment = false;
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NumDetector, 0, DetInfo::Jungfrau, 0);
@@ -168,6 +171,9 @@ int main(int argc, char** argv) {
         break;
       case 'M':
         isThreaded = true;
+        break;
+      case 'f':
+        use_flow_ctrl = false;
         break;
       case 'S':
         switch (CmdLineTools::parseUInt(optarg,segment_index,segment_num_modules, segment_total_modules)) {
@@ -297,7 +303,7 @@ int main(int argc, char** argv) {
   }
   
   for (unsigned i=0; i<num_modules; i++) {
-    modules[i] = new Jungfrau::Module(((detInfo.devId()&0xff)<<8) | (i&0xff), sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], configReceiver);
+    modules[i] = new Jungfrau::Module(((detInfo.devId()&0xff)<<8) | (i&0xff), sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], use_flow_ctrl, configReceiver);
   }
   det = new Jungfrau::Detector(modules, isThreaded);
   if (!det->allocated()) {
