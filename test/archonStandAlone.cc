@@ -18,8 +18,8 @@ static void showUsage(const char* p)
   printf("Usage: %s [-v|--version] [-h|--help]\n"
          "[-w|--write <filename prefix>] [-n|--number <number of images>] [-e|--exposure <exposure time (msec)>]\n"
          "[-N|--nonexp <non-exposure time>] [-b|--vbin <binning>] [-l|--lines <lines>] [-s|--skip <lines>]\n"
-         "[-m|--max <max>] [-C|--clear] [-o|--on] [-t|--trigger] -c|--config <config> -H|--host <host>\n"
-         "[-P|--port <port>]\n"
+         "[-m|--max <max>] [-p|--pumpcnt <count>] [-C|--clear] [-o|--on] [-t|--trigger]\n"
+         "-c|--config <config> -H|--host <host> [-P|--port <port>]\n"
          " Options:\n"
          "    -w|--write    <filename prefix>         output filename prefix\n"
          "    -n|--number   <number of images>        number of images to be captured (default: 1)\n"
@@ -34,15 +34,16 @@ static void showUsage(const char* p)
          "    -P|--port     <port>                    set the Archon controller tcp port number (default: 4242)\n"
          "    -H|--host     <host>                    set the Archon controller host ip\n"
          "    -c|--config   <config>                  the path to an Archon configuration file to use\n"
+         "    -p|--pumpcnt  <count>                   set the pocket pump count (default: 0)\n"
          "    -C|--clear                              clear the CCD before acquiring each frame\n"
          "    -o|--on                                 power on the CCD (default: false)\n"
-         "    -t|--trigger  <trigger>                 use external trigger to acquire each frame\n"
+         "    -t|--trigger                            use external trigger to acquire each frame\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
 int main(int argc, char *argv[]) {
-  const char*         strOptions  = ":vhw:n:e:N:W:b:l:s:B:m:P:H:c:Cot";
+  const char*         strOptions  = ":vhw:n:e:N:W:b:l:s:B:m:P:H:c:p:Cot";
   const struct option loOptions[] =
   {
     {"version",     0, 0, 'v'},
@@ -60,6 +61,7 @@ int main(int argc, char *argv[]) {
     {"port",        1, 0, 'P'},
     {"host",        1, 0, 'H'},
     {"config",      1, 0, 'c'},
+    {"pumpcnt",     1, 0, 'p'},
     {"clear",       0, 0, 'C'},
     {"on",          0, 0, 'o'},
     {"trigger",     0, 0, 't'},
@@ -76,6 +78,7 @@ int main(int argc, char *argv[]) {
   unsigned skip = 22;
   unsigned batch = 0;
   unsigned max_display = 0;
+  unsigned pocket_pump = 0;
   bool lUsage = false;
   bool use_clear = false;
   bool use_trigger = false;
@@ -121,6 +124,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'c':
         config = optarg;
+        break;
+      case 'p':
+        pocket_pump = strtoul(optarg, NULL, 0);
         break;
       case 'C':
         use_clear = true;
@@ -258,6 +264,7 @@ int main(int argc, char *argv[]) {
     drv.set_waiting_time(waiting_time);
     drv.set_idle_clear();
     drv.set_external_trigger(use_trigger);
+    drv.set_pocket_pump(pocket_pump);
     //drv.set_frame_poll_interval(10);
 
     unsigned pixels_per_line = config.pixels_per_line();
