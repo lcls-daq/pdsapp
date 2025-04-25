@@ -74,8 +74,10 @@ int main(int argc, char **argv)
   bool show_stats = false;
   bool use_roi = false;
   bool reformat_pixels = false;
+  bool continuous = false;
   int camera_index = 0;
   unsigned num_frames = 1;
+  unsigned num_buffers = 64;
   unsigned link_limit = 450000000;
   unsigned raw_pixel_format = 0;
   unsigned offset_x = 0, offset_y = 0, height = -1, width = -1;
@@ -114,6 +116,7 @@ int main(int argc, char **argv)
           printf("%s: option `-n' parsing error\n", argv[0]);
           lUsage = true;
         }
+        continuous = num_frames == 0;
         break;
       case 'w':
         file_prefix = new char[strlen(optarg)+1];
@@ -265,11 +268,13 @@ int main(int argc, char **argv)
           configured = configured && cam->setPixelFormat(pixel_format);
           // check that configuration was successful
           if (configured) {
+            // Determine the number of buffers to use
+            num_buffers = continuous ? num_buffers : num_frames;
             // Get frame payload size
             VmbInt64_t payloadSize = cam->payloadSize();
-            buffer = new char[num_frames * payloadSize];
-            frames = new VmbFrame_t[num_frames];
-            for (unsigned n=0; n<num_frames; n++) {
+            buffer = new char[num_buffers * payloadSize];
+            frames = new VmbFrame_t[num_buffers];
+            for (unsigned n=0; n<num_buffers; n++) {
               frames[n].buffer = buffer + (payloadSize * n);
               frames[n].bufferSize = payloadSize;
             }
@@ -338,11 +343,11 @@ int main(int argc, char **argv)
             printf("  Temperature (C):        %f (%s)\n", cam->deviceTemperature(), cam->deviceTemperatureSelector());
 
             // register allocated frames
-            cam->registerFrames(frames, num_frames);
+            cam->registerFrames(frames, num_buffers);
             // start capture engine
             cam->captureStart();
             // queue frames
-            cam->queueFrames(frames, num_frames);
+            cam->queueFrames(frames, num_buffers);
             // start acquisition
             cam->acquisitionStart();
 
@@ -360,6 +365,7 @@ int main(int argc, char **argv)
 
             // wait for each frame
             unsigned ncomp = 0;
+            unsigned nbuff = 0;
             bool had_timeout = false;
             do {
               if (shutdown) {
@@ -367,30 +373,44 @@ int main(int argc, char **argv)
                 break;
               }
 
-              if (cam->waitFrame(&frames[ncomp], timeout, &had_timeout)) {
+              if (cam->waitFrame(&frames[nbuff], timeout, &had_timeout)) {
                 if (had_timeout) {
                   continue;
                 } else {
-                  if (frames[ncomp].receiveStatus == VmbFrameStatusComplete) {
-                    printf("\033[32mRecieved frame %u of %u\033[0m\n", ncomp+1, num_frames);
+                  if (frames[nbuff].receiveStatus == VmbFrameStatusComplete) {
+                    if (continuous) {
+                      printf("\033[32mRecieved frame %u\033[0m\n", ncomp+1);
+                    } else {
+                      printf("\033[32mRecieved frame %u of %u\033[0m\n", ncomp+1, num_frames);
+                    }
                   } else {
-                    printf("\033[31mError recieving frame %u of %u: %s\033[0m\n",
-                           ncomp+1, num_frames, FrameStatusCodes::desc(frames[ncomp].receiveStatus));
+                    if (continuous) {
+                      printf("\033[31mError recieving frame %u: %s\033[0m\n",
+                             ncomp+1, FrameStatusCodes::desc(frames[nbuff].receiveStatus));
+                    } else {
+                      printf("\033[31mError recieving frame %u of %u: %s\033[0m\n",
+                             ncomp+1, num_frames, FrameStatusCodes::desc(frames[nbuff].receiveStatus));
+                    }
                   }
                   if (show_stats) {
-                    printf("timestamp: %llu\n", frames[ncomp].timestamp);
-                    printf("status: %s\n", FrameStatusCodes::desc(frames[ncomp].receiveStatus));
-                    printf("framed id %llu\n", frames[ncomp].frameID);
-                    printf("format %s\n", PixelFormatTypes::desc(frames[ncomp].pixelFormat));
+                    printf("timestamp: %llu\n", frames[nbuff].timestamp);
+                    printf("status: %s\n", FrameStatusCodes::desc(frames[nbuff].receiveStatus));
+                    printf("framed id %llu\n", frames[nbuff].frameID);
+                    printf("format %s\n", PixelFormatTypes::desc(frames[nbuff].pixelFormat));
+                  }
+                  // in continuous mode requeue the buffer
+                  if (continuous) {
+                    cam->queueFrames(&frames[nbuff], 1);
                   }
                   ncomp++;
+                  nbuff = ncomp % num_buffers;
                 }
               } else {
                 printf("Frame capture failed - exiting: %s!\n",
-                       FrameStatusCodes::desc(frames[ncomp].receiveStatus));
+                       FrameStatusCodes::desc(frames[nbuff].receiveStatus));
                 break;
               }
-            } while(ncomp<num_frames);
+            } while(continuous || (ncomp<num_frames));
 
             // stop acquisition
             cam->acquisitionStop();
@@ -403,7 +423,7 @@ int main(int argc, char **argv)
 
             // write images to file if requested
             if (file_prefix) {
-              for (unsigned n=0; n<num_frames; n++) {
+              for (unsigned n=0; n<num_buffers; n++) {
                 sprintf(fname, "%s%03d.raw", file_prefix, n+1);
                 FILE *img = fopen(fname, "wb");
                 if (reformat_pixels) {
