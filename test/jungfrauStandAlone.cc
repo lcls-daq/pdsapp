@@ -5,6 +5,7 @@
 #include <getopt.h>
 #include <signal.h>
 #include "pds/jungfrau/Driver.hh"
+#include "pds/jungfrau/InterfaceConfig.hh"
 
 #include <vector>
 
@@ -97,12 +98,14 @@ int main(int argc, char **argv)
   bool use_flow_ctrl = true;
   unsigned gain_value = 0;
   unsigned speed_value = 1;
+  bool recvMacUnset = true;
+  bool detIpUnset = true;
   JungfrauConfigType::GainMode gain = JungfrauConfigType::Normal;
   JungfrauConfigType::SpeedMode speed = JungfrauConfigType::Half;
-  std::vector<char*> sHost;
-  std::vector<char*> sMac;
-  std::vector<char*> sDetIp;
-  std::vector<char*> sSlsHost;
+  std::vector<std::string> sHost;
+  std::vector<std::string> sMac;
+  std::vector<std::string> sDetIp;
+  std::vector<std::string> sSlsHost;
   char* fileName = (char *)NULL;
 
   int optionIndex  = 0;
@@ -146,9 +149,11 @@ int main(int argc, char **argv)
         break;
       case 'm':
         sMac.push_back(optarg);
+        recvMacUnset = false;
         break;
       case 'd':
         sDetIp.push_back(optarg);
+        detIpUnset = false;
         break;
       case 's':
         sSlsHost.push_back(optarg);
@@ -195,12 +200,12 @@ int main(int argc, char **argv)
     lUsage = true;
   }
 
-  if(sMac.size() != num_modules) {
+  if((sMac.size() != num_modules) && (!sMac.empty())) {
     printf("%s: receiver mac address for each module is required\n", argv[0]);
     lUsage = true;
   }
 
-  if(sDetIp.size() != num_modules) {
+  if((sDetIp.size() != num_modules) && (!sDetIp.empty())) {
     printf("%s: detector ip address for each module is required\n", argv[0]);
     lUsage = true;
   }
@@ -266,6 +271,37 @@ int main(int argc, char **argv)
   if (lUsage) {
     showUsage(argv[0]);
     return 1;
+  }
+
+  /*
+   * Determine any missing udp receiver info that is needed (like mac addr or det ip),
+   * and then validate what we have.
+   */
+  for (unsigned i=0; i<num_modules; i++) {
+    if (detIpUnset) {
+      std::string detIp = Pds::Jungfrau::getDetectorIp(sHost[i]);
+      if (detIp.empty()) {
+        printf("Aborting: Unable to determine detector IP for receiver at %s!\n", sHost[i].c_str());
+        return 1;
+      } else {
+        sDetIp.push_back(detIp);
+      }
+    }
+
+    if (recvMacUnset) {
+      std::string recvMac = Pds::Jungfrau::getReceiverMac(sHost[i]);
+      if (recvMac.empty()) {
+        printf("Aborting: Unable to determine mac address for reciever at %s!\n", sHost[i].c_str());
+        return 1;
+      } else {
+        sMac.push_back(recvMac);
+      }
+    }
+
+    if (!Pds::Jungfrau::validateReceiverConfig(sHost[i], sMac[i], sDetIp[i])) {
+      printf("Aborting: Invalid receiver configuration for module %u!\n", i);
+      return 1;
+    }
   }
 
  // add signal handler
