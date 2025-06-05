@@ -256,6 +256,7 @@ static void usage(const char* p)
          "    -p <platform>               platform number\n"
          "    -z <eventsize>              maximum event size[bytes]\n"
          "    -n <eventdepth>             event builder depth\n"
+         "    -a <address>                the address to use for connecting to the IOC (useful for bypassing the gateway)\n"
          "    -r                          allow connections to PVs on remote machines\n"
          "    -w <0/1/2>                  set slow readout mode (default: 0)\n"
          "    -h                          print this message and exit\n", p);
@@ -275,13 +276,14 @@ int main(int argc, char** argv) {
   Pds::Node node(Level::Source,platform);
   DetInfo detInfo(node.pid(), Pds::DetInfo::NoDetector, 0, DetInfo::NoDevice, 0);
   char* uniqueid = (char *)NULL;
+  const char* unicast_addr = NULL;
   unsigned max_event_size = MAX_EVENT_SIZE;
   unsigned max_event_depth = MAX_EVENT_DEPTH;
   char buff[32];
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:b:B:p:u:z:n:f:rw:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:b:B:p:u:z:n:f:a:rw:h")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,detInfo)) {
@@ -320,6 +322,9 @@ int main(int argc, char** argv) {
         printf("%s: option `-f' parsing error\n", argv[0]);
         lUsage = true;
       }
+      break;
+    case 'a':
+      unicast_addr = optarg;
       break;
     case 'r':
       local_ioc = false;
@@ -374,7 +379,19 @@ int main(int argc, char** argv) {
     printf("Setting slow readout mode for pvdaq process.\n");
   }
 
-  if (local_ioc) {
+  if (unicast_addr) {
+    // EPICS_CA_ADDR_LIST only takes numeric addr so we need to resolve any hostnames first
+    hostent* entries = gethostbyname(unicast_addr);
+
+    if (entries) {
+      char* unicast_ip = inet_ntoa(*(struct in_addr *)entries->h_addr_list[0]);
+      printf("Setting EPICS_CA_ADDR_LIST %s\n", unicast_ip);
+      setenv("EPICS_CA_ADDR_LIST", unicast_ip, 1);
+      setenv("EPICS_CA_AUTO_ADDR_LIST", "NO", 1);
+    } else {
+      printf("Unable to resolve %s to an IP address!\n", unicast_addr);
+    }
+  } else if (local_ioc) {
     char dst[64];
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     ifaddrs *ifap, *ifa;
