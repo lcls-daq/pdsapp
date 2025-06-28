@@ -82,7 +82,6 @@ void printUsage(char* name) {
       "                format by the software.\n"
       "    -x      print status\n"
       "    -X      print pgpcard registers at addr for count registers\n"
-      "    -O      set Pgp offset, default is zero\n"
       "    -p      set print flag to value given\n"
       "    -3      Use SLAC register protocol version 3\n"
       "    -K      flag to indicate the card is kcu1500/datadev card\n",
@@ -304,7 +303,7 @@ int main( int argc, char** argv ) {
   Pds::Pgp::Pgp::portOffset(offset);
   pgp = new Pds::Pgp::Pgp(true, fd, debug != 0);
   dest = new Pds::Pgp::Destination(lvcNumb);
-  pgp->allocateVC(1<<(lvcNumb&3), 1<<(lvcNumb>>2));
+  pgp->allocateVC(1<<(dest->vc()), 1<<(dest->lane()));
 
   if (dumpTxBuffers) {
     // memory map
@@ -384,7 +383,7 @@ int main( int argc, char** argv ) {
 //      break;
     case writeCommand:
       if (srpV3) {
-        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset);
+        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset, pgp->isDataDev());
         proto->writeRegister(dest, addr, data);
       }
       else {
@@ -403,7 +402,7 @@ int main( int argc, char** argv ) {
       while (count--) {
         unsigned v;
         if (srpV3) {
-          Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset);
+          Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset, pgp->isDataDev());
           proto->writeRegister(dest, addr, data);
           ret = proto->readRegister(dest, addr, 0, &v);
         }
@@ -425,7 +424,7 @@ int main( int argc, char** argv ) {
       break;
     case readCommand:
       if (srpV3) {
-        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset);
+        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset, pgp->isDataDev());
         ret = proto->readRegister(dest, addr,0x2dbeef, &data);
       }
       else
@@ -435,7 +434,7 @@ int main( int argc, char** argv ) {
     case dumpCommand:
       printf("%s reading %u registers at %x\n", argv[0], count, (unsigned)addr);
       if (srpV3) {
-        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset);
+        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset, pgp->isDataDev());
         for (unsigned i=0; i<count; i++) {
           proto->readRegister(dest, addr+i, 0x2dbeef+i, &data);
           printf("\t%s0x%x - 0x%x\n", addr+i < 0x10 ? " " : "", addr+i, data);
@@ -449,7 +448,7 @@ int main( int argc, char** argv ) {
       break;
     case testCommand:
       if (srpV3) {
-        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset);
+        Pds::Pgp::SrpV3::Protocol* proto = new Pds::Pgp::SrpV3::Protocol(fd, offset, pgp->isDataDev());
         for (unsigned i=0; i<count; i++) {
           proto->writeRegister(dest, addr+i, i);
           proto->readRegister(dest, addr+i,0x2dbeef, &data);
