@@ -2,6 +2,7 @@
 
 CPPFLAGS += -D_ACQIRIS -D_LINUX
 CPPFLAGS += -fno-strict-aliasing
+CPPFLAGS += -Wno-attributes
 #CPPFLAGS += -DBLD_DELAY # for tolerating BLD delays up to 0.5 seconds
 #CPPFLAGS += -fopenmp
 #DEFINES += -fopenmp
@@ -200,7 +201,7 @@ tgtslib_uxi := $(commonslib)
 
 tgtsrcs_zyla :=	zyla.cc
 tgtincs_zyla := pdsdata/include ndarray/include boost/include
-tgtlibs_zyla := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.07
+tgtlibs_zyla := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.09
 tgtslib_zyla := $(commonslib)
 
 tgtsrcs_vimba := vimba.cc

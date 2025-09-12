@@ -2,6 +2,7 @@ libnames :=
 
 libsrcs_test :=
 
+CPPFLAGS += -Wno-attributes
 
 tgtnames := timestampReceiver sqlDbTest timerResolution
 ifneq ($(findstring i386-linux,$(tgt_arch)),)
@@ -57,7 +58,7 @@ tgtslib_andorDualStandAlone := dl pthread rt
 
 tgtsrcs_zylaStandAlone := zylaStandAlone.cc
 tgtincs_zylaStandAlone := pdsdata/include ndarray/include boost/include
-tgtlibs_zylaStandAlone := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.07
+tgtlibs_zylaStandAlone := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.09
 tgtslib_zylaStandAlone := dl pthread rt
 
 tgtsrcs_vimbaStandAlone := vimbaStandAlone.cc
