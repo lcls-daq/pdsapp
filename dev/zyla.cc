@@ -28,16 +28,14 @@ static const AT_WC* AT3_SIMCAM_ID = L"SIMCAM CMOS";
 
 using namespace Pds;
 
-static AT_H Handle = AT_HANDLE_UNINITIALISED;
+static Pds::Zyla::Driver* drv = NULL;
 static const int MAX_CONN_RETRY = 10;
 
 static void close_camera(int isig)
 {
-  if (Handle!=AT_HANDLE_UNINITIALISED) {
-    AT_Close(Handle);
+  if (drv) {
+    drv->stop();
   }
-  AT_FinaliseUtilityLibrary();
-  AT_FinaliseLibrary();
   exit(0);
 }
 
@@ -212,7 +210,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  //AT_H Handle;
+  AT_H Handle = AT_HANDLE_UNINITIALISED;
   AT_Open(camera, &Handle);
 
   /*
@@ -228,7 +226,7 @@ int main(int argc, char** argv) {
   if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 )
     printf("Cannot register signal handler for SIGTERM\n");
 
-  Zyla::Driver* drv = new Zyla::Driver(Handle, num_buffers);
+  drv = new Zyla::Driver(Handle, num_buffers);
   bool cam_timeout = false;
   int retry_count = 0;
   printf("Waiting to camera to initialize ...");
