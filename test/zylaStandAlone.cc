@@ -8,13 +8,14 @@
 #include <string.h>
 #include <signal.h>
 
-static AT_H Handle = AT_HANDLE_UNINITIALISED;
+static Pds::Zyla::Driver* camera = NULL;
 static const int MAX_CONN_RETRY = 10;
 
 static void close_camera(int isig)
 {
-  AT_Close(Handle);
-  AT_FinaliseLibrary();
+  if (camera) {
+    camera->stop();
+  }
   exit(0);
 }
 
@@ -29,6 +30,8 @@ static void show_usage(const char* p)
          "    -r|--roi      <x,y,w,h>                 the dimensions of the camera roi (default: 1,1,2560,2160)\n"
          "    -b|--binning  <x,y>                     the pixel binning of the camera (default: 1,1)\n"
          "    -e|--exposure <exposure>                the exposure time for images in seconds (default: 0.001)\n"
+         "    -l|--limit    <limit>                   limit the free running frame rate to this rate in Hz\n"
+         "    -B|--buffers  <buffers>                 the number of frame buffers to provide to the Andor SDK (default: 5)\n"
          "    -C|--cooling                            enable cooling of the camera\n"
          "    -o|--overlap                            use overlap mode for camera readout\n"
          "    -t|--trigger                            use an external trigger instead for acquistion\n"
@@ -39,7 +42,7 @@ using namespace Pds::Zyla;
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":hc:n:w:s:r:b:e:Cot";
+  const char*         strOptions  = ":hc:n:w:s:r:b:e:l:B:Cot";
   const struct option loOptions[] = {
     {"help",     0, 0, 'h'},
     {"camera",   1, 0, 'c'},
@@ -49,6 +52,8 @@ int main(int argc, char **argv)
     {"roi",      1, 0, 'r'},
     {"binning",  1, 0, 'b'},
     {"exposure", 1, 0, 'e'},
+    {"limit",    1, 0, 'l'},
+    {"buffers",  1, 0, 'B'},
     {"cooling",  0, 0, 'C'},
     {"overlap",  0, 0, 'o'},
     {"trigger",  0, 0, 't'},
@@ -58,6 +63,7 @@ int main(int argc, char **argv)
   bool lUsage = false;
   int camera_index = 0;
   int num_frames = 1;
+  unsigned num_buffers = 5;
   bool enable_cooling = false;
   bool overlap = false;
   AT_64 width = 2560;
@@ -67,6 +73,7 @@ int main(int argc, char **argv)
   AT_64 binX = 1;
   AT_64 binY = 1;
   double exposure = 0.001;
+  double max_frame_rate = 0.0;
   bool noise_filter = false;
   bool blemish_correction = false;
   Driver::CoolingSetpoint cooling_spt = Driver::Temp_0C;
@@ -124,6 +131,18 @@ int main(int argc, char **argv)
       case 'e':
         if (!Pds::CmdLineTools::parseDouble(optarg,exposure)) {
           printf("%s: option `-e' parsing error\n", argv[0]);
+          lUsage = true;
+        }
+        break;
+      case 'l':
+        if (!Pds::CmdLineTools::parseDouble(optarg,max_frame_rate)) {
+            printf("%s: option `-l' parsing error\n", argv[0]);
+            lUsage = true;
+        }
+        break;
+      case 'B':
+        if (!Pds::CmdLineTools::parseUInt(optarg,num_buffers)) {
+          printf("%s: option `-B' parsing error\n", argv[0]);
           lUsage = true;
         }
         break;
@@ -185,11 +204,11 @@ int main(int argc, char **argv)
     return 1;
   }
   
-  //AT_H Handle;
+  AT_H Handle = AT_HANDLE_UNINITIALISED;
   AT_Open(camera_index, &Handle);
 
   /*
-   * Register singal handler
+   * Register signal handler
    */
   struct sigaction sigActionSettings;
   sigemptyset(&sigActionSettings.sa_mask);
@@ -201,7 +220,7 @@ int main(int argc, char **argv)
   if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 )
     printf("Cannot register signal handler for SIGTERM\n");
 
-  Driver* camera = new Driver(Handle);
+  camera = new Driver(Handle, num_buffers);
   bool cam_timeout = false;
   int retry_count = 0;
   printf("Waiting to camera to initialize ...");
@@ -253,6 +272,10 @@ int main(int argc, char **argv)
   if (trigger == Driver::External) {
     printf("Using external trigger for acquistion\n");
   } else {
+    if (max_frame_rate > 0.0) {
+      printf("Limiting camera frame rate (Hz) : %g\n", max_frame_rate);
+      camera->set_max_frame_rate(max_frame_rate);
+    }
     printf("Estimated camera frame rate (Hz) : %g\n", camera->frame_rate());
   }
   printf("Image exposure time (sec) : %g\n", camera->exposure());
