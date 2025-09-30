@@ -355,7 +355,7 @@ tgtslib_andordual := $(commonslib) ${USRLIBDIR}/dl ${USRLIBDIR}/pthread
 tgtincs_andordual := pdsdata/include ndarray/include boost/include epics/include epics/include/os/Linux
 
 libPicam := picam/picam picam/GenApi_gcc40_v2_4 picam/GCBase_gcc40_v2_4 picam/MathParser_gcc40_v2_4 picam/log4cpp_gcc40_v2_4 picam/Log_gcc40_v2_4
-libPicam += picam/piac picam/pidi picam/picc picam/pida picam/PvBase picam/PvDevice picam/PvBuffer picam/PvPersistence picam/ftd2xx
+libPicam += picam/piac picam/pidi picam/picc picam/pida picam/PvBase picam/PvDevice picam/PvBuffer picam/PvPersistence
 libPicam += picam/PvStream picam/PvGenICam picam/PvSerial picam/PtUtilsLib picam/EbUtilsLib
 libPicam += picam/PtConvertersLib picam/EbTransportLayerLib
 
