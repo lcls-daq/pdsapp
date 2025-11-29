@@ -15,12 +15,13 @@ endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
 tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone archonStandAlone picamStandAlone uxiStandAlone
-tgtnames += vimbaStandAlone
+tgtnames += vimbaStandAlone jungfrauRegisterDump
+CPPFLAGS += -std=c++11
 endif
 
 ifneq ($(findstring x86_64-rhel9,$(tgt_arch)),)
 tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone archonStandAlone picamStandAlone uxiStandAlone
-tgtnames += vimbaStandAlone
+tgtnames += vimbaStandAlone jungfrauRegisterDump
 endif
 
 commonlibs	:= pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -42,6 +43,11 @@ tgtincs_jungfrauStandAlone := pdsdata/include ndarray/include boost/include
 tgtlibs_jungfrauStandAlone := $(commonlibs) pds/configdata
 tgtlibs_jungfrauStandAlone += pds/jungfrau slsdet/SlsDetector zeromq/zmq
 tgtslib_jungfrauStandAlone := dl pthread rt
+
+tgtsrcs_jungfrauRegisterDump := jungfrauRegisterDump.cc
+tgtincs_jungfrauRegisterDump := slsdet/include
+tgtlibs_jungfrauRegisterDump := slsdet/SlsDetector zeromq/zmq
+tgtslib_jungfrauRegisterDump := dl pthread rt
 
 tgtsrcs_princetonCameraTest := princetonCameraTest.cc
 tgtlibs_princetonCameraTest := pds/princetonutil pvcam/pvcam
