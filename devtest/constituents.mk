@@ -38,6 +38,10 @@ ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
 tgtnames += pgpaeswidget
 endif
 
+ifneq ($(findstring x86_64-rhel9,$(tgt_arch)),)
+tgtnames += pgpaeswidget
+endif
+
 tgtsrcs_evrobs := evrobs.cc
 tgtincs_evrobs := evgr
 tgtlibs_evrobs := pdsdata/xtcdata evgr/evr evgr/evg pds/service pds/collection pds/xtc pds/utility pds/management pds/client pds/evgr 
