@@ -106,6 +106,7 @@ int main(int argc, char** argv) {
   const char* serial_id = NULL;
   VmbError_t err = VmbErrorSuccess;
   VmbCameraInfo_t info;
+  VmbTransportLayerInfo_t tl_info;
   VmbVersionInfo_t version;
   std::list<Appliance*> apps;
   
@@ -245,7 +246,7 @@ int main(int argc, char** argv) {
   printf("Using %s=\"%s\"\n", GENICAM_ENV, getenv(GENICAM_ENV));
 
   // initialize the vimba sdk
-  if ((err = VmbStartup()) != VmbErrorSuccess) {
+  if ((err = VmbStartup(NULL)) != VmbErrorSuccess) {
     printf("Failed to initialize Vimba SDK!: %s\n", Vimba::ErrorCodes::desc(err));
     return 1;
   }
@@ -266,13 +267,23 @@ int main(int argc, char** argv) {
            "  Name       - %s\n"
            "  Model      - %s\n"
            "  ID         - %s\n"
-           "  Serial Num - %s\n"
-           "  Interface  - %s\n",
+           "  ExtendedId - %s\n"
+           "  Serial Num - %s\n",
            info.cameraName,
            info.modelName,
            info.cameraIdString,
-           info.serialString,
-           info.interfaceIdString);
+           info.cameraIdExtended,
+           info.serialString);
+    if (Vimba::Camera::getTransportLayerInfo(&tl_info, info.transportLayerHandle)) {
+      printf("Camera Transport Layer:\n");
+      printf("  ID         - %s\n", tl_info.transportLayerIdString);
+      printf("  Name       - %s\n", tl_info.transportLayerName);
+      printf("  Model      - %s\n", tl_info.transportLayerModelName);
+      printf("  Vendor     - %s\n", tl_info.transportLayerVendor);
+      printf("  Version    - %s\n", tl_info.transportLayerVersion);
+      printf("  Path       - %s\n", tl_info.transportLayerPath);
+      printf("  Type       - %s\n", Vimba::TransportTypes::desc(tl_info.transportLayerType));
+    }
     // Initialize the camera object
     cam = new Vimba::Camera(&info);
     if (cam->isOpen()) {

@@ -43,6 +43,7 @@ static void show_usage(const char* p)
          "    -b|--block                              set frame wait to block forever\n"
          "    -S|--stats                              display stats about captured frames\n"
          "    -t|--trigger                            use external trigger\n"
+         "    -m|--maxfails <max fails>               maximum consecutive frame capture fails before giving up (default: 5)\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
@@ -50,7 +51,7 @@ using namespace Pds::Vimba;
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":hc:s:n:w:r:e:p:flL:bSt";
+  const char*         strOptions  = ":hc:s:n:w:r:e:p:flL:bStm:";
   const struct option loOptions[] = {
     {"help",     0, 0, 'h'},
     {"camera",   1, 0, 'c'},
@@ -66,6 +67,7 @@ int main(int argc, char **argv)
     {"block",    0, 0, 'b'},
     {"stats",    0, 0, 'S'},
     {"trigger",  0, 0, 't'},
+    {"maxfails", 1, 0, 'm'},
     {0,          0, 0,  0 }
   };
 
@@ -81,6 +83,7 @@ int main(int argc, char **argv)
   unsigned link_limit = 450000000;
   unsigned raw_pixel_format = 0;
   unsigned offset_x = 0, offset_y = 0, height = -1, width = -1;
+  unsigned max_fails = 5;
   char* buffer = NULL;
   char* file_prefix = (char *)NULL;
   char fname[128];
@@ -90,6 +93,7 @@ int main(int argc, char **argv)
   VmbError_t err = VmbErrorSuccess;
   VmbCameraInfo_t info;
   VmbVersionInfo_t version;
+  VmbTransportLayerInfo_t tl_info;
   VmbFrame_t* frames = NULL;
   Camera* cam = NULL;
   Camera::PixelFormat pixel_format = Camera::Mono8;
@@ -168,6 +172,12 @@ int main(int argc, char **argv)
       case 't':
         trig_mode = Camera::External;
         break;
+      case 'm':
+        if (!Pds::CmdLineTools::parseUInt(optarg,max_fails)) {
+          printf("%s: option `-m' parsing error\n", argv[0]);
+          lUsage = true;
+        }
+        break;
       case '?':
         if (optopt)
           printf("%s: Unknown option: %c\n", argv[0], optopt);
@@ -201,7 +211,7 @@ int main(int argc, char **argv)
   printf("Using %s=\"%s\"\n", GENICAM_ENV, getenv(GENICAM_ENV));
 
   // initialize the vimba sdk
-  if ((err = VmbStartup()) != VmbErrorSuccess) {
+  if ((err = VmbStartup(NULL)) != VmbErrorSuccess) {
     printf("Failed to initialize Vimba SDK!: %s\n", ErrorCodes::desc(err));
     return 1;   
   }
@@ -235,13 +245,23 @@ int main(int argc, char **argv)
            "  Name       - %s\n"
            "  Model      - %s\n"
            "  ID         - %s\n"
-           "  Serial Num - %s\n"
-           "  Interface  - %s\n",
+           "  ExtendedId - %s\n"
+           "  Serial Num - %s\n",
            info.cameraName,
            info.modelName,
            info.cameraIdString,
-           info.serialString,
-           info.interfaceIdString);
+           info.cameraIdExtended,
+           info.serialString);
+    if (Camera::getTransportLayerInfo(&tl_info, info.transportLayerHandle)) {
+      printf("Camera Transport Layer:\n");
+      printf("  ID         - %s\n", tl_info.transportLayerIdString);
+      printf("  Name       - %s\n", tl_info.transportLayerName);
+      printf("  Model      - %s\n", tl_info.transportLayerModelName);
+      printf("  Vendor     - %s\n", tl_info.transportLayerVendor);
+      printf("  Version    - %s\n", tl_info.transportLayerVersion);
+      printf("  Path       - %s\n", tl_info.transportLayerPath);
+      printf("  Type       - %s\n", TransportTypes::desc(tl_info.transportLayerType));
+    }
     // Initialize the camera object
     cam = new Camera(&info);
     if (cam->isOpen()) {
@@ -271,12 +291,12 @@ int main(int argc, char **argv)
             // Determine the number of buffers to use
             num_buffers = continuous ? num_buffers : num_frames;
             // Get frame payload size
-            VmbInt64_t payloadSize = cam->payloadSize();
+            size_t payloadSize = cam->payloadSize();
             buffer = new char[num_buffers * payloadSize];
             frames = new VmbFrame_t[num_buffers];
             for (unsigned n=0; n<num_buffers; n++) {
               frames[n].buffer = buffer + (payloadSize * n);
-              frames[n].bufferSize = payloadSize;
+              frames[n].bufferSize = (VmbUint32_t) payloadSize;
             }
 
             // show image format information
@@ -357,6 +377,9 @@ int main(int argc, char **argv)
             printf("  Stream Buffer Mode:     %s\n", cam->streamBufferHandlingMode());
             printf("  Stream Buffer Minimum:  %lld\n", cam->streamAnnounceBufferMinimum());
             printf("  Stream Buffer Count:    %lld\n", cam->streamAnnouncedBufferCount());
+            printf("  Stream ID:              %s\n", cam->streamID().c_str());
+            printf("  Stream Type:            %s\n", cam->streamType());
+            printf("  Stream Running:         %s\n", Bool::desc(cam->streamIsGrabbing()));
             // show the maximum frame rate based on current camera settings
             printf("Maximum frame rate is %f Hz\n", cam->acquisitionFrameRate());
             if (file_prefix) {
@@ -366,6 +389,7 @@ int main(int argc, char **argv)
             // wait for each frame
             unsigned ncomp = 0;
             unsigned nbuff = 0;
+            unsigned nfail = 0;
             bool had_timeout = false;
             do {
               if (shutdown) {
@@ -406,9 +430,14 @@ int main(int argc, char **argv)
                   nbuff = ncomp % num_buffers;
                 }
               } else {
-                printf("Frame capture failed - exiting: %s!\n",
-                       FrameStatusCodes::desc(frames[nbuff].receiveStatus));
-                break;
+                printf("\033[31mError capturing frame %u\033[0m\n", ncomp+1);
+                nfail++;
+                ncomp++;
+                nbuff = ncomp % num_buffers;
+                if (nfail > max_fails) {
+                  printf("\033[31mFrame capture failed %u times in row - exiting!\033[0m\n", nfail);
+                  break;
+                }
               }
             } while(continuous || (ncomp<num_frames));
 
@@ -433,7 +462,7 @@ int main(int argc, char **argv)
                   fwrite(convertedImage, 1, convertedImageSize, img);
                   delete[] convertedImage;
                 } else {
-                  fwrite(frames[n].buffer, 1, frames[n].imageSize, img);
+                  fwrite(frames[n].buffer, 1, frames[n].bufferSize, img);
                 }
                 fclose(img);
               }

@@ -68,8 +68,9 @@ tgtlibs_zylaStandAlone := $(commonlibs) pds/zyla andor3/atcore andor3/atutility 
 tgtslib_zylaStandAlone := dl pthread rt
 
 tgtsrcs_vimbaStandAlone := vimbaStandAlone.cc
-tgtincs_vimbaStandAlone := pdsdata/include ndarray/include boost/include
-tgtlibs_vimbaStandAlone := $(commonlibs) pds/configdata pds/vimba vimba/VimbaC vimba/VimbaImageTransform
+tgtincs_vimbaStandAlone := vimba/include
+tgtincs_vimbaStandAlone += pdsdata/include ndarray/include boost/include
+tgtlibs_vimbaStandAlone := $(commonlibs) pds/configdata pds/vimba vimba/VmbC vimba/VmbImageTransform
 tgtslib_vimbaStandAlone := dl pthread rt
 
 libPicam := picam/picam picam/GenApi_gcc40_v2_4 picam/GCBase_gcc40_v2_4 picam/MathParser_gcc40_v2_4 picam/log4cpp_gcc40_v2_4 picam/Log_gcc40_v2_4

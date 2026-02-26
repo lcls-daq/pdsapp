@@ -205,8 +205,9 @@ tgtlibs_zyla := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atc
 tgtslib_zyla := $(commonslib)
 
 tgtsrcs_vimba := vimba.cc
-tgtincs_vimba := pdsdata/include ndarray/include boost/include
-tgtlibs_vimba := $(commonlibs) pds/configdata pds/vimba vimba/VimbaC vimba/VimbaImageTransform
+tgtincs_vimba := vimba/include
+tgtincs_vimba += pdsdata/include ndarray/include boost/include
+tgtlibs_vimba := $(commonlibs) pds/configdata pds/vimba vimba/VmbC vimba/VmbImageTransform
 tgtslib_vimba := $(commonslib) ${USRLIBDIR}/dl
 
 tgtsrcs_evr := evr.cc
