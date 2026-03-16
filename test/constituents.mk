@@ -15,7 +15,7 @@ endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
 tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone archonStandAlone picamStandAlone uxiStandAlone
-tgtnames += vimbaStandAlone jungfrauRegisterDump
+tgtnames += jungfrauRegisterDump
 CPPFLAGS += -std=c++11
 endif
 
