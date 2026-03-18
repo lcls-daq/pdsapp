@@ -301,12 +301,12 @@ const std::list<NodeMap>& SelectDialog::segment_map() const { return _segment_ma
 
 bool        SelectDialog::l3_tag () const 
 {
-  return _evtbox->useL3F ()&&~_evtbox->useVeto(); 
+  return _evtbox->useL3F () && !_evtbox->useVeto();
 }
 
 bool        SelectDialog::l3_veto() const 
 {
-  return _evtbox->useL3F ()&& _evtbox->useVeto(); 
+  return _evtbox->useL3F () && _evtbox->useVeto();
 }
 
 std::string SelectDialog::l3_path() const 
