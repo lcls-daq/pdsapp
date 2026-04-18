@@ -333,7 +333,7 @@ int main(int argc, char** argv) {
   Vimba::Server* srv = new Vimba::Server(detInfo);
   servers.push_back(srv);
 
-  Vimba::FrameBuffer* buf = new Vimba::FrameBuffer(num_buffers, cam, srv);
+  Vimba::ServerFrameBuffer* buf = new Vimba::ServerFrameBuffer(num_buffers, cam, srv);
 
   Vimba::Manager* mgr = new Vimba::Manager(*buf, *srv, *cfg);
   apps.push_back(&mgr->appliance());
