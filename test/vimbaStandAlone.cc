@@ -10,13 +10,15 @@
 #include <string.h>
 #include <signal.h>
 
-static VmbUint32_t timeout = 1000; // 1 second
-static bool shutdown = false;
+static Pds::Vimba::SimpleFrameBuffer* framebuf = NULL;
 static const char* GENICAM_ENV = "GENICAM_GENTL64_PATH";
 
 static void close_camera(int isig)
 {
-  shutdown = true;
+  if (framebuf) {
+    printf("Frame capture has been cancelled - cleaning up...\n");
+    framebuf->cancel();
+  }
 }
 
 static void show_usage(const char* p)
@@ -40,7 +42,6 @@ static void show_usage(const char* p)
          "    -f|--format                             convert pixel format of images to 16bits per pixel\n"
          "    -l|--list                               list the features of the camera\n"
          "    -L|--limit    <link limit>              limit the link speed to this value (default: 450000000 Bytes/s)\n"
-         "    -b|--block                              set frame wait to block forever\n"
          "    -S|--stats                              display stats about captured frames\n"
          "    -t|--trigger                            use external trigger\n"
          "    -m|--maxfails <max fails>               maximum consecutive frame capture fails before giving up (default: 5)\n"
@@ -51,7 +52,7 @@ using namespace Pds::Vimba;
 
 int main(int argc, char **argv)
 {
-  const char*         strOptions  = ":hc:s:n:w:r:e:p:flL:bStm:";
+  const char*         strOptions  = ":hc:s:n:w:r:e:p:flL:Stm:";
   const struct option loOptions[] = {
     {"help",     0, 0, 'h'},
     {"camera",   1, 0, 'c'},
@@ -64,7 +65,6 @@ int main(int argc, char **argv)
     {"format",   1, 0, 'f'},
     {"list",     0, 0, 'l'},
     {"limit",    1, 0, 'L'},
-    {"block",    0, 0, 'b'},
     {"stats",    0, 0, 'S'},
     {"trigger",  0, 0, 't'},
     {"maxfails", 1, 0, 'm'},
@@ -76,7 +76,6 @@ int main(int argc, char **argv)
   bool show_stats = false;
   bool use_roi = false;
   bool reformat_pixels = false;
-  bool continuous = false;
   int camera_index = 0;
   unsigned num_frames = 1;
   unsigned num_buffers = 64;
@@ -84,9 +83,7 @@ int main(int argc, char **argv)
   unsigned raw_pixel_format = 0;
   unsigned offset_x = 0, offset_y = 0, height = -1, width = -1;
   unsigned max_fails = 5;
-  char* buffer = NULL;
-  char* file_prefix = (char *)NULL;
-  char fname[128];
+  const char* file_prefix = NULL;
   double exposure = 200.0;
   Camera::TriggerMode trig_mode = Camera::FreeRun;
   const char* serial_id = NULL;
@@ -94,7 +91,6 @@ int main(int argc, char **argv)
   VmbCameraInfo_t info;
   VmbVersionInfo_t version;
   VmbTransportLayerInfo_t tl_info;
-  VmbFrame_t* frames = NULL;
   Camera* cam = NULL;
   Camera::PixelFormat pixel_format = Camera::Mono8;
 
@@ -120,11 +116,9 @@ int main(int argc, char **argv)
           printf("%s: option `-n' parsing error\n", argv[0]);
           lUsage = true;
         }
-        continuous = num_frames == 0;
         break;
       case 'w':
-        file_prefix = new char[strlen(optarg)+1];
-        strcpy(file_prefix, optarg);
+        file_prefix = optarg;
         break;
       case 'r':
         if (Pds::CmdLineTools::parseUInt(optarg,offset_x,offset_y,width,height)!=4) {
@@ -162,9 +156,6 @@ int main(int argc, char **argv)
           printf("%s: option `-L' parsing error\n", argv[0]);
           lUsage = true;
         }
-        break;
-      case 'b':
-        timeout = VMBINFINITE;
         break;
       case 'S':
         show_stats = true;
@@ -288,16 +279,8 @@ int main(int argc, char **argv)
           configured = configured && cam->setPixelFormat(pixel_format);
           // check that configuration was successful
           if (configured) {
-            // Determine the number of buffers to use
-            num_buffers = continuous ? num_buffers : num_frames;
-            // Get frame payload size
-            size_t payloadSize = cam->payloadSize();
-            buffer = new char[num_buffers * payloadSize];
-            frames = new VmbFrame_t[num_buffers];
-            for (unsigned n=0; n<num_buffers; n++) {
-              frames[n].buffer = buffer + (payloadSize * n);
-              frames[n].bufferSize = (VmbUint32_t) payloadSize;
-            }
+            // Create the frame buffer / acquisition handler
+            framebuf = new SimpleFrameBuffer(num_buffers, num_frames, cam, file_prefix, show_stats, reformat_pixels);
 
             // show image format information
             printf("Image information:\n");
@@ -331,13 +314,15 @@ int main(int argc, char **argv)
             printf("  Gain Selector:          %s\n", cam->gainSelector());
             printf("  Gamma:                  %f\n", cam->gamma());
             // show image correction information
-            printf("Correction information:\n");
-            printf("  Correction Mode:        %s\n", cam->correctionMode());
-            printf("  Correction Selector:    %s\n", cam->correctionSelector());
-            printf("  Correction Set:         %s\n", cam->correctionSet());
-            printf("  Correction Set Default: %s\n", cam->correctionSetDefault());
-            printf("  Correction Data Size:   %lld\n", cam->correctionDataSize());
-            printf("  Correction Entry Type:  %lld\n", cam->correctionEntryType());
+            if (cam->imageCorrectionAvailable()) {
+              printf("Correction information:\n");
+              printf("  Correction Mode:        %s\n", cam->correctionMode());
+              printf("  Correction Selector:    %s\n", cam->correctionSelector());
+              printf("  Correction Set:         %s\n", cam->correctionSet());
+              printf("  Correction Set Default: %s\n", cam->correctionSetDefault());
+              printf("  Correction Data Size:   %lld\n", cam->correctionDataSize());
+              printf("  Correction Entry Type:  %lld\n", cam->correctionEntryType());
+            }
             // show device information
             printf("Device information:\n");
             printf("  Vendor name:            %s\n", cam->deviceVendorName().c_str());
@@ -362,14 +347,8 @@ int main(int argc, char **argv)
             printf("  LED brightness:         %lld\n", cam->deviceIndicatorLuminance());
             printf("  Temperature (C):        %f (%s)\n", cam->deviceTemperature(), cam->deviceTemperatureSelector());
 
-            // register allocated frames
-            cam->registerFrames(frames, num_buffers);
-            // start capture engine
-            cam->captureStart();
-            // queue frames
-            cam->queueFrames(frames, num_buffers);
-            // start acquisition
-            cam->acquisitionStart();
+            // allocate frames, start capture engine, and queue frames
+            framebuf->configure();
 
             // show readout buffer information
             printf("Buffer information:\n");
@@ -386,87 +365,18 @@ int main(int argc, char **argv)
               printf("Images will be saved with the naming scheme: %sXXX.raw\n", file_prefix);
             }
 
-            // wait for each frame
-            unsigned ncomp = 0;
-            unsigned nbuff = 0;
-            unsigned nfail = 0;
-            bool had_timeout = false;
-            do {
-              if (shutdown) {
-                printf("Frame capture has been cancelled - cleaning up...\n");
-                break;
-              }
-
-              if (cam->waitFrame(&frames[nbuff], timeout, &had_timeout)) {
-                if (had_timeout) {
-                  continue;
-                } else {
-                  if (frames[nbuff].receiveStatus == VmbFrameStatusComplete) {
-                    if (continuous) {
-                      printf("\033[32mRecieved frame %u\033[0m\n", ncomp+1);
-                    } else {
-                      printf("\033[32mRecieved frame %u of %u\033[0m\n", ncomp+1, num_frames);
-                    }
-                  } else {
-                    if (continuous) {
-                      printf("\033[31mError recieving frame %u: %s\033[0m\n",
-                             ncomp+1, FrameStatusCodes::desc(frames[nbuff].receiveStatus));
-                    } else {
-                      printf("\033[31mError recieving frame %u of %u: %s\033[0m\n",
-                             ncomp+1, num_frames, FrameStatusCodes::desc(frames[nbuff].receiveStatus));
-                    }
-                  }
-                  if (show_stats) {
-                    printf("timestamp: %llu\n", frames[nbuff].timestamp);
-                    printf("status: %s\n", FrameStatusCodes::desc(frames[nbuff].receiveStatus));
-                    printf("framed id %llu\n", frames[nbuff].frameID);
-                    printf("format %s\n", PixelFormatTypes::desc(frames[nbuff].pixelFormat));
-                  }
-                  // in continuous mode requeue the buffer
-                  if (continuous) {
-                    cam->queueFrames(&frames[nbuff], 1);
-                  }
-                  ncomp++;
-                  nbuff = ncomp % num_buffers;
-                }
-              } else {
-                printf("\033[31mError capturing frame %u\033[0m\n", ncomp+1);
-                nfail++;
-                ncomp++;
-                nbuff = ncomp % num_buffers;
-                if (nfail > max_fails) {
-                  printf("\033[31mFrame capture failed %u times in row - exiting!\033[0m\n", nfail);
-                  break;
-                }
-              }
-            } while(continuous || (ncomp<num_frames));
-
-            // stop acquisition
-            cam->acquisitionStop();
-            // end capture
-            cam->captureEnd();
-            // flush the frame queue
-            cam->flushFrames();
-            // unregister the frames
-            cam->unregisterAllFrames();
-
-            // write images to file if requested
-            if (file_prefix) {
-              for (unsigned n=0; n<num_buffers; n++) {
-                sprintf(fname, "%s%03d.raw", file_prefix, n+1);
-                FILE *img = fopen(fname, "wb");
-                if (reformat_pixels) {
-                  VmbUint32_t convertedImageSize = FrameBuffer::sizeAs16Bit(&frames[n]);
-                  char* convertedImage = new char[convertedImageSize];
-                  FrameBuffer::copyAs16Bit(&frames[n], convertedImage);
-                  fwrite(convertedImage, 1, convertedImageSize, img);
-                  delete[] convertedImage;
-                } else {
-                  fwrite(frames[n].buffer, 1, frames[n].bufferSize, img);
-                }
-                fclose(img);
-              }
+            // only start acquisition if we intended to acquire frames
+            if (num_frames > 0) {
+              // start acquisition
+              framebuf->enable();
+              // wait for acquisition to finish or be canceled
+              framebuf->wait();
+              // stop acquistion
+              framebuf->disable();
             }
+
+            // flush queue and deallocate frames
+            framebuf->unconfigure();
           }
         } catch(VimbaException& e) {
           printf("Exception encountered configuring camera: %s\n", e.what());
@@ -479,13 +389,16 @@ int main(int argc, char **argv)
     printf("Failed to find a camera\n");
   }
 
+  // delete the frame buffer object
+  if (framebuf) {
+    delete framebuf;
+    framebuf = NULL;
+  }
   // delete the camera object
-  delete cam;
-  // delete the frames and data buffer
-  if (frames) delete[] frames;
-  if (buffer) delete[] buffer;
-  // delete the file prefix
-  if (file_prefix) delete[] file_prefix;
+  if (cam) {
+    delete cam;
+    cam = NULL;
+  }
 
   // shutdown the vimba sdk
   VmbShutdown();
