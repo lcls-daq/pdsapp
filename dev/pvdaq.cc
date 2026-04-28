@@ -36,211 +36,12 @@
 #include <stdio.h>
 #include <signal.h>
 #include <ifaddrs.h>
+#include <dlfcn.h>
 
 static const unsigned MAX_EVENT_SIZE = 4*1024*1024;
 static const unsigned MAX_EVENT_DEPTH = 64;
 static const unsigned net_buf_depth = 16;
 static const unsigned EvrBufferDepth = 32;
-
-#if 0
-namespace Pds {
-
-  // remove
-  class MyEvrServer : public NullServer {
-  public:
-    MyEvrServer(const Ins& ins,
-                const Src& src,
-                unsigned   maxsiz,
-                unsigned   maxevt) : NullServer(ins,src,maxsiz,maxevt) {}
-  public:
-    bool isValued  () const { return true; }
-    bool isRequired() const { return true; }
-  };
-
-  static MyEvrServer* _evrServer = 0;
-
-  //  Replace with TaggedStreams
-  class PvDaqStreams : public WiredStreams {
-  public:
-    PvDaqStreams(PartitionMember& m,
-                 unsigned         max_event_size,
-                 unsigned         max_event_depth) :
-      WiredStreams(VmonSourceId(m.header().level(), m.header().ip()))
-    {
-      unsigned max_size = MAX_EVENT_SIZE;
-
-      const Node& node = m.header();
-      Level::Type level = node.level();
-      int ipaddress = node.ip();
-      const Src& src = m.header().procInfo();
-      for (int s = 0; s < StreamParams::NumberOfStreams; s++) {
-
-        _outlets[s] = new ToEventWireScheduler(*stream(s)->outlet(),
-                                               m,
-                                               ipaddress,
-                                               max_size*net_buf_depth,
-                                               m.occurrences());
-
-        EbS* ebs = new EbS(src,
-                           _xtcType,
-                           level,
-                           *stream(s)->inlet(),
-                           *_outlets[s],
-                           s,
-                           ipaddress,
-                           max_event_size, max_event_depth, 0,
-                           new VmonEb(src,32,max_event_depth,(1<<23),max_event_size));
-        ebs->require_in_order(true);
-        ebs->printSinks(false); // these are routine
-        _inlet_wires[s] = ebs;
-
-        (new VmonServerAppliance(src))->connect(stream(s)->inlet());
-      }
-    }
-    ~PvDaqStreams() {
-      for (int s = 0; s < StreamParams::NumberOfStreams; s++) {
-        delete _inlet_wires[s];
-        delete _outlets[s];
-      }
-    }
-  };
-
-  //  replace with SegmentLevel
-  class PvDaqSegmentLevel : public SegmentLevel {
-  public:
-    PvDaqSegmentLevel(unsigned     platform,
-                      Pds::SegWireSettings& settings,
-                      EventCallback& cb) :
-      SegmentLevel(platform, settings, cb, 0, 0) {}
-    ~PvDaqSegmentLevel() {}
-  public:
-    bool attach() {
-      start();
-      if (connect()) {
-        _streams = new PvDaqStreams(*this,
-                                    _settings.max_event_size(),
-                                    _settings.max_event_depth());  // specialized here
-        _streams->connect();
-
-        _callback.attached(*_streams);
-
-        //  Add the L1 Data servers
-        _settings.connect(*_streams->wire(StreamParams::FrameWork),
-                          StreamParams::FrameWork,
-                          header().ip());
-
-        //    Message join(Message::Ping);
-        //    mcast(join);
-        _reply.ready(true);
-        mcast(_reply);
-        return true;
-      } else {
-        _callback.failed(EventCallback::PlatformUnavailable);
-        return false;
-      }
-    }
-    void allocated(const Allocation& alloc, unsigned index) {
-      //  add segment level EVR
-      unsigned partition = alloc.partitionid();
-      unsigned nnodes    = alloc.nnodes();
-      InletWire & inlet  = *_streams->wire(StreamParams::FrameWork);
-
-      for (unsigned n = 0; n < nnodes; n++) {
-        const Node & node = *alloc.node(n);
-        if (node.level() == Level::Segment &&
-	    node == _header) {
-	  _contains = node.transient()?_transientXtcType:_xtcType;  // transitions
-	  static_cast<EbBase&>(inlet).contains(_contains);  // l1accepts
-	}
-      }
-
-      for (unsigned n = 0; n < nnodes; n++) {
-        const Node & node = *alloc.node(n);
-        if (node.level() == Level::Segment) {
-          Ins ins = StreamPorts::event(partition, Level::Observer, 0, 0);
-          _evrServer =
-            new MyEvrServer(ins,
-                           header().procInfo(),
-                           sizeof(EvrDataType)+256*sizeof(Pds::EvrData::FIFOEvent),
-                           EvrBufferDepth);
-
-          Ins mcastIns(ins.address());
-          _evrServer->server().join(mcastIns, Ins(header().ip()));
-
-          inlet.add_input(_evrServer);
-          _inputs.push_back(_evrServer);
-          break;
-        }
-      }
-
-      unsigned vectorid = 0;
-
-      for (unsigned n = 0; n < nnodes; n++) {
-        const Node & node = *alloc.node(n);
-        if (node.level() == Level::Event) {
-          // Add vectored output clients on inlet
-          Ins ins = StreamPorts::event(partition,
-                                       Level::Event,
-                                       vectorid,
-                                       index);
-          InletWireIns wireIns(vectorid, ins);
-          inlet.add_output(wireIns);
-          printf("SegmentLevel::allocated adding output %d to %x/%d\n",
-                 vectorid, ins.address(), ins.portId());
-          vectorid++;
-        }
-      }
-      OutletWire* owire = _streams->stream(StreamParams::FrameWork)->outlet()->wire();
-      owire->bind(OutletWire::Bcast, StreamPorts::bcast(partition,
-                                                        Level::Event,
-                                                        index));
-
-      //
-      //  Assign traffic shaping phase
-      //
-      const int pid = getpid();
-      unsigned s=0;
-      for(unsigned n=0; n<nnodes; n++) {
-        const Node& node = *alloc.node(n);
-        if (node.level()==Level::Segment) {
-          if (node.pid()==pid) {
-            ToEventWireScheduler::setPhase  (s % vectorid);
-            ToEventWireScheduler::setMaximum(vectorid);
-            ToEventWireScheduler::shapeTmo  (alloc.options()&Allocation::ShapeTmo);
-            break;
-          }
-          s++;
-        }
-      }
-    }
-    void dissolved() {
-      _evrServer = 0;
-      for(std::list<Server*>::iterator it=_inputs.begin(); it!=_inputs.end(); it++)
-        static_cast <InletWireServer*>(_streams->wire())->remove_input(*it);
-      _inputs.clear();
-
-      static_cast <InletWireServer*>(_streams->wire())->remove_outputs();
-    }
-  private:
-#ifdef DBUG
-    void post(const Transition& tr) {
-      printf("Transition %s\n");
-      static_cast<InletWireServer*>(_streams->wire(StreamParams::FrameWork))->dump();
-
-      //      SegmentLevel::post(tr);
-      if (tr.id()!=TransitionId::L1Accept) {
-        _streams->wire(StreamParams::FrameWork)->flush_inputs();
-        _streams->wire(StreamParams::FrameWork)->flush_outputs();
-      }
-      _streams->wire(StreamParams::FrameWork)->post(tr);
-    }
-#endif
-
-  private:
-    std::list<Server*> _inputs;
-  };
-}
-#endif
 
 using namespace Pds;
 
@@ -259,6 +60,7 @@ static void usage(const char* p)
          "    -a <address>                the address to use for connecting to the IOC (useful for bypassing the gateway)\n"
          "    -r                          allow connections to PVs on remote machines\n"
          "    -w <0/1/2>                  set slow readout mode (default: 0)\n"
+         "    -L|<path1>,<path2>,...      comma separated list of paths to plugins to load (e.g. timetool plugin)\n"
          "    -h                          print this message and exit\n", p);
 }
 
@@ -280,10 +82,11 @@ int main(int argc, char** argv) {
   unsigned max_event_size = MAX_EVENT_SIZE;
   unsigned max_event_depth = MAX_EVENT_DEPTH;
   char buff[32];
+  std::list<Appliance*> apps;
 
   extern char* optarg;
   int c;
-  while ( (c=getopt( argc, argv, "i:b:B:p:u:z:n:f:a:rw:h")) != EOF ) {
+  while ( (c=getopt( argc, argv, "i:b:B:p:u:z:n:f:a:rw:L:h")) != EOF ) {
     switch(c) {
     case 'i':
       if (!CmdLineTools::parseDetInfo(optarg,detInfo)) {
@@ -336,6 +139,29 @@ int main(int argc, char** argv) {
       } else if ((slowReadout != 0) && (slowReadout != 1) && (slowReadout != 2)) {
         printf("%s: option `-w' out of range\n", argv[0]);
         lUsage = true;
+      }
+      break;
+    case 'L':
+      for(const char* p = strtok(optarg,","); p!=NULL; p=strtok(NULL,",")) {
+        printf("dlopen %s\n",p);
+
+        void* handle = dlopen(p, RTLD_LAZY);
+        if (!handle) {
+          printf("dlopen failed : %s\n",dlerror());
+          break;
+        }
+
+        // reset errors
+        const char* dlsym_error;
+        dlerror();
+
+        // load the symbols
+        create_app* c_user = (create_app*) dlsym(handle, "create");
+        if ((dlsym_error = dlerror())) {
+          fprintf(stderr,"Cannot load symbol create: %s\n",dlsym_error);
+          break;
+        }
+        apps.push_back( c_user() );
       }
       break;
     case 'h': // help
@@ -433,9 +259,10 @@ int main(int argc, char** argv) {
 
   PvDaq::Server*  server  = PvDaq::Server::lookup(pvbase, pvbase_alt, detInfo, max_event_size, flags);
   PvDaq::Manager* manager = new PvDaq::Manager(*server);
+  apps.push_back(&manager->appliance());
 
   Task* task = new Task(Task::MakeThisATask);
-  EventAppCallback* seg = new EventAppCallback(task, platform, manager->appliance());
+  EventAppCallback* seg = new EventAppCallback(task, platform, apps);
   StdSegWire settings(*server, uniqueid, max_event_size, max_event_depth, false,
                       0,0,true,true);
   //PvDaqSegmentLevel* seglevel = new PvDaqSegmentLevel(platform, settings, *seg);
