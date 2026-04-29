@@ -202,7 +202,7 @@ tgtslib_uxi := $(commonslib)
 tgtsrcs_zyla :=	zyla.cc
 tgtincs_zyla := pdsdata/include ndarray/include boost/include
 tgtlibs_zyla := $(commonlibs) pds/zyla andor3/atcore andor3/atutility andor3/atcl_bitflow andor3/BFSOciLib.9.09
-tgtslib_zyla := $(commonslib)
+tgtslib_zyla := $(commonslib) ${USRLIBDIR}/dl
 
 tgtsrcs_vimba := vimba.cc
 tgtincs_vimba := vimba/include
@@ -323,7 +323,7 @@ tgtincs_udpcam := pdsdata/include ndarray/include boost/include
 tgtsrcs_pvdaq := pvdaq.cc
 tgtlibs_pvdaq := $(commonlibs) pds/pvdaq
 tgtlibs_pvdaq += pds/epicstools epics/ca epics/Com
-tgtslib_pvdaq := $(commonslib)
+tgtslib_pvdaq := $(commonslib) ${USRLIBDIR}/dl
 tgtincs_pvdaq := pdsdata/include ndarray/include boost/include 
 tgtincs_pvdaq += epics/include epics/include/os/Linux
 
