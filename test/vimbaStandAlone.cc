@@ -378,7 +378,7 @@ int main(int argc, char **argv)
             // flush queue and deallocate frames
             framebuf->unconfigure();
           }
-        } catch(VimbaException& e) {
+        } catch(const VimbaException& e) {
           printf("Exception encountered configuring camera: %s\n", e.what());
         }
       }
