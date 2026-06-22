@@ -40,11 +40,12 @@ tgtnames += fli andor andordual
 endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
-tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad quadadc
+tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad quadadc nscam
+CPPFLAGS += -std=c++11
 endif
 
 ifneq ($(findstring x86_64-rhel9,$(tgt_arch)),)
-tgtnames += pimax pixis camedt andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad vimba
+tgtnames += pimax pixis camedt andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad vimba nscam
 endif
 
 commonlibs  := pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -198,6 +199,12 @@ tgtincs_uxi := pdsdata/include ndarray/include boost/include
 tgtlibs_uxi := $(commonlibs) pds/configdata
 tgtlibs_uxi += pds/uxi zeromq/zmq
 tgtslib_uxi := $(commonslib)
+
+tgtsrcs_nscam := nscam.cc
+tgtincs_nscam := pdsdata/include ndarray/include boost/include zest/include
+tgtlibs_nscam := $(commonlibs) pds/configdata
+tgtlibs_nscam += pds/nscam zest/ZestETM1
+tgtslib_nscam := $(commonslib)
 
 tgtsrcs_zyla :=	zyla.cc
 tgtincs_zyla := pdsdata/include ndarray/include boost/include
