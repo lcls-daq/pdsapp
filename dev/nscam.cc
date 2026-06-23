@@ -164,8 +164,13 @@ int main(int argc, char** argv) {
     // initialize nscam logger
     NsCam::Logger::instance().setLevel(logLevels[debug]);
 
-    // create the detector class
-    NsCam::Detector det(hostname, port, NsCam::CommType::GIGE, NsCam::BoardType::LLNL_V1, NsCam::SensorType::ICARUS2);
+    // create the detector class - don't init the detector here defer to first config
+    printf("Attempting to connect to the detector at %s:%u\n", hostname.c_str(), port);
+    auto start = std::chrono::steady_clock::now();
+    NsCam::Detector det(hostname, port, NsCam::CommType::GIGE, NsCam::BoardType::LLNL_V1, NsCam::SensorType::ICARUS2, false);
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    printf("Connected to the detector in %f seconds\n\n", elapsed_seconds.count());
 
     CfgClientNfs* cfg = new CfgClientNfs(detInfo);
 
