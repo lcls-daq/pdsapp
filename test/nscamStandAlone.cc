@@ -252,7 +252,7 @@ int main(int argc, char *argv[]) {
 
   try {
     printf("Initializing the detector:\n");
-    printf("=========================+\n");
+    printf("==========================\n");
     printf(" Attempting to connect to the detector at %s:%u\n", hostname.c_str(), port);
     // time the startup time of the camera
     auto start = std::chrono::steady_clock::now();
