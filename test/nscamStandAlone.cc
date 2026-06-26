@@ -59,7 +59,7 @@ static void showUsage(const char* p)
          "    -o|--osc      <0,1,2,3>                 set the oscillator mode (default: 0)\n"
          "    -T|--trigger                            use external trigger\n"
          "    -l|--list                               list discoverable devices\n"
-         "    -d|--debug    <level>                   Set debug level (default: 1)\n"
+         "    -d|--debug    <level>                   Set debug level (default: 2)\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
 }
@@ -67,6 +67,7 @@ static void showUsage(const char* p)
 using namespace Pds::NsCam;
 
 static const Logger::Level logLevels[] = {
+  Logger::Level::OFF,
   Logger::Level::ERROR,
   Logger::Level::WARN,
   Logger::Level::INFO,
@@ -113,7 +114,7 @@ int main(int argc, char *argv[]) {
   unsigned last_row = 1023;
   unsigned first_frame = 0;
   unsigned last_frame = 3;
-  unsigned debug = 1;
+  unsigned debug = 2;
   double potvalue = 0.0;
   bool pottune = false;
   unsigned oscillator = 0;

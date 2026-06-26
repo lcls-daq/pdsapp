@@ -29,6 +29,7 @@ static const unsigned MAX_EVENT_DEPTH = 32;
 using namespace Pds;
 
 static const NsCam::Logger::Level logLevels[] = {
+  NsCam::Logger::Level::OFF,
   NsCam::Logger::Level::ERROR,
   NsCam::Logger::Level::WARN,
   NsCam::Logger::Level::INFO,
@@ -48,7 +49,7 @@ static void nscamUsage(const char* p)
          "    -P|--port     <port>                    set the UXI detector port (default: 20482)\n"
          "    -H|--host     <host>                    set the UXI detector host/ip\n"
          "    -m|--max      <max_frames>              set the maximum number of frames to expect per event (default: 8)"
-         "    -d|--debug    <level>                   Set debug level (default: 1)\n"
+         "    -d|--debug    <level>                   Set debug level (default: 2)\n"
          "    -h|--help                               print this message and exit\n", p);
 }
 
@@ -74,7 +75,7 @@ int main(int argc, char** argv) {
   unsigned channel = 0;
   unsigned port = 20482;
   unsigned max_num_frames = 8;
-  unsigned debug = 1;
+  unsigned debug = 2;
   bool lUsage = false;
   bool isTriggered = false;
   Pds::Node node(Level::Source,platform);
