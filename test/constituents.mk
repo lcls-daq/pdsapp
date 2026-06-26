@@ -15,13 +15,13 @@ endif
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
 tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone archonStandAlone picamStandAlone uxiStandAlone
-tgtnames += jungfrauRegisterDump nscamStandAlone
+tgtnames += jungfrauRegisterDump nscamStandAlone nscamTimingTest
 CPPFLAGS += -std=c++11
 endif
 
 ifneq ($(findstring x86_64-rhel9,$(tgt_arch)),)
 tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone archonStandAlone picamStandAlone uxiStandAlone
-tgtnames += vimbaStandAlone jungfrauRegisterDump nscamStandAlone
+tgtnames += vimbaStandAlone jungfrauRegisterDump nscamStandAlone nscamTimingTest
 endif
 
 commonlibs	:= pdsdata/xtcdata pdsdata/appdata pdsdata/psddl_pdsdata
@@ -43,6 +43,12 @@ tgtincs_nscamStandAlone := zest/include
 tgtlibs_nscamStandAlone := $(commonlibs) pds/configdata
 tgtlibs_nscamStandAlone += pds/nscam zest/ZestETM1
 tgtslib_nscamStandAlone := dl pthread rt
+
+tgtsrcs_nscamTimingTest := nscamTimingTest.cc
+tgtincs_nscamTimingTest := zest/include
+tgtlibs_nscamTimingTest := $(commonlibs) pds/configdata
+tgtlibs_nscamTimingTest += pds/nscam zest/ZestETM1
+tgtslib_nscamTimingTest := dl pthread rt
 
 tgtsrcs_jungfrauStandAlone := jungfrauStandAlone.cc
 tgtincs_jungfrauStandAlone := pdsdata/include ndarray/include boost/include
