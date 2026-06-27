@@ -9,11 +9,23 @@
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <signal.h>
 
 #include <string>
 #include <map>
 #include <tuple>
 #include <chrono>
+
+static std::atomic_bool running{true};
+static Pds::NsCam::Detector* detptr{nullptr};
+
+static void interrupt_acquistion(int isig)
+{
+  running.store(false);
+  if (detptr) {
+    detptr->abortReadoff();
+  }
+}
 
 static const char sNsCamTestVersion[] = "1.0";
 
@@ -251,6 +263,17 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  // Register singal handler
+  struct sigaction sigActionSettings;
+  sigemptyset(&sigActionSettings.sa_mask);
+  sigActionSettings.sa_handler = interrupt_acquistion;
+  sigActionSettings.sa_flags   = SA_RESTART;
+
+  if (sigaction(SIGINT, &sigActionSettings, 0) != 0 )
+    printf("Cannot register signal handler for SIGINT\n");
+  if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 )
+    printf("Cannot register signal handler for SIGTERM\n");
+
   try {
     printf("Initializing the detector:\n");
     printf("==========================\n");
@@ -261,6 +284,18 @@ int main(int argc, char *argv[]) {
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     printf(" Initialized the detector in %f seconds\n\n", elapsed_seconds.count());
+
+    // Register singal handler
+    detptr = &det;
+    struct sigaction sigActionSettings;
+    sigemptyset(&sigActionSettings.sa_mask);
+    sigActionSettings.sa_handler = interrupt_acquistion;
+    sigActionSettings.sa_flags   = SA_RESTART;
+
+    if (sigaction(SIGINT, &sigActionSettings, 0) != 0 )
+      printf("Cannot register signal handler for SIGINT\n");
+    if (sigaction(SIGTERM, &sigActionSettings, 0) != 0 )
+      printf("Cannot register signal handler for SIGTERM\n");
 
     printf("Configuring the detector:\n");
     printf("=========================\n");
@@ -294,34 +329,44 @@ int main(int argc, char *argv[]) {
     det.statusInfo();
     det.potInfo();
 
+    unsigned num_acquired = 0;
     size_t num_pixels = det.npixels();
     if (num_pixels > 0 && num_images > 0) {
       printf("Acquiring %u images from the detector.\n", num_images);
       start = std::chrono::steady_clock::now();
       for (size_t i=0; i<num_images; i++) {
-        std::unique_ptr<uint16_t[]> frame = det.waitFrame16(trig_mode);
-        printf("Received frame acquisition %zu", i+1);
-        if (max_display > 0) {
-          printf(":\n");
-          for (size_t j=0; j<(max_display>num_pixels ? num_pixels : max_display); j++) {
-            printf(" %u", frame[j]);
-          }
+        if (!running.load()) {
+          printf("Exitting acquistion!\n");
+          break;
         }
-        printf("\n");
-        if (file_prefix) {
-          sprintf(filename, "%s_%04zu.raw", file_prefix, i+1);
-          printf("writing image %zu to file: %s\n", i+1, filename);
-          FILE *f = fopen(filename, "wb");
-          fwrite(frame.get(), sizeof(uint16_t), num_pixels, f);
-          fclose(f);
+        std::unique_ptr<uint16_t[]> frame = det.waitFrame16(trig_mode);
+        if (frame) {
+          num_acquired++;
+          printf("Received frame acquisition %zu", i+1);
+          if (max_display > 0) {
+            printf(":\n");
+            for (size_t j=0; j<(max_display>num_pixels ? num_pixels : max_display); j++) {
+              printf(" %u", frame[j]);
+            }
+          }
+          printf("\n");
+          if (file_prefix) {
+            sprintf(filename, "%s_%04zu.raw", file_prefix, i+1);
+            printf("writing image %zu to file: %s\n", i+1, filename);
+            FILE *f = fopen(filename, "wb");
+            fwrite(frame.get(), sizeof(uint16_t), num_pixels, f);
+            fclose(f);
+          }
+        } else {
+          printf("Frame acquisition interrupted while waiting for frame %zu\n", i+1);
         }
       }
       end = std::chrono::steady_clock::now();
       elapsed_seconds = end - start;
-      printf("Acquired %u images in %f seconds - %f Hz frame rate\n",
-             num_images,
+      printf("Acquired %u images in %.3f seconds - %.3f Hz frame rate\n",
+             num_acquired,
              elapsed_seconds.count(),
-             num_images / elapsed_seconds.count());
+             num_acquired / elapsed_seconds.count());
     } else if (num_pixels == 0) {
       printf("Failed to determine number of pixels in detector!\n");
       status = 1;
