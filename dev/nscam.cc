@@ -37,6 +37,19 @@ static const NsCam::Logger::Level logLevels[] = {
 };
 static const size_t numLogLevels = sizeof(logLevels) / sizeof(logLevels[0]);
 
+static const NsCam::BoardType boardTypes[] = {
+  NsCam::BoardType::LLNL_V1,
+  NsCam::BoardType::LLNL_V4,
+};
+static const size_t numBoardTypes = sizeof(boardTypes) / sizeof(boardTypes[0]);
+
+static const NsCam::SensorType sensorTypes[] = {
+  NsCam::SensorType::ICARUS,
+  NsCam::SensorType::ICARUS2,
+  NsCam::SensorType::DAEDALUS,
+};
+static const size_t numSensorTypes = sizeof(sensorTypes) / sizeof(sensorTypes[0]);
+
 static void nscamUsage(const char* p)
 {
   printf("Usage: %s -i <detinfo> -p <platform>,<mod>,<chan> [OPTIONS]\n"
@@ -48,6 +61,8 @@ static void nscamUsage(const char* p)
          "    -u|--uniqueid <alias>                   set device alias\n"
          "    -P|--port     <port>                    set the UXI detector port (default: 20482)\n"
          "    -H|--host     <host>                    set the UXI detector host/ip\n"
+         "    -b|--board    <llnlv1,llnlv4>           set the board type (default: llnlv1)\n"
+         "    -s|--sensor   <icarus,icarus2,daedalus> set the sensor type (default: icarus2)\n"
          "    -m|--max      <max_frames>              set the maximum number of frames to expect per event (default: 8)"
          "    -d|--debug    <level>                   Set debug level (default: 2)\n"
          "    -h|--help                               print this message and exit\n", p);
@@ -55,7 +70,7 @@ static void nscamUsage(const char* p)
 
 int main(int argc, char** argv) {
 
-  const char*   strOptions    = ":hp:i:u:P:H:m:d:";
+  const char*   strOptions    = ":hp:i:u:P:H:b:s:m:d:";
   const struct option loOptions[]   =
   {
     {"help",        0, 0, 'h'},
@@ -64,6 +79,8 @@ int main(int argc, char** argv) {
     {"uniqueid",    1, 0, 'u'},
     {"port",        1, 0, 'P'},
     {"host",        1, 0, 'H'},
+    {"board",       1, 0, 'b'},
+    {"sensor",      1, 0, 's'},
     {"max",         1, 0, 'm'},
     {"debug",       1, 0, 'd'},
     {0,             0, 0,  0 }
@@ -74,6 +91,8 @@ int main(int argc, char** argv) {
   unsigned module = 0;
   unsigned channel = 0;
   unsigned port = 20482;
+  unsigned boardtype = 0;
+  unsigned sensortype = 1;
   unsigned max_num_frames = 8;
   unsigned debug = 2;
   bool lUsage = false;
@@ -128,6 +147,38 @@ int main(int argc, char** argv) {
           lUsage = true;
         }
         break;
+      case 'b':
+        if (!Pds::CmdLineTools::parseUInt(optarg,boardtype)) {
+          if (!strcmp(optarg, "llnlv1")) {
+            boardtype = 0;
+          } else if (!strcmp(optarg, "llnlv4")) {
+            boardtype = 1;
+          } else {
+            printf("%s: option `-b' parsing error\n", argv[0]);
+            lUsage = true;
+          }
+        } else if (boardtype >= numBoardTypes) {
+          printf("%s: option `-b' value out of range\n", argv[0]);
+          lUsage = true;
+        }
+        break;
+      case 's':
+        if (!Pds::CmdLineTools::parseUInt(optarg,sensortype)) {
+          if (!strcmp(optarg, "icarus")) {
+            sensortype = 0;
+          } else if (!strcmp(optarg, "icarus2")) {
+            sensortype = 1;
+          } else if (!strcmp(optarg, "daedalus")) {
+            sensortype = 2;
+          } else {
+            printf("%s: option `-s' parsing error\n", argv[0]);
+            lUsage = true;
+          }
+        } else if (sensortype >= numSensorTypes) {
+          printf("%s: option `-s' value out of range\n", argv[0]);
+          lUsage = true;
+        }
+        break;
       case 'm':
         if (!Pds::CmdLineTools::parseUInt(optarg,max_num_frames)) {
           printf("%s: option `-m' parsing error\n", argv[0]);
@@ -168,7 +219,7 @@ int main(int argc, char** argv) {
     // create the detector class - don't init the detector here defer to first config
     printf("Attempting to connect to the detector at %s:%u\n", hostname.c_str(), port);
     auto start = std::chrono::steady_clock::now();
-    NsCam::Detector det(hostname, port, NsCam::CommType::GIGE, NsCam::BoardType::LLNL_V1, NsCam::SensorType::ICARUS2, false);
+    NsCam::Detector det(hostname, port, NsCam::CommType::GIGE, boardTypes[boardtype], sensorTypes[sensortype], false);
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     printf("Connected to the detector in %f seconds\n\n", elapsed_seconds.count());

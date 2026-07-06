@@ -25,9 +25,12 @@ static void showUsage(const char* p)
 {
   printf("Usage: %s [-v|--version] [-h|--help]\n"
          "-H|--host <host> [-P|--port <portset>]\n"
+         "[-b|--board <llnlv1,llnlv4>] [-s|--sensor <icarus,icarus2,daedalus>]\n"
          " Options:\n"
          "    -P|--port     <port>                    set the UXI detector server port (default: 20482)\n"
          "    -H|--host     <host>                    set the UXI detector server host ip\n"
+         "    -b|--board    <llnlv1,llnlv4>           set the board type (default: llnlv1)\n"
+         "    -s|--sensor   <icarus,icarus2,daedalus> set the sensor type (default: icarus2)\n"
          "    -d|--debug    <level>                   Set debug level (default: 0)\n"
          "    -v|--version                            show file version\n"
          "    -h|--help                               print this message and exit\n", p);
@@ -57,12 +60,12 @@ static std::vector<TestCase> TEST_CASES = {
   {{10, 2, 0}, {10, 2, 0}, {0, 10, 2, 10, 2, 10, 6, 10}, 0x00000007, 0xfe7fe7fe, false},
   {{10, 9, 0}, {10, 9, 0}, {0, 10, 9, 10, 11, 10, 9, 10}, 0x00000000, 0x3ff007fe, false},
   {{10, 9, 1}, {10, 9, 1}, {1, 10, 9, 10, 11, 10, 9, 10}, 0x00000000, 0x7fe00ffc, false},
-  {{15, 10, 0}, {15, 10, 0}, {0, 15, 10, 14, 1, 15, 10, 14}, 0x000000ff, 0xfc00fffe, false},
+  {{15, 10, 0}, {15, 25, 0}, {0, 15, 25, 15, 25, 15, 25, 15}, 0x00000000, 0x0000fffe, false},
   {{15, 10, 1}, {15, 25, 1}, {1, 15, 25, 15, 25, 15, 25, 15}, 0x00000000, 0x0001fffc, false},
   {{15, 9, 0}, {15, 9, 0}, {0, 15, 9, 15, 1, 15, 9, 15}, 0x000000ff, 0xfe00fffe, false},
   {{14, 10, 0}, {14, 10, 0}, {0, 14, 10, 14, 2, 14, 10, 14}, 0x0000007f, 0xfe007ffe, false},
   {{14, 10, 1}, {14, 10, 1}, {1, 14, 10, 14, 2, 14, 10, 14}, 0x000000ff, 0xfc00fffc, false},
-  {{14, 10, 2}, {14, 10, 2}, {2, 14, 10, 13, 3, 14, 10, 13}, 0x000000ff, 0xf801fff8, false},
+  {{14, 10, 2}, {14, 26, 2}, {2, 14, 26, 14, 26, 14, 26, 14}, 0x00000000, 0x0001fff8, false},
   {{20, 2, 0}, {20, 20, 0}, {0, 20, 20, 20, 20, 20, 20, 20}, 0x00000000, 0x001ffffe, false},
   {{20, 2, 2}, {20, 20, 2}, {2, 20, 20, 20, 20, 20, 20, 20}, 0x00000000, 0x007ffff8, false},
   {{19, 19, 0}, {19, 21, 0}, {0, 19, 21, 19, 21, 19, 21, 19}, 0x00000000, 0x000ffffe, false},
@@ -84,14 +87,29 @@ static const Logger::Level logLevels[] = {
 };
 static const size_t numLogLevels = sizeof(logLevels) / sizeof(logLevels[0]);
 
+static const BoardType boardTypes[] = {
+  BoardType::LLNL_V1,
+  BoardType::LLNL_V4,
+};
+static const size_t numBoardTypes = sizeof(boardTypes) / sizeof(boardTypes[0]);
+
+static const SensorType sensorTypes[] = {
+  SensorType::ICARUS,
+  SensorType::ICARUS2,
+  SensorType::DAEDALUS,
+};
+static const size_t numSensorTypes = sizeof(sensorTypes) / sizeof(sensorTypes[0]);
+
 int main(int argc, char *argv[]) {
-  const char*         strOptions  = ":vhP:H:d:";
+  const char*         strOptions  = ":vhP:H:b:s:d:";
   const struct option loOptions[] =
   {
     {"version",     0, 0, 'v'},
     {"help",        0, 0, 'h'},
     {"port",        1, 0, 'P'},
     {"host",        1, 0, 'H'},
+    {"board",       1, 0, 'b'},
+    {"sensor",      1, 0, 's'},
     {"debug",       1, 0, 'd'},
     {0,             0, 0,  0 }
   };
@@ -99,6 +117,8 @@ int main(int argc, char *argv[]) {
   bool lUsage = false;
   int status = 0;
   unsigned port = 20482;
+  unsigned boardtype = 0;
+  unsigned sensortype = 1;
   unsigned debug = 0;
   std::string hostname = "";
 
@@ -119,6 +139,38 @@ int main(int argc, char *argv[]) {
       case 'P':
         if (!Pds::CmdLineTools::parseUInt(optarg,port)) {
           printf("%s: option `-P' parsing error\n", argv[0]);
+          lUsage = true;
+        }
+        break;
+      case 'b':
+        if (!Pds::CmdLineTools::parseUInt(optarg,boardtype)) {
+          if (!strcmp(optarg, "llnlv1")) {
+            boardtype = 0;
+          } else if (!strcmp(optarg, "llnlv4")) {
+            boardtype = 1;
+          } else {
+            printf("%s: option `-b' parsing error\n", argv[0]);
+            lUsage = true;
+          }
+        } else if (boardtype >= numBoardTypes) {
+          printf("%s: option `-b' value out of range\n", argv[0]);
+          lUsage = true;
+        }
+        break;
+      case 's':
+        if (!Pds::CmdLineTools::parseUInt(optarg,sensortype)) {
+          if (!strcmp(optarg, "icarus")) {
+            sensortype = 0;
+          } else if (!strcmp(optarg, "icarus2")) {
+            sensortype = 1;
+          } else if (!strcmp(optarg, "daedalus")) {
+            sensortype = 2;
+          } else {
+            printf("%s: option `-s' parsing error\n", argv[0]);
+            lUsage = true;
+          }
+        } else if (sensortype >= numSensorTypes) {
+          printf("%s: option `-s' value out of range\n", argv[0]);
           lUsage = true;
         }
         break;
@@ -160,7 +212,7 @@ int main(int argc, char *argv[]) {
   try {
     // time the startup time of the camera
     auto start = std::chrono::steady_clock::now();
-    Detector det(hostname, port, CommType::GIGE, BoardType::LLNL_V1, SensorType::ICARUS2);
+    Detector det(hostname, port, CommType::GIGE, boardTypes[boardtype], sensorTypes[sensortype]);
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     printf("Initialized the detector in %f seconds\n\n", elapsed_seconds.count());

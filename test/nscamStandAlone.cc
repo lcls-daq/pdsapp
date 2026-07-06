@@ -58,7 +58,8 @@ static void showUsage(const char* p)
 {
   printf("Usage: %s [-v|--version] [-h|--help]\n"
          "[-w|--write <filename prefix>] [-n|--number <number of images>] [-t|--timing <ton>,<toff>[,tdel]]\n"
-         "[-p|--pot <name>,<val>] [-o|--osc <0,1,2,3>] -H|--host <host> [-P|--port <portset>] [-T|--trigger]\n"
+         "[-p|--pot <name>,<val>] [-o|--osc <0,1,2,3>] [-b|--board <llnlv1,llnlv4>] [-s|--sensor <icarus,icarus2,daedalus>]\n"
+         "-H|--host <host> [-P|--port <portset>] [-T|--trigger]\n"
          " Options:\n"
          "    -w|--write    <filename prefix>         output filename prefix\n"
          "    -n|--number   <number of images>        number of images to be captured (default: 1)\n"
@@ -69,6 +70,8 @@ static void showUsage(const char* p)
          "    -m|--max      <max>                     the maximum number of pixel values to print for each frame (default: 0)\n"
          "    -r|--roi      <r0,r1,f0,f1>             set an ROI with first/last row and then frame\n"
          "    -o|--osc      <0,1,2,3>                 set the oscillator mode (default: 0)\n"
+         "    -b|--board    <llnlv1,llnlv4>           set the board type (default: llnlv1)\n"
+         "    -s|--sensor   <icarus,icarus2,daedalus> set the sensor type (default: icarus2)\n"
          "    -T|--trigger                            use external trigger\n"
          "    -l|--list                               list discoverable devices\n"
          "    -d|--debug    <level>                   Set debug level (default: 2)\n"
@@ -95,8 +98,21 @@ static const OscillatorType oscTypes[] = {
 };
 static const size_t numOscTypes = sizeof(oscTypes) / sizeof(oscTypes[0]);
 
+static const BoardType boardTypes[] = {
+  BoardType::LLNL_V1,
+  BoardType::LLNL_V4,
+};
+static const size_t numBoardTypes = sizeof(boardTypes) / sizeof(boardTypes[0]);
+
+static const SensorType sensorTypes[] = {
+  SensorType::ICARUS,
+  SensorType::ICARUS2,
+  SensorType::DAEDALUS,
+};
+static const size_t numSensorTypes = sizeof(sensorTypes) / sizeof(sensorTypes[0]);
+
 int main(int argc, char *argv[]) {
-  const char*         strOptions  = ":vhw:n:t:P:H:p:m:r:o:Tld:";
+  const char*         strOptions  = ":vhw:n:t:P:H:p:m:r:o:b:s:Tld:";
   const struct option loOptions[] =
   {
     {"version",     0, 0, 'v'},
@@ -110,6 +126,8 @@ int main(int argc, char *argv[]) {
     {"max",         1, 0, 'm'},
     {"roi",         1, 0, 'r'},
     {"osc",         1, 0, 'o'},
+    {"board",       1, 0, 'b'},
+    {"sensor",      1, 0, 's'},
     {"trigger",     0, 0, 'T'},
     {"list",        0, 0, 'l'},
     {"debug",       1, 0, 'd'},
@@ -130,6 +148,8 @@ int main(int argc, char *argv[]) {
   double potvalue = 0.0;
   bool pottune = false;
   unsigned oscillator = 0;
+  unsigned boardtype = 0;
+  unsigned sensortype = 1;
   bool use_roi = false;
   bool list_devices = false;
   bool lUsage = false;
@@ -212,6 +232,38 @@ int main(int argc, char *argv[]) {
           lUsage = true;
         }
         break;
+      case 'b':
+        if (!Pds::CmdLineTools::parseUInt(optarg,boardtype)) {
+          if (!strcmp(optarg, "llnlv1")) {
+            boardtype = 0;
+          } else if (!strcmp(optarg, "llnlv4")) {
+            boardtype = 1;
+          } else {
+            printf("%s: option `-b' parsing error\n", argv[0]);
+            lUsage = true;
+          }
+        } else if (boardtype >= numBoardTypes) {
+          printf("%s: option `-b' value out of range\n", argv[0]);
+          lUsage = true;
+        }
+        break;
+      case 's':
+        if (!Pds::CmdLineTools::parseUInt(optarg,sensortype)) {
+          if (!strcmp(optarg, "icarus")) {
+            sensortype = 0;
+          } else if (!strcmp(optarg, "icarus2")) {
+            sensortype = 1;
+          } else if (!strcmp(optarg, "daedalus")) {
+            sensortype = 2;
+          } else {
+            printf("%s: option `-s' parsing error\n", argv[0]);
+            lUsage = true;
+          }
+        } else if (sensortype >= numSensorTypes) {
+          printf("%s: option `-s' value out of range\n", argv[0]);
+          lUsage = true;
+        }
+        break;
       case 'T':
         trig_mode = TriggerType::HARDWARE;
         break;
@@ -280,7 +332,7 @@ int main(int argc, char *argv[]) {
     printf(" Attempting to connect to the detector at %s:%u\n", hostname.c_str(), port);
     // time the startup time of the camera
     auto start = std::chrono::steady_clock::now();
-    Detector det(hostname, port, CommType::GIGE, BoardType::LLNL_V1, SensorType::ICARUS2);
+    Detector det(hostname, port, CommType::GIGE, boardTypes[boardtype], sensorTypes[sensortype]);
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     printf(" Initialized the detector in %f seconds\n\n", elapsed_seconds.count());
