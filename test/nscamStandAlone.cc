@@ -34,6 +34,18 @@ static void showVersion(const char* p)
   printf( "Version:  %s  Ver %s\n", p, sNsCamTestVersion );
 }
 
+static bool parseConfig(const std::string& arg, std::string& name, unsigned& v)
+{
+  size_t pos = arg.find(",");
+  if (pos != std::string::npos) {
+    name = arg.substr(0, pos);
+    std::string valuestr = arg.substr(pos+1);
+    return Pds::CmdLineTools::parseUInt(valuestr.c_str(), v);
+  } else {
+    return false;
+  }
+}
+
 static bool parsePot(const std::string& arg, std::string& name, double& v, bool& tune)
 {
   size_t pos = arg.find(",");
@@ -59,20 +71,22 @@ static void showUsage(const char* p)
   printf("Usage: %s [-v|--version] [-h|--help]\n"
          "[-w|--write <filename prefix>] [-n|--number <number of images>] [-t|--timing <ton>,<toff>[,tdel]]\n"
          "[-p|--pot <name>,<val>] [-o|--osc <0,1,2,3>] [-b|--board <llnlv1,llnlv4>] [-s|--sensor <icarus,icarus2,daedalus>]\n"
-         "-H|--host <host> [-P|--port <portset>] [-T|--trigger]\n"
+         "[-c|--config <regname,value>] [-R|--read <name>] -H|--host <host> [-P|--port <portset>] [-T|--trigger]\n"
          " Options:\n"
          "    -w|--write    <filename prefix>         output filename prefix\n"
          "    -n|--number   <number of images>        number of images to be captured (default: 1)\n"
          "    -t|--timing   <ton>,<toff>[,tdel]       the timing setup to use for the UXI detector (default: 2,2,0)\n"
          "    -P|--port     <port>                    set the UXI detector server port (default: 20482)\n"
          "    -H|--host     <host>                    set the UXI detector server host ip\n"
-         "    -p|--pot      <name>,<val>[,tune]       the named pot/dac to the specified value\n"
+         "    -p|--pot      <name>,<val>[,tune]       set the named pot/dac to the specified value\n"
          "    -m|--max      <max>                     the maximum number of pixel values to print for each frame (default: 0)\n"
          "    -r|--roi      <r0,r1,f0,f1>             set an ROI with first/last row and then frame\n"
          "    -o|--osc      <0,1,2,3>                 set the oscillator mode (default: 0)\n"
          "    -b|--board    <llnlv1,llnlv4>           set the board type (default: llnlv1)\n"
          "    -s|--sensor   <icarus,icarus2,daedalus> set the sensor type (default: icarus2)\n"
          "    -T|--trigger                            use external trigger\n"
+         "    -c|--config   <regname,value>           set the named register/subregister to the specified value\n"
+         "    -R|--read     <name>                    the name of the register/subregister to read\n"
          "    -l|--list                               list discoverable devices\n"
          "    -d|--debug    <level>                   Set debug level (default: 2)\n"
          "    -v|--version                            show file version\n"
@@ -112,7 +126,7 @@ static const SensorType sensorTypes[] = {
 static const size_t numSensorTypes = sizeof(sensorTypes) / sizeof(sensorTypes[0]);
 
 int main(int argc, char *argv[]) {
-  const char*         strOptions  = ":vhw:n:t:P:H:p:m:r:o:b:s:Tld:";
+  const char*         strOptions  = ":vhw:n:t:P:H:p:m:r:o:b:s:Tc:R:ld:";
   const struct option loOptions[] =
   {
     {"version",     0, 0, 'v'},
@@ -129,6 +143,8 @@ int main(int argc, char *argv[]) {
     {"board",       1, 0, 'b'},
     {"sensor",      1, 0, 's'},
     {"trigger",     0, 0, 'T'},
+    {"config",      1, 0, 'c'},
+    {"read",        1, 0, 'R'},
     {"list",        0, 0, 'l'},
     {"debug",       1, 0, 'd'},
     {0,             0, 0,  0 }
@@ -145,6 +161,7 @@ int main(int argc, char *argv[]) {
   unsigned first_frame = 0;
   unsigned last_frame = 3;
   unsigned debug = 2;
+  unsigned cfgvalue = 0;
   double potvalue = 0.0;
   bool pottune = false;
   unsigned oscillator = 0;
@@ -157,7 +174,10 @@ int main(int argc, char *argv[]) {
   char* file_prefix = (char *)NULL;
   std::string hostname = "";
   std::string potname = "";
+  std::string cfgname = "";
   std::map<std::string, std::pair<double, bool>> pot_config;
+  std::map<std::string, uint32_t> reg_config;
+  std::vector<std::string> regnames;
 
   int optionIndex  = 0;
   while ( int opt = getopt_long(argc, argv, strOptions, loOptions, &optionIndex ) ) {
@@ -267,6 +287,18 @@ int main(int argc, char *argv[]) {
       case 'T':
         trig_mode = TriggerType::HARDWARE;
         break;
+      case 'c':
+        if (!parseConfig(optarg, cfgname, cfgvalue)) {
+          printf("%s: option `-c' parsing error\n", argv[0]);
+          lUsage = true;
+        } else {
+          reg_config.emplace(cfgname, cfgvalue);
+        }
+        break;
+        break;
+      case 'R':
+        regnames.emplace_back(optarg);
+        break;
       case 'l':
         list_devices = true;
         break;
@@ -371,6 +403,17 @@ int main(int argc, char *argv[]) {
     det.setTiming(SideType::AB, timing);
     printf(" Setting the oscillator to %s\n", toString(oscTypes[oscillator]));
     det.setOscillator(oscTypes[oscillator]);
+    for (const auto& kv : reg_config) {
+      if (det.validRegister(kv.first)) {
+        printf(" Setting register %s to 0x%08x\n", kv.first.c_str(), kv.second);
+        det.setRegister(kv.first, kv.second);
+      } else if (det.validSubRegister(kv.first)) {
+        printf(" Setting subregister %s to 0x%08x\n", kv.first.c_str(), kv.second);
+        det.setSubRegister(kv.first, kv.second);
+      } else {
+        printf(" Invalid register %s cannot be set to 0x%08x\n", kv.first.c_str(), kv.second);
+      }
+    }
     end = std::chrono::steady_clock::now();
     elapsed_seconds = end - start;
     printf(" Configured the detector in %f seconds\n\n", elapsed_seconds.count());
@@ -380,6 +423,20 @@ int main(int argc, char *argv[]) {
     det.sensorInfo();
     det.statusInfo();
     det.potInfo();
+
+    if (!regnames.empty()) {
+      printf("Reading registers:\n");
+      printf("==================\n");
+      for (std::string regname : regnames) {
+        if (det.validRegister(regname)) {
+          printf(" %s%-*s0x%08x\n", regname.c_str(), FormatBackup::padding(regname), ":", det.getRegister(regname));
+        } else if (det.validSubRegister(regname)) {
+          printf(" %s%-*s0x%08x\n", regname.c_str(), FormatBackup::padding(regname), ":", det.getSubRegister(regname));
+        } else {
+          printf(" %s%-*sInvalid register!\n", regname.c_str(), FormatBackup::padding(regname), ":");
+        }
+      }
+    }
 
     unsigned num_acquired = 0;
     size_t num_pixels = det.npixels();
