@@ -121,8 +121,8 @@ Pds_ConfigDb::UxiConfig::Private_Data::Private_Data(bool expert_mode) :
   _lastRowParam         ("Last Row",            0,  0,  MAX_ROWS),
   _firstFrameParam      ("First Frame",         0,  0,  MAX_FRAMES),
   _lastFrameParam       ("Last Frame",          0,  0,  MAX_FRAMES),
-  _timeOnParam          ("Time On",             2,  1,  9999),
-  _timeOffParam         ("Time Off",            2,  1,  9999),
+  _timeOnParam          ("Time On",             2,  0,  9999),
+  _timeOffParam         ("Time Off",            2,  0,  9999),
   _delayParam           ("Initial delay (ns)",  0,  0,  9999),
   _expert_mode          (expert_mode),
   _width                (512),
@@ -142,8 +142,8 @@ Pds_ConfigDb::UxiConfig::Private_Data::Private_Data(bool expert_mode) :
   pList.insert( &_timeOffParam );
   pList.insert( &_delayParam );
   for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
-    _timeOnSideParam[iside] = new NumericInt<uint32_t>("Time On", 2, 1, 9999);
-    _timeOffSideParam[iside] = new NumericInt<uint32_t>("Time Off", 2, 1, 9999);
+    _timeOnSideParam[iside] = new NumericInt<uint32_t>("Time On", 2, 0, 9999);
+    _timeOffSideParam[iside] = new NumericInt<uint32_t>("Time Off", 2, 0, 9999);
     _delaySideParam[iside] = new NumericInt<uint32_t>("Initial delay (ns)",  0,  0,  9999);
     pList.insert( _timeOnSideParam[iside] );
     pList.insert( _timeOffSideParam[iside] );
