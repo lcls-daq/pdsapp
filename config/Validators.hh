@@ -17,7 +17,7 @@ namespace Pds_ConfigDb {
     IntValidator(Parameter& p, QLineEdit& l,
                  int vlo, int vhi);
     IntValidator(Parameter& p, QLineEdit& l,
-		 unsigned& vlo, unsigned& vhi);
+                 unsigned& vlo, unsigned& vhi);
     ~IntValidator();
   public:
     virtual void fixup(QString&) const;
@@ -34,7 +34,7 @@ namespace Pds_ConfigDb {
     Q_OBJECT
   public:
     HexValidator(Parameter& p, QLineEdit& l,
-		 uint64_t vlo, uint64_t vhi);
+                 uint64_t vlo, uint64_t vhi);
     ~HexValidator();
   public:
     void fixup(QString&) const;
@@ -50,7 +50,7 @@ namespace Pds_ConfigDb {
     Q_OBJECT
   public:
     DoubleValidator(Parameter& p, QLineEdit& l,
-		    double vlo, double vhi);
+                    double vlo, double vhi);
     ~DoubleValidator();
   public:
     void fixup(QString&) const;
