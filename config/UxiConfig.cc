@@ -3,6 +3,8 @@
 #include "pdsapp/config/Parameters.hh"
 #include "pdsapp/config/ParameterSet.hh"
 #include "pdsapp/config/QtConcealer.hh"
+#include "pdsapp/config/QtChoiceConcealer.hh"
+#include "pdsapp/config/UxiRegisterConfig.hh"
 #include "pds/config/UxiConfigType.hh"
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QGridLayout>
@@ -16,8 +18,12 @@
 using namespace Pds_ConfigDb;
 
 class Pds_ConfigDb::UxiConfig::Private_Data : public Parameter {
-  static const uint32_t MAX_ROWS = 4095;
-  static const uint32_t MAX_FRAMES = 7;
+  static const int SHUTTER_ITEM_WIDTH = 90;
+  static const int TIMING_ITEM_WIDTH = 40;
+  static const uint32_t MAX_ROWS = 1023;
+  static const uint32_t MAX_FRAMES = 3;
+  static const uint32_t MIN_SHUTTER_TIME = 75;
+  static const uint32_t MAX_SHUTTER_TIME = 2000000000;
 public:
   Private_Data(bool expert_mode);
   ~Private_Data();
@@ -26,7 +32,7 @@ public:
    int pull( void* from );
    int push( void* to );
    int dataSize() const
-      { return sizeof(UxiConfigType); }
+      { UxiConfigType cfg(_registerTable.nregisters()); return cfg._sizeof(); }
    void flush ()
       { for(Parameter* p=pList.forward(); p!=pList.empty(); p=p->forward()) p->flush(); }
    void update()
@@ -36,8 +42,9 @@ public:
    bool   validate();
 
   Pds::LinkedList<Parameter> pList;
-  Enumerated<UxiConfigType::RoiMode> _roiParam;
-  Enumerated<UxiConfigType::OscMode> _oscParam;
+  Enumerated<UxiConfigType::RoiMode>    _roiParam;
+  Enumerated<UxiConfigType::OscMode>    _oscParam;
+  Enumerated<UxiConfigType::TimingMode> _timingModeParam;
   NumericInt<uint32_t>  _firstRowParam;
   NumericInt<uint32_t>  _lastRowParam;
   NumericInt<uint32_t>  _firstFrameParam;
@@ -48,13 +55,18 @@ public:
   NumericInt<uint32_t>* _timeOnSideParam[UxiConfigNumberOfSides];
   NumericInt<uint32_t>* _timeOffSideParam[UxiConfigNumberOfSides];
   NumericInt<uint32_t>* _delaySideParam[UxiConfigNumberOfSides];
+  NumericIntArray<uint32_t, UxiConfigMaxManualShutterSequence>  _manualShutterParam;
+  NumericIntArray<uint32_t, UxiConfigMaxManualShutterSequence>* _manualShutterSideParam[UxiConfigNumberOfSides];
+  NumericIntArray<uint32_t, UxiConfigMaxTimingSequence>  _arbitraryTimingParam;
+  NumericIntArray<uint32_t, UxiConfigMaxTimingSequence>* _arbitraryTimingSideParam[UxiConfigNumberOfSides];
   NumericFloat<double>* _potsParam[UxiConfigNumberOfPots];
   CheckValue*           _tunePotsParam[UxiConfigNumberOfPots];
   CheckValue*           _roPotsParam[UxiConfigNumberOfPots];
-  QtConcealer           _concealerExpert;
-  QtConcealer           _concealerNonExpert;
   QtConcealer           _concealerROI;
+  QtConcealer           _concealerRegisters;
+  QtChoiceConcealer     _concealerTiming;
   QtConcealer           _concealerReadOnly[UxiConfigNumberOfPots];
+  UxiRegisterTable      _registerTable;
 private:
   bool _expert_mode;
   uint32_t _width;
@@ -62,14 +74,13 @@ private:
   uint32_t _numberOfFrames;
   uint32_t _numberOFBytesPerPixel;
   uint32_t _sensorType;
-  uint32_t _timeOn[UxiConfigNumberOfSides];
-  uint32_t _timeOff[UxiConfigNumberOfSides];
-  uint32_t _delay[UxiConfigNumberOfSides];
+  uint32_t _timing[UxiConfigNumberOfSides * UxiConfigMaxTimingSequence];
   uint32_t _readOnlyPots;
   double   _pots[UxiConfigNumberOfPots];
   static const char*  roiNames[];
   static const char*  oscNames[];
   static const char*  sideNames[];
+  static const char*  timingModeNames[];
   static const char*  potNames[];
   static const double initialPotValues[UxiConfigNumberOfPots];
 };
@@ -89,8 +100,15 @@ const char*   Pds_ConfigDb::UxiConfig::Private_Data::oscNames[] = {
 };
 
 const char*   Pds_ConfigDb::UxiConfig::Private_Data::sideNames[] = {
-  "Timing settings (Side A): ",
-  "Timing settings (Side B): ",
+  "Side A: ",
+  "Side B: ",
+  NULL,
+};
+
+const char*   Pds_ConfigDb::UxiConfig::Private_Data::timingModeNames[] = {
+  "Basic",
+  "Arbitrary",
+  "Manual",
   NULL,
 };
 
@@ -115,15 +133,19 @@ const double  Pds_ConfigDb::UxiConfig::Private_Data::initialPotValues[] = {
 
 
 Pds_ConfigDb::UxiConfig::Private_Data::Private_Data(bool expert_mode) :
-  _roiParam             ("ROI Mode", UxiConfigType::Off, roiNames),
-  _oscParam             ("Oscillator Mode", UxiConfigType::RelaxationOsc, oscNames),
-  _firstRowParam        ("First Row",           0,  0,  MAX_ROWS),
-  _lastRowParam         ("Last Row",            0,  0,  MAX_ROWS),
-  _firstFrameParam      ("First Frame",         0,  0,  MAX_FRAMES),
-  _lastFrameParam       ("Last Frame",          0,  0,  MAX_FRAMES),
-  _timeOnParam          ("Time On",             2,  0,  9999),
-  _timeOffParam         ("Time Off",            2,  0,  9999),
-  _delayParam           ("Initial delay (ns)",  0,  0,  9999),
+  _roiParam             ("ROI Mode",              UxiConfigType::Off, roiNames),
+  _oscParam             ("Oscillator Mode",       UxiConfigType::RelaxationOsc, oscNames),
+  _timingModeParam      ("Timing Mode",           UxiConfigType::BasicTiming, timingModeNames),
+  _firstRowParam        ("First Row",             0,  0,  MAX_ROWS),
+  _lastRowParam         ("Last Row",              0,  0,  MAX_ROWS),
+  _firstFrameParam      ("First Frame",           0,  0,  MAX_FRAMES),
+  _lastFrameParam       ("Last Frame",            0,  0,  MAX_FRAMES),
+  _timeOnParam          ("Time On",               2,  0,  UxiConfigMaxTimingSequence),
+  _timeOffParam         ("Time Off",              2,  0,  UxiConfigMaxTimingSequence),
+  _delayParam           ("Initial delay (ns)",    0,  0,  UxiConfigMaxTimingSequence),
+  _manualShutterParam   ("Manual Shutters (ns)",  MIN_SHUTTER_TIME, MIN_SHUTTER_TIME, MAX_SHUTTER_TIME),
+  _arbitraryTimingParam (NULL,                    0,  0,  UxiConfigMaxTimingSequence, Decimal, 1., 4),
+  _registerTable        (expert_mode),
   _expert_mode          (expert_mode),
   _width                (512),
   _height               (1024),
@@ -132,31 +154,58 @@ Pds_ConfigDb::UxiConfig::Private_Data::Private_Data(bool expert_mode) :
   _sensorType           (1),
   _readOnlyPots         (8111)
 {
+  for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
+    _timeOnSideParam[iside] = new NumericInt<uint32_t>("Time On", 2, 0, UxiConfigMaxTimingSequence);
+    _timeOffSideParam[iside] = new NumericInt<uint32_t>("Time Off", 2, 0, UxiConfigMaxTimingSequence);
+    _delaySideParam[iside] = new NumericInt<uint32_t>("Initial delay (ns)", 0, 0, UxiConfigMaxTimingSequence);
+    _manualShutterSideParam[iside] = new NumericIntArray<uint32_t, UxiConfigMaxManualShutterSequence>("Manual Shutters (ns)", 
+                                                                                                      MIN_SHUTTER_TIME,
+                                                                                                      MIN_SHUTTER_TIME,
+                                                                                                      MAX_SHUTTER_TIME);
+    _arbitraryTimingSideParam[iside] = new NumericIntArray<uint32_t, UxiConfigMaxTimingSequence>(NULL,
+                                                                                                 0,
+                                                                                                 0,
+                                                                                                 UxiConfigMaxTimingSequence,
+                                                                                                 Decimal,
+                                                                                                 1.,
+                                                                                                 4);
+  }
+  for (unsigned ipot=0; ipot<UxiConfigNumberOfPots; ipot++) {
+    _potsParam[ipot] = new NumericFloat<double>(potNames[ipot], initialPotValues[ipot], 0.0, 5.0);
+    _tunePotsParam[ipot] = new CheckValue("Tune", _readOnlyPots & (1<<(ipot+UxiConfigNumberOfPots)));
+    _roPotsParam[ipot] = new CheckValue("Read Only", _readOnlyPots & (1<<ipot));
+  }
+
   pList.insert( &_roiParam );
   pList.insert( &_oscParam );
   pList.insert( &_firstRowParam );
   pList.insert( &_lastRowParam );
   pList.insert( &_firstFrameParam );
   pList.insert( &_lastFrameParam );
-  pList.insert( &_timeOnParam );
-  pList.insert( &_timeOffParam );
-  pList.insert( &_delayParam );
-  for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
-    _timeOnSideParam[iside] = new NumericInt<uint32_t>("Time On", 2, 0, 9999);
-    _timeOffSideParam[iside] = new NumericInt<uint32_t>("Time Off", 2, 0, 9999);
-    _delaySideParam[iside] = new NumericInt<uint32_t>("Initial delay (ns)",  0,  0,  9999);
-    pList.insert( _timeOnSideParam[iside] );
-    pList.insert( _timeOffSideParam[iside] );
-    pList.insert( _delaySideParam[iside] );
+  if (!_expert_mode) {
+    pList.insert( &_timeOnParam );
+    pList.insert( &_timeOffParam );
+    pList.insert( &_delayParam );
+    pList.insert( &_manualShutterParam );
+    pList.insert( &_arbitraryTimingParam );
+  } else {
+    pList.insert( &_timingModeParam );
+    for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
+      pList.insert( _timeOnSideParam[iside] );
+      pList.insert( _timeOffSideParam[iside] );
+      pList.insert( _delaySideParam[iside] );
+      pList.insert( _manualShutterSideParam[iside] );
+      pList.insert( _arbitraryTimingSideParam[iside] );
+    }
   }
   for (unsigned ipot=0; ipot<UxiConfigNumberOfPots; ipot++) {
-    _potsParam[ipot] = new NumericFloat<double>(potNames[ipot], initialPotValues[ipot], 0.0, 5.0);
     pList.insert( _potsParam[ipot] );
-    _tunePotsParam[ipot] = new CheckValue("Tune", _readOnlyPots & (1<<(ipot+UxiConfigNumberOfPots)));
     pList.insert( _tunePotsParam[ipot] );
-    _roPotsParam[ipot] = new CheckValue("Read Only", _readOnlyPots & (1<<ipot));
-    pList.insert( _roPotsParam[ipot] );
+    if (_expert_mode) {
+      pList.insert( _roPotsParam[ipot] );
+    }
   }
+  _registerTable.insert(pList);
 }
 
 Pds_ConfigDb::UxiConfig::Private_Data::~Private_Data()
@@ -165,6 +214,8 @@ Pds_ConfigDb::UxiConfig::Private_Data::~Private_Data()
     if (_timeOnSideParam[iside]) delete _timeOnSideParam[iside];
     if (_timeOffSideParam[iside]) delete _timeOffSideParam[iside];
     if (_delaySideParam[iside]) delete _delaySideParam[iside];
+    if (_manualShutterSideParam[iside]) delete _manualShutterSideParam[iside];
+    if (_arbitraryTimingSideParam[iside]) delete _arbitraryTimingSideParam[iside];
   }
   for (unsigned ipot=0; ipot<UxiConfigNumberOfPots; ipot++) {
     if (_potsParam[ipot]) delete _potsParam[ipot];
@@ -192,35 +243,66 @@ QLayout* Pds_ConfigDb::UxiConfig::Private_Data::initialize(QWidget* p)
     layout->addLayout(osc); }
   { QVBoxLayout* t = new QVBoxLayout;
     t->addWidget(new QLabel("Timing settings: "));
-    t->addLayout(_timeOnParam .initialize(p));
-    t->addLayout(_timeOffParam.initialize(p));
-    t->addLayout(_delayParam  .initialize(p));
+    if (!_expert_mode) {
+      QVBoxLayout* tb = new QVBoxLayout;
+      tb->addLayout(_timeOnParam    .initialize(p));
+      tb->addLayout(_timeOffParam   .initialize(p));
+      tb->addLayout(_delayParam     .initialize(p));
+      tb->setSpacing(5);
+      t->addLayout(_concealerTiming.add(tb, 1<<UxiConfigType::BasicTiming));
+      QVBoxLayout* tm = new QVBoxLayout;
+      tm->addLayout(_manualShutterParam.initialize(p)); _manualShutterParam.setWidth(SHUTTER_ITEM_WIDTH);
+      tm->setSpacing(5);
+      t->addLayout(_concealerTiming.add(tm, 1<<UxiConfigType::ManualTiming));
+      QVBoxLayout* ta = new QVBoxLayout;
+      ta->addLayout(_arbitraryTimingParam.initialize(p)); _arbitraryTimingParam.setWidth(TIMING_ITEM_WIDTH);
+      ta->setSpacing(5);
+      t->addLayout(_concealerTiming.add(ta, 1<<UxiConfigType::ArbitraryTiming));
+    } else {
+      t->addLayout(_timingModeParam.initialize(p));
+      for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
+        QVBoxLayout* tside = new QVBoxLayout;
+        tside->addWidget(new QLabel(sideNames[iside]));
+        tside->addLayout(_timeOnSideParam[iside] ->initialize(p));
+        tside->addLayout(_timeOffSideParam[iside]->initialize(p));
+        tside->addLayout(_delaySideParam[iside]  ->initialize(p));
+        tside->setSpacing(5);
+        t->addLayout(_concealerTiming.add(tside, 1<<UxiConfigType::BasicTiming));
+        QVBoxLayout* tmside = new QVBoxLayout;
+        tmside->addWidget(new QLabel(sideNames[iside]));
+        tmside->addLayout(_manualShutterSideParam[iside]->initialize(p)); _manualShutterSideParam[iside]->setWidth(SHUTTER_ITEM_WIDTH);
+        tmside->setSpacing(5);
+        t->addLayout(_concealerTiming.add(tmside, 1<<UxiConfigType::ManualTiming));
+        QVBoxLayout* taside = new QVBoxLayout;
+        taside->addWidget(new QLabel(sideNames[iside]));
+        taside->addLayout(_arbitraryTimingSideParam[iside]->initialize(p)); _arbitraryTimingSideParam[iside]->setWidth(TIMING_ITEM_WIDTH);
+        taside->setSpacing(5);
+        t->addLayout(_concealerTiming.add(taside, 1<<UxiConfigType::ArbitraryTiming));
+      }
+    }
     t->setSpacing(5);
-    layout->addLayout(_concealerNonExpert.add(t)); }
-  for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
-    { QVBoxLayout* tside = new QVBoxLayout;
-      tside->addWidget(new QLabel(sideNames[iside]));
-      tside->addLayout(_timeOnSideParam[iside] ->initialize(p));
-      tside->addLayout(_timeOffSideParam[iside]->initialize(p));
-      tside->addLayout(_delaySideParam[iside]  ->initialize(p));
-      tside->setSpacing(5);
-      layout->addLayout(_concealerExpert.add(tside)); }
-  }
+    layout->addLayout(t); }
   { QVBoxLayout* r = new QVBoxLayout;
     r->addWidget(new QLabel("Potentiometer settings: "));
     QGridLayout* pgrid = new QGridLayout;
     for (unsigned ipot=0; ipot<UxiConfigNumberOfPots; ipot++) {
       pgrid->addLayout(_concealerReadOnly[ipot].add(_potsParam[ipot]->initialize(p)), ipot, 0);
       pgrid->addLayout(_concealerReadOnly[ipot].add(_tunePotsParam[ipot]->initialize(p)), ipot, 1);
-      pgrid->addLayout(_concealerExpert.add(_roPotsParam[ipot]->initialize(p)), ipot, 2);
+      if (_expert_mode) {
+        pgrid->addLayout(_roPotsParam[ipot]->initialize(p), ipot, 2);
+      }
     }
     r->addLayout(pgrid);
     r->setSpacing(5);
     layout->addLayout(r); }
+  layout->addLayout(_concealerRegisters.add(_registerTable.initialize(p)));
   layout->setSpacing(25);
 
   if (Parameter::allowEdit()) {
     QObject::connect(_roiParam._input, SIGNAL(currentIndexChanged(int)), &_concealerROI, SLOT(show(int)));
+    if (_expert_mode) {
+      QObject::connect(_timingModeParam._input, SIGNAL(currentIndexChanged(int)), &_concealerTiming, SLOT(show(int)));
+    }
   }
 
   return layout;
@@ -244,6 +326,7 @@ int Pds_ConfigDb::UxiConfig::Private_Data::pull(void* from) {
   _lastFrameParam .value = roi_frames.last();
 
   _oscParam       .value = tc.oscillator();
+  _timingModeParam.value = tc.timingMode();
 
   ndarray<const double, 1> pot_data = tc.pots();
   for (unsigned ipot=0; ipot<UxiConfigNumberOfPots; ipot++) {
@@ -253,23 +336,57 @@ int Pds_ConfigDb::UxiConfig::Private_Data::pull(void* from) {
     _concealerReadOnly[ipot].show(!_roPotsParam[ipot]->value || _expert_mode);
   }
 
-  ndarray<const uint32_t, 1> timeon_data = tc.timeOn();
-  ndarray<const uint32_t, 1> timeoff_data = tc.timeOff();
-  ndarray<const uint32_t, 1> delay_data = tc.delay();
-  for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
-    _timeOnSideParam[iside] ->value = timeon_data[iside];
-    _timeOffSideParam[iside]->value = timeoff_data[iside];
-    _delaySideParam[iside]  ->value = delay_data[iside];
-  }
-  _timeOnParam  .value = timeon_data[0];
-  _timeOffParam .value = timeoff_data[0];
-  _delayParam   .value = delay_data[0];
+  if (_timingModeParam.value == UxiConfigType::BasicTiming) {
+    ndarray<const uint32_t, 1> timeon_data = tc.timeOn();
+    ndarray<const uint32_t, 1> timeoff_data = tc.timeOff();
+    ndarray<const uint32_t, 1> delay_data = tc.delay();
 
-  _concealerExpert.show(_expert_mode);
-  _concealerNonExpert.show(!_expert_mode);
+    if (_expert_mode) {
+      for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
+        _timeOnSideParam[iside] ->value = timeon_data[iside];
+        _timeOffSideParam[iside]->value = timeoff_data[iside];
+        _delaySideParam[iside]  ->value = delay_data[iside];
+      }
+    } else {
+      _timeOnParam  .value = timeon_data[0];
+      _timeOffParam .value = timeoff_data[0];
+      _delayParam   .value = delay_data[0];
+    }
+  } else {
+    bool manual_timing = _timingModeParam.value == UxiConfigType::ManualTiming;
+    unsigned max = manual_timing ? UxiConfigMaxManualShutterSequence : UxiConfigMaxTimingSequence;
+    if (_expert_mode) {
+      for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
+        ndarray<const uint32_t, 1> timing = tc.timing(iside);
+        for (unsigned idx=0; idx<max; idx++) {
+          if (manual_timing) {
+            _manualShutterSideParam[iside]->value[idx] = timing[idx];
+          } else {
+            _arbitraryTimingSideParam[iside]->value[idx] = timing[idx];
+          }
+        }
+      }
+    } else {
+      ndarray<const uint32_t, 1> timing = tc.timing(0);
+      for (unsigned idx=0; idx<max; idx++) {
+        if (manual_timing) {
+          _manualShutterParam.value[idx] = timing[idx];
+        } else {
+          _arbitraryTimingParam.value[idx] = timing[idx];
+        }
+      }
+    }
+  }
   _concealerROI.show(_roiParam.value);
+  _concealerTiming.show(_timingModeParam.value);
+
+  // load register values into the register table
+  _registerTable.pull(tc);
+
+  // always show in expert or in user mode if more than zero registers
+  _concealerRegisters.show(_expert_mode || _registerTable.nregisters() > 0);
   
-  return sizeof(UxiConfigType);
+  return tc._sizeof();
 }
 
 int Pds_ConfigDb::UxiConfig::Private_Data::push(void* to) {
@@ -283,19 +400,39 @@ int Pds_ConfigDb::UxiConfig::Private_Data::push(void* to) {
       _readOnlyPots |= (1<<(ipot+UxiConfigNumberOfPots));
   }
 
-  for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
-    if (_expert_mode) {
-      _timeOn[iside]  = _timeOnSideParam[iside] ->value;
-      _timeOff[iside] = _timeOffSideParam[iside]->value;
-      _delay[iside]   = _delaySideParam[iside]  ->value;
-    } else {
-      _timeOn[iside]  = _timeOnParam.value;
-      _timeOff[iside] = _timeOffParam.value;
-      _delay[iside]   = _delayParam.value;
+  if (_timingModeParam.value == UxiConfigType::BasicTiming) {
+    for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
+      if (_expert_mode) {
+        _timing[UxiConfigMaxTimingSequence*iside]   = _timeOnSideParam[iside] ->value;
+        _timing[UxiConfigMaxTimingSequence*iside+1] = _timeOffSideParam[iside]->value;
+        _timing[UxiConfigMaxTimingSequence*iside+2] = _delaySideParam[iside]  ->value;
+      } else {
+        _timing[UxiConfigMaxTimingSequence*iside]   = _timeOnParam.value;
+        _timing[UxiConfigMaxTimingSequence*iside+1] = _timeOffParam.value;
+        _timing[UxiConfigMaxTimingSequence*iside+2] = _delayParam.value;
+      }
+    }
+  } else {
+    bool manual_timing = _timingModeParam.value == UxiConfigType::ManualTiming;
+    unsigned max = manual_timing ? UxiConfigMaxManualShutterSequence : UxiConfigMaxTimingSequence;
+    for (unsigned iside=0; iside<UxiConfigNumberOfSides; iside++) {
+      for (unsigned idx=0; idx<max; idx++) {
+        uint32_t value = 0;
+        if (_expert_mode) {
+          value = manual_timing ? _manualShutterSideParam[iside]->value[idx] : _arbitraryTimingSideParam[iside]->value[idx];
+        } else {
+          value = manual_timing ? _manualShutterParam.value[idx] : _arbitraryTimingParam.value[idx];
+        }
+        _timing[UxiConfigMaxTimingSequence*iside+idx] = value;
+      }
     }
   }
 
-  new (to) UxiConfigType(
+  // get register names and values from the register table
+  Pds::Uxi::Register* registers = new Pds::Uxi::Register[_registerTable.nregisters()];
+  _registerTable.push(registers);
+
+  UxiConfigType& cfg = *new (to) UxiConfigType(
     _roiParam.value,
     Pds::Uxi::RoiCoord(_firstRowParam.value, _lastRowParam.value),
     Pds::Uxi::RoiCoord(_firstFrameParam.value, _lastFrameParam.value),
@@ -305,14 +442,17 @@ int Pds_ConfigDb::UxiConfig::Private_Data::push(void* to) {
     _numberOfFrames,
     _numberOFBytesPerPixel,
     _sensorType,
-    _timeOn,
-    _timeOff,
-    _delay,
+    _timingModeParam.value,
+    _timing,
     _readOnlyPots,
-    _pots
+    _pots,
+    _registerTable.nregisters(),
+    registers
   );
 
-  return sizeof(UxiConfigType);
+  delete[] registers;
+
+  return cfg._sizeof();
 }
 
 bool Pds_ConfigDb::UxiConfig::Private_Data::validate()
@@ -350,7 +490,7 @@ bool Pds_ConfigDb::UxiConfig::Private_Data::validate()
     return !QMessageBox::warning(0,"Warning!", msg, "Ignore", "Cancel", 0, 0, 1);
   }
 
-  return true;
+  return _registerTable.validate();
 }
 
 Pds_ConfigDb::UxiConfig::UxiConfig(bool expert_mode) :
