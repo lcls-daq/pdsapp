@@ -222,9 +222,9 @@ static PyObject* _toPyDict(const Epix10kaElemConfig& elem)
             PyList_SetItem(l,i,get_asic(&elem.asics(i)));
           PyDict_SetItemString(oe,"asics",l); }
 
-        PyDict_Set2dArray<const uint16_t>(oe, "asicPixelConfigArray", elem.asicPixelConfigArray());
+        PyDict_Set2dArray<const uint16_t, false>(oe, "asicPixelConfigArray", elem.asicPixelConfigArray());
 
-        PyDict_Set2dArray<const uint8_t >(oe, "calibPixelConfigArray", elem.calibPixelConfigArray());
+        PyDict_Set2dArray<const uint8_t , false>(oe, "calibPixelConfigArray", elem.calibPixelConfigArray());
         return oe;
 }
 
@@ -412,8 +412,8 @@ static void _toConfig10ka( PyObject* elem,
         Asic10kaConfigV1& asic = const_cast<Asic10kaConfigV1&>(pelem->asics(a));
         set_asic(&asic,PyList_GetItem(PyDict_GetItemString(elem,"asics"),a));
       }
-      PyDict_Get2dArray(elem, "asicPixelConfigArray", const_cast<uint16_t*>(pelem->asicPixelConfigArray().data()));
-      PyDict_Get2dArray(elem, "calibPixelConfigArray", const_cast<uint8_t*>(pelem->calibPixelConfigArray().data()));
+      PyDict_Get2dArray<uint16_t,false>(elem, "asicPixelConfigArray", const_cast<uint16_t*>(pelem->asicPixelConfigArray().data()));
+      PyDict_Get2dArray<uint8_t, false>(elem, "calibPixelConfigArray", const_cast<uint8_t*>(pelem->calibPixelConfigArray().data()));
       __attribute__((unused)) Epix10kaElemConfig& q =
       *new (reinterpret_cast<void*>(const_cast<Epix10kaElemConfig*>(pelem)))
         Epix10kaElemConfig(GET_MEMBER(elem,carrierId0),

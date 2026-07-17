@@ -274,7 +274,7 @@ PyObject* pds_AlviumConfig_get(PyObject* self, PyObject* args)
       strncpy(name, PyString_AsString(i), len-1); \
     }                                             \
     else {                                        \
-      strncpy(name, cfg->name(), len-1);          \
+      strncpy(name, cfg->name(), len);            \
     }                                             \
   }
 
