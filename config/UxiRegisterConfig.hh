@@ -5,7 +5,6 @@
 #include "pdsapp/config/Parameters.hh"
 
 #include <QtCore/QObject>
-#include <QtGui/QWidget>
 #include <vector>
 #include <map>
 
@@ -48,7 +47,7 @@ namespace Pds_ConfigDb {
     void update();
     void flush ();
     void enable(bool v);
-    int pull(const Pds::Uxi::ConfigV4& cfg);
+    int pull(const UxiConfigType& cfg);
     int push(Pds::Uxi::Register* to);
     bool validate();
     unsigned nregisters() const;

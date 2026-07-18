@@ -222,7 +222,7 @@ void UxiRegisterTable::enable(bool v)
   }
 }
 
-int UxiRegisterTable::pull(const Pds::Uxi::ConfigV4& cfg)
+int UxiRegisterTable::pull(const UxiConfigType& cfg)
 {
   ndarray<const Pds::Uxi::Register, 1> regs = cfg.registers();
   // clear any old register data
@@ -261,6 +261,7 @@ bool UxiRegisterTable::validate()
   if (_regs.size() > UxiConfigMaxRegisters) {
     QString msg = QString("Number of requested registers %1 is greater the max of %2!").arg(_regs.size()).arg(UxiConfigMaxRegisters);
     QMessageBox::critical(0, "Error!", msg);
+    v = false;
   }
 
   return v;

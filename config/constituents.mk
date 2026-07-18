@@ -52,6 +52,7 @@ libsrcs_configdbg += JungfrauConfig_V2.cc
 libsrcs_configdbg += JungfrauConfig_V3.cc
 libsrcs_configdbg += ZylaConfig.cc
 libsrcs_configdbg += iStarConfig.cc
+libsrcs_configdbg += UxiTimingConfig.cc UxiTimingConfig_moc.cc
 libsrcs_configdbg += UxiRegisterConfig.cc UxiRegisterConfig_moc.cc
 libsrcs_configdbg += UxiConfig.cc
 libsrcs_configdbg += UxiConfig_V1.cc
