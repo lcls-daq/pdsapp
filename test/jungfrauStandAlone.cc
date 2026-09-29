@@ -6,6 +6,7 @@
 #include <signal.h>
 #include "pds/jungfrau/Driver.hh"
 #include "pds/jungfrau/InterfaceConfig.hh"
+#include "pds/jungfrau/DetectorId.hh"
 
 #include <vector>
 
@@ -311,6 +312,8 @@ int main(int argc, char **argv)
 
   sigaction(SIGINT,&sa,NULL);
 
+  Pds::Jungfrau::DetIdLookup lookup;
+
   std::vector<Pds::Jungfrau::Module*> modules(num_modules);
   for (unsigned i=0; i<num_modules; i++) {
     modules[i] = new Pds::Jungfrau::Module(i, sSlsHost[i], sHost[i], port, sMac[i], sDetIp[i], use_flow_ctrl, configReceiver);
@@ -319,6 +322,7 @@ int main(int argc, char **argv)
     printf(" - Serial number:    %#lx\n", modules[i]->serialnum());
     printf(" - Firmware version: %#lx\n", modules[i]->firmware());
     printf(" - Software version: %#lx\n", modules[i]->software());
+    printf(" - Module mac addr:  %s\n", lookup.has(sSlsHost[i]) ? lookup[sSlsHost[i]].c_str() : "unknown");
   }
   Pds::Jungfrau::Detector* det = new Pds::Jungfrau::Detector(modules, threaded);
  
