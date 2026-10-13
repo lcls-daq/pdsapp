@@ -479,42 +479,42 @@ int main( int argc, char** argv ) {
       val = zero;
       if (srpV3) {
         unsigned cmd[] = {0, val, 0, 0};
-        tx.is32   = sizeof(&tx) == 4;
-        tx.dest = 3 + (4*pgp->portOffset());
+        tx.is32  = sizeof(&tx) == 4;
+        tx.dest  = Pds::Pgp::Destination::build(dest->lane() + Pds::Pgp::Pgp::portOffset(), dest->vc(), datadev);
         tx.index = 0;
         tx.flags = 0;
-        tx.size = sizeof(cmd);
-        tx.data = (unsigned long long)&cmd;
+        tx.size  = sizeof(cmd);
+        tx.data  = (unsigned long long)&cmd;
       } else {
-        tx.is32   = sizeof(&tx) == 4;
-        tx.dest = 3 + (4*pgp->portOffset());
+        tx.is32  = sizeof(&tx) == 4;
+        tx.dest  = Pds::Pgp::Destination::build(dest->lane() + Pds::Pgp::Pgp::portOffset(), dest->vc(), datadev);
         tx.index = 0;
         tx.flags = 0;
-        tx.size = sizeof(val);
-        tx.data = (unsigned long long)&val;
+        tx.size  = sizeof(val);
+        tx.data  = (unsigned long long)&val;
       }
-      printf("monitorTest write %d to lane %d vc %d, offset %d\n", val, tx.dest>>2, tx.dest&3, pgp->portOffset());
+      printf("monitorTest write %d to lane %d vc %d, offset %d\n", val, dest->lane(), dest->vc(), pgp->portOffset());
       write(fd, &tx, sizeof(tx));
       break;
     case monitorTest:
       val = one;
       if (srpV3) {
         unsigned cmd[] = {0, val, 0, 0};
-        tx.is32   = sizeof(&tx) == 4;
-        tx.dest = 3 + (4*pgp->portOffset());
+        tx.is32  = sizeof(&tx) == 4;
+        tx.dest  = Pds::Pgp::Destination::build(dest->lane() + Pds::Pgp::Pgp::portOffset(), dest->vc(), datadev);
         tx.flags = 0;
         tx.index = 0;
-        tx.size = sizeof(cmd);
-        tx.data = (unsigned long long)&cmd;
+        tx.size  = sizeof(cmd);
+        tx.data  = (unsigned long long)&cmd;
       } else {
-        tx.is32   = sizeof(&tx) == 4;
-        tx.dest = 3 + (4*pgp->portOffset());
+        tx.is32  = sizeof(&tx) == 4;
+        tx.dest  = Pds::Pgp::Destination::build(dest->lane() + Pds::Pgp::Pgp::portOffset(), dest->vc(), datadev);
         tx.flags = 0;
         tx.index = 0;
-        tx.size = sizeof(val);
-        tx.data = (unsigned long long)&val;
+        tx.size  = sizeof(val);
+        tx.data  = (unsigned long long)&val;
       }
-      printf("monitorTest write %d to lane %d vc %d, offset %d\n", val, tx.dest>>2, tx.dest&3, pgp->portOffset());
+      printf("monitorTest write %d to lane %d vc %d, offset %d\n", val, dest->lane(), dest->vc(), pgp->portOffset());
       write(fd, &tx, sizeof(tx));
       //fall through to readAsync ...
     case readAsyncCommand:
@@ -538,18 +538,21 @@ int main( int argc, char** argv ) {
             switch(typ) {
               case PadMonServer::Epix:
                 if (readRet > 1000) // ignore configure returns
-                  shm->event(*reinterpret_cast<Epix::ElementV1*>(pgpCardRx.data)); break;
+                  shm->event(*reinterpret_cast<Epix::ElementV1*>(pgpCardRx.data));
+                break;
               case PadMonServer::EpixSampler:
-                shm->event(*reinterpret_cast<EpixSampler::ElementV1*>(pgpCardRx.data)); break;
+                shm->event(*reinterpret_cast<EpixSampler::ElementV1*>(pgpCardRx.data));
+                break;
               default:
                 break;
             }
           } else if (writing && (readRet > 4)) {
             fwrite((const void *)pgpCardRx.data, sizeof(uint32_t), readRet, writeFile);
           } else if ((debug & 1) || (readRet <= 4)) {
-            printf("read returned %u, DataImportFrame lane(%u) vc(%u) pgpCardRx lane(%u), vc(%u)\n",
-                readRet, inFrame->lane(), inFrame->vc(),
-                pgpGetLane(pgpCardRx.dest)-Pds::Pgp::Pgp::portOffset(), pgpGetVc(pgpCardRx.dest));
+            Pds::Pgp::Destination rxdest(pgpCardRx.dest, datadev);
+            printf("read returned %u, DataImportFrame lane(%u) vc(%u) pgpCardRx lane(%u), vc(%u), offset(%u)\n",
+                   readRet, inFrame->lane(), inFrame->vc(),
+                   rxdest.lane()-Pds::Pgp::Pgp::portOffset(), rxdest.vc(), Pds::Pgp::Pgp::portOffset());
           } else {
             uint32_t* u32p = (uint32_t*) pgpCardRx.data;
             int*      i32p = (int*) pgpCardRx.data;
