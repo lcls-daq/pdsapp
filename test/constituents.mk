@@ -19,6 +19,11 @@ tgtnames += jungfrauRegisterDump nscamStandAlone nscamTimingTest
 CPPFLAGS += -std=c++11
 endif
 
+ifneq ($(findstring x86_64-rhel8,$(tgt_arch)),)
+tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone archonStandAlone picamStandAlone uxiStandAlone
+tgtnames += vimbaStandAlone jungfrauRegisterDump nscamStandAlone nscamTimingTest
+endif
+
 ifneq ($(findstring x86_64-rhel9,$(tgt_arch)),)
 tgtnames += zylaStandAlone andorStandAlone andorDualStandAlone jungfrauStandAlone archonStandAlone picamStandAlone uxiStandAlone
 tgtnames += vimbaStandAlone jungfrauRegisterDump nscamStandAlone nscamTimingTest

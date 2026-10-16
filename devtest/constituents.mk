@@ -38,6 +38,10 @@ ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
 tgtnames += pgpaeswidget
 endif
 
+ifneq ($(findstring x86_64-rhel8,$(tgt_arch)),)
+tgtnames += pgpaeswidget
+endif
+
 ifneq ($(findstring x86_64-rhel9,$(tgt_arch)),)
 tgtnames += pgpaeswidget
 endif
@@ -204,5 +208,13 @@ tgtslib_pgppromload := $(USRLIBDIR)/rt
 tgtincs_pgppromload := pgpcard aesdriver/include
 
 ifneq ($(findstring x86_64-rhel7,$(tgt_arch)),)
+tgtnames += pgppromload
+endif
+
+ifneq ($(findstring x86_64-rhel8,$(tgt_arch)),)
+tgtnames += pgppromload
+endif
+
+ifneq ($(findstring x86_64-rhel9,$(tgt_arch)),)
 tgtnames += pgppromload
 endif

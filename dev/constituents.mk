@@ -44,6 +44,10 @@ tgtnames += pimax pixis camedt fli andor andordual jungfrau usdusb zyla uxi arch
 CPPFLAGS += -std=c++11
 endif
 
+ifneq ($(findstring x86_64-rhel8,$(tgt_arch)),)
+tgtnames += pimax pixis camedt andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad vimba nscam
+endif
+
 ifneq ($(findstring x86_64-rhel9,$(tgt_arch)),)
 tgtnames += pimax pixis camedt andor andordual jungfrau usdusb zyla uxi archon epix10ka2m epix10kaquad vimba nscam
 endif
